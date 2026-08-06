@@ -60,8 +60,8 @@ export default function TestQuestions({
                     onClick={() => onAnswer(q.id, opt)}
                     className={`btn border text-xs ${
                       given === opt
-                        ? "border-indigo-600 bg-indigo-600 text-white"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "border-indigo-600 bg-indigo-600 text-accent-fg"
+                        : "border-slate-300 bg-surface text-slate-700 hover:bg-slate-50"
                     }`}
                   >
                     {opt}
@@ -78,7 +78,7 @@ export default function TestQuestions({
                     className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
                       given === idx
                         ? "border-indigo-500 bg-indigo-50"
-                        : "border-slate-200 bg-white hover:bg-slate-50"
+                        : "border-slate-200 bg-surface hover:bg-slate-50"
                     } ${submitted ? "cursor-default" : ""}`}
                   >
                     <input

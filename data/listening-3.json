@@ -1,0 +1,258 @@
+{
+  "id": "listening-3",
+  "title": "Renting an Allotment Plot",
+  "context": "A caller enquires about renting a vegetable plot from a town council.",
+  "difficulty": "medium",
+  "timeMinutes": 12,
+  "speakers": [
+    "Officer",
+    "Caller"
+  ],
+  "script": [
+    {
+      "speaker": "Officer",
+      "text": "Good morning, Riverbank Town Council, allotments office. How can I help?"
+    },
+    {
+      "speaker": "Caller",
+      "text": "Hello. I'd like to ask about renting a plot, please. A friend of mine has one and said there might be spaces."
+    },
+    {
+      "speaker": "Officer",
+      "text": "There are, as it happens. We've just had a few come free at the Millgate site. Can I take some details first?"
+    },
+    {
+      "speaker": "Caller",
+      "text": "Of course."
+    },
+    {
+      "speaker": "Officer",
+      "text": "Your full name?"
+    },
+    {
+      "speaker": "Caller",
+      "text": "It's Priya Anand. Anand is A-N-A-N-D."
+    },
+    {
+      "speaker": "Officer",
+      "text": "A-N-A-N-D. Thank you. And an address?"
+    },
+    {
+      "speaker": "Caller",
+      "text": "Forty-two Weaver Street. That's in the Northfield area."
+    },
+    {
+      "speaker": "Officer",
+      "text": "Forty-two Weaver Street. And a contact number?"
+    },
+    {
+      "speaker": "Caller",
+      "text": "Zero seven eight one one, nine double-oh, three five four."
+    },
+    {
+      "speaker": "Officer",
+      "text": "Let me read that back. Zero seven eight one one, nine hundred, three five four."
+    },
+    {
+      "speaker": "Caller",
+      "text": "That's right."
+    },
+    {
+      "speaker": "Officer",
+      "text": "Now, the plots at Millgate come in two sizes. There's a full plot, which is about two hundred and fifty square metres, and a half plot at a hundred and twenty-five."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Which would you recommend? I've never done this before."
+    },
+    {
+      "speaker": "Officer",
+      "text": "Honestly, the half plot. People take a full one, get overwhelmed by the digging, and give it up within a year. You can always move up later."
+    },
+    {
+      "speaker": "Caller",
+      "text": "That sounds sensible. I'll take a half plot then."
+    },
+    {
+      "speaker": "Officer",
+      "text": "Good. The rent for a half plot is sixty-two pounds a year."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Is that payable monthly?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "No, it's a single annual payment, I'm afraid. There's also a one-off deposit of twenty pounds, which you get back when you leave, provided the plot is left clear."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Fine. What's actually provided on the site?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "There's water from standpipes along the main path, and a communal shed with tools you can borrow. We supply compost twice a year, in spring and autumn."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Do I need to bring my own lock?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "Yes, for the gate. Everyone uses the same type — it's a combination lock, and we'll give you the code when you sign."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Are there any rules I should know about?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "A few. No bonfires between April and September. Dogs are allowed but must be kept on a lead. And the big one: no structures over two metres tall without written permission."
+    },
+    {
+      "speaker": "Caller",
+      "text": "What counts as a structure?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "Sheds, greenhouses, anything permanent. A bean frame is fine."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Understood. When could I start?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "The next introduction session is on Saturday the ninth — no, sorry, I'm looking at last month's calendar. It's Saturday the sixteenth, at ten in the morning."
+    },
+    {
+      "speaker": "Caller",
+      "text": "The sixteenth. And how long does it take?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "About ninety minutes. You'll walk the site, meet the plot secretary and sign the agreement. Bring proof of address — a utility bill is easiest."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Can I bring a bank statement instead?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "That's fine, as long as it's from the last three months."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Great. Is there anything else I should bring?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "Just sensible footwear. The ground at Millgate is heavy clay and it holds the water after rain."
+    },
+    {
+      "speaker": "Caller",
+      "text": "I'll remember that. Thank you very much for your help."
+    },
+    {
+      "speaker": "Officer",
+      "text": "You're welcome. I'll post the paperwork out today so you can read it beforehand."
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "type": "completion",
+      "sentence": "Caller's surname: ___",
+      "answer": "Anand",
+      "maxWords": 1,
+      "explanation": "She spells it: A-N-A-N-D. Names are always either spelled out or repeated back — wait for the confirmation before committing."
+    },
+    {
+      "id": "q2",
+      "type": "completion",
+      "sentence": "Address: 42 ___ Street",
+      "answer": "Weaver",
+      "maxWords": 1,
+      "explanation": "\"Forty-two Weaver Street\", and the officer repeats it back. The number is already printed in the question, so only the street name is needed."
+    },
+    {
+      "id": "q3",
+      "type": "completion",
+      "sentence": "A half plot measures about ___ square metres.",
+      "answer": "125",
+      "maxWords": 1,
+      "explanation": "A full plot is about 250 square metres and a half plot 125. The larger figure is said first and is the distractor. It is spoken as \"a hundred and twenty-five\", so either form is accepted."
+    },
+    {
+      "id": "q4",
+      "type": "completion",
+      "sentence": "Annual rent for a half plot: £___",
+      "answer": "62",
+      "maxWords": 1,
+      "explanation": "\"The rent for a half plot is sixty-two pounds a year.\" The twenty-pound deposit later in the call is a separate figure."
+    },
+    {
+      "id": "q5",
+      "type": "completion",
+      "sentence": "Refundable deposit: £___",
+      "answer": "20",
+      "maxWords": 1,
+      "explanation": "\"A one-off deposit of twenty pounds, which you get back when you leave.\" Note \"one-off\" and \"get back\" — the words that separate a deposit from a rent."
+    },
+    {
+      "id": "q6",
+      "type": "completion",
+      "sentence": "Introduction session date: Saturday the ___",
+      "answer": "sixteenth",
+      "maxWords": 1,
+      "explanation": "The officer corrects himself: \"Saturday the ninth — no, sorry ... It's Saturday the sixteenth.\" Corrections are a standard IELTS device; take the second date."
+    },
+    {
+      "id": "q7",
+      "type": "completion",
+      "sentence": "The session lasts about ___ minutes.",
+      "answer": "ninety",
+      "maxWords": 1,
+      "explanation": "\"About ninety minutes.\" Either the word or the figure is accepted, but \"an hour and a half\" would not match what was said."
+    },
+    {
+      "id": "q8",
+      "type": "mcq",
+      "question": "Why does the officer recommend a half plot?",
+      "options": [
+        "It is the only size available",
+        "Beginners often find a full plot too much work",
+        "The soil is better on half plots",
+        "Full plots cost more to insure"
+      ],
+      "answer": 1,
+      "explanation": "\"People take a full one, get overwhelmed by the digging, and give it up within a year.\" The reason is the workload, and the officer never says a half plot is the only size."
+    },
+    {
+      "id": "q9",
+      "type": "mcq",
+      "question": "What must the caller supply herself?",
+      "options": [
+        "Tools",
+        "Compost",
+        "A lock for the gate",
+        "Water containers"
+      ],
+      "answer": 2,
+      "explanation": "Tools are in the communal shed, compost is supplied twice a year and water comes from standpipes. Only the gate lock is the tenant's responsibility."
+    },
+    {
+      "id": "q10",
+      "type": "mcq",
+      "question": "What does the officer say about the ground at the site?",
+      "options": [
+        "It drains quickly",
+        "It stays wet after rain",
+        "It is mostly sand",
+        "It is uneven and stony"
+      ],
+      "answer": 1,
+      "explanation": "\"The ground at Millgate is heavy clay and it holds the water after rain.\" Holding water is the opposite of draining quickly, which is the option placed first to catch you."
+    }
+  ]
+}

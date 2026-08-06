@@ -152,6 +152,60 @@ export function getSpeechRecognition(): SpeechRecognitionLike | null {
   return rec;
 }
 
+
+/*
+  Voice quality is the single biggest factor in whether playback sounds like a
+  person or a robot. Browsers ship a wide range: modern neural voices alongside
+  decades-old formant synthesisers and novelty voices. Ranking them explicitly
+  beats taking whatever getVoices() returns first.
+*/
+const GOOD_VOICE = [
+  /natural/i, /neural/i, /enhanced/i, /premium/i, /siri/i,
+  /google uk english/i, /google us english/i,
+  /samantha/i, /serena/i, /daniel/i, /karen/i, /moira/i, /arthur/i, /martha/i,
+  /libby/i, /sonia/i, /ryan/i, /aria/i, /jenny/i, /guy/i,
+];
+
+// Novelty and legacy synthesisers that sound obviously artificial.
+const BAD_VOICE = [
+  /espeak/i, /compact/i, /eloquence/i,
+  /albert/i, /fred/i, /zarvox/i, /whisper/i, /bells/i, /boing/i, /bubbles/i,
+  /cellos/i, /deranged/i, /hysterical/i, /jester/i, /organ/i, /superstar/i,
+  /trinoids/i, /wobble/i, /bahh/i, /grandma/i, /grandpa/i, /rocko/i, /shelley/i,
+  /sandy/i, /flo/i, /junior/i, /kathy/i, /princess/i, /ralph/i, /bad news/i,
+  /good news/i,
+];
+
+function scoreVoice(v: SpeechSynthesisVoice): number {
+  const name = v.name;
+  if (BAD_VOICE.some((re) => re.test(name))) return -100;
+  let score = 0;
+  if (GOOD_VOICE.some((re) => re.test(name))) score += 10;
+  // Cloud voices are usually the higher-quality ones.
+  if (!v.localService) score += 3;
+  // IELTS listening is predominantly British-accented.
+  if (v.lang.toLowerCase().startsWith("en-gb")) score += 2;
+  else if (v.lang.toLowerCase().startsWith("en-au") || v.lang.toLowerCase().startsWith("en-us")) score += 1;
+  return score;
+}
+
+/** English voices, best-sounding first. */
+export function rankedEnglishVoices(): SpeechSynthesisVoice[] {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return [];
+  return window.speechSynthesis
+    .getVoices()
+    .filter((v) => v.lang.toLowerCase().startsWith("en") && scoreVoice(v) > -100)
+    .sort((a, b) => scoreVoice(b) - scoreVoice(a));
+}
+
+/** Split into sentences so playback can breathe between them. */
+export function toSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 /** Speak a line of text; resolves when finished (or immediately if unsupported). */
 export async function speak(text: string, rate = 1): Promise<void> {
   const tts = await nativeTTS();
@@ -172,10 +226,8 @@ export async function speak(text: string, rate = 1): Promise<void> {
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = rate;
     utter.lang = "en-GB";
-    const voice = window.speechSynthesis
-      .getVoices()
-      .find((v) => v.lang.toLowerCase().startsWith("en"));
-    if (voice) utter.voice = voice;
+    const [best] = rankedEnglishVoices();
+    if (best) utter.voice = best;
     utter.onend = () => resolve();
     utter.onerror = () => resolve();
     window.speechSynthesis.speak(utter);

@@ -6,20 +6,29 @@ exam-format material and an AI examiner.
 
 ## What it does
 
-**Placement test** — 18 questions, five minutes. Items are weighted by CEFR difficulty
-(A1→C2), so getting the hard ones right moves your band more than getting the easy ones
-right. You get an estimated band plus a breakdown by skill and by difficulty.
+**Placement test** — 15 questions, five minutes, and it adapts as you go. The test tracks
+an ability estimate on the CEFR scale (A1→C2): answer correctly and the next question is
+harder, get one wrong and the next is easier. The step shrinks as the test proceeds, so it
+travels a long way early and refines late — which is why 15 adaptive questions place a
+learner more accurately than a longer fixed paper. Questions are drawn from a bank of 72 and
+never repeat within three sittings, so retaking it is a real re-test rather than a memory
+test. You get an estimated band plus a breakdown by skill and by difficulty.
+
+**Wrong-answer review** — every test ends with the questions you missed, what you put, the
+answer, and an explanation of why it is the answer. Above it sits advice generated from the
+*shape* of your mistakes rather than your score: which question type cost you most, whether
+your profile is uneven, and what to do about it.
 
 **Study plan** — a four-week cycle ordered by weakness: modules you have never tested come
 first, then the ones with your lowest band. Weak skills flagged by the placement test add
 extra review tasks. Set a target band and the plan tells you how realistic the gap is.
 
-**Reading** — full academic passages (750–950 words) with True/False/Not Given, multiple
-choice and sentence completion. Auto-marked and converted to a band using the published
+**Reading** — four full academic passages (750–950 words) with True/False/Not Given,
+multiple choice and sentence completion. Auto-marked and converted to a band using the published
 Academic Reading conversion table.
 
 **Listening** — Section 1 (transactional dialogue) and Section 4 (academic lecture) style
-tests. The script is read aloud by the browser's speech synthesis, one turn at a time, with
+tests, four in all. The script is read aloud by the browser's speech synthesis, one turn at a time, with
 different voices per speaker and adjustable speed. The transcript stays hidden until you
 submit, as in the real exam.
 
@@ -35,6 +44,10 @@ Pronunciation — plus a band-8 model answer to your weakest response.
 
 **Endless material** — the app can generate brand-new exam-format reading and listening
 tests on demand, at your chosen difficulty and topic.
+
+**Three themes** — Warm (cream paper and clay, the default), Light and Dark, switched from
+the header and remembered on the device. The whole palette lives in CSS variables redefined
+per theme, so no component carries theme-specific markup.
 
 All content is original and written to match authentic IELTS format, register and
 difficulty calibration. No real past-paper material is reproduced.
@@ -105,11 +118,11 @@ to Netlify or any Node host (`npm run build && npm start`).
 ```
 app/
   page.tsx                    dashboard
-  placement/                  weighted placement test
+  placement/                  adaptive placement test
   plan/                       generated study plan
   practice/                   test index + on-demand generation
-    reading/[id]/             reading test runner
-    listening/[id]/           listening test runner (speech synthesis)
+    reading/                  reading test runner (?id=…)
+    listening/                listening test runner (?id=…, speech synthesis)
     writing/                  writing task + AI grading
   speaking/                   AI speaking examiner
   resources/                  exam guides
@@ -121,6 +134,10 @@ components/                   band badge, question renderer, timer
 data/                         the content bank (JSON)
 lib/
   band.ts                     scoring and band conversion
+  placement.ts                adaptive test: item selection and ability estimate
+  advice.ts                   post-test advice from the shape of the mistakes
+  review.ts                   builds the wrong-answer review
+  theme.ts                    theme store and pre-paint initialiser
   plan.ts                     study-plan rules
   descriptors.ts              condensed official band descriptors
   anthropic.ts                Claude client with structured outputs

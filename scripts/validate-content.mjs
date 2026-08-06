@@ -25,13 +25,82 @@ function load(name) {
   }
 }
 
-/** Same normalisation the app uses when marking a typed answer. */
+/*
+  Same normalisation the app uses when marking a typed answer, including
+  spelled-out numbers — a script that says "sixty-two" must satisfy a key of
+  "62", exactly as it does for a learner typing either form.
+*/
+const NUMBER_WORDS = {
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+  eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
+  fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+  nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
+  seventy: 70, eighty: 80, ninety: 90, hundred: 100,
+  first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7,
+  eighth: 8, ninth: 9, tenth: 10, eleventh: 11, twelfth: 12, thirteenth: 13,
+  fourteenth: 14, fifteenth: 15, sixteenth: 16, seventeenth: 17,
+  eighteenth: 18, nineteenth: 19, twentieth: 20, thirtieth: 30,
+};
+
 function normalise(value) {
-  return String(value)
+  const base = String(value)
     .trim()
     .toLowerCase()
-    .replace(/[.,!?;:'"]/g, "")
-    .replace(/\s+/g, " ");
+    .replace(/[.,!?;:'"£$€%]/g, "")
+    .replace(/[-–—]/g, " ")
+    // "6.30pm" and "6.30 pm" are the same answer to a candidate.
+    .replace(/(\d)([a-z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const tokens = base.split(" ").filter((t) => t !== "a");
+  const out = [];
+  let running = null;
+
+  const flush = () => {
+    if (running !== null) out.push(String(running));
+    running = null;
+  };
+
+  for (const token of tokens) {
+    // "and" joins only within a number ("a hundred and twenty-five"); between
+    // two separate numbers ("one and five per cent") it must not merge them.
+    if (token === "and") {
+      if (running === null || running % 100 !== 0) flush();
+      continue;
+    }
+    const digits = NUMBER_WORDS[token];
+    if (digits === undefined) {
+      flush();
+      out.push(token);
+      continue;
+    }
+    const value = digits;
+    const isTens = running !== null && running >= 20 && running % 10 === 0;
+    const isHundreds = running !== null && running % 100 === 0;
+    if (value === 100 && running !== null && running < 100) running *= 100;
+    else if (isTens && value < 10) running += value;
+    else if (isHundreds && value < 100) running += value;
+    else {
+      flush();
+      running = value;
+    }
+  }
+  flush();
+  return out.join(" ");
+}
+
+/*
+  Every question carries an explanation, because the post-test review is where
+  the learning happens — a question the learner got wrong and cannot find out
+  why is worse than no question at all. The length floor exists to catch
+  placeholders like "See the passage."
+*/
+function checkExplanation(file, q) {
+  const text = typeof q.explanation === "string" ? q.explanation.trim() : "";
+  if (text.length < 40) {
+    fail(file, `${q.id ?? "a question"} needs an explanation for the post-test review`);
+  }
 }
 
 function checkQuestions(file, questions, source, expectedCount) {
@@ -47,6 +116,7 @@ function checkQuestions(file, questions, source, expectedCount) {
     if (!q.id) fail(file, "a question is missing its id");
     if (seenIds.has(q.id)) fail(file, `duplicate question id ${q.id}`);
     seenIds.add(q.id);
+    checkExplanation(file, q);
 
     if (q.type === "tfng") {
       if (!["TRUE", "FALSE", "NOT GIVEN"].includes(q.answer)) {
@@ -95,10 +165,23 @@ function checkQuestions(file, questions, source, expectedCount) {
 const placement = load("placement.json");
 if (placement) {
   const questions = placement.questions ?? [];
-  if (questions.length !== 18) fail("placement.json", `expected 18 questions, found ${questions.length}`);
+  const ids = new Set();
+  for (const q of questions) {
+    if (ids.has(q.id)) fail("placement.json", `duplicate question id ${q.id}`);
+    ids.add(q.id);
+  }
+  // The adaptive test asks 15 and must not repeat one across three sittings.
+  const TEST_LENGTH = 15;
+  if (questions.length < TEST_LENGTH * 3) {
+    fail(
+      "placement.json",
+      `${questions.length} questions cannot fill three non-repeating sittings of ${TEST_LENGTH}`,
+    );
+  }
   const perLevel = {};
   for (const q of questions) {
     perLevel[q.level] = (perLevel[q.level] ?? 0) + 1;
+    checkExplanation("placement.json", q);
     if (!Array.isArray(q.options) || q.options.length !== 4) {
       fail("placement.json", `${q.id} must have exactly four options`);
     } else if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.options.length) {
@@ -111,16 +194,21 @@ if (placement) {
       fail("placement.json", `${q.id} has an unknown CEFR level: ${q.level}`);
     }
   }
-  // The band estimate assumes an even spread of difficulty.
+  // The adaptive test can dwell at a level for several questions in a row, so
+  // each level needs real depth or the search has to keep drifting outwards.
   for (const level of ["A1", "A2", "B1", "B2", "C1", "C2"]) {
-    if (perLevel[level] !== 3) {
-      fail("placement.json", `level ${level} has ${perLevel[level] ?? 0} questions, expected 3`);
+    const count = perLevel[level] ?? 0;
+    if (count < 9) {
+      fail(
+        "placement.json",
+        `level ${level} has only ${count} questions; 9 are needed for three non-repeating tests`,
+      );
     }
   }
 }
 
 // ---- Reading ----
-for (const name of ["reading-1.json", "reading-2.json"]) {
+for (const name of ["reading-1.json", "reading-2.json", "reading-3.json", "reading-4.json"]) {
   const test = load(name);
   if (!test) continue;
   const words = (test.passage ?? "").split(/\s+/).filter(Boolean).length;
@@ -131,7 +219,7 @@ for (const name of ["reading-1.json", "reading-2.json"]) {
 }
 
 // ---- Listening ----
-for (const name of ["listening-1.json", "listening-2.json"]) {
+for (const name of ["listening-1.json", "listening-2.json", "listening-3.json", "listening-4.json"]) {
   const test = load(name);
   if (!test) continue;
   const script = (test.script ?? []).map((turn) => turn.text).join(" ");

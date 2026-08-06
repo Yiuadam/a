@@ -10,6 +10,8 @@ export interface PlacementQuestion {
   question: string;
   options: string[];
   answer: number;
+  /** Why the key is right — shown in the review after the test. */
+  explanation?: string;
 }
 
 export interface PlacementData {
@@ -23,6 +25,8 @@ export interface TFNGQuestion {
   type: "tfng";
   statement: string;
   answer: "TRUE" | "FALSE" | "NOT GIVEN";
+  /** Why the key is right — shown in the review after the test. */
+  explanation?: string;
 }
 
 export interface MCQQuestion {
@@ -31,6 +35,7 @@ export interface MCQQuestion {
   question: string;
   options: string[];
   answer: number;
+  explanation?: string;
 }
 
 export interface CompletionQuestion {
@@ -39,6 +44,7 @@ export interface CompletionQuestion {
   sentence: string;
   answer: string;
   maxWords: number;
+  explanation?: string;
 }
 
 export type TestQuestion = TFNGQuestion | MCQQuestion | CompletionQuestion;
@@ -175,6 +181,8 @@ export interface GeneratedTest {
 
 export interface Profile {
   placement?: PlacementResult;
+  /** Question ids from the last two placement sittings, newest first. */
+  placementHistory?: string[][];
   targetBand?: number;
   results: ModuleResult[];
   genTests: GeneratedTest[];

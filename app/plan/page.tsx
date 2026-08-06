@@ -69,7 +69,7 @@ export default function PlanPage() {
         {plan.weeks.map((w) => (
           <section key={w.week} className="card">
             <div className="mb-2 flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-accent-fg">
                 {w.week}
               </span>
               <h2 className="font-semibold text-slate-900">Week {w.week}: {w.focus}</h2>

@@ -4,15 +4,26 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import Review from "@/components/Review";
 import TestQuestions, { type AnswerMap } from "@/components/TestQuestions";
 import listeningOne from "@/data/listening-1.json";
 import listeningTwo from "@/data/listening-2.json";
+import listeningThree from "@/data/listening-3.json";
+import listeningFour from "@/data/listening-4.json";
+import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
+import { rankedEnglishVoices, toSentences } from "@/lib/speech";
 import { useMounted, useProfile } from "@/lib/hooks";
+import { buildReview } from "@/lib/review";
 import { addResult } from "@/lib/store";
 import type { ListeningTest } from "@/lib/types";
 
-const bundled = [listeningOne, listeningTwo] as ListeningTest[];
+const bundled = [
+  listeningOne,
+  listeningTwo,
+  listeningThree,
+  listeningFour,
+] as ListeningTest[];
 
 interface PlaybackHooks {
   voices: SpeechSynthesisVoice[];
@@ -23,31 +34,50 @@ interface PlaybackHooks {
 }
 
 /**
- * Speak the script one turn at a time, chaining each utterance to the next so
- * turns never overlap. Each speaker gets its own voice where the browser offers
- * more than one, and a pitch shift otherwise.
+ * Speak the script a sentence at a time rather than a turn at a time.
+ *
+ * Reading a whole paragraph as one utterance is what makes synthesised speech
+ * sound mechanical: the pace never varies and there is no breath between
+ * thoughts. Sentence-level playback with short gaps — longer when the speaker
+ * changes, as in a real conversation — plus a little jitter in the rate, gets
+ * much closer to a person reading aloud.
  */
 function playScript(test: ListeningTest, from: number, hooks: PlaybackHooks): void {
-  const step = (index: number) => {
+  const speak = (turnIndex: number, sentenceIndex: number) => {
     if (!hooks.stillPlaying()) return;
-    if (index >= test.script.length) {
+    if (turnIndex >= test.script.length) {
       hooks.onEnd();
       return;
     }
-    hooks.onTurn(index);
-    const turn = test.script[index];
-    const utter = new SpeechSynthesisUtterance(turn.text);
+    const turn = test.script[turnIndex];
+    const sentences = toSentences(turn.text);
+    if (sentenceIndex >= sentences.length) {
+      // Turn-taking gap: a beat longer than the pause between sentences.
+      const gap = turnIndex + 1 < test.script.length ? 420 : 0;
+      window.setTimeout(() => speak(turnIndex + 1, 0), gap);
+      return;
+    }
+
+    if (sentenceIndex === 0) hooks.onTurn(turnIndex);
+
+    const utter = new SpeechSynthesisUtterance(sentences[sentenceIndex]);
     const speakerIdx = Math.max(0, test.speakers.indexOf(turn.speaker));
     if (hooks.voices.length > 0) {
       utter.voice = hooks.voices[speakerIdx % hooks.voices.length];
     }
-    utter.pitch = speakerIdx === 0 ? 1 : 0.8;
-    utter.rate = hooks.rate();
-    utter.onend = () => step(index + 1);
-    utter.onerror = () => step(index + 1);
+    // Only shift pitch when one voice has to cover several speakers.
+    utter.pitch = hooks.voices.length > 1 ? 1 : speakerIdx === 0 ? 1.04 : 0.92;
+    // ±3% keeps the delivery from sounding metronomic.
+    utter.rate = hooks.rate() * (0.97 + Math.random() * 0.06);
+    const next = () => {
+      if (!hooks.stillPlaying()) return;
+      window.setTimeout(() => speak(turnIndex, sentenceIndex + 1), 180);
+    };
+    utter.onend = next;
+    utter.onerror = next;
     window.speechSynthesis.speak(utter);
   };
-  step(from);
+  speak(from, 0);
 }
 
 function ListeningTestPageRunner() {
@@ -86,9 +116,7 @@ function ListeningTestPageRunner() {
   useEffect(() => {
     if (!ttsSupported) return;
     const loadVoices = () => {
-      voicesRef.current = window.speechSynthesis
-        .getVoices()
-        .filter((v) => v.lang.toLowerCase().startsWith("en"));
+      voicesRef.current = rankedEnglishVoices();
     };
     loadVoices();
     window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
@@ -246,8 +274,9 @@ function ListeningTestPageRunner() {
           <BandBadge band={band} caption={`${raw}/${test.questions.length} correct`} />
           <div className="max-w-md text-sm text-slate-600">
             <p>
-              Estimated listening band <span className="font-semibold">{band}</span>. Review your
-              answers and the transcript below.
+              Estimated listening band <span className="font-semibold">{band}</span>. Go through
+              the review below with the transcript open — every answer you missed was audible,
+              and finding where is what fixes it.
             </p>
             <div className="mt-3 flex gap-2">
               <Link href="/practice" className="btn-secondary">
@@ -259,6 +288,19 @@ function ListeningTestPageRunner() {
             </div>
           </div>
         </div>
+      )}
+
+      {submitted && band !== null && (
+        <Review
+          items={buildReview(test.questions, answers)}
+          advice={testAdvice(
+            "listening",
+            test.questions,
+            buildReview(test.questions, answers).map((i) => i.id),
+            band,
+          )}
+          total={test.questions.length}
+        />
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">

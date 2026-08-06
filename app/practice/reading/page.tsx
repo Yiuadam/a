@@ -4,16 +4,21 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import Review from "@/components/Review";
 import TestQuestions, { type AnswerMap } from "@/components/TestQuestions";
 import Timer from "@/components/Timer";
 import readingOne from "@/data/reading-1.json";
 import readingTwo from "@/data/reading-2.json";
+import readingThree from "@/data/reading-3.json";
+import readingFour from "@/data/reading-4.json";
+import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
 import { useMounted, useProfile } from "@/lib/hooks";
+import { buildReview } from "@/lib/review";
 import { addResult } from "@/lib/store";
 import type { ReadingTest } from "@/lib/types";
 
-const bundled = [readingOne, readingTwo] as ReadingTest[];
+const bundled = [readingOne, readingTwo, readingThree, readingFour] as ReadingTest[];
 
 function ReadingTestPageRunner() {
   const params = useSearchParams();
@@ -104,8 +109,9 @@ function ReadingTestPageRunner() {
           <div className="max-w-md text-sm text-slate-600">
             <p>
               Estimated reading band <span className="font-semibold">{band}</span> ({raw} of{" "}
-              {test.questions.length} correct, scaled to the official conversion table). Review
-              the marked answers below, then head back for another test.
+              {test.questions.length} correct, scaled to the official conversion table). Work
+              through the review below before you start another test — that is where the marks
+              come from.
             </p>
             <div className="mt-3 flex gap-2">
               <Link href="/practice" className="btn-secondary">
@@ -117,6 +123,19 @@ function ReadingTestPageRunner() {
             </div>
           </div>
         </div>
+      )}
+
+      {submitted && band !== null && (
+        <Review
+          items={buildReview(test.questions, answers)}
+          advice={testAdvice(
+            "reading",
+            test.questions,
+            buildReview(test.questions, answers).map((i) => i.id),
+            band,
+          )}
+          total={test.questions.length}
+        />
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">

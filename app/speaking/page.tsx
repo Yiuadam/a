@@ -484,8 +484,8 @@ export default function SpeakingPage() {
               disabled={examinerSpeaking || preparing}
               className={`flex h-24 w-24 items-center justify-center rounded-full text-3xl transition-all disabled:opacity-40 ${
                 recording
-                  ? "bg-rose-600 text-white shadow-lg ring-8 ring-rose-100"
-                  : "bg-indigo-600 text-white shadow-md hover:bg-indigo-700 hover:shadow-lg"
+                  ? "bg-rose-600 text-accent-fg shadow-lg ring-8 ring-rose-100"
+                  : "bg-indigo-600 text-accent-fg shadow-md hover:bg-indigo-700 hover:shadow-lg"
               }`}
               aria-label={recording ? "Stop recording" : "Start recording"}
             >

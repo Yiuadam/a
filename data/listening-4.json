@@ -1,0 +1,156 @@
+{
+  "id": "listening-4",
+  "title": "What Museums Choose to Keep",
+  "context": "A university lecture on how museums decide which objects enter a collection.",
+  "difficulty": "hard",
+  "timeMinutes": 12,
+  "speakers": [
+    "Lecturer"
+  ],
+  "script": [
+    {
+      "speaker": "Lecturer",
+      "text": "Good afternoon. Today I want to look at a question that sounds administrative but turns out to be one of the most consequential decisions a museum ever makes: what to collect. Every object accepted is a promise to look after it, in principle forever, and that promise has a cost."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Let's start with scale, because the numbers surprise people. A large national museum may hold several million objects, and it will typically display somewhere between one and five per cent of them at any time. The rest sit in storage. So the popular image of a museum as a place of exhibition is, statistically speaking, misleading. A museum is mostly a warehouse with a gallery attached."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "That storage is not free. Estimates vary by institution and material, but a commonly cited figure is that caring for an object over its lifetime costs many times what it cost to acquire. Climate control, insurance, conservation treatment, staff time, and above all floor space — these accumulate quietly, year after year, long after the acquisition has been forgotten."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "This is why every museum has a collecting policy, a written document setting out what falls within its scope. It sounds bureaucratic, and it is, but its real function is to give curators a defensible reason to say no. Without one, a museum accumulates whatever is offered, and what is offered is heavily shaped by who happens to be donating."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Now, the criteria. The first and most obvious is provenance — the documented history of ownership. Where did the object come from, and can that be demonstrated? Since the nineteen seventies, and particularly following international agreements on cultural property, museums have become far stricter here. An object with a gap in its ownership record is now a serious liability rather than a curiosity."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "The second criterion is condition, and it is more complicated than it appears. A damaged object is not automatically rejected. Damage is sometimes the point: a helmet with a dent tells you something an undamaged one does not. What curators are really assessing is stability — whether the object can be kept without continuous, expensive intervention."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Third, and increasingly important, is what I'd call narrative capacity. Does the object let you tell a story that the collection cannot currently tell? A museum with forty examples of a particular type of pot gains almost nothing from a forty-first, however fine. The same museum might gain enormously from a single ordinary object belonging to a community it has never represented."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "This last point has driven a visible shift in practice. For most of the twentieth century, collecting favoured the exceptional: the finest, the rarest, the work of the named maker. The everyday was thrown away precisely because it was everywhere. The result is an archive of the past that is systematically biased towards the wealthy, and museums are now trying to correct it by collecting the ordinary while it still exists."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Contemporary collecting is the sharpest version of this problem. If you are collecting the present, you have no idea which objects will matter. A curator in nineteen eighty could not have known which piece of office equipment would seem significant today. Some museums respond by collecting broadly and quickly and accepting that much of it will prove worthless."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Which brings us to the reverse process, disposal, or as the profession prefers, deaccessioning. It is legally and ethically fraught. Donors gave objects believing they would be kept. Selling them to cover running costs is widely condemned, and in several countries it can cost a museum its accreditation."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "The defensible cases are narrower: an object outside the collecting policy that another museum could use properly, or duplicates of no research value. Even then the preferred route is transfer to another public collection rather than sale. The principle is that the object stays in public hands."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "There is one more consideration that cuts across all of this, and it concerns human remains and sacred material. Many institutions now hold objects that were removed without meaningful consent, and the question is no longer whether to engage with return requests but how. Some museums have moved to shared authority, where the originating community decides how an object is stored, displayed or whether it is displayed at all."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "So to summarise: the decision to collect is a decision to spend, in perpetuity, on behalf of people who have not yet been born. The question a curator is really asking is not whether an object is interesting. It is whether it is worth that commitment. Next week we'll look at how those commitments are funded."
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "type": "completion",
+      "sentence": "Large national museums display only about one to ___ per cent of their holdings.",
+      "answer": "five",
+      "maxWords": 1,
+      "explanation": "\"It will typically display somewhere between one and five per cent of them at any time.\" The sentence already contains \"one to\", so the gap takes the upper figure."
+    },
+    {
+      "id": "q2",
+      "type": "completion",
+      "sentence": "The lecturer describes a museum as mostly a ___ with a gallery attached.",
+      "answer": "warehouse",
+      "maxWords": 1,
+      "explanation": "\"A museum is mostly a warehouse with a gallery attached.\" The lecturer builds to this phrase deliberately, which is the cue that it matters."
+    },
+    {
+      "id": "q3",
+      "type": "completion",
+      "sentence": "A written collecting ___ gives curators grounds to refuse objects.",
+      "answer": "policy",
+      "maxWords": 1,
+      "explanation": "\"Every museum has a collecting policy, a written document setting out what falls within its scope.\" The definition follows the term, as it usually does in a lecture."
+    },
+    {
+      "id": "q4",
+      "type": "completion",
+      "sentence": "The documented history of ownership is known as ___.",
+      "answer": "provenance",
+      "maxWords": 1,
+      "explanation": "\"Provenance — the documented history of ownership.\" The dash introduces the definition, so the word just before it is the answer."
+    },
+    {
+      "id": "q5",
+      "type": "completion",
+      "sentence": "When judging condition, curators are really assessing an object's ___.",
+      "answer": "stability",
+      "maxWords": 1,
+      "explanation": "\"What curators are really assessing is stability — whether the object can be kept without continuous, expensive intervention.\" Condition is the topic; stability is the answer."
+    },
+    {
+      "id": "q6",
+      "type": "completion",
+      "sentence": "Everyday objects were once discarded because they were considered ___.",
+      "answer": "everywhere",
+      "maxWords": 1,
+      "explanation": "\"The everyday was thrown away precisely because it was everywhere.\" Note the near-rhyme with \"everyday\" — the lecturer is playing on it, not repeating himself."
+    },
+    {
+      "id": "q7",
+      "type": "completion",
+      "sentence": "The profession's term for removing objects from a collection is ___.",
+      "answer": "deaccessioning",
+      "maxWords": 1,
+      "explanation": "\"Disposal, or as the profession prefers, deaccessioning.\" The phrase \"as the profession prefers\" tells you which of the two words is being asked for."
+    },
+    {
+      "id": "q8",
+      "type": "completion",
+      "sentence": "Rather than selling, the preferred route is ___ to another public collection.",
+      "answer": "transfer",
+      "maxWords": 1,
+      "explanation": "\"The preferred route is transfer to another public collection rather than sale.\" One word only, so \"transfer\" rather than \"transfer to another museum\"."
+    },
+    {
+      "id": "q9",
+      "type": "mcq",
+      "question": "Why does the lecturer say a museum gains little from a forty-first pot of a familiar type?",
+      "options": [
+        "Such pots are usually fakes",
+        "It adds nothing the collection cannot already show",
+        "Storage for ceramics is expensive",
+        "Visitors dislike repetition"
+      ],
+      "answer": 1,
+      "explanation": "\"A museum with forty examples of a particular type of pot gains almost nothing from a forty-first, however fine.\" The point is that it adds nothing new to what can be shown."
+    },
+    {
+      "id": "q10",
+      "type": "mcq",
+      "question": "What difficulty does the lecturer identify with contemporary collecting?",
+      "options": [
+        "Modern objects decay quickly",
+        "Donors are less willing to give",
+        "It is impossible to know what will matter later",
+        "Legal protection is weaker"
+      ],
+      "answer": 2,
+      "explanation": "\"If you are collecting the present, you have no idea which objects will matter.\" The nineteen-eighty office-equipment example illustrates the same point."
+    }
+  ]
+}

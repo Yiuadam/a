@@ -74,7 +74,7 @@ export default function Dashboard() {
       </section>
 
       <section>
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Practise a skill</h2>
+        <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">Practise a skill</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {MODULES.map((m) => {
             const latest = profile.results.find((r) => r.module === m.key);
@@ -112,12 +112,12 @@ export default function Dashboard() {
 
       {profile.results.length > 0 && (
         <section>
-          <h2 className="mb-4 text-base font-semibold text-slate-900">Your recent practice</h2>
+          <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">Your recent practice</h2>
           <ul className="space-y-2">
             {profile.results.slice(0, 6).map((r, i) => (
               <li
                 key={i}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3.5"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-surface px-5 py-3.5"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-slate-800">{r.testTitle}</p>
