@@ -1,0 +1,86 @@
+{
+  "tasks": [
+    {
+      "id": "w1",
+      "task": 1,
+      "variant": "academic",
+      "title": "Household internet access in four countries",
+      "prompt": "The table below shows the percentage of households with internet access in four countries between 2005 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+      "dataTable": {
+        "title": "Percentage of households with internet access, 2005-2020",
+        "headers": ["Year", "Sweden", "Portugal", "Turkey", "Mexico"],
+        "rows": [
+          ["2005", "73%", "31%", "8%", "9%"],
+          ["2010", "88%", "54%", "42%", "22%"],
+          ["2015", "91%", "70%", "70%", "39%"],
+          ["2020", "96%", "84%", "90%", "60%"]
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w2",
+      "task": 1,
+      "variant": "academic",
+      "title": "Water consumption by sector",
+      "prompt": "The table below shows water consumption in millions of cubic metres by three sectors in one region of Australia in 1990, 2005 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+      "dataTable": {
+        "title": "Water consumption by sector (millions of cubic metres)",
+        "headers": ["Year", "Agriculture", "Industry", "Households", "Total"],
+        "rows": [
+          ["1990", "620", "210", "95", "925"],
+          ["2005", "540", "265", "140", "945"],
+          ["2020", "430", "300", "190", "920"]
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w3",
+      "task": 1,
+      "variant": "general",
+      "title": "Letter about a lost item on a train",
+      "prompt": "You recently travelled by train and left a bag on board when you got off at your station. Write a letter to the train company. In your letter: • describe the bag and its contents • explain when and where you left it • say what you would like the company to do",
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w4",
+      "task": 2,
+      "variant": "academic",
+      "title": "Remote working (opinion)",
+      "prompt": "In many countries, an increasing number of employees are working from home rather than travelling to a workplace. Some people believe this trend benefits both workers and society as a whole. To what extent do you agree or disagree?",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w5",
+      "task": 2,
+      "variant": "academic",
+      "title": "University purpose (discussion)",
+      "prompt": "Some people think the main purpose of a university education is to prepare students for employment, while others believe universities should focus on developing knowledge and ideas for their own sake. Discuss both views and give your own opinion.",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w6",
+      "task": 2,
+      "variant": "academic",
+      "title": "Urban traffic congestion (problem-solution)",
+      "prompt": "Traffic congestion in many cities around the world is becoming increasingly severe. What problems does this cause for individuals and society? What measures could governments take to address this situation?",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w7",
+      "task": 2,
+      "variant": "academic",
+      "title": "Declining interest in cooking (two-part question)",
+      "prompt": "In some countries, people are spending less time preparing meals at home and are relying more on ready-made food. Why is this happening? Do you think this is a positive or negative development?",
+      "minWords": 250,
+      "timeMinutes": 40
+    }
+  ]
+}

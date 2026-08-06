@@ -1,0 +1,216 @@
+{
+  "part1": [
+    {
+      "topic": "Home",
+      "questions": [
+        "Do you live in a house or an apartment?",
+        "What is your favourite room in your home? Why?",
+        "Is there anything you would like to change about your home?",
+        "Do you plan to live there for a long time?",
+        "What can you see from the windows of your home?"
+      ]
+    },
+    {
+      "topic": "Work/Study",
+      "questions": [
+        "Do you work or are you a student?",
+        "What do you enjoy most about your work or studies?",
+        "Is there anything you find difficult about your work or studies?",
+        "What did you want to be when you were a child?",
+        "Would you like to change your job or subject in the future?"
+      ]
+    },
+    {
+      "topic": "Hobbies",
+      "questions": [
+        "What do you like to do in your free time?",
+        "Have your hobbies changed since you were a child?",
+        "Do you prefer spending your free time alone or with other people?",
+        "Is there a new hobby you would like to try? Why?"
+      ]
+    },
+    {
+      "topic": "Food",
+      "questions": [
+        "What kind of food do you like to eat?",
+        "Do you prefer eating at home or eating out? Why?",
+        "Can you cook? Who taught you?",
+        "Are there any foods you disliked as a child but enjoy now?",
+        "Is food an important part of celebrations in your country?"
+      ]
+    },
+    {
+      "topic": "Travel",
+      "questions": [
+        "Do you enjoy travelling?",
+        "What is the most interesting place you have visited?",
+        "Do you prefer travelling alone or with friends or family?",
+        "Is there a country you would especially like to visit? Why?"
+      ]
+    },
+    {
+      "topic": "Technology",
+      "questions": [
+        "How often do you use the internet?",
+        "What do you mainly use your mobile phone for?",
+        "Is there any piece of technology you could not live without?",
+        "Did you use computers when you were at primary school?",
+        "Do you ever try to spend time away from screens?"
+      ]
+    }
+  ],
+  "part2": [
+    {
+      "id": "c1",
+      "topic": "An inspiring person",
+      "cueCard": "Describe a person who has influenced you in an important way.",
+      "bullets": [
+        "who this person is",
+        "how you know them",
+        "what they have done",
+        "and explain why they have influenced you"
+      ],
+      "followUp": [
+        "Do you still see this person often?",
+        "Do you think you have influenced anyone yourself?"
+      ]
+    },
+    {
+      "id": "c2",
+      "topic": "A memorable place",
+      "cueCard": "Describe a place you visited that made a strong impression on you.",
+      "bullets": [
+        "where this place is",
+        "when you went there",
+        "what you did there",
+        "and explain why it made such a strong impression on you"
+      ],
+      "followUp": [
+        "Would you like to go back there?",
+        "Have you recommended this place to other people?"
+      ]
+    },
+    {
+      "id": "c3",
+      "topic": "A special object",
+      "cueCard": "Describe an object you own that is important to you.",
+      "bullets": [
+        "what the object is",
+        "how you got it",
+        "how often you use it",
+        "and explain why it is important to you"
+      ],
+      "followUp": [
+        "Would you be upset if you lost it?",
+        "Do you think you will keep it for a long time?"
+      ]
+    },
+    {
+      "id": "c4",
+      "topic": "A memorable event",
+      "cueCard": "Describe a celebration or event that you particularly enjoyed.",
+      "bullets": [
+        "what the event was",
+        "where and when it took place",
+        "who was there with you",
+        "and explain why you enjoyed it so much"
+      ],
+      "followUp": [
+        "Do you often attend events like this?",
+        "Is there an event you are looking forward to?"
+      ]
+    },
+    {
+      "id": "c5",
+      "topic": "A skill or activity",
+      "cueCard": "Describe a skill or activity you learned that has been useful to you.",
+      "bullets": [
+        "what the skill or activity is",
+        "when and how you learned it",
+        "how you use it now",
+        "and explain why it has been useful to you"
+      ],
+      "followUp": [
+        "Would you recommend other people learn this skill?",
+        "Is there another skill you would like to learn?"
+      ]
+    },
+    {
+      "id": "c6",
+      "topic": "Films and media",
+      "cueCard": "Describe a film or television programme that you found particularly interesting.",
+      "bullets": [
+        "what it was about",
+        "when and where you watched it",
+        "who you watched it with",
+        "and explain why you found it so interesting"
+      ],
+      "followUp": [
+        "Have you watched it more than once?",
+        "Do you usually watch this kind of programme?"
+      ]
+    }
+  ],
+  "part3": [
+    {
+      "topic": "An inspiring person",
+      "questions": [
+        "What qualities do you think make someone a good role model for young people?",
+        "Do you think celebrities have too much influence on society today?",
+        "In what ways do the people who influence us change as we get older?",
+        "Some people say parents are the most important influence in a child's life. Do you agree?",
+        "How might the role of teachers as influences change in the future?"
+      ]
+    },
+    {
+      "topic": "A memorable place",
+      "questions": [
+        "Why do you think some places attract far more tourists than others?",
+        "What are the advantages and disadvantages of tourism for a local community?",
+        "Do you think people will still want to travel to see places in person when virtual experiences improve?",
+        "How can governments protect popular natural sites from being damaged by visitors?",
+        "Is it better to visit many places briefly or a few places in depth?"
+      ]
+    },
+    {
+      "topic": "A special object",
+      "questions": [
+        "Why do people become emotionally attached to certain possessions?",
+        "Do you think modern society encourages people to buy more than they need?",
+        "How do attitudes towards material possessions differ between generations?",
+        "Some people believe experiences are more valuable than objects. What is your view?",
+        "How might our relationship with physical objects change as more things become digital?"
+      ]
+    },
+    {
+      "topic": "A memorable event",
+      "questions": [
+        "Why are traditional celebrations important to a society?",
+        "Do you think festivals have become too commercialised in recent years?",
+        "How have the ways people celebrate special occasions changed over the past few decades?",
+        "Should governments spend public money on large national celebrations?",
+        "Do you think globalisation will make celebrations around the world more similar?"
+      ]
+    },
+    {
+      "topic": "A skill or activity",
+      "questions": [
+        "Which skills do you think will be most important for people in the future?",
+        "Is it easier to learn new skills as a child or as an adult? Why?",
+        "Do you think schools focus too much on academic knowledge and not enough on practical skills?",
+        "How has the internet changed the way people learn new skills?",
+        "Should employers be responsible for training their staff, or should individuals train themselves?"
+      ]
+    },
+    {
+      "topic": "Films and media",
+      "questions": [
+        "How do films and television influence people's views of other countries?",
+        "Do you think streaming services will completely replace cinemas one day?",
+        "Should there be stricter controls on what children can watch?",
+        "In what ways can films be used for education as well as entertainment?",
+        "Why do you think some films become internationally successful while others do not?"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "id": "reading-2",
+  "title": "The Outsourced Mind: Cognitive Offloading and Its Discontents",
+  "topic": "Cognitive science",
+  "difficulty": "hard",
+  "timeMinutes": 20,
+  "passage": "In Plato's Phaedrus, Socrates warns that the invention of writing will 'implant forgetfulness' in learners' souls, because those who trust external marks will 'cease to exercise memory'. The anxiety he voiced has resurfaced with every subsequent technology of record: the printing press, the pocket calculator and, most recently, the smartphone. Cognitive scientists now group these practices under the term cognitive offloading — the delegation of mental work to resources outside the head, whether a knotted handkerchief, a shopping list or a search engine. Far from being a marginal habit, offloading is so pervasive that some researchers argue it is impossible to characterise human intelligence without it.\n\nThe strongest version of that argument is the 'extended mind' thesis advanced by the philosophers Andy Clark and David Chalmers in 1998. They imagined Otto, a man with Alzheimer's disease, who navigates to a museum using an address written in a notebook he always carries. Because the notebook is constantly available, automatically trusted and fluently consulted, they contended, it plays the same functional role for Otto that biological memory plays for anyone else; his mind, on this view, literally extends beyond his skull. The claim remains philosophically contentious, but its influence has been considerable: it reframes offloading not as a corruption of thought but as a constitutive part of it.\n\nEmpirical psychology entered the debate forcefully in 2011, when Betsy Sparrow and her colleagues published a series of experiments on what became known as the 'Google effect'. Participants who typed trivia statements into a computer remembered them poorly if they believed the file would be saved, yet remembered accurately where the information had been stored. Rather than retaining content, people were retaining routes to content. Sparrow interpreted this through Daniel Wegner's earlier concept of transactive memory, originally developed to describe how couples divide remembering between them — one partner tracks birthdays, the other finances. The internet, she suggested, has become a transactive partner of unprecedented scale, one that never forgets and is rarely out of reach.\n\nSuch findings fed a wave of popular alarm. The phrase 'digital amnesia', coined in a series of industry-sponsored surveys, captured the fear that outsourcing memory hollows it out entirely. Yet systematic reviews of the literature counsel caution. Laboratory effects are typically modest, frequently fail to replicate outside controlled settings, and no longitudinal study has yet demonstrated a general decline in memory ability attributable to device use. Critics of the alarmist position also note a crucial distinction: forgetting particular facts one has deliberately stored elsewhere is not the same as losing the underlying capacity to remember.\n\nOffloading, moreover, has measurable benefits. Because working memory can hold only a handful of items at once, externalising information releases capacity for reasoning about it: engineers sketch, mathematicians scribble, and both perform better for doing so. Experiments on prospective memory — remembering to carry out intentions in the future — show that people permitted to set reminders fulfil far more of their intentions than those relying on unaided recall, with the largest gains among older adults. In safety-critical fields such as surgery and aviation, checklists institutionalise this insight, on the principle that a fallible biological memory should never be the last line of defence.\n\nThe genuine risks appear to lie less in memory itself than in metacognition, our knowledge of our own knowledge. People who search the internet for answers subsequently rate their unaided ability to explain unrelated topics more highly, apparently mistaking the device's competence for their own. This inflated self-assessment matters because offloading decisions are themselves metacognitive: we consult external aids when we judge our internal resources insufficient. If that judgement is distorted, we may offload too readily — as when students photograph lecture slides and, secure in possession, never revisit them — or too reluctantly, straining to memorise what a note would hold more safely.\n\nThese findings sharpen a long-running educational controversy. If facts are a search away, should curricula still demand their memorisation, or should they emphasise evaluating and synthesising information instead? The awkward answer suggested by cognitive science is that evaluation is not a free-floating skill: judging the plausibility of a claim depends on a well-furnished internal knowledge base against which to test it. A student who has internalised nothing has nothing with which to recognise error. Some internal storage, in other words, is the precondition of using external storage well.\n\nThe mature conclusion is therefore neither Socratic pessimism nor uncritical enthusiasm. Human cognition has always been a hybrid of internal and external resources; the notebook and the search engine differ in speed and scale, not in kind. The pressing research question is not whether offloading is good or bad, but which tasks are best delegated, by whom, and at what stage of learning — and how tools might be designed to support memory rather than silently substitute for it.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "tfng",
+      "statement": "Concerns about the effect of external memory aids on human memory existed long before digital technology.",
+      "answer": "TRUE"
+    },
+    {
+      "id": "q2",
+      "type": "tfng",
+      "statement": "Clark and Chalmers argued that Otto's notebook could not perform the same function as his biological memory.",
+      "answer": "FALSE"
+    },
+    {
+      "id": "q3",
+      "type": "tfng",
+      "statement": "Older adults use reminder technology more frequently than younger adults do.",
+      "answer": "NOT GIVEN"
+    },
+    {
+      "id": "q4",
+      "type": "tfng",
+      "statement": "In Sparrow's experiments, participants remembered where information was kept better than the information itself.",
+      "answer": "TRUE"
+    },
+    {
+      "id": "q5",
+      "type": "tfng",
+      "statement": "Longitudinal research has confirmed that using digital devices causes a general decline in memory ability.",
+      "answer": "FALSE"
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "question": "Why, according to the passage, did Clark and Chalmers regard Otto's notebook as part of his mind?",
+      "options": [
+        "Because Otto's Alzheimer's disease means he has no biological memory at all.",
+        "Because the notebook stores information more accurately than any human memory could.",
+        "Because it is reliably available, trusted and fluently used, fulfilling the role biological memory usually plays.",
+        "Because writing the address down helps Otto commit it to memory over time."
+      ],
+      "answer": 2
+    },
+    {
+      "id": "q7",
+      "type": "mcq",
+      "question": "What does the passage say about the phrase 'digital amnesia'?",
+      "options": [
+        "It was introduced by Sparrow to summarise the results of her experiments.",
+        "It originated in industry-sponsored surveys rather than in academic research.",
+        "It describes a condition that longitudinal studies have now confirmed.",
+        "It refers to the failure of computers to store information permanently."
+      ],
+      "answer": 1
+    },
+    {
+      "id": "q8",
+      "type": "mcq",
+      "question": "The example of students photographing lecture slides is used to illustrate",
+      "options": [
+        "the way external reminders improve the fulfilment of future intentions.",
+        "how a distorted judgement of one's own knowledge can lead people to offload too readily.",
+        "the benefits of releasing working memory capacity for reasoning.",
+        "students' unwillingness to place their trust in external memory aids."
+      ],
+      "answer": 1
+    },
+    {
+      "id": "q9",
+      "type": "mcq",
+      "question": "Which of the following best reflects the writer's conclusion?",
+      "options": [
+        "Digital tools harm memory in a way that earlier technologies of record did not.",
+        "Memorisation should be removed from curricula because facts are now easily searchable.",
+        "Research should focus on which tasks should be delegated to external tools, and when.",
+        "Modern findings have largely vindicated Socrates' pessimism about writing."
+      ],
+      "answer": 2
+    },
+    {
+      "id": "q10",
+      "type": "completion",
+      "sentence": "Externalising information is useful because ___ can hold only a handful of items at once.",
+      "answer": "working memory",
+      "maxWords": 2
+    },
+    {
+      "id": "q11",
+      "type": "completion",
+      "sentence": "Wegner's concept of ___ was originally developed to describe how couples divide remembering between them.",
+      "answer": "transactive memory",
+      "maxWords": 2
+    },
+    {
+      "id": "q12",
+      "type": "completion",
+      "sentence": "Experiments on ___ show that people allowed to set reminders fulfil far more of their intentions.",
+      "answer": "prospective memory",
+      "maxWords": 2
+    },
+    {
+      "id": "q13",
+      "type": "completion",
+      "sentence": "The fear that outsourcing memory hollows it out entirely was captured by the phrase ___.",
+      "answer": "digital amnesia",
+      "maxWords": 2
+    }
+  ]
+}

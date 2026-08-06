@@ -1,0 +1,148 @@
+{
+  "questions": [
+    {
+      "id": "p1",
+      "level": "A1",
+      "skill": "grammar",
+      "question": "Choose the correct word: She ___ a teacher.",
+      "options": ["am", "is", "are", "be"],
+      "answer": 1
+    },
+    {
+      "id": "p2",
+      "level": "A1",
+      "skill": "vocabulary",
+      "question": "What is the opposite of 'big'?",
+      "options": ["small", "tall", "old", "fast"],
+      "answer": 0
+    },
+    {
+      "id": "p3",
+      "level": "A1",
+      "skill": "reading",
+      "question": "Read the text: Tom gets up at seven o'clock. Then he eats breakfast and goes to school by bus. What does Tom do first?",
+      "options": ["He goes to school", "He eats breakfast", "He gets up", "He takes the bus"],
+      "answer": 2
+    },
+    {
+      "id": "p4",
+      "level": "A2",
+      "skill": "grammar",
+      "question": "Choose the correct word: Yesterday we ___ a great film at the cinema.",
+      "options": ["see", "saw", "seen", "seeing"],
+      "answer": 1
+    },
+    {
+      "id": "p5",
+      "level": "A2",
+      "skill": "vocabulary",
+      "question": "Choose the correct word: Could you ___ me a favour and open the window?",
+      "options": ["make", "give", "do", "take"],
+      "answer": 2
+    },
+    {
+      "id": "p6",
+      "level": "A2",
+      "skill": "reading",
+      "question": "Read the text: The museum is closed on Mondays. Tickets cost five euros for adults, and children under twelve enter free. Anna is ten years old and visits on Saturday. How much does Anna pay?",
+      "options": ["Five euros", "Nothing", "Half price", "Ten euros"],
+      "answer": 1
+    },
+    {
+      "id": "p7",
+      "level": "B1",
+      "skill": "grammar",
+      "question": "Choose the correct form: I ___ in this city since 2019.",
+      "options": ["live", "lived", "have lived", "am living"],
+      "answer": 2
+    },
+    {
+      "id": "p8",
+      "level": "B1",
+      "skill": "vocabulary",
+      "question": "The meeting was called off at the last minute. 'Called off' means:",
+      "options": ["postponed", "shortened", "confirmed", "cancelled"],
+      "answer": 3
+    },
+    {
+      "id": "p9",
+      "level": "B1",
+      "skill": "reading",
+      "question": "Read the text: Although the restaurant was expensive, Marta decided to book a table because the reviews were excellent. Why did Marta book a table?",
+      "options": ["The prices were reasonable", "The reviews were very positive", "It was close to her house", "A friend had recommended it"],
+      "answer": 1
+    },
+    {
+      "id": "p10",
+      "level": "B2",
+      "skill": "grammar",
+      "question": "Choose the correct form: If she had studied harder, she ___ the exam.",
+      "options": ["would pass", "passed", "would have passed", "will pass"],
+      "answer": 2
+    },
+    {
+      "id": "p11",
+      "level": "B2",
+      "skill": "vocabulary",
+      "question": "Choose the word that best completes the sentence: The new findings are broadly ___ with previous research in the field.",
+      "options": ["consistent", "agreeable", "matching", "faithful"],
+      "answer": 0
+    },
+    {
+      "id": "p12",
+      "level": "B2",
+      "skill": "reading",
+      "question": "Read the text: While the new transport policy has been praised for its ambition, critics point out that no additional funding has been allocated, raising doubts about whether its goals can actually be met. What concern do the critics raise?",
+      "options": ["The policy is not ambitious enough", "The goals were chosen by the wrong people", "The praise came from unreliable sources", "It may be unachievable without extra funding"],
+      "answer": 3
+    },
+    {
+      "id": "p13",
+      "level": "C1",
+      "skill": "grammar",
+      "question": "Choose the correct form: Seldom ___ such a remarkable performance on this stage.",
+      "options": ["have we seen", "we have seen", "we saw", "we had seen"],
+      "answer": 0
+    },
+    {
+      "id": "p14",
+      "level": "C1",
+      "skill": "vocabulary",
+      "question": "Choose the word that collocates naturally: The referee described the foul as a ___ breach of the rules.",
+      "options": ["blazing", "flagrant", "fiery", "glowing"],
+      "answer": 1
+    },
+    {
+      "id": "p15",
+      "level": "C1",
+      "skill": "grammar",
+      "question": "Choose the correct form: No sooner ___ the stage than the audience erupted into applause.",
+      "options": ["she had left", "she left", "did she leave", "had she left"],
+      "answer": 3
+    },
+    {
+      "id": "p16",
+      "level": "C2",
+      "skill": "grammar",
+      "question": "Choose the correct word: Hardly had the negotiations begun ___ the delegation walked out in protest.",
+      "options": ["than", "that", "when", "as"],
+      "answer": 2
+    },
+    {
+      "id": "p17",
+      "level": "C2",
+      "skill": "vocabulary",
+      "question": "Which is closest in meaning to 'tacit', as in 'a tacit agreement between the two parties'?",
+      "options": ["understood without being stated", "reluctantly conceded", "legally binding", "openly acknowledged"],
+      "answer": 0
+    },
+    {
+      "id": "p18",
+      "level": "C2",
+      "skill": "reading",
+      "question": "Read the text: The committee's report, running to some four hundred pages, devotes barely a paragraph to the issue it was ostensibly convened to address — an omission its authors describe, without apparent irony, as 'a matter for future study'. The writer's attitude towards the report is best described as:",
+      "options": ["cautiously optimistic", "openly hostile", "neutrally descriptive", "wryly critical"],
+      "answer": 3
+    }
+  ]
+}

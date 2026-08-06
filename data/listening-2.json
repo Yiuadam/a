@@ -1,0 +1,142 @@
+{
+  "id": "listening-2",
+  "title": "The History of Timekeeping",
+  "context": "A university lecture on how humans have measured time, from ancient devices to atomic clocks.",
+  "difficulty": "hard",
+  "timeMinutes": 12,
+  "speakers": ["Lecturer"],
+  "script": [
+    {
+      "speaker": "Lecturer",
+      "text": "Good morning, everyone. Today's lecture continues our series on the history of technology, and we're going to look at something we all take for granted: the measurement of time. What I want to show you is that every leap forward in timekeeping was driven not by curiosity alone, but by very practical social and economic pressures."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Let's begin in ancient Egypt, around three and a half thousand years ago. The earliest instruments we have evidence for were remarkably simple. A vertical post or obelisk was placed in an open courtyard, and priests tracked the position of its shadow as the sun moved across the sky. In other words, the whole system depended on sunlight, which of course made it useless at night or in overcast weather."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "That limitation prompted the next major invention. To measure the hours of darkness, the Egyptians, and later the Greeks, developed what we call the water clock. A vessel was filled and allowed to drain through a small opening at a supposedly steady rate, with markings on the inside indicating how much time had passed."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Now, these devices were certainly an improvement, but they had a serious weakness that's often overlooked. The rate at which liquid flows through a narrow opening changes with temperature. On a cold morning the flow slowed dramatically, so a winter hour and a summer hour were simply not the same length. Precision, in the modern sense, was still a long way off."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Let's now jump forward to medieval Europe, because this is where mechanical timekeeping really begins. Interestingly, the first true mechanical clocks were not built for merchants or governments. They appeared in monasteries, where the daily routine of communal prayer had to happen at fixed hours, even in the middle of the night. Religious discipline, not commerce, was the original driver."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "The technical breakthrough at the heart of these machines was a mechanism called the escapement. This is a device that interrupts the fall of a weight, releasing its energy in small, regular bursts rather than all at once. It's the escapement that produces the familiar ticking sound, and virtually every mechanical clock since has depended on some version of it."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Even so, early tower clocks could gain or lose fifteen minutes a day. The real transformation in accuracy came in the seventeenth century, when the Dutch scientist Christiaan Huygens applied the regular swing of a pendulum to clockwork. Almost overnight, the daily error dropped from minutes to seconds. It's hard to overstate what a revolution that was."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "What's particularly interesting is what happened next at sea. In the eighteenth century, sailors could calculate their latitude from the sun, but establishing longitude required knowing the exact time back at their home port, and pendulum clocks were hopeless on a rolling ship. The British government offered an enormous prize for a solution, and it was eventually claimed by a self-taught carpenter, John Harrison, whose marine chronometer kept accurate time even in violent seas."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Now let's turn to the nineteenth century, when the pressure on timekeeping shifted from navigation to coordination. For most of history, every town had kept its own local time, set by the sun overhead, and nobody minded that noon in one city came minutes after noon in another. It was the expansion of the railways that made this intolerable, because publishing a workable timetable across hundreds of stations demanded a single standard time."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "The twentieth century then brought two further leaps. In the nineteen twenties, engineers discovered that a small piece of quartz vibrates at an extremely stable frequency when electricity is applied, and this discovery eventually made cheap, accurate watches available to almost everyone."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "And then, in the nineteen fifties, came the most precise instruments ever constructed. Modern atomic clocks work by counting the natural oscillations of caesium atoms, which vibrate over nine billion times a second. A clock of this kind would drift by less than one second over a hundred million years, and it is this standard that now defines the length of a second itself."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "You might reasonably ask why anyone needs such extraordinary precision. The answer is sitting in your pocket. Satellite navigation works by comparing time signals from orbiting satellites, and because those signals travel at the speed of light, an error of a millionth of a second would put your position out by hundreds of metres. Without atomic timekeeping, there is simply no GPS."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "So, to sum up, the story of timekeeping is really a story about society's changing demands: religious routine, ocean navigation, railway coordination, and now global positioning. Each generation needed a finer slice of time than the last, and each invention reshaped daily life in ways its makers never anticipated. Next week, we'll look at how calendars, rather than clocks, came to be standardised. Thank you."
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "type": "completion",
+      "sentence": "Egyptian priests told the time by following the movement of a tall post's ___.",
+      "answer": "shadow",
+      "maxWords": 1
+    },
+    {
+      "id": "q2",
+      "type": "completion",
+      "sentence": "To keep track of time during the hours of darkness, the Egyptians and Greeks invented the ___.",
+      "answer": "water clock",
+      "maxWords": 2
+    },
+    {
+      "id": "q3",
+      "type": "completion",
+      "sentence": "These draining vessels were unreliable because changes in ___ altered how quickly the liquid escaped.",
+      "answer": "temperature",
+      "maxWords": 1
+    },
+    {
+      "id": "q4",
+      "type": "completion",
+      "sentence": "The earliest mechanical clocks were installed in ___ to signal fixed hours of prayer.",
+      "answer": "monasteries",
+      "maxWords": 1
+    },
+    {
+      "id": "q5",
+      "type": "completion",
+      "sentence": "A component known as the ___ releases a falling weight's energy in small, even bursts.",
+      "answer": "escapement",
+      "maxWords": 1
+    },
+    {
+      "id": "q6",
+      "type": "completion",
+      "sentence": "Huygens dramatically improved accuracy by regulating clockwork with a swinging ___.",
+      "answer": "pendulum",
+      "maxWords": 1
+    },
+    {
+      "id": "q7",
+      "type": "mcq",
+      "question": "According to the lecturer, why was John Harrison's chronometer so significant?",
+      "options": [
+        "It allowed sailors to establish their longitude while at sea",
+        "It was the first clock cheap enough for ordinary sailors to own",
+        "It enabled ships to calculate their latitude for the first time"
+      ],
+      "answer": 0
+    },
+    {
+      "id": "q8",
+      "type": "completion",
+      "sentence": "In the nineteenth century, the growth of the ___ forced towns to abandon their separate local times.",
+      "answer": "railways",
+      "maxWords": 1
+    },
+    {
+      "id": "q9",
+      "type": "completion",
+      "sentence": "Today's most precise clocks count the extremely rapid oscillations of ___ atoms.",
+      "answer": "caesium",
+      "maxWords": 1
+    },
+    {
+      "id": "q10",
+      "type": "mcq",
+      "question": "Why does satellite navigation depend on extremely accurate timekeeping?",
+      "options": [
+        "Satellites must be launched at exactly the right moment",
+        "A tiny timing error would produce a large error in position",
+        "Atomic clocks are too heavy to be carried on most satellites"
+      ],
+      "answer": 1
+    }
+  ]
+}
