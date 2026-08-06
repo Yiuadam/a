@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/*
+  Cosy, low-stress palette. The neutral and accent ramps are redefined at the
+  theme level so every `slate-*` / `indigo-*` utility in the app renders as a
+  warm tone — one place to tune the whole feel of the product.
+*/
+@theme {
+  /* Warm paper neutrals (replaces the cold default grey) */
+  --color-slate-50: #fbf7f2;
+  --color-slate-100: #f3ece3;
+  --color-slate-200: #e7ddd1;
+  --color-slate-300: #d6c9b8;
+  --color-slate-400: #a2968a;
+  --color-slate-500: #857a6e;
+  --color-slate-600: #675e55;
+  --color-slate-700: #4f473f;
+  --color-slate-800: #3a342e;
+  --color-slate-900: #2a2521;
+
+  /* Clay accent — warmer and calmer than the default blue-violet */
+  --color-indigo-50: #fdf4ee;
+  --color-indigo-100: #f7e5d8;
+  --color-indigo-300: #dfa87f;
+  --color-indigo-500: #c1743f;
+  --color-indigo-600: #a95d2f;
+  --color-indigo-700: #8b4a26;
+
+  /* Soft sage for "correct" and muted brick for "incorrect" */
+  --color-emerald-50: #f1f6f1;
+  --color-emerald-100: #e0ebe0;
+  --color-emerald-300: #a7c6ab;
+  --color-emerald-500: #5f8a67;
+  --color-emerald-600: #4e7555;
+  --color-emerald-700: #3f6146;
+  --color-rose-50: #fcf1ef;
+  --color-rose-300: #e0a79e;
+  --color-rose-600: #b4574a;
+  --color-rose-700: #98473c;
+
+  --color-background: #fbf7f2;
+  --color-foreground: #2a2521;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Generous radii, soft shadows and roomy padding do most of the "cosy" work. */
+.card {
+  @apply rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(42,37,33,0.04),0_8px_24px_-12px_rgba(42,37,33,0.12)];
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-primary {
+  @apply btn bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 hover:shadow-md active:translate-y-px;
+}
+
+.btn-secondary {
+  @apply btn border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 active:translate-y-px;
+}
+
+.input {
+  @apply rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100;
+}
+
+/* Long-form reading text: slightly larger and more leaded than UI text. */
+.prose-reading p {
+  @apply mb-4 text-[16px] leading-8 text-slate-700;
+}
