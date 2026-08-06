@@ -106,13 +106,14 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
-  const { kind, difficulty, topicHint } = body;
+  const { kind, difficulty, topicHint } = body ?? {};
   if (kind !== "reading" && kind !== "listening") {
     return NextResponse.json({ error: "kind must be 'reading' or 'listening'." }, { status: 400 });
   }
   const level = difficulty === "hard" ? "hard (target band 6.5-8)" : "medium (target band 5-6.5)";
   const id = `gen-${kind}-${Date.now()}`;
-  const hint = topicHint?.slice(0, 200);
+  // The body is untrusted: only accept a string hint, and bound its length.
+  const hint = typeof topicHint === "string" ? topicHint.slice(0, 200) : undefined;
 
   const system =
     "You are an expert IELTS exam content writer. Write ORIGINAL content that faithfully matches authentic IELTS format, register, difficulty calibration, and question style. Never reproduce real past-paper content.";

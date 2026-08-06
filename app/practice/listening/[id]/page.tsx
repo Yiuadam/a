@@ -94,6 +94,10 @@ export default function ListeningTestPage() {
     window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
     return () => {
       window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
+      // Disarm the chain BEFORE cancelling: cancel() fires the current
+      // utterance's end/error event, which would otherwise queue the next turn
+      // and keep reading the script after the user has navigated away.
+      playingRef.current = false;
       window.speechSynthesis.cancel();
     };
   }, [ttsSupported]);

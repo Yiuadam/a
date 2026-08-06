@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
+import { clampBand } from "@/lib/band";
 import { WRITING_TASK1_CRITERIA, WRITING_TASK2_CRITERIA } from "@/lib/descriptors";
 import type { WritingGrade } from "@/lib/types";
 
@@ -40,13 +41,14 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
-  const { task, prompt, essay, minWords } = body;
-  if (!prompt || !essay || (task !== 1 && task !== 2)) {
+  const { task, prompt, essay, minWords } = body ?? {};
+  if (typeof prompt !== "string" || typeof essay !== "string" || (task !== 1 && task !== 2)) {
     return NextResponse.json({ error: "Missing task, prompt or essay." }, { status: 400 });
   }
   if (essay.length > 30000) {
     return NextResponse.json({ error: "Essay is too long." }, { status: 400 });
   }
+  const minimumWords = typeof minWords === "number" ? minWords : task === 1 ? 150 : 250;
 
   const criteria = task === 1 ? WRITING_TASK1_CRITERIA : WRITING_TASK2_CRITERIA;
   const wordCount = essay.trim().split(/\s+/).filter(Boolean).length;
@@ -63,7 +65,7 @@ Under-length penalty: if the response is clearly under the minimum word count, c
 ${prompt}
 """
 
-Candidate response (${wordCount} words, minimum required ${minWords}):
+Candidate response (${wordCount} words, minimum required ${minimumWords}):
 """
 ${essay}
 """
@@ -77,7 +79,13 @@ Grade this response. In "criteria", give exactly four entries named ${
       effort: "high",
       maxTokens: 10000,
     });
-    return NextResponse.json(grade);
+    // The model can return an out-of-range or quarter-point band; the UI and
+    // stored history must only ever see valid half bands from 1 to 9.
+    return NextResponse.json({
+      ...grade,
+      overallBand: clampBand(grade.overallBand),
+      criteria: grade.criteria.map((c) => ({ ...c, band: clampBand(c.band) })),
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Grading failed.";
     return NextResponse.json({ error: msg }, { status: 502 });

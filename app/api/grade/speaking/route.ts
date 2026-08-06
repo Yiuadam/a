@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
+import { clampBand } from "@/lib/band";
 import { SPEAKING_CRITERIA } from "@/lib/descriptors";
 import type { SpeakingGrade } from "@/lib/types";
 
@@ -48,15 +49,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
 
-  let body: { transcript: Turn[] };
+  let body: { transcript?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
-  const transcript = body.transcript;
-  if (!Array.isArray(transcript) || transcript.length === 0) {
+  const raw = body?.transcript;
+  if (!Array.isArray(raw) || raw.length === 0) {
     return NextResponse.json({ error: "Missing transcript." }, { status: 400 });
+  }
+  // The body is untrusted: keep only well-formed turns, and cap the total size
+  // so one request cannot drive an unbounded prompt.
+  const transcript: Turn[] = raw
+    .filter(
+      (t): t is Turn =>
+        !!t &&
+        typeof t === "object" &&
+        typeof (t as Turn).text === "string" &&
+        ((t as Turn).role === "examiner" || (t as Turn).role === "candidate"),
+    )
+    .slice(0, 60)
+    .map((t) => ({
+      role: t.role,
+      part: t.part === 1 || t.part === 2 || t.part === 3 ? t.part : 1,
+      text: t.text.slice(0, 4000),
+    }));
+  if (transcript.length === 0) {
+    return NextResponse.json({ error: "Transcript is not in the expected format." }, { status: 400 });
   }
   const candidateWords = transcript
     .filter((t) => t.role === "candidate")
@@ -91,7 +111,13 @@ Grade the candidate. In "criteria", give exactly four entries named "Fluency and
       effort: "high",
       maxTokens: 10000,
     });
-    return NextResponse.json(grade);
+    // The model can return an out-of-range or quarter-point band; the UI and
+    // stored history must only ever see valid half bands from 1 to 9.
+    return NextResponse.json({
+      ...grade,
+      overallBand: clampBand(grade.overallBand),
+      criteria: grade.criteria.map((c) => ({ ...c, band: clampBand(c.band) })),
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Grading failed.";
     return NextResponse.json({ error: msg }, { status: 502 });

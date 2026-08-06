@@ -49,7 +49,10 @@ export default function PracticePage() {
     }
   }
 
-  const bestBand = (testId: string) => profile.results.find((r) => r.testId === testId)?.band;
+  const bestBand = (testId: string) => {
+    const bands = profile.results.filter((r) => r.testId === testId).map((r) => r.band);
+    return bands.length > 0 ? Math.max(...bands) : undefined;
+  };
 
   const testCard = (
     kind: "reading" | "listening",
@@ -72,7 +75,7 @@ export default function PracticePage() {
           </div>
           {band !== undefined && (
             <span className="shrink-0 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">
-              Band {band}
+              Best {band}
             </span>
           )}
         </div>

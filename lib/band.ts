@@ -126,3 +126,12 @@ export function cefrEstimate(band: number): string {
   if (band >= 3) return "A2";
   return "A1";
 }
+
+/**
+ * Coerce a band coming from the AI examiner onto the valid IELTS scale.
+ * Structured output guarantees a number, not a *sensible* number.
+ */
+export function clampBand(value: unknown): number {
+  const n = typeof value === "number" && Number.isFinite(value) ? value : 1;
+  return Math.max(1, Math.min(9, roundToHalf(n)));
+}

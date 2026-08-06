@@ -146,7 +146,9 @@ export default function SpeakingPage() {
     };
     rec.onend = () => {
       // Browsers stop recognition periodically; restart while we still want it.
-      if (wantRecordingRef.current) {
+      // Check identity too: a recognizer replaced by a newer one must not
+      // resurrect itself and double-transcribe into the same answer.
+      if (wantRecordingRef.current && recRef.current === rec) {
         try {
           rec.start();
         } catch {
@@ -176,11 +178,30 @@ export default function SpeakingPage() {
     [],
   );
 
+  /** Leave the interview: silence the examiner and release the microphone. */
+  const endTest = useCallback(() => {
+    cancelSpeech();
+    wantRecordingRef.current = false;
+    recRef.current?.abort();
+    recRef.current = null;
+    setRecording(false);
+    setExaminerSpeaking(false);
+    setPrepSeconds(0);
+    setInterim("");
+    setAnswer("");
+    answerRef.current = "";
+    setStage("intro");
+  }, []);
+
   const begin = useCallback(async () => {
     const list = buildInterview();
     setSteps(list);
     setStepIndex(0);
     setTranscript([]);
+    setPrepSeconds(0);
+    setAnswer("");
+    setInterim("");
+    answerRef.current = "";
     setStage("interview");
     await askCurrent(0, list);
   }, [askCurrent]);
@@ -409,7 +430,7 @@ export default function SpeakingPage() {
         <span>
           Part {step?.part} · question {stepIndex + 1} of {totalSteps}
         </span>
-        <button className="text-slate-400 hover:text-slate-700" onClick={() => setStage("intro")}>
+        <button className="text-slate-400 hover:text-slate-700" onClick={endTest}>
           End test
         </button>
       </div>
