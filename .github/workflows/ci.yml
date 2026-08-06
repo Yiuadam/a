@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  # A branch with an open pull request would otherwise be checked twice per
+  # push, so pushes are only checked directly on the default branch.
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
 
 # A newer push to the same branch makes an in-flight run obsolete.
