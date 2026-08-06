@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import LookupProvider from "@/components/Lookup";
 import ThemeToggle from "@/components/ThemeToggle";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -67,7 +68,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10">{children}</main>
+        {/*
+          `data-lookupable` on <main> means any word a learner selects anywhere
+          in the app — a passage, a transcript, a question, an explanation — can
+          be looked up without leaving the page.
+        */}
+        <LookupProvider>
+          <main data-lookupable className="mx-auto w-full max-w-5xl flex-1 px-5 py-10">
+            {children}
+          </main>
+        </LookupProvider>
         <footer className="mt-4 border-t border-slate-200">
           <div className="mx-auto max-w-4xl px-5 py-6 text-xs leading-5 text-slate-400">
             Band scores here are practice estimates. BandUp is an independent study tool, not

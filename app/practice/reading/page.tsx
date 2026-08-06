@@ -5,7 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import Review from "@/components/Review";
-import TestQuestions, { type AnswerMap } from "@/components/TestQuestions";
+import TestQuestions, {
+  type AnswerMap,
+  type CheckedMap,
+} from "@/components/TestQuestions";
 import Timer from "@/components/Timer";
 import readingOne from "@/data/reading-1.json";
 import readingTwo from "@/data/reading-2.json";
@@ -26,6 +29,9 @@ function ReadingTestPageRunner() {
   const mounted = useMounted();
   const [started, setStarted] = useState(false);
   const [answers, setAnswers] = useState<AnswerMap>({});
+  // Questions the learner marked mid-test. Checking locks the answer, so a
+  // checked question still counts exactly as it stood when it was checked.
+  const [checked, setChecked] = useState<CheckedMap>({});
   const [submitted, setSubmitted] = useState(false);
   const [band, setBand] = useState<number | null>(null);
   const [raw, setRaw] = useState(0);
@@ -88,6 +94,10 @@ function ReadingTestPageRunner() {
             {test.timeMinutes} minutes. Question types: True/False/Not Given, multiple choice,
             and sentence completion — exactly like the real exam.
           </p>
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            You can check any single answer as you go and read the explanation straight away.
+            Checking locks that question, so your band stays honest.
+          </p>
           <button className="btn-primary" onClick={() => setStarted(true)}>
             Start reading test
           </button>
@@ -140,9 +150,12 @@ function ReadingTestPageRunner() {
 
       <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
         <div className="card prose-reading max-h-[78vh] overflow-y-auto lg:sticky lg:top-24">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Passage
-          </h2>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Passage
+            </h2>
+            <span className="text-xs text-slate-400">Select any word to look it up</span>
+          </div>
           {test.passage.split(/\n\n+/).map((p, i) => (
             <p key={i}>{p}</p>
           ))}
@@ -153,6 +166,8 @@ function ReadingTestPageRunner() {
             answers={answers}
             onAnswer={(id, v) => setAnswers((a) => ({ ...a, [id]: v }))}
             submitted={submitted}
+            checked={checked}
+            onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
           />
           {!submitted && (
             <button className="btn-primary mt-5 w-full" onClick={submit}>

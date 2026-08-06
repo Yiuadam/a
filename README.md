@@ -6,18 +6,29 @@ exam-format material and an AI examiner.
 
 ## What it does
 
-**Placement test** — 15 questions, five minutes, and it adapts as you go. The test tracks
-an ability estimate on the CEFR scale (A1→C2): answer correctly and the next question is
-harder, get one wrong and the next is easier. The step shrinks as the test proceeds, so it
-travels a long way early and refines late — which is why 15 adaptive questions place a
-learner more accurately than a longer fixed paper. Questions are drawn from a bank of 72 and
-never repeat within three sittings, so retaking it is a real re-test rather than a memory
-test. You get an estimated band plus a breakdown by skill and by difficulty.
+**Placement test** — five or ten minutes, your choice, and it adapts as you go. This is
+item response theory, the method real computer-adaptive exams use, not an up-a-bit /
+down-a-bit staircase. Every answer is scored against a model of how likely it was, so
+getting a C2 item right when the estimate says B1 moves the estimate a long way while
+getting an A1 item right barely moves it at all; guessing is modelled explicitly, since a
+four-option question gives a candidate who knows nothing one mark in four; and each next
+question is chosen to be the one that will *tell the test the most*, not merely one at the
+current level. The estimate stops early once it is precise enough. Questions come from a
+bank of 108 and never repeat within three sittings.
+
+`scripts/simulate-placement.mjs` runs thousands of simulated candidates of known ability
+through the engine and fails CI if placement drifts: the five-minute test currently sits
+within 0.4 of a band of the truth on average, the ten-minute test within 0.3.
 
 **Wrong-answer review** — every test ends with the questions you missed, what you put, the
-answer, and an explanation of why it is the answer. Above it sits advice generated from the
-*shape* of your mistakes rather than your score: which question type cost you most, whether
-your profile is uneven, and what to do about it.
+answer, and an explanation of why it is the answer. Above it sit two short lists — what went
+well, what to work on — generated from the shape of your mistakes rather than your score.
+
+**Tap-to-look-up** — every grammar and exam term in an explanation is underlined and opens a
+plain-English definition from a built-in glossary, offline and instantly. Select any *other*
+word anywhere in the app — a passage, a transcript, a question — and a "look up" button
+appears; the AI tutor explains it in simple English, in the context of the sentence you were
+reading, and the answer is cached for next time.
 
 **Study plan** — a four-week cycle ordered by weakness: modules you have never tested come
 first, then the ones with your lowest band. Weak skills flagged by the placement test add
@@ -67,6 +78,11 @@ generation). The placement test, study plan, and the bundled reading and listeni
 work without one.
 
 ## Deploying
+
+**See [DEPLOY.md](DEPLOY.md) for the full setup.** Short version: connect the repo to Vercel
+once and every push to `main` deploys itself to the same permanent URL — the production
+domain never changes between deployments, so a bookmark or an App Store listing keeps
+working. Pull requests get their own preview URLs.
 
 Vercel is the fastest route — it is the first-party host for Next.js, so there is nothing to
 configure:
@@ -130,11 +146,13 @@ app/
     grade/writing/            Claude grading, structured output
     grade/speaking/           Claude grading, structured output
     generate/                 new reading/listening test generation
+    define/                   plain-English word lookup
 components/                   band badge, question renderer, timer
 data/                         the content bank (JSON)
 lib/
   band.ts                     scoring and band conversion
-  placement.ts                adaptive test: item selection and ability estimate
+  placement.ts                adaptive engine: IRT ability estimate and item selection
+  glossary.ts                 built-in grammar and exam term definitions
   advice.ts                   post-test advice from the shape of the mistakes
   review.ts                   builds the wrong-answer review
   theme.ts                    theme store and pre-paint initialiser

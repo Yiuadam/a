@@ -38,6 +38,12 @@ jobs:
       - name: Validate exam content
         run: node scripts/validate-content.mjs
 
+      # The placement engine is statistical, so it cannot be checked by reading
+      # it. Simulated candidates of known ability catch a change that quietly
+      # makes placement less accurate.
+      - name: Check placement accuracy
+        run: node scripts/simulate-placement.mjs
+
       # The iOS bundle is a different build target and can break on its own.
       - name: Build the iOS bundle
         run: npm run build:mobile

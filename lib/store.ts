@@ -73,9 +73,14 @@ export function setPlacement(result: PlacementResult, questionIds: string[] = []
   return commit({ ...p, placement: result, placementHistory: history });
 }
 
-/** Question ids used by the previous two placement tests. */
-export function recentPlacementQuestionIds(): string[] {
-  return (getSnapshot().placementHistory ?? []).flat();
+/**
+ * The previous two sittings, newest first, each as its own list of ids.
+ *
+ * They stay separate rather than flattened because the item chooser relaxes
+ * one sitting at a time when the bank runs short.
+ */
+export function recentPlacementSittings(): string[][] {
+  return getSnapshot().placementHistory ?? [];
 }
 
 export function setTargetBand(band: number): Profile {

@@ -1,31 +1,48 @@
 "use client";
 
-import type { TestQuestion } from "@/lib/types";
+import ExplainText from "@/components/ExplainText";
 import { isCorrect } from "@/lib/band";
+import type { TestQuestion } from "@/lib/types";
 
 export type AnswerMap = Record<string, string | number | undefined>;
+/** Ids the learner has asked to have marked before submitting. */
+export type CheckedMap = Record<string, true | undefined>;
+
+function answerText(q: TestQuestion): string {
+  return q.type === "mcq"
+    ? `${String.fromCharCode(65 + q.answer)}. ${q.options[q.answer]}`
+    : q.answer;
+}
 
 export default function TestQuestions({
   questions,
   answers,
   onAnswer,
   submitted,
+  checked = {},
+  onCheck,
 }: {
   questions: TestQuestion[];
   answers: AnswerMap;
   onAnswer: (id: string, value: string | number) => void;
   submitted: boolean;
+  checked?: CheckedMap;
+  /** Omit to hide the per-question check button entirely. */
+  onCheck?: (id: string) => void;
 }) {
   return (
-    <ol className="space-y-5">
+    <ol className="space-y-5" data-lookupable>
       {questions.map((q, i) => {
         const given = answers[q.id];
-        const correct = submitted ? isCorrect(q, given) : undefined;
+        // A checked question is locked, so its verdict is final either way.
+        const revealed = submitted || checked[q.id] === true;
+        const correct = revealed ? isCorrect(q, given) : undefined;
+        const answered = given !== undefined && given !== "";
         return (
           <li
             key={q.id}
             className={`card ${
-              submitted
+              revealed
                 ? correct
                   ? "border-emerald-300 bg-emerald-50/50"
                   : "border-rose-300 bg-rose-50/50"
@@ -56,7 +73,7 @@ export default function TestQuestions({
                   <button
                     key={opt}
                     type="button"
-                    disabled={submitted}
+                    disabled={revealed}
                     onClick={() => onAnswer(q.id, opt)}
                     className={`btn border text-xs ${
                       given === opt
@@ -79,13 +96,13 @@ export default function TestQuestions({
                       given === idx
                         ? "border-indigo-500 bg-indigo-50"
                         : "border-slate-200 bg-surface hover:bg-slate-50"
-                    } ${submitted ? "cursor-default" : ""}`}
+                    } ${revealed ? "cursor-default" : ""}`}
                   >
                     <input
                       type="radio"
                       name={q.id}
                       checked={given === idx}
-                      disabled={submitted}
+                      disabled={revealed}
                       onChange={() => onAnswer(q.id, idx)}
                       className="accent-indigo-600"
                     />
@@ -102,22 +119,46 @@ export default function TestQuestions({
               <input
                 type="text"
                 value={(given as string) ?? ""}
-                disabled={submitted}
+                disabled={revealed}
                 onChange={(e) => onAnswer(q.id, e.target.value)}
                 placeholder="Type your answer"
                 className="input w-full max-w-sm"
               />
             )}
 
-            {submitted && !correct && (
-              <p className="mt-3 text-sm text-rose-700">
-                Correct answer:{" "}
-                <span className="font-semibold">
-                  {q.type === "mcq"
-                    ? `${String.fromCharCode(65 + q.answer)}. ${q.options[q.answer]}`
-                    : q.answer}
-                </span>
-              </p>
+            {/*
+              Marking one question mid-test is how people actually learn from a
+              practice paper: you find out you have misread a question type
+              while the passage is still fresh, rather than twenty questions
+              later. Checking locks that answer, so the band stays honest.
+            */}
+            {!submitted && onCheck && !revealed && (
+              <button
+                type="button"
+                onClick={() => onCheck(q.id)}
+                disabled={!answered}
+                className="mt-3 text-xs font-medium text-indigo-600 underline underline-offset-4 hover:text-indigo-700 disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline"
+              >
+                {answered ? "Check this answer" : "Answer it to check"}
+              </button>
+            )}
+
+            {revealed && (
+              <div className="mt-3 space-y-2">
+                <p
+                  className={`text-sm font-medium ${
+                    correct ? "text-emerald-700" : "text-rose-700"
+                  }`}
+                >
+                  {correct ? "✓ Correct" : `✗ Answer: ${answerText(q)}`}
+                </p>
+                {q.explanation && (
+                  <ExplainText
+                    text={q.explanation}
+                    className="block text-sm leading-relaxed text-slate-600"
+                  />
+                )}
+              </div>
             )}
           </li>
         );

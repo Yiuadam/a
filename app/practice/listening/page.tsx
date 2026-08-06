@@ -5,7 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import Review from "@/components/Review";
-import TestQuestions, { type AnswerMap } from "@/components/TestQuestions";
+import TestQuestions, {
+  type AnswerMap,
+  type CheckedMap,
+} from "@/components/TestQuestions";
 import listeningOne from "@/data/listening-1.json";
 import listeningTwo from "@/data/listening-2.json";
 import listeningThree from "@/data/listening-3.json";
@@ -86,6 +89,9 @@ function ListeningTestPageRunner() {
   const mounted = useMounted();
   const [started, setStarted] = useState(false);
   const [answers, setAnswers] = useState<AnswerMap>({});
+  // Questions the learner marked mid-test. Checking locks the answer, so a
+  // checked question still counts exactly as it stood when it was checked.
+  const [checked, setChecked] = useState<CheckedMap>({});
   const [submitted, setSubmitted] = useState(false);
   const [band, setBand] = useState<number | null>(null);
   const [raw, setRaw] = useState(0);
@@ -211,6 +217,10 @@ function ListeningTestPageRunner() {
             In exam conditions you hear the recording <span className="font-medium">once</span> —
             but you can replay while practising.
           </p>
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            You can check any single answer as you go and read the explanation straight away.
+            Checking locks that question, so your band stays honest.
+          </p>
           {!ttsSupported && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
               Your browser does not support speech synthesis. Use Chrome, Edge or Safari for
@@ -310,6 +320,8 @@ function ListeningTestPageRunner() {
             answers={answers}
             onAnswer={(id, v) => setAnswers((a) => ({ ...a, [id]: v }))}
             submitted={submitted}
+            checked={checked}
+            onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
           />
           {!submitted && (
             <button className="btn-primary mt-5 w-full" onClick={submit}>
@@ -333,6 +345,7 @@ function ListeningTestPageRunner() {
           </div>
           {showTranscript ? (
             <div className="space-y-3">
+              <p className="text-xs text-slate-400">Select any word to look it up</p>
               {test.script.map((turn, i) => (
                 <p key={i} className="text-sm leading-6 text-slate-700">
                   <span className="mr-1 font-semibold text-slate-500">{turn.speaker}:</span>

@@ -170,12 +170,13 @@ if (placement) {
     if (ids.has(q.id)) fail("placement.json", `duplicate question id ${q.id}`);
     ids.add(q.id);
   }
-  // The adaptive test asks 15 and must not repeat one across three sittings.
-  const TEST_LENGTH = 15;
-  if (questions.length < TEST_LENGTH * 3) {
+  // The longest sitting asks 25, and three consecutive sittings must share no
+  // question — so the bank has to carry 75 before it starts repeating.
+  const LONGEST_SITTING = 25;
+  if (questions.length < LONGEST_SITTING * 3) {
     fail(
       "placement.json",
-      `${questions.length} questions cannot fill three non-repeating sittings of ${TEST_LENGTH}`,
+      `${questions.length} questions cannot fill three non-repeating sittings of ${LONGEST_SITTING}`,
     );
   }
   const perLevel = {};
@@ -195,13 +196,14 @@ if (placement) {
     }
   }
   // The adaptive test can dwell at a level for several questions in a row, so
-  // each level needs real depth or the search has to keep drifting outwards.
+  // each level needs real depth or item selection has to keep drifting away
+  // from the difficulty it actually wants.
   for (const level of ["A1", "A2", "B1", "B2", "C1", "C2"]) {
     const count = perLevel[level] ?? 0;
-    if (count < 9) {
+    if (count < 12) {
       fail(
         "placement.json",
-        `level ${level} has only ${count} questions; 9 are needed for three non-repeating tests`,
+        `level ${level} has only ${count} questions; the adaptive engine needs at least 12`,
       );
     }
   }
@@ -256,6 +258,32 @@ if (writing) {
           }
         }
       }
+    }
+  }
+}
+
+// ---- Glossary ----
+const glossary = load("glossary.json");
+if (glossary) {
+  const terms = glossary.terms ?? [];
+  if (terms.length < 30) fail("glossary.json", `only ${terms.length} terms`);
+  const seen = new Set();
+  for (const entry of terms) {
+    if (!entry.term) fail("glossary.json", "an entry has no term");
+    for (const key of [entry.term, ...(entry.aliases ?? [])]) {
+      const k = String(key).toLowerCase();
+      // A duplicate key would make which entry wins depend on load order.
+      if (seen.has(k)) fail("glossary.json", `"${key}" is defined twice`);
+      seen.add(k);
+    }
+    // The whole point is a plain-English answer, so an empty or stub
+    // definition is worse than having no entry at all.
+    if (!entry.short || entry.short.trim().length < 25) {
+      fail("glossary.json", `"${entry.term}" has no usable definition`);
+    }
+    const words = String(entry.short).trim().split(/\s+/).length;
+    if (words > 45) {
+      fail("glossary.json", `"${entry.term}" definition is ${words} words; keep it short`);
     }
   }
 }
