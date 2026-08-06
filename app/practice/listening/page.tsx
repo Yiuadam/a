@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import TestQuestions, { type AnswerMap } from "@/components/TestQuestions";
 import listeningOne from "@/data/listening-1.json";
@@ -50,8 +50,8 @@ function playScript(test: ListeningTest, from: number, hooks: PlaybackHooks): vo
   step(from);
 }
 
-export default function ListeningTestPage() {
-  const params = useParams<{ id: string }>();
+function ListeningTestPageRunner() {
+  const params = useSearchParams();
   const profile = useProfile();
   const mounted = useMounted();
   const [started, setStarted] = useState(false);
@@ -71,7 +71,7 @@ export default function ListeningTestPage() {
 
   // AI-generated tests live in the profile, so resolve against both sources.
   const test = useMemo(() => {
-    const id = params.id;
+    const id = params.get("id");
     return (
       bundled.find((t) => t.id === id) ??
       (profile.genTests.find((g) => g.kind === "listening" && g.test.id === id)?.test as
@@ -79,7 +79,7 @@ export default function ListeningTestPage() {
         | undefined) ??
       null
     );
-  }, [params.id, profile.genTests]);
+  }, [params, profile.genTests]);
 
   const ttsSupported = mounted && typeof window !== "undefined" && "speechSynthesis" in window;
 
@@ -307,5 +307,13 @@ export default function ListeningTestPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ListeningTestPage() {
+  return (
+    <Suspense fallback={null}>
+      <ListeningTestPageRunner />
+    </Suspense>
   );
 }

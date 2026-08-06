@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import TestQuestions, { type AnswerMap } from "@/components/TestQuestions";
 import Timer from "@/components/Timer";
@@ -15,8 +15,8 @@ import type { ReadingTest } from "@/lib/types";
 
 const bundled = [readingOne, readingTwo] as ReadingTest[];
 
-export default function ReadingTestPage() {
-  const params = useParams<{ id: string }>();
+function ReadingTestPageRunner() {
+  const params = useSearchParams();
   const profile = useProfile();
   const mounted = useMounted();
   const [started, setStarted] = useState(false);
@@ -27,7 +27,7 @@ export default function ReadingTestPage() {
 
   // AI-generated tests live in the profile, so resolve against both sources.
   const test = useMemo(() => {
-    const id = params.id;
+    const id = params.get("id");
     return (
       bundled.find((t) => t.id === id) ??
       (profile.genTests.find((g) => g.kind === "reading" && g.test.id === id)?.test as
@@ -35,7 +35,7 @@ export default function ReadingTestPage() {
         | undefined) ??
       null
     );
-  }, [params.id, profile.genTests]);
+  }, [params, profile.genTests]);
 
   const submit = useCallback(() => {
     if (!test || submitted) return;
@@ -143,5 +143,13 @@ export default function ReadingTestPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ReadingTestPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReadingTestPageRunner />
+    </Suspense>
   );
 }

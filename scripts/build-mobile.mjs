@@ -33,6 +33,13 @@ try {
     renameSync(apiDir, stash);
     moved = true;
   }
+  // Next generates a type validator that imports every route it has seen. Left
+  // over from an earlier build, it still references the routes we just moved
+  // aside and fails the type check. Clear it so it is regenerated for this
+  // build; the normal build regenerates its own copy too.
+  for (const dir of [join(root, ".next", "dev", "types"), join(root, ".next", "types")]) {
+    if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+  }
   execSync("next build", {
     stdio: "inherit",
     env: { ...process.env, MOBILE_BUILD: "1" },

@@ -63,7 +63,7 @@ export default function PracticePage() {
     return (
       <Link
         key={t.id}
-        href={`/practice/${kind}/${t.id}`}
+        href={`/practice/${kind}?id=${t.id}`}
         className="card block transition hover:shadow-md"
       >
         <div className="flex items-start justify-between gap-2">
