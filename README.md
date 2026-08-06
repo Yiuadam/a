@@ -83,15 +83,19 @@ Both work. They trade off differently for this app:
 | Free tier | Generous for hobby traffic | More generous, and cheaper as traffic grows |
 | Next.js coverage | Complete by definition | Very good via the adapter, but occasionally lags new Next features |
 
-Start on Vercel — it is the fastest path to a working URL, and everything here fits inside
-60s. Move to Cloudflare if the per-request time limit or bandwidth cost becomes the binding
-constraint:
+Start on Vercel — it is the fastest path to a working URL, and everything here
+fits inside 60s. Move to Cloudflare if the per-request time limit or bandwidth
+cost becomes the binding constraint. Both are already wired up:
 
 ```bash
-npm i -D @opennextjs/cloudflare wrangler
-npx opennextjs-cloudflare build && npx wrangler deploy
+npm run cf:preview                      # run the Worker build locally first
 npx wrangler secret put ANTHROPIC_API_KEY
+npm run cf:deploy                       # build + publish
 ```
+
+`open-next.config.ts` and `wrangler.jsonc` hold the Worker configuration; the
+app name (`bandup`) and the `nodejs_compat` flag are set there. The Worker build
+has been verified locally — pages render and the API routes respond.
 
 Everything except the three AI routes is static or client-side, so it also deploys unchanged
 to Netlify or any Node host (`npm run build && npm start`).

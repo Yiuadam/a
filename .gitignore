@@ -42,3 +42,7 @@ next-env.d.ts
 
 # keep the template committed
 !.env.example
+
+# cloudflare build output
+.open-next/
+.wrangler/
