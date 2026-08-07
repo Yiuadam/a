@@ -115,6 +115,14 @@ export function buildPlan(profile: Profile): StudyPlan | null {
     rationale: rationaleFor(m),
     tasks: [
       ...moduleTasks[m],
+      // Weak underlying skills are fixed in the study sections, not by sitting
+      // another exam paper — so the plan sends the learner there first.
+      ...(weakSkills.includes("grammar") && (m === "reading" || m === "writing")
+        ? [{ label: "Grammar practice — drill your weakest topic", href: "/grammar" }]
+        : []),
+      ...(weakSkills.includes("vocabulary") && (m === "reading" || m === "speaking")
+        ? [{ label: "Vocabulary practice — collocations and word families", href: "/vocabulary" }]
+        : []),
       ...(weakSkills.length > 0 && (m === "reading" || m === "writing")
         ? [
             {

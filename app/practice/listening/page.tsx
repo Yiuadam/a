@@ -88,6 +88,9 @@ function ListeningTestPageRunner() {
   const profile = useProfile();
   const mounted = useMounted();
   const [started, setStarted] = useState(false);
+  // Exam practice and study practice are different activities; a clock helps
+  // the first and gets in the way of the second.
+  const [mode, setMode] = useState<"timed" | "free">("timed");
   const [answers, setAnswers] = useState<AnswerMap>({});
   // Questions the learner marked mid-test. Checking locks the answer, so a
   // checked question still counts exactly as it stood when it was checked.
@@ -227,6 +230,41 @@ function ListeningTestPageRunner() {
               audio — or practise in transcript mode below.
             </p>
           )}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              How do you want to practise?
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {([
+                {
+                  id: "timed" as const,
+                  title: "Exam conditions",
+                  blurb: `${test.timeMinutes} minutes, clock running`,
+                },
+                {
+                  id: "free" as const,
+                  title: "No time limit",
+                  blurb: "Replay and pause as much as you like",
+                },
+              ]).map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setMode(option.id)}
+                  className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                    mode === option.id
+                      ? "border-indigo-500 bg-indigo-50"
+                      : "border-slate-200 bg-surface hover:border-slate-300"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-slate-900">
+                    {option.title}
+                  </span>
+                  <span className="block text-xs text-slate-500">{option.blurb}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <button className="btn-primary" onClick={() => setStarted(true)}>
             Open the test
           </button>
@@ -239,7 +277,10 @@ function ListeningTestPageRunner() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-900">{test.title}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-lg border border-slate-200 bg-surface px-3 py-1.5 text-sm text-slate-500">
+            {mode === "timed" ? "Exam conditions · plays once" : "No time limit · replay freely"}
+          </span>
           <select
             className="input"
             value={rate}
@@ -255,7 +296,13 @@ function ListeningTestPageRunner() {
             <option value={1.15}>1.15×</option>
           </select>
           {ttsSupported && !playing && (
-            <button className="btn-primary" onClick={() => startAudio(0)}>
+            <button
+              className="btn-primary"
+              onClick={() => startAudio(0)}
+              /* Under exam conditions the recording plays once, as in the real
+                 test. Free practice may replay as often as it likes. */
+              disabled={mode === "timed" && !submitted && (finishedAudio || turnIndex >= 0)}
+            >
               {finishedAudio || turnIndex >= 0 ? "▶ Play again" : "▶ Play recording"}
             </button>
           )}
@@ -339,7 +386,11 @@ function ListeningTestPageRunner() {
                 className="text-xs text-indigo-600 hover:underline"
                 onClick={() => setShowTranscript((s) => !s)}
               >
-                {showTranscript ? "Hide" : ttsSupported ? "Show (spoiler!)" : "Show transcript"}
+                {showTranscript
+                  ? "Hide"
+                  : mode === "free" || !ttsSupported
+                    ? "Show transcript"
+                    : "Show (spoiler!)"}
               </button>
             )}
           </div>
@@ -355,8 +406,9 @@ function ListeningTestPageRunner() {
             </div>
           ) : (
             <p className="text-sm text-slate-400">
-              Hidden during the test — just like the real exam. It unlocks automatically after
-              you submit.
+              {mode === "timed"
+                ? "Hidden during the test — just like the real exam. It unlocks automatically after you submit."
+                : "You are practising without a clock, so open it whenever it helps. It unlocks automatically after you submit."}
             </p>
           )}
         </div>

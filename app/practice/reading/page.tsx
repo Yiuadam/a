@@ -28,6 +28,9 @@ function ReadingTestPageRunner() {
   const profile = useProfile();
   const mounted = useMounted();
   const [started, setStarted] = useState(false);
+  // Exam practice and study practice are different activities; a clock helps
+  // the first and gets in the way of the second.
+  const [mode, setMode] = useState<"timed" | "free">("timed");
   const [answers, setAnswers] = useState<AnswerMap>({});
   // Questions the learner marked mid-test. Checking locks the answer, so a
   // checked question still counts exactly as it stood when it was checked.
@@ -98,6 +101,41 @@ function ReadingTestPageRunner() {
             You can check any single answer as you go and read the explanation straight away.
             Checking locks that question, so your band stays honest.
           </p>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              How do you want to practise?
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {([
+                {
+                  id: "timed" as const,
+                  title: "Exam conditions",
+                  blurb: `${test.timeMinutes} minutes, clock running`,
+                },
+                {
+                  id: "free" as const,
+                  title: "No time limit",
+                  blurb: "Take as long as you like",
+                },
+              ]).map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setMode(option.id)}
+                  className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                    mode === option.id
+                      ? "border-indigo-500 bg-indigo-50"
+                      : "border-slate-200 bg-surface hover:border-slate-300"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-slate-900">
+                    {option.title}
+                  </span>
+                  <span className="block text-xs text-slate-500">{option.blurb}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <button className="btn-primary" onClick={() => setStarted(true)}>
             Start reading test
           </button>
@@ -110,7 +148,14 @@ function ReadingTestPageRunner() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-900">{test.title}</h1>
-        {!submitted && <Timer minutes={test.timeMinutes} running onExpire={submit} />}
+        {!submitted &&
+          (mode === "timed" ? (
+            <Timer minutes={test.timeMinutes} running onExpire={submit} />
+          ) : (
+            <span className="rounded-lg border border-slate-200 bg-surface px-3 py-1.5 text-sm text-slate-500">
+              No time limit
+            </span>
+          ))}
       </div>
 
       {submitted && band !== null && (

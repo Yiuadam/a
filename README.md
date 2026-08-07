@@ -53,6 +53,14 @@ answers are transcribed in the browser via the Web Speech API, and the transcrip
 on Fluency and Coherence, Lexical Resource, Grammatical Range and Accuracy, and
 Pronunciation — plus a band-8 model answer to your weakest response.
 
+**Grammar and vocabulary practice** — two study sections that are not shaped like the exam,
+because a learner who keeps failing the same tense needs to practise that tense rather than
+sit another whole paper and discover the same thing. Ten grammar topics and eight vocabulary
+topics, each opening with the rule in a few lines and then drilling it: you answer, find out
+immediately whether you were right, and read why. No clock, no band score. Words you look up
+anywhere in the app collect into a personal list on the vocabulary page — the most useful
+word list a learner can have, because they did not choose it.
+
 **Endless material** — the app can generate brand-new exam-format reading and listening
 tests on demand, at your chosen difficulty and topic.
 
@@ -135,6 +143,8 @@ to Netlify or any Node host (`npm run build && npm start`).
 app/
   page.tsx                    dashboard
   placement/                  adaptive placement test
+  grammar/                    grammar topics and drills
+  vocabulary/                 vocabulary topics, drills and saved words
   plan/                       generated study plan
   practice/                   test index + on-demand generation
     reading/                  reading test runner (?id=…)
@@ -153,6 +163,8 @@ lib/
   band.ts                     scoring and band conversion
   placement.ts                adaptive engine: IRT ability estimate and item selection
   glossary.ts                 built-in grammar and exam term definitions
+  drills.ts                   drill types and per-topic best scores
+  lookups.ts                  saved word lookups
   advice.ts                   post-test advice from the shape of the mistakes
   review.ts                   builds the wrong-answer review
   theme.ts                    theme store and pre-paint initialiser

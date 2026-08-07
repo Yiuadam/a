@@ -262,6 +262,52 @@ if (writing) {
   }
 }
 
+// ---- Grammar and vocabulary drills ----
+for (const name of ["grammar.json", "vocabulary.json"]) {
+  const data = load(name);
+  if (!data) continue;
+  const topics = data.topics ?? [];
+  if (topics.length < 6) fail(name, `only ${topics.length} topics`);
+
+  const topicIds = new Set();
+  for (const topic of topics) {
+    if (!topic.id) fail(name, "a topic has no id");
+    if (topicIds.has(topic.id)) fail(name, `duplicate topic id ${topic.id}`);
+    topicIds.add(topic.id);
+
+    if (!topic.title) fail(name, `${topic.id} has no title`);
+    if (!["A1", "A2", "B1", "B2", "C1", "C2"].includes(topic.level)) {
+      fail(name, `${topic.id} has an unknown CEFR level: ${topic.level}`);
+    }
+    // The teaching note is what makes this study rather than a quiz.
+    if (!topic.summary || topic.summary.length < 40) {
+      fail(name, `${topic.id} needs a summary explaining why the topic matters`);
+    }
+    if (!Array.isArray(topic.points) || topic.points.length < 3) {
+      fail(name, `${topic.id} needs at least three teaching points`);
+    }
+
+    const questions = topic.questions ?? [];
+    if (questions.length < 6) fail(name, `${topic.id} has only ${questions.length} questions`);
+
+    const seen = new Set();
+    for (const q of questions) {
+      if (seen.has(q.id)) fail(name, `${topic.id} has a duplicate question id ${q.id}`);
+      seen.add(q.id);
+      if (!q.prompt) fail(name, `${topic.id}/${q.id} has no prompt`);
+      if (!Array.isArray(q.options) || q.options.length !== 4) {
+        fail(name, `${topic.id}/${q.id} must have exactly four options`);
+      } else if (new Set(q.options).size !== q.options.length) {
+        // Two identical options make one of them unmarkable.
+        fail(name, `${topic.id}/${q.id} has duplicate options`);
+      } else if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.options.length) {
+        fail(name, `${topic.id}/${q.id} has an answer index outside its options`);
+      }
+      checkExplanation(name, { id: `${topic.id}/${q.id}`, explanation: q.explanation });
+    }
+  }
+}
+
 // ---- Glossary ----
 const glossary = load("glossary.json");
 if (glossary) {

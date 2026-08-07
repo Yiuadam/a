@@ -1,26 +1,9 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { postJSON } from "@/lib/api";
 import { findTerm } from "@/lib/glossary";
-
-export interface Definition {
-  term: string;
-  partOfSpeech?: string;
-  short: string;
-  example?: string;
-  inContext?: string;
-  /** Where it came from, so the panel can say so honestly. */
-  source: "glossary" | "ai" | "cache";
-}
+import { type Definition, cachedLookup, saveLookup } from "@/lib/lookups";
 
 type PanelState =
   | { status: "closed" }
@@ -41,47 +24,36 @@ export function useLookup(): LookupApi {
   return api ?? { look: () => {} };
 }
 
-const CACHE_KEY = "bandup.lookups.v1";
-const CACHE_LIMIT = 200;
-
-function readCache(): Record<string, Definition> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(CACHE_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, Definition>) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeCache(key: string, definition: Definition): void {
-  try {
-    const cache = readCache();
-    cache[key] = definition;
-    const keys = Object.keys(cache);
-    // Oldest-inserted first; a rough cap is enough to keep localStorage sane.
-    if (keys.length > CACHE_LIMIT) delete cache[keys[0]];
-    window.localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    // A full or unavailable localStorage just means no caching.
-  }
-}
-
 /** Reject selections that are clearly not a word or phrase to look up. */
 function usableSelection(text: string): boolean {
   const clean = text.trim();
   if (clean.length < 2 || clean.length > 120) return false;
-  const words = clean.split(/\s+/);
-  if (words.length > 8) return false;
+  if (clean.split(/\s+/).length > 8) return false;
   return /[a-zA-Z]/.test(clean);
+}
+
+/** The sentence a selection sits in, so the AI can explain it in context. */
+function sentenceAround(selection: Selection, term: string): string {
+  const block = selection.anchorNode?.parentElement?.closest("p, li, span, div");
+  const text = block?.textContent ?? "";
+  if (!text) return "";
+  const at = text.indexOf(term);
+  if (at < 0) return text.slice(0, 400);
+  const start = Math.max(0, text.lastIndexOf(".", at) + 1);
+  const stop = text.indexOf(".", at + term.length);
+  return text.slice(start, stop < 0 ? text.length : stop + 1).trim().slice(0, 400);
 }
 
 export default function LookupProvider({ children }: { children: React.ReactNode }) {
   const [panel, setPanel] = useState<PanelState>({ status: "closed" });
-  const [pill, setPill] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [pill, setPill] = useState<{ x: number; y: number; text: string; context: string } | null>(
+    null,
+  );
+  const [query, setQuery] = useState("");
   // Only the newest request may write to the panel; an earlier slow lookup
   // must not overwrite the answer the user is currently reading.
   const requestId = useRef(0);
+  const pillRef = useRef<HTMLButtonElement | null>(null);
 
   const look = useCallback((term: string, context?: string) => {
     const clean = term.trim().replace(/\s+/g, " ");
@@ -89,6 +61,7 @@ export default function LookupProvider({ children }: { children: React.ReactNode
     setPill(null);
 
     const id = ++requestId.current;
+
     const local = findTerm(clean);
     if (local) {
       setPanel({
@@ -103,8 +76,7 @@ export default function LookupProvider({ children }: { children: React.ReactNode
       return;
     }
 
-    const key = clean.toLowerCase();
-    const cached = readCache()[key];
+    const cached = cachedLookup(clean);
     if (cached) {
       setPanel({ status: "ready", definition: { ...cached, source: "cache" } });
       return;
@@ -117,8 +89,13 @@ export default function LookupProvider({ children }: { children: React.ReactNode
     })
       .then((data) => {
         if (requestId.current !== id) return;
-        const definition: Definition = { ...data.definition, term: clean, source: "ai" };
-        writeCache(key, definition);
+        const definition: Definition = {
+          ...data.definition,
+          term: clean,
+          source: "ai",
+          at: new Date().toISOString(),
+        };
+        saveLookup(definition);
         setPanel({ status: "ready", definition });
       })
       .catch((err: unknown) => {
@@ -133,6 +110,7 @@ export default function LookupProvider({ children }: { children: React.ReactNode
 
   const close = useCallback(() => {
     requestId.current += 1;
+    setQuery("");
     setPanel({ status: "closed" });
   }, []);
 
@@ -142,7 +120,11 @@ export default function LookupProvider({ children }: { children: React.ReactNode
     selection lives in the DOM, not in React state.
   */
   useEffect(() => {
-    const onSelect = () => {
+    const onSelect = (event: Event) => {
+      // Pressing the pill itself must not be treated as "the selection
+      // changed" — that would hide the pill before its own handler ran.
+      if (pillRef.current?.contains(event.target as Node)) return;
+
       const selection = window.getSelection();
       const text = selection?.toString() ?? "";
       if (!selection || selection.isCollapsed || !usableSelection(text)) {
@@ -166,11 +148,13 @@ export default function LookupProvider({ children }: { children: React.ReactNode
         setPill(null);
         return;
       }
+      const clean = text.trim();
       setPill({
         // Keep the pill on screen when the selection sits near an edge.
         x: Math.min(window.innerWidth - 110, Math.max(110, rect.left + rect.width / 2)),
         y: rect.top,
-        text: text.trim(),
+        text: clean,
+        context: sentenceAround(selection, clean),
       });
     };
 
@@ -187,16 +171,34 @@ export default function LookupProvider({ children }: { children: React.ReactNode
 
   const api = useMemo<LookupApi>(() => ({ look }), [look]);
 
+  const submitQuery = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) look(query);
+  };
+
   return (
     <LookupContext.Provider value={api}>
       {children}
 
       {pill && (
         <button
+          ref={pillRef}
           type="button"
-          onClick={() => look(pill.text)}
-          style={{ left: pill.x, top: Math.max(8, pill.y - 44) }}
-          className="fixed z-40 -translate-x-1/2 rounded-full bg-slate-900 px-3.5 py-2 text-xs font-medium text-slate-50 shadow-lg"
+          /*
+            pointerdown, not click.
+
+            Pressing the pill collapses the text selection, which fires the
+            document's mouseup handler, which hides the pill — so React
+            unmounts the button before its click event is ever delivered, and
+            nothing happens. Acting on pointerdown runs before any of that, and
+            preventDefault stops the browser clearing the selection at all.
+          */
+          onPointerDown={(e) => {
+            e.preventDefault();
+            look(pill.text, pill.context);
+          }}
+          style={{ left: pill.x, top: Math.max(8, pill.y - 46) }}
+          className="fixed z-40 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2.5 text-xs font-medium text-slate-50 shadow-lg"
         >
           🔍 Look up “{pill.text.length > 22 ? `${pill.text.slice(0, 22)}…` : pill.text}”
         </button>
@@ -233,7 +235,7 @@ export default function LookupProvider({ children }: { children: React.ReactNode
               <div className="mt-3 space-y-3">
                 <p className="text-sm text-slate-600">{panel.message}</p>
                 <p className="text-xs text-slate-400">
-                  Grammar and exam terms work without a connection — they are the ones
+                  Grammar and exam terms still work without a connection — they are the ones
                   underlined in the explanations.
                 </p>
               </div>
@@ -261,10 +263,25 @@ export default function LookupProvider({ children }: { children: React.ReactNode
                 <p className="text-xs text-slate-400">
                   {panel.definition.source === "glossary"
                     ? "From the built-in grammar glossary."
-                    : "Explained by the AI tutor, saved for next time."}
+                    : "Explained by the AI tutor and saved to your word list."}
                 </p>
               </div>
             )}
+
+            {/* Looking a word up usually raises another one, so the panel
+                takes a typed word too rather than making you go and find it. */}
+            <form onSubmit={submitQuery} className="mt-5 flex gap-2 border-t border-slate-200 pt-4">
+              <input
+                className="input flex-1"
+                placeholder="Look up another word…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Look up another word"
+              />
+              <button type="submit" className="btn-primary" disabled={!query.trim()}>
+                Look up
+              </button>
+            </form>
           </div>
         </div>
       )}

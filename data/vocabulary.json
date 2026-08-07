@@ -1,0 +1,574 @@
+{
+  "topics": [
+    {
+      "id": "collocations",
+      "title": "Collocations: words that go together",
+      "level": "B1",
+      "summary": "Some word pairs are simply what native speakers say. The alternative may be perfectly logical and still sound wrong, which is why collocation is worth more marks than rare vocabulary.",
+      "points": [
+        "make: a decision, a mistake, a phone call, progress, an effort.",
+        "do: homework, the washing-up, business, research, someone a favour.",
+        "take: a photo, a break, a risk, part, place.",
+        "Record the whole phrase in your notebook, never the single word."
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "prompt": "It's time to ___ a decision.",
+          "options": ["do", "make", "take", "give"],
+          "answer": 1,
+          "explanation": "English says \"make a decision\". \"Take a decision\" exists in formal British English but \"make\" is far safer and more common."
+        },
+        {
+          "id": "q2",
+          "prompt": "She's doing ___ into renewable energy.",
+          "options": ["research", "a research", "researches", "the researches"],
+          "answer": 0,
+          "explanation": "The verb is \"do research\", and \"research\" is uncountable, so no article and no plural. Two rules in one short phrase."
+        },
+        {
+          "id": "q3",
+          "prompt": "Could you ___ me a favour?",
+          "options": ["make", "give", "do", "take"],
+          "answer": 2,
+          "explanation": "\"Do someone a favour\" is fixed. Many learners reach for \"make\" here because it works in their own language."
+        },
+        {
+          "id": "q4",
+          "prompt": "We need to ___ a risk if we want to grow.",
+          "options": ["do", "make", "take", "have"],
+          "answer": 2,
+          "explanation": "\"Take a risk\", like \"take a chance\" and \"take responsibility\". These belong to the \"take\" family."
+        },
+        {
+          "id": "q5",
+          "prompt": "The project has ___ significant progress.",
+          "options": ["done", "made", "taken", "given"],
+          "answer": 1,
+          "explanation": "\"Make progress\" is the standard collocation, and it upgrades a sentence considerably compared with \"got better\"."
+        },
+        {
+          "id": "q6",
+          "prompt": "Prices have risen ___.",
+          "options": ["strongly", "sharply", "hardly", "highly"],
+          "answer": 1,
+          "explanation": "\"Rise sharply\" is the natural pairing for a steep increase, and it is exactly the language IELTS Task 1 rewards."
+        },
+        {
+          "id": "q7",
+          "prompt": "The film ___ a lasting impression on me.",
+          "options": ["did", "took", "made", "gave"],
+          "answer": 2,
+          "explanation": "\"Make an impression\" is fixed. \"Leave an impression\" also works; \"give\" and \"do\" do not."
+        },
+        {
+          "id": "q8",
+          "prompt": "The conference will ___ place in June.",
+          "options": ["take", "make", "have", "hold"],
+          "answer": 0,
+          "explanation": "\"Take place\" means happen. \"Hold\" needs an agent — someone holds a conference — so it cannot follow \"will\" here without changing the sentence."
+        }
+      ]
+    },
+    {
+      "id": "phrasal-verbs",
+      "title": "Everyday phrasal verbs",
+      "level": "B1",
+      "summary": "A phrasal verb is a verb plus a small word that changes its meaning completely. They dominate spoken English, which makes them essential for listening and speaking.",
+      "points": [
+        "The small word changes everything: put off, put up with, put on, put across.",
+        "In speaking they sound natural; in formal writing prefer the single-word equivalent.",
+        "Many are separable: turn the light on, turn it on — but never \"turn on it\".",
+        "Learn them in a sentence, since the meaning rarely comes from the parts."
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "prompt": "They had to ___ the match because of the snow.",
+          "options": ["call off", "call up", "call in", "call for"],
+          "answer": 0,
+          "explanation": "\"Call off\" means cancel. \"Call up\" means telephone or summon, and \"call for\" means require."
+        },
+        {
+          "id": "q2",
+          "prompt": "I can't ___ his constant complaining.",
+          "options": ["put off", "put up with", "put on", "put down"],
+          "answer": 1,
+          "explanation": "\"Put up with\" means tolerate. It takes all three words — dropping \"with\" changes the meaning entirely."
+        },
+        {
+          "id": "q3",
+          "prompt": "The meeting was ___ until next week.",
+          "options": ["put on", "put out", "put off", "put up"],
+          "answer": 2,
+          "explanation": "\"Put off\" means postpone. Note that \"call off\" would mean cancelled altogether, not moved."
+        },
+        {
+          "id": "q4",
+          "prompt": "She ___ her father — same eyes, same laugh.",
+          "options": ["takes after", "takes on", "takes up", "takes over"],
+          "answer": 0,
+          "explanation": "\"Take after\" means resemble a relative. \"Take up\" would mean start a hobby, and \"take over\" means assume control."
+        },
+        {
+          "id": "q5",
+          "prompt": "We're ___ milk — can you buy some?",
+          "options": ["running out of", "running over", "running into", "running up"],
+          "answer": 0,
+          "explanation": "\"Run out of\" means the supply is finished. \"Run into\" means meet by chance."
+        },
+        {
+          "id": "q6",
+          "prompt": "Can you ___ what this word means?",
+          "options": ["look after", "look up", "look into", "look out"],
+          "answer": 1,
+          "explanation": "\"Look up\" means find in a reference. \"Look into\" means investigate, and \"look after\" means care for."
+        },
+        {
+          "id": "q7",
+          "prompt": "The plane ___ two hours late.",
+          "options": ["took after", "took off", "took up", "took in"],
+          "answer": 1,
+          "explanation": "\"Take off\" is the aircraft leaving the ground. It also means become suddenly successful."
+        },
+        {
+          "id": "q8",
+          "prompt": "In a formal essay, which is the better choice for \"find out\"?",
+          "options": ["figure out", "suss out", "determine", "dig up"],
+          "answer": 2,
+          "explanation": "Phrasal verbs sound informal in academic writing. \"Determine\" is the single-word equivalent, and swapping them lifts your register."
+        }
+      ]
+    },
+    {
+      "id": "word-formation",
+      "title": "Word families and word formation",
+      "level": "B2",
+      "summary": "One root gives you four or five words. Knowing the family means you can always produce the form the sentence needs, which is worth more than knowing four unrelated words.",
+      "points": [
+        "Noun endings: -tion, -ment, -ness, -ity, -ance.",
+        "Adjective endings: -ful, -less, -ive, -able, -ous, -al.",
+        "Adverbs usually add -ly to the adjective.",
+        "Negative prefixes: un-, in-, im-, ir-, il-, dis-. The choice depends on the first letter."
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "prompt": "The trial was a complete ___. (succeed)",
+          "options": ["success", "successful", "successfully", "succession"],
+          "answer": 0,
+          "explanation": "After \"a complete\" the sentence needs a noun, and the noun from \"succeed\" is \"success\". \"Succession\" means a sequence — a different word."
+        },
+        {
+          "id": "q2",
+          "prompt": "He behaved ___. (responsible)",
+          "options": ["responsible", "responsibly", "responsibility", "responsibleness"],
+          "answer": 1,
+          "explanation": "The word describes how he behaved, so it modifies a verb and must be an adverb. Adjectives ending -ble take -bly, not -blely."
+        },
+        {
+          "id": "q3",
+          "prompt": "The instructions were ___. (use)",
+          "options": ["useless", "uselessly", "usefulness", "using"],
+          "answer": 0,
+          "explanation": "After \"were\" the sentence needs an adjective. \"Useless\" means of no use; the opposite would be \"useful\"."
+        },
+        {
+          "id": "q4",
+          "prompt": "Which is the correct negative of \"legal\"?",
+          "options": ["unlegal", "inlegal", "illegal", "dislegal"],
+          "answer": 2,
+          "explanation": "Before an l the prefix in- becomes il-. Similarly im- before m or p (impossible), and ir- before r (irregular)."
+        },
+        {
+          "id": "q5",
+          "prompt": "Her ___ to the project was enormous. (contribute)",
+          "options": ["contribution", "contributor", "contributive", "contributing"],
+          "answer": 0,
+          "explanation": "\"Her ___ was enormous\" needs a noun for the thing contributed. \"Contributor\" would be the person, not the contribution."
+        },
+        {
+          "id": "q6",
+          "prompt": "The results were ___ inconclusive. (large)",
+          "options": ["large", "larger", "largely", "largeness"],
+          "answer": 2,
+          "explanation": "The word modifies an adjective, so it must be an adverb. \"Largely\" here means mostly, which is a slightly different sense from \"big\"."
+        },
+        {
+          "id": "q7",
+          "prompt": "It is a matter of some ___. (urgent)",
+          "options": ["urgent", "urgently", "urgency", "urgentness"],
+          "answer": 2,
+          "explanation": "After \"some\" the sentence needs an uncountable noun. Adjectives ending -ent usually form nouns in -ency: urgent, urgency; frequent, frequency."
+        },
+        {
+          "id": "q8",
+          "prompt": "The evidence is ___ with the theory. (consist)",
+          "options": ["consistent", "consistency", "consistently", "consisting"],
+          "answer": 0,
+          "explanation": "After \"is\" the sentence needs an adjective, and \"consistent with\" is the fixed academic phrase for evidence that agrees with a claim."
+        }
+      ]
+    },
+    {
+      "id": "academic-verbs",
+      "title": "Academic verbs for writing",
+      "level": "C1",
+      "summary": "The difference between band 6 and band 7 writing is often just verb choice. Precise academic verbs say in one word what a vague verb needs a clause to say.",
+      "points": [
+        "Instead of \"show\": demonstrate, indicate, reveal, suggest — each is a different strength of claim.",
+        "Instead of \"say\": argue, claim, contend, acknowledge, concede.",
+        "Instead of \"prove\": support, corroborate, substantiate. Very little is actually proved.",
+        "Match the verb to how sure you are — overclaiming costs marks."
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "prompt": "The data ___ a link, though it does not prove one.",
+          "options": ["demonstrates", "suggests", "establishes", "confirms"],
+          "answer": 1,
+          "explanation": "\"Suggests\" is the weakest and most honest of these, which is exactly right when the evidence stops short of proof."
+        },
+        {
+          "id": "q2",
+          "prompt": "The second study ___ the earlier findings.",
+          "options": ["corroborates", "collaborates", "correlates", "cooperates"],
+          "answer": 0,
+          "explanation": "\"Corroborate\" means to support with further evidence. \"Collaborate\" means work together — a common and costly confusion."
+        },
+        {
+          "id": "q3",
+          "prompt": "Critics ___ that the policy was never properly funded.",
+          "options": ["tell", "speak", "contend", "talk"],
+          "answer": 2,
+          "explanation": "\"Contend\" introduces an argued position. \"Tell\" and \"talk\" need a person as object and are too informal here."
+        },
+        {
+          "id": "q4",
+          "prompt": "The author ___ the limitations of the sample.",
+          "options": ["acknowledges", "knows", "realises", "notices"],
+          "answer": 0,
+          "explanation": "\"Acknowledge\" means openly admit something that weakens your own case — a hallmark of careful academic writing."
+        },
+        {
+          "id": "q5",
+          "prompt": "These figures ___ a steady decline.",
+          "options": ["tell", "indicate", "inform", "advise"],
+          "answer": 1,
+          "explanation": "\"Indicate\" is the standard verb for what data shows. \"Inform\" and \"advise\" need a person as their object."
+        },
+        {
+          "id": "q6",
+          "prompt": "The results ___ from those of previous studies.",
+          "options": ["differ", "different", "difference", "differently"],
+          "answer": 0,
+          "explanation": "The sentence needs a verb, and \"differ from\" is the academic phrasing. Many learners write \"are different from\", which is correct but weaker."
+        },
+        {
+          "id": "q7",
+          "prompt": "The paper ___ three possible explanations.",
+          "options": ["puts forward", "puts up", "puts off", "puts down"],
+          "answer": 0,
+          "explanation": "\"Put forward\" means propose. In the most formal register you would write \"proposes\" or \"advances\" instead."
+        },
+        {
+          "id": "q8",
+          "prompt": "Which verb makes the strongest claim?",
+          "options": ["implies", "hints at", "establishes", "points to"],
+          "answer": 2,
+          "explanation": "\"Establishes\" asserts that the matter is settled. Use it only when the evidence genuinely supports that much."
+        }
+      ]
+    },
+    {
+      "id": "describing-change",
+      "title": "Describing change and data",
+      "level": "B2",
+      "summary": "IELTS Task 1 is almost entirely this vocabulary. A candidate who can vary the verb, the adverb and the noun form of a trend will not repeat themselves for 150 words.",
+      "points": [
+        "Up: rise, increase, climb, soar, surge. Down: fall, decline, drop, plummet, dip.",
+        "Size: slightly, gradually, steadily, sharply, dramatically.",
+        "Verb or noun: \"rose sharply\" = \"a sharp rise\". Alternating the two is what stops repetition.",
+        "No change: remain stable, level off, plateau, stay constant."
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "prompt": "Sales ___ dramatically after the advertisement.",
+          "options": ["raised", "rose", "arose", "risen"],
+          "answer": 1,
+          "explanation": "\"Rise\" is intransitive: things rise by themselves. \"Raise\" needs an object — you raise prices. The past of rise is \"rose\"."
+        },
+        {
+          "id": "q2",
+          "prompt": "There was a ___ increase in unemployment.",
+          "options": ["sharply", "sharpen", "sharp", "sharpness"],
+          "answer": 2,
+          "explanation": "Before a noun you need an adjective, so \"a sharp increase\". The verb version would be \"increased sharply\"."
+        },
+        {
+          "id": "q3",
+          "prompt": "Figures ___ at around 40% for the rest of the decade.",
+          "options": ["remained stable", "remained stably", "stayed stability", "were stability"],
+          "answer": 0,
+          "explanation": "\"Remain\" is a linking verb, so it takes an adjective, not an adverb — like \"remain calm\" or \"stay quiet\"."
+        },
+        {
+          "id": "q4",
+          "prompt": "Which word describes the steepest fall?",
+          "options": ["dipped", "declined", "plummeted", "eased"],
+          "answer": 2,
+          "explanation": "\"Plummet\" means to fall very fast and very far. \"Dip\" is a small temporary fall, and \"ease\" is gentler still."
+        },
+        {
+          "id": "q5",
+          "prompt": "The graph shows a steady ___ in car ownership.",
+          "options": ["grow", "growth", "grew", "growing"],
+          "answer": 1,
+          "explanation": "After \"a steady\" you need a noun, and the noun from \"grow\" is \"growth\"."
+        },
+        {
+          "id": "q6",
+          "prompt": "Numbers rose ___ 2010 ___ 2015.",
+          "options": ["from / to", "between / and", "in / to", "at / until"],
+          "answer": 0,
+          "explanation": "\"Rise from X to Y\" is the pattern for values. \"Between 2010 and 2015\" would describe the period, not the movement."
+        },
+        {
+          "id": "q7",
+          "prompt": "After 2018 the figure ___ off at 25%.",
+          "options": ["levelled", "flattened out to", "stabled", "planed"],
+          "answer": 0,
+          "explanation": "\"Level off\" means to stop changing and hold steady. \"Plateau\" is the one-word alternative."
+        },
+        {
+          "id": "q8",
+          "prompt": "The rate fell ___ five per cent.",
+          "options": ["with", "of", "by", "in"],
+          "answer": 2,
+          "explanation": "\"Fell by\" gives the size of the change; \"fell to\" would give the final value. Confusing the two reverses your meaning."
+        }
+      ]
+    },
+    {
+      "id": "confusables",
+      "title": "Words that are easy to confuse",
+      "level": "B2",
+      "summary": "These pairs look or sound alike but mean different things. They are marked strictly, because using the wrong one usually makes the sentence say something you did not intend.",
+      "points": [
+        "affect (verb) / effect (noun) — the rain affected the crop; the effect was severe.",
+        "practice (noun) / practise (verb) in British English.",
+        "economic (to do with the economy) / economical (cheap to run).",
+        "principal (main, or head of a school) / principle (a rule or belief)."
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "prompt": "The weather badly ___ the harvest.",
+          "options": ["effected", "affected", "effect", "affect"],
+          "answer": 1,
+          "explanation": "\"Affect\" is the verb and \"effect\" is the noun. A quick test: if you can put \"the\" in front, you want \"effect\"."
+        },
+        {
+          "id": "q2",
+          "prompt": "This car is very ___ — it barely uses any fuel.",
+          "options": ["economic", "economical", "economy", "economically"],
+          "answer": 1,
+          "explanation": "\"Economical\" means cheap to run. \"Economic\" relates to the economy as a whole — economic growth, economic policy."
+        },
+        {
+          "id": "q3",
+          "prompt": "The ___ reason for the delay was funding.",
+          "options": ["principle", "principal", "principled", "principally"],
+          "answer": 1,
+          "explanation": "\"Principal\" means main. \"Principle\" is a rule or belief, as in \"a matter of principle\"."
+        },
+        {
+          "id": "q4",
+          "prompt": "You need to ___ every day to improve.",
+          "options": ["practice", "practise", "practising", "practiced"],
+          "answer": 1,
+          "explanation": "In British English the verb is \"practise\" with an s and the noun is \"practice\" with a c. American English uses \"practice\" for both."
+        },
+        {
+          "id": "q5",
+          "prompt": "The number of applicants has ___ risen.",
+          "options": ["considerable", "considerate", "considerably", "consideration"],
+          "answer": 2,
+          "explanation": "An adverb is needed to modify \"risen\". Note \"considerate\" means kind and thoughtful — an entirely different word from \"considerable\"."
+        },
+        {
+          "id": "q6",
+          "prompt": "She gave a ___ account of what happened.",
+          "options": ["historic", "historical", "history", "historian"],
+          "answer": 1,
+          "explanation": "\"Historical\" means relating to the past. \"Historic\" means important enough to be remembered — a historic victory."
+        },
+        {
+          "id": "q7",
+          "prompt": "The two versions are almost ___.",
+          "options": ["identical", "identify", "identity", "identically"],
+          "answer": 0,
+          "explanation": "After \"are\" the sentence needs an adjective. \"Identically\" would modify a verb: they are identically packaged."
+        },
+        {
+          "id": "q8",
+          "prompt": "Fewer or less? \"There were ___ people than last year.\"",
+          "options": ["less", "fewer", "lesser", "little"],
+          "answer": 1,
+          "explanation": "\"Fewer\" goes with countable nouns like people; \"less\" goes with uncountables like money or time."
+        }
+      ]
+    },
+    {
+      "id": "linking",
+      "title": "Linking ideas precisely",
+      "level": "B2",
+      "summary": "Linking words are marked on whether they express the right relationship, not on how many you use. A well-chosen \"whereas\" beats three scattered \"moreover\"s.",
+      "points": [
+        "Contrast: however, whereas, nevertheless, on the other hand.",
+        "Cause: because, since, as, owing to, due to.",
+        "Result: therefore, consequently, as a result, thus.",
+        "\"Despite\" and \"in spite of\" take a noun or -ing; \"although\" takes a full clause."
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "prompt": "___ the rain, the match went ahead.",
+          "options": ["Although", "Despite", "However", "Whereas"],
+          "answer": 1,
+          "explanation": "\"Despite\" is followed by a noun. \"Although\" would need a clause: although it was raining."
+        },
+        {
+          "id": "q2",
+          "prompt": "Sales rose in the north, ___ they fell in the south.",
+          "options": ["however", "whereas", "therefore", "moreover"],
+          "answer": 1,
+          "explanation": "\"Whereas\" joins two contrasting halves inside one sentence. \"However\" would need a full stop or semicolon before it."
+        },
+        {
+          "id": "q3",
+          "prompt": "The road was closed. ___, we had to turn back.",
+          "options": ["Therefore", "Whereas", "Although", "Despite"],
+          "answer": 0,
+          "explanation": "This is a result, so \"therefore\". Note the full stop before it — \"therefore\" cannot join two clauses on its own."
+        },
+        {
+          "id": "q4",
+          "prompt": "___ of the cost, the scheme was abandoned.",
+          "options": ["Because", "Owing to", "Since", "As"],
+          "answer": 1,
+          "explanation": "\"Because\" needs a clause; \"owing to\" and \"due to\" take a noun. The trick is to look at what follows, not what you mean."
+        },
+        {
+          "id": "q5",
+          "prompt": "Which is correct?",
+          "options": [
+            "Despite it was late, we continued.",
+            "Despite of the delay, we continued.",
+            "Despite the delay, we continued.",
+            "Despite that it was late, we continued."
+          ],
+          "answer": 2,
+          "explanation": "\"Despite\" takes a noun directly — no \"of\", no clause. \"In spite of\" is the version that keeps the \"of\"."
+        },
+        {
+          "id": "q6",
+          "prompt": "The results were poor. ___, the funding was withdrawn.",
+          "options": ["Nevertheless", "Consequently", "Whereas", "Although"],
+          "answer": 1,
+          "explanation": "The withdrawal follows from the poor results, so a result linker is needed. \"Nevertheless\" would signal the opposite relationship."
+        },
+        {
+          "id": "q7",
+          "prompt": "He had little experience. ___, he got the job.",
+          "options": ["Therefore", "Nevertheless", "Consequently", "Thus"],
+          "answer": 1,
+          "explanation": "The outcome is surprising given the reason, which calls for a contrast linker. The other three all signal a result."
+        },
+        {
+          "id": "q8",
+          "prompt": "___ working late, she never seemed tired.",
+          "options": ["Although", "Despite", "However", "Because"],
+          "answer": 1,
+          "explanation": "\"Working\" is an -ing form, and \"despite\" accepts one. \"Although\" would need a subject and verb: although she worked late."
+        }
+      ]
+    },
+    {
+      "id": "topic-people",
+      "title": "Talking about people and character",
+      "level": "B1",
+      "summary": "Describing people comes up in almost every speaking test. Precise character adjectives lift a Part 2 answer far above \"nice\" and \"very good\".",
+      "points": [
+        "Positive: generous, patient, reliable, easy-going, thoughtful, determined.",
+        "Negative: stubborn, arrogant, impatient, unreliable, self-centred.",
+        "Careful: \"sensible\" means having good judgement; \"sensitive\" means easily hurt.",
+        "Give an example after the adjective — that is what turns a word into a band."
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "prompt": "He always arrives when he says he will. He's very ___.",
+          "options": ["reliable", "sensible", "sensitive", "generous"],
+          "answer": 0,
+          "explanation": "\"Reliable\" means you can depend on them. \"Sensible\" would describe good judgement rather than dependability."
+        },
+        {
+          "id": "q2",
+          "prompt": "She refuses to change her mind about anything. She's ___.",
+          "options": ["determined", "stubborn", "confident", "decisive"],
+          "answer": 1,
+          "explanation": "\"Stubborn\" is the negative version; \"determined\" is the positive one. The refusal to reconsider is what makes it stubborn."
+        },
+        {
+          "id": "q3",
+          "prompt": "He gets upset very easily — he's quite ___.",
+          "options": ["sensible", "sensitive", "senseless", "sensational"],
+          "answer": 1,
+          "explanation": "\"Sensitive\" means easily affected emotionally. \"Sensible\" is a classic false friend that means practical and level-headed."
+        },
+        {
+          "id": "q4",
+          "prompt": "Nothing bothers her; she's very ___.",
+          "options": ["easy-going", "easy-taking", "easily-going", "easy"],
+          "answer": 0,
+          "explanation": "\"Easy-going\" means relaxed and tolerant. Note the hyphen — it is a single compound adjective."
+        },
+        {
+          "id": "q5",
+          "prompt": "He never stops talking about himself. He's ___.",
+          "options": ["self-made", "self-centred", "self-conscious", "self-taught"],
+          "answer": 1,
+          "explanation": "\"Self-centred\" means interested only in oneself. \"Self-conscious\" means embarrassed about how others see you — nearly the opposite."
+        },
+        {
+          "id": "q6",
+          "prompt": "She's willing to wait as long as it takes. She's ___.",
+          "options": ["patient", "patience", "patiently", "the patient"],
+          "answer": 0,
+          "explanation": "After \"is\" you need the adjective \"patient\". \"Patience\" is the noun: she has a lot of patience."
+        },
+        {
+          "id": "q7",
+          "prompt": "He gives a lot of his time to others — he's very ___.",
+          "options": ["generous", "genuine", "gentle", "genius"],
+          "answer": 0,
+          "explanation": "\"Generous\" covers giving money, time or praise. \"Genuine\" means sincere, and \"genius\" is a noun."
+        },
+        {
+          "id": "q8",
+          "prompt": "Which upgrades \"He is a nice person\" for a speaking test?",
+          "options": [
+            "He is a very nice person.",
+            "He is really nice, honestly.",
+            "He's thoughtful — he always remembers what you told him.",
+            "He is a nice and good person."
+          ],
+          "answer": 2,
+          "explanation": "A precise adjective plus a concrete example is what raises the score. Repeating or intensifying \"nice\" adds nothing to lexical resource."
+        }
+      ]
+    }
+  ]
+}

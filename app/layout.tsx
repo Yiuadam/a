@@ -26,6 +26,8 @@ const NAV = [
   { href: "/", label: "Home" },
   { href: "/plan", label: "My plan" },
   { href: "/practice", label: "Practice" },
+  { href: "/grammar", label: "Grammar" },
+  { href: "/vocabulary", label: "Vocabulary" },
   { href: "/speaking", label: "Speaking" },
   { href: "/resources", label: "Guides" },
 ] as const;
