@@ -155,6 +155,7 @@ app/
     writing/                  writing task + AI grading
   speaking/                   AI speaking examiner
   resources/                  exam guides
+  privacy/                    privacy policy (App Store requires a public URL)
   api/
     grade/writing/            Claude grading, structured output
     grade/speaking/           Claude grading, structured output
