@@ -1,0 +1,22 @@
+{
+  "name": "@bandup/capacitor-local-transcription",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Transcribe speech with whisper.cpp on the device, for BandUp's speaking test.",
+  "license": "MIT",
+  "files": [
+    "ios/Sources",
+    "Package.swift"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "devDependencies": {
+    "@capacitor/core": "^8.5.0"
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

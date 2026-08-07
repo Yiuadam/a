@@ -68,8 +68,11 @@ export async function nativeSTT(): Promise<NativeSTT | null> {
   The on-device recogniser, which is a different thing from the one above:
   Apple's SFSpeechRecognizer may transcribe in iCloud, whereas this is
   whisper.cpp compiled into the app and running on the phone. The Swift side
-  lives in ios-plugins/local-transcription — written, documented, and not yet
-  compiled, because that needs a Mac (see TRANSCRIPTION.md).
+  lives in ios-plugins/local-transcription: written and documented, never
+  compiled, because that needs a Mac (see TRANSCRIPTION.md). It is deliberately
+  not wired into package.json yet, so `cap sync` does not pick it up and
+  `nativeWhisperAvailable()` answers false — on iOS the speaking test offers
+  only Apple's recogniser until someone builds this on a Mac and sees it work.
 */
 export interface NativeWhisperProgress {
   percent: number;
