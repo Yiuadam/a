@@ -87,4 +87,38 @@ test("an empty paper produces one empty block rather than throwing", () => {
   const blocks = numberedGroups([]);
   assert.equal(blocks.length, 1);
   assert.deepEqual(blocks[0].questions, []);
+  // An empty block owns no numbers; claiming one would print a heading for a
+  // number the next block is about to use.
+  assert.deepEqual([blocks[0].from, blocks[0].to], [0, 0]);
+});
+
+test("a set that mixes blocks and bare questions keeps every question, in order", () => {
+  // The type forbids this and the validator rejects it, but hand-authored JSON
+  // is how every question type from here on arrives. A slip should render as
+  // itself rather than drop questions or crash.
+  const mixed = [
+    { instruction: "Do the first thing.", questions: [q("g1"), q("g2")] },
+    q("loose1"),
+    q("loose2"),
+    { instruction: "Do the last thing.", questions: [q("g3")] },
+  ];
+  assert.deepEqual(
+    flatQuestions(mixed).map((x) => x.id),
+    ["g1", "g2", "loose1", "loose2", "g3"],
+  );
+  assert.equal(questionCount(mixed), 5);
+  const blocks = numberedGroups(mixed);
+  assert.equal(blocks.length, 3, "consecutive loose questions collect into one block");
+  assert.deepEqual(
+    blocks.flatMap((b) => b.questions.map((x) => x.number)),
+    [1, 2, 3, 4, 5],
+  );
+});
+
+test("a paper of only bare questions after a group still numbers continuously", () => {
+  const trailing = [{ instruction: "Block.", questions: [q("a")] }, q("b")];
+  assert.deepEqual(
+    numberedGroups(trailing).flatMap((b) => b.questions.map((x) => x.number)),
+    [1, 2],
+  );
 });
