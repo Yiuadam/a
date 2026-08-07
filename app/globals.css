@@ -92,6 +92,9 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Below Tailwind's smallest default, for the narrowest phones. */
+  --breakpoint-xs: 25rem;
 }
 
 /* --------------------------------------------------------------- Light --- */
@@ -228,6 +231,40 @@ body {
 }
 
 /*
+  Deliberately no `overflow-x: hidden` on the body as a catch-all. It would
+  hide this class of bug rather than fix it, and it turns the body into a
+  scroll container, which stops the sticky header sticking. Anything wider than
+  the screen gets its own scroll container instead — see .no-scrollbar and the
+  overflow-x-auto wrappers on tables and code.
+*/
+
+/*
+  The nav scrolls sideways on a phone, and a scroll container with no visible
+  scrollbar gives no clue that it does. Fading the trailing edge is that clue —
+  without it a learner simply never discovers the destinations past the fold,
+  which is precisely how the Grammar section went unnoticed.
+*/
+@media (width < 40rem) {
+  .nav-scroll {
+    mask-image: linear-gradient(
+      to right,
+      #000 0,
+      #000 calc(100% - 1.75rem),
+      transparent 100%
+    );
+  }
+}
+
+/* A scroll container the user drags rather than one they aim a scrollbar at. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/*
   A pair of very soft colour washes behind everything. They are what stops a
   page of cards on a flat background from feeling like a form, and they cost
   nothing: no images, no elements in the tree, no repaint on scroll.
@@ -338,8 +375,14 @@ a.card:hover {
   transform: translateY(-1px);
 }
 
+/*
+  `min-w-0 max-w-full` is load-bearing, not tidiness. A <select> is sized by its
+  longest option, and that intrinsic minimum beats `w-full` — a task titled
+  "Task 2 (academic) — ..." pushed the control wider than the phone screen and
+  dragged the whole page sideways with it.
+*/
 .input {
-  @apply rounded-xl border border-slate-200 bg-surface px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100;
+  @apply min-w-0 max-w-full rounded-xl border border-slate-200 bg-surface px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100;
 }
 
 /* Long-form reading text: slightly larger and more leaded than UI text. */

@@ -43,29 +43,36 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
+        {/*
+          The header has to survive a narrow phone with seven destinations in
+          it. The logo and the theme toggle are pinned and never shrink; the
+          nav between them takes whatever is left and scrolls inside itself, so
+          a long list of links can never widen the page. The wordmark is hidden
+          on the smallest screens to hand those pixels to the nav.
+        */}
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/85 backdrop-blur">
-          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-2 px-5 py-3">
+          <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 sm:gap-3 sm:px-5">
             <Link
               href="/"
-              className="group flex items-center gap-2.5 text-[17px] font-semibold text-slate-900"
+              className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-sm font-bold text-accent-fg shadow-sm transition-transform group-hover:-rotate-6">
                 B
               </span>
-              BandUp
+              <span className="hidden xs:inline">BandUp</span>
             </Link>
-            <div className="flex items-center gap-2">
-              <nav className="flex items-center gap-1 text-sm">
-                {NAV.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="rounded-xl px-3 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
+            <nav className="nav-scroll no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
+              {NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="shrink-0">
               <ThemeToggle />
             </div>
           </div>
