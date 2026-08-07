@@ -42,12 +42,12 @@ type Direction = {
 
 const DIRECTIONS: Direction[] = [
   {
-    slug: "halo",
-    name: "Halo",
+    slug: "scale",
+    name: "Scale",
     idea:
-      "No letterform at all. Three arcs from one origin, each further out than the last, closed by a honey disc — a start, a progression, somewhere to arrive.",
+      "No letterform, no picture of anything. The icon is the band scale itself — nine stripes, band 1 at the foot in the darkest clay, band 9 at the head in cream — with one disc marking where you stand.",
     verdict:
-      "Strongest at 32px of the five. Big shapes, wide gaps, nothing to lose. Reads as a mark rather than as a picture of something.",
+      "Holds at 32px, and it is the only one of the five that is unmistakably not another app. The risk is the opposite of legibility: a stranger reads it as a warm colour field before they read it as a scale.",
     survives: true,
   },
   {
@@ -83,7 +83,7 @@ const DIRECTIONS: Direction[] = [
     idea:
       "Speaking and listening — the halves of the test that happen out loud. A bubble carrying three waveform strokes, stressed in the middle.",
     verdict:
-      "Fails the 32px test. The strokes fall to under three pixels and turn into three indistinct ticks; what is left is a plain speech bubble.",
+      "The one I would drop. The strokes were redrawn at nearly twice their first weight to survive 32px at all, and what survives is a bubble with three ticks in it — legible, but it has stopped saying anything a plain speech bubble does not.",
     survives: false,
   },
 ];

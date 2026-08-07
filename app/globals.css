@@ -391,6 +391,31 @@ a.card:hover {
 }
 
 /*
+  The disc inside BandBadge. The same gradient as the primary button, so the
+  band score and the thing you press to earn one are visibly the same family.
+*/
+.band-disc {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--color-indigo-500) 92%, white),
+    var(--color-indigo-600) 55%,
+    var(--color-indigo-700)
+  );
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    0 8px 18px -12px color-mix(in srgb, var(--color-indigo-600) 80%, transparent);
+}
+
+/*
+  An empty slot rather than a filled one. A dashed outline reads as "nothing
+  here yet"; the grey filled pill it replaces read as a disabled control, which
+  is exactly the wrong first impression for a learner who has not started.
+*/
+.pill-empty {
+  @apply shrink-0 rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs text-slate-500;
+}
+
+/*
   A section heading with a short accent rule under it. Used sparingly — it
   gives a page of stacked cards somewhere for the eye to land.
 */

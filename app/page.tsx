@@ -115,9 +115,7 @@ export default function Dashboard() {
                       {latest.band}
                     </span>
                   ) : (
-                    <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
-                      New
-                    </span>
+                    <span className="pill-empty">Not tried</span>
                   )}
                 </div>
               </Link>
@@ -151,9 +149,23 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {profile.results.length > 0 && (
-        <section>
-          <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">Your recent practice</h2>
+      <section>
+        <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">
+          Your recent practice
+        </h2>
+        {profile.results.length === 0 ? (
+          /*
+            An empty section used to be hidden entirely, which left a new
+            learner with no idea the app remembers anything. Saying what will
+            appear here is worth more than saving the space.
+          */
+          <div className="rounded-2xl border border-dashed border-slate-300 px-5 py-8 text-center">
+            <p className="text-sm leading-6 text-slate-500">
+              Nothing here yet. Every test you finish lands here with its band score, so you can
+              see the line you are drawing rather than just the last result.
+            </p>
+          </div>
+        ) : (
           <ul className="space-y-2">
             {profile.results.slice(0, 6).map((r, i) => (
               <li
@@ -177,8 +189,8 @@ export default function Dashboard() {
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        )}
+      </section>
     </div>
   );
 }

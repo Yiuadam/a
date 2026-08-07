@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import LookupProvider from "@/components/Lookup";
+import NavLinks from "@/components/NavLinks";
 import ThemeToggle from "@/components/ThemeToggle";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -61,17 +62,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </span>
               <span className="hidden xs:inline">BandUp</span>
             </Link>
-            <nav className="nav-scroll no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            <NavLinks items={NAV} />
             <div className="shrink-0">
               <ThemeToggle />
             </div>
