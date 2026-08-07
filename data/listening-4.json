@@ -63,94 +63,104 @@
   ],
   "questions": [
     {
-      "id": "q1",
-      "type": "completion",
-      "sentence": "Large national museums display only about one to ___ per cent of their holdings.",
-      "answer": "five",
-      "maxWords": 1,
-      "explanation": "\"It will typically display somewhere between one and five per cent of them at any time.\" The sentence already contains \"one to\", so the gap takes the upper figure."
+      "instruction": "Complete the notes below. Write NO MORE THAN ONE WORD AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Large national museums display only about one to ___ per cent of their holdings.",
+          "answer": "five",
+          "maxWords": 1,
+          "explanation": "\"It will typically display somewhere between one and five per cent of them at any time.\" The sentence already contains \"one to\", so the gap takes the upper figure."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "The lecturer describes a museum as mostly a ___ with a gallery attached.",
+          "answer": "warehouse",
+          "maxWords": 1,
+          "explanation": "\"A museum is mostly a warehouse with a gallery attached.\" The lecturer builds to this phrase deliberately, which is the cue that it matters."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "A written collecting ___ gives curators grounds to refuse objects.",
+          "answer": "policy",
+          "maxWords": 1,
+          "explanation": "\"Every museum has a collecting policy, a written document setting out what falls within its scope.\" The definition follows the term, as it usually does in a lecture."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "The documented history of ownership is known as ___.",
+          "answer": "provenance",
+          "maxWords": 1,
+          "explanation": "\"Provenance — the documented history of ownership.\" The dash introduces the definition, so the word just before it is the answer."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "When judging condition, curators are really assessing an object's ___.",
+          "answer": "stability",
+          "maxWords": 1,
+          "explanation": "\"What curators are really assessing is stability — whether the object can be kept without continuous, expensive intervention.\" Condition is the topic; stability is the answer."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Everyday objects were once discarded because they were considered ___.",
+          "answer": "everywhere",
+          "maxWords": 1,
+          "explanation": "\"The everyday was thrown away precisely because it was everywhere.\" Note the near-rhyme with \"everyday\" — the lecturer is playing on it, not repeating himself."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "The profession's term for removing objects from a collection is ___.",
+          "answer": "deaccessioning",
+          "maxWords": 1,
+          "explanation": "\"Disposal, or as the profession prefers, deaccessioning.\" The phrase \"as the profession prefers\" tells you which of the two words is being asked for."
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "Rather than selling, the preferred route is ___ to another public collection.",
+          "answer": "transfer",
+          "maxWords": 1,
+          "explanation": "\"The preferred route is transfer to another public collection rather than sale.\" One word only, so \"transfer\" rather than \"transfer to another museum\"."
+        }
+      ]
     },
     {
-      "id": "q2",
-      "type": "completion",
-      "sentence": "The lecturer describes a museum as mostly a ___ with a gallery attached.",
-      "answer": "warehouse",
-      "maxWords": 1,
-      "explanation": "\"A museum is mostly a warehouse with a gallery attached.\" The lecturer builds to this phrase deliberately, which is the cue that it matters."
-    },
-    {
-      "id": "q3",
-      "type": "completion",
-      "sentence": "A written collecting ___ gives curators grounds to refuse objects.",
-      "answer": "policy",
-      "maxWords": 1,
-      "explanation": "\"Every museum has a collecting policy, a written document setting out what falls within its scope.\" The definition follows the term, as it usually does in a lecture."
-    },
-    {
-      "id": "q4",
-      "type": "completion",
-      "sentence": "The documented history of ownership is known as ___.",
-      "answer": "provenance",
-      "maxWords": 1,
-      "explanation": "\"Provenance — the documented history of ownership.\" The dash introduces the definition, so the word just before it is the answer."
-    },
-    {
-      "id": "q5",
-      "type": "completion",
-      "sentence": "When judging condition, curators are really assessing an object's ___.",
-      "answer": "stability",
-      "maxWords": 1,
-      "explanation": "\"What curators are really assessing is stability — whether the object can be kept without continuous, expensive intervention.\" Condition is the topic; stability is the answer."
-    },
-    {
-      "id": "q6",
-      "type": "completion",
-      "sentence": "Everyday objects were once discarded because they were considered ___.",
-      "answer": "everywhere",
-      "maxWords": 1,
-      "explanation": "\"The everyday was thrown away precisely because it was everywhere.\" Note the near-rhyme with \"everyday\" — the lecturer is playing on it, not repeating himself."
-    },
-    {
-      "id": "q7",
-      "type": "completion",
-      "sentence": "The profession's term for removing objects from a collection is ___.",
-      "answer": "deaccessioning",
-      "maxWords": 1,
-      "explanation": "\"Disposal, or as the profession prefers, deaccessioning.\" The phrase \"as the profession prefers\" tells you which of the two words is being asked for."
-    },
-    {
-      "id": "q8",
-      "type": "completion",
-      "sentence": "Rather than selling, the preferred route is ___ to another public collection.",
-      "answer": "transfer",
-      "maxWords": 1,
-      "explanation": "\"The preferred route is transfer to another public collection rather than sale.\" One word only, so \"transfer\" rather than \"transfer to another museum\"."
-    },
-    {
-      "id": "q9",
-      "type": "mcq",
-      "question": "Why does the lecturer say a museum gains little from a forty-first pot of a familiar type?",
-      "options": [
-        "Such pots are usually fakes",
-        "It adds nothing the collection cannot already show",
-        "Storage for ceramics is expensive",
-        "Visitors dislike repetition"
-      ],
-      "answer": 1,
-      "explanation": "\"A museum with forty examples of a particular type of pot gains almost nothing from a forty-first, however fine.\" The point is that it adds nothing new to what can be shown."
-    },
-    {
-      "id": "q10",
-      "type": "mcq",
-      "question": "What difficulty does the lecturer identify with contemporary collecting?",
-      "options": [
-        "Modern objects decay quickly",
-        "Donors are less willing to give",
-        "It is impossible to know what will matter later",
-        "Legal protection is weaker"
-      ],
-      "answer": 2,
-      "explanation": "\"If you are collecting the present, you have no idea which objects will matter.\" The nineteen-eighty office-equipment example illustrates the same point."
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Why does the lecturer say a museum gains little from a forty-first pot of a familiar type?",
+          "options": [
+            "Such pots are usually fakes",
+            "It adds nothing the collection cannot already show",
+            "Storage for ceramics is expensive",
+            "Visitors dislike repetition"
+          ],
+          "answer": 1,
+          "explanation": "\"A museum with forty examples of a particular type of pot gains almost nothing from a forty-first, however fine.\" The point is that it adds nothing new to what can be shown."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What difficulty does the lecturer identify with contemporary collecting?",
+          "options": [
+            "Modern objects decay quickly",
+            "Donors are less willing to give",
+            "It is impossible to know what will matter later",
+            "Legal protection is weaker"
+          ],
+          "answer": 2,
+          "explanation": "\"If you are collecting the present, you have no idea which objects will matter.\" The nineteen-eighty office-equipment example illustrates the same point."
+        }
+      ]
     }
   ]
 }

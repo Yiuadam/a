@@ -11,6 +11,7 @@ import listeningTwo from "@/data/listening-2.json";
 import listeningThree from "@/data/listening-3.json";
 import listeningFour from "@/data/listening-4.json";
 import { useProfile } from "@/lib/hooks";
+import { questionCount } from "@/lib/questions";
 import { addGeneratedTest } from "@/lib/store";
 import type { GeneratedTest, ListeningTest, ReadingTest } from "@/lib/types";
 
@@ -90,7 +91,9 @@ export default function PracticePage() {
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
           <span className="rounded bg-slate-100 px-2 py-0.5 capitalize">{t.difficulty}</span>
-          <span className="rounded bg-slate-100 px-2 py-0.5">{t.questions.length} questions</span>
+          <span className="rounded bg-slate-100 px-2 py-0.5">
+            {questionCount(t.questions)} questions
+          </span>
           <span className="rounded bg-slate-100 px-2 py-0.5">{t.timeMinutes} min</span>
           {generated && (
             <span className="rounded bg-purple-100 px-2 py-0.5 text-purple-700">AI-generated</span>

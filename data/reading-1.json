@@ -7,123 +7,138 @@
   "passage": "For thousands of years, sailors approaching an unfamiliar coast faced a simple but deadly problem: they could not see the danger beneath the waves. Hidden reefs, sandbars and rocky headlands claimed countless vessels, and the wealth they carried, before the crews ever caught sight of land. The lighthouse emerged as one of humanity's earliest engineering responses to this hazard, a structure whose only purpose was to make a coastline visible and legible from far out at sea.\n\nThe most celebrated of the ancient towers was the Pharos of Alexandria, built off the coast of Egypt in the third century BCE. Standing well over a hundred metres tall by some accounts, it used a fire kept burning at its summit, its light reportedly amplified by polished bronze mirrors that projected the glow across the water. The Pharos survived for many centuries before a series of earthquakes finally reduced it to rubble. Its fame was such that the very word for lighthouse in several European languages still derives from its name. Yet for all its grandeur, the technology it relied upon changed remarkably little for the next fifteen hundred years. Coastal fires, whether open flames on hilltops or lamps set in simple towers, remained the standard method of warning ships well into the medieval period.\n\nThe great limitation of an open flame was that its light scattered in every direction, most of it wasted on the empty sky or the ground below. The problem was not the amount of light produced but the failure to direct it where it was needed. A decisive change came in the early nineteenth century, when the French physicist Augustin-Jean Fresnel designed a new kind of lens. Rather than using a single thick block of glass, which would have been impossibly heavy and prone to cracking, Fresnel arranged a series of concentric glass rings, each precisely angled to bend passing light into a single concentrated horizontal beam. The result was a lens that was both lighter and far more powerful than anything before it. A relatively modest flame, placed at the centre of a Fresnel lens, could suddenly be seen from tens of kilometres away.\n\nBuilding the towers themselves posed challenges quite separate from the science of light. Many of the most dangerous locations were offshore rocks, submerged for much of the day and battered by waves capable of moving blocks of stone weighing several tonnes. The engineer John Smeaton, working on the Eddystone Rocks off the English coast in the eighteenth century, pioneered techniques that would influence lighthouse construction for generations. He shaped his tower after the broad, tapering trunk of an oak tree, reasoning that a form which allowed a tree to withstand storms might serve a building equally well. He also interlocked the stone blocks like the pieces of a puzzle, so that the structure held together as a single mass rather than a stack of separate layers. Perhaps most importantly, he experimented with a form of cement that would set even under water, solving a problem that had defeated earlier builders.\n\nOnce a light was built, it had to be kept burning, and this depended entirely on the keepers who lived within the tower. Their existence was one of isolation and routine. Fuel had to be carried up winding staircases, wicks trimmed, lenses polished free of soot, and clockwork mechanisms wound so that the light would rotate and flash at regular intervals. The precise rhythm of these flashes was not decorative; each lighthouse was given a distinct pattern, known as its character, so that a navigator could identify exactly which light he was looking at and therefore pinpoint his position along the coast. A steady light might mark one harbour, while two flashes every ten seconds identified another.\n\nThe twentieth century gradually stripped the lighthouse of the human presence that had defined it. Electric lamps replaced oil, removing the need for constant refuelling. Automatic timers and, later, remote monitoring meant that a single control centre could oversee dozens of lights scattered along a coast. One by one, the keepers were withdrawn, and by the end of the century almost all lighthouses in the industrialised world operated without anyone living inside them.\n\nToday the lighthouse occupies an ambiguous position. Satellite navigation allows a vessel to fix its location anywhere on earth to within a few metres, a precision no rotating beam could ever match, and some observers argue that the traditional light has become little more than a relic. Yet electronic systems can fail, and a visible light asks nothing of the ship but a pair of eyes. For this reason many authorities have chosen to maintain their lighthouses as a reliable fallback rather than dismantle them. Whatever their future, the towers endure in the popular imagination as symbols of guidance and safety, a meaning that has long outlasted the practical problem they were first built to solve.",
   "questions": [
     {
-      "id": "q1",
-      "type": "tfng",
-      "statement": "The Pharos of Alexandria was destroyed by earthquakes.",
-      "answer": "TRUE",
-      "explanation": "The passage says the Pharos \"survived for many centuries before a series of earthquakes finally reduced it to rubble\" — a direct match, so TRUE."
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "The Pharos of Alexandria was destroyed by earthquakes.",
+          "answer": "TRUE",
+          "explanation": "The passage says the Pharos \"survived for many centuries before a series of earthquakes finally reduced it to rubble\" — a direct match, so TRUE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Methods of warning ships changed significantly during the medieval period.",
+          "answer": "FALSE",
+          "explanation": "The passage says the technology \"changed remarkably little for the next fifteen hundred years\" and that coastal fires \"remained the standard method ... well into the medieval period\". That contradicts the statement, so FALSE rather than NOT GIVEN."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "Fresnel's lens was heavier than the single blocks of glass used before it.",
+          "answer": "FALSE",
+          "explanation": "Fresnel's lens was \"both lighter and far more powerful than anything before it\". The statement reverses this, so FALSE."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "John Smeaton had studied the structure of trees before becoming an engineer.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage says Smeaton copied the shape of an oak trunk, but never says he studied trees before becoming an engineer. It is reasonable to guess — which is exactly why the answer is NOT GIVEN."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Each lighthouse was given a flashing pattern that distinguished it from others.",
+          "answer": "TRUE",
+          "explanation": "\"Each lighthouse was given a distinct pattern, known as its character\" — the same idea in different words, so TRUE."
+        }
+      ]
     },
     {
-      "id": "q2",
-      "type": "tfng",
-      "statement": "Methods of warning ships changed significantly during the medieval period.",
-      "answer": "FALSE",
-      "explanation": "The passage says the technology \"changed remarkably little for the next fifteen hundred years\" and that coastal fires \"remained the standard method ... well into the medieval period\". That contradicts the statement, so FALSE rather than NOT GIVEN."
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "According to the passage, what was the main weakness of an open flame as a warning light?",
+          "options": [
+            "It produced too little light to be useful.",
+            "Its light was sent in all directions rather than towards ships.",
+            "It required more fuel than later lamps.",
+            "It could not be seen during daylight hours."
+          ],
+          "answer": 1,
+          "explanation": "The passage states the problem directly: \"The problem was not the amount of light produced but the failure to direct it where it was needed.\" It rules out the \"too little light\" option in the same sentence."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "Why did Fresnel use concentric glass rings rather than a single block of glass?",
+          "options": [
+            "Rings were cheaper to manufacture.",
+            "A single block would have been too heavy and likely to crack.",
+            "Rings could be coloured to identify each lighthouse.",
+            "A single block could not be polished properly."
+          ],
+          "answer": 1,
+          "explanation": "A single block \"would have been impossibly heavy and prone to cracking\". Cost and colour are never mentioned as reasons."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What does the passage say about Smeaton's use of cement?",
+          "options": [
+            "It was stronger than the cement used today.",
+            "It allowed the tower to be built more quickly.",
+            "It could harden even when it was underwater.",
+            "It was imported from France."
+          ],
+          "answer": 2,
+          "explanation": "He \"experimented with a form of cement that would set even under water, solving a problem that had defeated earlier builders\"."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What is suggested about the future of lighthouses in the final paragraph?",
+          "options": [
+            "They will soon be dismantled everywhere.",
+            "They are being kept as a backup in case electronic systems fail.",
+            "They are more accurate than satellite navigation.",
+            "They are no longer maintained by any authority."
+          ],
+          "answer": 1,
+          "explanation": "\"Many authorities have chosen to maintain their lighthouses as a reliable fallback rather than dismantle them.\" The passage says satellite navigation is more precise, so the option claiming the opposite is wrong."
+        }
+      ]
     },
     {
-      "id": "q3",
-      "type": "tfng",
-      "statement": "Fresnel's lens was heavier than the single blocks of glass used before it.",
-      "answer": "FALSE",
-      "explanation": "Fresnel's lens was \"both lighter and far more powerful than anything before it\". The statement reverses this, so FALSE."
-    },
-    {
-      "id": "q4",
-      "type": "tfng",
-      "statement": "John Smeaton had studied the structure of trees before becoming an engineer.",
-      "answer": "NOT GIVEN",
-      "explanation": "The passage says Smeaton copied the shape of an oak trunk, but never says he studied trees before becoming an engineer. It is reasonable to guess — which is exactly why the answer is NOT GIVEN."
-    },
-    {
-      "id": "q5",
-      "type": "tfng",
-      "statement": "Each lighthouse was given a flashing pattern that distinguished it from others.",
-      "answer": "TRUE",
-      "explanation": "\"Each lighthouse was given a distinct pattern, known as its character\" — the same idea in different words, so TRUE."
-    },
-    {
-      "id": "q6",
-      "type": "mcq",
-      "question": "According to the passage, what was the main weakness of an open flame as a warning light?",
-      "options": [
-        "It produced too little light to be useful.",
-        "Its light was sent in all directions rather than towards ships.",
-        "It required more fuel than later lamps.",
-        "It could not be seen during daylight hours."
-      ],
-      "answer": 1,
-      "explanation": "The passage states the problem directly: \"The problem was not the amount of light produced but the failure to direct it where it was needed.\" It rules out the \"too little light\" option in the same sentence."
-    },
-    {
-      "id": "q7",
-      "type": "mcq",
-      "question": "Why did Fresnel use concentric glass rings rather than a single block of glass?",
-      "options": [
-        "Rings were cheaper to manufacture.",
-        "A single block would have been too heavy and likely to crack.",
-        "Rings could be coloured to identify each lighthouse.",
-        "A single block could not be polished properly."
-      ],
-      "answer": 1,
-      "explanation": "A single block \"would have been impossibly heavy and prone to cracking\". Cost and colour are never mentioned as reasons."
-    },
-    {
-      "id": "q8",
-      "type": "mcq",
-      "question": "What does the passage say about Smeaton's use of cement?",
-      "options": [
-        "It was stronger than the cement used today.",
-        "It allowed the tower to be built more quickly.",
-        "It could harden even when it was underwater.",
-        "It was imported from France."
-      ],
-      "answer": 2,
-      "explanation": "He \"experimented with a form of cement that would set even under water, solving a problem that had defeated earlier builders\"."
-    },
-    {
-      "id": "q9",
-      "type": "mcq",
-      "question": "What is suggested about the future of lighthouses in the final paragraph?",
-      "options": [
-        "They will soon be dismantled everywhere.",
-        "They are being kept as a backup in case electronic systems fail.",
-        "They are more accurate than satellite navigation.",
-        "They are no longer maintained by any authority."
-      ],
-      "answer": 1,
-      "explanation": "\"Many authorities have chosen to maintain their lighthouses as a reliable fallback rather than dismantle them.\" The passage says satellite navigation is more precise, so the option claiming the opposite is wrong."
-    },
-    {
-      "id": "q10",
-      "type": "completion",
-      "sentence": "The light of the Pharos was said to be amplified by polished ___ mirrors.",
-      "answer": "bronze",
-      "maxWords": 1,
-      "explanation": "The word is stated directly: \"polished bronze mirrors\". Copy it exactly as it appears."
-    },
-    {
-      "id": "q11",
-      "type": "completion",
-      "sentence": "Smeaton shaped his tower after the trunk of an ___ tree.",
-      "answer": "oak",
-      "maxWords": 1,
-      "explanation": "\"He shaped his tower after the broad, tapering trunk of an oak tree.\" Only the tree name fits the one-word limit."
-    },
-    {
-      "id": "q12",
-      "type": "completion",
-      "sentence": "The distinct pattern of flashes given to each lighthouse was known as its ___.",
-      "answer": "character",
-      "maxWords": 1,
-      "explanation": "\"A distinct pattern, known as its character\" — the passage flags the term with \"known as\", which is a common signal that a completion answer is coming."
-    },
-    {
-      "id": "q13",
-      "type": "completion",
-      "sentence": "In the twentieth century, electric lamps replaced ___ in lighthouses.",
-      "answer": "oil",
-      "maxWords": 1,
-      "explanation": "\"Electric lamps replaced oil, removing the need for constant refuelling.\""
+      "instruction": "Complete the sentences below. Write NO MORE THAN ONE WORD from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "The light of the Pharos was said to be amplified by polished ___ mirrors.",
+          "answer": "bronze",
+          "maxWords": 1,
+          "explanation": "The word is stated directly: \"polished bronze mirrors\". Copy it exactly as it appears."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "Smeaton shaped his tower after the trunk of an ___ tree.",
+          "answer": "oak",
+          "maxWords": 1,
+          "explanation": "\"He shaped his tower after the broad, tapering trunk of an oak tree.\" Only the tree name fits the one-word limit."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "The distinct pattern of flashes given to each lighthouse was known as its ___.",
+          "answer": "character",
+          "maxWords": 1,
+          "explanation": "\"A distinct pattern, known as its character\" — the passage flags the term with \"known as\", which is a common signal that a completion answer is coming."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "In the twentieth century, electric lamps replaced ___ in lighthouses.",
+          "answer": "oil",
+          "maxWords": 1,
+          "explanation": "\"Electric lamps replaced oil, removing the need for constant refuelling.\""
+        }
+      ]
     }
   ]
 }

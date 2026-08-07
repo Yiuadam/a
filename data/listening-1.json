@@ -156,96 +156,106 @@
   ],
   "questions": [
     {
-      "id": "q1",
-      "type": "completion",
-      "sentence": "Surname of caller: ___",
-      "answer": "Marsden",
-      "maxWords": 1,
-      "explanation": "The caller spells it out: M-A-R-S-D-E-N. When a speaker spells a name in IELTS listening, that is almost always an answer, and it is usually repeated back for confirmation."
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Surname of caller: ___",
+          "answer": "Marsden",
+          "maxWords": 1,
+          "explanation": "The caller spells it out: M-A-R-S-D-E-N. When a speaker spells a name in IELTS listening, that is almost always an answer, and it is usually repeated back for confirmation."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Mobile phone number: ___",
+          "answer": "07700 900426",
+          "maxWords": 2,
+          "explanation": "The number is given once and then read back by the receptionist. Use the read-back to check your digits rather than writing frantically the first time."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Class chosen: beginners' ___",
+          "answer": "badminton",
+          "maxWords": 1,
+          "explanation": "She mentions tennis first — \"I was thinking about tennis at first\" — then chooses badminton. The first option named is very often the distractor."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Class is now held on: ___",
+          "answer": "Thursday",
+          "maxWords": 1,
+          "explanation": "The receptionist corrects herself: \"It used to be on Tuesday, yes ... actually, make that Thursday.\" Always take the version after a self-correction."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Class start time: ___",
+          "answer": "6.30 pm",
+          "maxWords": 2,
+          "explanation": "The class \"starts at 6.30 pm and runs for an hour and a half, so you finish at eight\". Eight o'clock is the finish, which is the trap; the question asks for the start."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Monthly fee: £___",
+          "answer": "42",
+          "maxWords": 1,
+          "explanation": "Twelve pounds is the pay-as-you-go rate; the monthly fee is 42 pounds. Two prices in one sentence almost always means one of them is a distractor."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Caller must bring a ___",
+          "answer": "water bottle",
+          "maxWords": 2,
+          "explanation": "Rackets are lent free and shuttlecocks come from the coach, so those are not the answer. The only thing she is told to bring is a water bottle."
+        }
+      ]
     },
     {
-      "id": "q2",
-      "type": "completion",
-      "sentence": "Mobile phone number: ___",
-      "answer": "07700 900426",
-      "maxWords": 2,
-      "explanation": "The number is given once and then read back by the receptionist. Use the read-back to check your digits rather than writing frantically the first time."
-    },
-    {
-      "id": "q3",
-      "type": "completion",
-      "sentence": "Class chosen: beginners' ___",
-      "answer": "badminton",
-      "maxWords": 1,
-      "explanation": "She mentions tennis first — \"I was thinking about tennis at first\" — then chooses badminton. The first option named is very often the distractor."
-    },
-    {
-      "id": "q4",
-      "type": "completion",
-      "sentence": "Class is now held on: ___",
-      "answer": "Thursday",
-      "maxWords": 1,
-      "explanation": "The receptionist corrects herself: \"It used to be on Tuesday, yes ... actually, make that Thursday.\" Always take the version after a self-correction."
-    },
-    {
-      "id": "q5",
-      "type": "completion",
-      "sentence": "Class start time: ___",
-      "answer": "6.30 pm",
-      "maxWords": 2,
-      "explanation": "The class \"starts at 6.30 pm and runs for an hour and a half, so you finish at eight\". Eight o'clock is the finish, which is the trap; the question asks for the start."
-    },
-    {
-      "id": "q6",
-      "type": "completion",
-      "sentence": "Monthly fee: £___",
-      "answer": "42",
-      "maxWords": 1,
-      "explanation": "Twelve pounds is the pay-as-you-go rate; the monthly fee is 42 pounds. Two prices in one sentence almost always means one of them is a distractor."
-    },
-    {
-      "id": "q7",
-      "type": "completion",
-      "sentence": "Caller must bring a ___",
-      "answer": "water bottle",
-      "maxWords": 2,
-      "explanation": "Rackets are lent free and shuttlecocks come from the coach, so those are not the answer. The only thing she is told to bring is a water bottle."
-    },
-    {
-      "id": "q8",
-      "type": "mcq",
-      "question": "How will the caller pay the monthly fee?",
-      "options": [
-        "in cash at reception",
-        "by card at reception",
-        "by bank transfer"
-      ],
-      "answer": 2,
-      "explanation": "Cash is ruled out (\"we used to take cash, but not any more\"), card is offered but not chosen, and the caller says \"I'll set up the bank transfer\". Listen for what is agreed, not just what is mentioned."
-    },
-    {
-      "id": "q9",
-      "type": "mcq",
-      "question": "Where should people attending evening classes park?",
-      "options": [
-        "in the main car park at the front",
-        "in the car park behind the sports hall",
-        "on Mill Street"
-      ],
-      "answer": 1,
-      "explanation": "The front car park is for the swimming pool, Mill Street has a new bus lane, and drivers for classes \"should use the small car park behind the sports hall\". Two options are eliminated aloud before the answer arrives."
-    },
-    {
-      "id": "q10",
-      "type": "mcq",
-      "question": "What should the caller do first on her first evening?",
-      "options": [
-        "go straight into the hall",
-        "meet the coach outside",
-        "go to reception"
-      ],
-      "answer": 2,
-      "explanation": "\"Don't go straight into the hall. Come to reception first, so we can print your membership card.\" The negative instruction comes first, which is what makes this one easy to get wrong."
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "How will the caller pay the monthly fee?",
+          "options": [
+            "in cash at reception",
+            "by card at reception",
+            "by bank transfer"
+          ],
+          "answer": 2,
+          "explanation": "Cash is ruled out (\"we used to take cash, but not any more\"), card is offered but not chosen, and the caller says \"I'll set up the bank transfer\". Listen for what is agreed, not just what is mentioned."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Where should people attending evening classes park?",
+          "options": [
+            "in the main car park at the front",
+            "in the car park behind the sports hall",
+            "on Mill Street"
+          ],
+          "answer": 1,
+          "explanation": "The front car park is for the swimming pool, Mill Street has a new bus lane, and drivers for classes \"should use the small car park behind the sports hall\". Two options are eliminated aloud before the answer arrives."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What should the caller do first on her first evening?",
+          "options": [
+            "go straight into the hall",
+            "meet the coach outside",
+            "go to reception"
+          ],
+          "answer": 2,
+          "explanation": "\"Don't go straight into the hall. Come to reception first, so we can print your membership card.\" The negative instruction comes first, which is what makes this one easy to get wrong."
+        }
+      ]
     }
   ]
 }

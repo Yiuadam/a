@@ -157,14 +157,35 @@ function normalise(s: string): string {
   return out.join(" ");
 }
 
+/**
+ * Mark one answer.
+ *
+ * A `switch` with a `never` default rather than a chain of `if`s ending in a
+ * fallthrough. The fallthrough was the dangerous shape: any question type
+ * added later would compile, and be marked by string comparison through the
+ * number-word normaliser, whether or not that made sense for it. Now the
+ * compiler refuses the type until someone decides how it is marked.
+ */
 export function isCorrect(
   q: TestQuestion,
   given: string | number | undefined,
 ): boolean {
   if (given === undefined || given === null || given === "") return false;
-  if (q.type === "mcq") return Number(given) === q.answer;
-  if (q.type === "tfng") return String(given) === q.answer;
-  return normalise(String(given)) === normalise(q.answer);
+  switch (q.type) {
+    case "mcq":
+      return Number(given) === q.answer;
+    case "tfng":
+      return String(given) === q.answer;
+    case "completion":
+      return normalise(String(given)) === normalise(q.answer);
+    default: {
+      // Exhaustiveness: a new member of TestQuestion fails to compile here.
+      const unmarked: never = q;
+      // An unmarkable answer is never silently counted as correct.
+      void unmarked;
+      return false;
+    }
+  }
 }
 
 export function bandLabel(band: number): string {

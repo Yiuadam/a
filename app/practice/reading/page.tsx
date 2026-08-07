@@ -17,6 +17,7 @@ import readingFour from "@/data/reading-4.json";
 import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
 import { useMounted, useProfile } from "@/lib/hooks";
+import { flatQuestions, questionCount } from "@/lib/questions";
 import { buildReview } from "@/lib/review";
 import { addResult } from "@/lib/store";
 import type { ReadingTest } from "@/lib/types";
@@ -53,11 +54,12 @@ function ReadingTestPageRunner() {
 
   const submit = useCallback(() => {
     if (!test || submitted) return;
+    const asked = flatQuestions(test.questions);
     let correct = 0;
-    for (const q of test.questions) {
+    for (const q of asked) {
       if (isCorrect(q, answers[q.id])) correct++;
     }
-    const b = rawToBand(correct, test.questions.length, "reading");
+    const b = rawToBand(correct, asked.length, "reading");
     setRaw(correct);
     setBand(b);
     setSubmitted(true);
@@ -67,7 +69,7 @@ function ReadingTestPageRunner() {
       testTitle: test.title,
       band: b,
       raw: correct,
-      total: test.questions.length,
+      total: asked.length,
       date: new Date().toISOString(),
     });
   }, [test, answers, submitted]);
@@ -93,7 +95,7 @@ function ReadingTestPageRunner() {
           <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>
           <p className="text-sm text-slate-600">{test.topic}</p>
           <p className="text-sm text-slate-600">
-            One academic passage, {test.questions.length} questions,{" "}
+            One academic passage, {questionCount(test.questions)} questions,{" "}
             {test.timeMinutes} minutes. Question types: True/False/Not Given, multiple choice,
             and sentence completion — exactly like the real exam.
           </p>
@@ -160,11 +162,11 @@ function ReadingTestPageRunner() {
 
       {submitted && band !== null && (
         <div className="card flex flex-col items-center gap-4 py-6 sm:flex-row sm:justify-center sm:gap-10">
-          <BandBadge band={band} caption={`${raw}/${test.questions.length} correct`} />
+          <BandBadge band={band} caption={`${raw}/${questionCount(test.questions)} correct`} />
           <div className="max-w-md text-sm text-slate-600">
             <p>
               Estimated reading band <span className="font-semibold">{band}</span> ({raw} of{" "}
-              {test.questions.length} correct, scaled to the official conversion table). Work
+              {questionCount(test.questions)} correct, scaled to the official conversion table). Work
               through the review below before you start another test — that is where the marks
               come from.
             </p>
@@ -189,7 +191,7 @@ function ReadingTestPageRunner() {
             buildReview(test.questions, answers).map((i) => i.id),
             band,
           )}
-          total={test.questions.length}
+          total={questionCount(test.questions)}
         />
       )}
 
@@ -213,6 +215,7 @@ function ReadingTestPageRunner() {
             submitted={submitted}
             checked={checked}
             onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
+            mode="practice"
           />
           {!submitted && (
             <button className="btn-primary mt-5 w-full" onClick={submit}>
