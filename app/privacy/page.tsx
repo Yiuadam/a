@@ -38,6 +38,10 @@ const STORED = [
     what: "Words you have tapped to look up, so you can revise them later.",
   },
   { key: "bandup.theme", what: "Whether you chose the warm, light or dark theme." },
+  {
+    key: "bandup.speech.v1",
+    what: "Which speech recogniser you chose for the speaking test, and which model size.",
+  },
 ];
 
 /* Every network call that carries your text. There are no others. */
@@ -85,7 +89,8 @@ export default function PrivacyPage() {
             "Your progress is saved on your device only. It never reaches a server of ours.",
             "No cookies, no analytics, no advertising and no third-party trackers.",
             "Your writing and your speaking transcript are sent for marking when you ask for it, and are not stored afterwards.",
-            "BandUp never records, uploads or stores audio from your microphone.",
+            "BandUp never uploads audio from your microphone and never saves it as a file.",
+            "On the web you can choose to have your speech transcribed on your own device, so the audio never leaves it at all. The recogniser built into your browser or phone is still the default.",
           ].map((line) => (
             <li key={line} className="flex gap-3 text-[15px] leading-7 text-slate-700">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
@@ -102,7 +107,7 @@ export default function PrivacyPage() {
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Everything BandUp remembers about you is written to your browser&rsquo;s local storage
           — inside the app on iOS, in the browser on the web. It is readable only by BandUp on
-          that device. These four entries are the whole of it:
+          that device. These five entries are the whole of it:
         </p>
         <ul className="mt-4 space-y-3">
           {STORED.map((s) => (
@@ -113,6 +118,13 @@ export default function PrivacyPage() {
           ))}
         </ul>
         <p className="mt-4 text-sm leading-6 text-slate-600">
+          One further thing can be stored, and only if you ask for it: if you turn on on-device
+          transcription in the speaking test, the speech model it needs (about 75 or 145 MB,
+          depending on which you pick) is downloaded once and kept in your browser&rsquo;s cache
+          so it works offline afterwards. It holds no data about you — it is the same file
+          every user downloads — and the speaking test offers a button to delete it.
+        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
           Because this lives on the device and nowhere else, your progress does not follow you
           to a new phone or a different browser, and we cannot recover it for you if it is
           lost.
@@ -146,6 +158,11 @@ export default function PrivacyPage() {
           email and no identifier alongside it, because it holds none.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
+          One other request leaves your device, and it carries nothing of yours: if you turn on
+          on-device transcription, the speech model is downloaded once from Hugging Face. It is
+          described in full under the microphone below.
+        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
           Placement, the study plan, the bundled practice tests, the grammar and vocabulary
           drills and the marking of reading and listening answers all run entirely on your
           device, and work with no connection at all.
@@ -158,35 +175,72 @@ export default function PrivacyPage() {
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           The speaking test asks for microphone access so it can hear your answers. This is the
-          part worth reading carefully.
+          part worth reading carefully, because the speaking test now offers two ways of turning
+          speech into text and they differ in exactly this respect. You choose on the screen
+          before the interview starts.
         </p>
-        <ul className="mt-4 space-y-3">
+
+        <h3 className="mt-6 text-sm font-semibold text-slate-900">
+          Your device&rsquo;s recogniser — the default
+        </h3>
+        <ul className="mt-3 space-y-3">
           <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
-            BandUp does not record your voice, does not save an audio file, and does not upload
-            audio anywhere. There is no recording to keep.
-          </li>
-          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
-            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
-            Your speech is turned into text by the speech recogniser built into the device or
-            browser you are using — Apple&rsquo;s speech recognition in the iOS app, the
-            browser&rsquo;s own Web Speech API on the web. BandUp receives only the words it
-            returns.
+            Your speech is turned into text by the recogniser built into the device or browser
+            you are using — Apple&rsquo;s speech recognition in the iOS app, the browser&rsquo;s
+            own Web Speech API on the web. BandUp receives only the words it returns.
           </li>
           <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
             Those recognisers are not ours, and some of them send audio to their own servers to
-            transcribe it. Apple and the makers of Chrome, Safari and Edge each decide whether
-            recognition happens on the device or in their cloud, and that is governed by their
-            privacy policies, not this one. We would rather tell you this plainly than claim
-            your voice never leaves the phone when we cannot guarantee it.
+            transcribe it — Chrome&rsquo;s uploads to Google. Apple and the makers of Chrome,
+            Safari and Edge each decide whether recognition happens on the device or in their
+            cloud, and that is governed by their privacy policies, not this one. We would rather
+            tell you this plainly than claim your voice never leaves the phone when we cannot
+            guarantee it.
+          </li>
+        </ul>
+
+        <h3 className="mt-6 text-sm font-semibold text-slate-900">
+          On-device transcription — if you turn it on
+        </h3>
+        <ul className="mt-3 space-y-3">
+          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
+            With this on, your audio never leaves your device. A speech model called Whisper
+            runs inside your own browser and does the transcription there. Nothing is sent to
+            BandUp, to us, or to anyone else, and no recogniser outside your device hears it.
           </li>
           <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
-            Only the finished transcript — text — is sent for marking, and only when you ask
-            for feedback. The microphone is used during the speaking test and at no other time.
+            Your answer is held in memory while you speak, because this model needs the whole
+            answer before it can transcribe it. It is never written to a file and it is
+            discarded as soon as the text comes back.
+          </li>
+          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
+            There is one exception worth being exact about, and it is not audio. The model
+            itself has to be downloaded before it can run, and it comes from Hugging Face, who
+            host it. That request happens once, then the file is cached and used offline. Hugging
+            Face therefore sees that some device asked for the file, along with the IP address
+            any download reveals. It carries no audio, no transcript, no identifier, and nothing
+            about you or your practice.
+          </li>
+          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
+            This option is available on the web. The iOS app does not offer it yet: the
+            on-device model there is written but not yet built into a released version, so in
+            the app the speaking test still uses Apple&rsquo;s recogniser. When that changes,
+            this page changes with it.
           </li>
         </ul>
+
+        <p className="mt-6 text-[15px] leading-7 text-slate-700">
+          Both ways share the rest: BandUp never uploads your audio and never saves it as a
+          file. Only the finished transcript — text — is sent for marking, and only when you ask
+          for feedback. The microphone is used during the speaking test and at no other time.
+          You can also skip the microphone entirely and type your answers.
+        </p>
         <p className="mt-4 text-sm leading-6 text-slate-600">
           The speaking examiner also reads its questions aloud using the voice built into your
           device. That is playback only; nothing is captured.
