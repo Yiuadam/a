@@ -16,6 +16,9 @@ const eslintConfig = defineConfig([
     "out-mobile/**",
     ".open-next/**",
     "ios/**",
+    // Emscripten output, vendored by scripts/vendor-shout.mjs rather than
+    // written here. Linting generated wasm glue says nothing useful.
+    "public/whisper/**",
   ]),
 ]);
 

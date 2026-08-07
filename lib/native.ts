@@ -63,3 +63,53 @@ export async function nativeSTT(): Promise<NativeSTT | null> {
     return null;
   }
 }
+
+/*
+  The on-device recogniser, which is a different thing from the one above:
+  Apple's SFSpeechRecognizer may transcribe in iCloud, whereas this is
+  whisper.cpp compiled into the app and running on the phone. The Swift side
+  lives in ios-plugins/local-transcription — written, documented, and not yet
+  compiled, because that needs a Mac (see TRANSCRIPTION.md).
+*/
+export interface NativeWhisperProgress {
+  percent: number;
+}
+
+export interface NativeWhisper {
+  isAvailable(): Promise<{ available: boolean; model?: string }>;
+  requestPermissions(): Promise<{ microphone: string }>;
+  /** Load the weights into memory ahead of the first answer. */
+  prepare(opts: { model: string }): Promise<void>;
+  start(opts: { model: string }): Promise<void>;
+  stop(): Promise<{ text: string }>;
+  cancel(): Promise<void>;
+  addListener(
+    event: "progress",
+    cb: (data: NativeWhisperProgress) => void,
+  ): Promise<{ remove: () => Promise<void> }>;
+}
+
+export async function nativeWhisper(): Promise<NativeWhisper | null> {
+  if (!isNative()) return null;
+  try {
+    const { registerPlugin } = await import("@capacitor/core");
+    return registerPlugin<NativeWhisper>("LocalTranscription");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether this build actually has the whisper plugin. `registerPlugin` hands
+ * back a proxy whatever happens, so the only honest test is to call it.
+ */
+export async function nativeWhisperAvailable(): Promise<boolean> {
+  const plugin = await nativeWhisper();
+  if (!plugin) return false;
+  try {
+    const { available } = await plugin.isAvailable();
+    return available;
+  } catch {
+    return false;
+  }
+}
