@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio — nine steps</title>
+  <!--
+    The literal reading: nine bands, nine steps. Treads of 61 and risers of 50,
+    which is what nine steps costs you inside a 550-wide page.
+
+    Included to settle the question rather than because it is expected to win —
+    at 32px a 61 tread is 1.9 pixels. See the verdict on the preview page.
+  -->
+  <defs>
+    <radialGradient id="f9-ground" cx="0.3" cy="0.75" r="0.95">
+      <stop offset="0" stop-color="#31261d" />
+      <stop offset="1" stop-color="#15110e" />
+    </radialGradient>
+    <linearGradient id="f9-front" x1="0.1" y1="1" x2="0.9" y2="0">
+      <stop offset="0" stop-color="#e6d3b8" />
+      <stop offset="0.55" stop-color="#f8f0e4" />
+      <stop offset="1" stop-color="#fdfaf6" />
+    </linearGradient>
+    <linearGradient id="f9-back" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b0632f" />
+      <stop offset="1" stop-color="#7c4222" />
+    </linearGradient>
+    <mask id="f9-ruled">
+      <rect width="1024" height="1024" fill="#fff" />
+      <rect x="300" y="726" width="400" height="26" rx="13" fill="#000" />
+      <rect x="300" y="794" width="282" height="26" rx="13" fill="#000" />
+    </mask>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#f9-ground)" />
+
+  <rect
+    x="272"
+    y="300"
+    width="500"
+    height="546"
+    rx="26"
+    fill="url(#f9-back)"
+    transform="rotate(-13 512 560)"
+  />
+
+  <g transform="rotate(4 512 560)">
+    <path
+      d="M 250 868 L 250 700 L 311 700 L 311 650 L 372 650 L 372 600 L 433 600 L 433 550
+         L 494 550 L 494 500 L 555 500 L 555 450 L 616 450 L 616 400 L 677 400 L 677 350
+         L 738 350 L 738 300 L 800 300 L 800 868 Z"
+      transform="translate(20 24)"
+      fill="#0d0a08"
+      opacity="0.45"
+    />
+    <path
+      d="M 250 868 L 250 700 L 311 700 L 311 650 L 372 650 L 372 600 L 433 600 L 433 550
+         L 494 550 L 494 500 L 555 500 L 555 450 L 616 450 L 616 400 L 677 400 L 677 350
+         L 738 350 L 738 300 L 800 300 L 800 868 Z"
+      fill="url(#f9-front)"
+      mask="url(#f9-ruled)"
+    />
+  </g>
+</svg>

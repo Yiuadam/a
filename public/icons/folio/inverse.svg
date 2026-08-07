@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio — the page as void</title>
+  <!--
+    Near-abstract by inversion: the paper is the ground, and the page is the
+    hole cut in it.
+
+    A clay copy of the same outline sits under the cut and offset, so its lower
+    edge shows as a lit inner wall and the shape reads as recessed rather than
+    printed. The ruled lines sit inside the void as light on dark — the only
+    place in this family where the writing is brighter than the paper.
+  -->
+  <defs>
+    <linearGradient id="fiv-ground" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="1" stop-color="#ebdcc7" />
+    </linearGradient>
+    <linearGradient id="fiv-wall" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9955c" />
+      <stop offset="1" stop-color="#a95d2f" />
+    </linearGradient>
+    <linearGradient id="fiv-void" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#2d241b" />
+      <stop offset="1" stop-color="#171310" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#fiv-ground)" />
+
+  <g transform="rotate(3 512 560)">
+    <path
+      d="M 254 862 L 254 700 L 370 700 L 370 604 L 486 604 L 486 496
+         L 602 496 L 602 384 L 718 384 L 718 254 L 794 254 L 794 862 Z"
+      transform="translate(16 18)"
+      fill="url(#fiv-wall)"
+    />
+    <path
+      d="M 254 862 L 254 700 L 370 700 L 370 604 L 486 604 L 486 496
+         L 602 496 L 602 384 L 718 384 L 718 254 L 794 254 L 794 862 Z"
+      fill="url(#fiv-void)"
+    />
+    <g fill="#f2ddb4">
+      <rect x="304" y="690" width="404" height="26" rx="13" />
+      <rect x="304" y="762" width="286" height="26" rx="13" />
+    </g>
+  </g>
+</svg>
