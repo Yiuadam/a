@@ -25,6 +25,26 @@ To use your own domain instead, add it under **Settings → Domains** in Vercel
 and point the DNS record it shows you. That address then becomes the permanent
 one and never changes either.
 
+## "It keeps asking me to sign in to Vercel"
+
+That is **Deployment Protection**, a Vercel setting, not anything in the app.
+By default Vercel puts a login wall in front of *preview* deployments — the
+ones built from a pull request — so that unreleased work is not public.
+Production is normally open.
+
+Two things follow from that:
+
+- Once a change is merged, use the production URL. Preview links are throwaway
+  and protected; there is no reason to keep one after its pull request lands.
+- If production itself asks for a login, turn the wall off:
+  **Settings → Deployment Protection → Vercel Authentication → Disabled**.
+
+Disabling it makes the site reachable by anyone with the address, which is the
+point of a published app. Nothing is exposed by doing so: no learner data is
+stored on the server, progress lives in each visitor's own browser, and the
+only secret involved is `ANTHROPIC_API_KEY`, which stays server-side and is
+never sent to the browser.
+
 ## One-time setup (about two minutes)
 
 1. Go to [vercel.com/new](https://vercel.com/new) and import this repository.
