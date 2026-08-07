@@ -4,6 +4,9 @@ A personalised IELTS preparation app: a five-minute placement test estimates you
 (1–9), a study plan is built around your weak spots, and you practise all four skills with
 exam-format material and an AI examiner.
 
+[ROADMAP.md](ROADMAP.md) records what is built, where the app still falls short of the
+exam, and the order the remaining work is being done in.
+
 ## What it does
 
 **Placement test** — five or ten minutes, your choice, and it adapts as you go. This is
