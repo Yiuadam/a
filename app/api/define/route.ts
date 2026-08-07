@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey } from "@/lib/anthropic";
+import { checkAiUsage } from "@/lib/usage/guard";
 
 export const maxDuration = 30;
 
@@ -37,6 +38,9 @@ export async function POST(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: UNAVAILABLE }, { status: 503 });
   }
+
+  const denied = await checkAiUsage(req, "define");
+  if (denied) return denied;
 
   let body: unknown;
   try {
