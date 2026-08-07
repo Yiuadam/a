@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture 01, Seal</title>
+  <!--
+    The closed reading of the gesture, tightened until it behaves like a seal.
+
+    One ring, uniform weight, four events spaced around it:
+      three falling crests across the top — listening
+      a dead-straight run down the right  — reading
+      a long spike at the foot            — writing
+      a balloon out to the left           — speaking
+
+    The parent mark spread its four behaviours evenly, which is exactly why it
+    turned to mush small: nothing was allowed to be the loudest thing. Here the
+    ring is deliberately lopsided — the left swings well past the nominal
+    radius, the right is flattened to a ruler — so the silhouette carries the
+    mark once the detail has gone.
+
+    The crests are three and unequal on purpose. Two matched crests over a
+    central dip is a heart, which this was on the first pass and is not now.
+  -->
+  <defs>
+    <radialGradient id="seal-ground" cx="0.32" cy="0.26" r="0.92">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="1" stop-color="#e6d5bd" />
+    </radialGradient>
+    <linearGradient id="seal-line" gradientUnits="userSpaceOnUse"
+      x1="120" y1="120" x2="880" y2="920">
+      <stop offset="0" stop-color="#c1743f" />
+      <stop offset="0.5" stop-color="#a95d2f" />
+      <stop offset="1" stop-color="#6f3b1e" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#seal-ground)" />
+
+  <g fill="none" stroke-width="112" stroke-linejoin="miter" stroke-miterlimit="20"
+     transform="rotate(-5 512 512)">
+    <!-- A soft cast shadow, offset along the light, so the ring lifts off the paper. -->
+    <path
+      d="M 196 452
+         C 206 268 336 202 428 318
+         C 486 392 508 246 606 262
+         C 690 276 726 340 742 424
+         L 786 636
+         L 604 902
+         L 388 792
+         C 232 770 138 668 146 528
+         C 152 470 164 456 196 452 Z"
+      transform="translate(26 30)"
+      stroke="#6f3b1e"
+      opacity="0.15"
+    />
+    <path
+      d="M 196 452
+         C 206 268 336 202 428 318
+         C 486 392 508 246 606 262
+         C 690 276 726 340 742 424
+         L 786 636
+         L 604 902
+         L 388 792
+         C 232 770 138 668 146 528
+         C 152 470 164 456 196 452 Z"
+      stroke="url(#seal-line)"
+    />
+  </g>
+</svg>

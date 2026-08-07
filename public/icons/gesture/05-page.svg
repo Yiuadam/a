@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture 05, Page</title>
+  <!--
+    The gesture folded back on itself the way writing folds back on a page.
+
+    One stroke, four passes across the square, turning at the margins:
+      the first pass ripples          — listening
+      the second and third run ruled  — reading
+      the fourth runs short and thins to a point — writing
+      and the turns at the margins balloon out   — speaking
+
+    Read from across a room this is a block of handwriting, which is the whole
+    trick: the four behaviours are what a page of writing already looks like.
+    The passes are deliberately unequal in length. Four equal bars would be a
+    hamburger menu.
+  -->
+  <defs>
+    <radialGradient id="page-ground" cx="0.3" cy="0.24" r="0.95">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="1" stop-color="#e7d6c0" />
+    </radialGradient>
+    <linearGradient id="page-line" gradientUnits="userSpaceOnUse"
+      x1="120" y1="180" x2="880" y2="860">
+      <stop offset="0" stop-color="#c1743f" />
+      <stop offset="0.55" stop-color="#a95d2f" />
+      <stop offset="1" stop-color="#6f3b1e" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#page-ground)" />
+
+  <g transform="rotate(-2 512 512)">
+    <g transform="translate(24 28)" opacity="0.14">
+      <path
+        d="M 160 268
+           C 232 190 302 330 388 270
+           C 456 222 532 330 642 276
+           C 740 228 830 296 814 374
+           C 802 430 740 448 656 444
+           L 250 428
+           C 166 424 134 474 146 532
+           C 158 586 218 606 302 608
+           L 782 622
+           C 858 626 882 694 850 744
+           C 824 784 762 800 682 798
+           L 424 790"
+        fill="none" stroke="#5d3f14" stroke-width="94" stroke-linecap="butt" stroke-linejoin="round"
+      />
+      <path d="M 425 743 L 292 786 L 423 837 Z" fill="#5d3f14" />
+    </g>
+    <g fill="url(#page-line)">
+      <path
+        d="M 160 268
+           C 232 190 302 330 388 270
+           C 456 222 532 330 642 276
+           C 740 228 830 296 814 374
+           C 802 430 740 448 656 444
+           L 250 428
+           C 166 424 134 474 146 532
+           C 158 586 218 606 302 608
+           L 782 622
+           C 858 626 882 694 850 744
+           C 824 784 762 800 682 798
+           L 424 790"
+        fill="none" stroke="url(#page-line)" stroke-width="94"
+        stroke-linecap="butt" stroke-linejoin="round"
+      />
+      <!-- The last pass runs out of ink. -->
+      <path d="M 425 743 L 292 786 L 423 837 Z" />
+      <circle cx="160" cy="268" r="47" />
+    </g>
+  </g>
+</svg>

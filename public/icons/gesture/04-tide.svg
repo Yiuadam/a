@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture 04, Tide</title>
+  <!--
+    The open reading, with all the momentum left in.
+
+    A wave rises on the left, drops onto a dead-flat rule, runs the width of the
+    square, then curls over the top of itself and comes back — a breaking wave
+    that is also a speech bubble seen from underneath. The stroke ends in a
+    point aimed back at the crest it started from, which closes the loop for the
+    eye without closing it on the page.
+
+    Rhythm is deliberately uneven: one big crest, one long flat, one slow curl.
+    Even spacing would have made it a logo for a hotel.
+
+    The nib is a separate triangle whose base is exactly the butt cap of the
+    stroke, and the gradient is in user space so both halves are lit by the same
+    light. Object-space gradients remap per shape and the seam shows.
+  -->
+  <defs>
+    <radialGradient id="tide-ground" cx="0.26" cy="0.22" r="0.95">
+      <stop offset="0" stop-color="#2f2418" />
+      <stop offset="1" stop-color="#131009" />
+    </radialGradient>
+    <linearGradient id="tide-line" gradientUnits="userSpaceOnUse"
+      x1="100" y1="200" x2="900" y2="760">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="0.4" stop-color="#f2ddb4" />
+      <stop offset="0.75" stop-color="#e0ab52" />
+      <stop offset="1" stop-color="#c1743f" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#tide-ground)" />
+
+  <g transform="translate(0 24)">
+    <g transform="translate(24 28)" opacity="0.4">
+      <path
+        d="M 136 456
+           C 182 258 332 218 412 348
+           C 456 420 494 460 578 460
+           L 890 460
+           C 962 460 982 566 908 630
+           C 834 696 664 722 560 678"
+        fill="none" stroke="#0b0906" stroke-width="122" stroke-linecap="butt"
+      />
+      <path d="M 582 622 L 412 618 L 538 734 Z" fill="#0b0906" />
+      <circle cx="136" cy="456" r="61" fill="#0b0906" />
+    </g>
+    <g fill="url(#tide-line)">
+      <path
+        d="M 136 456
+           C 182 258 332 218 412 348
+           C 456 420 494 460 578 460
+           L 890 460
+           C 962 460 982 566 908 630
+           C 834 696 664 722 560 678"
+        fill="none" stroke="url(#tide-line)" stroke-width="122" stroke-linecap="butt"
+      />
+      <!-- The nib: base on the butt cap, tip aimed back under the crest. -->
+      <path d="M 582 622 L 412 618 L 538 734 Z" />
+      <!-- A rounded start, so the wave enters like a pen touching down. -->
+      <circle cx="136" cy="456" r="61" />
+    </g>
+  </g>
+</svg>

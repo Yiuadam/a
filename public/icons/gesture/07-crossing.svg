@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture 07, Crossing</title>
+  <!--
+    The one variation where the stroke passes over itself.
+
+    Everything else in this family either closes or runs away; this one loops
+    back through its own rising stem, which is the only way to get real depth
+    into a single line — where it crosses, it casts a shadow on itself, and the
+    order of the movement becomes readable. You can see which part happened
+    first.
+
+      a ripple along the floor    — listening
+      the rise, then the loop     — speaking
+      a dead-straight exit        — reading
+      ending in a long point      — writing
+
+    Closest thing here to a monogram, and the one most likely to be mistaken for
+    a letterform.
+  -->
+  <defs>
+    <radialGradient id="cross-ground" cx="0.28" cy="0.24" r="0.95">
+      <stop offset="0" stop-color="#30251a" />
+      <stop offset="1" stop-color="#13100b" />
+    </radialGradient>
+    <linearGradient id="cross-line" gradientUnits="userSpaceOnUse"
+      x1="120" y1="240" x2="900" y2="880">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="0.38" stop-color="#f2ddb4" />
+      <stop offset="0.72" stop-color="#e0ab52" />
+      <stop offset="1" stop-color="#c1743f" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#cross-ground)" />
+
+  <g>
+    <!-- Pass one: the whole gesture in shadow, so the crossing has something to fall on. -->
+    <g transform="translate(22 26)" opacity="0.5">
+      <path
+        d="M 132 792
+           C 188 714 244 826 328 754
+           C 420 674 500 596 546 496
+           C 596 388 540 300 440 306
+           C 344 312 300 400 344 470
+           C 386 536 476 556 560 528
+           L 878 826"
+        fill="none" stroke="#0b0906" stroke-width="106"
+        stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="12"
+      />
+      <path d="M 838 861 L 916 878 L 872 796 Z" fill="#0b0906" />
+    </g>
+    <path
+      d="M 132 792
+         C 188 714 244 826 328 754
+         C 420 674 500 596 546 496
+         C 596 388 540 300 440 306
+         C 344 312 300 400 344 470
+         C 386 536 476 556 560 528
+         L 878 826"
+      fill="none" stroke="url(#cross-line)" stroke-width="106"
+      stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="12"
+    />
+    <path d="M 838 861 L 916 878 L 872 796 Z" fill="url(#cross-line)" />
+  </g>
+</svg>

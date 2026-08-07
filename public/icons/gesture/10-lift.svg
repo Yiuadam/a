@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture 10, Lift</title>
+  <!--
+    The bluntest fusion in the set, and the one that survives being tiny.
+
+    A closed bubble with a rippled crown, and hanging off its lower right a
+    single long spike that is doing two jobs at once: it is the ruled line of
+    reading, and it is the nib of writing, because a ruled line drawn with a
+    nib ends in exactly this shape. Two of the four behaviours share one form
+    instead of taking a quadrant each.
+
+    That halving is the point. The parent tried to give all four an equal share
+    of the circumference and none of them got enough room. Here listening and
+    speaking own the bubble, reading and writing own the tail, and both halves
+    are big enough to read at any size.
+  -->
+  <defs>
+    <radialGradient id="lift-ground" cx="0.3" cy="0.24" r="0.95">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="1" stop-color="#e6d5bd" />
+    </radialGradient>
+    <linearGradient id="lift-line" gradientUnits="userSpaceOnUse"
+      x1="200" y1="180" x2="900" y2="900">
+      <stop offset="0" stop-color="#c1743f" />
+      <stop offset="0.5" stop-color="#a95d2f" />
+      <stop offset="1" stop-color="#6f3b1e" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#lift-ground)" />
+
+  <g fill="none" stroke-width="100" stroke-linejoin="miter" stroke-miterlimit="24">
+    <path
+      d="M 236 384
+         C 240 268 340 200 452 206
+         C 518 210 534 266 598 262
+         C 660 258 672 212 726 240
+         C 782 270 798 334 796 392
+         C 792 468 754 524 700 560
+         L 890 886
+         L 556 618
+         C 516 622 478 620 442 610
+         C 322 578 234 496 236 384 Z"
+      transform="translate(26 30)" stroke="#6f3b1e" opacity="0.15"
+    />
+    <path
+      d="M 236 384
+         C 240 268 340 200 452 206
+         C 518 210 534 266 598 262
+         C 660 258 672 212 726 240
+         C 782 270 798 334 796 392
+         C 792 468 754 524 700 560
+         L 890 886
+         L 556 618
+         C 516 622 478 620 442 610
+         C 322 578 234 496 236 384 Z"
+      stroke="url(#lift-line)"
+    />
+  </g>
+</svg>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture 02, Comma</title>
+  <!--
+    The gesture collapsed into one piece of punctuation.
+
+    Drawn as an outline rather than a stroked line, so the width is free to
+    change: heavy through the head, thinning the whole way down the tail until
+    it leaves the page as a point. The writing idea is carried by the
+    modulation itself — there is no separate nib shape anywhere in this mark.
+
+      scalloped crown          — listening
+      dead-straight right edge — reading
+      the taper to the tip     — writing
+      the head, and its counter — speaking
+
+    The counter is a rising slot rather than a round vent: the band scale,
+    smuggled into the one piece of negative space the mark already had.
+  -->
+  <defs>
+    <radialGradient id="comma-ground" cx="0.3" cy="0.24" r="0.95">
+      <stop offset="0" stop-color="#33261a" />
+      <stop offset="1" stop-color="#14100c" />
+    </radialGradient>
+    <linearGradient id="comma-body" x1="0.15" y1="0.1" x2="0.8" y2="0.95">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="0.42" stop-color="#f2ddb4" />
+      <stop offset="0.78" stop-color="#d9955c" />
+      <stop offset="1" stop-color="#a95d2f" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#comma-ground)" />
+
+  <g transform="rotate(-3 512 512)">
+    <path
+      d="M 150 914
+         C 250 802 244 662 258 540
+         C 272 396 356 258 500 250
+         C 568 246 586 316 650 312
+         C 716 308 720 240 786 264
+         C 848 288 866 348 868 410
+         L 868 600
+         C 868 702 802 782 692 820
+         C 500 886 300 862 150 914 Z
+         M 434 566
+         L 706 402
+         L 706 494
+         L 434 658 Z"
+      fill-rule="evenodd"
+      fill="#0d0a07"
+      opacity="0.45"
+      transform="translate(28 32)"
+    />
+    <path
+      d="M 150 914
+         C 250 802 244 662 258 540
+         C 272 396 356 258 500 250
+         C 568 246 586 316 650 312
+         C 716 308 720 240 786 264
+         C 848 288 866 348 868 410
+         L 868 600
+         C 868 702 802 782 692 820
+         C 500 886 300 862 150 914 Z
+         M 434 566
+         L 706 402
+         L 706 494
+         L 434 658 Z"
+      fill-rule="evenodd"
+      fill="url(#comma-body)"
+    />
+  </g>
+</svg>

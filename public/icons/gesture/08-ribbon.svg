@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture 08, Ribbon</title>
+  <!--
+    Modulation doing all the work, and no counter to help it.
+
+    A closed ribbon that is a needle at both ends and heaviest two thirds of the
+    way along. Nothing is stroked here — both edges are drawn, so the pen
+    pressure is the drawing. That is the whole argument of this variation: if a
+    line swells and thins the way a nib does, you do not need to draw a nib.
+
+      the tremor in the upper edge   — listening
+      the dead-straight lower edge   — reading
+      the swell, and the two needles — writing
+      the round shoulder at the top  — speaking
+
+    Closed, but only just — it reads as one pass of a brush, not as a shape.
+  -->
+  <defs>
+    <radialGradient id="ribbon-ground" cx="0.3" cy="0.24" r="0.95">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="1" stop-color="#e5d3ba" />
+    </radialGradient>
+    <linearGradient id="ribbon-body" gradientUnits="userSpaceOnUse"
+      x1="150" y1="860" x2="900" y2="240">
+      <stop offset="0" stop-color="#6f3b1e" />
+      <stop offset="0.4" stop-color="#a95d2f" />
+      <stop offset="0.78" stop-color="#c1743f" />
+      <stop offset="1" stop-color="#d08a5b" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#ribbon-ground)" />
+
+  <g>
+    <path
+      d="M 152 848
+         C 214 776 236 700 268 636
+         C 300 572 288 520 340 480
+         C 396 438 448 468 512 430
+         C 606 374 700 300 782 258
+         C 862 218 918 244 908 314
+         C 898 388 838 470 752 546
+         C 852 456 872 366 844 326
+         C 818 288 754 306 676 398
+         L 340 660
+         C 280 706 206 792 152 848 Z"
+      fill="#5d3f14" opacity="0.14" transform="translate(26 30)"
+    />
+    <path
+      d="M 152 848
+         C 214 776 236 700 268 636
+         C 300 572 288 520 340 480
+         C 396 438 448 468 512 430
+         C 606 374 700 300 782 258
+         C 862 218 918 244 908 314
+         C 898 388 838 470 752 546
+         C 852 456 872 366 844 326
+         C 818 288 754 306 676 398
+         L 340 660
+         C 280 706 206 792 152 848 Z"
+      fill="url(#ribbon-body)"
+    />
+  </g>
+</svg>

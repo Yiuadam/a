@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture 09, Ascent</title>
+  <!--
+    The open reading, pointed uphill.
+
+    One climb from the bottom-left corner to the top-right, entering as a
+    hairline — a pen touching down — swelling through the middle where the
+    climb is steepest, and leaving the square as a point. It does not come
+    back, and that is the argument: a closed mark is stable, this one is going
+    somewhere. Which is what a band score is meant to do.
+
+      the wobble in the first third — listening
+      the long straight climb       — reading
+      the swell and the exit point  — writing
+      the deep bay under the belly  — speaking
+
+    The bay is negative space rather than a drawn bubble, so nothing here is a
+    picture of a thing.
+  -->
+  <defs>
+    <radialGradient id="ascent-ground" cx="0.24" cy="0.8" r="0.95">
+      <stop offset="0" stop-color="#33261a" />
+      <stop offset="1" stop-color="#13100b" />
+    </radialGradient>
+    <linearGradient id="ascent-body" gradientUnits="userSpaceOnUse"
+      x1="140" y1="900" x2="900" y2="190">
+      <stop offset="0" stop-color="#a95d2f" />
+      <stop offset="0.35" stop-color="#d9955c" />
+      <stop offset="0.72" stop-color="#f2ddb4" />
+      <stop offset="1" stop-color="#fdfaf6" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#ascent-ground)" />
+
+  <g>
+    <path
+      d="M 138 880
+         C 176 800 190 736 236 686
+         C 290 628 336 654 400 606
+         C 474 552 516 476 590 418
+         C 670 354 762 292 852 232
+         L 900 190
+         C 828 288 742 386 656 480
+         C 590 552 520 618 452 676
+         C 396 724 328 706 272 740
+         C 216 774 174 830 138 880 Z"
+      fill="#0b0906" opacity="0.5" transform="translate(24 28)"
+    />
+    <path
+      d="M 138 880
+         C 176 800 190 736 236 686
+         C 290 628 336 654 400 606
+         C 474 552 516 476 590 418
+         C 670 354 762 292 852 232
+         L 900 190
+         C 828 288 742 386 656 480
+         C 590 552 520 618 452 676
+         C 396 724 328 706 272 740
+         C 216 774 174 830 138 880 Z"
+      fill="url(#ascent-body)"
+    />
+  </g>
+</svg>
