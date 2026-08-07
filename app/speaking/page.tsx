@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import ExplainText from "@/components/ExplainText";
 import speakingData from "@/data/speaking-topics.json";
 import { useMounted } from "@/lib/hooks";
 import {
@@ -340,7 +341,10 @@ export default function SpeakingPage() {
                   {c.band}
                 </span>
               </div>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{c.comment}</p>
+              <ExplainText
+                text={c.comment}
+                className="mt-2 block text-sm leading-6 text-slate-600"
+              />
             </div>
           ))}
         </div>
@@ -352,7 +356,7 @@ export default function SpeakingPage() {
               {grade.strengths.map((s, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="text-emerald-600">✓</span>
-                  {s}
+                  <ExplainText text={s} />
                 </li>
               ))}
             </ul>
@@ -363,7 +367,7 @@ export default function SpeakingPage() {
               {grade.improvements.map((s, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="font-semibold text-indigo-600">{i + 1}</span>
-                  {s}
+                  <ExplainText text={s} />
                 </li>
               ))}
             </ol>
@@ -374,10 +378,14 @@ export default function SpeakingPage() {
           <h3 className="mb-2 text-sm font-semibold text-slate-900">
             One of your answers, at band 8
           </h3>
-          <p className="text-[15px] leading-7 text-slate-700">{grade.betterAnswerExample}</p>
-          <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-500">
-            {grade.pronunciationNote}
-          </p>
+          <ExplainText
+            text={grade.betterAnswerExample}
+            className="block text-[15px] leading-7 text-slate-700"
+          />
+          <ExplainText
+            text={grade.pronunciationNote}
+            className="mt-4 block rounded-xl bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-500"
+          />
         </div>
 
         <details className="card">
@@ -484,8 +492,8 @@ export default function SpeakingPage() {
               disabled={examinerSpeaking || preparing}
               className={`flex h-24 w-24 items-center justify-center rounded-full text-3xl transition-all disabled:opacity-40 ${
                 recording
-                  ? "bg-rose-600 text-white shadow-lg ring-8 ring-rose-100"
-                  : "bg-indigo-600 text-white shadow-md hover:bg-indigo-700 hover:shadow-lg"
+                  ? "bg-rose-600 text-accent-fg shadow-lg ring-8 ring-rose-100"
+                  : "bg-indigo-600 text-accent-fg shadow-md hover:bg-indigo-700 hover:shadow-lg"
               }`}
               aria-label={recording ? "Stop recording" : "Start recording"}
             >

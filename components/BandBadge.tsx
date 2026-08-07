@@ -13,7 +13,7 @@ export default function BandBadge({
   return (
     <div className="flex flex-col items-center gap-2">
       <div
-        className={`${dim} flex items-center justify-center rounded-full bg-indigo-600 font-bold text-white shadow-md`}
+        className={`${dim} flex items-center justify-center rounded-full bg-indigo-600 font-bold text-accent-fg shadow-md`}
       >
         {band.toFixed(band % 1 === 0 ? 0 : 1)}
       </div>

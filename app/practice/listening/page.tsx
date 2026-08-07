@@ -4,15 +4,29 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
-import TestQuestions, { type AnswerMap } from "@/components/TestQuestions";
+import Review from "@/components/Review";
+import TestQuestions, {
+  type AnswerMap,
+  type CheckedMap,
+} from "@/components/TestQuestions";
 import listeningOne from "@/data/listening-1.json";
 import listeningTwo from "@/data/listening-2.json";
+import listeningThree from "@/data/listening-3.json";
+import listeningFour from "@/data/listening-4.json";
+import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
+import { rankedEnglishVoices, toSentences } from "@/lib/speech";
 import { useMounted, useProfile } from "@/lib/hooks";
+import { buildReview } from "@/lib/review";
 import { addResult } from "@/lib/store";
 import type { ListeningTest } from "@/lib/types";
 
-const bundled = [listeningOne, listeningTwo] as ListeningTest[];
+const bundled = [
+  listeningOne,
+  listeningTwo,
+  listeningThree,
+  listeningFour,
+] as ListeningTest[];
 
 interface PlaybackHooks {
   voices: SpeechSynthesisVoice[];
@@ -23,31 +37,50 @@ interface PlaybackHooks {
 }
 
 /**
- * Speak the script one turn at a time, chaining each utterance to the next so
- * turns never overlap. Each speaker gets its own voice where the browser offers
- * more than one, and a pitch shift otherwise.
+ * Speak the script a sentence at a time rather than a turn at a time.
+ *
+ * Reading a whole paragraph as one utterance is what makes synthesised speech
+ * sound mechanical: the pace never varies and there is no breath between
+ * thoughts. Sentence-level playback with short gaps — longer when the speaker
+ * changes, as in a real conversation — plus a little jitter in the rate, gets
+ * much closer to a person reading aloud.
  */
 function playScript(test: ListeningTest, from: number, hooks: PlaybackHooks): void {
-  const step = (index: number) => {
+  const speak = (turnIndex: number, sentenceIndex: number) => {
     if (!hooks.stillPlaying()) return;
-    if (index >= test.script.length) {
+    if (turnIndex >= test.script.length) {
       hooks.onEnd();
       return;
     }
-    hooks.onTurn(index);
-    const turn = test.script[index];
-    const utter = new SpeechSynthesisUtterance(turn.text);
+    const turn = test.script[turnIndex];
+    const sentences = toSentences(turn.text);
+    if (sentenceIndex >= sentences.length) {
+      // Turn-taking gap: a beat longer than the pause between sentences.
+      const gap = turnIndex + 1 < test.script.length ? 420 : 0;
+      window.setTimeout(() => speak(turnIndex + 1, 0), gap);
+      return;
+    }
+
+    if (sentenceIndex === 0) hooks.onTurn(turnIndex);
+
+    const utter = new SpeechSynthesisUtterance(sentences[sentenceIndex]);
     const speakerIdx = Math.max(0, test.speakers.indexOf(turn.speaker));
     if (hooks.voices.length > 0) {
       utter.voice = hooks.voices[speakerIdx % hooks.voices.length];
     }
-    utter.pitch = speakerIdx === 0 ? 1 : 0.8;
-    utter.rate = hooks.rate();
-    utter.onend = () => step(index + 1);
-    utter.onerror = () => step(index + 1);
+    // Only shift pitch when one voice has to cover several speakers.
+    utter.pitch = hooks.voices.length > 1 ? 1 : speakerIdx === 0 ? 1.04 : 0.92;
+    // ±3% keeps the delivery from sounding metronomic.
+    utter.rate = hooks.rate() * (0.97 + Math.random() * 0.06);
+    const next = () => {
+      if (!hooks.stillPlaying()) return;
+      window.setTimeout(() => speak(turnIndex, sentenceIndex + 1), 180);
+    };
+    utter.onend = next;
+    utter.onerror = next;
     window.speechSynthesis.speak(utter);
   };
-  step(from);
+  speak(from, 0);
 }
 
 function ListeningTestPageRunner() {
@@ -55,7 +88,13 @@ function ListeningTestPageRunner() {
   const profile = useProfile();
   const mounted = useMounted();
   const [started, setStarted] = useState(false);
+  // Exam practice and study practice are different activities; a clock helps
+  // the first and gets in the way of the second.
+  const [mode, setMode] = useState<"timed" | "free">("timed");
   const [answers, setAnswers] = useState<AnswerMap>({});
+  // Questions the learner marked mid-test. Checking locks the answer, so a
+  // checked question still counts exactly as it stood when it was checked.
+  const [checked, setChecked] = useState<CheckedMap>({});
   const [submitted, setSubmitted] = useState(false);
   const [band, setBand] = useState<number | null>(null);
   const [raw, setRaw] = useState(0);
@@ -86,9 +125,7 @@ function ListeningTestPageRunner() {
   useEffect(() => {
     if (!ttsSupported) return;
     const loadVoices = () => {
-      voicesRef.current = window.speechSynthesis
-        .getVoices()
-        .filter((v) => v.lang.toLowerCase().startsWith("en"));
+      voicesRef.current = rankedEnglishVoices();
     };
     loadVoices();
     window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
@@ -183,12 +220,51 @@ function ListeningTestPageRunner() {
             In exam conditions you hear the recording <span className="font-medium">once</span> —
             but you can replay while practising.
           </p>
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            You can check any single answer as you go and read the explanation straight away.
+            Checking locks that question, so your band stays honest.
+          </p>
           {!ttsSupported && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
               Your browser does not support speech synthesis. Use Chrome, Edge or Safari for
               audio — or practise in transcript mode below.
             </p>
           )}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              How do you want to practise?
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {([
+                {
+                  id: "timed" as const,
+                  title: "Exam conditions",
+                  blurb: `${test.timeMinutes} minutes, clock running`,
+                },
+                {
+                  id: "free" as const,
+                  title: "No time limit",
+                  blurb: "Replay and pause as much as you like",
+                },
+              ]).map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setMode(option.id)}
+                  className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                    mode === option.id
+                      ? "border-indigo-500 bg-indigo-50"
+                      : "border-slate-200 bg-surface hover:border-slate-300"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-slate-900">
+                    {option.title}
+                  </span>
+                  <span className="block text-xs text-slate-500">{option.blurb}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <button className="btn-primary" onClick={() => setStarted(true)}>
             Open the test
           </button>
@@ -201,7 +277,10 @@ function ListeningTestPageRunner() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-900">{test.title}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-lg border border-slate-200 bg-surface px-3 py-1.5 text-sm text-slate-500">
+            {mode === "timed" ? "Exam conditions · plays once" : "No time limit · replay freely"}
+          </span>
           <select
             className="input"
             value={rate}
@@ -217,7 +296,13 @@ function ListeningTestPageRunner() {
             <option value={1.15}>1.15×</option>
           </select>
           {ttsSupported && !playing && (
-            <button className="btn-primary" onClick={() => startAudio(0)}>
+            <button
+              className="btn-primary"
+              onClick={() => startAudio(0)}
+              /* Under exam conditions the recording plays once, as in the real
+                 test. Free practice may replay as often as it likes. */
+              disabled={mode === "timed" && !submitted && (finishedAudio || turnIndex >= 0)}
+            >
               {finishedAudio || turnIndex >= 0 ? "▶ Play again" : "▶ Play recording"}
             </button>
           )}
@@ -246,8 +331,9 @@ function ListeningTestPageRunner() {
           <BandBadge band={band} caption={`${raw}/${test.questions.length} correct`} />
           <div className="max-w-md text-sm text-slate-600">
             <p>
-              Estimated listening band <span className="font-semibold">{band}</span>. Review your
-              answers and the transcript below.
+              Estimated listening band <span className="font-semibold">{band}</span>. Go through
+              the review below with the transcript open — every answer you missed was audible,
+              and finding where is what fixes it.
             </p>
             <div className="mt-3 flex gap-2">
               <Link href="/practice" className="btn-secondary">
@@ -261,6 +347,19 @@ function ListeningTestPageRunner() {
         </div>
       )}
 
+      {submitted && band !== null && (
+        <Review
+          items={buildReview(test.questions, answers)}
+          advice={testAdvice(
+            "listening",
+            test.questions,
+            buildReview(test.questions, answers).map((i) => i.id),
+            band,
+          )}
+          total={test.questions.length}
+        />
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
           <TestQuestions
@@ -268,6 +367,8 @@ function ListeningTestPageRunner() {
             answers={answers}
             onAnswer={(id, v) => setAnswers((a) => ({ ...a, [id]: v }))}
             submitted={submitted}
+            checked={checked}
+            onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
           />
           {!submitted && (
             <button className="btn-primary mt-5 w-full" onClick={submit}>
@@ -285,12 +386,17 @@ function ListeningTestPageRunner() {
                 className="text-xs text-indigo-600 hover:underline"
                 onClick={() => setShowTranscript((s) => !s)}
               >
-                {showTranscript ? "Hide" : ttsSupported ? "Show (spoiler!)" : "Show transcript"}
+                {showTranscript
+                  ? "Hide"
+                  : mode === "free" || !ttsSupported
+                    ? "Show transcript"
+                    : "Show (spoiler!)"}
               </button>
             )}
           </div>
           {showTranscript ? (
             <div className="space-y-3">
+              <p className="text-xs text-slate-400">Select any word to look it up</p>
               {test.script.map((turn, i) => (
                 <p key={i} className="text-sm leading-6 text-slate-700">
                   <span className="mr-1 font-semibold text-slate-500">{turn.speaker}:</span>
@@ -300,8 +406,9 @@ function ListeningTestPageRunner() {
             </div>
           ) : (
             <p className="text-sm text-slate-400">
-              Hidden during the test — just like the real exam. It unlocks automatically after
-              you submit.
+              {mode === "timed"
+                ? "Hidden during the test — just like the real exam. It unlocks automatically after you submit."
+                : "You are practising without a clock, so open it whenever it helps. It unlocks automatically after you submit."}
             </p>
           )}
         </div>

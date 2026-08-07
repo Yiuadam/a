@@ -36,6 +36,22 @@ const MODULES: { key: ModuleName; label: string; href: string; blurb: string; ic
   },
 ];
 
+/* Study sections rather than exam papers: no clock, no band, just the rule. */
+const STUDY = [
+  {
+    href: "/grammar",
+    label: "Grammar",
+    blurb: "Ten topics, the rule then the drill",
+    icon: "📐",
+  },
+  {
+    href: "/vocabulary",
+    label: "Vocabulary",
+    blurb: "Collocations, phrasal verbs, word families",
+    icon: "🗂️",
+  },
+];
+
 export default function Dashboard() {
   const profile = useProfile();
   const placement = profile.placement;
@@ -74,7 +90,7 @@ export default function Dashboard() {
       </section>
 
       <section>
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Practise a skill</h2>
+        <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">Practise a skill</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {MODULES.map((m) => {
             const latest = profile.results.find((r) => r.module === m.key);
@@ -110,14 +126,39 @@ export default function Dashboard() {
         </div>
       </section>
 
+      <section>
+        <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">
+          Study the language itself
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {STUDY.map((s) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              className="card block transition-all hover:-translate-y-0.5 hover:border-indigo-300"
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl" aria-hidden>
+                  {s.icon}
+                </span>
+                <div>
+                  <h3 className="font-semibold text-slate-900">{s.label}</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{s.blurb}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       {profile.results.length > 0 && (
         <section>
-          <h2 className="mb-4 text-base font-semibold text-slate-900">Your recent practice</h2>
+          <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">Your recent practice</h2>
           <ul className="space-y-2">
             {profile.results.slice(0, 6).map((r, i) => (
               <li
                 key={i}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3.5"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-surface px-5 py-3.5"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-slate-800">{r.testTitle}</p>

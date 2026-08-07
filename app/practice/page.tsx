@@ -4,14 +4,23 @@ import Link from "next/link";
 import { useState } from "react";
 import readingOne from "@/data/reading-1.json";
 import readingTwo from "@/data/reading-2.json";
+import readingThree from "@/data/reading-3.json";
+import readingFour from "@/data/reading-4.json";
 import listeningOne from "@/data/listening-1.json";
 import listeningTwo from "@/data/listening-2.json";
+import listeningThree from "@/data/listening-3.json";
+import listeningFour from "@/data/listening-4.json";
 import { useProfile } from "@/lib/hooks";
 import { addGeneratedTest } from "@/lib/store";
 import type { GeneratedTest, ListeningTest, ReadingTest } from "@/lib/types";
 
-const readingTests = [readingOne, readingTwo] as ReadingTest[];
-const listeningTests = [listeningOne, listeningTwo] as ListeningTest[];
+const readingTests = [readingOne, readingThree, readingTwo, readingFour] as ReadingTest[];
+const listeningTests = [
+  listeningOne,
+  listeningThree,
+  listeningTwo,
+  listeningFour,
+] as ListeningTest[];
 
 export default function PracticePage() {
   const profile = useProfile();
@@ -102,7 +111,7 @@ export default function PracticePage() {
       </div>
 
       <section>
-        <h2 className="mb-3 text-base font-semibold text-slate-900">Reading</h2>
+        <h2 className="heading-rule mb-3 text-base font-semibold text-slate-900">Reading</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {readingTests.map((t) => testCard("reading", t))}
           {profile.genTests
@@ -112,7 +121,7 @@ export default function PracticePage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-base font-semibold text-slate-900">Listening</h2>
+        <h2 className="heading-rule mb-3 text-base font-semibold text-slate-900">Listening</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {listeningTests.map((t) => testCard("listening", t))}
           {profile.genTests
@@ -122,7 +131,7 @@ export default function PracticePage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-base font-semibold text-slate-900">Writing</h2>
+        <h2 className="heading-rule mb-3 text-base font-semibold text-slate-900">Writing</h2>
         <Link href="/practice/writing" className="card block transition hover:shadow-md">
           <h3 className="font-semibold text-slate-900">Writing tasks with AI examiner feedback</h3>
           <p className="mt-0.5 text-sm text-slate-600">

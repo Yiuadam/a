@@ -24,6 +24,7 @@ function read(): Profile {
     return {
       placement: parsed.placement,
       targetBand: parsed.targetBand,
+      placementHistory: parsed.placementHistory ?? [],
       results: parsed.results ?? [],
       genTests: parsed.genTests ?? [],
     };
@@ -64,8 +65,22 @@ export function loadProfile(): Profile {
   return getSnapshot();
 }
 
-export function setPlacement(result: PlacementResult): Profile {
-  return commit({ ...getSnapshot(), placement: result });
+export function setPlacement(result: PlacementResult, questionIds: string[] = []): Profile {
+  const p = getSnapshot();
+  // Keep the last two sittings so the next test can avoid both, giving three
+  // consecutive tests with no question in common.
+  const history = [questionIds, ...(p.placementHistory ?? [])].slice(0, 2);
+  return commit({ ...p, placement: result, placementHistory: history });
+}
+
+/**
+ * The previous two sittings, newest first, each as its own list of ids.
+ *
+ * They stay separate rather than flattened because the item chooser relaxes
+ * one sitting at a time when the bank runs short.
+ */
+export function recentPlacementSittings(): string[][] {
+  return getSnapshot().placementHistory ?? [];
 }
 
 export function setTargetBand(band: number): Profile {

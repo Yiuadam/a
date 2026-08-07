@@ -35,7 +35,7 @@ export default function Timer({
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 font-mono text-sm ${
-        low ? "border-rose-300 bg-rose-50 text-rose-700" : "border-slate-200 bg-white text-slate-700"
+        low ? "border-rose-300 bg-rose-50 text-rose-700" : "border-slate-200 bg-surface text-slate-700"
       }`}
       title="Time remaining"
     >

@@ -5,144 +5,1512 @@
       "level": "A1",
       "skill": "grammar",
       "question": "Choose the correct word: She ___ a teacher.",
-      "options": ["am", "is", "are", "be"],
-      "answer": 1
+      "options": [
+        "am",
+        "is",
+        "are",
+        "be"
+      ],
+      "answer": 1,
+      "explanation": "\"She\" is third person singular, so the verb \"to be\" takes \"is\". \"Am\" only goes with \"I\", and \"are\" with \"you\", \"we\" and \"they\"."
     },
     {
       "id": "p2",
       "level": "A1",
       "skill": "vocabulary",
       "question": "What is the opposite of 'big'?",
-      "options": ["small", "tall", "old", "fast"],
-      "answer": 0
+      "options": [
+        "small",
+        "tall",
+        "old",
+        "fast"
+      ],
+      "answer": 0,
+      "explanation": "\"Small\" is the direct opposite of \"big\" — both describe size. \"Tall\", \"old\" and \"fast\" describe height, age and speed, so none of them is an opposite of \"big\" at all."
     },
     {
       "id": "p3",
       "level": "A1",
       "skill": "reading",
       "question": "Read the text: Tom gets up at seven o'clock. Then he eats breakfast and goes to school by bus. What does Tom do first?",
-      "options": ["He goes to school", "He eats breakfast", "He gets up", "He takes the bus"],
-      "answer": 2
+      "options": [
+        "He goes to school",
+        "He eats breakfast",
+        "He gets up",
+        "He takes the bus"
+      ],
+      "answer": 2,
+      "explanation": "The word \"then\" gives you the order: he gets up, then eats, then takes the bus. The first action mentioned is getting up."
     },
     {
       "id": "p4",
       "level": "A2",
       "skill": "grammar",
       "question": "Choose the correct word: Yesterday we ___ a great film at the cinema.",
-      "options": ["see", "saw", "seen", "seeing"],
-      "answer": 1
+      "options": [
+        "see",
+        "saw",
+        "seen",
+        "seeing"
+      ],
+      "answer": 1,
+      "explanation": "\"Yesterday\" fixes the sentence in finished past time, so you need the past simple \"saw\". \"Seen\" is the past participle and cannot stand alone — it needs \"have\" in front of it."
     },
     {
       "id": "p5",
       "level": "A2",
       "skill": "vocabulary",
       "question": "Choose the correct word: Could you ___ me a favour and open the window?",
-      "options": ["make", "give", "do", "take"],
-      "answer": 2
+      "options": [
+        "make",
+        "give",
+        "do",
+        "take"
+      ],
+      "answer": 2,
+      "explanation": "English says \"do someone a favour\" — a fixed collocation. \"Make\" goes with decisions and mistakes; \"do\" goes with favours, homework and the washing-up."
     },
     {
       "id": "p6",
       "level": "A2",
       "skill": "reading",
       "question": "Read the text: The museum is closed on Mondays. Tickets cost five euros for adults, and children under twelve enter free. Anna is ten years old and visits on Saturday. How much does Anna pay?",
-      "options": ["Five euros", "Nothing", "Half price", "Ten euros"],
-      "answer": 1
+      "options": [
+        "Five euros",
+        "Nothing",
+        "Half price",
+        "Ten euros"
+      ],
+      "answer": 1,
+      "explanation": "Anna is ten and children under twelve enter free, so she pays nothing. The five-euro price is for adults. The day matters only because the museum is open on Saturdays."
     },
     {
       "id": "p7",
       "level": "B1",
       "skill": "grammar",
       "question": "Choose the correct form: I ___ in this city since 2019.",
-      "options": ["live", "lived", "have lived", "am living"],
-      "answer": 2
+      "options": [
+        "live",
+        "lived",
+        "have lived",
+        "am living"
+      ],
+      "answer": 2,
+      "explanation": "\"Since 2019\" marks a period that starts in the past and runs up to now, which is what the present perfect expresses. \"Lived\" would close the period off in the past, implying you no longer live there."
     },
     {
       "id": "p8",
       "level": "B1",
       "skill": "vocabulary",
       "question": "The meeting was called off at the last minute. 'Called off' means:",
-      "options": ["postponed", "shortened", "confirmed", "cancelled"],
-      "answer": 3
+      "options": [
+        "postponed",
+        "shortened",
+        "confirmed",
+        "cancelled"
+      ],
+      "answer": 3,
+      "explanation": "\"Call off\" means cancel — the event does not happen at all. \"Postpone\" means moving it to a later date, which in English is \"put off\", a different phrasal verb."
     },
     {
       "id": "p9",
       "level": "B1",
       "skill": "reading",
       "question": "Read the text: Although the restaurant was expensive, Marta decided to book a table because the reviews were excellent. Why did Marta book a table?",
-      "options": ["The prices were reasonable", "The reviews were very positive", "It was close to her house", "A friend had recommended it"],
-      "answer": 1
+      "options": [
+        "The prices were reasonable",
+        "The reviews were very positive",
+        "It was close to her house",
+        "A friend had recommended it"
+      ],
+      "answer": 1,
+      "explanation": "The reason is signalled by \"because\": the reviews were excellent. \"Although the restaurant was expensive\" is a concession — a point working against the decision, not a reason for it."
     },
     {
       "id": "p10",
       "level": "B2",
       "skill": "grammar",
       "question": "Choose the correct form: If she had studied harder, she ___ the exam.",
-      "options": ["would pass", "passed", "would have passed", "will pass"],
-      "answer": 2
+      "options": [
+        "would pass",
+        "passed",
+        "would have passed",
+        "will pass"
+      ],
+      "answer": 2,
+      "explanation": "This is the third conditional, about an unreal past. \"If + had studied\" pairs with \"would have + past participle\". \"Would pass\" belongs to the second conditional, which talks about the present or future."
     },
     {
       "id": "p11",
       "level": "B2",
       "skill": "vocabulary",
       "question": "Choose the word that best completes the sentence: The new findings are broadly ___ with previous research in the field.",
-      "options": ["consistent", "agreeable", "matching", "faithful"],
-      "answer": 0
+      "options": [
+        "consistent",
+        "agreeable",
+        "matching",
+        "faithful"
+      ],
+      "answer": 0,
+      "explanation": "Findings are \"consistent with\" other research — the standard academic collocation. \"Agreeable\" means pleasant, not in agreement, which is a common false friend."
     },
     {
       "id": "p12",
       "level": "B2",
       "skill": "reading",
       "question": "Read the text: While the new transport policy has been praised for its ambition, critics point out that no additional funding has been allocated, raising doubts about whether its goals can actually be met. What concern do the critics raise?",
-      "options": ["The policy is not ambitious enough", "The goals were chosen by the wrong people", "The praise came from unreliable sources", "It may be unachievable without extra funding"],
-      "answer": 3
+      "options": [
+        "The policy is not ambitious enough",
+        "The goals were chosen by the wrong people",
+        "The praise came from unreliable sources",
+        "It may be unachievable without extra funding"
+      ],
+      "answer": 3,
+      "explanation": "The critics' point is the missing funding, which \"raises doubts about whether its goals can actually be met\". They are not saying the policy lacks ambition; they say it may be unachievable as funded."
     },
     {
       "id": "p13",
       "level": "C1",
       "skill": "grammar",
       "question": "Choose the correct form: Seldom ___ such a remarkable performance on this stage.",
-      "options": ["have we seen", "we have seen", "we saw", "we had seen"],
-      "answer": 0
+      "options": [
+        "have we seen",
+        "we have seen",
+        "we saw",
+        "we had seen"
+      ],
+      "answer": 0,
+      "explanation": "A negative or restrictive adverb in front position — \"seldom\", \"rarely\", \"never\" — forces inversion: auxiliary before subject. So \"have we seen\", not \"we have seen\"."
     },
     {
       "id": "p14",
       "level": "C1",
       "skill": "vocabulary",
       "question": "Choose the word that collocates naturally: The referee described the foul as a ___ breach of the rules.",
-      "options": ["blazing", "flagrant", "fiery", "glowing"],
-      "answer": 1
+      "options": [
+        "blazing",
+        "flagrant",
+        "fiery",
+        "glowing"
+      ],
+      "answer": 1,
+      "explanation": "\"Flagrant\" means openly and obviously offensive, and collocates with \"breach\", \"violation\" and \"disregard\". The other three all belong to the vocabulary of fire and light."
     },
     {
       "id": "p15",
       "level": "C1",
       "skill": "grammar",
       "question": "Choose the correct form: No sooner ___ the stage than the audience erupted into applause.",
-      "options": ["she had left", "she left", "did she leave", "had she left"],
-      "answer": 3
+      "options": [
+        "she had left",
+        "she left",
+        "did she leave",
+        "had she left"
+      ],
+      "answer": 3,
+      "explanation": "\"No sooner\" takes inversion with the past perfect: \"no sooner had she left ... than\". The \"than\" later in the sentence confirms which pattern is needed."
     },
     {
       "id": "p16",
       "level": "C2",
       "skill": "grammar",
       "question": "Choose the correct word: Hardly had the negotiations begun ___ the delegation walked out in protest.",
-      "options": ["than", "that", "when", "as"],
-      "answer": 2
+      "options": [
+        "than",
+        "that",
+        "when",
+        "as"
+      ],
+      "answer": 2,
+      "explanation": "\"Hardly ... when\" and \"no sooner ... than\" are the two fixed pairs. Mixing them into \"hardly ... than\" is one of the most common advanced-level errors."
     },
     {
       "id": "p17",
       "level": "C2",
       "skill": "vocabulary",
       "question": "Which is closest in meaning to 'tacit', as in 'a tacit agreement between the two parties'?",
-      "options": ["understood without being stated", "reluctantly conceded", "legally binding", "openly acknowledged"],
-      "answer": 0
+      "options": [
+        "understood without being stated",
+        "reluctantly conceded",
+        "legally binding",
+        "openly acknowledged"
+      ],
+      "answer": 0,
+      "explanation": "\"Tacit\" means implied and understood without being put into words; its opposite is \"explicit\". An \"openly acknowledged\" agreement is precisely what a tacit one is not."
     },
     {
       "id": "p18",
       "level": "C2",
       "skill": "reading",
       "question": "Read the text: The committee's report, running to some four hundred pages, devotes barely a paragraph to the issue it was ostensibly convened to address — an omission its authors describe, without apparent irony, as 'a matter for future study'. The writer's attitude towards the report is best described as:",
-      "options": ["cautiously optimistic", "openly hostile", "neutrally descriptive", "wryly critical"],
-      "answer": 3
+      "options": [
+        "cautiously optimistic",
+        "openly hostile",
+        "neutrally descriptive",
+        "wryly critical"
+      ],
+      "answer": 3,
+      "explanation": "The clues are \"barely a paragraph\" and \"without apparent irony\": the writer is pointing out an absurdity with a dry, amused tone rather than open anger. That is wry criticism."
+    },
+    {
+      "id": "p19",
+      "level": "A1",
+      "skill": "grammar",
+      "question": "My brother ___ in a bakery.",
+      "options": [
+        "work",
+        "works",
+        "working",
+        "to work"
+      ],
+      "answer": 1,
+      "explanation": "In the present simple, a third-person singular subject takes -s on the verb: he, she, it and \"my brother\" all take \"works\"."
+    },
+    {
+      "id": "p20",
+      "level": "A1",
+      "skill": "grammar",
+      "question": "There ___ two apples on the table.",
+      "options": [
+        "is",
+        "am",
+        "are",
+        "be"
+      ],
+      "answer": 2,
+      "explanation": "\"Two apples\" is plural, so the sentence needs \"there are\". \"There is\" goes only with singular or uncountable nouns."
+    },
+    {
+      "id": "p21",
+      "level": "A1",
+      "skill": "grammar",
+      "question": "I don't have ___ money with me today.",
+      "options": [
+        "some",
+        "any",
+        "much of",
+        "a"
+      ],
+      "answer": 1,
+      "explanation": "Negative sentences use \"any\", not \"some\". \"Some\" belongs in positive statements and in offers such as \"Would you like some tea?\""
+    },
+    {
+      "id": "p22",
+      "level": "A1",
+      "skill": "vocabulary",
+      "question": "You keep milk in the ___.",
+      "options": [
+        "oven",
+        "fridge",
+        "cupboard",
+        "sink"
+      ],
+      "answer": 1,
+      "explanation": "A fridge keeps food cold, and milk goes off outside one. An oven heats, a cupboard is not cold, and a sink is for washing."
+    },
+    {
+      "id": "p23",
+      "level": "A1",
+      "skill": "vocabulary",
+      "question": "The opposite of 'cheap' is ___.",
+      "options": [
+        "expensive",
+        "heavy",
+        "quiet",
+        "empty"
+      ],
+      "answer": 0,
+      "explanation": "\"Cheap\" and \"expensive\" are the standard opposite pair for price. The other three describe weight, sound and quantity."
+    },
+    {
+      "id": "p24",
+      "level": "A1",
+      "skill": "vocabulary",
+      "question": "A person who teaches at a school is a ___.",
+      "options": [
+        "driver",
+        "farmer",
+        "teacher",
+        "singer"
+      ],
+      "answer": 2,
+      "explanation": "The suffix -er turns the action into the person who does it: teach becomes teacher, drive becomes driver, sing becomes singer."
+    },
+    {
+      "id": "p25",
+      "level": "A1",
+      "skill": "reading",
+      "question": "Notice: THE POOL IS CLOSED ON MONDAYS.\n\nWhen can you NOT swim?",
+      "options": [
+        "Sunday",
+        "Monday",
+        "Every day",
+        "The weekend"
+      ],
+      "answer": 1,
+      "explanation": "The notice says the pool is closed on Mondays, so Monday is the day you cannot swim. Note the \"NOT\" in the question — it reverses what you are looking for."
+    },
+    {
+      "id": "p26",
+      "level": "A1",
+      "skill": "reading",
+      "question": "Message: 'Hi Sam. I'm at the station. My train is late. See you at 8.'\n\nWhere is the writer?",
+      "options": [
+        "At home",
+        "At the station",
+        "At work",
+        "At school"
+      ],
+      "answer": 1,
+      "explanation": "\"I'm at the station\" states the location directly. The late train explains why the writer is waiting, but it does not change where they are."
+    },
+    {
+      "id": "p27",
+      "level": "A1",
+      "skill": "reading",
+      "question": "Sign in a shop window: OPEN 9-5. CLOSED SATURDAY AND SUNDAY.\n\nThe shop opens ___.",
+      "options": [
+        "every day",
+        "only at weekends",
+        "on weekdays",
+        "at night"
+      ],
+      "answer": 2,
+      "explanation": "Closed on Saturday and Sunday means open the other five days, which are the weekdays. The trap is reading a closing time as an opening time."
+    },
+    {
+      "id": "p28",
+      "level": "A2",
+      "skill": "grammar",
+      "question": "We ___ to the coast last summer.",
+      "options": [
+        "go",
+        "have gone",
+        "went",
+        "are going"
+      ],
+      "answer": 2,
+      "explanation": "\"Last summer\" is finished past time, so the past simple \"went\" is required. The present perfect cannot be used with a finished time expression."
+    },
+    {
+      "id": "p29",
+      "level": "A2",
+      "skill": "grammar",
+      "question": "This box is ___ than the other one.",
+      "options": [
+        "heavy",
+        "heavier",
+        "heaviest",
+        "more heavy"
+      ],
+      "answer": 1,
+      "explanation": "Short adjectives form the comparative with -er, and a final \"y\" becomes \"i\": heavy becomes heavier. \"More heavy\" is not used with short adjectives."
+    },
+    {
+      "id": "p30",
+      "level": "A2",
+      "skill": "grammar",
+      "question": "She's been living here ___ 2019.",
+      "options": [
+        "for",
+        "since",
+        "from",
+        "during"
+      ],
+      "answer": 1,
+      "explanation": "\"Since\" is used with a point in time (2019, Monday, six o'clock); \"for\" is used with a length of time (three years, two weeks)."
+    },
+    {
+      "id": "p31",
+      "level": "A2",
+      "skill": "vocabulary",
+      "question": "I need to ___ an appointment with the dentist.",
+      "options": [
+        "do",
+        "make",
+        "take",
+        "get on"
+      ],
+      "answer": 1,
+      "explanation": "You \"make an appointment\" — a fixed collocation, like \"make a decision\" and \"make a phone call\". \"Do\" is not used with appointments."
+    },
+    {
+      "id": "p32",
+      "level": "A2",
+      "skill": "vocabulary",
+      "question": "The bus was ___, so I had to stand.",
+      "options": [
+        "crowded",
+        "wide",
+        "tall",
+        "loud"
+      ],
+      "answer": 0,
+      "explanation": "\"Crowded\" means full of people, which is why there was nowhere to sit. The other options describe size or noise, neither of which explains standing."
+    },
+    {
+      "id": "p33",
+      "level": "A2",
+      "skill": "vocabulary",
+      "question": "Could you ___ the light? It's getting dark.",
+      "options": [
+        "turn on",
+        "turn up",
+        "turn into",
+        "turn over"
+      ],
+      "answer": 0,
+      "explanation": "\"Turn on\" is the phrasal verb for switching on a light or a machine. \"Turn up\" means to increase something that is already on, such as volume or heat."
+    },
+    {
+      "id": "p34",
+      "level": "A2",
+      "skill": "reading",
+      "question": "Email: 'The meeting has moved from Tuesday to Thursday. The room is unchanged.'\n\nWhat changed?",
+      "options": [
+        "The room",
+        "The day",
+        "The time of day",
+        "Nothing"
+      ],
+      "answer": 1,
+      "explanation": "Tuesday to Thursday is a change of day, and the email states the room is unchanged. The tempting wrong answer is the one the text explicitly rules out."
+    },
+    {
+      "id": "p35",
+      "level": "A2",
+      "skill": "reading",
+      "question": "Label: 'Store in a cool, dry place. Once opened, use within three days.'\n\nAfter opening, the product lasts ___.",
+      "options": [
+        "three days",
+        "three weeks",
+        "as long as it stays cool",
+        "indefinitely"
+      ],
+      "answer": 0,
+      "explanation": "\"Once opened, use within three days\" sets the limit after opening. The storage instruction is a separate condition and does not extend the three days."
+    },
+    {
+      "id": "p36",
+      "level": "A2",
+      "skill": "reading",
+      "question": "Note: 'I've left your parcel with the neighbour at number 12, as nobody was in.'\n\nWhy was the parcel left next door?",
+      "options": [
+        "It was too big",
+        "Nobody answered the door",
+        "The address was wrong",
+        "The neighbour asked for it"
+      ],
+      "answer": 1,
+      "explanation": "\"As nobody was in\" gives the reason: no one was home to take the delivery. The size of the parcel and the neighbour's wishes are never mentioned."
+    },
+    {
+      "id": "p37",
+      "level": "B1",
+      "skill": "grammar",
+      "question": "If it ___ tomorrow, we'll cancel the picnic.",
+      "options": [
+        "will rain",
+        "rains",
+        "rained",
+        "would rain"
+      ],
+      "answer": 1,
+      "explanation": "In a first conditional the \"if\" clause takes the present simple even though it refers to the future. \"Will\" belongs in the main clause only."
+    },
+    {
+      "id": "p38",
+      "level": "B1",
+      "skill": "grammar",
+      "question": "I'd rather you ___ that door open.",
+      "options": [
+        "don't leave",
+        "didn't leave",
+        "won't leave",
+        "not leaving"
+      ],
+      "answer": 1,
+      "explanation": "\"I'd rather you ...\" is followed by the past simple when talking about the present or future. It is an unreal-past form, like \"I wish you didn't\"."
+    },
+    {
+      "id": "p39",
+      "level": "B1",
+      "skill": "grammar",
+      "question": "The report ___ by Friday, so there's no rush now.",
+      "options": [
+        "has finished",
+        "was finished",
+        "is finishing",
+        "finished"
+      ],
+      "answer": 1,
+      "explanation": "The report did not finish itself — someone finished it — so a passive is needed, and \"was finished\" is the past passive. This is a very common gap at B1."
+    },
+    {
+      "id": "p40",
+      "level": "B1",
+      "skill": "vocabulary",
+      "question": "The two witnesses gave ___ accounts of the accident.",
+      "options": [
+        "conflicting",
+        "arguing",
+        "opposite of",
+        "disagreed"
+      ],
+      "answer": 0,
+      "explanation": "\"Conflicting accounts\" is the natural collocation for two versions that do not agree. \"Arguing\" describes people rather than accounts, and the other options are the wrong part of speech."
+    },
+    {
+      "id": "p41",
+      "level": "B1",
+      "skill": "vocabulary",
+      "question": "Prices have risen ___ over the past year.",
+      "options": [
+        "sharp",
+        "sharply",
+        "sharpen",
+        "sharpness"
+      ],
+      "answer": 1,
+      "explanation": "The word describes how prices have risen, so it modifies a verb and must be an adverb: \"sharply\". \"Sharp\" is the adjective and would need a noun to attach to."
+    },
+    {
+      "id": "p42",
+      "level": "B1",
+      "skill": "vocabulary",
+      "question": "We had to ___ the trip because of the storm.",
+      "options": [
+        "put off",
+        "put on",
+        "put up",
+        "put across"
+      ],
+      "answer": 0,
+      "explanation": "\"Put off\" means postpone. \"Put up with\" means tolerate and \"put on\" means wear or start playing, so only the first fits a cancelled trip."
+    },
+    {
+      "id": "p43",
+      "level": "B1",
+      "skill": "reading",
+      "question": "'The café is popular with students, mainly because it stays open late rather than because the coffee is particularly good.'\n\nWhy do students go there?",
+      "options": [
+        "The coffee is excellent",
+        "The opening hours suit them",
+        "It is cheap",
+        "It is close to campus"
+      ],
+      "answer": 1,
+      "explanation": "The sentence weighs one reason against another: \"mainly because it stays open late rather than because the coffee is particularly good\". \"Rather than\" tells you which half to keep."
+    },
+    {
+      "id": "p44",
+      "level": "B1",
+      "skill": "reading",
+      "question": "'Although the museum is free, visitors must book a time slot in advance; turning up on the day rarely works in summer.'\n\nWhat does the writer advise?",
+      "options": [
+        "Pay in advance",
+        "Book ahead, especially in summer",
+        "Visit in winter only",
+        "Arrive early on the day"
+      ],
+      "answer": 1,
+      "explanation": "The advice sits in \"must book a time slot in advance\", reinforced by the warning about summer. Free entry does not remove the booking requirement — that is the trap."
+    },
+    {
+      "id": "p45",
+      "level": "B1",
+      "skill": "reading",
+      "question": "'The new timetable suits commuters, but passengers travelling in the evening have lost two services.'\n\nWho is worse off?",
+      "options": [
+        "Commuters",
+        "Evening passengers",
+        "Everyone",
+        "Nobody"
+      ],
+      "answer": 1,
+      "explanation": "The \"but\" splits winners from losers: commuters gain, evening passengers lose two services. Only one group is described as worse off."
+    },
+    {
+      "id": "p46",
+      "level": "B2",
+      "skill": "grammar",
+      "question": "Not until the results were published ___ how serious the problem was.",
+      "options": [
+        "we realised",
+        "did we realise",
+        "we did realise",
+        "had we realise"
+      ],
+      "answer": 1,
+      "explanation": "\"Not until\" in front position triggers inversion in the main clause: \"did we realise\". Notice the inversion lands on the second half of the sentence, not the first."
+    },
+    {
+      "id": "p47",
+      "level": "B2",
+      "skill": "grammar",
+      "question": "The candidate, ___ experience is limited, interviewed extremely well.",
+      "options": [
+        "who",
+        "whose",
+        "which",
+        "that"
+      ],
+      "answer": 1,
+      "explanation": "\"Whose\" shows possession — the experience belongs to the candidate. \"Who\" cannot be followed directly by a noun, and \"which\" is not used for people."
+    },
+    {
+      "id": "p48",
+      "level": "B2",
+      "skill": "grammar",
+      "question": "He denied ___ anything about the missing files.",
+      "options": [
+        "to know",
+        "knowing",
+        "know",
+        "have known"
+      ],
+      "answer": 1,
+      "explanation": "\"Deny\" is followed by the -ing form, never the infinitive. The same pattern applies to \"admit\", \"avoid\", \"suggest\" and \"risk\"."
+    },
+    {
+      "id": "p49",
+      "level": "B2",
+      "skill": "vocabulary",
+      "question": "The evidence is ___, so no firm conclusion can be drawn.",
+      "options": [
+        "inconclusive",
+        "unfinished",
+        "undecided",
+        "incomplete of"
+      ],
+      "answer": 0,
+      "explanation": "\"Inconclusive\" means the evidence does not settle the question, which is exactly why no firm conclusion follows. \"Incomplete\" would say parts are missing — a different claim."
+    },
+    {
+      "id": "p50",
+      "level": "B2",
+      "skill": "vocabulary",
+      "question": "Her argument ___ on one questionable assumption.",
+      "options": [
+        "hinges",
+        "hangs",
+        "leans",
+        "sits"
+      ],
+      "answer": 0,
+      "explanation": "An argument \"hinges on\" something: it turns entirely on that point, like a door on its hinge. The other verbs are not used with \"argument\" in this sense."
+    },
+    {
+      "id": "p51",
+      "level": "B2",
+      "skill": "vocabulary",
+      "question": "The scheme was abandoned after it proved ___ expensive to maintain.",
+      "options": [
+        "prohibitively",
+        "forbiddingly",
+        "bannedly",
+        "refusingly"
+      ],
+      "answer": 0,
+      "explanation": "\"Prohibitively expensive\" is a set phrase meaning so expensive that it prevents the thing being done. Two of the alternatives are not real words."
+    },
+    {
+      "id": "p52",
+      "level": "B2",
+      "skill": "reading",
+      "question": "'Critics claim the policy failed. Its defenders reply that it was never funded at the level its designers assumed.'\n\nThe defenders' response suggests the policy ___.",
+      "options": [
+        "was badly designed",
+        "was not tested fairly",
+        "succeeded overall",
+        "was too expensive"
+      ],
+      "answer": 1,
+      "explanation": "If the policy was never funded at the assumed level, it was never given a fair trial. The defenders are attacking the test, not claiming the policy succeeded."
+    },
+    {
+      "id": "p53",
+      "level": "B2",
+      "skill": "reading",
+      "question": "'Rainfall in the region has become less predictable, though not, on average, less plentiful.'\n\nWhat has changed?",
+      "options": [
+        "The total amount of rain",
+        "The timing of the rain",
+        "The temperature",
+        "Nothing measurable"
+      ],
+      "answer": 1,
+      "explanation": "\"Less predictable, though not, on average, less plentiful\" separates timing from amount: the total is unchanged, the pattern has shifted."
+    },
+    {
+      "id": "p54",
+      "level": "B2",
+      "skill": "reading",
+      "question": "'The author concedes the method is slow, but insists that speed was never the point.'\n\nThe author's attitude to the criticism is ___.",
+      "options": [
+        "defensive but accepting of the fact",
+        "dismissive of the evidence",
+        "entirely in agreement",
+        "undecided"
+      ],
+      "answer": 0,
+      "explanation": "\"Concedes\" means the writer accepts the criticism is factually right; \"insists that speed was never the point\" is the defence. So the attitude is defensive while accepting the fact."
+    },
+    {
+      "id": "p55",
+      "level": "C1",
+      "skill": "grammar",
+      "question": "Rarely ___ such a sharp fall in attendance.",
+      "options": [
+        "the museum has seen",
+        "has the museum seen",
+        "the museum saw",
+        "did the museum has seen"
+      ],
+      "answer": 1,
+      "explanation": "\"Rarely\" in front position forces inversion of subject and auxiliary: \"has the museum seen\". Without the fronted adverb, normal word order would return."
+    },
+    {
+      "id": "p56",
+      "level": "C1",
+      "skill": "grammar",
+      "question": "___ for the delay, the launch would have gone unnoticed.",
+      "options": [
+        "If it was not",
+        "Were it not",
+        "Had it not",
+        "If not it were"
+      ],
+      "answer": 1,
+      "explanation": "\"Were it not for X\" is the inverted form of \"if it were not for X\". \"Had it not\" would need \"been\" after it: \"had it not been for\"."
+    },
+    {
+      "id": "p57",
+      "level": "C1",
+      "skill": "grammar",
+      "question": "The committee is expected ___ its findings before the recess.",
+      "options": [
+        "publishing",
+        "to have published",
+        "to publishing",
+        "having published"
+      ],
+      "answer": 1,
+      "explanation": "\"Expect\" always takes a \"to\" infinitive, and \"to have published\" places the publication before the deadline. The -ing forms cannot follow \"expected\"."
+    },
+    {
+      "id": "p58",
+      "level": "C1",
+      "skill": "vocabulary",
+      "question": "The minister's answer was a ___ evasion dressed up as candour.",
+      "options": [
+        "blatant",
+        "blaring",
+        "blank",
+        "bleak"
+      ],
+      "answer": 0,
+      "explanation": "\"Blatant\" means undisguised and shameless, and collocates with \"lie\", \"evasion\" and \"disregard\". The other three derive from words about noise, emptiness and gloom."
+    },
+    {
+      "id": "p59",
+      "level": "C1",
+      "skill": "vocabulary",
+      "question": "Support for the proposal has ___ since the costs were disclosed.",
+      "options": [
+        "dwindled",
+        "shrunk down",
+        "lessened away",
+        "reduced off"
+      ],
+      "answer": 0,
+      "explanation": "\"Dwindle\" means to shrink steadily to very little, and it needs no particle after it. The other three combinations are not standard English."
+    },
+    {
+      "id": "p60",
+      "level": "C1",
+      "skill": "vocabulary",
+      "question": "Choose the word that fits a formal report: 'The results ___ our earlier findings.'",
+      "options": [
+        "back up",
+        "corroborate",
+        "go along with",
+        "chime in with"
+      ],
+      "answer": 1,
+      "explanation": "\"Corroborate\" is the formal verb for evidence that supports an earlier claim. \"Back up\" means the same thing but is too informal for a report — the question tests register, not meaning."
+    },
+    {
+      "id": "p61",
+      "level": "C1",
+      "skill": "reading",
+      "question": "'That the technique works is not in dispute; what remains contested is why.'\n\nThe disagreement concerns the ___.",
+      "options": [
+        "effectiveness of the technique",
+        "explanation for its effect",
+        "cost of the technique",
+        "originality of the technique"
+      ],
+      "answer": 1,
+      "explanation": "\"That the technique works is not in dispute\" concedes the effect; \"what remains contested is why\" places the disagreement in the explanation."
+    },
+    {
+      "id": "p62",
+      "level": "C1",
+      "skill": "reading",
+      "question": "'For all its rhetorical polish, the essay rests on a single unexamined premise.'\n\nThe writer's judgement is that the essay is ___.",
+      "options": [
+        "well written but weakly founded",
+        "poorly written and confused",
+        "persuasive and rigorous",
+        "unfinished"
+      ],
+      "answer": 0,
+      "explanation": "\"For all its rhetorical polish\" concedes that the writing is good; \"rests on a single unexamined premise\" attacks the foundation. The verdict is well written but weakly founded."
+    },
+    {
+      "id": "p63",
+      "level": "C1",
+      "skill": "reading",
+      "question": "'Later scholars have been less generous, treating the discovery as fortunate rather than ingenious.'\n\nLater scholars attribute the discovery mainly to ___.",
+      "options": [
+        "luck",
+        "brilliance",
+        "teamwork",
+        "persistence"
+      ],
+      "answer": 0,
+      "explanation": "\"Fortunate rather than ingenious\" gives the credit to luck rather than cleverness, and \"less generous\" signals that a compliment is being withdrawn."
+    },
+    {
+      "id": "p64",
+      "level": "C2",
+      "skill": "grammar",
+      "question": "So thoroughly ___ that no trace of the original remained.",
+      "options": [
+        "the building was restored",
+        "was the building restored",
+        "had the building restore",
+        "the building had restored"
+      ],
+      "answer": 1,
+      "explanation": "\"So + adverb\" in front position inverts the clause that follows: \"so thoroughly was the building restored\". A passive is also needed, since someone restored the building."
+    },
+    {
+      "id": "p65",
+      "level": "C2",
+      "skill": "grammar",
+      "question": "The proposal, ___ merits, was rejected on procedural grounds.",
+      "options": [
+        "whatever its",
+        "whatever it's",
+        "however its",
+        "whichever its"
+      ],
+      "answer": 0,
+      "explanation": "\"Whatever its merits\" means regardless of what its merits were. \"It's\" is short for \"it is\", which cannot sit in front of a noun here — the possessive \"its\" is required."
+    },
+    {
+      "id": "p66",
+      "level": "C2",
+      "skill": "grammar",
+      "question": "Little ___ that the decision would define his career.",
+      "options": [
+        "he suspected",
+        "did he suspect",
+        "he did suspect",
+        "suspected he"
+      ],
+      "answer": 1,
+      "explanation": "\"Little\" used as a negative adverb in front position triggers inversion: \"little did he suspect\". The same happens with \"never\" and \"scarcely\"."
+    },
+    {
+      "id": "p67",
+      "level": "C2",
+      "skill": "vocabulary",
+      "question": "The review damned the production with ___ praise.",
+      "options": [
+        "faint",
+        "weak",
+        "pale",
+        "slight"
+      ],
+      "answer": 0,
+      "explanation": "\"Damn with faint praise\" is a fixed idiom: praise so weak that it works as criticism. \"Weak\", \"pale\" and \"slight\" are close in meaning but the idiom admits only \"faint\"."
+    },
+    {
+      "id": "p68",
+      "level": "C2",
+      "skill": "vocabulary",
+      "question": "His account of events is, at best, ___ with the documented record.",
+      "options": [
+        "at odds",
+        "off odds",
+        "in odds",
+        "by odds"
+      ],
+      "answer": 0,
+      "explanation": "\"At odds with\" means in conflict with. The preposition is fixed, and changing it produces something no native speaker says."
+    },
+    {
+      "id": "p69",
+      "level": "C2",
+      "skill": "vocabulary",
+      "question": "Which word implies the speaker doubts the claim's sincerity?",
+      "options": [
+        "asserted",
+        "professed",
+        "stated",
+        "reported"
+      ],
+      "answer": 1,
+      "explanation": "\"Professed\" carries the implication that the stated position may not be the real one. \"Asserted\", \"stated\" and \"reported\" are all neutral about sincerity."
+    },
+    {
+      "id": "p70",
+      "level": "C2",
+      "skill": "reading",
+      "question": "'One might be forgiven for assuming the two traditions share a common root. They do not — the resemblance is a coincidence of function, not of descent.'\n\nThe traditions are alike because they ___.",
+      "options": [
+        "evolved from one source",
+        "serve similar purposes",
+        "borrowed from each other",
+        "were recorded together"
+      ],
+      "answer": 1,
+      "explanation": "\"A coincidence of function, not of descent\" says they resemble each other because they do similar jobs, not because they share an origin — which the passage explicitly denies."
+    },
+    {
+      "id": "p71",
+      "level": "C2",
+      "skill": "reading",
+      "question": "'The archive is exhaustive to the point of unhelpfulness: everything is preserved, and so nothing is emphasised.'\n\nThe writer's complaint is that the archive lacks ___.",
+      "options": [
+        "completeness",
+        "selectivity",
+        "accuracy",
+        "accessibility"
+      ],
+      "answer": 1,
+      "explanation": "\"Everything is preserved, and so nothing is emphasised\": the archive keeps everything and therefore chooses nothing. What it lacks is selectivity, not completeness, which it has in excess."
+    },
+    {
+      "id": "p72",
+      "level": "C2",
+      "skill": "reading",
+      "question": "'Her contemporaries mistook restraint for indifference — an error the letters, published decades later, quietly corrected.'\n\nThe letters revealed that she was ___.",
+      "options": [
+        "genuinely unconcerned",
+        "more affected than she appeared",
+        "hostile to her critics",
+        "unaware of the debate"
+      ],
+      "answer": 1,
+      "explanation": "\"Mistook restraint for indifference\" means she appeared not to care but in fact did; the letters \"quietly corrected\" that error, revealing she was more affected than she seemed."
+    },
+    {
+      "id": "p73",
+      "level": "A1",
+      "skill": "grammar",
+      "question": "Where ___ you from?",
+      "options": [
+        "is",
+        "are",
+        "am",
+        "be"
+      ],
+      "answer": 1,
+      "explanation": "The subject is \"you\", and \"you\" always takes \"are\", whether it means one person or several."
+    },
+    {
+      "id": "p74",
+      "level": "A1",
+      "skill": "grammar",
+      "question": "These ___ my keys.",
+      "options": [
+        "is",
+        "was",
+        "are",
+        "am"
+      ],
+      "answer": 2,
+      "explanation": "\"These\" is plural, so the verb must be \"are\". \"This is\" would be the singular version."
+    },
+    {
+      "id": "p75",
+      "level": "A1",
+      "skill": "vocabulary",
+      "question": "You write with a ___.",
+      "options": [
+        "plate",
+        "pen",
+        "chair",
+        "window"
+      ],
+      "answer": 1,
+      "explanation": "A pen is the tool for writing. The other three are things you eat from, sit on and look through."
+    },
+    {
+      "id": "p76",
+      "level": "A1",
+      "skill": "vocabulary",
+      "question": "The day after Monday is ___.",
+      "options": [
+        "Sunday",
+        "Tuesday",
+        "Friday",
+        "Saturday"
+      ],
+      "answer": 1,
+      "explanation": "The days run Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday. Tuesday follows Monday."
+    },
+    {
+      "id": "p77",
+      "level": "A1",
+      "skill": "reading",
+      "question": "Timetable: BUS 14 — EVERY 20 MINUTES, 7am to 9pm.\n\nHow often does the bus come?",
+      "options": [
+        "Once an hour",
+        "Every 20 minutes",
+        "Twice a day",
+        "Only in the morning"
+      ],
+      "answer": 1,
+      "explanation": "\"Every 20 minutes\" answers how often. The times 7am to 9pm say when it runs, which is a different question."
+    },
+    {
+      "id": "p78",
+      "level": "A1",
+      "skill": "reading",
+      "question": "Text: 'Sorry, I can't come tonight. I'm ill.'\n\nWhy can't the writer come?",
+      "options": [
+        "They are busy",
+        "They are ill",
+        "They are away",
+        "They forgot"
+      ],
+      "answer": 1,
+      "explanation": "\"I'm ill\" is the reason, given straight after the apology. Nothing else is mentioned."
+    },
+    {
+      "id": "p79",
+      "level": "A2",
+      "skill": "grammar",
+      "question": "She isn't at home. She ___ to the shops.",
+      "options": [
+        "is going",
+        "has gone",
+        "goes",
+        "went"
+      ],
+      "answer": 1,
+      "explanation": "\"Has gone\" means she left and is still away, which explains why she is not at home now. \"Went\" would not say whether she is back."
+    },
+    {
+      "id": "p80",
+      "level": "A2",
+      "skill": "grammar",
+      "question": "There isn't ___ bread left.",
+      "options": [
+        "many",
+        "much",
+        "a few",
+        "some"
+      ],
+      "answer": 1,
+      "explanation": "Bread is uncountable, so it takes \"much\", not \"many\". \"Many\" only goes with things you can count."
+    },
+    {
+      "id": "p81",
+      "level": "A2",
+      "skill": "vocabulary",
+      "question": "I usually ___ the bus to work.",
+      "options": [
+        "take",
+        "make",
+        "do",
+        "drive"
+      ],
+      "answer": 0,
+      "explanation": "English says \"take the bus\", and also take a train, a taxi or a flight. \"Drive\" would mean you were the driver."
+    },
+    {
+      "id": "p82",
+      "level": "A2",
+      "skill": "vocabulary",
+      "question": "The film was ___ — I nearly fell asleep.",
+      "options": [
+        "boring",
+        "bored",
+        "boredom",
+        "bore"
+      ],
+      "answer": 0,
+      "explanation": "The film causes the feeling, so it is \"boring\". A person who feels it is \"bored\" — the -ing form describes the thing, the -ed form the person."
+    },
+    {
+      "id": "p83",
+      "level": "A2",
+      "skill": "reading",
+      "question": "Sign: 'LIFT OUT OF ORDER. PLEASE USE THE STAIRS.'\n\nWhat should you do?",
+      "options": [
+        "Wait for the lift",
+        "Take the stairs",
+        "Come back later",
+        "Call for help"
+      ],
+      "answer": 1,
+      "explanation": "\"Out of order\" means broken, and the sign then tells you what to do instead: use the stairs."
+    },
+    {
+      "id": "p84",
+      "level": "A2",
+      "skill": "reading",
+      "question": "Email: 'I've attached the photos. Let me know if they don't open.'\n\nWhat does the writer want?",
+      "options": [
+        "The photos back",
+        "To be told if there is a problem",
+        "A reply by Friday",
+        "Help taking photos"
+      ],
+      "answer": 1,
+      "explanation": "\"Let me know if they don't open\" is a request to be told only when something goes wrong."
+    },
+    {
+      "id": "p85",
+      "level": "B1",
+      "skill": "grammar",
+      "question": "By the time we arrived, the film ___.",
+      "options": [
+        "started",
+        "has started",
+        "had started",
+        "starts"
+      ],
+      "answer": 2,
+      "explanation": "Two past events, and the film started first, so the earlier one takes the past perfect: \"had started\"."
+    },
+    {
+      "id": "p86",
+      "level": "B1",
+      "skill": "grammar",
+      "question": "He suggested ___ the meeting until Monday.",
+      "options": [
+        "to postpone",
+        "postponing",
+        "postpone",
+        "we postponing"
+      ],
+      "answer": 1,
+      "explanation": "\"Suggest\" is followed by the -ing form, not the infinitive. The same is true of \"avoid\", \"consider\" and \"risk\"."
+    },
+    {
+      "id": "p87",
+      "level": "B1",
+      "skill": "vocabulary",
+      "question": "The instructions were ___, so nobody knew what to do.",
+      "options": [
+        "confusing",
+        "confused",
+        "confusion",
+        "confuse"
+      ],
+      "answer": 0,
+      "explanation": "The instructions caused the confusion, so the -ing adjective is right. \"Confused\" would describe the people reading them."
+    },
+    {
+      "id": "p88",
+      "level": "B1",
+      "skill": "vocabulary",
+      "question": "She's very ___ on getting the job — she's applied three times.",
+      "options": [
+        "keen",
+        "eager of",
+        "wanting",
+        "hopeful of"
+      ],
+      "answer": 0,
+      "explanation": "\"Keen on\" is the fixed pairing. The preposition is part of the phrase, so the others do not work even where the meaning is close."
+    },
+    {
+      "id": "p89",
+      "level": "B1",
+      "skill": "reading",
+      "question": "'The course is open to anyone over sixteen, though places are limited and priority goes to local residents.'\n\nWho is most likely to get a place?",
+      "options": [
+        "Anyone over sixteen",
+        "A local resident",
+        "The first to apply",
+        "Students only"
+      ],
+      "answer": 1,
+      "explanation": "Being over sixteen only makes you eligible. \"Priority goes to local residents\" is what decides who actually gets a place."
+    },
+    {
+      "id": "p90",
+      "level": "B1",
+      "skill": "reading",
+      "question": "'The road will reopen in June, assuming the weather holds.'\n\nWhat does the writer suggest?",
+      "options": [
+        "The date is certain",
+        "The date depends on conditions",
+        "The road will stay shut",
+        "June is too early"
+      ],
+      "answer": 1,
+      "explanation": "\"Assuming the weather holds\" makes June conditional. Look for the small phrase that adds a condition — it usually carries the answer."
+    },
+    {
+      "id": "p91",
+      "level": "B2",
+      "skill": "grammar",
+      "question": "It's high time we ___ this problem seriously.",
+      "options": [
+        "take",
+        "took",
+        "will take",
+        "have taken"
+      ],
+      "answer": 1,
+      "explanation": "\"It's high time\" is followed by the past simple even though it refers to now. It is the same unreal past as \"I'd rather you didn't\"."
+    },
+    {
+      "id": "p92",
+      "level": "B2",
+      "skill": "grammar",
+      "question": "___ the weather improves, the match will be called off.",
+      "options": [
+        "Except",
+        "Unless",
+        "Without",
+        "Apart from"
+      ],
+      "answer": 1,
+      "explanation": "\"Unless\" means \"if not\", which is exactly the condition here: the match goes ahead only if the weather improves."
+    },
+    {
+      "id": "p93",
+      "level": "B2",
+      "skill": "vocabulary",
+      "question": "The two studies reached ___ conclusions, which is why the issue remains open.",
+      "options": [
+        "divergent",
+        "diverting",
+        "diverse of",
+        "divided from"
+      ],
+      "answer": 0,
+      "explanation": "\"Divergent conclusions\" means they point in different directions. \"Diverting\" means entertaining, a completely different word."
+    },
+    {
+      "id": "p94",
+      "level": "B2",
+      "skill": "vocabulary",
+      "question": "Her explanation was plausible but ultimately ___.",
+      "options": [
+        "unfounded",
+        "unfound",
+        "groundless of",
+        "baseless of"
+      ],
+      "answer": 0,
+      "explanation": "\"Unfounded\" means not supported by evidence, and it pairs naturally with \"plausible\" to say something sounded right but was not."
+    },
+    {
+      "id": "p95",
+      "level": "B2",
+      "skill": "reading",
+      "question": "'Attendance has recovered, but only to the level it reached before the closure — hardly the turnaround the press has described.'\n\nThe writer thinks the recovery is ___.",
+      "options": [
+        "remarkable",
+        "less impressive than reported",
+        "still incomplete",
+        "impossible to measure"
+      ],
+      "answer": 1,
+      "explanation": "\"Hardly the turnaround the press has described\" is the judgement: attendance is back where it was, so the press has overstated it."
+    },
+    {
+      "id": "p96",
+      "level": "B2",
+      "skill": "reading",
+      "question": "'Supporters point to the falling costs; opponents reply that the savings have been achieved by deferring maintenance.'\n\nThe opponents argue the savings are ___.",
+      "options": [
+        "exaggerated in size",
+        "borrowed from the future",
+        "shared unfairly",
+        "impossible to verify"
+      ],
+      "answer": 1,
+      "explanation": "Deferring maintenance postpones the cost rather than removing it, so the saving now becomes a bill later. The opponents accept the figures but dispute what they mean."
+    },
+    {
+      "id": "p97",
+      "level": "C1",
+      "skill": "grammar",
+      "question": "Only after the audit ___ the scale of the error apparent.",
+      "options": [
+        "it became",
+        "became",
+        "did it become",
+        "had become"
+      ],
+      "answer": 2,
+      "explanation": "\"Only after\" in front position triggers inversion in the main clause, and with no other auxiliary present English supplies \"did\": \"did it become\"."
+    },
+    {
+      "id": "p98",
+      "level": "C1",
+      "skill": "grammar",
+      "question": "The scheme is worth ___ even at this late stage.",
+      "options": [
+        "to consider",
+        "considering",
+        "consider",
+        "be considered"
+      ],
+      "answer": 1,
+      "explanation": "\"Worth\" is always followed by the -ing form. Note the -ing form here is passive in meaning: the scheme is worth being considered."
+    },
+    {
+      "id": "p99",
+      "level": "C1",
+      "skill": "vocabulary",
+      "question": "The two accounts are difficult to ___, since each rules the other out.",
+      "options": [
+        "reconcile",
+        "reunite",
+        "reconvene",
+        "reconstitute"
+      ],
+      "answer": 0,
+      "explanation": "\"Reconcile\" means to make two conflicting things fit together. The other three are about meeting again or rebuilding something."
+    },
+    {
+      "id": "p100",
+      "level": "C1",
+      "skill": "vocabulary",
+      "question": "His argument is undermined by a ___ of hard evidence.",
+      "options": [
+        "dearth",
+        "drought",
+        "vacancy",
+        "shortfall of"
+      ],
+      "answer": 0,
+      "explanation": "\"A dearth of\" is the formal phrase for a serious shortage. \"Drought\" is used literally for rain, or figuratively only in fixed expressions."
+    },
+    {
+      "id": "p101",
+      "level": "C1",
+      "skill": "reading",
+      "question": "'The findings are suggestive rather than conclusive, and the authors are careful to say so.'\n\nThe writer's view of the authors is that they are ___.",
+      "options": [
+        "appropriately cautious",
+        "unnecessarily modest",
+        "concealing weak data",
+        "overstating their case"
+      ],
+      "answer": 0,
+      "explanation": "\"Careful to say so\" is approval: the authors have described the strength of their own evidence accurately."
+    },
+    {
+      "id": "p102",
+      "level": "C1",
+      "skill": "reading",
+      "question": "'What began as a technical fix has hardened into an orthodoxy that few now think to question.'\n\nThe writer's concern is that the practice is ___.",
+      "options": [
+        "too expensive",
+        "no longer examined",
+        "technically outdated",
+        "unpopular with staff"
+      ],
+      "answer": 1,
+      "explanation": "\"Hardened into an orthodoxy that few now think to question\" says the practice is accepted without scrutiny — the loss of examination is the point."
+    },
+    {
+      "id": "p103",
+      "level": "C2",
+      "skill": "grammar",
+      "question": "Such ___ the response that the organisers extended the run by a month.",
+      "options": [
+        "was",
+        "it was",
+        "had been it",
+        "there was"
+      ],
+      "answer": 0,
+      "explanation": "\"Such\" in front position inverts what follows: \"such was the response\". The pattern is the same as \"so great was the response\"."
+    },
+    {
+      "id": "p104",
+      "level": "C2",
+      "skill": "grammar",
+      "question": "The findings, ___ preliminary, have already changed practice.",
+      "options": [
+        "albeit",
+        "although",
+        "despite",
+        "even"
+      ],
+      "answer": 0,
+      "explanation": "\"Albeit\" introduces a single concessive word or phrase without a clause. \"Although\" would need a subject and verb after it."
+    },
+    {
+      "id": "p105",
+      "level": "C2",
+      "skill": "vocabulary",
+      "question": "The report's conclusions were, if anything, ___ — they understated a serious problem.",
+      "options": [
+        "conservative",
+        "conservationist",
+        "conserving",
+        "reserved"
+      ],
+      "answer": 0,
+      "explanation": "A \"conservative\" estimate is a deliberately cautious one, which is why it can understate. \"Reserved\" describes a person's manner, not a figure."
+    },
+    {
+      "id": "p106",
+      "level": "C2",
+      "skill": "vocabulary",
+      "question": "Which word most strongly implies the criticism was unfair?",
+      "options": [
+        "censure",
+        "traduce",
+        "rebuke",
+        "admonish"
+      ],
+      "answer": 1,
+      "explanation": "\"Traduce\" means to speak falsely and damagingly about someone, so it carries the sense of injustice. The other three are simply degrees of telling someone off."
+    },
+    {
+      "id": "p107",
+      "level": "C2",
+      "skill": "reading",
+      "question": "'The biography is scrupulous about dates and evasive about motives, which tells you something about its subject's estate.'\n\nThe writer implies the biography was ___.",
+      "options": [
+        "written in a hurry",
+        "constrained by the family",
+        "based on invented sources",
+        "intended for specialists"
+      ],
+      "answer": 1,
+      "explanation": "Linking the evasion about motives to \"its subject's estate\" hints that those controlling the papers limited what could be said. The point is made by implication, not statement."
+    },
+    {
+      "id": "p108",
+      "level": "C2",
+      "skill": "reading",
+      "question": "'That the reforms were popular is beyond dispute; that they worked is another matter entirely.'\n\nThe writer separates ___.",
+      "options": [
+        "cost from benefit",
+        "popularity from effectiveness",
+        "policy from politics",
+        "intention from ambition"
+      ],
+      "answer": 1,
+      "explanation": "The two clauses set one claim against the other: people liked the reforms, which is not the same as the reforms achieving anything."
     }
   ]
 }

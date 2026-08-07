@@ -1,9 +1,24 @@
 @import "tailwindcss";
 
 /*
-  Cosy, low-stress palette. The neutral and accent ramps are redefined at the
-  theme level so every `slate-*` / `indigo-*` utility in the app renders as a
-  warm tone — one place to tune the whole feel of the product.
+  ---------------------------------------------------------------------------
+  Themes
+  ---------------------------------------------------------------------------
+  The whole palette is redefined at the theme level, so every `slate-*`,
+  `indigo-*` and friends utility in the app resolves through one set of
+  variables. Switching theme is then a matter of overriding those variables on
+  the <html> element — no `dark:` prefixes scattered through the markup, and no
+  component has to know which theme is active.
+
+  Read the ramps semantically rather than literally:
+    slate  = surfaces and text, lightest to darkest
+    indigo = the accent
+    emerald / rose = correct / incorrect
+    amber  = highlights and hints
+  In the dark theme the slate ramp is inverted, which is why `text-slate-900`
+  still means "the strongest text colour" everywhere.
+
+  Default (no data-theme attribute) is Warm.
 */
 @theme {
   /* Warm paper neutrals (replaces the cold default grey) */
@@ -21,28 +36,189 @@
   /* Clay accent — warmer and calmer than the default blue-violet */
   --color-indigo-50: #fdf4ee;
   --color-indigo-100: #f7e5d8;
+  --color-indigo-200: #eeceb4;
   --color-indigo-300: #dfa87f;
+  --color-indigo-400: #d08a5b;
   --color-indigo-500: #c1743f;
   --color-indigo-600: #a95d2f;
   --color-indigo-700: #8b4a26;
+  --color-indigo-800: #6f3b1e;
 
   /* Soft sage for "correct" and muted brick for "incorrect" */
   --color-emerald-50: #f1f6f1;
   --color-emerald-100: #e0ebe0;
+  --color-emerald-200: #cadfcc;
   --color-emerald-300: #a7c6ab;
   --color-emerald-500: #5f8a67;
   --color-emerald-600: #4e7555;
   --color-emerald-700: #3f6146;
+  --color-emerald-800: #33503a;
   --color-rose-50: #fcf1ef;
+  --color-rose-100: #f7ded9;
   --color-rose-300: #e0a79e;
+  --color-rose-500: #c56a5c;
   --color-rose-600: #b4574a;
   --color-rose-700: #98473c;
+  --color-rose-800: #7c3a31;
+
+  /* Honey highlights */
+  --color-amber-50: #fdf5e6;
+  --color-amber-200: #f2ddb4;
+  --color-amber-400: #e0ab52;
+  --color-amber-500: #cf9436;
+  --color-amber-700: #976820;
+  --color-amber-800: #7a531a;
+  --color-amber-900: #5d3f14;
+
+  --color-purple-100: #ece4f3;
+  --color-purple-700: #6b4b86;
+
+  /*
+    Two tokens that would otherwise be hard-coded as `white`:
+      surface    — the raised colour of cards, inputs and secondary buttons
+      accent-fg  — text sitting on top of an accent fill
+    Keeping them separate is what lets the dark theme darken the card surface
+    while still putting dark text on its bright amber buttons.
+  */
+  --color-surface: #ffffff;
+  --color-accent-fg: #ffffff;
 
   --color-background: #fbf7f2;
   --color-foreground: #2a2521;
 
+  /* Ambient wash painted behind the page — see body::before */
+  --wash-one: rgba(193, 116, 63, 0.13);
+  --wash-two: rgba(95, 138, 103, 0.11);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* --------------------------------------------------------------- Light --- */
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  --color-indigo-50: #eef2ff;
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-200: #c7d2fe;
+  --color-indigo-300: #a5b4fc;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  --color-indigo-700: #4338ca;
+  --color-indigo-800: #3730a3;
+
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065f46;
+
+  --color-rose-50: #fff1f2;
+  --color-rose-100: #ffe4e6;
+  --color-rose-300: #fda4af;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+  --color-rose-700: #be123c;
+  --color-rose-800: #9f1239;
+
+  --color-amber-50: #fffbeb;
+  --color-amber-200: #fde68a;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+
+  --color-purple-100: #f3e8ff;
+  --color-purple-700: #7e22ce;
+
+  --color-surface: #ffffff;
+  --color-accent-fg: #ffffff;
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+
+  --wash-one: rgba(99, 102, 241, 0.1);
+  --wash-two: rgba(14, 165, 233, 0.08);
+}
+
+/* ---------------------------------------------------------------- Dark --- */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* The ramp is inverted: 50 is the darkest surface, 900 the brightest text. */
+  --color-slate-50: #17130f;
+  --color-slate-100: #241e18;
+  --color-slate-200: #342c24;
+  --color-slate-300: #493e33;
+  --color-slate-400: #8b8078;
+  --color-slate-500: #a89d94;
+  --color-slate-600: #c6bcb4;
+  --color-slate-700: #dbd3cc;
+  --color-slate-800: #ece6e1;
+  --color-slate-900: #f8f4f0;
+
+  --color-indigo-50: #2b1d12;
+  --color-indigo-100: #3b2718;
+  --color-indigo-200: #4d3320;
+  --color-indigo-300: #e2a771;
+  --color-indigo-400: #dc9557;
+  --color-indigo-500: #d5883f;
+  --color-indigo-600: #c47430;
+  --color-indigo-700: #a95f26;
+  --color-indigo-800: #e0a56d;
+
+  --color-emerald-50: #142219;
+  --color-emerald-100: #1b3122;
+  --color-emerald-200: #2b4a34;
+  --color-emerald-300: #497a56;
+  --color-emerald-500: #63a873;
+  --color-emerald-600: #7cbf8b;
+  --color-emerald-700: #98d3a4;
+  --color-emerald-800: #b4e2bd;
+
+  --color-rose-50: #271512;
+  --color-rose-100: #3a1e19;
+  --color-rose-300: #7c453b;
+  --color-rose-500: #d08376;
+  --color-rose-600: #dd9184;
+  --color-rose-700: #e9a79b;
+  --color-rose-800: #f2c0b6;
+
+  --color-amber-50: #2a2013;
+  --color-amber-200: #4b381d;
+  --color-amber-400: #e2ae5e;
+  --color-amber-500: #eab868;
+  --color-amber-700: #f0cb8e;
+  --color-amber-800: #f5daad;
+  --color-amber-900: #fae7c9;
+
+  --color-purple-100: #2e2338;
+  --color-purple-700: #c4a5da;
+
+  /* The card surface sits a shade above the page, so cards lift off it. */
+  --color-surface: #1e1915;
+  /* Dark text on the bright amber accent: white would fall below 3:1 here. */
+  --color-accent-fg: #20160e;
+  --color-background: #100d0a;
+  --color-foreground: #f8f4f0;
+
+  --wash-one: rgba(213, 136, 63, 0.16);
+  --wash-two: rgba(99, 168, 115, 0.1);
 }
 
 body {
@@ -51,28 +227,152 @@ body {
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+/*
+  A pair of very soft colour washes behind everything. They are what stops a
+  page of cards on a flat background from feeling like a form, and they cost
+  nothing: no images, no elements in the tree, no repaint on scroll.
+*/
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 12% -10%, var(--wash-one), transparent 60%),
+    radial-gradient(50rem 36rem at 92% 4%, var(--wash-two), transparent 62%);
+}
+
 /* Generous radii, soft shadows and roomy padding do most of the "cosy" work. */
 .card {
-  @apply rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(42,37,33,0.04),0_8px_24px_-12px_rgba(42,37,33,0.12)];
+  @apply relative rounded-2xl border border-slate-200 bg-surface p-6;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px -12px rgba(0, 0, 0, 0.14);
+}
+
+/* A hairline of light along the top edge — the thing that makes a flat
+   rectangle read as a physical card rather than a div. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-slate-900) 8%, transparent),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Cards that are links get a gentle lift, so "clickable" is visible at a glance. */
+a.card {
+  @apply transition-all duration-200;
+}
+a.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-indigo-300);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 16px 32px -16px color-mix(in srgb, var(--color-indigo-600) 45%, transparent);
 }
 
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50;
+  @apply relative inline-flex select-none items-center justify-center gap-2 overflow-hidden rounded-xl px-5 py-2.5 text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
+.btn:focus-visible {
+  outline: 2px solid var(--color-indigo-500);
+  outline-offset: 2px;
+}
+
+/*
+  The primary button carries a little more character than a flat fill: a soft
+  vertical gradient, a coloured glow rather than a grey shadow, and a light
+  sweep that crosses it on hover. All of it is decoration on top of an entirely
+  ordinary button — the shape, the label and the hit area stay obvious.
+*/
 .btn-primary {
-  @apply btn bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 hover:shadow-md active:translate-y-px;
+  @apply btn text-accent-fg active:translate-y-px;
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--color-indigo-500) 92%, white),
+    var(--color-indigo-600) 55%,
+    var(--color-indigo-700)
+  );
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.08),
+    0 8px 18px -10px color-mix(in srgb, var(--color-indigo-600) 80%, transparent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.08),
+    0 14px 26px -12px color-mix(in srgb, var(--color-indigo-600) 90%, transparent);
+  transform: translateY(-1px);
+}
+
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%) skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transition: transform 0.65s ease;
+  pointer-events: none;
+}
+
+.btn-primary:hover:not(:disabled)::after {
+  transform: translateX(120%) skewX(-18deg);
 }
 
 .btn-secondary {
-  @apply btn border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 active:translate-y-px;
+  @apply btn border border-slate-200 bg-surface text-slate-700 active:translate-y-px;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  @apply border-slate-300 bg-slate-50;
+  transform: translateY(-1px);
 }
 
 .input {
-  @apply rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100;
+  @apply rounded-xl border border-slate-200 bg-surface px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100;
 }
 
 /* Long-form reading text: slightly larger and more leaded than UI text. */
 .prose-reading p {
   @apply mb-4 text-[16px] leading-8 text-slate-700;
+}
+
+/*
+  A section heading with a short accent rule under it. Used sparingly — it
+  gives a page of stacked cards somewhere for the eye to land.
+*/
+.heading-rule {
+  @apply relative pb-2;
+}
+.heading-rule::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 2.25rem;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-indigo-500), var(--color-amber-400));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary::after,
+  a.card,
+  .btn {
+    transition: none;
+  }
+  .btn-primary:hover:not(:disabled),
+  a.card:hover {
+    transform: none;
+  }
 }

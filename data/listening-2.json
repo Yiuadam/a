@@ -4,7 +4,9 @@
   "context": "A university lecture on how humans have measured time, from ancient devices to atomic clocks.",
   "difficulty": "hard",
   "timeMinutes": 12,
-  "speakers": ["Lecturer"],
+  "speakers": [
+    "Lecturer"
+  ],
   "script": [
     {
       "speaker": "Lecturer",
@@ -65,42 +67,48 @@
       "type": "completion",
       "sentence": "Egyptian priests told the time by following the movement of a tall post's ___.",
       "answer": "shadow",
-      "maxWords": 1
+      "maxWords": 1,
+      "explanation": "\"Priests tracked the position of its shadow as the sun moved across the sky.\" The one-word limit rules out \"the sun's position\"."
     },
     {
       "id": "q2",
       "type": "completion",
       "sentence": "To keep track of time during the hours of darkness, the Egyptians and Greeks invented the ___.",
       "answer": "water clock",
-      "maxWords": 2
+      "maxWords": 2,
+      "explanation": "\"The Egyptians, and later the Greeks, developed what we call the water clock.\" Two words are allowed, and \"water\" alone would not name the device."
     },
     {
       "id": "q3",
       "type": "completion",
       "sentence": "These draining vessels were unreliable because changes in ___ altered how quickly the liquid escaped.",
       "answer": "temperature",
-      "maxWords": 1
+      "maxWords": 1,
+      "explanation": "\"The rate at which liquid flows through a narrow opening changes with temperature.\" The lecturer then gives the cold-morning example to reinforce it."
     },
     {
       "id": "q4",
       "type": "completion",
       "sentence": "The earliest mechanical clocks were installed in ___ to signal fixed hours of prayer.",
       "answer": "monasteries",
-      "maxWords": 1
+      "maxWords": 1,
+      "explanation": "\"They appeared in monasteries, where the daily routine of communal prayer had to happen at fixed hours.\" Note the lecturer explicitly rules out merchants and governments first."
     },
     {
       "id": "q5",
       "type": "completion",
       "sentence": "A component known as the ___ releases a falling weight's energy in small, even bursts.",
       "answer": "escapement",
-      "maxWords": 1
+      "maxWords": 1,
+      "explanation": "\"A mechanism called the escapement.\" The phrase \"called the\" is a reliable signal that a term you need is coming."
     },
     {
       "id": "q6",
       "type": "completion",
       "sentence": "Huygens dramatically improved accuracy by regulating clockwork with a swinging ___.",
       "answer": "pendulum",
-      "maxWords": 1
+      "maxWords": 1,
+      "explanation": "Huygens \"applied the regular swing of a pendulum to clockwork\". The name is the distractor; the device is the answer."
     },
     {
       "id": "q7",
@@ -111,21 +119,24 @@
         "It was the first clock cheap enough for ordinary sailors to own",
         "It enabled ships to calculate their latitude for the first time"
       ],
-      "answer": 0
+      "answer": 0,
+      "explanation": "\"Establishing longitude required knowing the exact time back at their home port.\" Latitude is mentioned in the sentence immediately before, which is exactly why it is offered as an option."
     },
     {
       "id": "q8",
       "type": "completion",
       "sentence": "In the nineteenth century, the growth of the ___ forced towns to abandon their separate local times.",
       "answer": "railways",
-      "maxWords": 1
+      "maxWords": 1,
+      "explanation": "\"It was the expansion of the railways that made this intolerable.\" The plural is used in the recording, so write it that way."
     },
     {
       "id": "q9",
       "type": "completion",
       "sentence": "Today's most precise clocks count the extremely rapid oscillations of ___ atoms.",
       "answer": "caesium",
-      "maxWords": 1
+      "maxWords": 1,
+      "explanation": "\"Modern atomic clocks work by counting the natural oscillations of caesium atoms.\""
     },
     {
       "id": "q10",
@@ -136,7 +147,8 @@
         "A tiny timing error would produce a large error in position",
         "Atomic clocks are too heavy to be carried on most satellites"
       ],
-      "answer": 1
+      "answer": 1,
+      "explanation": "\"An error of a millionth of a second would put your position out by hundreds of metres.\" The answer is a cause-and-effect relationship, not a single word to catch."
     }
   ]
 }

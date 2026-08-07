@@ -68,13 +68,17 @@ export function buildPlan(profile: Profile): StudyPlan | null {
 
   const moduleTasks: Record<ModuleName, PlanTask[]> = {
     listening: [
-      { label: "Listening test 1 (everyday dialogue)", href: "/practice/listening?id=listening-1" },
-      { label: "Listening test 2 (academic lecture)", href: "/practice/listening?id=listening-2" },
+      { label: "Booking a Badminton Class — everyday dialogue", href: "/practice/listening?id=listening-1" },
+      { label: "Renting an Allotment Plot — everyday dialogue", href: "/practice/listening?id=listening-3" },
+      { label: "The History of Timekeeping — academic lecture", href: "/practice/listening?id=listening-2" },
+      { label: "What Museums Choose to Keep — academic lecture", href: "/practice/listening?id=listening-4" },
       { label: "Generate a fresh listening test with AI", href: "/practice#generate" },
     ],
     reading: [
-      { label: "Reading test 1 (medium)", href: "/practice/reading?id=reading-1" },
-      { label: "Reading test 2 (hard)", href: "/practice/reading?id=reading-2" },
+      { label: "The Rise of the Lighthouse (medium)", href: "/practice/reading?id=reading-1" },
+      { label: "How Seeds Travel (medium)", href: "/practice/reading?id=reading-3" },
+      { label: "The Outsourced Mind (hard)", href: "/practice/reading?id=reading-2" },
+      { label: "The Value of Waiting (hard)", href: "/practice/reading?id=reading-4" },
       { label: "Generate a fresh reading test with AI", href: "/practice#generate" },
     ],
     writing: [
@@ -111,6 +115,14 @@ export function buildPlan(profile: Profile): StudyPlan | null {
     rationale: rationaleFor(m),
     tasks: [
       ...moduleTasks[m],
+      // Weak underlying skills are fixed in the study sections, not by sitting
+      // another exam paper — so the plan sends the learner there first.
+      ...(weakSkills.includes("grammar") && (m === "reading" || m === "writing")
+        ? [{ label: "Grammar practice — drill your weakest topic", href: "/grammar" }]
+        : []),
+      ...(weakSkills.includes("vocabulary") && (m === "reading" || m === "speaking")
+        ? [{ label: "Vocabulary practice — collocations and word families", href: "/vocabulary" }]
+        : []),
       ...(weakSkills.length > 0 && (m === "reading" || m === "writing")
         ? [
             {

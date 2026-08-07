@@ -6,20 +6,40 @@ exam-format material and an AI examiner.
 
 ## What it does
 
-**Placement test** — 18 questions, five minutes. Items are weighted by CEFR difficulty
-(A1→C2), so getting the hard ones right moves your band more than getting the easy ones
-right. You get an estimated band plus a breakdown by skill and by difficulty.
+**Placement test** — five or ten minutes, your choice, and it adapts as you go. This is
+item response theory, the method real computer-adaptive exams use, not an up-a-bit /
+down-a-bit staircase. Every answer is scored against a model of how likely it was, so
+getting a C2 item right when the estimate says B1 moves the estimate a long way while
+getting an A1 item right barely moves it at all; guessing is modelled explicitly, since a
+four-option question gives a candidate who knows nothing one mark in four; and each next
+question is chosen to be the one that will *tell the test the most*, not merely one at the
+current level. The estimate stops early once it is precise enough. Questions come from a
+bank of 108 and never repeat within three sittings.
+
+`scripts/simulate-placement.mjs` runs thousands of simulated candidates of known ability
+through the engine and fails CI if placement drifts: the five-minute test currently sits
+within 0.4 of a band of the truth on average, the ten-minute test within 0.3.
+
+**Wrong-answer review** — every test ends with the questions you missed, what you put, the
+answer, and an explanation of why it is the answer. Above it sit two short lists — what went
+well, what to work on — generated from the shape of your mistakes rather than your score.
+
+**Tap-to-look-up** — every grammar and exam term in an explanation is underlined and opens a
+plain-English definition from a built-in glossary, offline and instantly. Select any *other*
+word anywhere in the app — a passage, a transcript, a question — and a "look up" button
+appears; the AI tutor explains it in simple English, in the context of the sentence you were
+reading, and the answer is cached for next time.
 
 **Study plan** — a four-week cycle ordered by weakness: modules you have never tested come
 first, then the ones with your lowest band. Weak skills flagged by the placement test add
 extra review tasks. Set a target band and the plan tells you how realistic the gap is.
 
-**Reading** — full academic passages (750–950 words) with True/False/Not Given, multiple
-choice and sentence completion. Auto-marked and converted to a band using the published
+**Reading** — four full academic passages (750–950 words) with True/False/Not Given,
+multiple choice and sentence completion. Auto-marked and converted to a band using the published
 Academic Reading conversion table.
 
 **Listening** — Section 1 (transactional dialogue) and Section 4 (academic lecture) style
-tests. The script is read aloud by the browser's speech synthesis, one turn at a time, with
+tests, four in all. The script is read aloud by the browser's speech synthesis, one turn at a time, with
 different voices per speaker and adjustable speed. The transcript stays hidden until you
 submit, as in the real exam.
 
@@ -33,8 +53,20 @@ answers are transcribed in the browser via the Web Speech API, and the transcrip
 on Fluency and Coherence, Lexical Resource, Grammatical Range and Accuracy, and
 Pronunciation — plus a band-8 model answer to your weakest response.
 
+**Grammar and vocabulary practice** — two study sections that are not shaped like the exam,
+because a learner who keeps failing the same tense needs to practise that tense rather than
+sit another whole paper and discover the same thing. Ten grammar topics and eight vocabulary
+topics, each opening with the rule in a few lines and then drilling it: you answer, find out
+immediately whether you were right, and read why. No clock, no band score. Words you look up
+anywhere in the app collect into a personal list on the vocabulary page — the most useful
+word list a learner can have, because they did not choose it.
+
 **Endless material** — the app can generate brand-new exam-format reading and listening
 tests on demand, at your chosen difficulty and topic.
+
+**Three themes** — Warm (cream paper and clay, the default), Light and Dark, switched from
+the header and remembered on the device. The whole palette lives in CSS variables redefined
+per theme, so no component carries theme-specific markup.
 
 All content is original and written to match authentic IELTS format, register and
 difficulty calibration. No real past-paper material is reproduced.
@@ -54,6 +86,11 @@ generation). The placement test, study plan, and the bundled reading and listeni
 work without one.
 
 ## Deploying
+
+**See [DEPLOY.md](DEPLOY.md) for the full setup.** Short version: connect the repo to Vercel
+once and every push to `main` deploys itself to the same permanent URL — the production
+domain never changes between deployments, so a bookmark or an App Store listing keeps
+working. Pull requests get their own preview URLs.
 
 Vercel is the fastest route — it is the first-party host for Next.js, so there is nothing to
 configure:
@@ -105,11 +142,13 @@ to Netlify or any Node host (`npm run build && npm start`).
 ```
 app/
   page.tsx                    dashboard
-  placement/                  weighted placement test
+  placement/                  adaptive placement test
+  grammar/                    grammar topics and drills
+  vocabulary/                 vocabulary topics, drills and saved words
   plan/                       generated study plan
   practice/                   test index + on-demand generation
-    reading/[id]/             reading test runner
-    listening/[id]/           listening test runner (speech synthesis)
+    reading/                  reading test runner (?id=…)
+    listening/                listening test runner (?id=…, speech synthesis)
     writing/                  writing task + AI grading
   speaking/                   AI speaking examiner
   resources/                  exam guides
@@ -117,10 +156,18 @@ app/
     grade/writing/            Claude grading, structured output
     grade/speaking/           Claude grading, structured output
     generate/                 new reading/listening test generation
+    define/                   plain-English word lookup
 components/                   band badge, question renderer, timer
 data/                         the content bank (JSON)
 lib/
   band.ts                     scoring and band conversion
+  placement.ts                adaptive engine: IRT ability estimate and item selection
+  glossary.ts                 built-in grammar and exam term definitions
+  drills.ts                   drill types and per-topic best scores
+  lookups.ts                  saved word lookups
+  advice.ts                   post-test advice from the shape of the mistakes
+  review.ts                   builds the wrong-answer review
+  theme.ts                    theme store and pre-paint initialiser
   plan.ts                     study-plan rules
   descriptors.ts              condensed official band descriptors
   anthropic.ts                Claude client with structured outputs

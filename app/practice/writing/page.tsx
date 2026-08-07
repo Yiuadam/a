@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import ExplainText from "@/components/ExplainText";
 import Timer from "@/components/Timer";
 import writingData from "@/data/writing-tasks.json";
 import { addResult } from "@/lib/store";
@@ -158,7 +159,7 @@ export default function WritingPage() {
       </div>
 
       {grade && (
-        <section className="space-y-4">
+        <section className="space-y-4" data-lookupable>
           <div className="card flex flex-col items-center gap-6 py-6 sm:flex-row sm:justify-center">
             <BandBadge band={grade.overallBand} caption="Estimated writing band" />
             <div className="grid flex-1 gap-2 sm:grid-cols-2">
@@ -170,7 +171,10 @@ export default function WritingPage() {
                       {c.band}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs leading-5 text-slate-600">{c.comment}</p>
+                  <ExplainText
+                    text={c.comment}
+                    className="mt-1 block text-xs leading-5 text-slate-600"
+                  />
                 </div>
               ))}
             </div>
@@ -181,7 +185,9 @@ export default function WritingPage() {
               <h3 className="mb-2 text-sm font-semibold text-emerald-700">What worked</h3>
               <ul className="list-disc space-y-1 pl-4 text-sm text-slate-700">
                 {grade.strengths.map((s, i) => (
-                  <li key={i}>{s}</li>
+                  <li key={i}>
+                    <ExplainText text={s} />
+                  </li>
                 ))}
               </ul>
             </div>
@@ -191,7 +197,9 @@ export default function WritingPage() {
               </h3>
               <ol className="list-decimal space-y-1 pl-4 text-sm text-slate-700">
                 {grade.improvements.map((s, i) => (
-                  <li key={i}>{s}</li>
+                  <li key={i}>
+                    <ExplainText text={s} />
+                  </li>
                 ))}
               </ol>
             </div>
@@ -201,9 +209,10 @@ export default function WritingPage() {
             <h3 className="mb-2 text-sm font-semibold text-slate-900">
               Your weakest paragraph, rewritten one band higher
             </h3>
-            <p className="whitespace-pre-line text-[15px] leading-7 text-slate-700">
-              {grade.rewrittenExcerpt}
-            </p>
+            <ExplainText
+              text={grade.rewrittenExcerpt}
+              className="block whitespace-pre-line text-[15px] leading-7 text-slate-700"
+            />
           </div>
 
           <div className="flex gap-2">

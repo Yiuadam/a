@@ -89,13 +89,72 @@ export function rawToBand(
   return 2;
 }
 
-/** Normalise a free-text completion answer for comparison. */
+const NUMBER_WORDS: Record<string, string> = {
+  zero: "0", one: "1", two: "2", three: "3", four: "4", five: "5", six: "6",
+  seven: "7", eight: "8", nine: "9", ten: "10", eleven: "11", twelve: "12",
+  thirteen: "13", fourteen: "14", fifteen: "15", sixteen: "16",
+  seventeen: "17", eighteen: "18", nineteen: "19", twenty: "20",
+  thirty: "30", forty: "40", fifty: "50", sixty: "60", seventy: "70",
+  eighty: "80", ninety: "90", hundred: "100",
+  first: "1", second: "2", third: "3", fourth: "4", fifth: "5", sixth: "6",
+  seventh: "7", eighth: "8", ninth: "9", tenth: "10", eleventh: "11",
+  twelfth: "12", thirteenth: "13", fourteenth: "14", fifteenth: "15",
+  sixteenth: "16", seventeenth: "17", eighteenth: "18", nineteenth: "19",
+  twentieth: "20", thirtieth: "30",
+};
+
+/**
+ * Normalise a free-text answer for comparison.
+ *
+ * The exam accepts a number written either way, so "sixty-two" and "62" must
+ * both be marked right. Compound forms ("twenty-five", "a hundred and
+ * twenty-five") are added together rather than concatenated.
+ */
 function normalise(s: string): string {
-  return s
+  const base = s
     .trim()
     .toLowerCase()
-    .replace(/[.,!?;:'"]/g, "")
-    .replace(/\s+/g, " ");
+    .replace(/[.,!?;:'"£$€%]/g, "")
+    .replace(/[-–—]/g, " ")
+    // "6.30pm" and "6.30 pm" are the same answer to a candidate.
+    .replace(/(\d)([a-z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const tokens = base.split(" ").filter((t) => t !== "a");
+  const out: string[] = [];
+  let running: number | null = null;
+
+  const flush = () => {
+    if (running !== null) out.push(String(running));
+    running = null;
+  };
+
+  for (const token of tokens) {
+    // "and" joins only within a number ("a hundred and twenty-five"); between
+    // two separate numbers ("one and five per cent") it must not merge them.
+    if (token === "and") {
+      if (running === null || running % 100 !== 0) flush();
+      continue;
+    }
+    const digits = NUMBER_WORDS[token];
+    if (digits === undefined) {
+      flush();
+      out.push(token);
+      continue;
+    }
+    const value = Number(digits);
+    if (running !== null && value === 100 && running < 100) running *= 100;
+    else if (running !== null && running >= 20 && running % 10 === 0 && value < 10) {
+      running += value;
+    } else if (running !== null && running % 100 === 0 && value < 100) running += value;
+    else {
+      flush();
+      running = value;
+    }
+  }
+  flush();
+  return out.join(" ");
 }
 
 export function isCorrect(
