@@ -34,6 +34,8 @@ const SIZES = [
 type Direction = {
   slug: string;
   name: string;
+  /* The two IELTS ideas the mark carries at once. */
+  fusion: string;
   idea: string;
   /* An honest read on whether it survives the small sizes. */
   verdict: string;
@@ -42,48 +44,43 @@ type Direction = {
 
 const DIRECTIONS: Direction[] = [
   {
-    slug: "scale",
-    name: "Scale",
+    slug: "nib",
+    name: "Nib",
+    fusion: "Speaking × Writing",
     idea:
-      "No letterform, no picture of anything. The icon is the band scale itself — nine stripes, band 1 at the foot in the darkest clay, band 9 at the head in cream — with one disc marking where you stand.",
+      "A speech bubble is a round head with a tail. A pen nib is a round vent hole above a slit running to a point. They are the same silhouette, so this draws it once — the head is the bubble, the counter is the vent, and the tail keeps going until it becomes the tip. The two straight edges meet the head exactly on its tangents, which is what stops the tail looking stuck on.",
     verdict:
-      "Holds at 32px, and it is the only one of the five that is unmistakably not another app. The risk is the opposite of legibility: a stranger reads it as a warm colour field before they read it as a scale.",
+      "The strongest of the four. It holds at 32px with the counter still open, and both readings survive down there. Worth knowing: the diagonal tip is what keeps it from reading as a map pin — pointed straight down it would be one.",
     survives: true,
   },
   {
-    slug: "ascend",
-    name: "Ascend",
+    slug: "folio",
+    name: "Folio",
+    fusion: "Reading × the band scale",
     idea:
-      "The band scale climbing. Five bars, not nine — nine at icon size is grey mush — skewed seven degrees so it reads as movement rather than as a chart.",
+      "One sheet of paper whose top edge does not run straight: it climbs to the right in five steps. Read it as a page and the steps are a torn edge; read it as the scale and the page is a chart. Same outline either way. The ruled lines are cut out of the sheet rather than drawn on it, and a second sheet turned the other way behind gives the overlap something to cast a shadow onto.",
     verdict:
-      "Holds at 32px: the silhouette is a diagonal, and a diagonal is legible when its parts are not. Closest of the five to something you have seen before.",
+      "Holds at 32px — the stepped silhouette and the two-sheet overlap both survive, and the ruled lines drop to texture without muddying it. The most immediately legible of the four, and the least surprising.",
     survives: true,
   },
   {
-    slug: "nine",
-    name: "Nine",
+    slug: "gesture",
+    name: "Gesture",
+    fusion: "All four skills, one unbroken stroke",
     idea:
-      "The top of the scale as the entire mark. One numeral, drawn as a ring and a tail of equal weight rather than typeset.",
+      "The line never lifts and changes behaviour four times on its way round: it ripples across the top for listening, runs dead straight down the right for reading, turns a hard point at the foot for the nib, then balloons out on the left for the bubble — and closes on itself, because it is one exam and not four apps. Uniform weight throughout, so the four characters come from the path and never from the pen.",
     verdict:
-      "The largest shape of the five, so it survives 32px easily. The risk is not legibility, it is meaning: a lone 9 can read as a badge count.",
-    survives: true,
+      "Honest verdict: the concept does not survive the shrink. Below roughly 180px the four behaviours read as one attractive closed glyph and nothing more — you cannot count them. It is here because that glyph is genuinely distinctive and has real tension, not because the idea lands.",
+    survives: false,
   },
   {
-    slug: "monogram",
-    name: "Monogram",
+    slug: "signal",
+    name: "Signal",
+    fusion: "Listening × band 9",
     idea:
-      "A letterform drawn rather than set: flat-sided stem, deliberately unequal bowls, fill lightening from clay at the foot to honey at the shoulder.",
+      "The only thing drawn positively is a field of waveform bars. The 9 is what is not there — cut out of the field so the ground shows through and the numeral is read entirely from the gap. The bars sit almost shoulder to shoulder on purpose: with generous gaps the eye cannot tell a gap from the cut-out and the numeral falls apart.",
     verdict:
-      "Legible at 32px — a B always is. But the counters close up and the gradient flattens, so what is left is very close to the mark it replaces.",
-    survives: true,
-  },
-  {
-    slug: "cadence",
-    name: "Cadence",
-    idea:
-      "Speaking and listening — the halves of the test that happen out loud. A bubble carrying three waveform strokes, stressed in the middle.",
-    verdict:
-      "The one I would drop. The strokes were redrawn at nearly twice their first weight to survive 32px at all, and what survives is a bubble with three ticks in it — legible, but it has stopped saying anything a plain speech bubble does not.",
+      "Fails at 32px, and I could not rescue it. The negative-space 9 is unmistakable at 120px and above; below that the bars stop being countable, the void loses its edges and it reads as a dark smudge in a striped block. Thickening the cut-out made it worse — the void ate the field it needs to be read against.",
     survives: false,
   },
 ];
@@ -138,12 +135,18 @@ export default function IconPreviewPage() {
     <div className="space-y-12">
       <header className="max-w-2xl space-y-3">
         <h1 className="heading-rule text-[26px] font-semibold text-slate-900">
-          Five icon directions
+          Four icon directions
         </h1>
         <p className="text-[15px] leading-7 text-slate-600">
-          Hand-drawn SVG, all of it from the Warm palette — cream paper, clay, honey. Each master
+          Each of these carries two IELTS ideas in one form, so the eye resolves it twice — rather
+          than being a picture of one thing. Hand-drawn SVG, Warm palette throughout. Every master
           is a full-bleed opaque 1024 square with no rounded corners baked in, which is what Apple
-          requires; the rounding you see below is applied by this page, the way iOS applies it.
+          requires; the rounding below is applied by this page, the way iOS applies it.
+        </p>
+        <p className="text-sm leading-6 text-slate-500">
+          Four, not six. Two of them carry an honest failure noted in their verdict, and they are
+          shown rather than hidden — a direction that fails the size test and says so is worth more
+          than one that quietly claims to pass.
         </p>
       </header>
 
@@ -191,6 +194,9 @@ export default function IconPreviewPage() {
                   }`}
                 >
                   {d.survives ? "Holds at 32px" : "Fails at 32px"}
+                </span>
+                <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  {d.fusion}
                 </span>
               </div>
               <p className="text-[15px] leading-7 text-slate-700">{d.idea}</p>

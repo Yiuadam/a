@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Signal</title>
+  <!--
+    Listening × band 9, and nothing is drawn twice.
+
+    The only thing drawn positively is a field of waveform bars. The 9 is what
+    is *not* there — it is cut out of the field, so the ground shows through and
+    the numeral is read entirely from the gap.
+
+    This is also why it survives 32px, where the bars themselves stop being
+    countable and become texture: the void is a single big shape, and a single
+    big shape is exactly what small sizes want.
+  -->
+  <defs>
+    <radialGradient id="sig-ground" cx="0.7" cy="0.28" r="0.95">
+      <stop offset="0" stop-color="#2e241b" />
+      <stop offset="1" stop-color="#14100d" />
+    </radialGradient>
+    <linearGradient id="sig-bars" x1="0" y1="0.9" x2="1" y2="0.1">
+      <stop offset="0" stop-color="#a95d2f" />
+      <stop offset="0.45" stop-color="#d9955c" />
+      <stop offset="1" stop-color="#f2ddb4" />
+    </linearGradient>
+
+    <mask id="sig-nine">
+      <rect width="1024" height="1024" fill="#fff" />
+      <g
+        transform="translate(-10 -6)"
+        fill="none"
+        stroke="#000"
+        stroke-width="188"
+        stroke-linecap="round"
+      >
+        <circle cx="464" cy="386" r="146" />
+        <path d="M 646 424 C 650 664 606 790 436 838" />
+      </g>
+    </mask>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#sig-ground)" />
+
+  <!--
+    The bars sit almost shoulder to shoulder. With generous gaps the eye cannot
+    tell a gap from the cut-out and the numeral falls apart — the field has to
+    read as one surface before anything can be subtracted from it.
+  -->
+  <g mask="url(#sig-nine)" fill="url(#sig-bars)">
+    <rect x="42" y="417" width="62" height="190" rx="31" />
+    <rect x="116" y="332" width="62" height="360" rx="31" />
+    <rect x="190" y="242" width="62" height="540" rx="31" />
+    <rect x="264" y="362" width="62" height="300" rx="31" />
+    <rect x="338" y="182" width="62" height="660" rx="31" />
+    <rect x="412" y="112" width="62" height="800" rx="31" />
+    <rect x="486" y="277" width="62" height="470" rx="31" />
+    <rect x="560" y="152" width="62" height="720" rx="31" />
+    <rect x="634" y="62" width="62" height="900" rx="31" />
+    <rect x="708" y="302" width="62" height="420" rx="31" />
+    <rect x="782" y="222" width="62" height="580" rx="31" />
+    <rect x="856" y="352" width="62" height="320" rx="31" />
+    <rect x="930" y="417" width="62" height="190" rx="31" />
+  </g>
+</svg>

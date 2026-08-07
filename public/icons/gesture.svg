@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture</title>
+  <!--
+    All four skills as one unbroken stroke.
+
+    The line never lifts, and it changes behaviour four times on its way round:
+      ripples across the top          — listening
+      runs dead straight down the right — reading
+      turns a hard point at the foot  — writing, the nib
+      balloons out on the left        — speaking, the bubble
+    Then it closes on itself, because they are one exam and not four apps.
+
+    Uniform stroke weight throughout, so the four characters come from the path
+    and never from the pen. That single constraint is what holds it together.
+  -->
+  <defs>
+    <radialGradient id="ges-ground" cx="0.28" cy="0.3" r="0.95">
+      <stop offset="0" stop-color="#302519" />
+      <stop offset="1" stop-color="#14100d" />
+    </radialGradient>
+    <linearGradient id="ges-line" x1="0.05" y1="0.15" x2="0.9" y2="0.95">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="0.42" stop-color="#f2ddb4" />
+      <stop offset="0.75" stop-color="#d9955c" />
+      <stop offset="1" stop-color="#a95d2f" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#ges-ground)" />
+
+  <g
+    fill="none"
+    stroke-width="96"
+    stroke-linejoin="miter"
+    stroke-miterlimit="12"
+    transform="rotate(-4 512 512)"
+  >
+    <path
+      d="M 226 456
+         C 244 344 322 296 400 336
+         C 470 372 520 340 612 302
+         L 874 560
+         L 688 904
+         L 410 772
+         A 262 262 0 0 1 226 456 Z"
+      transform="translate(26 30)"
+      stroke="#0d0a08"
+      opacity="0.5"
+    />
+    <path
+      d="M 226 456
+         C 244 344 322 296 400 336
+         C 470 372 520 340 612 302
+         L 874 560
+         L 688 904
+         L 410 772
+         A 262 262 0 0 1 226 456 Z"
+      stroke="url(#ges-line)"
+    />
+  </g>
+</svg>
