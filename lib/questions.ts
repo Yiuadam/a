@@ -19,20 +19,42 @@ export function isGrouped(set: QuestionSet): set is QuestionGroup[] {
 }
 
 /**
- * Every set as blocks.
+ * Every set as blocks, in order.
  *
  * A flat list becomes a single block with no rubric of its own, which is what
  * lets the renderer have one code path instead of two.
+ *
+ * Each entry is classified on its own rather than the whole array being judged
+ * by its first element. The type forbids mixing the two, and the validator
+ * rejects it in CI, but hand-authored JSON is how every question type from here
+ * on arrives — and a stray bare question among the blocks should render as
+ * itself rather than crash the page while its author waits for CI to explain
+ * why. Consecutive loose questions collect into one block, so order is kept.
  */
 export function toGroups(set: QuestionSet): QuestionGroup[] {
-  if (isGrouped(set)) return set;
-  return [{ instruction: "", questions: set as TestQuestion[] }];
+  const out: QuestionGroup[] = [];
+  let loose: TestQuestion[] | null = null;
+
+  for (const item of set as Array<TestQuestion | QuestionGroup>) {
+    if (isGroup(item)) {
+      loose = null;
+      out.push(item);
+    } else {
+      if (!loose) {
+        loose = [];
+        out.push({ instruction: "", questions: loose });
+      }
+      loose.push(item);
+    }
+  }
+
+  // An empty paper still needs a block, so the renderer has something to map.
+  return out.length > 0 ? out : [{ instruction: "", questions: [] }];
 }
 
 /** Every question in order, blocks flattened away. */
 export function flatQuestions(set: QuestionSet): TestQuestion[] {
-  if (!isGrouped(set)) return set as TestQuestion[];
-  return set.flatMap((group) => group.questions);
+  return toGroups(set).flatMap((group) => group.questions);
 }
 
 /** How many questions a paper asks, however it is arranged. */
@@ -66,11 +88,13 @@ export function numberedGroups(set: QuestionSet): NumberedGroup[] {
   let next = 1;
   return toGroups(set).map((group) => {
     const questions = group.questions.map((question) => ({ question, number: next++ }));
+    // An empty block owns no numbers at all. Reporting `next` would claim the
+    // number the following block is about to use, and print it as a heading.
     return {
       group,
       questions,
-      from: questions[0]?.number ?? next,
-      to: questions[questions.length - 1]?.number ?? next,
+      from: questions[0]?.number ?? 0,
+      to: questions[questions.length - 1]?.number ?? 0,
     };
   });
 }
