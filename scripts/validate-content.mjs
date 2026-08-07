@@ -103,8 +103,61 @@ function checkExplanation(file, q) {
   }
 }
 
-function checkQuestions(file, questions, source, expectedCount) {
-  if (!Array.isArray(questions)) return fail(file, "questions is not an array");
+/*
+  A paper's questions are either a flat list or blocks with a shared rubric.
+  Both are valid; everything below works on the flattened list, so a grouped
+  paper is held to exactly the same standard as a flat one.
+*/
+function checkGroups(file, set) {
+  const grouped = set.length > 0 && set[0] && Array.isArray(set[0].questions);
+  if (!grouped) return set;
+
+  const flat = [];
+  for (const [i, group] of set.entries()) {
+    const where = `group ${i + 1}`;
+    if (!Array.isArray(group.questions) || group.questions.length === 0) {
+      fail(file, `${where} has no questions`);
+      continue;
+    }
+    // The rubric is the whole reason a block exists; without it the block is
+    // just a flat list wearing a wrapper.
+    if (!group.instruction || group.instruction.trim().length < 10) {
+      fail(file, `${where} needs an instruction telling the candidate what to do`);
+    }
+    if (group.sharedOptions !== undefined) {
+      if (!Array.isArray(group.sharedOptions) || group.sharedOptions.length === 0) {
+        fail(file, `${where} has a malformed sharedOptions bank`);
+      } else {
+        const keys = new Set();
+        for (const opt of group.sharedOptions) {
+          if (!opt?.key || !opt?.text) {
+            fail(file, `${where} has a shared option missing its key or text`);
+          } else if (keys.has(opt.key)) {
+            // Two options under one key make the answer ambiguous.
+            fail(file, `${where} reuses the shared-option key "${opt.key}"`);
+          } else {
+            keys.add(opt.key);
+          }
+        }
+        // Real papers carry more options than questions, so that eliminating
+        // the others cannot hand a candidate the last answer for free.
+        if (group.sharedOptions.length <= group.questions.length) {
+          fail(
+            file,
+            `${where} has ${group.sharedOptions.length} options for ${group.questions.length} questions; a bank needs distractors`,
+          );
+        }
+      }
+    }
+    flat.push(...group.questions);
+  }
+  return flat;
+}
+
+function checkQuestions(file, set, source, expectedCount) {
+  if (!Array.isArray(set)) return fail(file, "questions is not an array");
+
+  const questions = checkGroups(file, set);
   if (questions.length !== expectedCount) {
     fail(file, `expected ${expectedCount} questions, found ${questions.length}`);
   }

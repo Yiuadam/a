@@ -7,123 +7,138 @@
   "passage": "A plant spends its life rooted in one place, yet the species to which it belongs may spread across a continent. This apparent contradiction is resolved in a single stage of the life cycle. For a few days or weeks, in the form of a seed, a plant is mobile. Everything a species will ever achieve in the way of territory depends on what happens during that brief window, and the variety of methods plants have evolved to exploit it is remarkable.\n\nThe simplest approach is to let the wind do the work. Seeds carried by air are typically tiny, since weight is the enemy of distance. An orchid seed may weigh less than a millionth of a gram and contains almost no food reserve, which is why orchids depend on soil fungi to nourish the seedling once it lands. Larger wind-borne seeds compensate with structure rather than lightness. The winged seed of a sycamore spins as it falls, and the rotation slows its descent enough for a breeze to carry it clear of the parent tree. The dandelion takes a different route to the same end, opening a parachute of fine filaments that can keep a seed aloft for several kilometres in a steady wind.\n\nWater offers a second route, and one that permits far heavier cargo. The coconut is the celebrated example: a thick fibrous husk traps air, making the fruit buoyant, while the shell inside protects the embryo from salt. Coconuts have been recorded drifting for months and remaining capable of germination, which explains their presence on remote islands that have never been connected to any mainland. Rivers perform a similar service on a smaller scale, moving seeds downstream in enormous numbers. The limitation is obvious. Water disperses seeds efficiently but only in the direction the water happens to be going, and a river never carries anything uphill.\n\nThe most sophisticated strategies involve animals, and here the plant must offer something in return. Fleshy fruit is essentially a payment. A bird eats the pulp and, some time later and some distance away, deposits the seed with a quantity of fertiliser. The arrangement is so effective that many seeds have come to depend on it: their coats are tough enough to survive a passage through the digestive tract, and a few germinate poorly unless that passage has occurred. There is a cost to the plant, since producing sugar-rich flesh is expensive, but the reach it buys is unmatched by wind or water.\n\nNot every animal partnership is voluntary. Burrs attach themselves to fur with hooks that give nothing in exchange, a strategy that inspired the invention of the hook-and-loop fastener now used in clothing. Other plants recruit animals that intend to eat the seed itself, and turn that intention to advantage. Jays and squirrels bury acorns as a winter store, and a proportion of the caches are forgotten. Oak woodland across Europe owes much of its distribution to this steady, absent-minded planting, which places seeds underground at an ideal depth without any effort on the tree's part.\n\nA smaller group of plants dispenses with outside help entirely. The seed pods of gorse dry unevenly in sunshine until the tension splits them open with an audible crack, throwing seeds a few metres. Squirting cucumber builds up internal pressure until the fruit detaches and expels its contents in a jet. These mechanisms are dramatic but limited in range, and they tend to occur in plants that already grow in dense stands, where moving even a short distance from the parent is enough to reduce competition.\n\nWhy does distance matter so much? The ground beneath a mature plant is the worst place for its offspring. Light is scarce, water and nutrients are already claimed, and the specialised pests and diseases that attack the species are concentrated there. Ecologists have found that seedling survival often rises sharply with distance from the parent, an effect strong enough to shape the spacing of trees in tropical forests. Dispersal is not merely about colonising new ground; it is about escaping the shadow, in every sense, of the previous generation.\n\nHuman activity has now overwhelmed these ancient systems. Seeds travel in ballast water, in imported soil, in the treads of tyres and the seams of luggage, at speeds and over distances no natural mechanism could achieve. Some species have crossed oceans in days that would have taken millennia to cross by drift, and the ecological consequences of these arrivals are still being counted.",
   "questions": [
     {
-      "id": "q1",
-      "type": "tfng",
-      "statement": "Orchid seeds carry a large food supply for the seedling.",
-      "answer": "FALSE",
-      "explanation": "The passage says an orchid seed \"contains almost no food reserve\", which is why orchids depend on soil fungi. The statement claims the opposite, so FALSE."
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "Orchid seeds carry a large food supply for the seedling.",
+          "answer": "FALSE",
+          "explanation": "The passage says an orchid seed \"contains almost no food reserve\", which is why orchids depend on soil fungi. The statement claims the opposite, so FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Coconuts can still grow after floating in the sea for a long period.",
+          "answer": "TRUE",
+          "explanation": "Coconuts have been \"drifting for months and remaining capable of germination\" — still able to grow, so TRUE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "Sycamore seeds travel further than dandelion seeds.",
+          "answer": "NOT GIVEN",
+          "explanation": "Both seeds are described, but the passage never compares their distances. Two facts side by side do not add up to a comparison, so NOT GIVEN."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Some seeds germinate less successfully if they have not passed through an animal.",
+          "answer": "TRUE",
+          "explanation": "\"A few germinate poorly unless that passage has occurred\" — that is, unless they have passed through an animal. TRUE."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Gorse relies on insects to open its seed pods.",
+          "answer": "FALSE",
+          "explanation": "Gorse pods \"dry unevenly in sunshine until the tension splits them open\". Sunshine, not insects, so FALSE."
+        }
+      ]
     },
     {
-      "id": "q2",
-      "type": "tfng",
-      "statement": "Coconuts can still grow after floating in the sea for a long period.",
-      "answer": "TRUE",
-      "explanation": "Coconuts have been \"drifting for months and remaining capable of germination\" — still able to grow, so TRUE."
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "Why does the writer describe fleshy fruit as 'a payment'?",
+          "options": [
+            "It is costly for animals to obtain",
+            "The plant gives food in exchange for transport",
+            "It is sold commercially",
+            "It replaces the need for flowers"
+          ],
+          "answer": 1,
+          "explanation": "The passage explains the metaphor itself: the plant provides food and the animal provides transport, so the fruit is what the plant pays."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What limitation of water dispersal does the writer identify?",
+          "options": [
+            "Seeds rot in salt water",
+            "It only works for light seeds",
+            "It cannot move seeds against the current",
+            "It is slower than wind"
+          ],
+          "answer": 2,
+          "explanation": "\"Water disperses seeds efficiently but only in the direction the water happens to be going, and a river never carries anything uphill.\""
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "The example of jays and squirrels shows that plants can benefit from",
+          "options": [
+            "animals that fail to recover stored food",
+            "animals that avoid eating seeds",
+            "deliberate planting by animals",
+            "competition between animals"
+          ],
+          "answer": 0,
+          "explanation": "\"A proportion of the caches are forgotten\", and the forgotten ones grow. The benefit comes from the animals' failure, not their intention."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "According to the final paragraph, human transport of seeds is notable mainly for its",
+          "options": [
+            "cost to agriculture",
+            "speed and range",
+            "reliance on shipping",
+            "effect on wind patterns"
+          ],
+          "answer": 1,
+          "explanation": "\"At speeds and over distances no natural mechanism could achieve\" — the paragraph is about speed and range, not cost or shipping."
+        }
+      ]
     },
     {
-      "id": "q3",
-      "type": "tfng",
-      "statement": "Sycamore seeds travel further than dandelion seeds.",
-      "answer": "NOT GIVEN",
-      "explanation": "Both seeds are described, but the passage never compares their distances. Two facts side by side do not add up to a comparison, so NOT GIVEN."
-    },
-    {
-      "id": "q4",
-      "type": "tfng",
-      "statement": "Some seeds germinate less successfully if they have not passed through an animal.",
-      "answer": "TRUE",
-      "explanation": "\"A few germinate poorly unless that passage has occurred\" — that is, unless they have passed through an animal. TRUE."
-    },
-    {
-      "id": "q5",
-      "type": "tfng",
-      "statement": "Gorse relies on insects to open its seed pods.",
-      "answer": "FALSE",
-      "explanation": "Gorse pods \"dry unevenly in sunshine until the tension splits them open\". Sunshine, not insects, so FALSE."
-    },
-    {
-      "id": "q6",
-      "type": "mcq",
-      "question": "Why does the writer describe fleshy fruit as 'a payment'?",
-      "options": [
-        "It is costly for animals to obtain",
-        "The plant gives food in exchange for transport",
-        "It is sold commercially",
-        "It replaces the need for flowers"
-      ],
-      "answer": 1,
-      "explanation": "The passage explains the metaphor itself: the plant provides food and the animal provides transport, so the fruit is what the plant pays."
-    },
-    {
-      "id": "q7",
-      "type": "mcq",
-      "question": "What limitation of water dispersal does the writer identify?",
-      "options": [
-        "Seeds rot in salt water",
-        "It only works for light seeds",
-        "It cannot move seeds against the current",
-        "It is slower than wind"
-      ],
-      "answer": 2,
-      "explanation": "\"Water disperses seeds efficiently but only in the direction the water happens to be going, and a river never carries anything uphill.\""
-    },
-    {
-      "id": "q8",
-      "type": "mcq",
-      "question": "The example of jays and squirrels shows that plants can benefit from",
-      "options": [
-        "animals that fail to recover stored food",
-        "animals that avoid eating seeds",
-        "deliberate planting by animals",
-        "competition between animals"
-      ],
-      "answer": 0,
-      "explanation": "\"A proportion of the caches are forgotten\", and the forgotten ones grow. The benefit comes from the animals' failure, not their intention."
-    },
-    {
-      "id": "q9",
-      "type": "mcq",
-      "question": "According to the final paragraph, human transport of seeds is notable mainly for its",
-      "options": [
-        "cost to agriculture",
-        "speed and range",
-        "reliance on shipping",
-        "effect on wind patterns"
-      ],
-      "answer": 1,
-      "explanation": "\"At speeds and over distances no natural mechanism could achieve\" — the paragraph is about speed and range, not cost or shipping."
-    },
-    {
-      "id": "q10",
-      "type": "completion",
-      "sentence": "A dandelion seed is held up by a ___ made of fine filaments.",
-      "answer": "parachute",
-      "maxWords": 1,
-      "explanation": "\"Opening a parachute of fine filaments\" — the noun, not the material, fills the gap."
-    },
-    {
-      "id": "q11",
-      "type": "completion",
-      "sentence": "The coconut floats because air is trapped in its fibrous ___.",
-      "answer": "husk",
-      "maxWords": 1,
-      "explanation": "\"A thick fibrous husk traps air, making the fruit buoyant.\" The gap follows \"fibrous\", so only the noun is needed."
-    },
-    {
-      "id": "q12",
-      "type": "completion",
-      "sentence": "Burrs attach to animal fur using ___.",
-      "answer": "hooks",
-      "maxWords": 1,
-      "explanation": "\"Burrs attach themselves to fur with hooks.\" Keep the plural, since the passage uses it."
-    },
-    {
-      "id": "q13",
-      "type": "completion",
-      "sentence": "Studies show seedling survival often increases with ___ from the parent plant.",
-      "answer": "distance",
-      "maxWords": 1,
-      "explanation": "\"Seedling survival often rises sharply with distance from the parent.\""
+      "instruction": "Complete the sentences below. Write NO MORE THAN ONE WORD from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "A dandelion seed is held up by a ___ made of fine filaments.",
+          "answer": "parachute",
+          "maxWords": 1,
+          "explanation": "\"Opening a parachute of fine filaments\" — the noun, not the material, fills the gap."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "The coconut floats because air is trapped in its fibrous ___.",
+          "answer": "husk",
+          "maxWords": 1,
+          "explanation": "\"A thick fibrous husk traps air, making the fruit buoyant.\" The gap follows \"fibrous\", so only the noun is needed."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "Burrs attach to animal fur using ___.",
+          "answer": "hooks",
+          "maxWords": 1,
+          "explanation": "\"Burrs attach themselves to fur with hooks.\" Keep the plural, since the passage uses it."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "Studies show seedling survival often increases with ___ from the parent plant.",
+          "answer": "distance",
+          "maxWords": 1,
+          "explanation": "\"Seedling survival often rises sharply with distance from the parent.\""
+        }
+      ]
     }
   ]
 }

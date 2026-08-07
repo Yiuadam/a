@@ -17,6 +17,7 @@ import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
 import { rankedEnglishVoices, toSentences } from "@/lib/speech";
 import { useMounted, useProfile } from "@/lib/hooks";
+import { flatQuestions, questionCount } from "@/lib/questions";
 import { buildReview } from "@/lib/review";
 import { addResult } from "@/lib/store";
 import type { ListeningTest } from "@/lib/types";
@@ -173,11 +174,12 @@ function ListeningTestPageRunner() {
   const submit = useCallback(() => {
     if (!test || submitted) return;
     stopAudio();
+    const asked = flatQuestions(test.questions);
     let correct = 0;
-    for (const q of test.questions) {
+    for (const q of asked) {
       if (isCorrect(q, answers[q.id])) correct++;
     }
-    const b = rawToBand(correct, test.questions.length, "listening");
+    const b = rawToBand(correct, asked.length, "listening");
     setRaw(correct);
     setBand(b);
     setSubmitted(true);
@@ -188,7 +190,7 @@ function ListeningTestPageRunner() {
       testTitle: test.title,
       band: b,
       raw: correct,
-      total: test.questions.length,
+      total: asked.length,
       date: new Date().toISOString(),
     });
   }, [test, answers, submitted, stopAudio]);
@@ -216,7 +218,7 @@ function ListeningTestPageRunner() {
           <p className="text-sm text-slate-600">
             The recording is read aloud by your browser ({test.script.length} turns,{" "}
             {test.speakers.length} speaker{test.speakers.length > 1 ? "s" : ""}). Read the{" "}
-            {test.questions.length} questions first, then press play and answer as you listen.
+            {questionCount(test.questions)} questions first, then press play and answer as you listen.
             In exam conditions you hear the recording <span className="font-medium">once</span> —
             but you can replay while practising.
           </p>
@@ -328,7 +330,7 @@ function ListeningTestPageRunner() {
 
       {submitted && band !== null && (
         <div className="card flex flex-col items-center gap-4 py-6 sm:flex-row sm:justify-center sm:gap-10">
-          <BandBadge band={band} caption={`${raw}/${test.questions.length} correct`} />
+          <BandBadge band={band} caption={`${raw}/${questionCount(test.questions)} correct`} />
           <div className="max-w-md text-sm text-slate-600">
             <p>
               Estimated listening band <span className="font-semibold">{band}</span>. Go through
@@ -356,7 +358,7 @@ function ListeningTestPageRunner() {
             buildReview(test.questions, answers).map((i) => i.id),
             band,
           )}
-          total={test.questions.length}
+          total={questionCount(test.questions)}
         />
       )}
 
@@ -369,6 +371,7 @@ function ListeningTestPageRunner() {
             submitted={submitted}
             checked={checked}
             onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
+            mode="practice"
           />
           {!submitted && (
             <button className="btn-primary mt-5 w-full" onClick={submit}>

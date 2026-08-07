@@ -160,99 +160,109 @@
   ],
   "questions": [
     {
-      "id": "q1",
-      "type": "completion",
-      "sentence": "Caller's surname: ___",
-      "answer": "Anand",
-      "maxWords": 1,
-      "explanation": "She spells it: A-N-A-N-D. Names are always either spelled out or repeated back — wait for the confirmation before committing."
+      "instruction": "Complete the notes below. Write NO MORE THAN ONE WORD AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Caller's surname: ___",
+          "answer": "Anand",
+          "maxWords": 1,
+          "explanation": "She spells it: A-N-A-N-D. Names are always either spelled out or repeated back — wait for the confirmation before committing."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Address: 42 ___ Street",
+          "answer": "Weaver",
+          "maxWords": 1,
+          "explanation": "\"Forty-two Weaver Street\", and the officer repeats it back. The number is already printed in the question, so only the street name is needed."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "A half plot measures about ___ square metres.",
+          "answer": "125",
+          "maxWords": 1,
+          "explanation": "A full plot is about 250 square metres and a half plot 125. The larger figure is said first and is the distractor. It is spoken as \"a hundred and twenty-five\", so either form is accepted."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Annual rent for a half plot: £___",
+          "answer": "62",
+          "maxWords": 1,
+          "explanation": "\"The rent for a half plot is sixty-two pounds a year.\" The twenty-pound deposit later in the call is a separate figure."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Refundable deposit: £___",
+          "answer": "20",
+          "maxWords": 1,
+          "explanation": "\"A one-off deposit of twenty pounds, which you get back when you leave.\" Note \"one-off\" and \"get back\" — the words that separate a deposit from a rent."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Introduction session date: Saturday the ___",
+          "answer": "sixteenth",
+          "maxWords": 1,
+          "explanation": "The officer corrects himself: \"Saturday the ninth — no, sorry ... It's Saturday the sixteenth.\" Corrections are a standard IELTS device; take the second date."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "The session lasts about ___ minutes.",
+          "answer": "ninety",
+          "maxWords": 1,
+          "explanation": "\"About ninety minutes.\" Either the word or the figure is accepted, but \"an hour and a half\" would not match what was said."
+        }
+      ]
     },
     {
-      "id": "q2",
-      "type": "completion",
-      "sentence": "Address: 42 ___ Street",
-      "answer": "Weaver",
-      "maxWords": 1,
-      "explanation": "\"Forty-two Weaver Street\", and the officer repeats it back. The number is already printed in the question, so only the street name is needed."
-    },
-    {
-      "id": "q3",
-      "type": "completion",
-      "sentence": "A half plot measures about ___ square metres.",
-      "answer": "125",
-      "maxWords": 1,
-      "explanation": "A full plot is about 250 square metres and a half plot 125. The larger figure is said first and is the distractor. It is spoken as \"a hundred and twenty-five\", so either form is accepted."
-    },
-    {
-      "id": "q4",
-      "type": "completion",
-      "sentence": "Annual rent for a half plot: £___",
-      "answer": "62",
-      "maxWords": 1,
-      "explanation": "\"The rent for a half plot is sixty-two pounds a year.\" The twenty-pound deposit later in the call is a separate figure."
-    },
-    {
-      "id": "q5",
-      "type": "completion",
-      "sentence": "Refundable deposit: £___",
-      "answer": "20",
-      "maxWords": 1,
-      "explanation": "\"A one-off deposit of twenty pounds, which you get back when you leave.\" Note \"one-off\" and \"get back\" — the words that separate a deposit from a rent."
-    },
-    {
-      "id": "q6",
-      "type": "completion",
-      "sentence": "Introduction session date: Saturday the ___",
-      "answer": "sixteenth",
-      "maxWords": 1,
-      "explanation": "The officer corrects himself: \"Saturday the ninth — no, sorry ... It's Saturday the sixteenth.\" Corrections are a standard IELTS device; take the second date."
-    },
-    {
-      "id": "q7",
-      "type": "completion",
-      "sentence": "The session lasts about ___ minutes.",
-      "answer": "ninety",
-      "maxWords": 1,
-      "explanation": "\"About ninety minutes.\" Either the word or the figure is accepted, but \"an hour and a half\" would not match what was said."
-    },
-    {
-      "id": "q8",
-      "type": "mcq",
-      "question": "Why does the officer recommend a half plot?",
-      "options": [
-        "It is the only size available",
-        "Beginners often find a full plot too much work",
-        "The soil is better on half plots",
-        "Full plots cost more to insure"
-      ],
-      "answer": 1,
-      "explanation": "\"People take a full one, get overwhelmed by the digging, and give it up within a year.\" The reason is the workload, and the officer never says a half plot is the only size."
-    },
-    {
-      "id": "q9",
-      "type": "mcq",
-      "question": "What must the caller supply herself?",
-      "options": [
-        "Tools",
-        "Compost",
-        "A lock for the gate",
-        "Water containers"
-      ],
-      "answer": 2,
-      "explanation": "Tools are in the communal shed, compost is supplied twice a year and water comes from standpipes. Only the gate lock is the tenant's responsibility."
-    },
-    {
-      "id": "q10",
-      "type": "mcq",
-      "question": "What does the officer say about the ground at the site?",
-      "options": [
-        "It drains quickly",
-        "It stays wet after rain",
-        "It is mostly sand",
-        "It is uneven and stony"
-      ],
-      "answer": 1,
-      "explanation": "\"The ground at Millgate is heavy clay and it holds the water after rain.\" Holding water is the opposite of draining quickly, which is the option placed first to catch you."
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Why does the officer recommend a half plot?",
+          "options": [
+            "It is the only size available",
+            "Beginners often find a full plot too much work",
+            "The soil is better on half plots",
+            "Full plots cost more to insure"
+          ],
+          "answer": 1,
+          "explanation": "\"People take a full one, get overwhelmed by the digging, and give it up within a year.\" The reason is the workload, and the officer never says a half plot is the only size."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What must the caller supply herself?",
+          "options": [
+            "Tools",
+            "Compost",
+            "A lock for the gate",
+            "Water containers"
+          ],
+          "answer": 2,
+          "explanation": "Tools are in the communal shed, compost is supplied twice a year and water comes from standpipes. Only the gate lock is the tenant's responsibility."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What does the officer say about the ground at the site?",
+          "options": [
+            "It drains quickly",
+            "It stays wet after rain",
+            "It is mostly sand",
+            "It is uneven and stony"
+          ],
+          "answer": 1,
+          "explanation": "\"The ground at Millgate is heavy clay and it holds the water after rain.\" Holding water is the opposite of draining quickly, which is the option placed first to catch you."
+        }
+      ]
     }
   ]
 }

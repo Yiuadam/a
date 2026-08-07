@@ -1,6 +1,7 @@
 import type { ReviewItem } from "@/components/Review";
 import { isCorrect } from "./band";
-import type { TestQuestion } from "./types";
+import { flatQuestions } from "./questions";
+import type { QuestionSet, TestQuestion } from "./types";
 
 const TYPE_LABEL: Record<TestQuestion["type"], string> = {
   tfng: "true / false / not given",
@@ -25,10 +26,10 @@ function shown(q: TestQuestion, value: string | number | undefined): string {
 
 /** The questions a learner got wrong, packaged for the post-test review. */
 export function buildReview(
-  questions: TestQuestion[],
+  questions: QuestionSet,
   answers: Record<string, string | number | undefined>,
 ): ReviewItem[] {
-  return questions
+  return flatQuestions(questions)
     .filter((q) => !isCorrect(q, answers[q.id]))
     .map((q) => ({
       id: q.id,

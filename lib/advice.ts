@@ -1,5 +1,6 @@
 import { LEVELS, SKILLS } from "./band";
-import type { CEFRLevel, PlacementResult, TestQuestion } from "./types";
+import { flatQuestions } from "./questions";
+import type { CEFRLevel, PlacementResult, QuestionSet, TestQuestion } from "./types";
 
 /*
   Advice is deliberately terse: two short lists, a few words each.
@@ -85,7 +86,7 @@ const TYPE_FIX: Record<TestQuestion["type"], string> = {
 /** Advice after a reading or listening practice test. */
 export function testAdvice(
   module: "reading" | "listening",
-  questions: TestQuestion[],
+  questions: QuestionSet,
   wrongIds: string[],
   band: number,
 ): AdviceReport {
@@ -94,7 +95,7 @@ export function testAdvice(
   const wrong = new Set(wrongIds);
 
   const byType = new Map<TestQuestion["type"], { wrong: number; total: number }>();
-  for (const q of questions) {
+  for (const q of flatQuestions(questions)) {
     const entry = byType.get(q.type) ?? { wrong: 0, total: 0 };
     entry.total += 1;
     if (wrong.has(q.id)) entry.wrong += 1;

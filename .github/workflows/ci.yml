@@ -33,6 +33,11 @@ jobs:
       - name: Typecheck and build
         run: npm run build
 
+      # Unit tests for the pieces whose correctness cannot be seen by reading
+      # them — question numbering, answer marking, band arithmetic.
+      - name: Unit tests
+        run: npm test
+
       # The exam content is the product: a wrong answer key is a real defect,
       # so the answer keys are checked the same way the app scores them.
       - name: Validate exam content
