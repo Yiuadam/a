@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Scale</title>
+  <!--
+    Direction 3: no letterform, no picture of anything. The icon is the band
+    scale itself — nine equal stripes, band 1 at the foot in the darkest clay,
+    band 9 at the head in cream — with a single cream disc marking where the
+    learner stands.
+
+    The ramp is deliberately wide, near-black to near-white. A narrower one
+    looked better at 1024 and collapsed into a smooth gradient at 32px, which
+    loses the whole idea: the steps have to stay countable.
+
+    The stripes go edge to edge, so the square is opaque by construction rather
+    than by a background rect underneath.
+  -->
+  <g shape-rendering="crispEdges">
+    <rect x="0" y="910.222" width="1024" height="113.778" fill="#2b1608" />
+    <rect x="0" y="796.444" width="1024" height="113.778" fill="#43220e" />
+    <rect x="0" y="682.667" width="1024" height="113.778" fill="#5c3016" />
+    <rect x="0" y="568.889" width="1024" height="113.778" fill="#77401d" />
+    <rect x="0" y="455.111" width="1024" height="113.778" fill="#935226" />
+    <rect x="0" y="341.333" width="1024" height="113.778" fill="#b06831" />
+    <rect x="0" y="227.556" width="1024" height="113.778" fill="#cb8b4f" />
+    <rect x="0" y="113.778" width="1024" height="113.778" fill="#e2b47f" />
+    <rect x="0" y="0" width="1024" height="113.778" fill="#f6e2c6" />
+  </g>
+
+  <!-- Where you are on the scale. One element, so it survives the small sizes. -->
+  <circle cx="512" cy="284.444" r="80" fill="#fffdfa" />
+</svg>

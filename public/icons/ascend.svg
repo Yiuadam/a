@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Ascend</title>
+  <!--
+    Direction 1: the band scale climbing.
+
+    Five bars rather than nine: nine bars at 32px are two pixels wide with a
+    one-pixel gap, which is grey mush. Five survive. The whole group is skewed
+    seven degrees so the climb reads as movement rather than as a bar chart.
+  -->
+  <defs>
+    <linearGradient id="ascend-ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="1" stop-color="#efe4d6" />
+    </linearGradient>
+    <linearGradient id="ascend-bars" x1="0.06" y1="1" x2="0.94" y2="0.05">
+      <stop offset="0" stop-color="#8b4a26" />
+      <stop offset="0.55" stop-color="#c1743f" />
+      <stop offset="1" stop-color="#e5b25c" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed opaque square: Apple rejects transparency and baked corners. -->
+  <rect width="1024" height="1024" fill="url(#ascend-ground)" />
+
+  <g transform="translate(512 512) skewX(-7) translate(-512 -512)" fill="url(#ascend-bars)">
+    <rect x="138" y="608" width="116" height="172" rx="58" />
+    <rect x="296" y="492" width="116" height="288" rx="58" />
+    <rect x="454" y="376" width="116" height="404" rx="58" />
+    <rect x="612" y="260" width="116" height="520" rx="58" />
+    <rect x="770" y="112" width="116" height="668" rx="58" />
+  </g>
+</svg>
