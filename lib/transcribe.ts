@@ -271,17 +271,47 @@ async function fetchWithProgress(url: string, expected: number, onStatus: Status
  * they are not. This is the only network request the local path ever makes,
  * and it carries no audio and nothing about the learner.
  */
+/*
+  Is this actually a whisper model?
+
+  It is worth asking, because the failure it catches is silent otherwise: a
+  captive-portal login page, a proxy error, or a download cut off halfway all
+  produce a file, and handing one of those to the wasm module aborts it from
+  inside C — the init promise never settles and the learner is left watching
+  "Starting the speech model" for ever. Every ggml file opens with those four
+  bytes, and none of them is a tenth of the size of the smallest real model.
+*/
+async function looksLikeGgml(blob: Blob): Promise<boolean> {
+  if (blob.size < 10_000_000) return false;
+  const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  return head[0] === 0x67 && head[1] === 0x67 && head[2] === 0x6d && head[3] === 0x6c;
+}
+
 async function loadModelBlob(model: LocalModelId, onStatus: StatusListener): Promise<Blob> {
   const cache = await openCache();
   const key = cacheKey(model);
   const cached = await cache?.match(key);
-  if (cached) return await cached.blob();
+  if (cached) {
+    const blob = await cached.blob();
+    if (await looksLikeGgml(blob)) return blob;
+    // Whatever is in there, it is not a model. Throw it away and fetch again
+    // rather than fail identically on every future attempt.
+    await cache?.delete(key);
+  }
+
+  // Announce the download before asking for it: the first byte can be a second
+  // or two away, and a silent second or two reads as nothing happening.
+  onStatus({ phase: "downloading", percent: 0 });
 
   const file = LOCAL_MODELS[model].file;
   let lastError: unknown = null;
   for (const host of MODEL_HOSTS) {
     try {
       const blob = await fetchWithProgress(`${host}/${file}`, LOCAL_MODELS[model].bytes, onStatus);
+      if (!(await looksLikeGgml(blob))) {
+        lastError = new Error("what came back is not a speech model");
+        continue;
+      }
       try {
         await cache?.put(key, new Response(blob));
       } catch {

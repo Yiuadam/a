@@ -142,13 +142,29 @@ on one says something about the other.
 
 ## What is verified, and what is not
 
-Verified here:
+Verified here — in a real Chromium at a 375 px viewport, against a production
+build served by `next start`:
 
-- `npx eslint .`, `npm run build`, `npm test`, `node scripts/validate-content.mjs`,
-  `node scripts/simulate-placement.mjs`, and `npm run build:mobile` all pass.
-- The COOP/COEP headers are present on `/speaking` in a running server.
-- The speaking test's flow, the engine toggle, the progress panel, the failure
-  path when the model cannot be downloaded, and the typed fallback.
+- `npx eslint .`, `npm run build`, `npm test` (26), `node scripts/validate-content.mjs`,
+  `node scripts/simulate-placement.mjs` and `NEXT_PUBLIC_API_BASE=… npm run build:mobile`
+  all pass.
+- `/speaking` is genuinely cross-origin isolated: `crossOriginIsolated` is true,
+  `SharedArrayBuffer` exists, wasm SIMD validates, `MediaRecorder` exists.
+- **The whisper.cpp wasm engine itself starts.** The vendored
+  `/whisper/shout.wasm.js` instantiates in ~100 ms and exposes `init`,
+  `transcribe`, `cancel`, `free` and `FS_createDataFile`. It reserves a 537 MB
+  heap, which is worth knowing before anyone tries this on an older phone. So
+  the engine runs; only the weights are missing.
+- The engine toggle, both model choices, and no horizontal overflow at 375 px
+  (`scrollWidth` 375 = `clientWidth`).
+- Recording starts and stops against a fake microphone, and the typed fallback
+  fills the answer box and advances the interview.
+- The two failure paths, both ending in a sentence a learner can act on rather
+  than a stuck spinner: the model host being unreachable (which is simply true
+  in this environment), and a host that returns something that is not a model —
+  stubbed to check it, and the reason `looksLikeGgml` exists at all.
+- The progress panel appears immediately on a stalled download and tracks real
+  percentages, checked against a stubbed slow host with a `Content-Length`.
 
 Not verified, and not claimed to be:
 
