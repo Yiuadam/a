@@ -26,13 +26,22 @@ const LIMIT = 300;
 
 type Cache = Record<string, Definition>;
 
+/*
+  Frozen empties, handed out by identity for the same reason the sorted list
+  below is memoised: a snapshot that returns a fresh value every call is a new
+  value to React on every render. Neither is ever mutated in place — saveLookup
+  and forgetLookup both build a new object — so sharing one instance is safe.
+*/
+const EMPTY_CACHE: Cache = Object.freeze({}) as Cache;
+const EMPTY_WORDS: Definition[] = Object.freeze([]) as unknown as Definition[];
+
 function read(): Cache {
-  if (typeof window === "undefined") return {};
+  if (typeof window === "undefined") return EMPTY_CACHE;
   try {
     const raw = window.localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Cache) : {};
+    return raw ? (JSON.parse(raw) as Cache) : EMPTY_CACHE;
   } catch {
-    return {};
+    return EMPTY_CACHE;
   }
 }
 
@@ -66,13 +75,19 @@ export function subscribeLookups(listener: () => void): () => void {
 /** Newest first, for the saved-words list. Stable until the data changes. */
 export function savedWords(): Definition[] {
   if (sorted === null) {
-    sorted = Object.values(snapshot()).sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""));
+    const words = Object.values(snapshot());
+    // Nothing saved is the case the server rendered, so hand back the very
+    // same array it did rather than an equal-but-different empty one.
+    sorted =
+      words.length === 0
+        ? EMPTY_WORDS
+        : words.sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""));
   }
   return sorted;
 }
 
 export function getServerSavedWords(): Definition[] {
-  return [];
+  return EMPTY_WORDS;
 }
 
 export function cachedLookup(term: string): Definition | undefined {

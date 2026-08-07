@@ -49,16 +49,27 @@ export interface DrillScore {
 
 type Scores = Record<string, DrillScore>;
 
+/*
+  One frozen empty object, handed out by identity.
+
+  useSyncExternalStore compares snapshots by identity, so returning a fresh
+  `{}` from the server snapshot makes React see a changed store on every
+  render and warn about an infinite loop. Nothing here is ever mutated in
+  place — recordDrill spreads into a new object — so a single shared instance
+  is safe, and freezing it says so.
+*/
+const EMPTY: Scores = Object.freeze({}) as Scores;
+
 const listeners = new Set<() => void>();
 let cache: Scores | null = null;
 
 function read(): Scores {
-  if (typeof window === "undefined") return {};
+  if (typeof window === "undefined") return EMPTY;
   try {
     const raw = window.localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Scores) : {};
+    return raw ? (JSON.parse(raw) as Scores) : EMPTY;
   } catch {
-    return {};
+    return EMPTY;
   }
 }
 
@@ -73,7 +84,7 @@ export function drillScores(): Scores {
 }
 
 export function getServerDrillScores(): Scores {
-  return {};
+  return EMPTY;
 }
 
 export function recordDrill(topicId: string, correct: number, total: number): void {
