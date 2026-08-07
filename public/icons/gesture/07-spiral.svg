@@ -14,8 +14,9 @@
     at any size worth caring about, exactly like a key.
 
     The gap between the turns is the thing that had to be designed, not the
-    stroke: at 118 units apart and 92 wide, the turns stay separate down to
-    about 40px and merge into a snail below it. That is a real limit and it is
+    stroke: the turns sit about 215 units apart with a 92-wide
+    stroke, leaving 123 units of clear gap — just under 4px at 32px. They stay
+    separate there and merge into a snail somewhere in the low twenties. That is a real limit and it is
     stated in the verdict rather than hidden.
   -->
   <defs>
