@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Folio, turning leaf</title>
+  <!--
+    Folio variation: the page stops being flat-on.
+
+    A shear and a slight rotation put the sheet in perspective, and a clay band
+    along its underside gives it a real thickness rather than a drawn outline —
+    the sheet is an object lying at an angle, not a rectangle facing you. The
+    shadow falls away from it on the same axis as the shear, so the two agree.
+
+    Four steps: the shear foreshortens the risers, so five became mush and three
+    lost the scale.
+  -->
+  <defs>
+    <radialGradient id="trn-ground" cx="0.28" cy="0.72" r="0.95">
+      <stop offset="0" stop-color="#31261d" />
+      <stop offset="1" stop-color="#14100d" />
+    </radialGradient>
+    <linearGradient id="trn-face" x1="0.05" y1="1" x2="0.95" y2="0">
+      <stop offset="0" stop-color="#dfcaad" />
+      <stop offset="0.5" stop-color="#f6ede0" />
+      <stop offset="1" stop-color="#fdfaf6" />
+    </linearGradient>
+
+    <mask id="trn-ruled">
+      <rect width="1024" height="1024" fill="#fff" />
+      <rect x="306" y="700" width="392" height="28" rx="14" fill="#000" />
+      <rect x="306" y="774" width="272" height="28" rx="14" fill="#000" />
+    </mask>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#trn-ground)" />
+
+  <g transform="translate(512 560) rotate(-5) skewY(-9) translate(-512 -560)">
+    <path
+      d="M 262 852 L 262 668 L 396 668 L 396 550 L 530 550 L 530 424
+         L 664 424 L 664 288 L 788 288 L 788 852 Z"
+      transform="translate(34 66)"
+      fill="#0b0907"
+      opacity="0.5"
+    />
+    <!-- The slab: the same outline dropped 30, so only its lower lip shows. -->
+    <path
+      d="M 262 852 L 262 668 L 396 668 L 396 550 L 530 550 L 530 424
+         L 664 424 L 664 288 L 788 288 L 788 852 Z"
+      transform="translate(0 30)"
+      fill="#8b4a26"
+    />
+    <path
+      d="M 262 852 L 262 668 L 396 668 L 396 550 L 530 550 L 530 424
+         L 664 424 L 664 288 L 788 288 L 788 852 Z"
+      fill="url(#trn-face)"
+      mask="url(#trn-ruled)"
+    />
+  </g>
+</svg>
