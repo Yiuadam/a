@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
   if (!supabaseConfigured()) {
     logInternal("account/status", new Error("ACCOUNTS_ENABLED=1 but Supabase is not configured"));
-    return safeJsonError(MESSAGES.unavailable, 503);
+    return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
 
   try {
@@ -67,6 +67,6 @@ export async function GET(req: Request) {
     });
   } catch (err) {
     logInternal("account/status", err);
-    return safeJsonError(MESSAGES.unavailable, 503);
+    return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
 }

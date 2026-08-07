@@ -15,6 +15,9 @@ export const MESSAGES = {
     "You've used all of today's AI feedback. It resets tomorrow — practice tests, drills and your study plan are always unlimited.",
   rateLimited: "That's a lot of requests at once. Please wait a moment and try again.",
   unavailable: "The AI tutor is briefly unavailable. Please try again in a minute.",
+  // The account endpoints are not the AI tutor, so they say something true of
+  // themselves — and equally uninformative about why.
+  accountUnavailable: "Account details aren't available right now. Please try again in a minute.",
   signInRequired: "Please sign in to use this.",
 } as const;
 
