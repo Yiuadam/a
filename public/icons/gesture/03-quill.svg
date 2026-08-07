@@ -9,19 +9,23 @@
     back down at where it came from.
 
     The four behaviours are meant to be felt rather than counted: the tremor in
-    the lower edge, the flat middle, the swell, the cupped bay under the curl.
-    If the eye reads it as a single confident pen movement and nothing else,
-    that is the mark working, not the mark failing.
+    the lower edge, the flat middle, the swell, and the bay the curl closes
+    around. If the eye reads it as a single confident pen movement and nothing
+    else, that is the mark working, not the mark failing.
+
+    The shaft is deliberately fat for something this abstract. A thinner one
+    was more elegant at full size and simply evaporated at a thirty-second of it.
   -->
   <defs>
     <radialGradient id="quill-ground" cx="0.3" cy="0.22" r="0.95">
       <stop offset="0" stop-color="#fdfaf6" />
-      <stop offset="1" stop-color="#e7d6c0" />
+      <stop offset="1" stop-color="#e2cdb0" />
     </radialGradient>
-    <linearGradient id="quill-body" x1="0.1" y1="1" x2="0.85" y2="0">
-      <stop offset="0" stop-color="#6f3b1e" />
-      <stop offset="0.45" stop-color="#a95d2f" />
-      <stop offset="1" stop-color="#d08a5b" />
+    <linearGradient id="quill-body" gradientUnits="userSpaceOnUse"
+      x1="170" y1="930" x2="800" y2="150">
+      <stop offset="0" stop-color="#5c2f16" />
+      <stop offset="0.45" stop-color="#8b4a26" />
+      <stop offset="1" stop-color="#c1743f" />
     </linearGradient>
   </defs>
 
@@ -29,35 +33,33 @@
 
   <g>
     <path
-      d="M 186 918
-         C 236 826 268 772 322 716
-         C 400 636 470 588 556 540
-         C 660 482 736 452 766 402
-         C 804 340 800 262 758 216
-         C 712 166 630 152 566 186
-         C 512 214 486 260 480 314
-         C 492 258 526 220 578 210
-         C 646 196 706 226 720 278
-         C 734 332 704 372 640 404
-         C 540 454 428 512 358 578
-         C 288 644 232 782 186 918 Z"
-      fill="#5d3f14"
-      opacity="0.14"
-      transform="translate(26 30)"
+      d="M 172 928
+         C 226 828 262 762 330 700
+         C 412 626 494 580 584 530
+         C 686 474 756 446 784 394
+         C 824 326 816 242 766 194
+         C 712 142 618 130 548 172
+         C 488 208 458 264 452 326
+         C 468 250 512 196 578 190
+         C 658 182 722 224 732 288
+         C 742 352 686 384 600 424
+         C 476 452 344 512 268 596
+         C 212 660 196 804 172 928 Z"
+      fill="#5d3f14" opacity="0.15" transform="translate(26 30)"
     />
     <path
-      d="M 186 918
-         C 236 826 268 772 322 716
-         C 400 636 470 588 556 540
-         C 660 482 736 452 766 402
-         C 804 340 800 262 758 216
-         C 712 166 630 152 566 186
-         C 512 214 486 260 480 314
-         C 492 258 526 220 578 210
-         C 646 196 706 226 720 278
-         C 734 332 704 372 640 404
-         C 540 454 428 512 358 578
-         C 288 644 232 782 186 918 Z"
+      d="M 172 928
+         C 226 828 262 762 330 700
+         C 412 626 494 580 584 530
+         C 686 474 756 446 784 394
+         C 824 326 816 242 766 194
+         C 712 142 618 130 548 172
+         C 488 208 458 264 452 326
+         C 468 250 512 196 578 190
+         C 658 182 722 224 732 288
+         C 742 352 686 384 600 424
+         C 476 452 344 512 268 596
+         C 212 660 196 804 172 928 Z"
       fill="url(#quill-body)"
     />
   </g>

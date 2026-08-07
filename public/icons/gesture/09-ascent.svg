@@ -4,10 +4,10 @@
     The open reading, pointed uphill.
 
     One climb from the bottom-left corner to the top-right, entering as a
-    hairline — a pen touching down — swelling through the middle where the
-    climb is steepest, and leaving the square as a point. It does not come
-    back, and that is the argument: a closed mark is stable, this one is going
-    somewhere. Which is what a band score is meant to do.
+    hairline — a pen touching down — swelling through the middle where the climb
+    is steepest, and leaving the square as a point. It does not come back, and
+    that is the argument: a closed mark is stable, this one is going somewhere,
+    which is what a band score is meant to do.
 
       the wobble in the first third — listening
       the long straight climb       — reading
@@ -15,7 +15,8 @@
       the deep bay under the belly  — speaking
 
     The bay is negative space rather than a drawn bubble, so nothing here is a
-    picture of a thing.
+    picture of a thing. The belly is nearly three times the width of the first
+    drawing of this mark, which at 32px was a scratch.
   -->
   <defs>
     <radialGradient id="ascent-ground" cx="0.24" cy="0.8" r="0.95">
@@ -35,29 +36,27 @@
 
   <g>
     <path
-      d="M 138 880
-         C 176 800 190 736 236 686
-         C 290 628 336 654 400 606
-         C 474 552 516 476 590 418
-         C 670 354 762 292 852 232
-         L 900 190
-         C 828 288 742 386 656 480
-         C 590 552 520 618 452 676
-         C 396 724 328 706 272 740
-         C 216 774 174 830 138 880 Z"
+      d="M 150 900
+         C 190 820 216 762 268 700
+         C 330 622 386 578 448 522
+         C 528 450 604 372 676 300
+         C 748 228 848 176 930 150
+         C 860 218 800 300 740 386
+         C 676 478 626 560 560 640
+         C 496 718 400 800 300 862
+         C 246 894 190 906 150 900 Z"
       fill="#0b0906" opacity="0.5" transform="translate(24 28)"
     />
     <path
-      d="M 138 880
-         C 176 800 190 736 236 686
-         C 290 628 336 654 400 606
-         C 474 552 516 476 590 418
-         C 670 354 762 292 852 232
-         L 900 190
-         C 828 288 742 386 656 480
-         C 590 552 520 618 452 676
-         C 396 724 328 706 272 740
-         C 216 774 174 830 138 880 Z"
+      d="M 150 900
+         C 190 820 216 762 268 700
+         C 330 622 386 578 448 522
+         C 528 450 604 372 676 300
+         C 748 228 848 176 930 150
+         C 860 218 800 300 740 386
+         C 676 478 626 560 560 640
+         C 496 718 400 800 300 862
+         C 246 894 190 906 150 900 Z"
       fill="url(#ascent-body)"
     />
   </g>

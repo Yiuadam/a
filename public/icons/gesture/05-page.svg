@@ -46,7 +46,7 @@
            L 424 790"
         fill="none" stroke="#5d3f14" stroke-width="94" stroke-linecap="butt" stroke-linejoin="round"
       />
-      <path d="M 425 743 L 292 786 L 423 837 Z" fill="#5d3f14" />
+      <path d="M 437 743 L 292 786 L 435 837 Z" fill="#5d3f14" />
     </g>
     <g fill="url(#page-line)">
       <path
@@ -66,7 +66,7 @@
         stroke-linecap="butt" stroke-linejoin="round"
       />
       <!-- The last pass runs out of ink. -->
-      <path d="M 425 743 L 292 786 L 423 837 Z" />
+      <path d="M 437 743 L 292 786 L 435 837 Z" />
       <circle cx="160" cy="268" r="47" />
     </g>
   </g>

@@ -3,14 +3,16 @@
   <!--
     The open reading, with all the momentum left in.
 
-    A wave rises on the left, drops onto a dead-flat rule, runs the width of the
-    square, then curls over the top of itself and comes back — a breaking wave
-    that is also a speech bubble seen from underneath. The stroke ends in a
+    A wave rises high on the left, drops onto a dead-flat rule, runs most of the
+    way across, then curls over the top of itself and comes back — a breaking
+    wave that is also a speech bubble seen from underneath. The stroke ends in a
     point aimed back at the crest it started from, which closes the loop for the
     eye without closing it on the page.
 
-    Rhythm is deliberately uneven: one big crest, one long flat, one slow curl.
-    Even spacing would have made it a logo for a hotel.
+    Rhythm is uneven on purpose: one tall crest, one long flat, one slow curl.
+    Even spacing would have made it a logo for a hotel. The first pass ran the
+    crest low and wide and read as a worm; the crest now takes the top third of
+    the square and the curl is tight enough to be a bubble rather than a lump.
 
     The nib is a separate triangle whose base is exactly the butt cap of the
     stroke, and the gradient is in user space so both halves are lit by the same
@@ -22,7 +24,7 @@
       <stop offset="1" stop-color="#131009" />
     </radialGradient>
     <linearGradient id="tide-line" gradientUnits="userSpaceOnUse"
-      x1="100" y1="200" x2="900" y2="760">
+      x1="120" y1="220" x2="900" y2="800">
       <stop offset="0" stop-color="#fdfaf6" />
       <stop offset="0.4" stop-color="#f2ddb4" />
       <stop offset="0.75" stop-color="#e0ab52" />
@@ -32,34 +34,34 @@
 
   <rect width="1024" height="1024" fill="url(#tide-ground)" />
 
-  <g transform="translate(0 24)">
+  <g>
     <g transform="translate(24 28)" opacity="0.4">
       <path
-        d="M 136 456
-           C 182 258 332 218 412 348
-           C 456 420 494 460 578 460
-           L 890 460
-           C 962 460 982 566 908 630
-           C 834 696 664 722 560 678"
+        d="M 132 620
+           C 150 340 320 232 424 372
+           C 470 434 508 470 596 470
+           L 828 470
+           C 940 470 984 610 880 686
+           C 790 754 620 760 508 700"
         fill="none" stroke="#0b0906" stroke-width="122" stroke-linecap="butt"
       />
-      <path d="M 582 622 L 412 618 L 538 734 Z" fill="#0b0906" />
-      <circle cx="136" cy="456" r="61" fill="#0b0906" />
+      <path d="M 546 651 L 367 624 L 488 759 Z" fill="#0b0906" />
+      <circle cx="132" cy="620" r="61" fill="#0b0906" />
     </g>
     <g fill="url(#tide-line)">
       <path
-        d="M 136 456
-           C 182 258 332 218 412 348
-           C 456 420 494 460 578 460
-           L 890 460
-           C 962 460 982 566 908 630
-           C 834 696 664 722 560 678"
+        d="M 132 620
+           C 150 340 320 232 424 372
+           C 470 434 508 470 596 470
+           L 828 470
+           C 940 470 984 610 880 686
+           C 790 754 620 760 508 700"
         fill="none" stroke="url(#tide-line)" stroke-width="122" stroke-linecap="butt"
       />
       <!-- The nib: base on the butt cap, tip aimed back under the crest. -->
-      <path d="M 582 622 L 412 618 L 538 734 Z" />
+      <path d="M 546 651 L 367 624 L 488 759 Z" />
       <!-- A rounded start, so the wave enters like a pen touching down. -->
-      <circle cx="136" cy="456" r="61" />
+      <circle cx="132" cy="620" r="61" />
     </g>
   </g>
 </svg>

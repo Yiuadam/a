@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture 07, Spiral</title>
+  <!--
+    One movement that never repeats itself, because it is always tightening.
+
+    Two and a bit turns inward. The outer sweep ripples on its way over the top
+    right — listening. The bottom-right refuses to curve at all and crosses as a
+    dead-straight chord — reading. The turns close on each other as they go, so
+    the rhythm accelerates rather than keeping time — the difference between
+    handwriting and a metronome. It finishes at the centre in a point, which is
+    the nib, and the whole thing balloons on the left, which is the bubble.
+
+    This replaced a variation where the stroke crossed itself once and looked,
+    at any size worth caring about, exactly like a key.
+
+    The gap between the turns is the thing that had to be designed, not the
+    stroke: at 118 units apart and 92 wide, the turns stay separate down to
+    about 40px and merge into a snail below it. That is a real limit and it is
+    stated in the verdict rather than hidden.
+  -->
+  <defs>
+    <radialGradient id="spiral-ground" cx="0.28" cy="0.24" r="0.95">
+      <stop offset="0" stop-color="#30251a" />
+      <stop offset="1" stop-color="#13100b" />
+    </radialGradient>
+    <linearGradient id="spiral-line" gradientUnits="userSpaceOnUse"
+      x1="90" y1="140" x2="880" y2="840">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="0.38" stop-color="#f2ddb4" />
+      <stop offset="0.72" stop-color="#e0ab52" />
+      <stop offset="1" stop-color="#c1743f" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#spiral-ground)" />
+
+  <g>
+    <g transform="translate(22 26)" opacity="0.42">
+      <path
+        d="M 92 520
+           C 92 288 310 140 520 140
+           C 610 128 636 210 700 214
+           C 764 218 760 300 812 330
+           C 848 352 866 430 865 520
+           L 520 820
+           C 354 820 200 630 200 520
+           C 200 410 429 355 520 355
+           C 611 355 650 448 650 520
+           C 650 592 579 626 520 626"
+        fill="none" stroke="#0b0906" stroke-width="92" stroke-linecap="butt"
+      />
+      <path d="M 532 574 L 404 626 L 532 678 Z" fill="#0b0906" />
+    </g>
+    <g fill="url(#spiral-line)">
+      <path
+        d="M 92 520
+           C 92 288 310 140 520 140
+           C 610 128 636 210 700 214
+           C 764 218 760 300 812 330
+           C 848 352 866 430 865 520
+           L 520 820
+           C 354 820 200 630 200 520
+           C 200 410 429 355 520 355
+           C 611 355 650 448 650 520
+           C 650 592 579 626 520 626"
+        fill="none" stroke="url(#spiral-line)" stroke-width="92" stroke-linecap="butt"
+      />
+      <!-- The stroke runs out at the centre, in a point. -->
+      <path d="M 532 574 L 404 626 L 532 678 Z" />
+    </g>
+  </g>
+</svg>
