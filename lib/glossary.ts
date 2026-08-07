@@ -47,5 +47,3 @@ export function termPattern(): RegExp {
 export function findTerm(text: string): GlossaryEntry | undefined {
   return byKey.get(text.trim().toLowerCase().replace(/\s+/g, " "));
 }
-
-export const GLOSSARY_SIZE = entries.length;

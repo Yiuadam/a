@@ -86,10 +86,16 @@ const TARGET_SE = 0.42;
 
 export type TestLength = 5 | 10;
 
-/** How many questions each sitting length asks at most, and at least. */
-export const LENGTHS: Record<TestLength, { max: number; min: number; label: string }> = {
-  5: { max: 15, min: 9, label: "5 minutes · up to 15 questions" },
-  10: { max: 25, min: 14, label: "10 minutes · up to 25 questions" },
+/**
+ * How many questions each sitting length asks.
+ *
+ * `min` is the floor before early stopping is even considered — an estimate
+ * from six answers can look precise by luck, and stopping there would report a
+ * band the test has not really earned.
+ */
+export const LENGTHS: Record<TestLength, { max: number; min: number }> = {
+  5: { max: 15, min: 9 },
+  10: { max: 25, min: 14 },
 };
 
 export interface AdaptiveState {
@@ -291,12 +297,3 @@ export function finishAdaptive(state: AdaptiveState): PlacementResult {
   };
 }
 
-/** Whether the bank can support a full sitting without reusing questions. */
-export function bankIsSufficient(
-  bank: PlacementQuestion[],
-  length: TestLength,
-  recentlyUsed: string[] = [],
-): boolean {
-  const available = bank.filter((q) => !recentlyUsed.includes(q.id));
-  return available.length >= LENGTHS[length].max;
-}

@@ -2,19 +2,25 @@
   "terms": [
     {
       "term": "past participle",
-      "aliases": ["past participles"],
+      "aliases": [
+        "past participles"
+      ],
       "short": "The third form of a verb — the one used after have or be. Go, went, gone: gone is the past participle.",
       "example": "I have seen it. (see → saw → seen)"
     },
     {
       "term": "past simple",
-      "aliases": ["simple past"],
+      "aliases": [
+        "simple past"
+      ],
       "short": "The plain past form, used for something finished at a known time in the past.",
       "example": "We went to the coast last summer."
     },
     {
       "term": "present simple",
-      "aliases": ["simple present"],
+      "aliases": [
+        "simple present"
+      ],
       "short": "The everyday present form, used for habits and facts. Add -s for he, she and it.",
       "example": "She works in a bakery."
     },
@@ -30,7 +36,9 @@
     },
     {
       "term": "tense",
-      "aliases": ["tenses"],
+      "aliases": [
+        "tenses"
+      ],
       "short": "The form of a verb that shows when something happens — past, present or future.",
       "example": "eats (present) → ate (past)"
     },
@@ -41,25 +49,38 @@
     },
     {
       "term": "-ing form",
-      "aliases": ["ing form", "gerund"],
+      "aliases": [
+        "ing form",
+        "gerund"
+      ],
       "short": "The verb with -ing on the end. Some verbs must be followed by it instead of the infinitive.",
       "example": "He denied knowing about it."
     },
     {
       "term": "auxiliary",
-      "aliases": ["auxiliaries", "auxiliary verb"],
+      "aliases": [
+        "auxiliaries",
+        "auxiliary verb"
+      ],
       "short": "A helping verb — be, have or do — that goes in front of the main verb to build a tense, a question or a negative.",
       "example": "Did you see it? (did is the auxiliary)"
     },
     {
       "term": "inversion",
-      "aliases": ["invert", "inverted", "inverts"],
+      "aliases": [
+        "invert",
+        "inverted",
+        "inverts"
+      ],
       "short": "Swapping the subject and the auxiliary, so the verb comes first. English does this after a negative word at the start of a sentence.",
       "example": "Rarely have we seen this."
     },
     {
       "term": "front position",
-      "aliases": ["fronted", "in front position"],
+      "aliases": [
+        "fronted",
+        "in front position"
+      ],
       "short": "When a word is moved to the very start of a sentence for emphasis. In English this often forces inversion.",
       "example": "Seldom does he complain."
     },
@@ -75,37 +96,49 @@
     },
     {
       "term": "noun",
-      "aliases": ["nouns"],
+      "aliases": [
+        "nouns"
+      ],
       "short": "A word for a person, place or thing.",
       "example": "teacher, city, water"
     },
     {
       "term": "verb",
-      "aliases": ["verbs"],
+      "aliases": [
+        "verbs"
+      ],
       "short": "A word for an action or a state.",
       "example": "run, think, be"
     },
     {
       "term": "adjective",
-      "aliases": ["adjectives"],
+      "aliases": [
+        "adjectives"
+      ],
       "short": "A word that describes a noun.",
       "example": "a heavy box"
     },
     {
       "term": "adverb",
-      "aliases": ["adverbs"],
+      "aliases": [
+        "adverbs"
+      ],
       "short": "A word that describes a verb — how, when or how much. Many end in -ly.",
       "example": "Prices rose sharply."
     },
     {
       "term": "article",
-      "aliases": ["articles"],
+      "aliases": [
+        "articles"
+      ],
       "short": "The little words a, an and the that go before a noun.",
       "example": "a bus, the bus"
     },
     {
       "term": "preposition",
-      "aliases": ["prepositions"],
+      "aliases": [
+        "prepositions"
+      ],
       "short": "A small word showing place, time or direction — in, on, at, since, for.",
       "example": "on Monday, at six o'clock"
     },
@@ -116,19 +149,28 @@
     },
     {
       "term": "collocation",
-      "aliases": ["collocate", "collocates", "collocations"],
+      "aliases": [
+        "collocate",
+        "collocates",
+        "collocations"
+      ],
       "short": "Words that native speakers naturally put together. The grammar of an alternative may be fine and still sound wrong.",
       "example": "make a decision, not do a decision"
     },
     {
       "term": "phrasal verb",
-      "aliases": ["phrasal verbs"],
+      "aliases": [
+        "phrasal verbs"
+      ],
       "short": "A verb plus a small word that changes its meaning completely.",
       "example": "call off means cancel"
     },
     {
       "term": "idiom",
-      "aliases": ["idioms", "idiomatic"],
+      "aliases": [
+        "idioms",
+        "idiomatic"
+      ],
       "short": "A fixed expression whose meaning you cannot work out from the separate words.",
       "example": "damn with faint praise"
     },
@@ -139,7 +181,11 @@
     },
     {
       "term": "concession",
-      "aliases": ["concede", "concedes", "conceding"],
+      "aliases": [
+        "concede",
+        "concedes",
+        "conceding"
+      ],
       "short": "Admitting a point that works against your argument, usually before making your real point. Watch for although, while and for all.",
       "example": "Although it was expensive, she booked it."
     },
@@ -170,19 +216,25 @@
     },
     {
       "term": "passive",
-      "aliases": ["passive voice"],
+      "aliases": [
+        "passive voice"
+      ],
       "short": "When the thing having something done to it becomes the subject. Built with be plus the past participle.",
       "example": "The report was finished on Friday."
     },
     {
       "term": "relative clause",
-      "aliases": ["relative clauses"],
+      "aliases": [
+        "relative clauses"
+      ],
       "short": "A part of a sentence starting with who, which, that or whose, adding information about a noun.",
       "example": "The candidate, whose experience is limited, interviewed well."
     },
     {
       "term": "clause",
-      "aliases": ["clauses"],
+      "aliases": [
+        "clauses"
+      ],
       "short": "A part of a sentence with its own subject and verb.",
       "example": "She left because it was late. (two clauses)"
     },
@@ -193,7 +245,10 @@
     },
     {
       "term": "third person singular",
-      "aliases": ["third-person singular", "third person"],
+      "aliases": [
+        "third-person singular",
+        "third person"
+      ],
       "short": "he, she, it, or one person or thing. In the present simple its verb takes an -s.",
       "example": "My brother works here."
     },
@@ -209,25 +264,36 @@
     },
     {
       "term": "negative",
-      "aliases": ["negatives"],
+      "aliases": [
+        "negatives"
+      ],
       "short": "A sentence with not, never or no in it. English uses any rather than some inside one.",
       "example": "I don't have any money."
     },
     {
       "term": "paraphrase",
-      "aliases": ["paraphrasing", "paraphrased"],
+      "aliases": [
+        "paraphrasing",
+        "paraphrased"
+      ],
       "short": "Saying the same thing in different words. IELTS answers almost always paraphrase the passage rather than repeat it.",
       "example": "distinct pattern → its own character"
     },
     {
       "term": "distractor",
-      "aliases": ["distractors"],
+      "aliases": [
+        "distractors"
+      ],
       "short": "A wrong option built to look right — usually real words from the text arranged into a claim the text never makes.",
       "example": "A price that was mentioned, but not the one asked for."
     },
     {
       "term": "self-correction",
-      "aliases": ["self-corrects", "corrects himself", "corrects herself"],
+      "aliases": [
+        "self-corrects",
+        "corrects himself",
+        "corrects herself"
+      ],
       "short": "When a speaker says something and then changes it. In IELTS listening the second version is always the answer.",
       "example": "Tuesday — sorry, make that Thursday."
     },
@@ -248,13 +314,19 @@
     },
     {
       "term": "synonym",
-      "aliases": ["synonyms"],
+      "aliases": [
+        "synonyms"
+      ],
       "short": "A word with almost the same meaning as another.",
       "example": "cancel and call off"
     },
     {
       "term": "modifier",
-      "aliases": ["modifies", "modify", "modifying"],
+      "aliases": [
+        "modifies",
+        "modify",
+        "modifying"
+      ],
       "short": "A word that adds information to another word. Adjectives modify nouns; adverbs modify verbs.",
       "example": "sharply modifies risen."
     },
@@ -265,7 +337,10 @@
     },
     {
       "term": "band",
-      "aliases": ["band score", "bands"],
+      "aliases": [
+        "band score",
+        "bands"
+      ],
       "short": "The IELTS score, from 1 to 9, given in half steps. Most universities ask for 6.0 to 7.0.",
       "example": "Band 6.5 overall."
     },
@@ -276,7 +351,9 @@
     },
     {
       "term": "metacognition",
-      "aliases": ["metacognitive"],
+      "aliases": [
+        "metacognitive"
+      ],
       "short": "Knowing what you do and do not know. Poor metacognition is why people feel sure of a wrong answer.",
       "example": "Judging your own memory before trusting it."
     },
@@ -289,6 +366,130 @@
       "term": "longitudinal",
       "short": "A study that follows the same people over a long period, rather than testing them once.",
       "example": "A ten-year longitudinal study."
+    },
+    {
+      "term": "fluency",
+      "short": "Speaking at a natural speed without long pauses. It is about keeping going, not about speaking fast.",
+      "example": "Pausing to think is fine; pausing to hunt for a word is not."
+    },
+    {
+      "term": "coherence",
+      "aliases": [
+        "coherent"
+      ],
+      "short": "Whether your ideas follow one another in an order a listener can track. You can be fluent and still be hard to follow.",
+      "example": "Answer the question first, then give the reason."
+    },
+    {
+      "term": "lexical resource",
+      "short": "How wide and precise your vocabulary is. Examiners credit the right word more than the rare word.",
+      "example": "A sharp rise beats a big rise."
+    },
+    {
+      "term": "grammatical range",
+      "aliases": [
+        "grammatical range and accuracy"
+      ],
+      "short": "How many different structures you use, and how correctly. Using only simple sentences caps this score even if nothing is wrong.",
+      "example": "Mix simple, compound and complex sentences."
+    },
+    {
+      "term": "task response",
+      "short": "Whether your essay answers the whole question asked, with a clear position and enough support.",
+      "example": "Two parts in the question means two parts in the answer."
+    },
+    {
+      "term": "task achievement",
+      "short": "In Task 1, whether you have reported the key information accurately and covered the main trends.",
+      "example": "Describe what the data shows, do not explain why."
+    },
+    {
+      "term": "cohesive devices",
+      "aliases": [
+        "cohesive device",
+        "cohesion"
+      ],
+      "short": "The words that join your ideas together — however, therefore, on the other hand. Too few is confusing; too many sounds mechanical.",
+      "example": "However, the figure fell again after 2015."
+    },
+    {
+      "term": "linking words",
+      "aliases": [
+        "linkers",
+        "discourse markers",
+        "discourse marker"
+      ],
+      "short": "Short words and phrases that signal what is coming next: a contrast, an example, a conclusion.",
+      "example": "For instance, in other words, as a result."
+    },
+    {
+      "term": "topic sentence",
+      "short": "The first sentence of a paragraph, saying what the paragraph is about. Examiners look for one in every body paragraph.",
+      "example": "The clearest benefit is cost."
+    },
+    {
+      "term": "hedging",
+      "aliases": [
+        "hedge",
+        "hedges"
+      ],
+      "short": "Softening a claim so it is not stronger than your evidence — may, tends to, in most cases.",
+      "example": "This may partly explain the fall."
+    },
+    {
+      "term": "signposting",
+      "aliases": [
+        "signpost",
+        "signposts"
+      ],
+      "short": "Telling the listener or reader where you are going before you go there.",
+      "example": "I will look at two reasons. The first is cost."
+    },
+    {
+      "term": "filler",
+      "aliases": [
+        "fillers",
+        "filler words"
+      ],
+      "short": "Sounds and words used while thinking — um, er, like, you know. A few are natural; a lot break your fluency score.",
+      "example": "Replace um with a short silent pause."
+    },
+    {
+      "term": "subject-verb agreement",
+      "aliases": [
+        "subject verb agreement"
+      ],
+      "short": "The verb must match its subject in number: one thing takes is, more than one takes are.",
+      "example": "The results are clear, not the results is clear."
+    },
+    {
+      "term": "word form",
+      "short": "Using the right form of a word for its job in the sentence — succeed, success, successful, successfully.",
+      "example": "It was a successful trial, not a success trial."
+    },
+    {
+      "term": "run-on sentence",
+      "aliases": [
+        "run on sentence",
+        "comma splice"
+      ],
+      "short": "Two complete sentences joined with only a comma, or with nothing. Use a full stop, a semicolon, or a joining word.",
+      "example": "It rained, we stayed in. → It rained, so we stayed in."
+    },
+    {
+      "term": "paraphrase the question",
+      "short": "Rewriting the exam question in your own words to open an essay. Copying it word for word earns you nothing.",
+      "example": "Change the nouns and the sentence shape, not just one word."
+    },
+    {
+      "term": "overview",
+      "short": "In Task 1, the sentence that states the biggest overall pattern. Leaving it out limits the band, however good the detail is.",
+      "example": "Overall, sales rose steadily throughout the period."
+    },
+    {
+      "term": "cue card",
+      "short": "The card in Part 2 of the speaking test giving a topic and four points. You get one minute to prepare and speak for up to two.",
+      "example": "Cover all four bullets and keep talking."
     }
   ]
 }

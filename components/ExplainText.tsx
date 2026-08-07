@@ -44,7 +44,9 @@ export default function ExplainText({
             type="button"
             onClick={() => look(part.text, text)}
             title={findTerm(part.text)?.short}
-            className="cursor-help rounded underline decoration-indigo-400 decoration-dotted decoration-2 underline-offset-4 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+            // align-baseline keeps the button sitting on the text baseline;
+            // an inline-block in a paragraph otherwise nudges the whole line.
+            className="cursor-help rounded align-baseline underline decoration-indigo-400 decoration-dotted decoration-2 underline-offset-4 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
           >
             {part.text}
           </button>
