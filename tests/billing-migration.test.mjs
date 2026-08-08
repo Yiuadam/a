@@ -1,0 +1,317 @@
+/*
+  The idempotency guarantee, run against a real Postgres.
+
+  tests/billing-webhook.test.mjs covers the half of the webhook that is
+  JavaScript. The half that actually holds the line is SQL — the claim on
+  `provider_events`, the refusal of an out-of-order redelivery, and the fact
+  that both live in the same transaction as the write. None of that can be
+  demonstrated by reading it, and a stub that behaves the way the SQL is
+  supposed to behave demonstrates only that the stub was written to match.
+
+  So this provisions a throwaway cluster, applies the migrations exactly as a
+  Supabase project would, and drives
+  `apply_provider_subscription_event` through the sequences that go wrong in
+  production: the same delivery twice, an old event arriving after a newer one,
+  a cancellation followed by a redelivered renewal.
+
+  ---------------------------------------------------------------------------
+  When it cannot run
+
+  It skips, loudly, and says why — the same shape tests/no-secret-leak.test.mjs
+  uses when there is no build output to read. Only an assertion failure fails
+  the test; a machine with no Postgres, or one where the cluster will not
+  start, reports a skip rather than a red build. That is a real limitation and
+  is stated rather than hidden: on such a machine this file proves nothing.
+*/
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync, readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+/** The newest Postgres in the usual Debian/Ubuntu location. */
+function findPostgresBin() {
+  const base = "/usr/lib/postgresql";
+  if (!existsSync(base)) return null;
+  const versions = readdirSync(base)
+    .filter((v) => /^\d+$/.test(v))
+    .sort((a, b) => Number(b) - Number(a));
+  for (const version of versions) {
+    const bin = join(base, version, "bin");
+    if (existsSync(join(bin, "initdb")) && existsSync(join(bin, "psql"))) return bin;
+  }
+  return null;
+}
+
+/*
+  `initdb` refuses to run as root, which is the common case inside a container.
+  Where there is a `postgres` account, the commands are run as it; where there
+  is not, and we are root, there is nothing to do but skip.
+*/
+const AS_ROOT = typeof process.getuid === "function" && process.getuid() === 0;
+
+function makeRunner(bin, dir) {
+  return (command, args, options = {}) => {
+    const file = join(bin, command);
+    if (AS_ROOT) {
+      return execFileSync("runuser", ["-u", "postgres", "--", file, ...args], {
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+        cwd: dir,
+        ...options,
+      });
+    }
+    return execFileSync(file, args, {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+      cwd: dir,
+      ...options,
+    });
+  };
+}
+
+/*
+  A Supabase-shaped stub. The migrations reference `auth.users`, `auth.uid()`
+  and the three Supabase roles, and none of those exist in a bare cluster —
+  so the parts of the schema this test does not own are faked just far enough
+  for the parts it does own to be real.
+*/
+const SUPABASE_STUB = `
+create extension if not exists pgcrypto;
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
+end $$;
+create schema if not exists auth;
+create table if not exists auth.users (
+  id uuid primary key default gen_random_uuid(),
+  email text,
+  created_at timestamptz not null default now()
+);
+create or replace function auth.uid() returns uuid language sql stable as $$
+  select nullif(current_setting('request.jwt.claims', true)::json ->> 'sub', '')::uuid;
+$$;
+grant usage on schema public, auth to anon, authenticated, service_role;
+`;
+
+/** Brings a cluster up, or returns the reason it could not. */
+function provision() {
+  const bin = findPostgresBin();
+  if (!bin) return { skip: "no PostgreSQL installation found under /usr/lib/postgresql" };
+  if (AS_ROOT) {
+    try {
+      execFileSync("id", ["postgres"], { stdio: "ignore" });
+    } catch {
+      return { skip: "running as root with no `postgres` account to drop to" };
+    }
+  }
+
+  const dir = mkdtempSync(join(tmpdir(), "bandup-billing-pg-"));
+  const data = join(dir, "data");
+  const sock = join(dir, "sock");
+
+  try {
+    execFileSync("mkdir", ["-p", sock]);
+    if (AS_ROOT) execFileSync("chown", ["-R", "postgres:postgres", dir]);
+
+    const run = makeRunner(bin, dir);
+    run("initdb", ["-D", data, "-U", "postgres", "--auth=trust", "-E", "UTF8"]);
+    run("pg_ctl", [
+      "-D",
+      data,
+      "-o",
+      `-p 5432 -k ${sock} -c listen_addresses='' -c fsync=off`,
+      "-w",
+      "-l",
+      join(dir, "log"),
+      "start",
+    ]);
+
+    const psql = (sql) =>
+      run("psql", ["-h", sock, "-p", "5432", "-U", "postgres", "-d", "postgres", "-tAq", "-v", "ON_ERROR_STOP=1", "-c", sql]).trim();
+
+    const psqlFile = (file) =>
+      run("psql", ["-h", sock, "-p", "5432", "-U", "postgres", "-d", "postgres", "-q", "-v", "ON_ERROR_STOP=1", "-f", file]);
+
+    return { bin, dir, data, sock, run, psql, psqlFile };
+  } catch (err) {
+    rmSync(dir, { recursive: true, force: true });
+    return { skip: `could not start a cluster (${err instanceof Error ? err.message.split("\n")[0] : err})` };
+  }
+}
+
+function teardown(pg) {
+  try {
+    pg.run("pg_ctl", ["-D", pg.data, "-m", "immediate", "-w", "stop"]);
+  } catch {
+    // Already down, or never came up. Either way the directory goes next.
+  }
+  rmSync(pg.dir, { recursive: true, force: true });
+}
+
+const MIGRATIONS = join(process.cwd(), "supabase", "migrations");
+
+test("the webhook's idempotency holds in the database that enforces it", async (t) => {
+  const pg = provision();
+  if (pg.skip) {
+    t.diagnostic(`skipped: ${pg.skip}`);
+    console.log(`  (skipped: ${pg.skip} — this file proves nothing on this machine)`);
+    return;
+  }
+
+  try {
+    // The stub, then every migration in filename order, exactly as a project
+    // applies them. 0005's storage steps are guarded and report notices here.
+    const stubFile = join(pg.dir, "stub.sql");
+    execFileSync("tee", [stubFile], { input: SUPABASE_STUB, stdio: ["pipe", "ignore", "ignore"] });
+    if (AS_ROOT) execFileSync("chown", ["postgres:postgres", stubFile]);
+    pg.psqlFile(stubFile);
+
+    for (const file of readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()) {
+      const source = join(pg.dir, file);
+      execFileSync("tee", [source], {
+        input: readFileSync(join(MIGRATIONS, file)),
+        stdio: ["pipe", "ignore", "ignore"],
+      });
+      if (AS_ROOT) execFileSync("chown", ["postgres:postgres", source]);
+      pg.psqlFile(source);
+    }
+
+    const user = pg.psql("insert into auth.users (email) values ('learner@example.test') returning id");
+    assert.match(user, /^[0-9a-f-]{36}$/);
+
+    const apply = (args) =>
+      pg.psql(`select public.apply_provider_subscription_event(${args})`);
+
+    const q = (v) => (v === null ? "null" : `'${String(v).replace(/'/g, "''")}'`);
+    const call = ({
+      id,
+      at,
+      userId = null,
+      status,
+      tier = "pro",
+      sub = "sub_1",
+      cus = "cus_1",
+      end = null,
+      cancel = false,
+    }) =>
+      apply(
+        [
+          `'stripe'`,
+          q(id),
+          `${q(at)}::timestamptz`,
+          `'{"id":${JSON.stringify(id)}}'::jsonb`,
+          userId === null ? "null" : `${q(userId)}::uuid`,
+          q(status),
+          q(tier),
+          q(cus),
+          q(sub),
+          `'price_month'`,
+          end === null ? "null" : `${q(end)}::timestamptz`,
+          cancel ? "true" : "false",
+        ].join(","),
+      );
+
+    /* ------------------------------------------------------------------ */
+
+    await t.test("the first delivery applies, and a redelivery does not", () => {
+      assert.equal(
+        call({ id: "evt_1", at: "2026-08-01T10:00:00Z", userId: user, status: "active", end: "2026-09-01T10:00:00Z" }),
+        "applied",
+      );
+      // The redelivery Stripe makes when it did not see a 200 quickly enough,
+      // here carrying a payload that would revoke the subscription if it were
+      // processed a second time.
+      assert.equal(
+        call({ id: "evt_1", at: "2026-08-01T10:00:00Z", userId: user, status: "canceled", end: null }),
+        "duplicate",
+      );
+      assert.equal(pg.psql("select count(*) from public.subscriptions"), "1");
+      assert.equal(pg.psql("select status from public.subscriptions"), "active");
+      assert.equal(pg.psql(`select tier from public.resolve_entitlement('${user}')`), "pro");
+    });
+
+    await t.test("a renewal with no metadata still finds the account", () => {
+      assert.equal(
+        call({ id: "evt_2", at: "2026-09-01T10:00:01Z", status: "active", end: "2026-10-01T10:00:00Z" }),
+        "applied",
+      );
+      assert.equal(pg.psql("select count(*) from public.subscriptions"), "1");
+    });
+
+    await t.test("a cancellation drops the entitlement", () => {
+      assert.equal(
+        call({ id: "evt_3", at: "2026-09-10T10:00:00Z", userId: user, status: "canceled", end: "2026-10-01T10:00:00Z", cancel: true }),
+        "applied",
+      );
+      assert.equal(pg.psql(`select tier from public.resolve_entitlement('${user}')`), "free");
+    });
+
+    await t.test("an older event delivered late cannot resurrect a cancellation", () => {
+      // The bug idempotency alone does not prevent: every event is distinct, so
+      // every event is applied, and the last one to *arrive* wins.
+      assert.equal(
+        call({ id: "evt_4", at: "2026-08-15T10:00:00Z", userId: user, status: "active", end: "2026-10-01T10:00:00Z" }),
+        "stale",
+      );
+      assert.equal(pg.psql(`select tier from public.resolve_entitlement('${user}')`), "free");
+      // Recorded all the same, so it is never reconsidered.
+      assert.equal(pg.psql("select count(*) from public.provider_events where event_id = 'evt_4'"), "1");
+    });
+
+    await t.test("a renewal finds the account through the customer alone", () => {
+      // No metadata and a subscription id this database has not seen, but a
+      // customer it has: the second of the three ways an event is placed.
+      assert.equal(
+        call({ id: "evt_5", at: "2026-09-21T10:00:00Z", status: "active", sub: "sub_2", end: "2026-11-01T10:00:00Z" }),
+        "applied",
+      );
+      assert.equal(pg.psql("select count(*) from public.subscriptions"), "2");
+    });
+
+    await t.test("an event for a subscription and customer nobody here has seen writes nothing", () => {
+      assert.equal(
+        call({
+          id: "evt_6",
+          at: "2026-09-20T10:00:00Z",
+          status: "active",
+          sub: "sub_unknown",
+          cus: "cus_unknown",
+        }),
+        "unknown_user",
+      );
+      // Not even a claim: a redelivery after the account has been linked by
+      // some other event must still be free to apply.
+      assert.equal(pg.psql("select count(*) from public.provider_events where event_id = 'evt_6'"), "0");
+    });
+
+    await t.test("a signed-in learner cannot call any of it", () => {
+      // The whole of ACCOUNTS.md threat 3, asked of the database directly —
+      // which is what a stolen token pointed at PostgREST would do.
+      const denied = pg.psql(`
+        do $p$
+        declare u uuid; begin
+          select id into u from auth.users limit 1;
+          perform set_config('request.jwt.claims', json_build_object('sub', u, 'role','authenticated')::text, true);
+          set local role authenticated;
+          begin
+            perform public.apply_provider_subscription_event(
+              'stripe','evt_hack', now(), '{}'::jsonb, u, 'active','pro','c','s',null,null,false);
+            raise exception 'a signed-in user granted themselves a subscription';
+          exception when insufficient_privilege then null;
+          end;
+          begin
+            insert into public.subscriptions (user_id, provider, status, tier) values (u,'stripe','active','pro');
+            raise exception 'a signed-in user inserted their own subscription';
+          exception when insufficient_privilege then null;
+          end;
+        end $p$;
+        select 'denied'`);
+      assert.equal(denied, "denied");
+    });
+  } finally {
+    teardown(pg);
+  }
+});

@@ -1,5 +1,6 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { rpc } from "@/lib/auth/supabase";
+import type { Tier } from "./tiers";
 
 /*
   The one function that answers "what is this user entitled to?".
@@ -14,7 +15,15 @@ import { rpc } from "@/lib/auth/supabase";
 const MODULE = "lib/billing/entitlements.ts";
 
 export type Role = "user" | "admin";
-export type Tier = "free" | "pro" | "admin";
+
+/*
+  `Tier` is defined in ./tiers alongside what each tier costs and unlocks, and
+  re-exported here so that everything already importing it from this module
+  keeps working. The dependency runs that way round on purpose: ./tiers is
+  imported by the pricing page, so it must stay free of anything that reaches a
+  secret, and this file reaches one two hops down through lib/auth/supabase.ts.
+*/
+export type { Tier };
 
 export interface Entitlement {
   role: Role;

@@ -79,8 +79,14 @@ timezone the day belongs to.
 | `lib/auth/session.ts` | Bearer token in, user or null out. |
 | `lib/auth/errors.ts` | Messages that say what to do and nothing about the server. |
 | `lib/billing/entitlements.ts` | The one answer to "what is this user entitled to?". |
-| `lib/billing/providers.ts` | The shape Stripe and Apple must both produce. Phase 3. |
-| `lib/usage/limits.ts` | The numbers. |
+| `lib/billing/providers.ts` | The shape Stripe and Apple must both produce. |
+| `lib/billing/tiers.ts` | What each tier costs, unlocks and may spend. Pure; safe in a browser. |
+| `lib/billing/gate.ts` | "May this tier use this feature?", answered server-side. |
+| `lib/billing/useTier.ts` | The same question answered in the browser, for drawing only. |
+| `lib/billing/stripe.ts` | Signature verification in Web Crypto, and two form-encoded POSTs. |
+| `lib/billing/subscriptions.ts` | The one place a subscription row comes into existence. |
+| `lib/billing/env.ts` | The Stripe variables, and the plan → Price id mapping. |
+| `lib/usage/limits.ts` | The numbers, derived from `tiers.ts`. |
 | `lib/usage/guard.ts` | The one call the AI routes make. |
 | `lib/http/cors.ts` | CORS, applied per route. |
 | `lib/http/trust.ts` | The forgeable-header list the tests enforce. |
@@ -169,10 +175,18 @@ what they have spent and cannot delete the evidence to get it back. Verified —
 profile row, and the server believes it.
 
 **The defence.** A row in `public.subscriptions` can only be written by the
-service role, which only server code holds. Phase 3 writes one from a Stripe
-webhook whose signature verified, or from an App Store transaction the server
-re-fetched from Apple. A purchase reported by the app is a reason to go and ask
-Apple; it is never itself the answer.
+service role, which only server code holds. It is written from a Stripe webhook
+whose signature verified over the raw bytes it arrived as — and, when iOS
+exists, from an App Store transaction the server re-fetched from Apple. A
+purchase reported by the app is a reason to go and ask Apple; it is never
+itself the answer.
+
+The signature is checked *before* the body is parsed, and this is not
+stylistic. Parsing first means a forged payload has already been through JSON
+parsing and everything downstream of it, and it means verifying a
+re-serialisation rather than what was actually signed. `req.text()` is read
+once and the same string goes to both steps. See "The tiers, and how one gets
+bought" below for the rest of the path.
 
 `resolve_entitlement` requires `status in ('active','trialing')` **and**
 `current_period_end` either null or in the future. Verified: an expired
@@ -412,22 +426,210 @@ Nothing below exists yet. In dependency order:
 
 ## Phase 3 — payments
 
-1. **Stripe, web.** Checkout, then a webhook route that verifies the signature
-   *before* parsing, records the event id in `provider_events` for idempotency,
-   and upserts `subscriptions`. Implement `BillingProvider` from
-   `lib/billing/providers.ts`.
-2. **Apple In-App Purchase, iOS.** StoreKit 2 in the native layer. The server
-   verifies the signed transaction against Apple's public keys and subscribes to
-   App Store Server Notifications v2 for renewals, cancellations and refunds. A
-   refund must revoke: a subscription the user got their money back for is not a
-   subscription.
+1. ~~**Stripe, web.**~~ **Built.** Checkout, a billing portal, and a webhook
+   that verifies the signature over the raw bytes *before* parsing, claims the
+   event id in `provider_events`, and writes `subscriptions` — all in one
+   database call, so all in one transaction. See "The tiers, and how one gets
+   bought" below.
+2. **Apple In-App Purchase, iOS.** Not built. Apple requires in-app purchase
+   for digital goods, so the App Store build cannot use the Stripe checkout and
+   an app that tried would be rejected. StoreKit 2 in the native layer; the
+   server verifies the signed transaction against Apple's public keys and
+   subscribes to App Store Server Notifications v2 for renewals, cancellations
+   and refunds. A refund must revoke: a subscription the user got their money
+   back for is not a subscription.
+
+   Everything on the server side is already provider-agnostic and was tested
+   that way — `subscriptions.provider` accepts `apple`,
+   `apply_provider_subscription_event` takes the provider as an argument, and a
+   probe writing an Apple row resolves to `pro` through exactly the same path
+   as a Stripe one. What is missing is the native layer and the receipt check,
+   and both need the Mac that everything in APPSTORE.md is waiting on.
+   `/pricing` says so rather than implying the iPhone app will take a card.
 3. **One answer, two providers.** Both write the same table and
    `resolve_entitlement` already prefers the most generous valid row, so a user
    who somehow holds both is never downgraded by whichever sorts first. Neither
    provider gets its own entitlement path.
-4. **The paywall.** Reads `/api/account/status` and nothing else. It is a
-   display of a server decision, never the decision itself — a paywall the
-   client evaluates is a paywall the client can skip.
+4. ~~**The paywall.**~~ **Built**, as `/pricing` plus a server-side gate. It
+   reads `/api/account/status` and nothing else, and what it reads decides only
+   what is drawn — every gated route asks the server before it acts.
+
+---
+
+## The tiers, and how one gets bought
+
+### Where a tier is defined
+
+`lib/billing/tiers.ts`, once. What each tier costs, what it unlocks, and its
+daily AI allowance are all in that file, and `lib/usage/limits.ts` derives the
+meter's numbers from it rather than keeping a second copy. Before that they
+were two constants that agreed only by attention, and a page promising 500
+requests while the meter enforced 200 is a support ticket per subscriber.
+
+| Tier | Price | AI calls / 24h | Tutor chat |
+| --- | --- | --- | --- |
+| Free | — | 20 | no |
+| Pro | $9 a month, or $72 a year | 500 | yes |
+| Admin | not for sale | unlimited | yes |
+
+The module is deliberately pure — no environment reads, no imports that reach
+one — because the pricing page imports it into the browser. In particular it
+must not import `lib/billing/entitlements.ts`, which reaches `lib/auth/env.ts`,
+whose source contains the literal string `SUPABASE_SERVICE_ROLE_KEY`. No secret
+would leak, but the *name* would land in `.next/static` and
+`tests/no-secret-leak.test.mjs` would fail — which is the alarm working. The
+dependency runs the other way: `entitlements.ts` imports `Tier` from `tiers.ts`.
+
+### Where a tier is enforced
+
+`lib/billing/gate.ts`, and only there. `requireFeature(req, "tutor-chat")`
+returns null to proceed or a 402 to return, and the tier it checks comes from
+`resolveEntitlement` — the database — never from anything in the request. There
+is no argument on it through which a caller can suggest an answer.
+
+`lib/billing/useTier.ts` is the client half, and it decides what to *draw*. A
+learner who edits it in dev tools changes their own screen and changes nothing
+about what any route will do. That division is the whole of threat 1 applied to
+payments.
+
+With `ACCOUNTS_ENABLED` unset the gate returns null before doing any work, the
+same way the meter does. Off is not "gating that always allows", it is no
+gating — so a feature that must not ship open before payments exist should not
+ship yet at all.
+
+### How a subscription comes into existence
+
+```
+  /pricing ──POST /api/billing/checkout {plan:"pro-monthly"}
+       │        server maps plan -> Price id from its own configuration
+       ▼
+  Stripe Checkout ── the account id is stamped into
+       │             subscription_data[metadata][bandup_user_id]
+       ▼
+  customer.subscription.created/updated/deleted
+       │
+       ▼
+  POST /api/billing/webhook/stripe
+       │  1. read the raw body as text
+       │  2. HMAC-SHA256 over `${t}.${body}` in Web Crypto, compared in
+       │     constant time against every v1 in the Stripe-Signature header
+       │  3. only then parse
+       ▼
+  apply_provider_subscription_event()   ← one call, one transaction
+       │  resolve the account, claim the event id, refuse an older event,
+       │  write the row
+       ▼
+  resolve_entitlement() answers 'pro'
+```
+
+The request chooses a **plan id** — a name this app defined — and never a Price
+id, an amount or a customer. A request that could name a Price could name the
+one-cent Price somebody made while testing, and Stripe would honour it, because
+it is a real Price in the account.
+
+### Why the whole webhook decision is one database call
+
+The obvious implementation is three round trips: record the event id, check
+whether it was already there, then upsert. That has two holes and both cost
+money.
+
+*Concurrency.* Stripe redelivers, and a redelivery can arrive while the
+original is still in flight — two Workers, two transactions, both reading "not
+seen yet". `insert … on conflict do nothing` inside one transaction closes it.
+Verified: twenty simultaneous deliveries of one event id produced one `applied`
+and nineteen `duplicate`, and one row.
+
+*Crashing in the middle.* Claim the event, then fail before writing the
+subscription, and the redelivery is refused as already handled — the learner
+has paid and has nothing. One transaction means either both happened or
+neither did.
+
+### Why an out-of-order redelivery is refused
+
+Idempotency alone does not help here. A cancellation and a redelivered older
+renewal are *different* events, so both are applied, and the last one to arrive
+wins regardless of which happened last. That is how a cancelled subscription
+comes back to life and keeps billing nobody.
+
+So `subscriptions.provider_event_at` remembers the provider's own timestamp for
+the event the row was last written from, and an older event is refused with
+`stale` — while still being recorded, so it is never reconsidered. The
+provider's clock is the right one: it is the only clock that saw both events.
+
+### What a delivery is answered with
+
+Almost everything is a 200, because a non-2xx makes Stripe retry and a retry
+has to be able to help. `duplicate`, `stale`, `unknown_user` and an unhandled
+event type are all already in their final state. An unreachable database is the
+one case that answers 503. A delivery that fails its signature check gets 400
+and nothing else — no detail about which part failed, because the only party
+who cannot already work that out is somebody guessing.
+
+### Degrading without keys
+
+Every billing route checks its configuration before it does anything, following
+`hasApiKey` in `lib/anthropic.ts`. With no `STRIPE_SECRET_KEY`, `/pricing`
+still renders both plans and their prices and says subscriptions are not open
+yet; `/api/billing/config` answers `{"checkout":false,"plans":[]}`; checkout
+and portal answer 503 with a message written for a learner. Nothing 500s, and
+nothing shows a button that fails on the first click. That is how this deploys
+until somebody sets Stripe up.
+
+### Verified
+
+Against a real Postgres 16 with the Supabase-shaped stub, all migrations
+applied — and re-run as `tests/billing-migration.test.mjs`, which provisions a
+throwaway cluster and skips loudly where it cannot:
+
+| Check | Result |
+| --- | --- |
+| First delivery writes the row and resolves to `pro` | pass |
+| Redelivery of the same event id changes nothing | pass |
+| Twenty concurrent deliveries: exactly one applied | pass |
+| A renewal carrying no metadata still finds the account | pass |
+| A renewal found through the customer id alone | pass |
+| Cancellation drops the entitlement to `free` | pass |
+| An older event delivered late is refused as `stale` | pass |
+| A stale event is still recorded, so it is never reconsidered | pass |
+| An event for an unknown subscription *and* customer writes nothing at all | pass |
+| A webhook for a deleted account is refused, not a foreign-key error | pass |
+| An Apple row grants through the same path as a Stripe one | pass |
+| `authenticated` cannot call `apply_provider_subscription_event` | permission denied |
+| `authenticated` cannot call `provider_customer_for_user` | permission denied |
+| A user still cannot insert their own subscription | permission denied |
+| 0009 re-runs cleanly | pass |
+
+And in Node, as `tests/billing-webhook.test.mjs` and
+`tests/billing-tiers.test.mjs`:
+
+| Check | Result |
+| --- | --- |
+| A genuine delivery verifies | pass |
+| A body altered by one character is refused | pass |
+| A correct digest under the wrong secret is refused | pass |
+| A captured delivery replayed an hour later is refused | pass |
+| A slow clock on our side does not throw away a genuine delivery | pass |
+| Several `v1` signatures, as during a secret rotation, still verify | pass |
+| Every Stripe status maps onto one the CHECK constraint accepts | pass |
+| A status this code has never heard of resolves to `canceled` | pass |
+| `customer.subscription.deleted` is a cancellation whatever the object says | pass |
+| Metadata claiming `admin` or `enterprise` grants `free` | pass |
+| Every tier × feature pair has a definite answer | pass |
+| `toString`, `constructor` and friends as a tier are refused | pass (was a crash — see below) |
+| The meter's numbers equal the pricing page's | pass |
+
+The prototype row is worth keeping. `TIERS["toString"]` finds
+`Object.prototype.toString`, which is truthy, so the original
+`if (!definition) return false` sailed past it and threw on `.features` — a 500
+where a refusal belonged. The test found it before anything shipped, which is
+the argument for enumerating every pair of a small function rather than
+sampling.
+
+**Not verified:** anything involving a real Stripe account. No key exists in
+this environment, so no Checkout Session has been created, no live webhook has
+been received, and the `/pricing` page has only been seen in its
+unconfigured state — which is, at least, the state it deploys in. The first
+real payment is the test that has not been run, and DEPLOY.md says so.
 
 ---
 
