@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
+import { checkAiUsage } from "@/lib/usage/guard";
 import { clampBand } from "@/lib/band";
 import { SPEAKING_CRITERIA } from "@/lib/descriptors";
 import type { SpeakingGrade } from "@/lib/types";
@@ -48,6 +49,9 @@ export async function POST(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
+
+  const denied = await checkAiUsage(req, "grade/speaking");
+  if (denied) return denied;
 
   let body: { transcript?: unknown };
   try {

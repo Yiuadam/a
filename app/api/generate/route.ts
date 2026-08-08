@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
+import { checkAiUsage } from "@/lib/usage/guard";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 
 export const maxDuration = 60;
@@ -99,6 +100,9 @@ export async function POST(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
+
+  const denied = await checkAiUsage(req, "generate");
+  if (denied) return denied;
 
   let body: { kind: "reading" | "listening"; difficulty: "medium" | "hard"; topicHint?: string };
   try {
