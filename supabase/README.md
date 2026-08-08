@@ -25,6 +25,16 @@ being recreated.
 | `0002_rls.sql` | Row Level Security. Read your own rows; write nothing. |
 | `0003_entitlements.sql` | The entitlement resolver and the usage meter, as functions callable only by the service role. |
 | `0004_admin.sql` | `set_account_role`, for promoting an account to admin. |
+| `0005_profile_fields.sql` | Display name, avatar path and date of birth on `profiles`, and a private `avatars` bucket. |
+| `0006_drop_gender_add_age_check.sql` | Drops `gender`, and makes the under-13 claim on `/privacy` a constraint rather than a sentence. |
+
+`0005` is the one file that may not do everything it says. Its storage policy
+needs ownership of `storage.objects`, which the SQL editor has on most projects
+and not on all; where it does not, the file raises a notice, applies everything
+else and carries on. That is safe — the `avatars` bucket is private, no client
+role is granted anything on it, and the application serves signed URLs — so the
+policy is a second lock rather than the only one. Add it from **Storage →
+Policies** in the dashboard if you want it.
 
 ## Making the owner an admin
 

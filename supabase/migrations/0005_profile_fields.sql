@@ -74,26 +74,51 @@ on conflict (id) do update
       file_size_limit    = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
 
--- Objects live under a folder named for the owner's id, which is what these
--- policies match on. The service role bypasses all of this; the policies exist
--- so that a token belonging to one learner cannot reach another's picture even
--- if it is presented directly to Supabase.
-drop policy if exists "avatars are readable by their owner" on storage.objects;
-create policy "avatars are readable by their owner"
-  on storage.objects for select
-  using (bucket_id = 'avatars' and owner = auth.uid());
+-- Objects live under a folder named for the owner's id, which is what the
+-- policy below matches on. Two things about it are worth stating plainly,
+-- because the obvious version of this policy does nothing at all.
+--
+-- It matches on the *path*, not on `owner`. Every avatar is uploaded by the
+-- server holding the service role key, and the service role has no auth.uid()
+-- — so `owner` is null on every row this application will ever create, and a
+-- policy reading `owner = auth.uid()` can never match anything. It looks like
+-- a lock and is a picture of one.
+--
+-- It grants select and nothing else. The application writes through the
+-- service role, which bypasses this policy entirely, so a client write grant
+-- would buy no feature and would let anyone with a token fill their own folder
+-- with 2 MB files. Same rule as 0002: read your own rows, write nothing.
+--
+-- The whole block is guarded, because `storage.objects` is owned by
+-- `supabase_storage_admin` and on some projects the SQL editor is not a member
+-- of that role. There the statement fails with `must be owner of table
+-- objects`, which would otherwise abort this file after the bucket was already
+-- created. A missing policy costs nothing here — no client is given a storage
+-- grant, and the application serves signed URLs rather than direct reads — so
+-- a notice is the honest response, not a failed migration. Add it from
+-- Storage → Policies in the dashboard if you want the second lock.
+do $guard$
+begin
+  execute $stmt$
+    drop policy if exists "avatars are readable by their owner" on storage.objects
+  $stmt$;
+  execute $stmt$
+    create policy "avatars are readable by their owner"
+      on storage.objects for select
+      to authenticated
+      using (
+        bucket_id = 'avatars'
+        and split_part(name, '/', 1) = (select auth.uid())::text
+      )
+  $stmt$;
 
-drop policy if exists "avatars are writable by their owner" on storage.objects;
-create policy "avatars are writable by their owner"
-  on storage.objects for insert
-  with check (bucket_id = 'avatars' and owner = auth.uid());
-
-drop policy if exists "avatars are replaceable by their owner" on storage.objects;
-create policy "avatars are replaceable by their owner"
-  on storage.objects for update
-  using (bucket_id = 'avatars' and owner = auth.uid());
-
-drop policy if exists "avatars are deletable by their owner" on storage.objects;
-create policy "avatars are deletable by their owner"
-  on storage.objects for delete
-  using (bucket_id = 'avatars' and owner = auth.uid());
+  -- Policies from an earlier draft of this file that keyed on `owner`. They
+  -- never matched a row; dropping them stops them reading as protection.
+  execute $stmt$drop policy if exists "avatars are writable by their owner" on storage.objects$stmt$;
+  execute $stmt$drop policy if exists "avatars are replaceable by their owner" on storage.objects$stmt$;
+  execute $stmt$drop policy if exists "avatars are deletable by their owner" on storage.objects$stmt$;
+exception
+  when insufficient_privilege then
+    raise notice 'Skipped the avatars storage policy: this project''s SQL editor does not own storage.objects. The bucket is private and every read is a signed URL issued by the server, so nothing is exposed. Add the policy from Storage -> Policies if you want it.';
+end;
+$guard$;
