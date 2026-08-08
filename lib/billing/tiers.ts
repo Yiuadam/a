@@ -126,7 +126,7 @@ export const TIERS: Record<Tier, TierDefinition> = {
     includes: [
       "Placement test, study plan and all drills — unlimited",
       "2 listening and 2 reading papers a week",
-      "1 essay and 1 speaking answer marked a week",
+      "1 writing and 1 speaking session a week, 1 question in the speaking",
       "20 AI requests a day, in any mix",
       "Progress synced across your devices",
     ],
@@ -134,14 +134,24 @@ export const TIERS: Record<Tier, TierDefinition> = {
   pro: {
     id: "pro",
     name: "Standard",
-    blurb: "For the weeks before the exam, when you want feedback on everything you write.",
+    blurb: "For the weeks before the exam, when one paper a week is not enough.",
     dailyAiCalls: 500,
     features: [...EVERYTHING_METERED, "tutor-chat"],
+    /*
+      Both halves, in the order they matter.
+
+      Standard does not ration sessions — that is what it unlocks — and it
+      does cap the model, at 500 a day rather than 20. An early draft said
+      only "no weekly limits", which reads as no limit at all and is the
+      sentence a subscriber would remember; a later one said "many more
+      sessions", which undersold the thing that is actually unlimited. Saying
+      both, plainly, costs one line and is the only version that is true.
+    */
     includes: [
-      "Everything in Free, with no weekly limits",
+      "No weekly limit on practice sessions, in any skill",
       "The full mock exam — all four skills, timed",
       "The AI tutor chat, whenever you are stuck",
-      "500 AI requests a day",
+      "500 AI requests a day instead of 20",
       "Cancel any time, one button",
     ],
   },
