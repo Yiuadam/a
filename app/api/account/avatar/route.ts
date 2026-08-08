@@ -29,10 +29,33 @@ import { withCors } from "@/lib/http/cors";
   The path is built from the session user's id and never from anything in the
   request, so there is no filename a caller can send that reaches another
   learner's folder.
+
+  ---------------------------------------------------------------------------
+  Why the size limit did not move when the app started accepting 10 MB photos
+
+  The account screen now lets a learner pick a picture of any resolution up to
+  ten megabytes. Nothing here changed to allow that, and nothing here should
+  have: components/account/condense.ts crops and re-encodes the picture in the
+  browser first, so what arrives is a 512-pixel JPEG of perhaps sixty
+  kilobytes. The learner's ceiling and this route's ceiling are answers to
+  different questions — theirs is "what may I choose", which should be
+  generous, and this one is "how much may an authenticated caller push into
+  storage per request", which should not be.
+
+  Raising this to ten would multiply the cost of the cheapest abuse there is by
+  five and buy nobody anything, since no legitimate upload from this app comes
+  close to two. It would also put the route above the bucket, whose
+  file_size_limit is two megabytes (0005_profile_fields.sql) — and a request
+  accepted here and refused by storage fails later, less clearly, and after the
+  bytes have already crossed the network.
 */
 
 export const dynamic = "force-dynamic";
 
+/*
+  Two megabytes, matching the bucket. Every real upload is a small fraction of
+  it; anything near it did not come from this app's own screen.
+*/
 const MAX_BYTES = 2 * 1024 * 1024;
 
 /*
@@ -93,7 +116,14 @@ async function handlePOST(req: Request) {
     return safeJsonError("That file is empty. Please choose another.", 400);
   }
   if (file.size > MAX_BYTES) {
-    return safeJsonError("That picture is larger than 2 MB. Please choose a smaller one.", 413);
+    /*
+      A learner using the app should never see this, because the browser has
+      already shrunk the picture by the time it is sent. When it does appear,
+      something went wrong on the way rather than the photo being unsuitable —
+      so the sentence says to try again rather than telling someone to go and
+      find a smaller picture they do not need.
+    */
+    return safeJsonError("That picture didn't arrive in one piece. Please try again.", 413);
   }
 
   const buffer = await file.arrayBuffer();
