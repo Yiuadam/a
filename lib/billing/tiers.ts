@@ -138,16 +138,17 @@ export const TIERS: Record<Tier, TierDefinition> = {
     dailyAiCalls: 500,
     features: [...EVERYTHING_METERED, "tutor-chat"],
     /*
-      "More", not "unlimited", and the AI cap is named rather than implied
-      absent. An earlier draft said "no weekly limits" in one bullet and
-      "500 AI requests a day" two lines below it, which is a page arguing with
-      itself — and the bullet a subscriber would remember is the one that
-      promised no limit. What Standard actually buys is more sessions and a
-      much larger allowance, and both of those are worth paying for without
-      being dressed up as infinite.
+      Both halves, in the order they matter.
+
+      Standard does not ration sessions — that is what it unlocks — and it
+      does cap the model, at 500 a day rather than 20. An early draft said
+      only "no weekly limits", which reads as no limit at all and is the
+      sentence a subscriber would remember; a later one said "many more
+      sessions", which undersold the thing that is actually unlimited. Saying
+      both, plainly, costs one line and is the only version that is true.
     */
     includes: [
-      "Many more practice sessions in every skill",
+      "No weekly limit on practice sessions, in any skill",
       "The full mock exam — all four skills, timed",
       "The AI tutor chat, whenever you are stuck",
       "500 AI requests a day instead of 20",
