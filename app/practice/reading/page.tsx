@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import ScoreFooter from "@/components/ScoreFooter";
 import Review from "@/components/Review";
 import TestQuestions, {
   type AnswerMap,
@@ -225,6 +226,20 @@ function ReadingTestPageRunner() {
           )}
         </div>
       </div>
+
+      {/*
+        The score again, where the learner actually is when the paper is
+        marked. The card at the top of the page heads the review; this closes
+        the paper. See components/ScoreFooter.tsx.
+      */}
+      {submitted && band !== null && (
+        <ScoreFooter
+          module="reading"
+          band={band}
+          raw={raw}
+          total={questionCount(test.questions)}
+        />
+      )}
     </div>
   );
 }

@@ -120,15 +120,24 @@ export default function Dashboard() {
                       <p className="mt-1 text-sm leading-6 text-slate-600">{m.blurb}</p>
                     </div>
                   </div>
-                  {latest ? (
-                    <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-                      {latest.band}
-                    </span>
-                  ) : isNew ? (
+                  {/*
+                    No band on the card.
+
+                    It used to show the last band as a bare number in a pill,
+                    which nobody could read: a lone figure beside a heading
+                    looks like a count of something — tests taken, questions
+                    left — and a low band makes that worse, because "2" reads
+                    far more like two of a thing than like a score. Labelling
+                    it "Band 2" fixed the ambiguity and made the card wordier
+                    for a number that is not what the card is for. The card is
+                    a door into a skill; History and the dashboard hero are
+                    where scores belong, and both say what they mean.
+                  */}
+                  {isNew && (
                     <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
                       New
                     </span>
-                  ) : null}
+                  )}
                 </div>
               </Link>
             );
