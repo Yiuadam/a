@@ -4,6 +4,7 @@ import Link from "next/link";
 import BandBadge from "@/components/BandBadge";
 import { useProfile } from "@/lib/hooks";
 import type { ModuleName } from "@/lib/types";
+import { Icon } from "@/components/Icons";
 
 const MODULES: { key: ModuleName; label: string; href: string; blurb: string; icon: string }[] = [
   {
@@ -11,28 +12,28 @@ const MODULES: { key: ModuleName; label: string; href: string; blurb: string; ic
     label: "Listening",
     href: "/practice",
     blurb: "Recordings read aloud to you, then questions",
-    icon: "🎧",
+    icon: "listening",
   },
   {
     key: "reading",
     label: "Reading",
     href: "/practice",
     blurb: "Real passage types with real question styles",
-    icon: "📖",
+    icon: "reading",
   },
   {
     key: "writing",
     label: "Writing",
     href: "/practice/writing",
     blurb: "Write an essay, get examiner-style feedback",
-    icon: "✍️",
+    icon: "writing",
   },
   {
     key: "speaking",
     label: "Speaking",
     href: "/speaking",
     blurb: "Talk to an AI examiner and get scored",
-    icon: "🗣️",
+    icon: "speaking",
   },
 ];
 
@@ -42,13 +43,13 @@ const STUDY = [
     href: "/grammar",
     label: "Grammar",
     blurb: "Ten topics, the rule then the drill",
-    icon: "📐",
+    icon: "grammar",
   },
   {
     href: "/vocabulary",
     label: "Vocabulary",
     blurb: "Collocations, phrasal verbs, word families",
-    icon: "🗂️",
+    icon: "vocabulary",
   },
 ];
 
@@ -102,9 +103,7 @@ export default function Dashboard() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl" aria-hidden>
-                      {m.icon}
-                    </span>
+                    <Icon name={m.icon} className="mt-0.5 h-6 w-6 shrink-0 text-indigo-600" />
                     <div>
                       <h3 className="font-semibold text-slate-900">{m.label}</h3>
                       <p className="mt-1 text-sm leading-6 text-slate-600">{m.blurb}</p>
@@ -138,9 +137,7 @@ export default function Dashboard() {
               className="card block transition-all hover:-translate-y-0.5 hover:border-indigo-300"
             >
               <div className="flex items-start gap-3">
-                <span className="text-2xl" aria-hidden>
-                  {s.icon}
-                </span>
+                <Icon name={s.icon} className="mt-0.5 h-6 w-6 shrink-0 text-indigo-600" />
                 <div>
                   <h3 className="font-semibold text-slate-900">{s.label}</h3>
                   <p className="mt-1 text-sm leading-6 text-slate-600">{s.blurb}</p>

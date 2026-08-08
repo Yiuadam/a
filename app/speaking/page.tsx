@@ -37,6 +37,7 @@ import {
   type LocalStatus,
 } from "@/lib/transcribe";
 import type { SpeakingCueCard, SpeakingGrade, SpeakingTopicsData } from "@/lib/types";
+import { SpeakingIcon } from "@/components/Icons";
 
 const data = speakingData as SpeakingTopicsData;
 
@@ -403,9 +404,7 @@ export default function SpeakingPage() {
     return (
       <div className="mx-auto flex min-h-[55vh] max-w-xl items-center">
         <div className="card w-full space-y-4 text-center">
-          <div className="text-4xl" aria-hidden>
-            🗣️
-          </div>
+          <SpeakingIcon className="mx-auto h-10 w-10 text-indigo-600" />
           <h1 className="text-[26px] font-semibold text-slate-900">Mock speaking test</h1>
           <p className="text-[15px] leading-7 text-slate-600">
             An AI examiner asks you questions out loud, you answer out loud, and at the end you

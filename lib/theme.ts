@@ -1,9 +1,9 @@
 export type Theme = "warm" | "light" | "dark";
 
 export const THEMES: { id: Theme; label: string; icon: string; hint: string }[] = [
-  { id: "warm", label: "Warm", icon: "☕", hint: "Cream paper and clay — easiest on the eyes" },
-  { id: "light", label: "Light", icon: "☀", hint: "Crisp white and indigo" },
-  { id: "dark", label: "Dark", icon: "☾", hint: "Low light, for late sessions" },
+  { id: "warm", label: "Warm", icon: "theme-warm", hint: "Cream paper and clay — easiest on the eyes" },
+  { id: "light", label: "Light", icon: "theme-light", hint: "Crisp white and indigo" },
+  { id: "dark", label: "Dark", icon: "theme-dark", hint: "Low light, for late sessions" },
 ];
 
 export const THEME_KEY = "bandup.theme";

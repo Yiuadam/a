@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { Icon } from "@/components/Icons";
 import {
   THEMES,
   getServerTheme,
@@ -39,7 +40,7 @@ export default function ThemeToggle() {
                 : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
             }`}
           >
-            <span aria-hidden>{t.icon}</span>
+            <Icon name={t.icon} className="h-4 w-4" />
           </button>
         );
       })}

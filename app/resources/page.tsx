@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { Icon } from "@/components/Icons";
 
 const SECTIONS = [
   {
-    icon: "🎧",
+    icon: "listening",
     title: "Listening",
     time: "30 minutes · 40 questions · 4 sections",
     tips: [
@@ -14,7 +15,7 @@ const SECTIONS = [
     ],
   },
   {
-    icon: "📖",
+    icon: "reading",
     title: "Reading",
     time: "60 minutes · 40 questions · 3 passages",
     tips: [
@@ -26,7 +27,7 @@ const SECTIONS = [
     ],
   },
   {
-    icon: "✍️",
+    icon: "writing",
     title: "Writing",
     time: "60 minutes · Task 1 (20 min) + Task 2 (40 min)",
     tips: [
@@ -39,7 +40,7 @@ const SECTIONS = [
     ],
   },
   {
-    icon: "🗣️",
+    icon: "speaking",
     title: "Speaking",
     time: "11–14 minutes · 3 parts, face to face",
     tips: [
@@ -97,9 +98,7 @@ export default function ResourcesPage() {
       {SECTIONS.map((s) => (
         <section key={s.title} className="card">
           <div className="flex items-baseline gap-3">
-            <span className="text-2xl" aria-hidden>
-              {s.icon}
-            </span>
+            <Icon name={s.icon} className="h-6 w-6 shrink-0 translate-y-1 text-indigo-600" />
             <div>
               <h2 className="text-base font-semibold text-slate-900">{s.title}</h2>
               <p className="text-xs text-slate-500">{s.time}</p>
