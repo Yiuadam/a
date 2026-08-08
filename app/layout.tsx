@@ -97,7 +97,32 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 </Link>
               ))}
             </nav>
-            <div className="shrink-0">
+            {/*
+              Account sits beside the theme toggle rather than in NAV, which is
+              already seven items on a phone-width scroller. It is also not a
+              destination in the way "Practice" is — most visits never need it,
+              because everything on this app works signed out.
+            */}
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              <Link
+                href="/account"
+                aria-label="Your account"
+                className="rounded-xl px-2.5 py-2 text-sm text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
+              >
+                <svg
+                  viewBox="0 0 20 20"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="10" cy="6.5" r="3.2" />
+                  <path d="M3.8 17c0-3.3 2.8-5.4 6.2-5.4s6.2 2.1 6.2 5.4" />
+                </svg>
+              </Link>
               <ThemeToggle />
             </div>
           </div>

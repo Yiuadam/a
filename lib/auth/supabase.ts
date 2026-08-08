@@ -69,6 +69,92 @@ export async function rpc<T>(fn: string, args: Record<string, unknown>): Promise
   return (await res.json()) as T;
 }
 
+/**
+ * Emails a one-time sign-in link.
+ *
+ * This is the whole of account recovery, and it is worth being explicit about
+ * why an OAuth-only app needs it. If the only ways in are Google and Apple,
+ * then losing the Google account loses the BandUp account with it — the study
+ * plan, the placement result, every saved word — and there is no one to appeal
+ * to, because the app never knew the user by anything except that identity. A
+ * link sent to the address on file is the second door.
+ *
+ * Supabase matches on email, so a link sent to the address a Google identity
+ * already carries signs into that same account rather than making a second
+ * one.
+ *
+ * Returns true when the request was accepted. It deliberately does not report
+ * whether the address is registered — see the route for why that matters.
+ */
+export async function sendMagicLink(email: string, redirectTo: string): Promise<boolean> {
+  let res: Response;
+  try {
+    res = await request(`/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
+      method: "POST",
+      // `should_create_user: false` is the difference between recovering an
+      // account and quietly minting one. Someone typing an address they never
+      // registered should be told nothing and given nothing, not handed a new
+      // empty account under an address they may not own.
+      body: JSON.stringify({ email, should_create_user: false }),
+    });
+  } catch {
+    return false;
+  }
+  return res.ok;
+}
+
+export interface RefreshedSession {
+  accessToken: string;
+  refreshToken: string | null;
+  expiresIn: number | null;
+  email: string | null;
+}
+
+/**
+ * Trades a refresh token for a new access token.
+ *
+ * Mediated here rather than done in the browser for the same reason sign-in
+ * is: GoTrue wants the anon key as `apikey`, and no Supabase credential is
+ * allowed into a client bundle. Returns null for a spent or forged token —
+ * the caller signs the user out rather than retrying, because a refresh token
+ * the issuer has rejected does not improve on a second attempt.
+ */
+export async function refreshAccessToken(refreshToken: string): Promise<RefreshedSession | null> {
+  if (!refreshToken || refreshToken.length > 4096) return null;
+
+  let res: Response;
+  try {
+    res = await request("/auth/v1/token?grant_type=refresh_token", {
+      method: "POST",
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    return null;
+  }
+  const session = body as {
+    access_token?: unknown;
+    refresh_token?: unknown;
+    expires_in?: unknown;
+    user?: { email?: unknown };
+  };
+  if (typeof session.access_token !== "string" || session.access_token.length === 0) return null;
+
+  return {
+    accessToken: session.access_token,
+    refreshToken: typeof session.refresh_token === "string" ? session.refresh_token : null,
+    expiresIn: typeof session.expires_in === "number" ? session.expires_in : null,
+    email: typeof session.user?.email === "string" ? session.user.email : null,
+  };
+}
+
 export interface AuthedUser {
   id: string;
   email: string | null;

@@ -1,0 +1,51 @@
+import { NextResponse } from "next/server";
+import { accountsEnabled } from "@/lib/auth/env";
+import { supabaseConfigured, refreshAccessToken } from "@/lib/auth/supabase";
+import { logInternal } from "@/lib/auth/errors";
+
+/*
+  Renews an access token.
+
+  Without this the session lasts as long as one access token — an hour by
+  Supabase's default — and a learner mid-way through a mock speaking test is
+  signed out with no explanation. The refresh token is held by the browser
+  alongside the access token and spent here, where the anon key lives.
+*/
+
+export const dynamic = "force-dynamic";
+
+export async function POST(req: Request) {
+  if (!accountsEnabled() || !supabaseConfigured()) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    body = null;
+  }
+  const token = (body as { refresh_token?: unknown } | null)?.refresh_token;
+  if (typeof token !== "string" || token.length === 0) {
+    return NextResponse.json({ error: "Signed out." }, { status: 401 });
+  }
+
+  const session = await refreshAccessToken(token);
+  if (!session) {
+    /*
+      401 rather than 500 even when the cause was an outage. The client's only
+      sensible response to either is to sign out and offer sign-in again, and
+      distinguishing them here would tell an unauthenticated caller whether a
+      given refresh token was real.
+    */
+    logInternal("auth/refresh", new Error("refresh rejected"));
+    return NextResponse.json({ error: "Signed out." }, { status: 401 });
+  }
+
+  return NextResponse.json({
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken,
+    expiresAt: session.expiresIn ? Date.now() + session.expiresIn * 1000 : null,
+    email: session.email,
+  });
+}
