@@ -4,6 +4,7 @@ import Link from "next/link";
 import LookupProvider from "@/components/Lookup";
 import ThemeToggle from "@/components/ThemeToggle";
 import AutoSync from "@/components/AutoSync";
+import MobileNav from "@/components/MobileNav";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -35,10 +36,7 @@ const NAV = [
   { href: "/plan", label: "My plan" },
   /*
     Next to the plan on purpose: the plan is what to do next, history is
-    whether it is working. The nav scrolls inside itself (see the header
-    comment below), so adding to this list costs the layout nothing — what it
-    does cost is a destination pushed past the fold, which is why the fade on
-    .nav-scroll now applies at every width and not only on a phone.
+    whether it is working.
   */
   { href: "/history", label: "History" },
   { href: "/practice", label: "Practice" },
@@ -48,9 +46,8 @@ const NAV = [
   /*
     Beside Guides rather than beside Practice, because the two of them answer
     the same kind of moment: the learner has stopped practising and wants
-    something explained rather than more to do. It sits before Guides so that
-    the pair of them read as one idea; both are past the fold on a desktop,
-    which is a real cost and is what the fade above is now for.
+    something explained rather than more to do. It sits before Guides so the
+    pair of them read as one idea.
   */
   { href: "/chat", label: "Ask a tutor" },
   { href: "/resources", label: "Guides" },
@@ -77,14 +74,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         {/*
-          The header has to survive a narrow phone with nine destinations in
-          it. The logo and the theme toggle are pinned and never shrink; the
-          nav between them takes whatever is left and scrolls inside itself, so
-          a long list of links can never widen the page. The wordmark is hidden
-          on the smallest screens to hand those pixels to the nav.
+          Two headers in one, split at md.
+
+          Below it, the destinations live behind a menu button — see
+          components/MobileNav.tsx for why the horizontal scroller that used to
+          be here was the wrong answer. Above it they sit inline as usual.
+
+          --header-h is the header's own height, published as a custom property
+          so the menu panel can hang off the bottom edge of it without either
+          side hard-coding a number the other could change.
         */}
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/85 backdrop-blur">
-          <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 sm:gap-3 sm:px-5">
+        <header
+          className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/85 backdrop-blur"
+          style={{ "--header-h": "3.75rem" } as React.CSSProperties}
+        >
+          <div className="mx-auto flex h-[var(--header-h)] max-w-4xl items-center gap-2 px-4 sm:gap-3 sm:px-5">
             <Link
               href="/"
               className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
@@ -112,7 +116,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               />
               <span className="hidden xs:inline">BandUp</span>
             </Link>
-            <nav className="nav-scroll no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
+            {/*
+              min-w-0 keeps this from forcing the row wider than the screen if
+              the list ever outgrows the space; below md it is not rendered at
+              all, so the phone never sees it.
+            */}
+            <nav
+              aria-label="Main"
+              className="hidden min-w-0 flex-1 items-center gap-1 text-sm md:flex"
+            >
               {NAV.map((item) => (
                 <Link
                   key={item.href}
@@ -123,13 +135,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 </Link>
               ))}
             </nav>
+            {/* Takes the space the desktop nav would have, so the account and
+                theme controls stay pinned right on a phone. */}
+            <div className="flex-1 md:hidden" />
             {/*
               Account sits beside the theme toggle rather than in NAV, which is
-              already nine items on a scroller that overflows at every width. It is also not a
-              destination in the way "Practice" is — most visits never need it,
-              because everything on this app works signed out.
+              already nine items and full. It is also not a destination in the
+              way "Practice" is — most visits never need it, because everything
+              on this app works signed out.
             */}
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              <MobileNav items={NAV} />
               <Link
                 href="/account"
                 aria-label="Your account"
@@ -167,9 +183,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </LookupProvider>
         {/*
           The privacy policy lives here rather than in NAV: the header is
-          already tight at seven items on a phone, and this is a page a learner
-          visits once, if ever — while Apple needs it publicly reachable to
-          accept a submission at all.
+          already full, and this is a page a learner visits once, if ever —
+          while Apple needs it publicly reachable to accept a submission at all.
         */}
         <footer className="mt-4 border-t border-slate-200">
           <div className="mx-auto max-w-4xl space-y-3 px-5 py-6 text-xs leading-5 text-slate-400">

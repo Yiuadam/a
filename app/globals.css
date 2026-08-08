@@ -239,32 +239,12 @@ body {
 */
 
 /*
-  The nav scrolls sideways, and a scroll container with no visible scrollbar
-  gives no clue that it does. Fading the trailing edge is that clue — without
-  it a learner simply never discovers the destinations past the fold, which is
-  precisely how the Grammar section went unnoticed.
-
-  This used to be inside `@media (width < 40rem)`, on the assumption that the
-  nav only overflows on a phone. It does not. The header is capped at
-  max-w-4xl, so the nav has the same 56rem to work with on a 1440px monitor as
-  on a 900px laptop, and it has been overflowing at every width since the list
-  reached eight items — "Guides" was off the right-hand edge on a desktop, with
-  nothing on screen to suggest anything was there. Adding "Ask a tutor" made it
-  two. The fade now applies wherever the nav scrolls, which is everywhere.
-
-  If the list is ever short enough to fit, this will fade the trailing edge of
-  a nav that has nothing past it. CSS cannot ask whether a box overflows, so
-  that trade is deliberate: a hint that is occasionally unnecessary costs a
-  learner nothing, and its absence cost us a whole section of the app.
+  The header nav used to scroll sideways on a phone and this faded its trailing
+  edge, because a scroll container with no visible scrollbar gives no clue that
+  it scrolls. Both are gone: the destinations now live behind a menu button
+  (components/MobileNav.tsx), which needs no hint because the button is the
+  hint. .no-scrollbar below stays — tables and code blocks still use it.
 */
-.nav-scroll {
-  mask-image: linear-gradient(
-    to right,
-    #000 0,
-    #000 calc(100% - 1.75rem),
-    transparent 100%
-  );
-}
 
 /* A scroll container the user drags rather than one they aim a scrollbar at. */
 .no-scrollbar {
