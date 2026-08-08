@@ -107,6 +107,81 @@ export default function TermsPage() {
         </p>
       </Section>
 
+      {/*
+        The subscription sections.
+
+        These exist because taking money changes what a terms page is for. Two
+        of the rules below are law rather than courtesy: an automatic renewal
+        has to be disclosed in plain terms *before* the charge — California's
+        Automatic Renewal Law is the strictest version and the one worth
+        writing to — and a consumer in the EU or UK has a statutory right to
+        withdraw from a distance contract within fourteen days.
+
+        The withdrawal right can technically be waived for digital services if
+        the buyer consents to immediate access and acknowledges losing it. We
+        do not do that. Asking somebody to sign away a consumer right in order
+        to press a button is a dark pattern with a legal department, and the
+        fourteen days cost less than the goodwill.
+      */}
+      <Section title="Subscriptions, and how the money works">
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          BandUp is free to use. Standard is a paid subscription that lifts the weekly limits on
+          practice sessions, opens the full mock exam and the tutor chat, and raises the daily AI
+          allowance from 20 requests to 500.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          <strong>It renews automatically.</strong> Standard is $6.50 a month, or $65 a year, and
+          it will keep renewing at that price on the same date each period until you cancel it. We
+          say this here and again beside the button, because a subscription that renews quietly is
+          a subscription somebody did not agree to.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Payment is taken by <strong>Stripe</strong>, not by us. Your card details go to Stripe
+          and never reach BandUp&rsquo;s servers — we could not see them if we wanted to.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          If we ever change the price, we will tell you by email before it takes effect, and the
+          new price will only apply from your next renewal. You can cancel in the meantime and
+          nothing further is charged.
+        </p>
+      </Section>
+
+      <Section title="Cancelling, and getting your money back">
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          <strong>Cancel whenever you like</strong>, from the billing page in the app. It is one
+          button and it takes effect immediately — no email, no form, and nobody trying to talk
+          you out of it.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Cancelling stops the next charge. You keep Standard until the end of the period you have
+          already paid for, and then the account drops back to Free — with everything you have
+          done still in it. Nothing is deleted for cancelling.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          <strong>Refunds: within 14 days of a charge, ask and you will get it back in full.</strong>{" "}
+          No reason needed, and it applies whether or not you have used the app in the meantime.
+          Email{" "}
+          <a
+            href="mailto:hello@bandup.study"
+            className="underline underline-offset-2 hover:text-slate-900"
+          >
+            hello@bandup.study
+          </a>{" "}
+          and we will refund the last payment.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          If you are in the EU or the UK you have a statutory right to withdraw from a distance
+          contract within 14 days. Some services ask you to waive that right in exchange for
+          immediate access. We do not — the refund above is the same 14 days, given freely, and
+          you keep the statutory right as well.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          After 14 days we do not refund part-used periods as a rule, because you can cancel at
+          any point and keep what you paid for until it runs out. If something has genuinely gone
+          wrong — you were charged twice, or the app was broken for you — write to us anyway.
+        </p>
+      </Section>
+
       <Section title="What we do not promise">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           BandUp is offered as it is. We do not promise it will always be available, that the
@@ -122,6 +197,43 @@ export default function TermsPage() {
           <strong>Note for review:</strong> the limitation of liability that would normally sit
           here has deliberately been left for a solicitor to write rather than imitated. See
           the legal review for context.
+        </p>
+      </Section>
+
+      {/*
+        Trader identity.
+
+        Required, not optional, once money changes hands: EU consumer law
+        (the Consumer Rights Directive) and the UK equivalent both oblige a
+        trader selling at a distance to give their identity, a geographic
+        address and a means of contact before the sale. Stripe will also ask
+        for it during onboarding, and app stores check for it.
+
+        The values are the owner's to supply — a legal name and an address
+        cannot be invented here, and a placeholder that looks like a real
+        answer is worse than a visible gap. The block below renders the gap
+        honestly rather than shipping a fake company.
+      */}
+      <Section title="Who runs BandUp">
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          BandUp is an independent study tool. It is not affiliated with IELTS, the British
+          Council, IDP, or Cambridge University Press &amp; Assessment.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Contact:{" "}
+          <a
+            href="mailto:hello@bandup.study"
+            className="underline underline-offset-2 hover:text-slate-900"
+          >
+            hello@bandup.study
+          </a>
+        </p>
+        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-800">
+          <strong>To complete before selling:</strong> the trading name, legal form and
+          geographic address of whoever is taking the payment, plus a company or tax
+          registration number if one exists. EU and UK consumer law require these to be given
+          before a distance sale, Stripe asks for them at onboarding, and the app stores check
+          for them. They are deliberately blank rather than filled with something plausible.
         </p>
       </Section>
 
