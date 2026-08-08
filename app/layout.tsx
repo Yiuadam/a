@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import LookupProvider from "@/components/Lookup";
-import ThemeToggle from "@/components/ThemeToggle";
 import AutoSync from "@/components/AutoSync";
-import MobileNav from "@/components/MobileNav";
+import SiteHeader from "@/components/SiteHeader";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -31,21 +30,6 @@ export const metadata: Metadata = {
   icons: { icon: "/icons/final/steps-five-mark.svg" },
 };
 
-const NAV = [
-  { href: "/", label: "Home" },
-  { href: "/plan", label: "My plan" },
-  /*
-    Next to the plan on purpose: the plan is what to do next, history is
-    whether it is working. Eight items now — the nav scrolls inside itself
-    (see the header comment below), so the count costs layout nothing.
-  */
-  { href: "/history", label: "History" },
-  { href: "/practice", label: "Practice" },
-  { href: "/grammar", label: "Grammar" },
-  { href: "/vocabulary", label: "Vocabulary" },
-  { href: "/speaking", label: "Speaking" },
-  { href: "/resources", label: "Guides" },
-] as const;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -67,102 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
-        {/*
-          Two headers in one, split at md.
-
-          Below it, the destinations live behind a menu button — see
-          components/MobileNav.tsx for why the horizontal scroller that used to
-          be here was the wrong answer. Above it they sit inline as usual.
-
-          --header-h is the header's own height, published as a custom property
-          so the menu panel can hang off the bottom edge of it without either
-          side hard-coding a number the other could change.
-        */}
-        <header
-          className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/85 backdrop-blur"
-          style={{ "--header-h": "3.75rem" } as React.CSSProperties}
-        >
-          <div className="mx-auto flex h-[var(--header-h)] max-w-4xl items-center gap-2 px-4 sm:gap-3 sm:px-5">
-            <Link
-              href="/"
-              className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
-            >
-              {/*
-                The app icon, not a letter. `overflow-hidden` with the same
-                radius is what rounds it: the artwork is a full-bleed square,
-                the way an app icon has to be, so the corner has to be cut here
-                rather than drawn into the file.
-
-                Plain <img> rather than next/image: it is a 2 kB SVG at a fixed
-                36px, so there is nothing to optimise, and next/image would
-                need dangerouslyAllowSVG turned on for the whole app to serve
-                it at all — widening what the image optimiser accepts, for one
-                trusted logo. width and height are set so the header never
-                reflows while it loads.
-              */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/icons/final/steps-five-mark.svg"
-                alt=""
-                width={36}
-                height={36}
-                className="h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm transition-transform group-hover:-rotate-6"
-              />
-              <span className="hidden xs:inline">BandUp</span>
-            </Link>
-            {/*
-              min-w-0 keeps this from forcing the row wider than the screen if
-              the list ever outgrows the space; below md it is not rendered at
-              all, so the phone never sees it.
-            */}
-            <nav
-              aria-label="Main"
-              className="hidden min-w-0 flex-1 items-center gap-1 text-sm md:flex"
-            >
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-            {/* Takes the space the desktop nav would have, so the account and
-                theme controls stay pinned right on a phone. */}
-            <div className="flex-1 md:hidden" />
-            {/*
-              Account sits beside the theme toggle rather than in NAV, which is
-              already seven items on a phone-width scroller. It is also not a
-              destination in the way "Practice" is — most visits never need it,
-              because everything on this app works signed out.
-            */}
-            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-              <MobileNav items={NAV} />
-              <Link
-                href="/account"
-                aria-label="Your account"
-                className="rounded-xl px-2.5 py-2 text-sm text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
-              >
-                <svg
-                  viewBox="0 0 20 20"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="10" cy="6.5" r="3.2" />
-                  <path d="M3.8 17c0-3.3 2.8-5.4 6.2-5.4s6.2 2.1 6.2 5.4" />
-                </svg>
-              </Link>
-              <ThemeToggle />
-            </div>
-          </div>
-        </header>
+        <SiteHeader />
         {/*
           `data-lookupable` on <main> means any word a learner selects anywhere
           in the app — a passage, a transcript, a question, an explanation — can
@@ -176,10 +65,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </main>
         </LookupProvider>
         {/*
-          The privacy policy lives here rather than in NAV: the header is
-          already tight at seven items on a phone, and this is a page a learner
-          visits once, if ever — while Apple needs it publicly reachable to
-          accept a submission at all.
+          The privacy policy lives here rather than in the menu: it is a page a
+          learner visits once, if ever, while Apple needs it publicly reachable
+          to accept a submission at all. A footer is where people look for it.
         */}
         <footer className="mt-4 border-t border-slate-200">
           <div className="mx-auto max-w-4xl space-y-3 px-5 py-6 text-xs leading-5 text-slate-400">
