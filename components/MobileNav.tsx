@@ -5,13 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /*
-  The phone menu.
+  The menu, everywhere below lg.
 
   What it replaces: the header's destinations used to sit in a horizontal
   scroller on narrow screens. That kept the page from ever widening, which was
   the point, but it hid most of the app behind a gesture with no affordance —
   eight destinations, three visible, and nothing on screen saying the other
   five existed.
+
+  "Below lg", not "on a phone", and that is the measured number rather than a
+  guess: nine destinations need 690px of header and the header has that only
+  from 1024px up. The inline row used to appear from md, where it did not fit
+  and overflowed straight over the account button.
 
   A button and a full-width list is the ordinary answer, and ordinary is what
   a navigation control should be. Everything here is about it behaving the way
@@ -26,7 +31,7 @@ import { usePathname } from "next/navigation";
 
   The list is rendered only when open. Keeping it mounted and hidden would put
   a second copy of every destination in the accessibility tree and in the tab
-  order on desktop, where this component is not shown at all.
+  order on a wide screen, where this component is not shown at all.
 */
 
 export interface NavItem {
@@ -94,7 +99,7 @@ export default function MobileNav({ items }: { items: readonly NavItem[] }) {
         aria-expanded={open}
         aria-controls="mobile-nav"
         aria-label={open ? "Close menu" : "Open menu"}
-        className="rounded-xl px-2.5 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900 md:hidden"
+        className="rounded-xl px-2.5 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900 lg:hidden"
       >
         <svg
           viewBox="0 0 20 20"
@@ -130,14 +135,14 @@ export default function MobileNav({ items }: { items: readonly NavItem[] }) {
           */}
           <div
             aria-hidden="true"
-            className="fixed inset-x-0 bottom-0 top-[var(--header-h)] z-30 bg-slate-900/20 backdrop-blur-[2px] md:hidden"
+            className="fixed inset-x-0 bottom-0 top-[var(--header-h)] z-30 bg-slate-900/20 backdrop-blur-[2px] lg:hidden"
           />
           <div
             ref={panelRef}
             id="mobile-nav"
-            className="fixed inset-x-0 top-[var(--header-h)] z-40 max-h-[calc(100dvh-var(--header-h))] overflow-y-auto border-b border-slate-200 bg-slate-50 shadow-lg md:hidden"
+            className="fixed inset-x-0 top-[var(--header-h)] z-40 max-h-[calc(100dvh-var(--header-h))] overflow-y-auto border-b border-slate-200 bg-slate-50 shadow-lg lg:hidden"
           >
-            <nav aria-label="Main" className="mx-auto max-w-4xl px-4 py-3">
+            <nav aria-label="Main" className="mx-auto max-w-5xl px-4 py-3">
               <ul className="flex flex-col">
                 {items.map((item) => {
                   const current =

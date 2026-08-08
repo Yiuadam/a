@@ -36,14 +36,20 @@ const NAV = [
   { href: "/plan", label: "My plan" },
   /*
     Next to the plan on purpose: the plan is what to do next, history is
-    whether it is working. Eight items now — the nav scrolls inside itself
-    (see the header comment below), so the count costs layout nothing.
+    whether it is working.
   */
   { href: "/history", label: "History" },
   { href: "/practice", label: "Practice" },
   { href: "/grammar", label: "Grammar" },
   { href: "/vocabulary", label: "Vocabulary" },
   { href: "/speaking", label: "Speaking" },
+  /*
+    Beside Guides rather than beside Practice, because the two of them answer
+    the same kind of moment: the learner has stopped practising and wants
+    something explained rather than more to do. It sits before Guides so the
+    pair of them read as one idea.
+  */
+  { href: "/chat", label: "Ask a tutor" },
   { href: "/resources", label: "Guides" },
 ] as const;
 
@@ -82,7 +88,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/85 backdrop-blur"
           style={{ "--header-h": "3.75rem" } as React.CSSProperties}
         >
-          <div className="mx-auto flex h-[var(--header-h)] max-w-4xl items-center gap-2 px-4 sm:gap-3 sm:px-5">
+          <div className="mx-auto flex h-[var(--header-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5">
             <Link
               href="/"
               className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
@@ -111,32 +117,46 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <span className="hidden xs:inline">BandUp</span>
             </Link>
             {/*
-              min-w-0 keeps this from forcing the row wider than the screen if
-              the list ever outgrows the space; below md it is not rendered at
-              all, so the phone never sees it.
+              Shown from lg up, and that breakpoint is measured rather than
+              chosen. Nine destinations are 706px wide; the header offers them
+              734px at 1024px and no more, because the container is capped —
+              so there are 28px to spare at every width from lg up, and none
+              at all below it.
+
+              It used to appear from md, where it did not fit: "Ask a tutor"
+              and "Guides" were painted straight over the account button and
+              the theme toggle at *every* width, a 1440px monitor included,
+              because a flex row that runs out of room overflows visibly
+              rather than wrapping. Below 900px the page scrolled sideways
+              too. Between md and lg the menu button now carries the whole
+              list, which is what it is for.
+
+              Those 28px are the budget for a tenth destination. There is not
+              room for one: add it to the menu and leave the row alone, or
+              take something out of the row first.
             */}
             <nav
               aria-label="Main"
-              className="hidden min-w-0 flex-1 items-center gap-1 text-sm md:flex"
+              className="hidden min-w-0 flex-1 items-center gap-0.5 text-sm lg:flex"
             >
               {NAV.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
+                  className="shrink-0 whitespace-nowrap rounded-xl px-2.5 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
-            {/* Takes the space the desktop nav would have, so the account and
-                theme controls stay pinned right on a phone. */}
-            <div className="flex-1 md:hidden" />
+            {/* Takes the space the inline nav would have, so the account and
+                theme controls stay pinned right below lg. */}
+            <div className="flex-1 lg:hidden" />
             {/*
               Account sits beside the theme toggle rather than in NAV, which is
-              already seven items on a phone-width scroller. It is also not a
-              destination in the way "Practice" is — most visits never need it,
-              because everything on this app works signed out.
+              already nine items and full. It is also not a destination in the
+              way "Practice" is — most visits never need it, because everything
+              on this app works signed out.
             */}
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <MobileNav items={NAV} />
@@ -177,9 +197,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </LookupProvider>
         {/*
           The privacy policy lives here rather than in NAV: the header is
-          already tight at seven items on a phone, and this is a page a learner
-          visits once, if ever — while Apple needs it publicly reachable to
-          accept a submission at all.
+          already full, and this is a page a learner visits once, if ever —
+          while Apple needs it publicly reachable to accept a submission at all.
         */}
         <footer className="mt-4 border-t border-slate-200">
           <div className="mx-auto max-w-4xl space-y-3 px-5 py-6 text-xs leading-5 text-slate-400">

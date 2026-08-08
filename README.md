@@ -156,6 +156,7 @@ app/
     listening/                listening test runner (?id=…, speech synthesis)
     writing/                  writing task + AI grading
   speaking/                   AI speaking examiner
+  chat/                       ask a tutor — metered study assistant
   resources/                  exam guides
   privacy/                    privacy policy (App Store requires a public URL)
   api/
@@ -163,6 +164,7 @@ app/
     grade/speaking/           Claude grading, structured output
     generate/                 new reading/listening test generation
     define/                   plain-English word lookup
+    chat/                     tutor chat, multi-turn, capped and metered
 components/                   band badge, question renderer, timer
 data/                         the content bank (JSON)
 lib/
