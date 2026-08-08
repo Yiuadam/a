@@ -1,3 +1,4 @@
+import type { ChartSpec } from "./chart";
 // Shared content and result types for the IELTS prep app.
 
 export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
@@ -131,11 +132,19 @@ export interface WritingTask {
   variant: "academic" | "general";
   title: string;
   prompt: string;
+  /*
+    Academic Task 1 presents data one of two ways. A table is the data
+    literally; a chart is the data drawn, which is what most real papers ask
+    candidates to describe. A task carries one or the other, never both — the
+    validator enforces that, because two views of the same figures would let a
+    candidate read the numbers off the table and never look at the chart.
+  */
   dataTable?: {
     title: string;
     headers: string[];
     rows: string[][];
   };
+  chart?: ChartSpec;
   minWords: number;
   timeMinutes: number;
 }

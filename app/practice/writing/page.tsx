@@ -8,6 +8,7 @@ import Timer from "@/components/Timer";
 import writingData from "@/data/writing-tasks.json";
 import { addResult } from "@/lib/store";
 import type { WritingGrade, WritingTasksData } from "@/lib/types";
+import Chart from "@/components/Chart";
 
 const tasks = (writingData as WritingTasksData).tasks;
 
@@ -88,6 +89,12 @@ export default function WritingPage() {
 
         <div className="mt-4 rounded-lg bg-slate-50 p-4">
           <p className="whitespace-pre-line text-[15px] leading-7 text-slate-800">{task.prompt}</p>
+          {/*
+            A chart where the real exam would print one. The renderer landed in
+            #34 and nothing used it until now: every Academic Task 1 was a
+            table, which is the one prompt type the real paper uses least.
+          */}
+          {task.chart && <Chart spec={task.chart} className="mt-4" />}
           {task.dataTable && (
             <div className="mt-4 overflow-x-auto">
               <p className="mb-2 text-sm font-semibold text-slate-700">{task.dataTable.title}</p>

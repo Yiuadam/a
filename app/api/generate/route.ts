@@ -3,6 +3,7 @@ import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
 import { checkAiUsage } from "@/lib/usage/guard";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 import { withCors } from "@/lib/http/cors";
+import { logInternal, safeJsonError } from "@/lib/auth/errors";
 
 export const maxDuration = 60;
 
@@ -158,8 +159,17 @@ Requirements:
     });
     return NextResponse.json({ kind, test });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Generation failed.";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    /*
+      The upstream message is logged, never returned. It can carry the
+      model name, a request id, a rate-limit detail or a fragment of the
+      key — none of which a learner can act on, and all of which describe
+      how this server is built. ACCOUNTS.md, threat 7.
+    */
+    logInternal("generate", err);
+    return safeJsonError(
+      "Couldn't generate a new test just now. Please try again in a minute.",
+      502,
+    );
   }
 }
 

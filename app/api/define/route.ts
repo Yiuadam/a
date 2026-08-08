@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey } from "@/lib/anthropic";
 import { checkAiUsage } from "@/lib/usage/guard";
 import { withCors } from "@/lib/http/cors";
+import { logInternal, safeJsonError } from "@/lib/auth/errors";
 
 export const maxDuration = 30;
 
@@ -79,8 +80,17 @@ async function handlePOST(req: Request) {
     });
     return NextResponse.json({ definition: { term, ...definition } });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Lookup failed.";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    /*
+      The upstream message is logged, never returned. It can carry the
+      model name, a request id, a rate-limit detail or a fragment of the
+      key — none of which a learner can act on, and all of which describe
+      how this server is built. ACCOUNTS.md, threat 7.
+    */
+    logInternal("define", err);
+    return safeJsonError(
+      "The word lookup is briefly unavailable. Please try again in a minute.",
+      502,
+    );
   }
 }
 

@@ -103,6 +103,41 @@ export async function sendMagicLink(email: string, redirectTo: string): Promise<
   return res.ok;
 }
 
+/**
+ * Which OAuth providers the Supabase project actually has configured.
+ *
+ * Asked rather than configured. The alternative was a second environment
+ * variable listing them, which is a copy of the truth that drifts the moment
+ * someone enables a provider in the dashboard and forgets the deploy — and
+ * drift here means a sign-in button that goes to an error page.
+ *
+ * Returns null when the answer cannot be obtained, which the caller renders as
+ * "sign-in is unavailable" rather than guessing. A guess is how a learner ends
+ * up tapping Apple on a project where Apple was never set up.
+ */
+export async function enabledOAuthProviders(): Promise<string[] | null> {
+  let res: Response;
+  try {
+    res = await request("/auth/v1/settings", { method: "GET" });
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    return null;
+  }
+  const external = (body as { external?: Record<string, unknown> }).external;
+  if (!external || typeof external !== "object") return null;
+
+  return Object.entries(external)
+    .filter(([, on]) => on === true)
+    .map(([name]) => name);
+}
+
 export interface RefreshedSession {
   accessToken: string;
   refreshToken: string | null;

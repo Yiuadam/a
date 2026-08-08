@@ -15,58 +15,194 @@
         {
           "id": "q1",
           "prompt": "I ___ in Manchester since I was a child.",
-          "options": ["live", "lived", "have lived", "am living"],
+          "options": [
+            "live",
+            "lived",
+            "have lived",
+            "am living"
+          ],
           "answer": 2,
           "explanation": "\"Since I was a child\" runs from the past up to now, which is the present perfect. \"Lived\" would suggest you no longer live there."
         },
         {
           "id": "q2",
           "prompt": "She ___ her keys this morning, but she found them again.",
-          "options": ["has lost", "lost", "was losing", "had lost"],
+          "options": [
+            "has lost",
+            "lost",
+            "was losing",
+            "had lost"
+          ],
           "answer": 1,
           "explanation": "\"This morning\" is finished — it is now later in the day and the keys were found — so past simple. If it were still morning, \"has lost\" would work."
         },
         {
           "id": "q3",
           "prompt": "___ you ever ___ sushi?",
-          "options": ["Did / eat", "Have / eaten", "Have / ate", "Are / eating"],
+          "options": [
+            "Did / eat",
+            "Have / eaten",
+            "Have / ate",
+            "Are / eating"
+          ],
           "answer": 1,
           "explanation": "\"Ever\" means at any time up to now, so present perfect: have + past participle. \"Ate\" is the past simple form and cannot follow \"have\"."
         },
         {
           "id": "q4",
           "prompt": "We ___ to Japan three times.",
-          "options": ["went", "have been", "have gone", "were going"],
+          "options": [
+            "went",
+            "have been",
+            "have gone",
+            "were going"
+          ],
           "answer": 1,
           "explanation": "Counting experiences up to now takes present perfect. Use \"have been\" for visits you have returned from; \"have gone\" means still away."
         },
         {
           "id": "q5",
           "prompt": "He ___ that film last night and hated it.",
-          "options": ["has watched", "watched", "has been watching", "watches"],
+          "options": [
+            "has watched",
+            "watched",
+            "has been watching",
+            "watches"
+          ],
           "answer": 1,
           "explanation": "\"Last night\" is a finished time expression, so it takes past simple. This is the pairing to check first whenever you are unsure."
         },
         {
           "id": "q6",
           "prompt": "I've worked here ___ eight years.",
-          "options": ["since", "for", "during", "from"],
+          "options": [
+            "since",
+            "for",
+            "during",
+            "from"
+          ],
           "answer": 1,
           "explanation": "Eight years is a length of time, so \"for\". \"Since\" would need a starting point: since 2018."
         },
         {
           "id": "q7",
           "prompt": "Sorry about the mess — I ___ the kitchen.",
-          "options": ["painted", "have been painting", "paint", "had painted"],
+          "options": [
+            "painted",
+            "have been painting",
+            "paint",
+            "had painted"
+          ],
           "answer": 1,
           "explanation": "The present perfect continuous explains a present situation by the recent activity behind it. The mess is the visible result of the painting."
         },
         {
           "id": "q8",
           "prompt": "When ___ you ___ your driving test?",
-          "options": ["have / passed", "did / pass", "did / passed", "have / pass"],
+          "options": [
+            "have / passed",
+            "did / pass",
+            "did / passed",
+            "have / pass"
+          ],
           "answer": 1,
           "explanation": "A \"when\" question asks for a specific finished time, so past simple. English never uses \"when\" with the present perfect in this way."
+        },
+        {
+          "id": "q9",
+          "prompt": "She ___ that film three times, and she still cries at the end.",
+          "options": [
+            "saw",
+            "has seen",
+            "was seeing",
+            "had seen"
+          ],
+          "answer": 1,
+          "explanation": "The three viewings are counted up to now, and she still reacts now, so the time frame is unfinished. Present perfect. \"Saw\" would close the story off in the past."
+        },
+        {
+          "id": "q10",
+          "prompt": "___ you ever ___ to an interview in another language?",
+          "options": [
+            "Did / go",
+            "Have / been",
+            "Have / gone",
+            "Were / going"
+          ],
+          "answer": 1,
+          "explanation": "\"Ever\" asks about any time in your life so far, which is present perfect. \"Been\" means you went and came back; \"gone\" would mean you are still there."
+        },
+        {
+          "id": "q11",
+          "prompt": "I ___ my keys, so I cannot get in.",
+          "options": [
+            "lost",
+            "have lost",
+            "was losing",
+            "had lost"
+          ],
+          "answer": 1,
+          "explanation": "The losing happened in the past but the result — being locked out — is happening now. When the present result is the point, use present perfect."
+        },
+        {
+          "id": "q12",
+          "prompt": "We ___ in this flat for two years before we bought the house.",
+          "options": [
+            "have lived",
+            "lived",
+            "had lived",
+            "have been living"
+          ],
+          "answer": 2,
+          "explanation": "Two past events: living, then buying. Past perfect marks the one that came first. Present perfect cannot be used, because \"before we bought\" closes the time frame."
+        },
+        {
+          "id": "q13",
+          "prompt": "He ___ his homework yet.",
+          "options": [
+            "did not finish",
+            "has not finished",
+            "was not finishing",
+            "had not finished"
+          ],
+          "answer": 1,
+          "explanation": "\"Yet\" means up to this moment, so the time frame reaches the present. It pairs with present perfect, not past simple."
+        },
+        {
+          "id": "q14",
+          "prompt": "They ___ the results last Friday.",
+          "options": [
+            "have announced",
+            "announced",
+            "have been announcing",
+            "had announced"
+          ],
+          "answer": 1,
+          "explanation": "\"Last Friday\" is a finished time, and a finished time takes past simple. This is the commonest present-perfect error: a specific past date rules it out."
+        },
+        {
+          "id": "q15",
+          "prompt": "How long ___ you ___ for this company?",
+          "options": [
+            "did / work",
+            "have / worked",
+            "are / working",
+            "were / working"
+          ],
+          "answer": 1,
+          "explanation": "\"How long\" about a job you still have runs from the past to now, so present perfect. Past simple would suggest you have left."
+        },
+        {
+          "id": "q16",
+          "prompt": "I ___ never ___ such a crowded station.",
+          "options": [
+            "have / seen",
+            "did / see",
+            "had / saw",
+            "was / seeing"
+          ],
+          "answer": 0,
+          "explanation": "\"Never\" here means at no point in my life up to now, which is present perfect. Note the past participle \"seen\", not \"saw\"."
         }
       ]
     },
@@ -85,58 +221,194 @@
         {
           "id": "q1",
           "prompt": "I bought ___ book yesterday. ___ book was about volcanoes.",
-          "options": ["a / A", "a / The", "the / The", "the / A"],
+          "options": [
+            "a / A",
+            "a / The",
+            "the / The",
+            "the / A"
+          ],
           "answer": 1,
           "explanation": "First mention takes \"a\" because the listener does not know which book yet. Once mentioned, it becomes known, so the second takes \"the\"."
         },
         {
           "id": "q2",
           "prompt": "___ children need plenty of sleep.",
-          "options": ["The", "A", "An", "— (no article)"],
+          "options": [
+            "The",
+            "A",
+            "An",
+            "— (no article)"
+          ],
           "answer": 3,
           "explanation": "This is a general statement about children everywhere, so a plural noun takes no article. \"The children\" would mean particular ones."
         },
         {
           "id": "q3",
           "prompt": "She waited for ___ hour.",
-          "options": ["a", "an", "the", "— (no article)"],
+          "options": [
+            "a",
+            "an",
+            "the",
+            "— (no article)"
+          ],
           "answer": 1,
           "explanation": "\"Hour\" begins with a vowel sound, since the h is silent, so it takes \"an\". Compare \"a university\", where the u sounds like \"yoo\"."
         },
         {
           "id": "q4",
           "prompt": "___ sun rose at six.",
-          "options": ["A", "An", "The", "— (no article)"],
+          "options": [
+            "A",
+            "An",
+            "The",
+            "— (no article)"
+          ],
           "answer": 2,
           "explanation": "There is only one sun, so it is automatically known and takes \"the\". The same goes for the moon, the sky and the sea."
         },
         {
           "id": "q5",
           "prompt": "My brother is ___ engineer.",
-          "options": ["a", "an", "the", "— (no article)"],
+          "options": [
+            "a",
+            "an",
+            "the",
+            "— (no article)"
+          ],
           "answer": 1,
           "explanation": "Jobs take a/an in English, and \"engineer\" starts with a vowel sound, so \"an\". Leaving it out is a very common error."
         },
         {
           "id": "q6",
           "prompt": "We went to ___ cinema on Saturday.",
-          "options": ["a", "the", "an", "— (no article)"],
+          "options": [
+            "a",
+            "the",
+            "an",
+            "— (no article)"
+          ],
           "answer": 1,
           "explanation": "Places like the cinema, the theatre and the bank take \"the\" even on first mention, because the speaker means the usual one."
         },
         {
           "id": "q7",
           "prompt": "___ information in this report is out of date.",
-          "options": ["A", "An", "The", "— (no article)"],
+          "options": [
+            "A",
+            "An",
+            "The",
+            "— (no article)"
+          ],
           "answer": 2,
           "explanation": "\"In this report\" identifies exactly which information, so \"the\". Note \"information\" is uncountable and can never take \"a\"."
         },
         {
           "id": "q8",
           "prompt": "He plays ___ guitar and studies ___ history.",
-          "options": ["the / —", "a / the", "— / the", "the / the"],
+          "options": [
+            "the / —",
+            "a / the",
+            "— / the",
+            "the / the"
+          ],
           "answer": 0,
           "explanation": "Musical instruments take \"the\" after \"play\"; school subjects take no article. Both are fixed patterns worth memorising as a pair."
+        },
+        {
+          "id": "q9",
+          "prompt": "She works as ___ engineer at ___ university near here.",
+          "options": [
+            "an / a",
+            "a / an",
+            "an / the",
+            "the / a"
+          ],
+          "answer": 0,
+          "explanation": "\"Engineer\" starts with a vowel sound, so \"an\". \"University\" starts with a \"y\" sound, so \"a\" — the rule follows the sound, not the letter."
+        },
+        {
+          "id": "q10",
+          "prompt": "Could you pass me ___ salt, please?",
+          "options": [
+            "a",
+            "an",
+            "the",
+            "no article"
+          ],
+          "answer": 2,
+          "explanation": "There is one salt on the table and you both know which. \"The\" is for something already identified by the situation."
+        },
+        {
+          "id": "q11",
+          "prompt": "___ honest answer is worth more than a clever one.",
+          "options": [
+            "A",
+            "An",
+            "The",
+            "No article"
+          ],
+          "answer": 1,
+          "explanation": "\"Honest\" begins with a silent h, so the first sound is a vowel and the article is \"an\"."
+        },
+        {
+          "id": "q12",
+          "prompt": "I love ___ music, especially ___ music my grandmother played.",
+          "options": [
+            "the / the",
+            "no article / the",
+            "no article / no article",
+            "the / no article"
+          ],
+          "answer": 1,
+          "explanation": "Music in general takes no article. The second one is a specific music, defined by the clause after it, so it takes \"the\"."
+        },
+        {
+          "id": "q13",
+          "prompt": "We flew over ___ Alps on the way to ___ Italy.",
+          "options": [
+            "the / the",
+            "no article / no article",
+            "the / no article",
+            "no article / the"
+          ],
+          "answer": 2,
+          "explanation": "Mountain ranges take \"the\"; most countries take no article. \"The Netherlands\" and \"the United States\" are exceptions because they are plural or descriptive."
+        },
+        {
+          "id": "q14",
+          "prompt": "He is ___ best candidate we have interviewed.",
+          "options": [
+            "a",
+            "an",
+            "the",
+            "no article"
+          ],
+          "answer": 2,
+          "explanation": "Superlatives point to one thing only, so they take \"the\". There cannot be two bests."
+        },
+        {
+          "id": "q15",
+          "prompt": "She goes to ___ school by bus, and her mother works at ___ school.",
+          "options": [
+            "the / the",
+            "no article / the",
+            "no article / no article",
+            "a / the"
+          ],
+          "answer": 1,
+          "explanation": "Going to school as a pupil is the institution, so no article. Her mother works at a building, a specific one, so \"the\"."
+        },
+        {
+          "id": "q16",
+          "prompt": "There is ___ hour left before ___ train leaves.",
+          "options": [
+            "a / a",
+            "an / the",
+            "an / a",
+            "a / the"
+          ],
+          "answer": 1,
+          "explanation": "\"Hour\" begins with a silent h, so \"an\". The train is a particular one you are both waiting for, so \"the\"."
         }
       ]
     },
@@ -155,28 +427,48 @@
         {
           "id": "q1",
           "prompt": "If it ___ tomorrow, we'll stay in.",
-          "options": ["will rain", "rains", "rained", "would rain"],
+          "options": [
+            "will rain",
+            "rains",
+            "rained",
+            "would rain"
+          ],
           "answer": 1,
           "explanation": "First conditional: the if-clause takes the present simple even though it refers to the future. \"Will\" belongs only in the result clause."
         },
         {
           "id": "q2",
           "prompt": "If I ___ rich, I would buy a boat.",
-          "options": ["am", "was being", "were", "will be"],
+          "options": [
+            "am",
+            "was being",
+            "were",
+            "will be"
+          ],
           "answer": 2,
           "explanation": "Second conditional for an imagined present. Formal English uses \"were\" for every subject here — \"if I were you\" is the everyday example."
         },
         {
           "id": "q3",
           "prompt": "If she had left earlier, she ___ the train.",
-          "options": ["would catch", "caught", "would have caught", "will catch"],
+          "options": [
+            "would catch",
+            "caught",
+            "would have caught",
+            "will catch"
+          ],
           "answer": 2,
           "explanation": "Third conditional: \"had left\" pairs with \"would have caught\". The situation is over and cannot be changed."
         },
         {
           "id": "q4",
           "prompt": "I'd help you if I ___ time.",
-          "options": ["have", "had", "would have", "will have"],
+          "options": [
+            "have",
+            "had",
+            "would have",
+            "will have"
+          ],
           "answer": 1,
           "explanation": "Second conditional. The past simple \"had\" signals that this is unreal — the speaker does not have time."
         },
@@ -195,23 +487,134 @@
         {
           "id": "q6",
           "prompt": "If we ___ the map, we wouldn't be lost now.",
-          "options": ["brought", "had brought", "would bring", "bring"],
+          "options": [
+            "brought",
+            "had brought",
+            "would bring",
+            "bring"
+          ],
           "answer": 1,
           "explanation": "A mixed conditional: a past cause (\"had brought\") with a present result (\"wouldn't be\"). These are common and worth recognising."
         },
         {
           "id": "q7",
           "prompt": "Water ___ if you heat it to 100°C.",
-          "options": ["would boil", "boils", "will have boiled", "boiled"],
+          "options": [
+            "would boil",
+            "boils",
+            "will have boiled",
+            "boiled"
+          ],
           "answer": 1,
           "explanation": "The zero conditional: present simple in both halves, for something always true. Facts and scientific results take this form."
         },
         {
           "id": "q8",
           "prompt": "___ I known, I would have said something.",
-          "options": ["If", "Had", "Have", "Would"],
+          "options": [
+            "If",
+            "Had",
+            "Have",
+            "Would"
+          ],
           "answer": 1,
           "explanation": "A formal third conditional can drop \"if\" and invert instead: \"Had I known\" means \"If I had known\". This scores well in writing."
+        },
+        {
+          "id": "q9",
+          "prompt": "If it ___ tomorrow, we will move the picnic indoors.",
+          "options": [
+            "rains",
+            "will rain",
+            "would rain",
+            "rained"
+          ],
+          "answer": 0,
+          "explanation": "First conditional: present simple after \"if\", \"will\" in the other half. \"Will\" never follows \"if\" in this pattern."
+        },
+        {
+          "id": "q10",
+          "prompt": "If I ___ you, I would take the earlier flight.",
+          "options": [
+            "am",
+            "was",
+            "were",
+            "would be"
+          ],
+          "answer": 2,
+          "explanation": "Second conditional advice uses \"were\" for every person. \"If I was\" is heard in speech but is marked wrong in writing."
+        },
+        {
+          "id": "q11",
+          "prompt": "If she had revised, she ___ the exam.",
+          "options": [
+            "would pass",
+            "would have passed",
+            "passed",
+            "will pass"
+          ],
+          "answer": 1,
+          "explanation": "Third conditional, about an unchangeable past: \"had\" + past participle in one half, \"would have\" + past participle in the other."
+        },
+        {
+          "id": "q12",
+          "prompt": "We would have arrived on time if the train ___ cancelled.",
+          "options": [
+            "was not",
+            "were not",
+            "had not been",
+            "would not be"
+          ],
+          "answer": 2,
+          "explanation": "The \"if\" half of a third conditional takes past perfect: \"had not been\"."
+        },
+        {
+          "id": "q13",
+          "prompt": "If you heat water to 100°C, it ___.",
+          "options": [
+            "will boil",
+            "boils",
+            "would boil",
+            "boiled"
+          ],
+          "answer": 1,
+          "explanation": "This is the zero conditional — a fact that is always true. Both halves take present simple. \"Will boil\" would make it a prediction about one occasion."
+        },
+        {
+          "id": "q14",
+          "prompt": "If I had studied medicine, I ___ a doctor now.",
+          "options": [
+            "would be",
+            "would have been",
+            "will be",
+            "am"
+          ],
+          "answer": 0,
+          "explanation": "A mixed conditional: the condition is past but the result is present, so \"had studied\" pairs with \"would be\" rather than \"would have been\"."
+        },
+        {
+          "id": "q15",
+          "prompt": "___ you need anything, just ring the bell.",
+          "options": [
+            "Should",
+            "Would",
+            "Could",
+            "Might"
+          ],
+          "answer": 0,
+          "explanation": "\"Should you need\" is a formal inversion of \"if you need\". The \"if\" is dropped and \"should\" moves to the front."
+        },
+        {
+          "id": "q16",
+          "prompt": "She would travel more if she ___ so much annual leave.",
+          "options": [
+            "did not use",
+            "had not used",
+            "would not use",
+            "does not use"
+          ],
+          "answer": 0,
+          "explanation": "Second conditional about now: past simple in the \"if\" half, even though the meaning is present."
         }
       ]
     },
@@ -230,58 +633,194 @@
         {
           "id": "q1",
           "prompt": "He denied ___ the window.",
-          "options": ["to break", "breaking", "break", "broken"],
+          "options": [
+            "to break",
+            "breaking",
+            "break",
+            "broken"
+          ],
           "answer": 1,
           "explanation": "\"Deny\" always takes -ing. So do admit, avoid, suggest and consider — the group is worth learning together."
         },
         {
           "id": "q2",
           "prompt": "They agreed ___ the price.",
-          "options": ["lowering", "to lower", "lower", "to lowering"],
+          "options": [
+            "lowering",
+            "to lower",
+            "lower",
+            "to lowering"
+          ],
           "answer": 1,
           "explanation": "\"Agree\" takes the to-infinitive, like decide, hope, promise and refuse."
         },
         {
           "id": "q3",
           "prompt": "I'm not very good at ___ decisions.",
-          "options": ["make", "to make", "making", "made"],
+          "options": [
+            "make",
+            "to make",
+            "making",
+            "made"
+          ],
           "answer": 2,
           "explanation": "\"At\" is a preposition, and a verb after a preposition is always -ing. This rule has no exceptions, which makes it worth trusting."
         },
         {
           "id": "q4",
           "prompt": "We stopped ___ petrol on the way.",
-          "options": ["buying", "to buy", "buy", "to buying"],
+          "options": [
+            "buying",
+            "to buy",
+            "buy",
+            "to buying"
+          ],
           "answer": 1,
           "explanation": "\"Stop to do\" means pause in order to do it; \"stop doing\" means end the activity. Here they stopped the car in order to buy petrol."
         },
         {
           "id": "q5",
           "prompt": "Would you mind ___ the door?",
-          "options": ["to close", "closing", "close", "closed"],
+          "options": [
+            "to close",
+            "closing",
+            "close",
+            "closed"
+          ],
           "answer": 1,
           "explanation": "\"Mind\" takes -ing. \"Would you mind closing…\" is one of the most useful polite request forms in English."
         },
         {
           "id": "q6",
           "prompt": "She managed ___ the deadline despite everything.",
-          "options": ["meeting", "to meet", "meet", "met"],
+          "options": [
+            "meeting",
+            "to meet",
+            "meet",
+            "met"
+          ],
           "answer": 1,
           "explanation": "\"Manage to\" means succeeded in doing something difficult, and always takes the to-infinitive."
         },
         {
           "id": "q7",
           "prompt": "Remember ___ the oven off before you leave.",
-          "options": ["turning", "to turn", "turn", "turned"],
+          "options": [
+            "turning",
+            "to turn",
+            "turn",
+            "turned"
+          ],
           "answer": 1,
           "explanation": "\"Remember to do\" is about a future duty; \"remember doing\" is about a past memory. Here it is an instruction, so the infinitive."
         },
         {
           "id": "q8",
           "prompt": "The council is considering ___ the library.",
-          "options": ["to close", "closing", "close", "closure"],
+          "options": [
+            "to close",
+            "closing",
+            "close",
+            "closure"
+          ],
           "answer": 1,
           "explanation": "\"Consider\" takes -ing. A useful test: if you can put \"the idea of\" in front, the verb needs -ing."
+        },
+        {
+          "id": "q9",
+          "prompt": "I cannot afford ___ a new laptop this year.",
+          "options": [
+            "buying",
+            "to buy",
+            "buy",
+            "bought"
+          ],
+          "answer": 1,
+          "explanation": "\"Afford\" is always followed by the infinitive with \"to\"."
+        },
+        {
+          "id": "q10",
+          "prompt": "Would you mind ___ the window?",
+          "options": [
+            "to open",
+            "open",
+            "opening",
+            "opened"
+          ],
+          "answer": 2,
+          "explanation": "\"Mind\" takes the -ing form. The polite request is literally asking whether the opening would bother you."
+        },
+        {
+          "id": "q11",
+          "prompt": "He stopped ___ because the doctor told him to.",
+          "options": [
+            "to smoke",
+            "smoking",
+            "smoke",
+            "smoked"
+          ],
+          "answer": 1,
+          "explanation": "\"Stop\" + -ing means you ended the activity. \"Stop to smoke\" would mean you paused something else in order to have a cigarette."
+        },
+        {
+          "id": "q12",
+          "prompt": "She promised ___ me as soon as she landed.",
+          "options": [
+            "calling",
+            "to call",
+            "call",
+            "called"
+          ],
+          "answer": 1,
+          "explanation": "\"Promise\" takes the infinitive with \"to\"."
+        },
+        {
+          "id": "q13",
+          "prompt": "I remember ___ the door, but now I am not sure.",
+          "options": [
+            "to lock",
+            "locking",
+            "lock",
+            "locked"
+          ],
+          "answer": 1,
+          "explanation": "\"Remember\" + -ing is a memory of something already done. \"Remember to lock\" would be a reminder about the future."
+        },
+        {
+          "id": "q14",
+          "prompt": "They suggested ___ the meeting until Monday.",
+          "options": [
+            "to postpone",
+            "postponing",
+            "postpone",
+            "postponed"
+          ],
+          "answer": 1,
+          "explanation": "\"Suggest\" never takes \"to\" + infinitive. Use the -ing form, or \"suggest that we postpone\"."
+        },
+        {
+          "id": "q15",
+          "prompt": "He let me ___ his notes before the exam.",
+          "options": [
+            "to borrow",
+            "borrowing",
+            "borrow",
+            "borrowed"
+          ],
+          "answer": 2,
+          "explanation": "\"Let\" takes the bare infinitive — no \"to\". Compare \"allow me to borrow\", which does take \"to\"."
+        },
+        {
+          "id": "q16",
+          "prompt": "We look forward to ___ from you.",
+          "options": [
+            "hear",
+            "hearing",
+            "have heard",
+            "be heard"
+          ],
+          "answer": 1,
+          "explanation": "The \"to\" in \"look forward to\" is a preposition, not part of an infinitive, so the -ing form follows it."
         }
       ]
     },
@@ -300,21 +839,36 @@
         {
           "id": "q1",
           "prompt": "The results ___ next week.",
-          "options": ["will announce", "will be announced", "will announcing", "are announcing"],
+          "options": [
+            "will announce",
+            "will be announced",
+            "will announcing",
+            "are announcing"
+          ],
           "answer": 1,
           "explanation": "The results do not announce themselves — someone announces them — so the passive is needed: will be + past participle."
         },
         {
           "id": "q2",
           "prompt": "This bridge ___ in 1890.",
-          "options": ["built", "was built", "has built", "was building"],
+          "options": [
+            "built",
+            "was built",
+            "has built",
+            "was building"
+          ],
           "answer": 1,
           "explanation": "Past passive: was + built. The builder is unknown and unimportant, which is exactly when the passive earns its place."
         },
         {
           "id": "q3",
           "prompt": "The report ___ by the committee at the moment.",
-          "options": ["is reviewed", "is being reviewed", "reviews", "has reviewed"],
+          "options": [
+            "is reviewed",
+            "is being reviewed",
+            "reviews",
+            "has reviewed"
+          ],
           "answer": 1,
           "explanation": "An action in progress takes the present continuous passive: is being + past participle."
         },
@@ -333,7 +887,12 @@
         {
           "id": "q5",
           "prompt": "The samples ___ before the test began.",
-          "options": ["had been prepared", "have prepared", "were preparing", "prepared"],
+          "options": [
+            "had been prepared",
+            "have prepared",
+            "were preparing",
+            "prepared"
+          ],
           "answer": 0,
           "explanation": "The preparation happened before another past event, so past perfect passive: had been + past participle."
         },
@@ -352,16 +911,122 @@
         {
           "id": "q7",
           "prompt": "English ___ in over fifty countries.",
-          "options": ["speaks", "is speaking", "is spoken", "has spoken"],
+          "options": [
+            "speaks",
+            "is speaking",
+            "is spoken",
+            "has spoken"
+          ],
           "answer": 2,
           "explanation": "A general truth about how English is used takes the present simple passive: is + spoken."
         },
         {
           "id": "q8",
           "prompt": "The proposal is expected ___ next month.",
-          "options": ["to approve", "approving", "to be approved", "be approved"],
+          "options": [
+            "to approve",
+            "approving",
+            "to be approved",
+            "be approved"
+          ],
           "answer": 2,
           "explanation": "The proposal receives the approval, so a passive infinitive is needed: to be + past participle."
+        },
+        {
+          "id": "q9",
+          "prompt": "The bridge ___ in 1890 and is still in use.",
+          "options": [
+            "built",
+            "was built",
+            "has built",
+            "is building"
+          ],
+          "answer": 1,
+          "explanation": "The bridge did not do the building, so the verb is passive: \"was\" + past participle."
+        },
+        {
+          "id": "q10",
+          "prompt": "Your application ___ at the moment.",
+          "options": [
+            "is processing",
+            "is being processed",
+            "processes",
+            "has processed"
+          ],
+          "answer": 1,
+          "explanation": "An action in progress and done to the subject needs the present continuous passive: \"is being\" + past participle."
+        },
+        {
+          "id": "q11",
+          "prompt": "The results ___ by the end of the week.",
+          "options": [
+            "will announce",
+            "will be announced",
+            "are announcing",
+            "announce"
+          ],
+          "answer": 1,
+          "explanation": "The results receive the action, so the future passive is \"will be\" + past participle."
+        },
+        {
+          "id": "q12",
+          "prompt": "This road ___ since March.",
+          "options": [
+            "has been closed",
+            "has closed",
+            "was closing",
+            "is closed"
+          ],
+          "answer": 0,
+          "explanation": "\"Since March\" needs a present perfect, and the road receives the action, so present perfect passive: \"has been\" + past participle."
+        },
+        {
+          "id": "q13",
+          "prompt": "The parcel ___ to the wrong address yesterday.",
+          "options": [
+            "delivered",
+            "was delivered",
+            "has delivered",
+            "is delivered"
+          ],
+          "answer": 1,
+          "explanation": "Past simple passive. \"Delivered\" alone would mean the parcel did the delivering."
+        },
+        {
+          "id": "q14",
+          "prompt": "Nothing ___ about the delay so far.",
+          "options": [
+            "said",
+            "has been said",
+            "has said",
+            "was saying"
+          ],
+          "answer": 1,
+          "explanation": "\"So far\" reaches the present, and \"nothing\" receives the action, so present perfect passive."
+        },
+        {
+          "id": "q15",
+          "prompt": "The windows need ___.",
+          "options": [
+            "to clean",
+            "cleaning",
+            "clean",
+            "being cleaned"
+          ],
+          "answer": 1,
+          "explanation": "\"Need\" + -ing has a passive meaning in English: the windows need to be cleaned. \"Need to clean\" would mean the windows do the cleaning."
+        },
+        {
+          "id": "q16",
+          "prompt": "She ___ a scholarship by the university.",
+          "options": [
+            "was awarded",
+            "was awarding",
+            "awarded",
+            "has awarding"
+          ],
+          "answer": 0,
+          "explanation": "With two objects, either can become the subject. Here she receives the award, so the passive is \"was awarded\"."
         }
       ]
     },
@@ -380,14 +1045,24 @@
         {
           "id": "q1",
           "prompt": "The woman ___ car was stolen has called the police.",
-          "options": ["who", "which", "whose", "that"],
+          "options": [
+            "who",
+            "which",
+            "whose",
+            "that"
+          ],
           "answer": 2,
           "explanation": "The car belongs to the woman, so this is possession: \"whose\". Note it can be followed directly by a noun, unlike \"who\"."
         },
         {
           "id": "q2",
           "prompt": "My laptop, ___ I bought last year, has stopped working.",
-          "options": ["that", "which", "what", "who"],
+          "options": [
+            "that",
+            "which",
+            "what",
+            "who"
+          ],
           "answer": 1,
           "explanation": "The commas make this non-defining, and \"that\" is never allowed in a non-defining clause. \"What\" is not a relative pronoun here at all."
         },
@@ -406,7 +1081,12 @@
         {
           "id": "q4",
           "prompt": "That's the café ___ we first met.",
-          "options": ["which", "that", "where", "when"],
+          "options": [
+            "which",
+            "that",
+            "where",
+            "when"
+          ],
           "answer": 2,
           "explanation": "\"Where\" replaces \"in which\" for places. You could also say \"the café that we first met in\"."
         },
@@ -425,23 +1105,134 @@
         {
           "id": "q6",
           "prompt": "He missed the train, ___ made him late.",
-          "options": ["that", "what", "which", "who"],
+          "options": [
+            "that",
+            "what",
+            "which",
+            "who"
+          ],
           "answer": 2,
           "explanation": "\"Which\" here refers back to the whole preceding idea, not to a single noun. This use always needs a comma before it."
         },
         {
           "id": "q7",
           "prompt": "The report, ___ was published in May, has been withdrawn.",
-          "options": ["that", "which", "who", "whose"],
+          "options": [
+            "that",
+            "which",
+            "who",
+            "whose"
+          ],
           "answer": 1,
           "explanation": "Non-defining clause about a thing, so \"which\". The commas tell you the clause could be removed and the sentence would still stand."
         },
         {
           "id": "q8",
           "prompt": "Everything ___ he said turned out to be true.",
-          "options": ["which", "that", "what", "who"],
+          "options": [
+            "which",
+            "that",
+            "what",
+            "who"
+          ],
           "answer": 1,
           "explanation": "After \"everything\", \"all\" and \"something\", English prefers \"that\" and avoids \"which\". \"What\" would be wrong because \"everything\" is already there."
+        },
+        {
+          "id": "q9",
+          "prompt": "The woman ___ car was stolen has reported it.",
+          "options": [
+            "who",
+            "whose",
+            "which",
+            "that"
+          ],
+          "answer": 1,
+          "explanation": "\"Whose\" shows possession — the car belongs to the woman. \"Who's\" is a different word meaning \"who is\"."
+        },
+        {
+          "id": "q10",
+          "prompt": "The report, ___ was published in June, has been withdrawn.",
+          "options": [
+            "that",
+            "which",
+            "who",
+            "what"
+          ],
+          "answer": 1,
+          "explanation": "A clause between commas is non-defining — extra information — and non-defining clauses never take \"that\". Use \"which\"."
+        },
+        {
+          "id": "q11",
+          "prompt": "This is the café ___ we first met.",
+          "options": [
+            "which",
+            "that",
+            "where",
+            "who"
+          ],
+          "answer": 2,
+          "explanation": "The clause says the place of the meeting, so use \"where\". \"Which we first met\" would need \"in\" as well."
+        },
+        {
+          "id": "q12",
+          "prompt": "The book ___ I lent you is overdue.",
+          "options": [
+            "who",
+            "whose",
+            "which",
+            "what"
+          ],
+          "answer": 2,
+          "explanation": "\"Which\" (or \"that\") refers to things. \"What\" cannot introduce a relative clause after a noun."
+        },
+        {
+          "id": "q13",
+          "prompt": "My brother, ___ lives in Perth, is visiting next month.",
+          "options": [
+            "that",
+            "who",
+            "which",
+            "whom"
+          ],
+          "answer": 1,
+          "explanation": "Non-defining clause about a person: \"who\", never \"that\". The commas signal that you already know which brother."
+        },
+        {
+          "id": "q14",
+          "prompt": "The year ___ she graduated was 2016.",
+          "options": [
+            "which",
+            "when",
+            "where",
+            "that which"
+          ],
+          "answer": 1,
+          "explanation": "\"When\" is the relative adverb for time, in the same way \"where\" works for place."
+        },
+        {
+          "id": "q15",
+          "prompt": "She is the colleague to ___ I sent the file.",
+          "options": [
+            "who",
+            "whom",
+            "which",
+            "whose"
+          ],
+          "answer": 1,
+          "explanation": "After a preposition the object form \"whom\" is required. In everyday speech you would move the preposition: \"who I sent the file to\"."
+        },
+        {
+          "id": "q16",
+          "prompt": "Everything ___ he said turned out to be true.",
+          "options": [
+            "which",
+            "what",
+            "that",
+            "who"
+          ],
+          "answer": 2,
+          "explanation": "After \"everything\", \"all\" and \"nothing\", English uses \"that\" rather than \"which\"."
         }
       ]
     },
@@ -460,58 +1251,194 @@
         {
           "id": "q1",
           "prompt": "The lights are off — they ___ be out.",
-          "options": ["must", "can", "should", "would"],
+          "options": [
+            "must",
+            "can",
+            "should",
+            "would"
+          ],
           "answer": 0,
           "explanation": "\"Must\" expresses a confident conclusion from evidence. The dark house is the evidence, so the speaker is nearly certain."
         },
         {
           "id": "q2",
           "prompt": "You ___ take photographs in the gallery — it's forbidden.",
-          "options": ["don't have to", "mustn't", "needn't", "shouldn't have to"],
+          "options": [
+            "don't have to",
+            "mustn't",
+            "needn't",
+            "shouldn't have to"
+          ],
           "answer": 1,
           "explanation": "\"Mustn't\" is a prohibition. \"Don't have to\" would mean photographs are optional, which is the opposite of what is meant."
         },
         {
           "id": "q3",
           "prompt": "You ___ pay now; you can pay on the day.",
-          "options": ["mustn't", "don't have to", "can't", "shouldn't"],
+          "options": [
+            "mustn't",
+            "don't have to",
+            "can't",
+            "shouldn't"
+          ],
           "answer": 1,
           "explanation": "The second half says paying now is optional, which is \"don't have to\". \"Mustn't\" would forbid paying altogether."
         },
         {
           "id": "q4",
           "prompt": "She's not answering. She ___ be in a meeting.",
-          "options": ["must", "might", "can't", "shall"],
+          "options": [
+            "must",
+            "might",
+            "can't",
+            "shall"
+          ],
           "answer": 1,
           "explanation": "\"Might\" marks a possible explanation rather than a certain one. \"Must\" would claim more than the evidence supports."
         },
         {
           "id": "q5",
           "prompt": "That ___ be Tom — he's abroad this week.",
-          "options": ["mustn't", "can't", "shouldn't", "wouldn't"],
+          "options": [
+            "mustn't",
+            "can't",
+            "shouldn't",
+            "wouldn't"
+          ],
           "answer": 1,
           "explanation": "\"Can't\" is the negative of certainty: the speaker is sure it is not Tom. \"Mustn't\" is about rules, never about deduction."
         },
         {
           "id": "q6",
           "prompt": "I ___ have left my umbrella on the bus.",
-          "options": ["must", "should", "would", "can"],
+          "options": [
+            "must",
+            "should",
+            "would",
+            "can"
+          ],
           "answer": 0,
           "explanation": "\"Must have\" + past participle is a confident conclusion about the past — the only place the umbrella could be."
         },
         {
           "id": "q7",
           "prompt": "You ___ have told me — I'd have helped.",
-          "options": ["must", "should", "could not", "will"],
+          "options": [
+            "must",
+            "should",
+            "could not",
+            "will"
+          ],
           "answer": 1,
           "explanation": "\"Should have\" + past participle criticises a past action that did not happen. It is the standard way to express regret or reproach."
         },
         {
           "id": "q8",
           "prompt": "Applicants ___ submit two references.",
-          "options": ["might", "could", "must", "would"],
+          "options": [
+            "might",
+            "could",
+            "must",
+            "would"
+          ],
           "answer": 2,
           "explanation": "\"Must\" states a requirement, which is the right register for a formal rule or instruction."
+        },
+        {
+          "id": "q9",
+          "prompt": "You ___ be tired after that flight.",
+          "options": [
+            "must",
+            "can",
+            "should",
+            "may not"
+          ],
+          "answer": 0,
+          "explanation": "\"Must\" here is a confident deduction, not an obligation — the speaker is sure, based on the evidence of a long flight."
+        },
+        {
+          "id": "q10",
+          "prompt": "You ___ have told me earlier; I could have helped.",
+          "options": [
+            "should",
+            "must",
+            "can",
+            "would"
+          ],
+          "answer": 0,
+          "explanation": "\"Should have\" + past participle criticises something that did not happen but ought to have."
+        },
+        {
+          "id": "q11",
+          "prompt": "She ___ be at home — I saw her at the office ten minutes ago.",
+          "options": [
+            "must not",
+            "cannot",
+            "should not",
+            "may not"
+          ],
+          "answer": 1,
+          "explanation": "For a confident negative deduction English uses \"cannot\", not \"must not\". \"Must not\" is a prohibition."
+        },
+        {
+          "id": "q12",
+          "prompt": "Applicants ___ submit two references.",
+          "options": [
+            "can",
+            "must",
+            "might",
+            "would"
+          ],
+          "answer": 1,
+          "explanation": "\"Must\" states a requirement of the process. \"Can\" would make it optional."
+        },
+        {
+          "id": "q13",
+          "prompt": "___ I open the window? It is rather warm.",
+          "options": [
+            "Will",
+            "Shall",
+            "Would",
+            "Should"
+          ],
+          "answer": 1,
+          "explanation": "\"Shall I\" offers to do something. \"Will I\" is not used for offers in standard British usage."
+        },
+        {
+          "id": "q14",
+          "prompt": "He ___ have missed the train — he left an hour early.",
+          "options": [
+            "must",
+            "cannot",
+            "should",
+            "need not"
+          ],
+          "answer": 1,
+          "explanation": "Leaving early makes missing the train nearly impossible, so the confident negative deduction is \"cannot have\"."
+        },
+        {
+          "id": "q15",
+          "prompt": "You ___ pay now; the invoice is due next month.",
+          "options": [
+            "must not",
+            "need not",
+            "cannot",
+            "should not"
+          ],
+          "answer": 1,
+          "explanation": "\"Need not\" means it is not necessary. \"Must not\" would forbid paying, which is not the meaning."
+        },
+        {
+          "id": "q16",
+          "prompt": "It ___ rain later, so take an umbrella just in case.",
+          "options": [
+            "must",
+            "might",
+            "cannot",
+            "should not"
+          ],
+          "answer": 1,
+          "explanation": "\"Might\" expresses possibility. \"Must\" would claim certainty, which \"just in case\" contradicts."
         }
       ]
     },
@@ -530,7 +1457,12 @@
         {
           "id": "q1",
           "prompt": "Never ___ such a mess.",
-          "options": ["I have seen", "have I seen", "I saw", "did I saw"],
+          "options": [
+            "I have seen",
+            "have I seen",
+            "I saw",
+            "did I saw"
+          ],
           "answer": 1,
           "explanation": "A negative adverb in front position inverts the subject and auxiliary: \"have I seen\". Without the fronted \"never\", normal order returns."
         },
@@ -549,21 +1481,36 @@
         {
           "id": "q3",
           "prompt": "Not until the letter arrived ___ the truth.",
-          "options": ["we learned", "did we learn", "we did learn", "learned we"],
+          "options": [
+            "we learned",
+            "did we learn",
+            "we did learn",
+            "learned we"
+          ],
           "answer": 1,
           "explanation": "\"Not until\" triggers inversion in the *main* clause, not in the time clause. With no other auxiliary present, English supplies \"did\"."
         },
         {
           "id": "q4",
           "prompt": "He ___ late for work.",
-          "options": ["is never", "never is", "is not never", "never has"],
+          "options": [
+            "is never",
+            "never is",
+            "is not never",
+            "never has"
+          ],
           "answer": 0,
           "explanation": "Frequency adverbs come after \"be\" but before other main verbs. Compare \"He never arrives late\"."
         },
         {
           "id": "q5",
           "prompt": "No sooner had we sat down ___ the phone rang.",
-          "options": ["when", "than", "that", "then"],
+          "options": [
+            "when",
+            "than",
+            "that",
+            "then"
+          ],
           "answer": 1,
           "explanation": "\"No sooner … than\" is fixed. \"Hardly … when\" is the other fixed pair, and mixing the two is one of the most common advanced errors."
         },
@@ -582,16 +1529,122 @@
         {
           "id": "q7",
           "prompt": "Only after the meeting ___ what had been decided.",
-          "options": ["I understood", "did I understand", "I did understand", "understood I"],
+          "options": [
+            "I understood",
+            "did I understand",
+            "I did understand",
+            "understood I"
+          ],
           "answer": 1,
           "explanation": "\"Only after…\" is restrictive, so the main clause inverts. The pattern is the same as \"not until\"."
         },
         {
           "id": "q8",
           "prompt": "So convincing ___ that nobody objected.",
-          "options": ["the argument was", "was the argument", "had the argument", "the argument had"],
+          "options": [
+            "the argument was",
+            "was the argument",
+            "had the argument",
+            "the argument had"
+          ],
           "answer": 1,
           "explanation": "\"So + adjective\" in front position inverts what follows. It is a strong, formal way to emphasise a quality."
+        },
+        {
+          "id": "q9",
+          "prompt": "Never ___ such a generous offer.",
+          "options": [
+            "I have received",
+            "have I received",
+            "I received",
+            "did I received"
+          ],
+          "answer": 1,
+          "explanation": "A negative adverb at the front forces inversion: auxiliary before subject. The verb after it stays in the participle form."
+        },
+        {
+          "id": "q10",
+          "prompt": "___ had she sat down than the phone rang.",
+          "options": [
+            "No sooner",
+            "Not only",
+            "Hardly ever",
+            "Rarely"
+          ],
+          "answer": 0,
+          "explanation": "\"No sooner ... than\" is the fixed pair for one event immediately following another. \"Hardly ... when\" is the other."
+        },
+        {
+          "id": "q11",
+          "prompt": "Not only ___ the deadline, but he also apologised badly.",
+          "options": [
+            "he missed",
+            "did he miss",
+            "he did miss",
+            "missed he"
+          ],
+          "answer": 1,
+          "explanation": "\"Not only\" at the front triggers inversion with the auxiliary \"did\", and the main verb returns to its base form."
+        },
+        {
+          "id": "q12",
+          "prompt": "Only after the meeting ___ what had been decided.",
+          "options": [
+            "I understood",
+            "did I understand",
+            "I did understand",
+            "understood I"
+          ],
+          "answer": 1,
+          "explanation": "\"Only\" + a time phrase at the front inverts the subject and auxiliary."
+        },
+        {
+          "id": "q13",
+          "prompt": "She speaks ___.",
+          "options": [
+            "fluently three languages",
+            "three languages fluently",
+            "fluently, three languages",
+            "three fluently languages"
+          ],
+          "answer": 1,
+          "explanation": "English keeps the verb and its object together. An adverb of manner goes after the object, not between verb and object."
+        },
+        {
+          "id": "q14",
+          "prompt": "We go to the cinema ___.",
+          "options": [
+            "on Fridays usually",
+            "usually on Fridays",
+            "on usually Fridays",
+            "usually Fridays on"
+          ],
+          "answer": 1,
+          "explanation": "Adverbs of frequency come before the time phrase, and in mid-position before the main verb in other patterns."
+        },
+        {
+          "id": "q15",
+          "prompt": "___ did the committee expect such a response.",
+          "options": [
+            "Little",
+            "Small",
+            "Few",
+            "Less"
+          ],
+          "answer": 0,
+          "explanation": "\"Little\" used as a negative adverb at the front means \"not at all\", and it takes inversion."
+        },
+        {
+          "id": "q16",
+          "prompt": "So convincing ___ that nobody objected.",
+          "options": [
+            "her argument was",
+            "was her argument",
+            "her argument",
+            "was she argument"
+          ],
+          "answer": 1,
+          "explanation": "When \"so\" + adjective is fronted for emphasis, the subject and verb invert."
         }
       ]
     },
@@ -610,58 +1663,194 @@
         {
           "id": "q1",
           "prompt": "The meeting is ___ Tuesday ___ 3 o'clock.",
-          "options": ["in / at", "on / at", "at / on", "on / in"],
+          "options": [
+            "in / at",
+            "on / at",
+            "at / on",
+            "on / in"
+          ],
           "answer": 1,
           "explanation": "Days take \"on\" and clock times take \"at\". This pairing covers most appointment sentences you will ever write."
         },
         {
           "id": "q2",
           "prompt": "She was born ___ March 1998.",
-          "options": ["on", "at", "in", "by"],
+          "options": [
+            "on",
+            "at",
+            "in",
+            "by"
+          ],
           "answer": 2,
           "explanation": "Months and years take \"in\". You would only use \"on\" with a full date: on 5 March."
         },
         {
           "id": "q3",
           "prompt": "I'll meet you ___ the bus stop.",
-          "options": ["in", "on", "at", "by"],
+          "options": [
+            "in",
+            "on",
+            "at",
+            "by"
+          ],
           "answer": 2,
           "explanation": "\"At\" treats a place as a point on a map rather than a space you go inside. Compare \"in the shop\"."
         },
         {
           "id": "q4",
           "prompt": "We travelled ___ car and then ___ the train.",
-          "options": ["by / on", "in / by", "on / in", "with / on"],
+          "options": [
+            "by / on",
+            "in / by",
+            "on / in",
+            "with / on"
+          ],
           "answer": 0,
           "explanation": "\"By car\" is the general method; once you name a specific vehicle you go \"on the train\" but \"in the car\"."
         },
         {
           "id": "q5",
           "prompt": "The keys are ___ the table.",
-          "options": ["in", "on", "at", "to"],
+          "options": [
+            "in",
+            "on",
+            "at",
+            "to"
+          ],
           "answer": 1,
           "explanation": "A table is a flat surface, so things sit \"on\" it. \"In the table\" would mean inside the wood."
         },
         {
           "id": "q6",
           "prompt": "He works ___ night.",
-          "options": ["in", "on", "at", "by"],
+          "options": [
+            "in",
+            "on",
+            "at",
+            "by"
+          ],
           "answer": 2,
           "explanation": "\"At night\" is a fixed exception — compare \"in the morning\", \"in the afternoon\", \"in the evening\". It simply has to be memorised."
         },
         {
           "id": "q7",
           "prompt": "The shop opens ___ the weekend.",
-          "options": ["in", "at", "on", "by"],
+          "options": [
+            "in",
+            "at",
+            "on",
+            "by"
+          ],
           "answer": 1,
           "explanation": "British English says \"at the weekend\"; American English says \"on the weekend\". IELTS accepts either, but stay consistent."
         },
         {
           "id": "q8",
           "prompt": "Please hand it in ___ Friday at the latest.",
-          "options": ["until", "by", "at", "in"],
+          "options": [
+            "until",
+            "by",
+            "at",
+            "in"
+          ],
           "answer": 1,
           "explanation": "\"By\" means at or before that point — a deadline. \"Until\" would mean the action continues right up to Friday."
+        },
+        {
+          "id": "q9",
+          "prompt": "The lecture starts ___ nine o'clock ___ Monday morning.",
+          "options": [
+            "in / on",
+            "at / on",
+            "on / at",
+            "at / in"
+          ],
+          "answer": 1,
+          "explanation": "\"At\" for clock times, \"on\" for days and dates. \"In\" is for longer stretches: months, seasons, years."
+        },
+        {
+          "id": "q10",
+          "prompt": "She has lived in Leeds ___ 2019.",
+          "options": [
+            "for",
+            "since",
+            "from",
+            "during"
+          ],
+          "answer": 1,
+          "explanation": "\"Since\" marks the starting point. \"For\" would need a length of time: for five years."
+        },
+        {
+          "id": "q11",
+          "prompt": "We waited ___ the bus stop ___ twenty minutes.",
+          "options": [
+            "in / since",
+            "at / for",
+            "on / for",
+            "at / during"
+          ],
+          "answer": 1,
+          "explanation": "\"At\" treats the bus stop as a point on a route. \"For\" introduces a duration."
+        },
+        {
+          "id": "q12",
+          "prompt": "The keys are ___ the drawer, under the papers.",
+          "options": [
+            "on",
+            "at",
+            "in",
+            "by"
+          ],
+          "answer": 2,
+          "explanation": "\"In\" for something enclosed by the drawer. \"On\" would put them on its surface."
+        },
+        {
+          "id": "q13",
+          "prompt": "I will finish the report ___ Friday at the latest.",
+          "options": [
+            "until",
+            "by",
+            "since",
+            "during"
+          ],
+          "answer": 1,
+          "explanation": "\"By\" means at or before that point. \"Until\" would mean the finishing continues right up to Friday."
+        },
+        {
+          "id": "q14",
+          "prompt": "There is a chemist ___ the corner of the street.",
+          "options": [
+            "in",
+            "at",
+            "on",
+            "to"
+          ],
+          "answer": 2,
+          "explanation": "British usage puts a shop \"on the corner\". \"In the corner\" describes the inside angle of a room."
+        },
+        {
+          "id": "q15",
+          "prompt": "He was born ___ the summer of 1998.",
+          "options": [
+            "at",
+            "on",
+            "in",
+            "during"
+          ],
+          "answer": 2,
+          "explanation": "\"In\" is used for seasons, months and years. \"During\" would be possible but changes the emphasis to the span."
+        },
+        {
+          "id": "q16",
+          "prompt": "The painting hangs ___ the fireplace.",
+          "options": [
+            "above",
+            "on",
+            "in",
+            "at"
+          ],
+          "answer": 0,
+          "explanation": "\"Above\" means higher than, without touching. \"On\" would mean it rests against the fireplace itself."
         }
       ]
     },
@@ -680,58 +1869,194 @@
         {
           "id": "q1",
           "prompt": "He gave me some useful ___.",
-          "options": ["advices", "advice", "an advice", "advice's"],
+          "options": [
+            "advices",
+            "advice",
+            "an advice",
+            "advice's"
+          ],
           "answer": 1,
           "explanation": "\"Advice\" is uncountable in English, so it has no plural and takes no \"a\". To count it, say \"a piece of advice\"."
         },
         {
           "id": "q2",
           "prompt": "There isn't ___ time left.",
-          "options": ["many", "much", "a few", "several"],
+          "options": [
+            "many",
+            "much",
+            "a few",
+            "several"
+          ],
           "answer": 1,
           "explanation": "\"Time\" here is uncountable, so it takes \"much\". \"Many\" only goes with things you can count individually."
         },
         {
           "id": "q3",
           "prompt": "The ___ in this flat is very old.",
-          "options": ["furnitures", "furniture", "furnitures are", "a furniture"],
+          "options": [
+            "furnitures",
+            "furniture",
+            "furnitures are",
+            "a furniture"
+          ],
           "answer": 1,
           "explanation": "\"Furniture\" is uncountable and takes a singular verb — \"is\", not \"are\". The same is true of luggage and equipment."
         },
         {
           "id": "q4",
           "prompt": "Only ___ students passed the exam.",
-          "options": ["a little", "much", "a few", "less"],
+          "options": [
+            "a little",
+            "much",
+            "a few",
+            "less"
+          ],
           "answer": 2,
           "explanation": "Students are countable, so \"a few\". \"A little\" would be right for an uncountable noun such as \"a little water\"."
         },
         {
           "id": "q5",
           "prompt": "Recent ___ suggests the opposite.",
-          "options": ["researches", "research", "a research", "research are"],
+          "options": [
+            "researches",
+            "research",
+            "a research",
+            "research are"
+          ],
           "answer": 1,
           "explanation": "\"Research\" is uncountable in English even though it is countable in many other languages — a very common IELTS error."
         },
         {
           "id": "q6",
           "prompt": "Would you like ___ of tea?",
-          "options": ["a cup", "a tea's", "some cups tea", "one tea's"],
+          "options": [
+            "a cup",
+            "a tea's",
+            "some cups tea",
+            "one tea's"
+          ],
           "answer": 0,
           "explanation": "To count an uncountable noun, put a unit in front of it: a cup of tea, a slice of bread, a piece of information."
         },
         {
           "id": "q7",
           "prompt": "___ people were waiting outside.",
-          "options": ["Much", "A great deal of", "A number of", "A little"],
+          "options": [
+            "Much",
+            "A great deal of",
+            "A number of",
+            "A little"
+          ],
           "answer": 2,
           "explanation": "\"People\" is a plural countable noun, so it takes \"a number of\". \"A great deal of\" belongs with uncountables such as money or effort."
         },
         {
           "id": "q8",
           "prompt": "We need to buy new ___.",
-          "options": ["equipments", "equipment", "an equipment", "equipment's"],
+          "options": [
+            "equipments",
+            "equipment",
+            "an equipment",
+            "equipment's"
+          ],
           "answer": 1,
           "explanation": "\"Equipment\" is uncountable. If you must count it, say \"pieces of equipment\" or name the items instead."
+        },
+        {
+          "id": "q9",
+          "prompt": "Could you give me ___ information about the course?",
+          "options": [
+            "a",
+            "an",
+            "some",
+            "a few"
+          ],
+          "answer": 2,
+          "explanation": "\"Information\" is uncountable in English, so it takes \"some\" rather than \"a\" or \"a few\"."
+        },
+        {
+          "id": "q10",
+          "prompt": "There ___ too much furniture in this room.",
+          "options": [
+            "are",
+            "is",
+            "were",
+            "have"
+          ],
+          "answer": 1,
+          "explanation": "\"Furniture\" is uncountable and takes a singular verb, even though it refers to many objects."
+        },
+        {
+          "id": "q11",
+          "prompt": "How ___ luggage are you taking?",
+          "options": [
+            "many",
+            "much",
+            "few",
+            "several"
+          ],
+          "answer": 1,
+          "explanation": "\"Much\" goes with uncountable nouns. To count them you need a unit: how many suitcases."
+        },
+        {
+          "id": "q12",
+          "prompt": "She gave me ___ advice that changed my mind.",
+          "options": [
+            "an",
+            "a piece of",
+            "some pieces",
+            "a few"
+          ],
+          "answer": 1,
+          "explanation": "\"Advice\" is uncountable, so a single item needs a counter: a piece of advice."
+        },
+        {
+          "id": "q13",
+          "prompt": "We have ___ chairs but not enough tables.",
+          "options": [
+            "much",
+            "a little",
+            "plenty of",
+            "a great deal of"
+          ],
+          "answer": 2,
+          "explanation": "\"Plenty of\" works with countable nouns like chairs. \"Much\" and \"a great deal of\" go with uncountables."
+        },
+        {
+          "id": "q14",
+          "prompt": "I only have ___ money left.",
+          "options": [
+            "a few",
+            "few",
+            "a little",
+            "many"
+          ],
+          "answer": 2,
+          "explanation": "\"Money\" is uncountable, so the small quantity is \"a little\". \"A few\" would need coins or notes."
+        },
+        {
+          "id": "q15",
+          "prompt": "___ of the equipment was damaged in transit.",
+          "options": [
+            "A number",
+            "Several",
+            "Some",
+            "Many"
+          ],
+          "answer": 2,
+          "explanation": "\"Equipment\" is uncountable, so \"some\" fits. \"A number of\" and \"many\" require countable nouns."
+        },
+        {
+          "id": "q16",
+          "prompt": "There is ___ evidence to support that claim.",
+          "options": [
+            "few",
+            "little",
+            "a few",
+            "many"
+          ],
+          "answer": 1,
+          "explanation": "\"Evidence\" is uncountable, and \"little\" without \"a\" stresses that there is hardly any."
         }
       ]
     }

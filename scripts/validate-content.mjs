@@ -297,8 +297,36 @@ if (writing) {
   for (const task of tasks) {
     if (![1, 2].includes(task.task)) fail("writing-tasks.json", `${task.id} has an invalid task number`);
     if (!task.prompt || !task.title) fail("writing-tasks.json", `${task.id} is missing a prompt or title`);
-    if (task.task === 1 && task.variant === "academic" && !task.dataTable) {
+    if (task.task === 1 && task.variant === "academic" && !task.dataTable && !task.chart) {
       fail("writing-tasks.json", `${task.id} is an academic Task 1 with no data to describe`);
+    }
+    if (task.dataTable && task.chart) {
+      // Both would let a candidate read the figures off the table and never
+      // interpret the chart, which is the skill Task 1 is testing.
+      fail("writing-tasks.json", `${task.id} has both a table and a chart; it should have one`);
+    }
+    if (task.chart) {
+      const { kind, categories, series } = task.chart;
+      if (!["line", "bar", "pie"].includes(kind)) {
+        fail("writing-tasks.json", `${task.id} has an unknown chart kind: ${kind}`);
+      }
+      if (!Array.isArray(categories) || categories.length === 0) {
+        fail("writing-tasks.json", `${task.id} has a chart with no categories`);
+      }
+      if (!Array.isArray(series) || series.length === 0) {
+        fail("writing-tasks.json", `${task.id} has a chart with no series`);
+      } else {
+        if (kind === "pie" && series.length !== 1) {
+          fail("writing-tasks.json", `${task.id} is a pie chart with ${series.length} series; it needs exactly one`);
+        }
+        for (const s of series) {
+          if (!s.name) fail("writing-tasks.json", `${task.id} has a chart series with no name`);
+          if (!Array.isArray(s.values) || s.values.length !== categories.length) {
+            // A short series silently drops its last categories from the chart.
+            fail("writing-tasks.json", `${task.id} series "${s.name}" has ${s.values?.length} values for ${categories.length} categories`);
+          }
+        }
+      }
     }
     if (task.dataTable) {
       const { headers, rows } = task.dataTable;
