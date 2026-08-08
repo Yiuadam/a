@@ -268,6 +268,7 @@ export default function PrivacyPage() {
             "Your email address, so the account can be recovered if you lose access to Google or Apple.",
             "A count of AI requests over the last 24 hours, so the daily allowance can be applied. It records that a request happened and to which feature — never what you wrote, said or were told.",
             "A copy of your study progress, if you choose to sync it, so a new device can pick up where the last one left off.",
+            "Anything you choose to put on your account page: a display name, a profile picture, and optionally your gender and date of birth. All four are optional, all four can be cleared, and the account works exactly the same if you leave them empty.",
           ].map((line) => (
             <li key={line} className="flex gap-3 text-[15px] leading-7 text-slate-700">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
@@ -275,6 +276,20 @@ export default function PrivacyPage() {
             </li>
           ))}
         </ul>
+        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+          Two of those are worth being precise about, because we would rather say why than
+          leave you guessing. <strong>Your gender is not used for anything.</strong> Nothing in
+          BandUp reads it, it changes nothing you see, and it is stored only because it was
+          asked for — leave it blank and nothing is different. <strong>Your date of birth is
+          used for one thing:</strong> this app is not intended for children under 13, and a
+          date of birth is the only way that can be checked rather than assumed.
+        </p>
+        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+          Your profile picture is stored privately and is never public. BandUp has no profile
+          pages, no leaderboards and no way for other learners to find you, so the only person
+          who ever sees it is you. It is served through a link that expires after an hour
+          rather than from a permanent address.
+        </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
           Account data is stored with Supabase, who host the database on our behalf. Signing out
           ends the session on that device and deletes nothing — your practice stays where it is.
