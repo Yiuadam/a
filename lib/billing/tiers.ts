@@ -126,7 +126,7 @@ export const TIERS: Record<Tier, TierDefinition> = {
     includes: [
       "Placement test, study plan and all drills — unlimited",
       "2 listening and 2 reading papers a week",
-      "1 essay and 1 speaking answer marked a week",
+      "1 writing and 1 speaking session a week, 1 question in the speaking",
       "20 AI requests a day, in any mix",
       "Progress synced across your devices",
     ],
@@ -134,14 +134,23 @@ export const TIERS: Record<Tier, TierDefinition> = {
   pro: {
     id: "pro",
     name: "Standard",
-    blurb: "For the weeks before the exam, when you want feedback on everything you write.",
+    blurb: "For the weeks before the exam, when one paper a week is not enough.",
     dailyAiCalls: 500,
     features: [...EVERYTHING_METERED, "tutor-chat"],
+    /*
+      "More", not "unlimited", and the AI cap is named rather than implied
+      absent. An earlier draft said "no weekly limits" in one bullet and
+      "500 AI requests a day" two lines below it, which is a page arguing with
+      itself — and the bullet a subscriber would remember is the one that
+      promised no limit. What Standard actually buys is more sessions and a
+      much larger allowance, and both of those are worth paying for without
+      being dressed up as infinite.
+    */
     includes: [
-      "Everything in Free, with no weekly limits",
+      "Many more practice sessions in every skill",
       "The full mock exam — all four skills, timed",
       "The AI tutor chat, whenever you are stuck",
-      "500 AI requests a day",
+      "500 AI requests a day instead of 20",
       "Cancel any time, one button",
     ],
   },
