@@ -391,13 +391,15 @@ function SyncCard() {
     <section className="card">
       <h2 className="text-[17px] font-semibold text-slate-900">Your practice on other devices</h2>
       <p className="mt-2 text-[15px] leading-7 text-slate-600">
-        Syncing merges what is on this device with what is on your account, in both directions.
-        Nothing is replaced and nothing is deleted — if you have practised on your phone and your
-        laptop, you end up with both.
+        This happens by itself: finish a practice on any device you are signed in on, and a few
+        seconds later it is on your account and on your other devices. Nothing is replaced and
+        nothing is deleted — practise on your phone and your laptop and you end up with both.
       </p>
 
+      {/* The automatic path covers everything; this exists for the moment a
+          learner wants to *see* it work rather than trust that it did. */}
       <button type="button" className="btn-primary mt-4" onClick={run} disabled={state === "working"}>
-        {state === "working" ? "Syncing…" : "Sync now"}
+        {state === "working" ? "Syncing…" : "Sync again now"}
       </button>
 
       {state === "done" && (

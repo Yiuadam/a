@@ -1,5 +1,7 @@
 "use client";
 
+import { PROGRESS_WRITE_EVENT } from "./progress/events";
+
 export interface Definition {
   term: string;
   partOfSpeech?: string;
@@ -116,6 +118,8 @@ function persist(next: Cache): void {
   } catch {
     // A full or unavailable localStorage just means no caching.
   }
+  // Lets a signed-in account follow along — see lib/progress/autosync.ts.
+  window.dispatchEvent(new Event(PROGRESS_WRITE_EVENT));
 }
 
 export function saveLookup(definition: Definition): void {

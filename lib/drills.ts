@@ -1,4 +1,5 @@
 import type { CEFRLevel } from "./types";
+import { PROGRESS_WRITE_EVENT } from "./progress/events";
 
 export interface DrillQuestion {
   id: string;
@@ -116,5 +117,7 @@ export function recordDrill(topicId: string, correct: number, total: number): vo
   } catch {
     // Storage can be full or blocked — keep the in-memory copy.
   }
+  // Lets a signed-in account follow along — see lib/progress/autosync.ts.
+  window.dispatchEvent(new Event(PROGRESS_WRITE_EVENT));
   for (const listener of listeners) listener();
 }
