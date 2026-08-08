@@ -1,27 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="150 190 730 730" width="730" height="730">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="52 99 950 950" width="950" height="950">
   <title>BandUp</title>
   <!--
     The BandUp mark, for the site header and the browser tab.
 
-    This is steps-five-flat.svg — the chosen app icon — with nothing redrawn.
-    The only change is the viewBox: the master is a full-bleed 1024 canvas with
-    the mark sitting well inside it, which is right for a home screen where the
-    icon is 60px or larger and stands alone. In a 36px header badge that
-    padding costs the mark about a third of its width, and at that size the
-    five steps stop reading as steps.
+    Same drawing as steps-five-flat.svg — the App Store master — with nothing
+    redrawn. Two things differ, and both exist to stop the sheet colliding with
+    the rounded corner.
 
-    Cropping to 150 190 730 730 keeps the dark ground as a frame and gives the
-    staircase the pixels it needs. Rendered and compared at 32, 36, 64 and
-    128px before choosing this crop over three tighter ones, which each ate so
-    much of the ground that the mark stopped looking like an icon and started
-    looking like a photograph of one.
+    The viewBox is centred on the artwork rather than on the canvas. The marks
+    sit 62px below the middle of the 1024 square, so a crop centred on the
+    canvas pushes them down and to the right until the paper runs off the
+    corner. Measuring the real bounds — x 220-835, y 237-910 once both
+    rotations are applied — and centring on 527,574 instead gives 168px of
+    ground either side and 138px above and below. Even margins, and nothing
+    touching an edge.
 
-    Do not redraw either file to match the other. The master is what Icon
-    Composer consumes for the App Store; this is the same art framed for a
-    different size. If the design changes, change the master and re-crop.
+    The ground is then bigger than the master's, because a centred 950 box
+    reaches y=1049 and the original rect stopped at 1024: the last 25px would
+    have been transparent. It now runs -200 to 1224 in both directions, and the
+    gradient is pinned to user space so growing the rect does not stretch it.
+
+    Do not redraw either file to match the other. If the design changes, change
+    the master and re-derive this.
   -->
   <defs>
-    <radialGradient id="f5-ground" cx="0.3" cy="0.75" r="0.95">
+    <radialGradient id="f5-ground" gradientUnits="userSpaceOnUse" cx="307.2" cy="768" r="972.8">
       <stop offset="0" stop-color="#31261d" />
       <stop offset="1" stop-color="#15110e" />
     </radialGradient>
@@ -41,7 +44,7 @@
     </mask>
   </defs>
 
-  <rect width="1024" height="1024" fill="url(#f5-ground)" />
+  <rect x="-200" y="-200" width="1424" height="1424" fill="url(#f5-ground)" />
 
   <rect
     x="272"

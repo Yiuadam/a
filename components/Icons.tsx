@@ -19,11 +19,10 @@ import type { ReactNode } from "react";
     - fills used sparingly, and only where a shape needs weight to survive at
       24px — see the listening cups
 
-  The four skill marks were chosen from twenty candidates each, compared at
-  24px rather than at a comfortable size. Grammar and vocabulary are drawn to
-  match them: those two sit on the home page beside the skills, and a page
-  that mixed drawn marks with leftover emoji would look half-finished in a way
-  neither choice deserves.
+  All six marks were chosen from twenty candidates each, compared at 24px
+  rather than at a comfortable size — because that is where the decision
+  actually gets made, and a glyph that is handsome at 128px can turn to mud at
+  the size it ships at.
 */
 
 const BOX = {
@@ -98,17 +97,20 @@ export function SpeakingIcon({ className }: IconProps) {
 /* --- the two study sections ---------------------------------------------- */
 
 /*
-  Not chosen from a set — drawn to sit beside the four above, which is the
-  whole requirement. A set square for the rules, index cards for the words.
+  Chosen the same way as the four skills: twenty candidates each, compared at
+  24px and against the marks they sit beside. G07 for grammar — writing with
+  the last line checked, which is what a drill actually does — and V01 for
+  vocabulary, cards in a stack, the way words are learned one at a time.
 */
 
-/** Grammar. A set square: rules with edges you can measure against. */
+/** Grammar. Lines of writing with the last one checked — the rule applied. */
 export function GrammarIcon({ className }: IconProps) {
   return (
     <Glyph className={className}>
-      <path d="M4 19.5 19.5 4v15.5z" />
-      <path d="M14.5 19.5V15" />
-      <path d="M10 19.5V17" />
+      <path d="M4 6.5h16" />
+      <path d="M4 11.5h16" />
+      <path d="M4 16.5h7" />
+      <path d="M13.5 17l2 2 4-4.5" />
     </Glyph>
   );
 }
