@@ -20,6 +20,13 @@ export const metadata: Metadata = {
   title: "BandUp — IELTS practice",
   description:
     "Find your IELTS band, follow a plan made for you, and practise all four skills with an AI examiner.",
+  /*
+    The tab icon. Pointed at the same file the header draws rather than a
+    second copy in app/, so the mark cannot drift between the two places a
+    visitor sees it. Replaces app/favicon.ico, which was still the Next.js
+    logo from the starter template.
+  */
+  icons: { icon: "/icons/final/steps-five-mark.svg" },
 };
 
 const NAV = [
@@ -56,9 +63,27 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               href="/"
               className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-sm font-bold text-accent-fg shadow-sm transition-transform group-hover:-rotate-6">
-                B
-              </span>
+              {/*
+                The app icon, not a letter. `overflow-hidden` with the same
+                radius is what rounds it: the artwork is a full-bleed square,
+                the way an app icon has to be, so the corner has to be cut here
+                rather than drawn into the file.
+
+                Plain <img> rather than next/image: it is a 2 kB SVG at a fixed
+                36px, so there is nothing to optimise, and next/image would
+                need dangerouslyAllowSVG turned on for the whole app to serve
+                it at all — widening what the image optimiser accepts, for one
+                trusted logo. width and height are set so the header never
+                reflows while it loads.
+              */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/final/steps-five-mark.svg"
+                alt=""
+                width={36}
+                height={36}
+                className="h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm transition-transform group-hover:-rotate-6"
+              />
               <span className="hidden xs:inline">BandUp</span>
             </Link>
             <nav className="nav-scroll no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
