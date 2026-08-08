@@ -56,7 +56,7 @@ const MODULE = "lib/billing/gate.ts";
  * anything.
  */
 export const UPGRADE_MESSAGE =
-  "This is part of BandUp Pro. See the plans on the pricing page — everything else, including practice tests, drills and your study plan, stays free.";
+  "This is part of BandUp Standard. See the plans on the pricing page — everything else, including practice tests, drills and your study plan, stays free.";
 
 /**
  * 402 Payment Required, which is the rare status code that means precisely

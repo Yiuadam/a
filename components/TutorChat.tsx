@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import UpgradePanel from "@/components/billing/UpgradePanel";
+import { tierShows, useTier } from "@/lib/billing/useTier";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 
@@ -250,6 +252,23 @@ export default function TutorChat() {
   const off = ready === "off";
   const overLength = draft.length > MAX_CHARS;
 
+  /*
+    Whether to draw the tutor or the reason it is not there. This decides only
+    what is painted — /api/chat asks requireFeature on the server before it
+    does anything, so a learner who edits this in dev tools gets a 402 rather
+    than a free answer.
+
+    `entitled` is deliberately generous while the answer is unknown: during
+    `loading`, and on any deployment where accounts are switched off entirely,
+    the tutor renders. A paywall that flashes up for a second on a subscriber's
+    screen is worse than one that arrives a beat late, and an app with no
+    accounts has no tiers to enforce.
+  */
+  const account = useTier();
+  const entitled =
+    account.phase !== "ready" || !account.accountsEnabled || tierShows(account, "tutor-chat");
+  const locked = !off && !entitled;
+
   return (
     <div className="space-y-8">
       <div className="max-w-xl space-y-2">
@@ -272,7 +291,11 @@ export default function TutorChat() {
 
       {off ? <NotSwitchedOn /> : null}
 
-      {!off && (
+      {locked && (
+        <UpgradePanel feature="ask the tutor" signedIn={account.signedIn} />
+      )}
+
+      {!off && !locked && (
         <>
           <Allowance status={status} />
 
