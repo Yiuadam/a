@@ -402,31 +402,57 @@ export default function SpeakingPage() {
 
   if (stage === "intro") {
     return (
-      <div className="mx-auto flex min-h-[55vh] max-w-xl items-center">
-        <div className="card w-full space-y-4 text-center">
-          <SpeakingIcon className="mx-auto h-10 w-10 text-indigo-600" />
-          <h1 className="text-[26px] font-semibold text-slate-900">Mock speaking test</h1>
-          <p className="text-[15px] leading-7 text-slate-600">
-            An AI examiner asks you questions out loud, you answer out loud, and at the end you
-            get a band score with feedback on all four speaking criteria.
-          </p>
-          <ol className="mx-auto max-w-sm space-y-2 text-left text-sm text-slate-600">
-            <li className="flex gap-3">
-              <span className="font-semibold text-indigo-600">1</span> Short questions about you
-              (about 4 minutes)
-            </li>
-            <li className="flex gap-3">
-              <span className="font-semibold text-indigo-600">2</span> A topic card — 1 minute to
-              prepare, then talk for 2 minutes
-            </li>
-            <li className="flex gap-3">
-              <span className="font-semibold text-indigo-600">3</span> A discussion of bigger
-              ideas around that topic
-            </li>
-          </ol>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+      /*
+        What the test is on one side, how it hears you on the other. Stacked
+        and centred, this screen ran past the fold before the start button —
+        on the page whose entire job is to get someone talking.
+      */
+      <div className="mx-auto max-w-3xl">
+        <div className="card !p-4 grid gap-4 sm:grid-cols-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <SpeakingIcon className="h-7 w-7 shrink-0 text-indigo-600" />
+              <h1 className="text-xl font-semibold text-slate-900">Mock speaking test</h1>
+            </div>
+            <p className="mt-1.5 text-sm leading-6 text-slate-600">
+              An AI examiner asks you questions out loud, you answer out loud, and at the end you
+              get a band score with feedback on all four speaking criteria.
+            </p>
+            <ol className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
+              <li className="flex gap-2.5">
+                <span className="font-semibold text-indigo-600">1</span> Short questions about you
+                (about 4 minutes)
+              </li>
+              <li className="flex gap-2.5">
+                <span className="font-semibold text-indigo-600">2</span> A topic card — 1 minute to
+                prepare, then talk for 2 minutes
+              </li>
+              <li className="flex gap-2.5">
+                <span className="font-semibold text-indigo-600">3</span> A discussion of bigger
+                ideas around that topic
+              </li>
+            </ol>
+            {!micSupported && (
+              <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                Your browser can&apos;t record speech. You can still take the test by typing your
+                answers — or switch to Chrome, Edge or Safari to speak them.
+              </p>
+            )}
+            <button className="btn-primary mt-3 w-full" onClick={begin}>
+              Start the interview
+            </button>
+            <p className="mt-2 text-xs leading-5 text-slate-400">
+              {usingLocal
+                ? "Your voice is transcribed on this device and never uploaded. Only the text transcript is sent for marking."
+                : "Your voice is transcribed by your device's own recogniser, which may send the audio to its maker. Only the text transcript is sent for marking."}{" "}
+              <Link href="/privacy" className="underline hover:text-slate-600">
+                What that means
+              </Link>
+            </p>
+          </div>
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left">
             <p className="text-sm font-semibold text-slate-800">How your speech becomes text</p>
-            <div className="mt-3 space-y-2">
+            <div className="mt-2 space-y-2">
               <EngineOption
                 checked={prefs.engine === "platform"}
                 onSelect={() => updatePrefs({ ...prefs, engine: "platform" })}
@@ -442,9 +468,9 @@ export default function SpeakingPage() {
             </div>
 
             {prefs.engine === "local" && localBlock === null && (
-              <div className="mt-3 border-t border-slate-200 pt-3">
+              <div className="mt-2 border-t border-slate-200 pt-2">
                 <p className="text-xs font-medium text-slate-600">Model</p>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-1.5 flex flex-wrap gap-2">
                   {(Object.keys(LOCAL_MODELS) as LocalModelId[]).map((id) => (
                     <button
                       key={id}
@@ -462,7 +488,7 @@ export default function SpeakingPage() {
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-xs leading-5 text-slate-500">
+                <p className="mt-1.5 text-xs leading-5 text-slate-500">
                   {modelCached
                     ? "Already downloaded to this device."
                     : "Downloaded once, then kept for next time. It needs a connection the first time only."}{" "}
@@ -481,29 +507,11 @@ export default function SpeakingPage() {
             )}
 
             {prefs.engine === "local" && localBlock !== null && localBlock !== "server" && (
-              <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+              <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
                 {blockerMessage(localBlock)}
               </p>
             )}
           </div>
-
-          {!micSupported && (
-            <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Your browser can&apos;t record speech. You can still take the test by typing your
-              answers — or switch to Chrome, Edge or Safari to speak them.
-            </p>
-          )}
-          <button className="btn-primary w-full sm:w-auto" onClick={begin}>
-            Start the interview
-          </button>
-          <p className="text-xs leading-5 text-slate-400">
-            {usingLocal
-              ? "Your voice is transcribed on this device and never uploaded. Only the text transcript is sent for marking."
-              : "Your voice is transcribed by your device's own recogniser, which may send the audio to its maker. Only the text transcript is sent for marking."}{" "}
-            <Link href="/privacy" className="underline hover:text-slate-600">
-              What that means
-            </Link>
-          </p>
         </div>
       </div>
     );
@@ -523,20 +531,20 @@ export default function SpeakingPage() {
 
   if (stage === "result" && grade) {
     return (
-      <div className="space-y-6">
-        <div className="card flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
+      <div className="space-y-3">
+        <div className="card !p-4 flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
           <BandBadge band={grade.overallBand} caption="Your speaking band" />
-          <div className="space-y-1">
+          <div>
             <h1 className="text-xl font-semibold text-slate-900">Interview complete</h1>
-            <p className="text-[15px] leading-7 text-slate-600">
+            <p className="text-sm leading-6 text-slate-600">
               Here&apos;s how each criterion scored, what you did well, and what to fix first.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
           {grade.criteria.map((c) => (
-            <div key={c.name} className="card">
+            <div key={c.name} className="card !p-3 min-w-0">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-slate-900">{c.name}</h3>
                 <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
@@ -545,16 +553,16 @@ export default function SpeakingPage() {
               </div>
               <ExplainText
                 text={c.comment}
-                className="mt-2 block text-sm leading-6 text-slate-600"
+                className="mt-1 block text-xs leading-5 text-slate-600"
               />
             </div>
           ))}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="card">
-            <h3 className="mb-3 text-sm font-semibold text-emerald-700">What you did well</h3>
-            <ul className="space-y-2 text-sm leading-6 text-slate-700">
+        <div className="grid gap-2.5 lg:grid-cols-3">
+          <div className="card !p-4 min-w-0">
+            <h3 className="mb-1.5 text-sm font-semibold text-emerald-700">What you did well</h3>
+            <ul className="space-y-1.5 text-sm leading-6 text-slate-700">
               {grade.strengths.map((s, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="text-emerald-600">✓</span>
@@ -563,9 +571,9 @@ export default function SpeakingPage() {
               ))}
             </ul>
           </div>
-          <div className="card">
-            <h3 className="mb-3 text-sm font-semibold text-indigo-700">Fix these first</h3>
-            <ol className="space-y-2 text-sm leading-6 text-slate-700">
+          <div className="card !p-4 min-w-0">
+            <h3 className="mb-1.5 text-sm font-semibold text-indigo-700">Fix these first</h3>
+            <ol className="space-y-1.5 text-sm leading-6 text-slate-700">
               {grade.improvements.map((s, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="font-semibold text-indigo-600">{i + 1}</span>
@@ -574,27 +582,27 @@ export default function SpeakingPage() {
               ))}
             </ol>
           </div>
+
+          <div className="card !p-4 min-w-0">
+            <h3 className="mb-1.5 text-sm font-semibold text-slate-900">
+              One of your answers, at band 8
+            </h3>
+            <ExplainText
+              text={grade.betterAnswerExample}
+              className="block text-sm leading-6 text-slate-700"
+            />
+            <ExplainText
+              text={grade.pronunciationNote}
+              className="mt-2 block rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500"
+            />
+          </div>
         </div>
 
-        <div className="card">
-          <h3 className="mb-2 text-sm font-semibold text-slate-900">
-            One of your answers, at band 8
-          </h3>
-          <ExplainText
-            text={grade.betterAnswerExample}
-            className="block text-[15px] leading-7 text-slate-700"
-          />
-          <ExplainText
-            text={grade.pronunciationNote}
-            className="mt-4 block rounded-xl bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-500"
-          />
-        </div>
-
-        <details className="card">
+        <details className="card !p-4">
           <summary className="cursor-pointer text-sm font-semibold text-slate-900">
             Read the full transcript
           </summary>
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 max-h-[20rem] space-y-2 overflow-y-auto">
             {transcript.map((t, i) => (
               <p key={i} className="text-sm leading-6">
                 <span
@@ -635,7 +643,7 @@ export default function SpeakingPage() {
   const preparing = prepSeconds > 0;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="mx-auto max-w-2xl space-y-3">
       <div className="flex items-center justify-between text-sm text-slate-500">
         <span>
           Part {step?.part} · question {stepIndex + 1} of {totalSteps}
@@ -652,21 +660,21 @@ export default function SpeakingPage() {
       </div>
 
       {isNewPart && (
-        <p className="rounded-2xl bg-indigo-50 px-5 py-3 text-sm leading-6 text-indigo-800">
+        <p className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm leading-6 text-indigo-800">
           {PART_INTRO[step.part]}
         </p>
       )}
 
-      <div className="card">
-        <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+      <div className="card !p-4">
+        <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
           Examiner {examinerSpeaking && <span className="animate-pulse">speaking…</span>}
         </div>
-        <p className="text-[19px] leading-8 text-slate-900">{step?.question}</p>
+        <p className="text-[17px] leading-7 text-slate-900">{step?.question}</p>
 
         {step?.cueCard && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p className="mb-2 text-sm font-medium text-slate-700">You should say:</p>
-            <ul className="space-y-1.5 text-sm leading-6 text-slate-700">
+          <div className="mt-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <p className="mb-1 text-sm font-medium text-slate-700">You should say:</p>
+            <ul className="space-y-1 text-sm leading-6 text-slate-700">
               {step.cueCard.bullets.map((b, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="text-slate-400">•</span>
@@ -678,7 +686,7 @@ export default function SpeakingPage() {
         )}
 
         {preparing && (
-          <div className="mt-4 flex items-center justify-between rounded-2xl bg-amber-50 px-5 py-3 text-sm text-amber-800">
+          <div className="mt-2.5 flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-2 text-sm text-amber-800">
             <span>Preparation time — make notes, don&apos;t speak yet.</span>
             <span className="font-mono text-base font-semibold">{prepSeconds}s</span>
           </div>
@@ -686,7 +694,7 @@ export default function SpeakingPage() {
       </div>
 
       {/* One big, obvious control. */}
-      <div className="card flex flex-col items-center gap-4 text-center">
+      <div className="card !p-4 flex flex-col items-center gap-3 text-center">
         {micSupported ? (
           <>
             <button
@@ -696,7 +704,7 @@ export default function SpeakingPage() {
                 else startRecording();
               }}
               disabled={examinerSpeaking || preparing || transcribing}
-              className={`flex h-24 w-24 items-center justify-center rounded-full text-3xl transition-all disabled:opacity-40 ${
+              className={`flex h-20 w-20 items-center justify-center rounded-full text-3xl transition-all disabled:opacity-40 ${
                 recording
                   ? "bg-rose-600 text-accent-fg shadow-lg ring-8 ring-rose-100"
                   : "bg-indigo-600 text-accent-fg shadow-md hover:bg-indigo-700 hover:shadow-lg"
@@ -757,7 +765,7 @@ export default function SpeakingPage() {
         )}
 
         <textarea
-          className="input h-28 w-full resize-y text-left leading-7"
+          className="input h-24 w-full resize-y text-left leading-7"
           placeholder={
             !micSupported
               ? "Type your answer here."

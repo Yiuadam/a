@@ -19,24 +19,39 @@ function MyWords() {
   const words = useSyncExternalStore(subscribeLookups, savedWords, getServerSavedWords);
   if (words.length === 0) return null;
 
+  /*
+    Folded shut by default. The topics are what the page is for; this is the
+    learner's own collection, which they open when they want it — and the count
+    in the summary is what tells them it is worth opening.
+  */
   return (
-    <section className="card" data-lookupable>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-base font-semibold text-slate-900">Words you looked up</h2>
-        <span className="text-xs text-slate-500">{words.length} saved on this device</span>
-      </div>
-      <p className="mt-1 text-xs text-slate-400">
-        Collected automatically whenever you look a word up while reading. Nothing here was
-        chosen for you.
-      </p>
-      <ul className="mt-3 divide-y divide-slate-200">
+    <details className="card !p-4 group" data-lookupable>
+      <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-3 [&::-webkit-details-marker]:hidden">
+        <span
+          aria-hidden
+          className="text-slate-400 transition-transform group-open:rotate-90"
+        >
+          ›
+        </span>
+        <h2 className="text-sm font-semibold text-slate-900">Words you looked up</h2>
+        <span className="text-xs text-slate-500">
+          {words.length} saved on this device, collected while you were reading
+        </span>
+      </summary>
+      {/*
+        Two columns and its own scrollbar. However many words a learner has
+        collected, the list stays a panel on the page rather than a page of its
+        own: every entry is still here, and the whole of each one is shown.
+      */}
+      <ul className="mt-2 max-h-[15rem] gap-x-6 overflow-y-auto sm:columns-2">
         {words.slice(0, 40).map((w) => (
-          <li key={w.term} className="flex items-start gap-3 py-2.5">
+          <li key={w.term} className="flex break-inside-avoid items-start gap-2 py-1.5">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-900">{w.term}</p>
-              <p className="text-sm leading-6 text-slate-600">{w.short}</p>
+              <p className="text-sm leading-5 text-slate-600">
+                <span className="font-medium text-slate-900">{w.term}</span> — {w.short}
+              </p>
               {w.example && (
-                <p className="mt-0.5 text-xs italic leading-5 text-slate-500">{w.example}</p>
+                <p className="text-xs italic leading-5 text-slate-500">{w.example}</p>
               )}
             </div>
             <button
@@ -51,24 +66,27 @@ function MyWords() {
         ))}
       </ul>
       {words.length > 40 && (
-        <p className="mt-3 text-xs text-slate-400">
+        <p className="mt-2 text-xs text-slate-400">
           Showing the 40 most recent of {words.length}.
         </p>
       )}
-    </section>
+    </details>
   );
 }
 
 export default function VocabularyPage() {
   return (
-    <div className="space-y-8">
-      <DrillSection
-        title="Vocabulary practice"
-        intro="Eight topics on the vocabulary that earns marks — collocations, phrasal verbs, word families and easy confusions. Read the note, then drill it."
-        topics={topics}
-      />
+    <div className="space-y-2.5">
+      {/* See `.drill-dense` in globals.css — four topics across, not two. */}
+      <div className="drill-dense">
+        <DrillSection
+          title="Vocabulary practice"
+          intro="Eight topics on the vocabulary that earns marks. Read the note, then drill it."
+          topics={topics}
+        />
+      </div>
       <MyWords />
-      <p className="text-xs text-slate-400">
+      <p className="text-xs leading-5 text-slate-400">
         Looking for exam-format practice instead?{" "}
         <Link href="/practice" className="text-indigo-600 hover:underline">
           Reading, listening and writing tests

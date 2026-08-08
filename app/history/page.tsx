@@ -103,7 +103,7 @@ function Sparkline({
 
   return (
     <div
-      className="relative mt-2 h-14 touch-none select-none"
+      className="relative mt-1.5 h-11 touch-none select-none"
       onPointerMove={n > 1 ? locate : undefined}
       onPointerLeave={() => setHover(null)}
     >
@@ -168,7 +168,7 @@ function StatTile({
   const delta = latest !== null && prev !== null ? Math.round((latest - prev) * 10) / 10 : null;
 
   return (
-    <div className="card !p-4">
+    <div className="card !p-3">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className={`text-sm font-semibold ${text}`}>{label}</h3>
         <span className="text-xs text-slate-500">
@@ -176,13 +176,13 @@ function StatTile({
         </span>
       </div>
       {n === 0 ? (
-        <p className="mt-3 text-sm leading-6 text-slate-500">
-          Nothing yet — your first sitting will appear here.
+        <p className="mt-1.5 text-xs leading-5 text-slate-500">
+          Nothing yet — your first sitting appears here.
         </p>
       ) : (
         <>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold tracking-tight text-slate-900">{latest}</span>
+          <div className="mt-0.5 flex items-baseline gap-2">
+            <span className="text-xl font-semibold tracking-tight text-slate-900">{latest}</span>
             {delta !== null && (
               /* The sign travels with the number, not only with the colour. */
               <span
@@ -238,15 +238,22 @@ export default function HistoryPage() {
   const line = insight(latest, profile.targetBand);
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">History</h1>
-        <p className="mt-2 max-w-2xl text-[15px] leading-7 text-slate-600">
+    <div className="space-y-3">
+      {/*
+        Title, the count and the one line of insight all on the same row. They
+        were three stacked paragraphs at reading size, which is a lot of prose
+        above a page whose point is the numbers underneath it.
+      */}
+      <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-[22px]">
+          History
+        </h1>
+        <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">
           {results.length === 0
             ? "Every practice test and its band will be recorded here."
             : `${results.length} recorded sitting${results.length === 1 ? "" : "s"}. Bands are practice estimates, and the trend matters more than any single one.`}
+          {line ? <span className="text-slate-700"> {line}</span> : null}
         </p>
-        {line && <p className="mt-2 max-w-2xl text-[15px] leading-7 text-slate-700">{line}</p>}
       </header>
 
       {results.length === 0 ? (
@@ -261,7 +268,7 @@ export default function HistoryPage() {
         </div>
       ) : (
         <>
-          <section aria-label="Band by module" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <section aria-label="Band by module" className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
             {MODULES.map((m) => (
               <StatTile
                 key={m.key}
@@ -275,31 +282,36 @@ export default function HistoryPage() {
           </section>
 
           <section>
-            <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">Every sitting</h2>
-            {/* The table is the record — and the fallback for anyone the charts fail. */}
-            <div className="max-h-[26rem] overflow-y-auto rounded-2xl border border-slate-200">
+            <h2 className="heading-rule mb-2 text-sm font-semibold text-slate-900">Every sitting</h2>
+            {/*
+              The table is the record — and the fallback for anyone the charts
+              fail. It keeps its own scrollbar rather than growing down the
+              page, so however many sittings there are, the four panels above
+              stay on screen.
+            */}
+            <div className="max-h-[16rem] overflow-y-auto rounded-2xl border border-slate-200">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Date</th>
-                    <th className="px-4 py-2.5 font-medium">Module</th>
-                    <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Test</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Score</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Band</th>
+                    <th className="px-3 py-2 font-medium">Date</th>
+                    <th className="px-3 py-2 font-medium">Module</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Test</th>
+                    <th className="px-3 py-2 text-right font-medium">Score</th>
+                    <th className="px-3 py-2 text-right font-medium">Band</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-surface">
                   {results.map((r, i) => (
                     <tr key={`${r.testId}-${r.date}-${i}`}>
-                      <td className="whitespace-nowrap px-4 py-2.5 text-slate-600">{fmtDate(r.date)}</td>
-                      <td className="px-4 py-2.5 capitalize text-slate-800">{r.module}</td>
-                      <td className="hidden max-w-[16rem] truncate px-4 py-2.5 text-slate-600 sm:table-cell">
+                      <td className="whitespace-nowrap px-3 py-2 text-slate-600">{fmtDate(r.date)}</td>
+                      <td className="px-3 py-2 capitalize text-slate-800">{r.module}</td>
+                      <td className="hidden max-w-[16rem] truncate px-3 py-2 text-slate-600 sm:table-cell">
                         {r.testTitle}
                       </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-slate-600">
+                      <td className="px-3 py-2 text-right tabular-nums text-slate-600">
                         {r.raw !== undefined && r.total !== undefined ? `${r.raw}/${r.total}` : "—"}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-slate-900">
+                      <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900">
                         {r.band}
                       </td>
                     </tr>

@@ -65,65 +65,81 @@ const BANDS = [
 
 export default function ResourcesPage() {
   return (
-    <div className="space-y-10">
-      <div className="max-w-xl space-y-2">
-        <h1 className="text-[26px] font-semibold text-slate-900">Exam guides</h1>
-        <p className="text-[15px] leading-7 text-slate-600">
-          What each part of the test actually asks of you, and the handful of habits that move
-          your score the most.
-        </p>
-      </div>
-
-      <section className="card">
-        <h2 className="text-base font-semibold text-slate-900">What the band numbers mean</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-600">
-          You get a band from 1 to 9 for each skill, then an overall band — the average, rounded
-          to the nearest half.
-        </p>
-        <ul className="mt-4 space-y-2">
-          {BANDS.map((b) => (
-            <li key={b.band} className="flex items-start gap-4">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-sm font-bold text-indigo-700">
-                {b.band}
-              </span>
-              <div>
-                <p className="text-sm font-medium text-slate-800">{b.label}</p>
-                <p className="text-sm leading-6 text-slate-600">{b.desc}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {SECTIONS.map((s) => (
-        <section key={s.title} className="card">
-          <div className="flex items-baseline gap-3">
-            <Icon name={s.icon} className="h-6 w-6 shrink-0 translate-y-1 text-indigo-600" />
-            <div>
-              <h2 className="text-base font-semibold text-slate-900">{s.title}</h2>
-              <p className="text-xs text-slate-500">{s.time}</p>
-            </div>
-          </div>
-          <ul className="mt-4 space-y-3">
-            {s.tips.map((t, i) => (
-              <li key={i} className="flex gap-3 text-[15px] leading-7 text-slate-700">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
-                {t}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-
-      <div className="card flex flex-col items-center gap-3 text-center">
-        <p className="text-[15px] text-slate-700">Ready to put it into practice?</p>
-        <div className="flex flex-wrap justify-center gap-2">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-80">
+          <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">Exam guides</h1>
+          <p className="text-sm leading-6 text-slate-600">
+            What each part of the test asks of you, and the habits that move your score most.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <Link href="/practice" className="btn-primary">
             Take a practice test
           </Link>
           <Link href="/speaking" className="btn-secondary">
             Try the speaking examiner
           </Link>
+        </div>
+      </div>
+
+      {/*
+        Four guides and the band scale on one screen. Each guide opens where it
+        stands rather than sending the reader down a page of prose: the tips are
+        all still here, in the same words, one tap away and never more than one
+        section at a time. Nothing is summarised away — <summary> carries the
+        module, the timing and how many tips are inside.
+      */}
+      <div className="grid gap-3 lg:grid-cols-3">
+        <section className="card !p-4 order-2 h-fit min-w-0 lg:order-1">
+          <h2 className="text-sm font-semibold text-slate-900">What the band numbers mean</h2>
+          <p className="mt-0.5 text-xs leading-5 text-slate-600">
+            A band from 1 to 9 per skill, then an overall band — the average, rounded to the
+            nearest half.
+          </p>
+          <ul className="mt-2 space-y-1">
+            {BANDS.map((b) => (
+              <li key={b.band} className="flex items-baseline gap-2">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-xs font-bold text-indigo-700">
+                  {b.band}
+                </span>
+                <p className="min-w-0 text-xs leading-5 text-slate-600">
+                  <span className="font-medium text-slate-800">{b.label}</span> — {b.desc}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="order-1 grid min-w-0 gap-3 sm:grid-cols-2 lg:order-2 lg:col-span-2 lg:content-start">
+          {SECTIONS.map((s) => (
+            <details key={s.title} className="card !p-4 group h-fit min-w-0">
+              <summary className="flex cursor-pointer list-none items-center gap-2.5 [&::-webkit-details-marker]:hidden">
+                <Icon name={s.icon} className="h-5 w-5 shrink-0 text-indigo-600" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-slate-900">{s.title}</span>
+                  <span className="block text-xs text-slate-500">
+                    {s.time} · {s.tips.length} tips
+                  </span>
+                </span>
+                {/* The affordance: closed points right, open points down. */}
+                <span
+                  aria-hidden
+                  className="shrink-0 text-slate-400 transition-transform group-open:rotate-90"
+                >
+                  ›
+                </span>
+              </summary>
+              <ul className="mt-3 space-y-2">
+                {s.tips.map((t, i) => (
+                  <li key={i} className="flex gap-2 text-sm leading-6 text-slate-700">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
         </div>
       </div>
     </div>
