@@ -413,6 +413,68 @@ textarea {
   background: linear-gradient(90deg, var(--color-indigo-500), var(--color-amber-400));
 }
 
+/*
+  The topic index on Grammar and Vocabulary, made dense.
+
+  Both pages render through <DrillSection>, which this change does not own, so
+  the density it needs is applied from the outside: the page wraps it in
+  `.drill-dense` and every rule here reaches the topic index only. `> div >
+  .grid` is the grid of topic buttons, and `> div > div:not([class])` is the
+  heading block above it — the open-topic view puts a `.card` in that position
+  instead, which is why the attribute selector is doing real work rather than
+  being decoration.
+
+  Nothing is hidden. Ten grammar topics across five columns are the same ten
+  topics; the one-sentence excerpt under each title is the excerpt it always
+  was, and the whole note is on the topic itself, one tap away.
+*/
+.drill-dense > div > div:not([class]) h1 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+.drill-dense > div > .grid {
+  gap: 0.625rem;
+  margin-top: 0.75rem;
+}
+.drill-dense > div > .grid > .card {
+  padding: 0.75rem;
+}
+.drill-dense > div > .grid > .card h2 {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.drill-dense > div > .grid > .card > p {
+  margin-top: 0.25rem;
+}
+.drill-dense > div > .grid > .card > div:last-child {
+  margin-top: 0.375rem;
+}
+/* One line of the excerpt on a phone, two once there is room for two. */
+@media (max-width: 639px) {
+  .drill-dense > div > .grid > .card > p {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+}
+@media (min-width: 1024px) {
+  .drill-dense > div > .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+/*
+  The column count is chosen so the topics land in exactly two rows on a
+  laptop: ten grammar topics across five, eight vocabulary topics across four.
+  Wider cards wrap fewer titles, so the wrong count is both emptier and taller.
+*/
+@media (min-width: 1280px) {
+  .drill-dense > div > .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .drill-dense-5 > div > .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btn-primary::after,
   a.card,

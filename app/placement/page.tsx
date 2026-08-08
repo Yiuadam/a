@@ -117,29 +117,38 @@ export default function PlacementPage() {
       }));
 
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        <section className="card flex flex-col items-center gap-4 py-8 text-center">
-          <h1 className="text-xl font-semibold text-slate-900">Your estimated IELTS band</h1>
-          <BandBadge band={result.band} />
-          {/* At the very top or bottom of the scale both ends round to the
-              same band, and "between 1 and 1" is worse than saying nothing. */}
-          {low !== high && (
-            <p className="text-sm text-slate-500">
-              Most likely between band {low} and {high}
-            </p>
-          )}
-          <p className="max-w-md text-sm text-slate-600">
-            The test adapted over {state.asked.length} questions, choosing each one to tell it
-            the most about you. Full practice tests in each module will narrow the estimate
-            further.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
+      /*
+        The band, what to do about it, and both breakdowns above the fold. The
+        result used to open with a 96px badge centred in an eight-line card,
+        and everything that explains it started below the screen.
+      */
+      <div className="mx-auto max-w-3xl space-y-3">
+        <section className="card !p-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <div className="flex min-w-0 flex-1 basis-72 items-center gap-4">
+            <BandBadge band={result.band} />
+            <div className="min-w-0">
+              <h1 className="text-lg font-semibold text-slate-900">Your estimated IELTS band</h1>
+              {/* At the very top or bottom of the scale both ends round to the
+                  same band, and "between 1 and 1" is worse than saying nothing. */}
+              {low !== high && (
+                <p className="text-sm text-slate-500">
+                  Most likely between band {low} and {high}
+                </p>
+              )}
+              <p className="mt-0.5 text-xs leading-5 text-slate-600">
+                The test adapted over {state.asked.length} questions, choosing each one to tell it
+                the most about you. Full practice tests in each module will narrow the estimate
+                further.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
             <label className="text-sm text-slate-700" htmlFor="target">
               Target band
             </label>
             <select
               id="target"
-              className="input"
+              className="input !py-2"
               value={target}
               onChange={(e) => setTarget(Number(e.target.value))}
             >
@@ -155,17 +164,15 @@ export default function PlacementPage() {
           </div>
         </section>
 
-        <Review items={wrong} advice={placementAdvice(result)} total={state.asked.length} />
-
-        <section className="grid gap-4 sm:grid-cols-2">
-          <div className="card">
-            <h2 className="mb-3 text-sm font-semibold text-slate-900">By skill</h2>
+        <section className="grid gap-3 sm:grid-cols-2">
+          <div className="card !p-4">
+            <h2 className="mb-2 text-sm font-semibold text-slate-900">By skill</h2>
             {SKILLS.map((s) => {
               const b = result.bySkill[s];
               const pct = b.total ? Math.round((b.correct / b.total) * 100) : 0;
               return (
-                <div key={s} className="mb-2">
-                  <div className="mb-1 flex justify-between text-xs text-slate-600">
+                <div key={s} className="mb-1.5">
+                  <div className="mb-0.5 flex justify-between text-xs text-slate-600">
                     <span className="capitalize">{s}</span>
                     <span>
                       {b.correct}/{b.total}
@@ -178,14 +185,14 @@ export default function PlacementPage() {
               );
             })}
           </div>
-          <div className="card">
-            <h2 className="mb-3 text-sm font-semibold text-slate-900">By difficulty (CEFR)</h2>
+          <div className="card !p-4">
+            <h2 className="mb-2 text-sm font-semibold text-slate-900">By difficulty (CEFR)</h2>
             {LEVELS.map((l) => {
               const b = result.byLevel[l];
               const pct = b.total ? Math.round((b.correct / b.total) * 100) : 0;
               return (
-                <div key={l} className="mb-2">
-                  <div className="mb-1 flex justify-between text-xs text-slate-600">
+                <div key={l} className="mb-1.5">
+                  <div className="mb-0.5 flex justify-between text-xs text-slate-600">
                     <span>{l}</span>
                     <span>{b.total === 0 ? "not reached" : `${b.correct}/${b.total}`}</span>
                   </div>
@@ -197,15 +204,17 @@ export default function PlacementPage() {
             })}
           </div>
         </section>
+
+        <Review items={wrong} advice={placementAdvice(result)} total={state.asked.length} />
       </div>
     );
   }
 
   if (!started || !current) {
     return (
-      <div className="mx-auto flex min-h-[55vh] max-w-xl items-center">
-        <div className="card w-full space-y-5 py-8 text-center">
-          <h1 className="text-[26px] font-semibold text-slate-900">Placement test</h1>
+      <div className="mx-auto flex min-h-[40vh] max-w-xl items-center">
+        <div className="card !p-5 w-full space-y-3 text-center">
+          <h1 className="text-xl font-semibold text-slate-900">Placement test</h1>
           <p className="text-sm leading-6 text-slate-600">
             The test adapts as you go. Get one right and the next is harder; get one wrong and
             the next is easier. Each question is chosen to tell it the most about you, and it
@@ -213,7 +222,7 @@ export default function PlacementPage() {
           </p>
 
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
               How long have you got?
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -225,7 +234,7 @@ export default function PlacementPage() {
                     key={value}
                     type="button"
                     onClick={() => setLength(value)}
-                    className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                    className={`rounded-xl border px-3 py-2.5 text-left transition-all ${
                       active
                         ? "border-indigo-500 bg-indigo-50"
                         : "border-slate-200 bg-surface hover:border-slate-300"
@@ -260,7 +269,7 @@ export default function PlacementPage() {
   const max = LENGTHS[state.length].max;
 
   return (
-    <div className="mx-auto max-w-xl space-y-4">
+    <div className="mx-auto max-w-xl space-y-3">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-2 text-sm text-slate-500">
           Question {number} of {max}
@@ -276,8 +285,8 @@ export default function PlacementPage() {
         />
       </div>
 
-      <div className="card" data-lookupable>
-        <p className="mb-4 whitespace-pre-line text-base font-medium text-slate-900">
+      <div className="card !p-4" data-lookupable>
+        <p className="mb-3 whitespace-pre-line text-base font-medium text-slate-900">
           {current.question}
         </p>
         <div className="space-y-2">
