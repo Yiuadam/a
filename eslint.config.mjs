@@ -21,6 +21,12 @@ const eslintConfig = defineConfig([
     // running the Worker locally to test the account routes.
     ".wrangler/**",
     "ios/**",
+    // Agent worktrees. A worktree is a whole second checkout of this repo,
+    // build output and all, so without this `npx eslint .` lints the project
+    // twice — and races the agent still writing into it, which surfaces as
+    // ENOENT on a file that existed when the glob ran and was gone when the
+    // read did. Nothing in here is source that ships.
+    ".claude/**",
     // Emscripten output, vendored by scripts/vendor-shout.mjs rather than
     // written here. Linting generated wasm glue says nothing useful.
     "public/whisper/**",

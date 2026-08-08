@@ -88,7 +88,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/85 backdrop-blur"
           style={{ "--header-h": "3.75rem" } as React.CSSProperties}
         >
-          <div className="mx-auto flex h-[var(--header-h)] max-w-4xl items-center gap-2 px-4 sm:gap-3 sm:px-5">
+          <div className="mx-auto flex h-[var(--header-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5">
             <Link
               href="/"
               className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
@@ -117,27 +117,41 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <span className="hidden xs:inline">BandUp</span>
             </Link>
             {/*
-              min-w-0 keeps this from forcing the row wider than the screen if
-              the list ever outgrows the space; below md it is not rendered at
-              all, so the phone never sees it.
+              Shown from lg up, and that breakpoint is measured rather than
+              chosen. Nine destinations are 706px wide; the header offers them
+              734px at 1024px and no more, because the container is capped —
+              so there are 28px to spare at every width from lg up, and none
+              at all below it.
+
+              It used to appear from md, where it did not fit: "Ask a tutor"
+              and "Guides" were painted straight over the account button and
+              the theme toggle at *every* width, a 1440px monitor included,
+              because a flex row that runs out of room overflows visibly
+              rather than wrapping. Below 900px the page scrolled sideways
+              too. Between md and lg the menu button now carries the whole
+              list, which is what it is for.
+
+              Those 28px are the budget for a tenth destination. There is not
+              room for one: add it to the menu and leave the row alone, or
+              take something out of the row first.
             */}
             <nav
               aria-label="Main"
-              className="hidden min-w-0 flex-1 items-center gap-1 text-sm md:flex"
+              className="hidden min-w-0 flex-1 items-center gap-0.5 text-sm lg:flex"
             >
               {NAV.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
+                  className="shrink-0 whitespace-nowrap rounded-xl px-2.5 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
-            {/* Takes the space the desktop nav would have, so the account and
-                theme controls stay pinned right on a phone. */}
-            <div className="flex-1 md:hidden" />
+            {/* Takes the space the inline nav would have, so the account and
+                theme controls stay pinned right below lg. */}
+            <div className="flex-1 lg:hidden" />
             {/*
               Account sits beside the theme toggle rather than in NAV, which is
               already nine items and full. It is also not a destination in the
