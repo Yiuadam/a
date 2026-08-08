@@ -27,7 +27,8 @@ import { withCors } from "@/lib/http/cors";
 export const dynamic = "force-dynamic";
 
 const MAX_NAME = 60;
-const MAX_GENDER = 40;
+/* Thirteen years, matching the constraint in 0006 and the claim on /privacy. */
+const MIN_AGE_YEARS = 13;
 
 async function requireUser(req: Request) {
   if (!accountsEnabled() || !supabaseConfigured()) return { error: "off" as const };
@@ -51,13 +52,25 @@ function cleanText(value: unknown, max: number): string | null | undefined {
   what it means: the database already refuses a future date or one before
   1900, so this only has to reject what would make the column error.
 */
-function cleanDate(value: unknown): string | null | undefined {
+function cleanDate(value: unknown): string | null | undefined | "too-young" {
   if (value === undefined) return undefined;
   if (value === null || value === "") return null;
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
   const t = Date.parse(value);
   if (!Number.isFinite(t)) return undefined;
   if (t >= Date.now()) return undefined;
+
+  /*
+    The under-13 check, which /privacy has always claimed and nothing has ever
+    enforced. A claim that is enforced is worth more than one that is merely
+    made, and a date of birth is the only thing that makes enforcement
+    possible. The same rule is a constraint in 0006, because application code
+    can be bypassed by anything holding a token and a constraint cannot.
+  */
+  const thirteen = new Date();
+  thirteen.setFullYear(thirteen.getFullYear() - MIN_AGE_YEARS);
+  if (t > thirteen.getTime()) return "too-young";
+
   return value;
 }
 
@@ -66,7 +79,6 @@ async function present(userId: string) {
   if (!profile) return null;
   return {
     displayName: profile.displayName,
-    gender: profile.gender,
     birthDate: profile.birthDate,
     email: profile.email,
     // A fresh signed URL each time rather than a stored one, because the URL
@@ -104,11 +116,14 @@ async function handlePATCH(req: Request) {
   const fields: Record<string, string | null> = {};
   const name = cleanText(input.displayName, MAX_NAME);
   if (name !== undefined) fields.displayName = name;
-  const gender = cleanText(input.gender, MAX_GENDER);
-  if (gender !== undefined) fields.gender = gender;
-
   if ("birthDate" in input) {
     const date = cleanDate(input.birthDate);
+    if (date === "too-young") {
+      return safeJsonError(
+        "BandUp is for people preparing for an English exam and isn't intended for under-13s.",
+        403,
+      );
+    }
     if (date === undefined) {
       // The one input worth an error rather than a silent drop: a mistyped
       // date looks saved otherwise, and the learner finds out much later.

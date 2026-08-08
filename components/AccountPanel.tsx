@@ -429,7 +429,6 @@ function SyncCard() {
 
 interface ProfileFields {
   displayName: string | null;
-  gender: string | null;
   birthDate: string | null;
   avatarUrl: string | null;
   email: string | null;
@@ -450,7 +449,6 @@ function ProfileCard() {
   const [problem, setProblem] = useState<string | null>(null);
 
   const [name, setName] = useState("");
-  const [gender, setGender] = useState("");
   const [birthDate, setBirthDate] = useState("");
 
   useEffect(() => {
@@ -464,7 +462,6 @@ function ProfileCard() {
         if (!alive) return;
         setProfile(body);
         setName(body.displayName ?? "");
-        setGender(body.gender ?? "");
         setBirthDate(body.birthDate ?? "");
         setState("ready");
       })
@@ -485,7 +482,7 @@ function ProfileCard() {
       const res = await authedFetch(apiUrl("/api/account/profile"), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: name, gender, birthDate }),
+        body: JSON.stringify({ displayName: name, birthDate }),
       });
       const body = (await res.json()) as ProfileFields & { error?: string };
       if (!res.ok) {
@@ -627,25 +624,6 @@ function ProfileCard() {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="p-gender" className="text-sm font-medium text-slate-700">
-            Gender <span className="font-normal text-slate-500">(optional)</span>
-          </label>
-          {/*
-            A text box rather than a list. A fixed set of options tells people
-            which answers are expected, and this field is not used for anything,
-            so there is nothing it needs to be consistent with.
-          */}
-          <input
-            id="p-gender"
-            className="input"
-            maxLength={40}
-            placeholder="However you describe it"
-            value={gender}
-            onChange={(e) => setGender(e.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
           <label htmlFor="p-dob" className="text-sm font-medium text-slate-700">
             Date of birth <span className="font-normal text-slate-500">(optional)</span>
           </label>
@@ -656,6 +634,9 @@ function ProfileCard() {
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
           />
+          <p className="text-sm text-slate-500">
+            Only used to confirm you are 13 or over. Nothing else reads it.
+          </p>
         </div>
 
         {problem && (

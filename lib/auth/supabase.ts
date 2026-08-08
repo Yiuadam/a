@@ -141,7 +141,6 @@ export async function enabledOAuthProviders(): Promise<string[] | null> {
 export interface Profile {
   displayName: string | null;
   avatarPath: string | null;
-  gender: string | null;
   birthDate: string | null;
   email: string | null;
 }
@@ -151,7 +150,6 @@ function readProfileRow(row: Record<string, unknown>): Profile {
   return {
     displayName: str(row.display_name),
     avatarPath: str(row.avatar_path),
-    gender: str(row.gender),
     birthDate: str(row.birth_date),
     email: str(row.email),
   };
@@ -163,7 +161,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   try {
     res = await request(
       `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}` +
-        `&select=display_name,avatar_path,gender,birth_date,email`,
+        `&select=display_name,avatar_path,birth_date,email`,
       { method: "GET", asServiceRole: true },
     );
   } catch {
@@ -189,11 +187,10 @@ export async function getProfile(userId: string): Promise<Profile | null> {
  */
 export async function updateProfile(
   userId: string,
-  fields: Partial<Pick<Profile, "displayName" | "gender" | "birthDate" | "avatarPath">>,
+  fields: Partial<Pick<Profile, "displayName" | "birthDate" | "avatarPath">>,
 ): Promise<boolean> {
   const patch: Record<string, unknown> = {};
   if ("displayName" in fields) patch.display_name = fields.displayName;
-  if ("gender" in fields) patch.gender = fields.gender;
   if ("birthDate" in fields) patch.birth_date = fields.birthDate;
   if ("avatarPath" in fields) patch.avatar_path = fields.avatarPath;
   if (Object.keys(patch).length === 0) return true;
