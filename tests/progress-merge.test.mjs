@@ -112,6 +112,21 @@ test("an unset target band does not overwrite one that is set", () => {
   assert.equal(merged.targetBand, 7);
 });
 
+test("the newer side wins for the plan's length", () => {
+  const local = { planDays: 28, results: [] };
+  const remote = { planDays: 5, results: [] };
+  assert.equal(mergeProfiles(local, remote, OLD, NEW).planDays, 5);
+  assert.equal(mergeProfiles(local, remote, NEW, OLD).planDays, 28);
+});
+
+test("an unset plan length does not overwrite one that is set", () => {
+  // The learner sets five days on their phone the evening before the exam,
+  // then opens the app on a laptop that has never seen the plan page. Syncing
+  // more recently is not the same as knowing more.
+  const merged = mergeProfiles({ results: [] }, { planDays: 5, results: [] }, NEW, OLD);
+  assert.equal(merged.planDays, 5);
+});
+
 test("placement history is taken whole from whichever side has one", () => {
   const local = { results: [], placementHistory: [] };
   const remote = { results: [], placementHistory: [["q1", "q2"]] };

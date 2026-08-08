@@ -25,6 +25,7 @@ function read(): Profile {
     return {
       placement: parsed.placement,
       targetBand: parsed.targetBand,
+      planDays: parsed.planDays,
       placementHistory: parsed.placementHistory ?? [],
       /*
         Must be listed here as well as written by its setter. This function
@@ -111,6 +112,18 @@ export function recentPlacementSittings(): string[][] {
 
 export function setTargetBand(band: number): Profile {
   return commit({ ...getSnapshot(), targetBand: band });
+}
+
+/**
+ * How long the study plan runs, in days.
+ *
+ * Days rather than "2 weeks", so the plan can divide the window between its
+ * blocks without parsing a label back into arithmetic. Which lengths are on
+ * offer is lib/plan.ts's business; this only records the number it was handed,
+ * and `resolveDuration` decides what to make of it on the way back out.
+ */
+export function setPlanDays(days: number): Profile {
+  return commit({ ...getSnapshot(), planDays: days });
 }
 
 /**
