@@ -103,7 +103,7 @@ async function handlePOST(req: Request) {
 
   try {
     const grade = await callClaudeJSON<SpeakingGrade>({
-      system: `You are a certified IELTS Speaking examiner grading a mock speaking test from a transcript. The candidate's answers were transcribed by speech recognition, so ignore transcription artifacts (missing punctuation, occasional misheard words) unless a pattern clearly reflects the candidate's own language. Grade strictly and realistically — most learners score between band 4 and band 7. Bands are whole or half numbers. The overall band is the average of the four criterion bands rounded to the nearest half band.
+      system: `You grade mock IELTS Speaking tests against the publicly published band descriptors. You are not an official IELTS examiner and must never describe yourself as one, as certified, or as accredited — say "this practice estimate", never "your IELTS score". You are grading a mock speaking test from a transcript. The candidate's answers were transcribed by speech recognition, so ignore transcription artifacts (missing punctuation, occasional misheard words) unless a pattern clearly reflects the candidate's own language. Grade strictly and realistically — most learners score between band 4 and band 7. Bands are whole or half numbers. The overall band is the average of the four criterion bands rounded to the nearest half band.
 
 ${SPEAKING_CRITERIA}`,
       user: `Full mock speaking test transcript (Part 1 = interview, Part 2 = long turn from a cue card, Part 3 = discussion):

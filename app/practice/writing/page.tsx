@@ -61,7 +61,7 @@ export default function WritingPage() {
         <div>
           <h1 className="text-[26px] font-semibold text-slate-900">Writing practice</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Write under exam conditions, then get band scores on all four official criteria.
+            Write under exam conditions, then get band estimates against all four published criteria.
           </p>
         </div>
         {started && !grade && <Timer minutes={task.timeMinutes} running />}

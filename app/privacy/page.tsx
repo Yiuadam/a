@@ -291,10 +291,16 @@ export default function PrivacyPage() {
           rather than from a permanent address.
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
-          Account data is stored with Supabase, who host the database on our behalf. Signing out
-          ends the session on that device and deletes nothing — your practice stays where it is.
-          To close an account and delete what it holds, sign in and use the link on your account
-          page, or write to us.
+          Account data is stored with Supabase, who host the database on our behalf. Their
+          servers may be in a different country from yours, which is true of almost any hosted
+          service and is worth saying rather than leaving you to assume otherwise.
+        </p>
+        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+          Signing out ends the session on that device and deletes nothing. To close the account
+          altogether, use <strong>Delete your account</strong> on your account page: it removes
+          your email address, your details, your picture and any synced practice, immediately
+          and permanently. The copy in your own browser stays, because it was never ours to
+          delete — clear that from your browser&rsquo;s settings whenever you like.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Sessions are kept in your device&rsquo;s own storage rather than in a cookie, which is

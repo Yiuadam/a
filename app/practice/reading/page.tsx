@@ -98,7 +98,7 @@ function ReadingTestPageRunner() {
           <p className="text-sm text-slate-600">
             One academic passage, {questionCount(test.questions)} questions,{" "}
             {test.timeMinutes} minutes. Question types:{" "}
-            {joinWithAnd(questionTypeNames(test.questions))} — exactly like the real exam.
+            {joinWithAnd(questionTypeNames(test.questions))} — the same question types the exam uses.
           </p>
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
             You can check any single answer as you go and read the explanation straight away.
@@ -167,7 +167,7 @@ function ReadingTestPageRunner() {
           <div className="max-w-md text-sm text-slate-600">
             <p>
               Estimated reading band <span className="font-semibold">{band}</span> ({raw} of{" "}
-              {questionCount(test.questions)} correct, scaled to the official conversion table). Work
+              {questionCount(test.questions)} correct, scaled using the published conversion table). Work
               through the review below before you start another test — that is where the marks
               come from.
             </p>

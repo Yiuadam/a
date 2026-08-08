@@ -109,7 +109,7 @@ export default function PracticePage() {
         <h1 className="text-[26px] font-semibold text-slate-900">Practice tests</h1>
         <p className="mt-1 text-sm text-slate-600">
           Exam-format tests scored on the 9-band scale. Reading and listening are auto-marked;
-          writing and speaking are graded by the AI examiner against the official criteria.
+          writing and speaking are graded by the AI examiner against the four published band descriptors.
         </p>
       </div>
 

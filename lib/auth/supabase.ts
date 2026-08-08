@@ -284,6 +284,39 @@ export async function deleteAvatar(path: string): Promise<boolean> {
   }
 }
 
+/**
+ * Deletes an account and everything attached to it.
+ *
+ * Apple requires this. Guideline 5.1.1(v): an app that lets someone create an
+ * account must let them delete it from inside the app — not by emailing
+ * support, not by visiting a website. It is a common rejection and it is also
+ * simply right.
+ *
+ * Deleting the auth user is the whole job for the database, because every
+ * table that references it does so with `on delete cascade`: the profile, the
+ * usage events, the progress snapshots and any subscription row all go with
+ * it. Storage does not cascade, so the avatar is removed first — an orphaned
+ * picture in a bucket is exactly the kind of thing a deletion is supposed to
+ * remove.
+ */
+export async function deleteAccount(userId: string, avatarPath: string | null): Promise<boolean> {
+  const config = supabaseConfig();
+  if (!config) return false;
+
+  // Before the user row goes, or the path is unrecoverable.
+  if (avatarPath) await deleteAvatar(avatarPath);
+
+  try {
+    const res = await request(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+      method: "DELETE",
+      asServiceRole: true,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export interface ProgressSnapshot {
   storeKey: string;
   payload: unknown;
