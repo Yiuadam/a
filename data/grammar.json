@@ -4,7 +4,8 @@
       "id": "present-perfect",
       "title": "Present perfect vs past simple",
       "level": "B1",
-      "summary": "The single most common tense mistake in English. Both talk about the past; the difference is whether the period is finished.",
+      "summary": "\"I did\" or \"I have done\"? When to use each.",
+      "detail": "Both tenses talk about the past. The difference is the time. If the time is finished, use the past simple. If the period is still open, or the result still matters now, use the present perfect. Learners get this wrong more often than any other tense.",
       "points": [
         "Past simple: the time is finished and usually stated — yesterday, last year, in 2019.",
         "Present perfect: the period runs up to now, or the result still matters — ever, never, since, for, this week.",
@@ -74,7 +75,8 @@
       "id": "articles",
       "title": "a, an, the — and no article",
       "level": "A2",
-      "summary": "Articles are tiny and carry almost no meaning, which is exactly why they are hard: there is nothing to hear. They are also the most common error in IELTS writing.",
+      "summary": "Which article to use, and when to use none.",
+      "detail": "Articles are very small words and carry almost no meaning. That is what makes them hard: there is nothing to hear. They are also the most common mistake in IELTS writing, so they are worth your time.",
       "points": [
         "\"a\"/\"an\" introduces something for the first time, or says what kind of thing it is.",
         "\"the\" points at something both people already know about — mentioned before, or unique.",
@@ -144,7 +146,8 @@
       "id": "conditionals",
       "title": "The three conditionals",
       "level": "B2",
-      "summary": "Conditionals are just an if-clause plus a result clause. What changes is how real the situation is, and each level has a fixed pair of tenses.",
+      "summary": "Sentences with if. Three types, three patterns.",
+      "detail": "Every conditional has two parts: the if-part and the result. What changes is how real the situation is. Each type has its own fixed pair of tenses, so once you know the pair you can build the sentence.",
       "points": [
         "First: if + present simple, will + verb. A real future possibility.",
         "Second: if + past simple, would + verb. Imagined or unlikely, now or in the future.",
@@ -219,7 +222,8 @@
       "id": "verb-patterns",
       "title": "Verb + -ing or verb + to",
       "level": "B1",
-      "summary": "Some verbs must be followed by -ing, others by \"to\". There is no rule that predicts which — but there are reliable groups, and a few verbs change meaning.",
+      "summary": "Which verbs are followed by -ing, and which by to.",
+      "detail": "Some verbs must take -ing. Others must take \"to\". No rule tells you which, so you learn them in groups. A few verbs take both, and the meaning changes when you swap them.",
       "points": [
         "-ing after: enjoy, avoid, deny, suggest, consider, risk, finish, mind, practise.",
         "\"to\" after: want, decide, hope, promise, agree, offer, refuse, manage, afford.",
@@ -289,7 +293,8 @@
       "id": "passive",
       "title": "The passive voice",
       "level": "B2",
-      "summary": "The passive moves the thing affected to the front. Academic and report writing uses it constantly, because the process matters more than who did it.",
+      "summary": "When the action matters more than who did it.",
+      "detail": "The passive puts the thing that is affected at the front of the sentence. Reports and academic writing use it a lot, because the process matters more than the person. Use it when the doer is unknown, obvious, or simply not the point.",
       "points": [
         "Form: the right tense of \"be\" plus the past participle.",
         "Use it when the doer is unknown, obvious, or simply not the point.",
@@ -369,7 +374,8 @@
       "id": "relative-clauses",
       "title": "Relative clauses",
       "level": "B2",
-      "summary": "Relative clauses let you add information without starting a new sentence. They are the fastest way to make writing sound less choppy — and to raise a grammar band.",
+      "summary": "Joining two ideas with who, which and that.",
+      "detail": "A relative clause lets you add information without starting a new sentence. Your writing stops sounding short and broken, and that lifts your grammar band. The commas matter too, because they change what the clause is doing.",
       "points": [
         "who for people, which for things, that for either, whose for possession.",
         "Defining clause (no commas): tells you which one, and cannot be removed.",
@@ -449,7 +455,8 @@
       "id": "modals",
       "title": "Modal verbs: certainty and obligation",
       "level": "B1",
-      "summary": "Modals are how English expresses how sure you are and how strong a rule is. Choosing the wrong one changes your meaning far more than a tense error would.",
+      "summary": "must, might, should: how sure, how strict.",
+      "detail": "Modals are small verbs like must, might, should and can't. They show how certain you are, and how strong a rule is. Picking the wrong one changes your meaning much more than a tense mistake does.",
       "points": [
         "Certainty: must (sure it is true) → might/could (possible) → can't (sure it is not).",
         "Obligation: must / have to (necessary) → should (advice) → needn't (not necessary).",
@@ -519,7 +526,8 @@
       "id": "word-order",
       "title": "Word order and inversion",
       "level": "C1",
-      "summary": "English word order is fixed, which is why breaking it deliberately is so noticeable. Controlled inversion is one of the clearest signals of an advanced writer.",
+      "summary": "The order words go in, and when to change it.",
+      "detail": "English word order is fixed, so breaking it on purpose is very noticeable. That is why it works: a writer who moves a word to the front on purpose sounds advanced. Done by accident, it just sounds wrong.",
       "points": [
         "Normal order: subject, verb, object, then manner, place, time.",
         "Adverbs of frequency go before the main verb but after \"be\": \"She often walks\", \"She is often late\".",
@@ -599,7 +607,8 @@
       "id": "prepositions",
       "title": "Prepositions of time and place",
       "level": "A2",
-      "summary": "Prepositions rarely translate directly from another language, so they have to be learned as part of the phrase rather than as separate words.",
+      "summary": "Choosing at, on or in for times and places.",
+      "detail": "Prepositions rarely match your own language, so translating them word by word does not work. Learn them inside the whole phrase, like \"on Monday morning\" or \"at the weekend\", not as separate words.",
       "points": [
         "Time: at a clock time, on a day or date, in a month, season or year.",
         "Place: at a point, on a surface, in an enclosed space.",
@@ -669,7 +678,8 @@
       "id": "countable",
       "title": "Countable and uncountable nouns",
       "level": "A2",
-      "summary": "English decides for you which nouns can be counted, and its choices are not always logical. Getting this wrong affects the verb, the article and the quantifier all at once.",
+      "summary": "Which nouns you can count, and which you cannot.",
+      "detail": "English decides for you which nouns can be counted, and the choice is not always logical. Get it wrong and three things go wrong at once: the verb, the article, and the word for how much.",
       "points": [
         "Uncountable nouns have no plural and take a singular verb: information, advice, furniture, luggage, research.",
         "Use much / little / a great deal of with uncountables; many / few / a number of with countables.",
