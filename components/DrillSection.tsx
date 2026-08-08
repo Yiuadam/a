@@ -17,6 +17,18 @@ import {
  * deliberately — a learner who keeps failing the same tense needs to practise
  * that tense, not to sit another whole paper and discover the same thing.
  */
+/**
+ * The first sentence of a teaching note, for the index card.
+ *
+ * Falls back to the whole string when there is no sentence break, so a summary
+ * written as one long clause is shown rather than swallowed. The CSS clamp
+ * behind this handles the case where that one sentence is still long.
+ */
+function firstSentence(text: string): string {
+  const end = text.search(/[.!?](\s|$)/);
+  return end === -1 ? text : text.slice(0, end + 1);
+}
+
 export default function DrillSection({
   title,
   intro,
@@ -88,7 +100,15 @@ export default function DrillSection({
                   {t.level}
                 </span>
               </div>
-              <p className="mt-1.5 text-sm leading-6 text-slate-600">{t.summary}</p>
+              {/*
+                One sentence on the index, the whole note on the topic page.
+                The card is for choosing between topics, and three lines of
+                prose per card turned that choice into a page of reading —
+                for an audience whose English is the thing being taught.
+              */}
+              <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-slate-600">
+                {firstSentence(t.summary)}
+              </p>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <span className="rounded bg-slate-100 px-2 py-0.5">
                   {t.questions.length} questions

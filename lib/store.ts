@@ -48,7 +48,22 @@ function commit(next: Profile): Profile {
 
 export function subscribe(onChange: () => void): () => void {
   listeners.add(onChange);
-  return () => listeners.delete(onChange);
+  /*
+    A write from another tab — or from a progress sync in this one — has to
+    invalidate the cached snapshot, or the page keeps rendering data that is no
+    longer what is stored. `storage` fires in other tabs by default; sync.ts
+    dispatches it here as well so a merge repaints without a reload.
+  */
+  const onStorage = (e: StorageEvent) => {
+    if (e.key !== KEY && e.key !== null) return;
+    cache = null;
+    onChange();
+  };
+  if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(onChange);
+    if (typeof window !== "undefined") window.removeEventListener("storage", onStorage);
+  };
 }
 
 /** Stable snapshot — the same object identity until something changes. */

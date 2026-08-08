@@ -10,7 +10,7 @@ export default function GrammarPage() {
   return (
     <DrillSection
       title="Grammar practice"
-      intro="Ten topics that account for most of the grammar errors English learners actually make. Each one starts with the rule in a few lines, then drills it — you answer, find out straight away whether you were right, and read why. This is not exam practice: it is the underlying grammar, useful whether or not you ever sit IELTS."
+      intro="Ten topics covering the grammar mistakes learners make most. Read the rule, then drill it — with the reason after every answer."
       topics={topics}
     />
   );
