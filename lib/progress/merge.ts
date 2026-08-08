@@ -123,6 +123,13 @@ export function mergeProfiles(
   const targetBand = remoteIsNewer
     ? (b.targetBand ?? a.targetBand)
     : (a.targetBand ?? b.targetBand);
+  /*
+    Same rule for the plan's length, and it needs it: a learner who has never
+    opened the plan page on this device has no length stored, and absent must
+    not be allowed to mean "four weeks" here. It would overwrite the five days
+    the learner chose on their phone the evening before the exam.
+  */
+  const planDays = remoteIsNewer ? (b.planDays ?? a.planDays) : (a.planDays ?? b.planDays);
 
   const localHistory = asArray<string[]>(a.placementHistory);
   const remoteHistory = asArray<string[]>(b.placementHistory);
@@ -137,7 +144,7 @@ export function mergeProfiles(
   /* Opened on either device means opened. Nothing here is ever un-set. */
   const visited = [...new Set([...asArray<string>(a.visited), ...asArray<string>(b.visited)])];
 
-  return { placement, targetBand, placementHistory, visited, results, genTests };
+  return { placement, targetBand, planDays, placementHistory, visited, results, genTests };
 }
 
 export interface DrillScore {
