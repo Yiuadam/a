@@ -8,12 +8,42 @@
       "prompt": "The table below shows the percentage of households with internet access in four countries between 2005 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
       "dataTable": {
         "title": "Percentage of households with internet access, 2005-2020",
-        "headers": ["Year", "Sweden", "Portugal", "Turkey", "Mexico"],
+        "headers": [
+          "Year",
+          "Sweden",
+          "Portugal",
+          "Turkey",
+          "Mexico"
+        ],
         "rows": [
-          ["2005", "73%", "31%", "8%", "9%"],
-          ["2010", "88%", "54%", "42%", "22%"],
-          ["2015", "91%", "70%", "70%", "39%"],
-          ["2020", "96%", "84%", "90%", "60%"]
+          [
+            "2005",
+            "73%",
+            "31%",
+            "8%",
+            "9%"
+          ],
+          [
+            "2010",
+            "88%",
+            "54%",
+            "42%",
+            "22%"
+          ],
+          [
+            "2015",
+            "91%",
+            "70%",
+            "70%",
+            "39%"
+          ],
+          [
+            "2020",
+            "96%",
+            "84%",
+            "90%",
+            "60%"
+          ]
         ]
       },
       "minWords": 150,
@@ -27,11 +57,35 @@
       "prompt": "The table below shows water consumption in millions of cubic metres by three sectors in one region of Australia in 1990, 2005 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
       "dataTable": {
         "title": "Water consumption by sector (millions of cubic metres)",
-        "headers": ["Year", "Agriculture", "Industry", "Households", "Total"],
+        "headers": [
+          "Year",
+          "Agriculture",
+          "Industry",
+          "Households",
+          "Total"
+        ],
         "rows": [
-          ["1990", "620", "210", "95", "925"],
-          ["2005", "540", "265", "140", "945"],
-          ["2020", "430", "300", "190", "920"]
+          [
+            "1990",
+            "620",
+            "210",
+            "95",
+            "925"
+          ],
+          [
+            "2005",
+            "540",
+            "265",
+            "140",
+            "945"
+          ],
+          [
+            "2020",
+            "430",
+            "300",
+            "190",
+            "920"
+          ]
         ]
       },
       "minWords": 150,
@@ -81,6 +135,374 @@
       "prompt": "In some countries, people are spending less time preparing meals at home and are relying more on ready-made food. Why is this happening? Do you think this is a positive or negative development?",
       "minWords": 250,
       "timeMinutes": 40
+    },
+    {
+      "id": "w8",
+      "task": 1,
+      "variant": "academic",
+      "title": "Household recycling rates in three cities",
+      "prompt": "The line graph below shows the percentage of household waste recycled in three cities between 2005 and 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "line",
+        "title": "Household waste recycled, 2005–2025 (%)",
+        "unit": "%",
+        "xLabel": "Year",
+        "yLabel": "Waste recycled (%)",
+        "categories": [
+          "2005",
+          "2010",
+          "2015",
+          "2020",
+          "2025"
+        ],
+        "series": [
+          {
+            "name": "Ashford",
+            "values": [
+              12,
+              24,
+              38,
+              47,
+              52
+            ]
+          },
+          {
+            "name": "Brenton",
+            "values": [
+              31,
+              34,
+              36,
+              35,
+              33
+            ]
+          },
+          {
+            "name": "Calder",
+            "values": [
+              8,
+              15,
+              29,
+              44,
+              61
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w9",
+      "task": 1,
+      "variant": "academic",
+      "title": "How adults spent their leisure time",
+      "prompt": "The bar chart below shows the average number of hours per week that adults in one country spent on four leisure activities in 2005 and 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "bar",
+        "layout": "grouped",
+        "title": "Average weekly leisure hours by activity",
+        "unit": "hours per week",
+        "xLabel": "Activity",
+        "yLabel": "Hours per week",
+        "categories": [
+          "Watching television",
+          "Reading",
+          "Exercise",
+          "Online activity"
+        ],
+        "series": [
+          {
+            "name": "2005",
+            "values": [
+              14.2,
+              4.8,
+              2.1,
+              3.5
+            ]
+          },
+          {
+            "name": "2025",
+            "values": [
+              8.6,
+              2.9,
+              3.4,
+              15.7
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w10",
+      "task": 1,
+      "variant": "academic",
+      "title": "Where a university's income came from",
+      "prompt": "The pie chart below shows the sources of income for a university in a single academic year.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "pie",
+        "title": "University income by source (%)",
+        "unit": "%",
+        "categories": [
+          "Tuition fees",
+          "Government grants",
+          "Research contracts",
+          "Donations and endowments",
+          "Commercial services"
+        ],
+        "series": [
+          {
+            "name": "Share of income",
+            "values": [
+              46,
+              22,
+              18,
+              8,
+              6
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w11",
+      "task": 1,
+      "variant": "academic",
+      "title": "What four countries generated their electricity from",
+      "prompt": "The chart below shows the proportion of electricity generated from four sources in four countries in 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "bar",
+        "layout": "stacked",
+        "title": "Electricity generation by source, 2025 (%)",
+        "unit": "%",
+        "xLabel": "Country",
+        "yLabel": "Share of generation (%)",
+        "categories": [
+          "Norlund",
+          "Petravia",
+          "Sunderland Bay",
+          "Tamarind Isles"
+        ],
+        "series": [
+          {
+            "name": "Coal and gas",
+            "values": [
+              18,
+              64,
+              41,
+              7
+            ]
+          },
+          {
+            "name": "Nuclear",
+            "values": [
+              22,
+              9,
+              34,
+              0
+            ]
+          },
+          {
+            "name": "Hydroelectric",
+            "values": [
+              48,
+              5,
+              11,
+              26
+            ]
+          },
+          {
+            "name": "Wind and solar",
+            "values": [
+              12,
+              22,
+              14,
+              67
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w12",
+      "task": 1,
+      "variant": "academic",
+      "title": "Visitors to a coastal town across the year",
+      "prompt": "The line graph below shows the number of visitors to a coastal town in each month of one year, divided between day visitors and overnight visitors.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "line",
+        "title": "Visitors to Harnmouth by month (thousands)",
+        "unit": "thousands of visitors",
+        "xLabel": "Month",
+        "yLabel": "Visitors (thousands)",
+        "categories": [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec"
+        ],
+        "series": [
+          {
+            "name": "Day visitors",
+            "values": [
+              9,
+              11,
+              18,
+              34,
+              52,
+              71,
+              96,
+              102,
+              63,
+              29,
+              14,
+              17
+            ]
+          },
+          {
+            "name": "Overnight visitors",
+            "values": [
+              4,
+              4,
+              7,
+              15,
+              26,
+              41,
+              58,
+              64,
+              33,
+              12,
+              6,
+              9
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w13",
+      "task": 1,
+      "variant": "academic",
+      "title": "Age of first-time home buyers",
+      "prompt": "The bar chart below shows the average age of first-time home buyers in five regions in 2000 and 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "bar",
+        "layout": "grouped",
+        "title": "Average age of first-time buyers",
+        "unit": "years",
+        "xLabel": "Region",
+        "yLabel": "Age (years)",
+        "yMax": 45,
+        "categories": [
+          "North",
+          "Midlands",
+          "South-east",
+          "South-west",
+          "Islands"
+        ],
+        "series": [
+          {
+            "name": "2000",
+            "values": [
+              26,
+              27,
+              29,
+              28,
+              25
+            ]
+          },
+          {
+            "name": "2025",
+            "values": [
+              31,
+              33,
+              39,
+              36,
+              29
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w14",
+      "task": 2,
+      "variant": "academic",
+      "title": "Working from home (advantages and disadvantages)",
+      "prompt": "In many countries a large proportion of office work is now done from home rather than in a workplace.\n\nDo the advantages of this development outweigh the disadvantages?\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w15",
+      "task": 2,
+      "variant": "academic",
+      "title": "Museums: entertainment or education",
+      "prompt": "Some people believe that the main purpose of museums is to entertain visitors. Others argue that museums exist above all to educate.\n\nDiscuss both views and give your own opinion.\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w16",
+      "task": 2,
+      "variant": "academic",
+      "title": "Ageing populations (problem and solution)",
+      "prompt": "In many countries people are living considerably longer, and the proportion of the population over sixty-five is rising.\n\nWhat problems does this cause, and what measures could governments take to address them?\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w17",
+      "task": 2,
+      "variant": "academic",
+      "title": "Free public transport (opinion)",
+      "prompt": "Some people think that public transport should be free for everyone, paid for through taxation.\n\nTo what extent do you agree or disagree?\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w18",
+      "task": 1,
+      "variant": "general",
+      "title": "Letter about a delayed order",
+      "prompt": "You ordered a piece of equipment from an online shop six weeks ago and it has still not arrived. You have contacted the shop twice and received no reply.\n\nWrite a letter to the shop's customer service manager. In your letter:\n\n- explain what you ordered and when\n- describe the attempts you have made to contact the company\n- say what you would like them to do\n\nWrite at least 150 words. Begin your letter 'Dear Sir or Madam,'.",
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w19",
+      "task": 1,
+      "variant": "general",
+      "title": "Letter recommending a colleague",
+      "prompt": "A colleague you have worked with for several years is applying for a job at another organisation, and has asked you to write a reference.\n\nWrite a letter to the hiring manager. In your letter:\n\n- explain how you know the person and for how long\n- describe their strengths, with an example\n- say why you think they suit the role\n\nWrite at least 150 words. Begin your letter 'Dear Sir or Madam,'.",
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w20",
+      "task": 1,
+      "variant": "general",
+      "title": "Letter asking a neighbour for help",
+      "prompt": "You are going to be away from home for a month and would like a neighbour to look after your flat while you are gone.\n\nWrite a letter to your neighbour. In your letter:\n\n- explain why you will be away\n- describe what you would like them to do\n- offer to do something for them in return\n\nWrite at least 150 words. Begin your letter in an appropriate way.",
+      "minWords": 150,
+      "timeMinutes": 20
     }
   ]
 }
