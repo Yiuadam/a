@@ -3,9 +3,9 @@
   Builds the static bundle that ships inside the iOS app.
 
   A static export cannot contain server route handlers, but the same repo also
-  deploys to Vercel where those routes must exist. So the API directory is moved
-  aside for the duration of the export and restored afterwards — including if
-  the build fails.
+  deploys to Cloudflare Workers where those routes must exist. So the API
+  directory is moved aside for the duration of the export and restored
+  afterwards — including if the build fails.
 */
 import { execSync } from "node:child_process";
 import { existsSync, renameSync, rmSync } from "node:fs";
@@ -20,7 +20,7 @@ if (!process.env.NEXT_PUBLIC_API_BASE) {
     "\nNEXT_PUBLIC_API_BASE is not set.\n" +
       "The iOS bundle has no server of its own, so it must call your deployed\n" +
       "API. Set it to your deployment's URL, for example:\n\n" +
-      "  NEXT_PUBLIC_API_BASE=https://bandup.vercel.app npm run build:mobile\n",
+      "  NEXT_PUBLIC_API_BASE=https://bandup.siksafe-realtime-ai-vision.workers.dev npm run build:mobile\n",
   );
   process.exit(1);
 }

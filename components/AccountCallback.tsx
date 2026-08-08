@@ -10,7 +10,7 @@ import { errorFromFragment, saveSession, sessionFromFragment } from "@/lib/accou
   done its part.
 
   The session arrives in the URL fragment, which is the one part of a URL that
-  is never sent to a server: not to ours, not to Vercel's edge, and not in a
+  is never sent to a server: not to ours, not to Cloudflare's edge, and not in a
   Referer header to anything the next page loads. The job here is to take it
   out of the address bar quickly and put it somewhere the app can use.
 

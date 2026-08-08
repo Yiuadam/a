@@ -33,7 +33,7 @@ import { supabaseConfigured } from "./supabase";
       /account/callback/#access_token=...&refresh_token=...&expires_in=3600
 
   A fragment is never transmitted to any server. It does not appear in our
-  access logs, in Vercel's, or in a Referer header. The client reads it, stores
+  access logs, in our host's, or in a Referer header. The client reads it, stores
   it, and strips it from the address bar.
 
   This is the implicit flow rather than PKCE. PKCE is the stronger choice for

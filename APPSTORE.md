@@ -9,7 +9,7 @@ follows is everything between here and a live App Store listing, in order.
 |---|---|---|
 | A Mac with Xcode | Apple only allows iOS apps to be built and signed on macOS | — |
 | Apple Developer Program membership | Required to submit anything to the store | $99/year |
-| A deployed API (Vercel) | The app calls your `/api` routes for AI marking | free tier is fine |
+| A deployed API (Cloudflare Workers) | The app calls your `/api` routes for AI marking | free tier is fine |
 | A public privacy-policy URL | Apple rejects submissions without one, and this app uses the microphone | free (a page on your site) |
 
 If you don't have a Mac, a cloud macOS build service (Codemagic, Bitrise,
@@ -19,17 +19,21 @@ MacStadium) can do the build and upload step instead.
 
 The iOS bundle has no server inside it, so it must call your deployed API.
 
-```bash
-vercel && vercel env add ANTHROPIC_API_KEY && vercel --prod
-```
+Merging to `main` deploys it. The Worker needs `ANTHROPIC_API_KEY` set on it —
+Cloudflare dashboard → **Workers & Pages** → **bandup** → **Settings** →
+**Variables and Secrets** — or the AI marking routes will answer with an error.
 
-Note the production URL; everything below depends on it.
+The production URL is fixed and everything below depends on it:
+
+```
+https://bandup.siksafe-realtime-ai-vision.workers.dev
+```
 
 ## Step 2 — Build the iOS project
 
 ```bash
 npm install
-NEXT_PUBLIC_API_BASE=https://your-app.vercel.app npm run build:mobile
+NEXT_PUBLIC_API_BASE=https://bandup.siksafe-realtime-ai-vision.workers.dev npm run build:mobile
 npx cap add ios          # first time only
 npx cap sync ios
 npx cap open ios         # opens Xcode
@@ -111,7 +115,7 @@ disclaimer already in the app footer should stay.
 ## Updating the app later
 
 ```bash
-NEXT_PUBLIC_API_BASE=https://your-app.vercel.app npm run build:mobile
+NEXT_PUBLIC_API_BASE=https://bandup.siksafe-realtime-ai-vision.workers.dev npm run build:mobile
 npx cap sync ios
 ```
 then archive and upload a build with a higher version number. Changes to the

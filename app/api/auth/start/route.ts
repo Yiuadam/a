@@ -27,8 +27,8 @@ async function handleGET(req: Request) {
   }
 
   /*
-    `url.origin` comes from the request, which on Vercel is reconstructed from
-    the Host header. That is enough to send the user back to the deployment
+    `url.origin` comes from the request, which on Workers is reconstructed
+    from the Host header. That is enough to send the user back to the host
     they started on, and it is not enough to be dangerous on its own: Supabase
     refuses any redirect_to outside the project's configured allow list, so a
     forged Host produces a failed sign-in rather than a redirect to an

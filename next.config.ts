@@ -3,8 +3,9 @@ import type { NextConfig } from "next";
 /*
   Two build targets from one codebase:
 
-  - Default (`npm run build`): a normal Next.js app deployed to Vercel. The
-    /api routes run there and hold the Anthropic API key.
+  - Default (`npm run build`): a normal Next.js app, deployed to Cloudflare
+    Workers via the OpenNext adapter. The /api routes run there and hold the
+    Anthropic API key.
   - Mobile (`npm run build:mobile`): a fully static export bundled inside the
     iOS app by Capacitor. The static build has no server, so it calls the
     deployed /api routes over the network via NEXT_PUBLIC_API_BASE.

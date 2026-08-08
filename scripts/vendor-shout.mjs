@@ -7,8 +7,8 @@
   `import.meta.url`. Bundlers routinely break that, so upstream's advice is to
   serve it as a plain static asset and load it with a runtime `import()` — which
   is what lib/transcribe.ts does. Keeping the copy in git means every build
-  path (Vercel, the Cloudflare worker, the static iOS export) has it without a
-  build step of its own.
+  path (the Cloudflare Worker, the static iOS export) has it without a build
+  step of its own.
 
   Run this after bumping @transcribe/shout, and commit the result.
 */

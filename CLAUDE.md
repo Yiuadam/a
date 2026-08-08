@@ -4,8 +4,8 @@
 
 **Ship every change straight to production.** The owner has asked not to be
 consulted per change: build what was asked, verify it, push, wait for CI, then
-merge to `main` yourself. Vercel deploys `main` automatically, so merging is
-what makes a change live.
+merge to `main` yourself. Cloudflare deploys `main` automatically, so merging
+is what makes a change live.
 
 The flow for each request:
 
@@ -20,8 +20,9 @@ The flow for each request:
    broken. There is no review step now, so honesty about failures is the only
    safeguard left.
 
-Production is <https://a-nine-peach.vercel.app>. The URL is permanent; every
-deployment replaces what is served there.
+Production is <https://bandup.siksafe-realtime-ai-vision.workers.dev>. The URL is
+permanent; every deployment replaces what is served there. It becomes
+`bandup.study` when that domain is ready, which is a DNS change and not a move.
 
 # House style
 
