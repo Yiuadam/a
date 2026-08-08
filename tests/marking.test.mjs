@@ -73,3 +73,60 @@ test("band rounding follows the official half-band rule", () => {
   assert.equal(roundToHalf(6.4), 6.5);
   assert.equal(roundToHalf((6 + 7 + 6.5 + 7) / 4), 6.5);
 });
+
+/* ---------------------------------------------------------------------------
+   The types added for matching headings, Yes/No/Not Given and short answer.
+   Each is here because it can be marked wrong in a way that looks right.
+   --------------------------------------------------------------------------- */
+
+const ynng = { id: "y", type: "ynng", statement: "?", answer: "NOT GIVEN" };
+
+test("yes/no/not given marks on the exact label", () => {
+  assert.equal(isCorrect(ynng, "NOT GIVEN"), true);
+  assert.equal(isCorrect(ynng, "YES"), false);
+  assert.equal(isCorrect(ynng, ""), false);
+  assert.equal(isCorrect(ynng, undefined), false);
+});
+
+test("a yes/no answer is not interchangeable with a true/false one", () => {
+  // The two tasks look identical on screen and are not. Marking YES against a
+  // TRUE key would quietly tell a candidate they had understood a distinction
+  // they had in fact missed.
+  assert.equal(isCorrect({ id: "y", type: "ynng", statement: "?", answer: "YES" }, "TRUE"), false);
+  assert.equal(isCorrect({ id: "t", type: "tfng", statement: "?", answer: "TRUE" }, "YES"), false);
+});
+
+const matching = { id: "m", type: "matching", prompt: "Paragraph A", answer: "vii" };
+
+test("matching accepts the key in any case", () => {
+  // Roman numerals get typed as capitals by people who assume they should be.
+  assert.equal(isCorrect(matching, "vii"), true);
+  assert.equal(isCorrect(matching, "VII"), true);
+  assert.equal(isCorrect(matching, " vii "), true);
+  assert.equal(isCorrect(matching, "vi"), false);
+  assert.equal(isCorrect(matching, "viii"), false);
+});
+
+const shortAnswer = {
+  id: "s",
+  type: "short-answer",
+  question: "?",
+  answer: "some land",
+  accept: ["land"],
+  maxWords: 3,
+};
+
+test("short answer accepts every listed wording", () => {
+  assert.equal(isCorrect(shortAnswer, "some land"), true);
+  assert.equal(isCorrect(shortAnswer, "land"), true);
+  assert.equal(isCorrect(shortAnswer, "Some Land"), true);
+  assert.equal(isCorrect(shortAnswer, "some  land"), true);
+  assert.equal(isCorrect(shortAnswer, "water"), false);
+});
+
+test("short answer with no alternatives still marks its own answer", () => {
+  const only = { id: "s2", type: "short-answer", question: "?", answer: "daylighting", maxWords: 3 };
+  assert.equal(isCorrect(only, "daylighting"), true);
+  assert.equal(isCorrect(only, "Daylighting."), true);
+  assert.equal(isCorrect(only, "culverting"), false);
+});

@@ -178,6 +178,18 @@ export function isCorrect(
       return String(given) === q.answer;
     case "completion":
       return normalise(String(given)) === normalise(q.answer);
+    case "ynng":
+      return String(given) === q.answer;
+    case "matching":
+      // Compared as written keys ("vii", "C"), trimmed and case-folded so a
+      // candidate who types "VII" is not marked wrong for shouting.
+      return String(given).trim().toUpperCase() === q.answer.trim().toUpperCase();
+    case "short-answer": {
+      // More than one phrasing can be right, so every accepted wording is
+      // normalised the same way the candidate's answer is.
+      const given_ = normalise(String(given));
+      return [q.answer, ...(q.accept ?? [])].some((a) => normalise(a) === given_);
+    }
     default: {
       // Exhaustiveness: a new member of TestQuestion fails to compile here.
       const unmarked: never = q;

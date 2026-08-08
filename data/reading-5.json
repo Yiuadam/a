@@ -1,0 +1,160 @@
+{
+  "id": "reading-5",
+  "title": "Bringing buried rivers back to the surface",
+  "topic": "Urban planning and the environment",
+  "difficulty": "B2",
+  "timeMinutes": 20,
+  "passage": "A\nFor most of the twentieth century, the rivers of industrial cities were treated as a problem to be covered over. As populations grew, watercourses that had once powered mills and carried away waste became narrow, polluted and prone to flooding. The engineering answer of the day was to bury them: the channel was lined with brick or concrete, a roof was built across it, and streets and buildings were laid on top. In Britain alone, several hundred kilometres of urban stream were culverted in this way. The rivers did not disappear. They simply stopped being visible, and within a generation most city dwellers had forgotten they were there at all.\n\nB\nThe reasoning was not foolish. A buried river cannot smell, cannot be tipped into, and cannot easily drown a child. It also releases land, and land in a city centre is the most valuable thing a council owns. What the engineers of the period underestimated was how a culvert behaves when it is asked to do more than it was designed for. A brick tunnel built to carry the runoff of a district of terraced houses receives a very different volume of water once that district is paved, roofed and tarmacked. Rain that once soaked slowly into gardens now arrives at the culvert mouth within minutes, and arrives all at once.\n\nC\nThe consequence is a form of flooding that surprises people because it comes from beneath rather than from a river they can see. When a culvert fills, the water has nowhere to go but upwards, through drains and manholes and into basements, often in streets whose residents have no idea a river runs under them. Insurers began to notice a pattern in the 1990s: claims clustering along the lines of watercourses that appeared on no modern map. Repairing the culverts was possible but extraordinarily expensive, and a repaired culvert is still a pipe with a fixed capacity in a city that keeps adding hard surfaces.\n\nD\nOut of this frustration came a practice now known as daylighting — removing the roof from a buried river and letting it run in the open again. The first schemes were modest, often a few hundred metres in a park where there was space to work. The results were more dramatic than anyone had predicted. An open channel with a wide, shallow profile and vegetated banks holds a great deal more water than the pipe it replaced, and it holds that water slowly, releasing it downstream over hours rather than minutes. Flood risk fell along the whole length of the catchment, not only at the site of the works.\n\nE\nThe wider benefits took longer to measure but proved just as substantial. Water temperature dropped where trees shaded the new channel, which mattered for fish. Invertebrates returned within a season or two, and birds followed them. Streets beside daylighted rivers recorded summer air temperatures noticeably lower than comparable streets nearby, a useful thing in cities where heatwaves now kill more people than floods do. Property values rose, which pleased councils, and community groups formed around the new waterways, which pleased almost nobody who had to attend the meetings but did produce a constituency willing to defend the river when budgets were next cut.\n\nF\nDaylighting is not a universal answer, and its advocates are careful to say so. It needs space, and the densest parts of a city are precisely where the land was built over most thoroughly. It is disruptive, closing roads for months. It can be more expensive than repairing a culvert, though the comparison is usually unfair, since the culvert will need repairing again and the open channel will not. The honest case for daylighting is not that it is cheap but that it buys several things at once — flood capacity, cooling, habitat, amenity — where a new pipe buys only one.\n\nG\nWhat has changed most is the assumption underneath. For a century, the presence of water in a city was treated as a hazard to be managed and preferably hidden. The daylighting schemes of the last thirty years rest on the opposite view: that the water was never the problem, and that a city which makes room for its rivers is dealing with the cause rather than the symptom. That is a slower and less certain kind of engineering than pouring concrete, and it asks planners to accept that some land will occasionally be under water on purpose. Where it has been tried, it has largely worked.",
+  "questions": [
+    {
+      "instruction": "The passage has seven paragraphs, A–G. Choose the correct heading for each of paragraphs A–E from the list of headings below. There are more headings than paragraphs, so you will not use them all.",
+      "sharedOptions": [
+        {
+          "key": "i",
+          "text": "Why burying rivers made sense at the time"
+        },
+        {
+          "key": "ii",
+          "text": "A change in what cities assume about water"
+        },
+        {
+          "key": "iii",
+          "text": "Flooding that arrives from an unexpected direction"
+        },
+        {
+          "key": "iv",
+          "text": "The cost of maintaining Victorian brickwork"
+        },
+        {
+          "key": "v",
+          "text": "An era of covering rivers over"
+        },
+        {
+          "key": "vi",
+          "text": "Opening channels again, and what it achieved"
+        },
+        {
+          "key": "vii",
+          "text": "Benefits beyond the management of floodwater"
+        },
+        {
+          "key": "viii",
+          "text": "Why some cities have no rivers at all"
+        }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "Paragraph A",
+          "answer": "v",
+          "explanation": "Paragraph A describes the century-long practice of culverting and its scale — several hundred kilometres in Britain. Heading i is tempting, but the reasons for burying rivers are set out in paragraph B, not here."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "Paragraph B",
+          "answer": "i",
+          "explanation": "The paragraph opens “The reasoning was not foolish” and then lists the advantages: no smell, no dumping, no drowning, and valuable land released. That is the case for burying rivers."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "Paragraph C",
+          "answer": "iii",
+          "explanation": "The key phrase is “comes from beneath rather than from a river they can see”. The whole paragraph is about flooding taking people by surprise because its source is hidden."
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "Paragraph D",
+          "answer": "vi",
+          "explanation": "Paragraph D introduces daylighting by name and reports its effect on flood risk. Heading vii belongs to the paragraph after it, which covers the benefits that are not about flooding."
+        },
+        {
+          "id": "q5",
+          "type": "matching",
+          "prompt": "Paragraph E",
+          "answer": "vii",
+          "explanation": "Temperature, invertebrates, birds, street cooling, property values and community groups are all benefits other than flood control — which is exactly what “beyond the management of floodwater” means."
+        }
+      ]
+    },
+    {
+      "instruction": "Do the following statements agree with the claims of the writer? Write YES if the statement agrees with the writer's views, NO if it contradicts them, or NOT GIVEN if it is impossible to say what the writer thinks.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "ynng",
+          "statement": "The engineers who culverted rivers were acting unreasonably given what they knew.",
+          "answer": "NO",
+          "explanation": "The writer states plainly that “the reasoning was not foolish” and lists real advantages. The criticism is only that those engineers underestimated later conditions, which is not the same as acting unreasonably."
+        },
+        {
+          "id": "q7",
+          "type": "ynng",
+          "statement": "Comparing the cost of daylighting with the cost of culvert repair is usually misleading.",
+          "answer": "YES",
+          "explanation": "The writer says the comparison “is usually unfair, since the culvert will need repairing again and the open channel will not” — a direct statement that it misleads."
+        },
+        {
+          "id": "q8",
+          "type": "ynng",
+          "statement": "Daylighting should be given priority over other flood defences in every city.",
+          "answer": "NO",
+          "explanation": "Paragraph F says daylighting “is not a universal answer, and its advocates are careful to say so”, then lists where it does not fit. The writer argues against “every city”."
+        },
+        {
+          "id": "q9",
+          "type": "ynng",
+          "statement": "Community groups formed around daylighted rivers are more effective than official bodies.",
+          "answer": "NOT GIVEN",
+          "explanation": "The writer mentions such groups forming and being willing to defend the river, but never compares them with official bodies. A joke about meetings is not a judgement about effectiveness."
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the questions below using NO MORE THAN THREE WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "short-answer",
+          "question": "What did insurers notice claims clustering along in the 1990s?",
+          "answer": "watercourses",
+          "accept": [
+            "lines of watercourses"
+          ],
+          "maxWords": 3,
+          "explanation": "Paragraph C: claims clustered “along the lines of watercourses that appeared on no modern map”. The three-word limit forces the answer down to the essential noun."
+        },
+        {
+          "id": "q11",
+          "type": "short-answer",
+          "question": "What is the name for removing the roof from a buried river?",
+          "answer": "daylighting",
+          "maxWords": 3,
+          "explanation": "Paragraph D defines the term directly: “a practice now known as daylighting — removing the roof from a buried river”."
+        },
+        {
+          "id": "q12",
+          "type": "short-answer",
+          "question": "According to the passage, what now kills more city dwellers than floods?",
+          "answer": "heatwaves",
+          "maxWords": 3,
+          "explanation": "Paragraph E: “cities where heatwaves now kill more people than floods do”. Copy the word exactly as the passage spells it."
+        },
+        {
+          "id": "q13",
+          "type": "short-answer",
+          "question": "What must planners accept will occasionally be under water on purpose?",
+          "answer": "some land",
+          "accept": [
+            "land"
+          ],
+          "maxWords": 3,
+          "explanation": "Paragraph G asks planners “to accept that some land will occasionally be under water on purpose”."
+        }
+      ]
+    }
+  ]
+}

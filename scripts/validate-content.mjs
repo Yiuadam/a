@@ -108,7 +108,7 @@ function checkExplanation(file, q) {
   Both are valid; everything below works on the flattened list, so a grouped
   paper is held to exactly the same standard as a flat one.
 */
-function checkGroups(file, set) {
+function checkGroups(file, set, groupOf) {
   const grouped = set.length > 0 && set[0] && Array.isArray(set[0].questions);
   if (!grouped) return set;
 
@@ -149,6 +149,11 @@ function checkGroups(file, set) {
         }
       }
     }
+    for (const q of group.questions) {
+      // Matching questions answer against their group's bank, so the checks
+      // below need to find their way back from a question to its block.
+      if (q?.id) groupOf.set(q.id, group);
+    }
     flat.push(...group.questions);
   }
   return flat;
@@ -157,13 +162,15 @@ function checkGroups(file, set) {
 function checkQuestions(file, set, source, expectedCount) {
   if (!Array.isArray(set)) return fail(file, "questions is not an array");
 
-  const questions = checkGroups(file, set);
+  const groupOf = new Map();
+  const questions = checkGroups(file, set, groupOf);
   if (questions.length !== expectedCount) {
     fail(file, `expected ${expectedCount} questions, found ${questions.length}`);
   }
 
   const seenIds = new Set();
   const tfngAnswers = new Set();
+  const ynngAnswers = new Set();
 
   for (const q of questions) {
     if (!q.id) fail(file, "a question is missing its id");
@@ -202,6 +209,45 @@ function checkQuestions(file, set, source, expectedCount) {
           fail(file, `${q.id} answer is longer than its own ${q.maxWords}-word limit`);
         }
       }
+    } else if (q.type === "ynng") {
+      if (!["YES", "NO", "NOT GIVEN"].includes(q.answer)) {
+        fail(file, `${q.id} has an invalid Yes/No/Not Given answer: ${q.answer}`);
+      }
+      ynngAnswers.add(q.answer);
+      if (!q.statement) fail(file, `${q.id} has no statement`);
+    } else if (q.type === "matching") {
+      if (!q.prompt) fail(file, `${q.id} has nothing to match`);
+      if (!q.answer) fail(file, `${q.id} has no answer`);
+      /*
+        The bank lives on the group, so a matching question outside one has no
+        options to choose from and is unanswerable. `groupOf` is built by
+        checkGroups for exactly this.
+      */
+      const group = groupOf.get(q.id);
+      const bank = group?.sharedOptions;
+      if (!Array.isArray(bank) || bank.length === 0) {
+        fail(file, `${q.id} is a matching question but its group has no sharedOptions`);
+      } else {
+        const keys = bank.map((o) => String(o.key).toUpperCase());
+        if (!keys.includes(String(q.answer).toUpperCase())) {
+          fail(file, `${q.id} answers "${q.answer}", which is not one of its group's options`);
+        }
+      }
+    } else if (q.type === "short-answer") {
+      if (!q.question) fail(file, `${q.id} has no question text`);
+      if (!q.answer) {
+        fail(file, `${q.id} has no answer`);
+      } else {
+        for (const a of [q.answer, ...(q.accept ?? [])]) {
+          if (source && !normalise(source).includes(normalise(a))) {
+            fail(file, `${q.id} answer "${a}" does not appear in the passage or script`);
+          }
+          const words = String(a).trim().split(/\s+/).length;
+          if (q.maxWords && words > q.maxWords) {
+            fail(file, `${q.id} answer "${a}" is longer than its own ${q.maxWords}-word limit`);
+          }
+        }
+      }
     } else {
       fail(file, `${q.id ?? "a question"} has an unknown type: ${q.type}`);
     }
@@ -211,6 +257,11 @@ function checkQuestions(file, set, source, expectedCount) {
   // the wrong instinct.
   if (tfngAnswers.size > 0 && tfngAnswers.size < 3) {
     fail(file, `True/False/Not Given answers only cover ${[...tfngAnswers].join(", ")}`);
+  }
+  // The same trap, and worth catching separately: a Yes/No set that never uses
+  // NOT GIVEN teaches candidates to never choose it.
+  if (ynngAnswers.size > 0 && ynngAnswers.size < 3) {
+    fail(file, `Yes/No/Not Given answers only cover ${[...ynngAnswers].join(", ")}`);
   }
 }
 
@@ -263,7 +314,7 @@ if (placement) {
 }
 
 // ---- Reading ----
-for (const name of ["reading-1.json", "reading-2.json", "reading-3.json", "reading-4.json"]) {
+for (const name of ["reading-1.json", "reading-2.json", "reading-3.json", "reading-4.json", "reading-5.json"]) {
   const test = load(name);
   if (!test) continue;
   const words = (test.passage ?? "").split(/\s+/).filter(Boolean).length;

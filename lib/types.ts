@@ -48,7 +48,72 @@ export interface CompletionQuestion {
   explanation?: string;
 }
 
-export type TestQuestion = TFNGQuestion | MCQQuestion | CompletionQuestion;
+/**
+ * Yes / No / Not Given — and deliberately not the same type as True/False.
+ *
+ * The two look identical and are not. True/False/Not Given asks whether a
+ * statement matches the *facts* in the passage; Yes/No/Not Given asks whether
+ * it matches the *writer's views*. A candidate who answers one as though it
+ * were the other loses marks while being sure they were right, and the labels
+ * on screen are the only thing that tells them which task they are doing. A
+ * shared type with a flag would have put those labels one boolean away from
+ * being wrong.
+ */
+export interface YNNGQuestion {
+  id: string;
+  type: "ynng";
+  statement: string;
+  answer: "YES" | "NO" | "NOT GIVEN";
+  explanation?: string;
+}
+
+/**
+ * Anything answered by choosing from the group's shared bank.
+ *
+ * One type covers four of the exam's question types — matching headings,
+ * matching information to paragraphs, matching features, and matching sentence
+ * endings — because they differ in rubric rather than in mechanics. What tells
+ * them apart is the group's `instruction` and what its `sharedOptions` hold:
+ * roman-numeralled headings, or names, or clause endings.
+ *
+ * `answer` is an option `key`, so a bank that changes its wording does not
+ * silently invalidate every answer in the group.
+ */
+export interface MatchingQuestion {
+  id: string;
+  type: "matching";
+  /** "Paragraph C", "The 1974 survey", "Researchers found that…" */
+  prompt: string;
+  answer: string;
+  explanation?: string;
+}
+
+/**
+ * A question answered in the candidate's own words, within a word limit.
+ *
+ * Distinct from `completion`, which gives a sentence with a gap in it. Here
+ * there is a question and no scaffolding, so more than one phrasing can be
+ * right — `accept` carries the alternatives, and marking is case- and
+ * punctuation-insensitive like completion.
+ */
+export interface ShortAnswerQuestion {
+  id: string;
+  type: "short-answer";
+  question: string;
+  answer: string;
+  /** Other wordings that are equally correct. */
+  accept?: string[];
+  maxWords: number;
+  explanation?: string;
+}
+
+export type TestQuestion =
+  | TFNGQuestion
+  | MCQQuestion
+  | CompletionQuestion
+  | YNNGQuestion
+  | MatchingQuestion
+  | ShortAnswerQuestion;
 
 /**
  * One entry in a bank of answers shared by a whole block of questions — the

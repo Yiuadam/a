@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import ExplainText from "@/components/ExplainText";
 import { isCorrect } from "@/lib/band";
 import { numberedGroups } from "@/lib/questions";
-import type { QuestionSet, TestMode, TestQuestion } from "@/lib/types";
+import type { QuestionSet, SharedOption, TestMode, TestQuestion } from "@/lib/types";
 
 export type AnswerMap = Record<string, string | number | undefined>;
 /** Ids the learner has asked to have marked before submitting. */
@@ -30,19 +30,41 @@ function unhandledType(question: never): ReactNode {
   );
 }
 
-function answerText(q: TestQuestion): string {
-  return q.type === "mcq"
-    ? `${String.fromCharCode(65 + q.answer)}. ${q.options[q.answer]}`
-    : q.answer;
+function answerText(q: TestQuestion, options?: SharedOption[]): string {
+  if (q.type === "mcq") return `${String.fromCharCode(65 + q.answer)}. ${q.options[q.answer]}`;
+  if (q.type === "matching") {
+    /*
+      A revealed answer of "vii" teaches nothing once the heading list has
+      scrolled off, so the key is expanded back into the thing it stood for.
+    */
+    const match = options?.find((o) => o.key.toUpperCase() === q.answer.toUpperCase());
+    return match ? `${match.key}. ${match.text}` : q.answer;
+  }
+  if (q.type === "short-answer" && q.accept?.length) {
+    return `${q.answer} (also accepted: ${q.accept.join(", ")})`;
+  }
+  return q.answer;
 }
 
 /** The prompt shown above the inputs, whatever kind of question it is. */
 function QuestionPrompt({ q }: { q: TestQuestion }) {
   switch (q.type) {
     case "tfng":
+    case "ynng":
       return <>{q.statement}</>;
     case "mcq":
       return <>{q.question}</>;
+    case "matching":
+      return <>{q.prompt}</>;
+    case "short-answer":
+      return (
+        <>
+          {q.question}
+          <span className="ml-2 text-xs font-normal text-slate-400">
+            (max {q.maxWords} word{q.maxWords > 1 ? "s" : ""})
+          </span>
+        </>
+      );
     case "completion":
       return (
         <>
@@ -63,17 +85,24 @@ function QuestionInput({
   given,
   locked,
   onAnswer,
+  sharedOptions,
 }: {
   q: TestQuestion;
   given: Given;
   locked: boolean;
   onAnswer: (id: string, value: string | number) => void;
+  /* Matching answers come from the block's bank, not from the question. */
+  sharedOptions?: SharedOption[];
 }) {
   switch (q.type) {
     case "tfng":
+    case "ynng":
       return (
         <div className="flex flex-wrap gap-2">
-          {(["TRUE", "FALSE", "NOT GIVEN"] as const).map((opt) => (
+          {(q.type === "ynng"
+            ? (["YES", "NO", "NOT GIVEN"] as const)
+            : (["TRUE", "FALSE", "NOT GIVEN"] as const)
+          ).map((opt) => (
             <button
               key={opt}
               type="button"
@@ -121,6 +150,7 @@ function QuestionInput({
       );
 
     case "completion":
+    case "short-answer":
       return (
         <input
           type="text"
@@ -130,6 +160,38 @@ function QuestionInput({
           placeholder="Type your answer"
           className="input w-full max-w-sm"
         />
+      );
+
+    case "matching":
+      /*
+        Buttons rather than a text field. The bank is printed above the block,
+        and a candidate who has to retype "vii" loses marks to typing rather
+        than to reading — which measures the wrong thing.
+
+        Deliberately not disabled once used elsewhere in the block: some
+        matching tasks reuse an option and some do not, the rubric says which,
+        and a UI that enforced the stricter rule everywhere would silently make
+        the looser tasks unanswerable.
+      */
+      return (
+        <div className="flex flex-wrap gap-2">
+          {(sharedOptions ?? []).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              disabled={locked}
+              onClick={() => onAnswer(q.id, opt.key)}
+              title={opt.text}
+              className={`btn border text-xs ${
+                String(given).toUpperCase() === opt.key.toUpperCase()
+                  ? "border-indigo-600 bg-indigo-600 text-accent-fg"
+                  : "border-slate-300 bg-surface text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {opt.key}
+            </button>
+          ))}
+        </div>
       );
 
     default:
@@ -225,7 +287,13 @@ export default function TestQuestions({
                     </span>
                   </div>
 
-                  <QuestionInput q={q} given={given} locked={revealed} onAnswer={onAnswer} />
+                  <QuestionInput
+                    q={q}
+                    given={given}
+                    locked={revealed}
+                    onAnswer={onAnswer}
+                    sharedOptions={block.group.sharedOptions}
+                  />
 
                   {/*
                     Marking one question mid-test is how people actually learn
@@ -252,7 +320,7 @@ export default function TestQuestions({
                           correct ? "text-emerald-700" : "text-rose-700"
                         }`}
                       >
-                        {correct ? "✓ Correct" : `✗ Answer: ${answerText(q)}`}
+                        {correct ? "✓ Correct" : `✗ Answer: ${answerText(q, block.group.sharedOptions)}`}
                       </p>
                       {q.explanation && (
                         <ExplainText
