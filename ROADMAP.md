@@ -5,20 +5,21 @@ work, where the app falls short of the exam it prepares people for, and the
 order the remaining work should be done in. It is meant to be edited as things
 land — a milestone that ships gets struck through here, not quietly forgotten.
 
-Last reviewed: 7 August 2026, against `main` at the merge of #4.
+Last reviewed: 8 August 2026, against `main` at the merge of #37 and #38.
 
 ## Where it stands today
 
-Four pull requests have been merged and the app is deployed. Everything CI
-checks passes on `main`:
+Everything through #38 is merged and deployed. Everything CI checks passes on
+`main`:
 
 | Check | Result |
 |---|---|
 | `npx eslint .` | clean |
-| `npm run build` | 18 routes, 4 of them dynamic API routes |
+| `npm run build` | 17 routes — 13 static, 4 dynamic API routes |
 | `node scripts/validate-content.mjs` | every answer key reachable and well formed |
-| `node scripts/simulate-placement.mjs` | worst bias 0.39–0.47 bands, worst RMSE 0.85–0.88, over three runs — the simulation is stochastic, so a single figure would overstate its precision |
+| `node scripts/simulate-placement.mjs` | worst bias 0.41–0.45 bands, worst RMSE 0.84–0.90, over three runs — the simulation is stochastic, so a single figure would overstate its precision |
 | `npm run build:mobile` | static bundle written to `out-mobile/` |
+| `npm test` | 31 tests pass |
 
 The content bank, counted rather than estimated:
 
@@ -26,8 +27,8 @@ The content bank, counted rather than estimated:
 |---|---|
 | Placement items | 108 — 18 per CEFR level, across grammar, vocabulary and reading |
 | Reading | 4 passages, 744–814 words, 13 questions each |
-| Listening | 4 sections, 10 questions each |
-| Writing | 7 tasks — 2 Academic Task 1 (both tables), 1 General Training letter, 4 Task 2 essays |
+| Listening | 6 sections, 10 questions each — Parts 1, 2, 3 and 4 all represented |
+| Writing | 7 tasks — 2 Academic Task 1 (both still tables), 1 General Training letter, 4 Task 2 essays |
 | Speaking | 6 topics in each of the three parts |
 | Grammar | 10 topics × 8 drill questions |
 | Vocabulary | 8 topics × 8 drill questions |
@@ -69,13 +70,16 @@ exam conditions.
 Listening is the same story: only completion and multiple choice are
 implemented. Matching, plan/map/diagram labelling and short-answer are absent.
 
-### Listening covers 2 of the 4 parts
+### ~~Listening covers 2 of the 4 parts~~ — closed by #31
 
-The four shipped sections are two Part 1-style dialogues (booking a class,
-renting an allotment) and two Part 4-style lectures. Part 2 — a single-speaker
-talk in a social context — and Part 3 — a discussion between up to four people
-in an academic one — have no material at all. Part 3 is the hardest part of the
-paper for most candidates, because it has several voices to track.
+All four parts now have material. The two additions are `listening-5`, a
+reserve manager briefing volunteers (Part 2 — one speaker, social context), and
+`listening-6`, three geography students planning fieldwork with their tutor
+(Part 3 — four voices to track, the part most candidates find hardest).
+
+Six sections in total: two Part 1 dialogues, one Part 2 talk, one Part 3
+discussion, two Part 4 lectures. What is still missing from listening is *question
+types*, not parts — see above.
 
 ### There is no full-length paper, and short tests give coarse bands
 
@@ -108,13 +112,27 @@ Canada and New Zealand. BandUp has one GT letter and nothing else: no GT
 reading, and no point anywhere at which it asks which exam you are sitting. A
 GT candidate is currently served Academic material throughout and is never told.
 
-### Writing Task 1 is two tables
+Half the plumbing is already there and unused: every task in
+`data/writing-tasks.json` carries `variant: "academic" | "general"`. Nothing
+reads it. #14 is closer than this section has been implying.
+
+### Writing Task 1 is still two tables — but the blocker is gone
 
 Academic Task 1 asks candidates to describe a line graph, bar chart, pie chart,
-table, process diagram or map. Both shipped Academic tasks are tables. The most
-common prompts in the real exam are the ones a learner cannot practise here,
-and unlike the other gaps this one needs a small chart-rendering component
-before the content can be written at all.
+table, process diagram or map. Both shipped Academic tasks are tables, so the
+most common prompts in the real exam are still the ones a learner cannot
+practise here.
+
+What has changed is that the thing standing in the way is no longer standing
+there. #34 shipped `lib/chart.ts` and `components/Chart.tsx`: line, bar
+(grouped and stacked) and pie, rendered as SVG from data, with a text
+description generated for screen readers. `kind` is a discriminant, so process
+diagrams and maps arrive as new members of `ChartSpec` rather than a rewrite.
+
+**Nothing uses it yet.** Every task in `data/writing-tasks.json` is still
+`dataTable`; not one carries a `chart`. This is now purely a content job —
+which makes it among the cheapest high-value items left on this list, and it
+should move up accordingly.
 
 ### Progress lives in one browser and nothing else
 
@@ -124,25 +142,38 @@ placement result, the four-week plan and every saved word. For a study plan
 measured in weeks, on a product heading for the App Store, that is a hole worth
 closing — and it can be closed without building accounts.
 
-### The scoring logic has no tests
+### The scoring logic is now half tested — and the untested half is the band
 
-`lib/band.ts`, `lib/plan.ts`, `lib/review.ts` and `lib/advice.ts` are pure
-functions carrying the logic a learner trusts most, and none of them has a
-single test. The content validator checks the data; the placement simulation
-checks the engine; nothing checks that a raw score becomes the right band or
-that answer normalisation accepts "sixty-two" for "62". These are cheap tests
-to write and they guard against the worst kind of failure — a wrong number,
-confidently displayed.
+There are 31 tests where there were none. `tests/marking.test.mjs` pins
+`isCorrect` and `roundToHalf` from `lib/band.ts`, `tests/questions.test.mjs`
+covers the question-set helpers, and #35 and #37 added snapshot and transcript
+tests.
+
+But the specific failure this section was written about is still open:
+
+- **`rawToBand` has no test.** It is the function that turns a raw score into
+  the number a learner books a test date on, and nothing checks it. Of
+  everything in this document it is the cheapest to fix and the worst to get
+  wrong.
+- `lib/plan.ts`, `lib/review.ts` and `lib/advice.ts` remain untested.
+
+A wrong number, confidently displayed, is still the failure mode with the least
+warning attached to it.
 
 ### iOS is documented but has never been built
 
 `APPSTORE.md` is a good plan, not a completed path. There is no `ios/` project
 in the repo, the two required `Info.plist` permission strings have not been
-applied, there is no app icon, and the native speech recogniser has never run
-on hardware — the document says so itself. There is also no privacy policy
-page anywhere in the app or the repo, and Apple will not accept a submission
-without a public privacy policy URL, particularly from an app that asks for the
-microphone.
+applied, no app icon is wired up, and the native speech recogniser has never
+run on hardware — the document says so itself. The whisper.cpp plugin added by
+#37 is in the same position: written, documented, never compiled.
+
+Two blockers here have gone. `/privacy` shipped in #30 and was extended in #37,
+so the public privacy policy URL Apple requires now exists. And #38 took the
+IELTS trademark out of the bundle identifier — `com.bandup.ielts` became
+`com.yiuadam.bandup`. That one was worth catching before submission rather than
+after: Apple fixes a bundle id permanently at first upload, so it is the single
+item on this list that could not have been corrected later.
 
 ## What to build, in order
 
@@ -153,8 +184,12 @@ worse off than one who knows they have not started.
 If only three things get done, they should be **#5** (matching headings — the
 type most likely to cost a real learner real marks), **#14** (ask Academic or
 General Training — the cheapest way to stop misleading half the audience) and
-**#22** (the privacy policy page — small, and the App Store goal is blocked
-without it).
+**#18** (chart-based Task 1 prompts — the renderer landed in #34 and sits
+unused, so this is now content alone).
+
+The previous list named #22, the privacy policy. That shipped in #30. A test
+for `rawToBand` is the strongest candidate for a fourth: an hour's work
+guarding the number the whole app is judged by.
 
 ### M1 — Make the practice representative
 
@@ -167,7 +202,7 @@ content pipeline, the validator and the house style are already in place.
 - Note, table and flow-chart completion, diagram labelling, short answer — #8.
 - The missing listening types: matching, map/plan/diagram labelling,
   short answer — #9.
-- Part 2 and Part 3 listening material — #10.
+- ~~Part 2 and Part 3 listening material — #10.~~ **Shipped in #31.**
 
 Each of these is a code change as well as a content change: `lib/types.ts`,
 `components/TestQuestions.tsx` and `scripts/validate-content.mjs` all have to
@@ -193,11 +228,13 @@ scaling approximation entirely.
 
 ### M4 — Writing Task 1 beyond tables
 
-- A component rendering chart data as SVG, so prompts are authored as data
-  rather than drawn — #17. Diagram labelling in reading and map labelling in
-  listening want the same component, so it should be designed for all three.
+- ~~A component rendering chart data as SVG, so prompts are authored as data
+  rather than drawn — #17.~~ **Shipped in #34**: `lib/chart.ts` and
+  `components/Chart.tsx`, line/bar/pie, with `kind` left as a discriminant so
+  diagram labelling in reading and map labelling in listening can reuse it.
 - Line graph, bar chart, pie chart, process diagram and map-comparison
-  tasks — #18.
+  tasks — #18. **Now unblocked and unstarted** — no task in
+  `data/writing-tasks.json` carries a `chart` yet, so this is content only.
 
 ### M5 — Make progress durable and the numbers trustworthy
 
@@ -205,19 +242,44 @@ scaling approximation entirely.
   device problem: no server, no account, no privacy exposure. Worth doing
   before any account system, since it captures most of the value.
 - Unit tests for `band.ts`, `plan.ts`, `review.ts` and `advice.ts`, wired into
-  CI — #20.
+  CI — #20. **Partly done**: `npm test` runs 31 tests in CI and covers
+  `isCorrect`, `roundToHalf`, the question-set helpers, the server snapshots
+  and the transcript cleaner. **`rawToBand` is still untested**, as are
+  `plan.ts`, `review.ts` and `advice.ts`. Start with `rawToBand`.
 - A band history view, so a learner sees the trend rather than one number — #21.
 
 ### M6 — The App Store submission
 
-- A privacy policy page in the app, at a stable URL — #22. A hard blocker:
-  Apple will not accept a submission without one, least of all from an app
-  that asks for the microphone. It is also small, and can be done now.
+- ~~A privacy policy page in the app, at a stable URL — #22.~~ **Shipped in
+  #30**, and extended in #37 to disclose the one thing an "on-device" engine
+  still sends outward: the model download from Hugging Face.
+- ~~Take the IELTS trademark out of the bundle identifier.~~ **Shipped in
+  #38.** Not on the original list, and the only item that would have become
+  permanent at first upload.
 - Commit the `ios/` project, apply the permission strings and the icon, and
   work `APPSTORE.md` step 4 on a real iPhone — #23. Above all the speaking
   test, which is the documented highest-risk path and the one a reviewer will
-  tap. This one needs a Mac with Xcode and a $99/year Apple Developer
-  membership, so it waits on hardware this repo cannot supply.
+  tap. This needs a Mac with Xcode and a $99/year Apple Developer membership,
+  so it waits on hardware this repo cannot supply — and #37 added a second
+  uncompiled native component, the whisper.cpp plugin, so more is queued behind
+  that Mac now than there was.
+
+## What is in flight
+
+Branches and pull requests open against `main` as of this review. Recorded here
+because work on a pushed branch with no pull request is work nobody can see.
+
+| | State | Call |
+|---|---|---|
+| #36 — nav active state, plan polish, icon exploration | open, retargeted to `main` | **Split before merging.** The product changes should land. `app/icon-preview/` and `app/icon-final/` should not — `next build` publishes them, so an app in App Store review would ship its own design scratchpad at a guessable URL, along with 28 draft SVGs. |
+| #39 — accounts phase 1 | open, needs a decision | Verified inert with `ACCOUNTS_ENABLED` unset: the flag check is the first statement in `checkAiUsage`, before any session or Supabase call. But it adds a third-party data processor and encodes a price list, and M5 puts #19 first on purpose. Not a merge to make on engineering grounds alone. |
+| `claude/icons-gesture-family` | pushed, no PR | Three further commits of icon exploration on top of #36. Design exploration, not product. Should not be merged as-is. |
+| #29 — privacy page | **closed** | Superseded: its commit reached `main` through #30. |
+
+The pattern worth naming: #29, #36 and #39 were all opened against
+`claude/english-exam-prep-app-rbklw7` or against nothing at all, and drifted
+because a branch nobody merges into is a branch nobody notices. Open pull
+requests against `main`.
 
 ## Risks worth watching
 
@@ -231,9 +293,21 @@ code change and a content change together.
 app reports bands from tests too short to support them. Worth being plain about
 in the interface rather than only in this document.
 
-**iOS is an unexercised path.** The native speech recogniser has never run on a
-device. It is the thing most likely to fail, and it fails in front of an App
-Review tester rather than in CI.
+**iOS is an unexercised path, and it grew.** The native speech recogniser has
+never run on a device, and #37 added a whisper.cpp plugin in the same
+condition — Swift source and a TypeScript bridge, neither ever compiled. These
+are the things most likely to fail, and they fail in front of an App Review
+tester rather than in CI.
+
+**Claims about accuracy are the easiest thing here to get wrong.** #37 shipped
+with a model note reading "Noticeably better on accented English" — plausible,
+directional, and measured by nobody. It was corrected before merge, and
+`TRANSCRIPTION.md` now carries both the rule and the procedure for earning the
+claim back. The general form is worth keeping in view: every user of this app
+is a non-native speaker, so a sentence about accented English is the sentence
+they will weigh a decision on, and it is therefore the sentence that must be
+true. The same applies to any band, any level and any "you are ready" the
+interface ever shows.
 
 **One key, one dependency.** Writing feedback, the speaking examiner, word
 lookup and test generation all stop working if `ANTHROPIC_API_KEY` is missing
