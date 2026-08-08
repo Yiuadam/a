@@ -301,9 +301,9 @@ configured, IP limiting is **skipped** rather than performed on an unsalted
 hash: a plain hash of an IPv4 address is reversible by trying all four billion
 of them, which is a plaintext address wearing a disguise.
 
-`x-forwarded-for` is trustworthy here because Vercel and Cloudflare both
-overwrite it at the edge before the function sees it. That is a property of
-where this is deployed, not of this code. Deployed behind anything that does not
+`x-forwarded-for` is trustworthy here because Cloudflare, the host, overwrites
+it at the edge before the Worker sees it. That is a property of where this is
+deployed, not of this code. Deployed behind anything that does not
 do that, the header is caller-controlled and the IP ceiling becomes advisory.
 
 ### What happens when the database is unreachable

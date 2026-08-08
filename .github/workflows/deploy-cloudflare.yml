@@ -3,11 +3,9 @@ name: Deploy to Cloudflare
 # Pushes to main go live on Cloudflare Workers. The Worker keeps one stable
 # address, so a bookmark or an App Store review link survives a deployment.
 #
-# This runs alongside the Vercel workflow rather than replacing it. Two hosts
-# serving the same commit is a deliberate overlap while the move is in
-# progress: the Cloudflare deployment can be exercised for real before anything
-# is switched off. Delete deploy.yml once the Worker's URL is the one people
-# use.
+# This is the only deployment. The app ran on Vercel first, in parallel with
+# this one for a while so the Worker could be exercised for real before
+# anything was switched off; that overlap is over and deploy.yml is gone.
 on:
   push:
     branches: [main]
@@ -36,9 +34,9 @@ jobs:
 
       - run: npm ci
 
-      # Same shape as the Vercel workflow: a repository without the secrets set
-      # skips quietly instead of showing a red X for a deployment it was never
-      # configured to make.
+      # A repository without the secrets set skips quietly instead of showing a
+      # red X for a deployment it was never configured to make — a fork should
+      # not look broken.
       - name: Check for deploy credentials
         id: creds
         run: |

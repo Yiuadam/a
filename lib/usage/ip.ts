@@ -19,9 +19,9 @@ const MODULE = "lib/usage/ip.ts";
  * The client address as reported by the platform's proxy.
  *
  * `x-forwarded-for` is client-controlled in general — anyone can send one.
- * On Vercel and on Cloudflare the edge overwrites it with the real peer
- * address before the function sees it, so on those platforms the leftmost
- * entry is trustworthy. Deployed anywhere without a proxy that does this, the
+ * Cloudflare, which is where this deploys, overwrites it at the edge with the
+ * real peer address before the Worker sees it, so the leftmost entry is
+ * trustworthy there. Deployed anywhere without a proxy that does this, the
  * header must not be believed; that is a deployment property, not a code one,
  * and it is called out in ACCOUNTS.md.
  */

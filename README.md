@@ -90,52 +90,54 @@ work without one.
 
 ## Deploying
 
-**See [DEPLOY.md](DEPLOY.md) for the full setup.** Short version: connect the repo to Vercel
-once and every push to `main` deploys itself to the same permanent URL — the production
-domain never changes between deployments, so a bookmark or an App Store listing keeps
-working. Pull requests get their own preview URLs.
+**See [DEPLOY.md](DEPLOY.md) for the full setup.** Short version: the repo is
+already connected to **Cloudflare Workers**, and every push to `main` deploys
+itself to the same permanent address:
 
-Vercel is the fastest route — it is the first-party host for Next.js, so there is nothing to
-configure:
-
-```bash
-npm i -g vercel
-vercel                                    # links the project and deploys a preview
-vercel env add ANTHROPIC_API_KEY          # paste your key, choose all environments
-vercel --prod                             # ship it
+```
+https://bandup.siksafe-realtime-ai-vision.workers.dev
 ```
 
-Or push this repo to GitHub and click **Import Project** at
-[vercel.com/new](https://vercel.com/new) — Vercel detects Next.js, builds it, and gives you a
-URL. Add `ANTHROPIC_API_KEY` under Settings → Environment Variables, then redeploy.
+That URL does not change between deployments, so a bookmark or an App Store
+listing keeps working. It becomes `bandup.study` when that domain is ready —
+a DNS change pointed at the same Worker, not a move.
 
-The AI routes declare `maxDuration = 60`, which is the ceiling on Vercel's Hobby plan. On Pro
-you can raise it if you want longer generations.
+`.github/workflows/deploy-cloudflare.yml` does the work. It needs two
+repository secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) and skips
+quietly without them. The Worker itself needs `ANTHROPIC_API_KEY` and, once
+accounts are switched on, the Supabase variables — those live in Cloudflare,
+not in this repository. See `.env.example`.
 
-### Vercel or Cloudflare?
-
-Both work. They trade off differently for this app:
-
-| | Vercel | Cloudflare Workers |
-|---|---|---|
-| Setup | Zero config, first-party Next.js | Needs the `@opennextjs/cloudflare` adapter and a `wrangler` config |
-| Long AI calls | Hobby caps a request at 60s; Pro at 300s | Bills CPU time, and waiting on the Claude API costs almost none — long generations are not a problem |
-| Free tier | Generous for hobby traffic | More generous, and cheaper as traffic grows |
-| Next.js coverage | Complete by definition | Very good via the adapter, but occasionally lags new Next features |
-
-Start on Vercel — it is the fastest path to a working URL, and everything here
-fits inside 60s. Move to Cloudflare if the per-request time limit or bandwidth
-cost becomes the binding constraint. Both are already wired up:
+To build and publish by hand:
 
 ```bash
-npm run cf:preview                      # run the Worker build locally first
-npx wrangler secret put ANTHROPIC_API_KEY
-npm run cf:deploy                       # build + publish
+npm run cf:build     # required first — preview and deploy do not build
+npm run cf:preview   # optional: run the Worker locally
+npm run cf:deploy
 ```
 
 `open-next.config.ts` and `wrangler.jsonc` hold the Worker configuration; the
-app name (`bandup`) and the `nodejs_compat` flag are set there. The Worker build
-has been verified locally — pages render and the API routes respond.
+app name (`bandup`) and the `nodejs_compat` flag are set there.
+
+### Why Cloudflare rather than Vercel
+
+The app ran on Vercel first, and Vercel is the easier start — it is the
+first-party host for Next.js, so there is nothing to configure. Two things
+decided the move:
+
+- **Long AI calls.** Vercel's Hobby plan caps a request at 60 seconds, which is
+  the ceiling the four AI routes are written against. Workers bills CPU time,
+  and waiting on the Claude API costs almost none, so a slow generation is not
+  a problem there.
+- **One host, one bill, one set of secrets.** Running both meant every
+  environment variable had to be set twice and could drift.
+
+The cost is real and worth naming: Next.js support on Workers comes through the
+`@opennextjs/cloudflare` adapter rather than from the framework's own vendor, so
+it can lag new Next.js features. That is why `npm run cf:build` runs in CI on
+every push — a change that breaks the Worker fails before it is merged rather
+than when someone tries to deploy. **Do not add a `proxy.ts` or a
+`middleware.ts`**; the adapter rejects Node middleware and the build will fail.
 
 Everything except the three AI routes is static or client-side, so it also deploys unchanged
 to Netlify or any Node host (`npm run build && npm start`).

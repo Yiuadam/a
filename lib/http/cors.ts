@@ -10,7 +10,7 @@
 
   So the choice was middleware or Cloudflare, and it could not be settled by
   configuration. The behaviour below is the same behaviour; only the place it
-  runs has changed. Nothing about the Vercel deployment is affected, because
+  runs has changed. Nothing about the app's behaviour is affected, because
   with ACCOUNTS_ENABLED unset both versions grant exactly nothing.
 
   What this deliberately does not do is rate limiting. A per-instance counter

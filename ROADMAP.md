@@ -318,9 +318,9 @@ separation is worth preserving as the app grows.
 
 Set out in `CLAUDE.md` and unchanged: work on a branch, run everything CI runs
 plus a real browser check, push, open a pull request, wait for the checks, merge
-it. Vercel deploys `main` automatically, so merging is what makes a change live.
+it. Cloudflare deploys `main` automatically, so merging is what makes a change live.
 
-Production is <https://a-nine-peach.vercel.app>.
+Production is <https://bandup.siksafe-realtime-ai-vision.workers.dev>.
 
 The backlog lives in GitHub issues, one per item above, labelled by milestone.
 This document is the shape of the plan; the issues are the state of it.

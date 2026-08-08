@@ -18,9 +18,9 @@
   it, and adding a name here is what puts a header under the rule.
 
   Note what is *not* in this list: `x-forwarded-for`. That one is read, on
-  purpose, by lib/usage/ip.ts — because Vercel and Cloudflare both overwrite it
-  at the edge with the real peer address. Its trustworthiness is a property of
-  the deployment, and it is documented there rather than pretended away here.
+  purpose, by lib/usage/ip.ts — because Cloudflare overwrites it at the edge
+  with the real peer address. Its trustworthiness is a property of the
+  deployment, and it is documented there rather than pretended away here.
 */
 
 /** Trust claims a client could assert about itself. Never read these. */
