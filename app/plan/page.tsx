@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useMemo } from "react";
 import BandBadge from "@/components/BandBadge";
 import { useProfile } from "@/lib/hooks";
-import { buildPlan, listJoin } from "@/lib/plan";
-import { setTargetBand } from "@/lib/store";
+import { buildPlan, listJoin, PLAN_DURATIONS } from "@/lib/plan";
+import { setPlanDays, setTargetBand } from "@/lib/store";
 
 export default function PlanPage() {
   const profile = useProfile();
@@ -32,21 +32,45 @@ export default function PlanPage() {
     <div className="space-y-6">
       <section className="card flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
         <div className="max-w-xl space-y-2">
-          <h1 className="text-[26px] font-semibold text-slate-900">Your 4-week study plan</h1>
+          <h1 className="text-[26px] font-semibold text-slate-900">
+            Your {plan.duration.heading} study plan
+          </h1>
           <p className="text-sm text-slate-600">{plan.headline}</p>
-          <div className="flex items-center gap-2 pt-1 text-sm text-slate-700">
-            <span>Target band</span>
-            <select
-              className="input"
-              value={plan.targetBand}
-              onChange={(e) => setTargetBand(Number(e.target.value))}
-            >
-              {[5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
+          {/*
+            Two menus now, so each one says what it is for. They are <label>s
+            rather than the loose <span> the target band had on its own: with a
+            second combobox beside it, "select, select" is all a screen reader
+            had left to go on.
+          */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-sm text-slate-700">
+            <label className="flex items-center gap-2">
+              <span>Target band</span>
+              <select
+                className="input"
+                value={plan.targetBand}
+                onChange={(e) => setTargetBand(Number(e.target.value))}
+              >
+                {[5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <span>Plan length</span>
+              <select
+                className="input"
+                value={plan.duration.days}
+                onChange={(e) => setPlanDays(Number(e.target.value))}
+              >
+                {PLAN_DURATIONS.map((d) => (
+                  <option key={d.days} value={d.days}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
         <div className="flex items-center gap-6">
@@ -61,22 +85,23 @@ export default function PlanPage() {
           Your placement test showed{" "}
           <span className="font-semibold">{listJoin(plan.weakSkills)}</span> need
           {plan.weakSkills.length > 1 ? "" : "s"} the most work, so the plan builds extra
-          practice on {plan.weakSkills.length > 1 ? "those" : "that"} into the relevant weeks.
+          practice on {plan.weakSkills.length > 1 ? "those" : "that"} into the parts of the
+          window where it helps most.
         </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {plan.weeks.map((w) => (
-          <section key={w.week} className="card">
+        {plan.blocks.map((b) => (
+          <section key={b.step} className="card">
             <div className="mb-2 flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-accent-fg">
-                {w.week}
+                {b.step}
               </span>
-              <h2 className="font-semibold text-slate-900">Week {w.week}: {w.focus}</h2>
+              <h2 className="font-semibold text-slate-900">{b.label}: {b.focus}</h2>
             </div>
-            <p className="mb-3 text-sm text-slate-600">{w.rationale}</p>
+            <p className="mb-3 text-sm text-slate-600">{b.rationale}</p>
             <ul className="space-y-2">
-              {w.tasks.map((t, i) => (
+              {b.tasks.map((t, i) => (
                 <li key={i}>
                   <Link
                     href={t.href}
@@ -92,11 +117,7 @@ export default function PlanPage() {
         ))}
       </div>
 
-      <p className="text-xs text-slate-400">
-        Suggested rhythm: 3–5 sessions of 30–60 minutes per week. Re-take the placement test at
-        the end of the cycle to measure your progress, then repeat with a fresh set of
-        AI-generated tests.
-      </p>
+      <p className="text-xs text-slate-400">{plan.rhythm}</p>
     </div>
   );
 }

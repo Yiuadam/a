@@ -312,6 +312,15 @@ export interface Profile {
   /** Question ids from the last two placement sittings, newest first. */
   placementHistory?: string[][];
   targetBand?: number;
+  /*
+    How many days the study plan should run for, chosen by the learner. Absent
+    means four weeks, the length every plan had before it could be chosen — a
+    learner already working through one must not open the page and find it
+    silently shortened. Read it through `resolveDuration` in lib/plan.ts rather
+    than directly, because a number written by another build still has to match
+    one of the lengths this build offers.
+  */
+  planDays?: number;
   results: ModuleResult[];
   genTests: GeneratedTest[];
 }
