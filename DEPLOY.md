@@ -132,6 +132,11 @@ will fail if you do.
    Without them `.github/workflows/deploy-cloudflare.yml` skips quietly rather
    than failing.
 
+   If you add the secrets *after* a push, that run has already skipped its
+   deploy step and there is nothing to re-run. Trigger one from **Actions →
+   Deploy to Cloudflare → Run workflow**, which is what `workflow_dispatch` is
+   there for.
+
 3. Secrets set with `wrangler secret put` live in Cloudflare, not in the
    repository, and are **not** carried over from Vercel. Everything the app
    needs has to be set again on the Worker: `ANTHROPIC_API_KEY`, and — when
