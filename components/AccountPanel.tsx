@@ -427,6 +427,345 @@ function SyncCard() {
   );
 }
 
+interface ProfileFields {
+  displayName: string | null;
+  gender: string | null;
+  birthDate: string | null;
+  avatarUrl: string | null;
+  email: string | null;
+}
+
+/*
+  Everything a learner chooses to tell us, in one card.
+
+  All of it is optional and the copy says so rather than implying it, because
+  none of it does anything: no page reads a gender, no plan reads a birthday,
+  and the app works identically for an account holding nothing but an id. A
+  form that looks required when it is not collects data nobody meant to give.
+*/
+function ProfileCard() {
+  const [profile, setProfile] = useState<ProfileFields | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "saving" | "error">("loading");
+  const [saved, setSaved] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const [name, setName] = useState("");
+  const [gender, setGender] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    authedFetch(apiUrl("/api/account/profile"))
+      .then(async (res) => {
+        if (!res.ok) throw new Error("profile unavailable");
+        return (await res.json()) as ProfileFields;
+      })
+      .then((body) => {
+        if (!alive) return;
+        setProfile(body);
+        setName(body.displayName ?? "");
+        setGender(body.gender ?? "");
+        setBirthDate(body.birthDate ?? "");
+        setState("ready");
+      })
+      .catch(() => {
+        if (alive) setState("error");
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setState("saving");
+    setProblem(null);
+    setSaved(false);
+    try {
+      const res = await authedFetch(apiUrl("/api/account/profile"), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName: name, gender, birthDate }),
+      });
+      const body = (await res.json()) as ProfileFields & { error?: string };
+      if (!res.ok) {
+        setProblem(body.error ?? "That didn't save. Please try again.");
+        setState("ready");
+        return;
+      }
+      setProfile(body);
+      setSaved(true);
+      setState("ready");
+    } catch {
+      setProblem("That didn't save. Please try again.");
+      setState("ready");
+    }
+  }
+
+  async function pickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Clearing the input lets the same file be chosen twice running, which is
+    // what happens when the first attempt failed.
+    e.target.value = "";
+    if (!file) return;
+
+    setProblem(null);
+    setState("saving");
+    const form = new FormData();
+    form.append("avatar", file);
+    try {
+      const res = await authedFetch(apiUrl("/api/account/avatar"), { method: "POST", body: form });
+      const body = (await res.json()) as { avatarUrl?: string | null; error?: string };
+      if (!res.ok) {
+        setProblem(body.error ?? "That picture didn't upload. Please try another.");
+        setState("ready");
+        return;
+      }
+      setProfile((p) => (p ? { ...p, avatarUrl: body.avatarUrl ?? null } : p));
+      setState("ready");
+    } catch {
+      setProblem("That picture didn't upload. Please try another.");
+      setState("ready");
+    }
+  }
+
+  async function removeAvatar() {
+    setProblem(null);
+    setState("saving");
+    try {
+      await authedFetch(apiUrl("/api/account/avatar"), { method: "DELETE" });
+      setProfile((p) => (p ? { ...p, avatarUrl: null } : p));
+    } catch {
+      setProblem("That didn't work. Please try again.");
+    }
+    setState("ready");
+  }
+
+  if (state === "loading") {
+    return (
+      <section className="card">
+        <p className="text-sm text-slate-500">Loading your details…</p>
+      </section>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <section className="card">
+        <h2 className="text-[17px] font-semibold text-slate-900">Your details</h2>
+        <p className="mt-2 text-[15px] leading-7 text-slate-600">
+          These aren&rsquo;t loading right now. Nothing has changed — please try again in a
+          minute.
+        </p>
+      </section>
+    );
+  }
+
+  const busy = state === "saving";
+  const initial = (name || profile?.email || "?").trim().charAt(0).toUpperCase();
+
+  return (
+    <section className="card">
+      <h2 className="text-[17px] font-semibold text-slate-900">Your details</h2>
+      <p className="mt-2 text-[15px] leading-7 text-slate-600">
+        All optional. None of it is shown to anyone else — BandUp has no profile pages and no
+        way for other learners to find you.
+      </p>
+
+      <div className="mt-5 flex items-center gap-4">
+        {profile?.avatarUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={profile.avatarUrl}
+            alt=""
+            width={64}
+            height={64}
+            className="h-16 w-16 shrink-0 rounded-full border border-slate-200 object-cover"
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xl font-semibold text-slate-500"
+          >
+            {initial}
+          </span>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <label className="btn-secondary cursor-pointer">
+            {profile?.avatarUrl ? "Change picture" : "Add a picture"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={busy}
+              onChange={pickAvatar}
+            />
+          </label>
+          {profile?.avatarUrl && (
+            <button type="button" className="btn-secondary" disabled={busy} onClick={removeAvatar}>
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="mt-2 text-sm text-slate-500">JPEG, PNG or WebP, up to 2 MB.</p>
+
+      <form onSubmit={save} className="mt-6 flex flex-col gap-4 sm:max-w-sm">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="p-name" className="text-sm font-medium text-slate-700">
+            Display name
+          </label>
+          <input
+            id="p-name"
+            className="input"
+            maxLength={60}
+            placeholder="What we should call you"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="p-gender" className="text-sm font-medium text-slate-700">
+            Gender <span className="font-normal text-slate-500">(optional)</span>
+          </label>
+          {/*
+            A text box rather than a list. A fixed set of options tells people
+            which answers are expected, and this field is not used for anything,
+            so there is nothing it needs to be consistent with.
+          */}
+          <input
+            id="p-gender"
+            className="input"
+            maxLength={40}
+            placeholder="However you describe it"
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="p-dob" className="text-sm font-medium text-slate-700">
+            Date of birth <span className="font-normal text-slate-500">(optional)</span>
+          </label>
+          <input
+            id="p-dob"
+            type="date"
+            className="input"
+            value={birthDate}
+            onChange={(e) => setBirthDate(e.target.value)}
+          />
+        </div>
+
+        {problem && (
+          <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[15px] leading-7 text-rose-800">
+            {problem}
+          </p>
+        )}
+        {saved && !problem && (
+          <p className="text-[15px] leading-7 text-emerald-800">Saved.</p>
+        )}
+
+        <button type="submit" className="btn-primary" disabled={busy}>
+          {busy ? "Saving…" : "Save details"}
+        </button>
+      </form>
+    </section>
+  );
+}
+
+
+/*
+  Closing an account, which Apple requires to be possible from inside the app
+  (guideline 5.1.1(v)) and which is right regardless: an account someone can
+  open but not close is a one-way door.
+
+  Two things the copy has to get right. It says what goes — everything on the
+  account — and what does not: the practice in this browser, which was never
+  ours to delete. And it asks for the word to be typed, because the button
+  cannot be undone and a mis-tap should not be enough.
+*/
+function DangerCard({ onDeleted }: { onDeleted: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  async function remove() {
+    setBusy(true);
+    setProblem(null);
+    try {
+      const res = await authedFetch(apiUrl("/api/account/delete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "DELETE" }),
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error?: string };
+        setProblem(body.error ?? "That didn't work. Please try again.");
+        setBusy(false);
+        return;
+      }
+      onDeleted();
+    } catch {
+      setProblem("That didn't work. Please try again.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card">
+      <h2 className="text-[17px] font-semibold text-slate-900">Delete your account</h2>
+      <p className="mt-2 text-[15px] leading-7 text-slate-600">
+        This removes your account and everything stored against it — your email address, your
+        details, your picture and any practice you have synced. It cannot be undone.
+      </p>
+      <p className="mt-3 text-[15px] leading-7 text-slate-600">
+        The practice saved in this browser stays. It was never on our side to delete, and you
+        can clear it yourself from your browser&rsquo;s settings whenever you like.
+      </p>
+
+      {!open ? (
+        <button type="button" className="btn-secondary mt-4" onClick={() => setOpen(true)}>
+          Delete my account
+        </button>
+      ) : (
+        <div className="mt-4 flex flex-col gap-3 sm:max-w-sm">
+          <label htmlFor="confirm-delete" className="text-sm font-medium text-slate-700">
+            Type DELETE to confirm
+          </label>
+          <input
+            id="confirm-delete"
+            className="input"
+            value={confirm}
+            autoComplete="off"
+            onChange={(e) => setConfirm(e.target.value)}
+          />
+          {problem && (
+            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[15px] leading-7 text-rose-800">
+              {problem}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn border border-rose-300 bg-rose-50 text-sm text-rose-800 hover:bg-rose-100 disabled:opacity-50"
+              disabled={busy || confirm.trim().toUpperCase() !== "DELETE"}
+              onClick={remove}
+            >
+              {busy ? "Deleting…" : "Delete permanently"}
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function SignedIn({
   status,
   email,
@@ -472,6 +811,8 @@ function SignedIn({
         </p>
       </section>
 
+      <ProfileCard />
+
       <SyncCard />
 
       <section className="card">
@@ -484,6 +825,9 @@ function SignedIn({
           Sign out
         </button>
       </section>
+
+      {/* Last on the page, because it is the one action that cannot be undone. */}
+      <DangerCard onDeleted={onSignOut} />
     </div>
   );
 }

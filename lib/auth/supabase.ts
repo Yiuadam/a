@@ -138,6 +138,185 @@ export async function enabledOAuthProviders(): Promise<string[] | null> {
     .map(([name]) => name);
 }
 
+export interface Profile {
+  displayName: string | null;
+  avatarPath: string | null;
+  gender: string | null;
+  birthDate: string | null;
+  email: string | null;
+}
+
+function readProfileRow(row: Record<string, unknown>): Profile {
+  const str = (v: unknown) => (typeof v === "string" && v.length > 0 ? v : null);
+  return {
+    displayName: str(row.display_name),
+    avatarPath: str(row.avatar_path),
+    gender: str(row.gender),
+    birthDate: str(row.birth_date),
+    email: str(row.email),
+  };
+}
+
+/** The caller's own profile row. Null when it cannot be read. */
+export async function getProfile(userId: string): Promise<Profile | null> {
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}` +
+        `&select=display_name,avatar_path,gender,birth_date,email`,
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  try {
+    const rows = (await res.json()) as Record<string, unknown>[];
+    return Array.isArray(rows) && rows[0] ? readProfileRow(rows[0]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Writes the fields a learner is allowed to change about themselves.
+ *
+ * The allow-list is the point. `role` lives in this same table and decides
+ * whether an account has a usage limit at all, so a patch built from whatever
+ * keys arrived in the request body would be a way to grant yourself admin
+ * (ACCOUNTS.md, threat 1). Only these four names ever reach the database, and
+ * an explicit null clears a field rather than being ignored.
+ */
+export async function updateProfile(
+  userId: string,
+  fields: Partial<Pick<Profile, "displayName" | "gender" | "birthDate" | "avatarPath">>,
+): Promise<boolean> {
+  const patch: Record<string, unknown> = {};
+  if ("displayName" in fields) patch.display_name = fields.displayName;
+  if ("gender" in fields) patch.gender = fields.gender;
+  if ("birthDate" in fields) patch.birth_date = fields.birthDate;
+  if ("avatarPath" in fields) patch.avatar_path = fields.avatarPath;
+  if (Object.keys(patch).length === 0) return true;
+
+  try {
+    const res = await request(`/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      asServiceRole: true,
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(patch),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Stores an avatar. `path` is always inside the caller's own folder. */
+export async function uploadAvatar(
+  path: string,
+  body: ArrayBuffer,
+  contentType: string,
+): Promise<boolean> {
+  const config = supabaseConfig();
+  if (!config) return false;
+  try {
+    const res = await fetch(`${config.url}/storage/v1/object/avatars/${path}`, {
+      method: "POST",
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        "Content-Type": contentType,
+        "x-upsert": "true",
+      },
+      body,
+      signal: AbortSignal.timeout(15000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A short-lived URL for an avatar in the private bucket.
+ *
+ * Signed rather than public because nobody but the owner ever sees these — the
+ * app has no profile pages, no leaderboards and no comments — so a permanent
+ * public URL would expose a picture for no benefit. An hour is long enough for
+ * a session and short enough that a leaked link stops working.
+ */
+export async function signedAvatarUrl(path: string, expiresIn = 3600): Promise<string | null> {
+  const config = supabaseConfig();
+  if (!config) return null;
+  let res: Response;
+  try {
+    res = await request(`/storage/v1/object/sign/avatars/${path}`, {
+      method: "POST",
+      asServiceRole: true,
+      body: JSON.stringify({ expiresIn }),
+    });
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  try {
+    const body = (await res.json()) as { signedURL?: unknown; signedUrl?: unknown };
+    const rel = body.signedURL ?? body.signedUrl;
+    return typeof rel === "string" ? `${config.url}/storage/v1${rel.replace(/^\/storage\/v1/, "")}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Removes an avatar. Used when a learner clears their picture. */
+export async function deleteAvatar(path: string): Promise<boolean> {
+  const config = supabaseConfig();
+  if (!config) return false;
+  try {
+    const res = await fetch(`${config.url}/storage/v1/object/avatars/${path}`, {
+      method: "DELETE",
+      headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Deletes an account and everything attached to it.
+ *
+ * Apple requires this. Guideline 5.1.1(v): an app that lets someone create an
+ * account must let them delete it from inside the app — not by emailing
+ * support, not by visiting a website. It is a common rejection and it is also
+ * simply right.
+ *
+ * Deleting the auth user is the whole job for the database, because every
+ * table that references it does so with `on delete cascade`: the profile, the
+ * usage events, the progress snapshots and any subscription row all go with
+ * it. Storage does not cascade, so the avatar is removed first — an orphaned
+ * picture in a bucket is exactly the kind of thing a deletion is supposed to
+ * remove.
+ */
+export async function deleteAccount(userId: string, avatarPath: string | null): Promise<boolean> {
+  const config = supabaseConfig();
+  if (!config) return false;
+
+  // Before the user row goes, or the path is unrecoverable.
+  if (avatarPath) await deleteAvatar(avatarPath);
+
+  try {
+    const res = await request(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+      method: "DELETE",
+      asServiceRole: true,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export interface ProgressSnapshot {
   storeKey: string;
   payload: unknown;
