@@ -70,11 +70,29 @@ from server code holding the service role key.
 
 ## Checking the policies actually hold
 
-Worth doing once by hand after the first deploy, because a policy that is
-subtly wrong looks exactly like a policy that is right.
+Worth doing once against a real project, because a policy that is subtly wrong
+looks exactly like a policy that is right.
 
-Sign in as a normal user, take that user's access token, and try to read
-somebody else's row:
+Paste `probes.sql` into the SQL editor and run it. It becomes the
+`authenticated` role carrying a real account's JWT claims — which is what a
+signed-in learner's token does when it talks to PostgREST directly, bypassing
+the application — and then tries the ten things a learner must not be able to
+do. Each prints PASS or FAIL. It writes nothing and changes nothing.
+
+```
+PASS  1. Reading profiles returns 1 row of 2 that exist.
+PASS  2. Someone else's profile is invisible.
+PASS  3. Cannot promote self to admin (permission denied for table profiles).
+...
+All 10 checks passed. Nothing was written or changed.
+```
+
+Two of the ten compare your row against someone else's, so with a single
+account they report SKIP rather than passing for the wrong reason: with nothing
+to hide, an empty result and an absent policy look identical. Sign in with a
+second account and run it again to test those two for real.
+
+The same thing over HTTP, if you have a terminal and a user's access token:
 
 ```sh
 curl "$SUPABASE_URL/rest/v1/profiles?select=*" \
@@ -82,27 +100,6 @@ curl "$SUPABASE_URL/rest/v1/profiles?select=*" \
   -H "Authorization: Bearer $USER_ACCESS_TOKEN"
 ```
 
-The correct result is a JSON array containing exactly one object — the caller's
-own profile — regardless of how many users exist. Then try to write:
+The correct result is an array containing exactly one object — the caller's own
+profile — however many accounts exist.
 
-```sh
-curl -X PATCH "$SUPABASE_URL/rest/v1/profiles?id=eq.$USER_ID" \
-  -H "apikey: $SUPABASE_ANON_KEY" \
-  -H "Authorization: Bearer $USER_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"role":"admin"}'
-```
-
-The correct result is a permission error. If that request succeeds, the whole
-admin model is void and `0002_rls.sql` did not apply.
-
-Finally, confirm the meter is not callable from outside:
-
-```sh
-curl -X POST "$SUPABASE_URL/rest/v1/rpc/check_and_record_usage" \
-  -H "apikey: $SUPABASE_ANON_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"p_user_id":null,"p_ip_hash":null,"p_route":"define","p_window_seconds":86400,"p_limits":{}}'
-```
-
-This must fail. A callable meter is a resettable meter.
