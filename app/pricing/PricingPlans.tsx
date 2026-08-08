@@ -407,9 +407,8 @@ function ProAction({
   if (!planOffered) {
     return (
       <p className="text-sm leading-6 text-slate-500">
-        Subscriptions aren&rsquo;t open yet. Practice tests, drills and your study plan are free
-        and unlimited in the meantime, and a free account raises the daily allowance on AI
-        feedback.
+        Subscriptions aren&rsquo;t open yet. Your study plan and every drill are free either way,
+        and a free account raises the daily allowance on AI feedback.
       </p>
     );
   }

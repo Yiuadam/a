@@ -18,13 +18,19 @@ import PricingPlans from "./PricingPlans";
 export const metadata: Metadata = {
   title: "Plans — BandUp",
   description:
-    "The placement test, your study plan, practice tests and drills are free and unlimited. Pro raises the daily allowance on AI feedback and adds the tutor chat.",
+    "The placement test, your study plan and every drill are free and unlimited. Standard adds the full mock exam, the tutor chat, more practice sessions and a much larger AI allowance.",
 };
 
 const ALWAYS_FREE = [
   "The placement test, and re-sitting it whenever you like",
   "Your study plan, and everything it schedules",
-  "Every bundled reading and listening test, with full answers and explanations",
+  /*
+    "Free", not "unlimited". How many papers you may sit in a week is what the
+    tiers differ on; that every paper is included, with its answers and its
+    explanations behind no paywall, is what is true of all of them. Saying
+    "unlimited" here would contradict the Free card two inches above it.
+  */
+  "Every bundled reading and listening paper, with full answers and explanations",
   "The grammar drills and the vocabulary drills",
   "Your progress, synced between devices with a free account",
 ];

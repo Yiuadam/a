@@ -73,14 +73,23 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/resources", label: "Guides" },
       { href: "/account", label: "Your account" },
       /*
-        Its own row rather than a section of the account page. Usage and money
-        are not the same question as name and email, and the test of whether a
-        split was right is whether you can name the second thing in a menu
-        without saying "and" — "Usage and plan" is one idea, "your details and
-        your bill" is two.
+        One row, not two.
+
+        It was "Usage and plan" and "Plans and pricing" sitting next to each
+        other, and they read as the same destination twice — the owner's word
+        was "confusing", and it is hard to argue: both contain "plan", and
+        nothing in either label says which one has your bill in it.
+
+        So the menu offers the page a learner has a reason to open — what they
+        have spent and what they are paying — and /pricing is reached from
+        inside it, where "Compare plans" sits next to the plan you are already
+        on. That is the right order anyway: you look at your bill often and at
+        the price list once.
+
+        /pricing is still a real page with its own URL. It is simply not a
+        thing to go browsing for from a menu.
       */
-      { href: "/billing", label: "Usage and plan" },
-      { href: "/pricing", label: "Plans and pricing" },
+      { href: "/billing", label: "Bill and usage" },
     ],
   },
 ];

@@ -33,8 +33,8 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-4">
-      {/* No standfirst: "Usage and plan" already says what this is. */}
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Usage and plan</h1>
+      {/* No standfirst: the title already says what this is. */}
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Bill and usage</h1>
 
       {/*
         Three states, and each is said plainly rather than defaulted around.
