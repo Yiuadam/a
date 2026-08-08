@@ -1,8 +1,11 @@
 # Deploying BandUp
 
-**Short version:** connect the repo to Vercel once. After that every push to
-`main` deploys itself to the same URL, and every pull request gets its own
-preview URL. Nothing to run by hand, ever again.
+**Short version:** connect the repo to a host once. After that every push to
+`main` deploys itself to the same URL. Nothing to run by hand, ever again.
+
+Two hosts are wired up and both are supported: **Vercel** (below) and
+**Cloudflare Workers** (further down). The Worker build runs in CI on every
+push, so neither can quietly rot while the other is in use.
 
 ## Does the URL change?
 
@@ -85,19 +88,69 @@ vercel link          # once
 vercel --prod        # deploy to the production URL
 ```
 
-## Cloudflare Workers instead
+## Cloudflare Workers
 
-The Worker build is wired up as well:
+The Worker is a first-class target: `npm run cf:build` runs in CI on every
+push, so a change that breaks it fails before it is merged rather than when
+someone tries to deploy.
 
-```bash
-npm run cf:preview                      # run it locally first
-npx wrangler secret put ANTHROPIC_API_KEY
-npm run cf:deploy
+That check exists because it happened. The pull request that added `proxy.ts`
+passed every check — lint, build, tests, the content validator, the placement
+simulation, the iOS bundle — and broke Cloudflare deployment completely, with
+nothing to notice it. Next.js 16 runs `proxy.ts` on the Node.js runtime and
+**refuses `export const runtime`** in that file, while OpenNext's Cloudflare
+adapter rejects Node middleware:
+
+```
+ERROR Node.js middleware is not currently supported.
 ```
 
-The Worker also has a stable address (`bandup.<subdomain>.workers.dev`, or a
-custom domain), so the same "URL never changes" answer applies. See the
-comparison table in the README for which to pick.
+There is no configuration that satisfies both, which is why this app has no
+`proxy.ts`. What it did — stripping forgeable headers, answering CORS
+preflights — now lives in `lib/http/cors.ts` and `lib/http/trust.ts`, applied
+per route. **Do not add a `proxy.ts` or a `middleware.ts`.** `npm run cf:build`
+will fail if you do.
+
+### One-time setup
+
+1. Create the Worker and set the API key as a secret:
+
+   ```bash
+   npm run cf:preview                      # run it locally first
+   npx wrangler secret put ANTHROPIC_API_KEY
+   npm run cf:deploy
+   ```
+
+2. To deploy from CI instead, add two repository secrets under
+   **Settings → Secrets and variables → Actions**:
+
+   | Secret | Where to get it |
+   |---|---|
+   | `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard → My Profile → API Tokens → Create Token → *Edit Cloudflare Workers* |
+   | `CLOUDFLARE_ACCOUNT_ID` | Workers & Pages → Overview, in the right-hand sidebar |
+
+   Without them `.github/workflows/deploy-cloudflare.yml` skips quietly rather
+   than failing.
+
+3. Secrets set with `wrangler secret put` live in Cloudflare, not in the
+   repository, and are **not** carried over from Vercel. Everything the app
+   needs has to be set again on the Worker: `ANTHROPIC_API_KEY`, and — when
+   accounts are switched on — `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`, `USAGE_IP_HASH_SALT`, `ACCOUNTS_ENABLED` and
+   `ACCOUNTS_ALLOWED_ORIGINS`. See `.env.example`.
+
+The Worker has a stable address (`bandup.<subdomain>.workers.dev`, or a custom
+domain), so the same "URL never changes" answer applies — but note that it is a
+*different* address from the Vercel one. Moving hosts changes the URL unless a
+custom domain is pointed at the new one.
+
+### Running both at once
+
+`deploy.yml` (Vercel) and `deploy-cloudflare.yml` both fire on pushes to
+`main`. That overlap is deliberate while the move is in progress: the same
+commit is served from both, so the Worker can be exercised for real before
+anything is switched off. When the Cloudflare URL is the one people use,
+delete `deploy.yml` and disconnect the Vercel Git integration.
 
 ## The iOS app
 

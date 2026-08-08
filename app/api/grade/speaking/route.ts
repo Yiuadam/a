@@ -4,6 +4,7 @@ import { checkAiUsage } from "@/lib/usage/guard";
 import { clampBand } from "@/lib/band";
 import { SPEAKING_CRITERIA } from "@/lib/descriptors";
 import type { SpeakingGrade } from "@/lib/types";
+import { withCors } from "@/lib/http/cors";
 
 export const maxDuration = 60;
 
@@ -45,7 +46,7 @@ interface Turn {
   text: string;
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
@@ -127,3 +128,11 @@ Grade the candidate. In "criteria", give exactly four entries named "Fluency and
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }
+
+
+/*
+  CORS lives on the route now rather than in proxy.ts, which cannot run on
+  Cloudflare. Same behaviour, different place — see lib/http/cors.ts.
+*/
+export { OPTIONS } from "@/lib/http/cors";
+export const POST = withCors(handlePOST);

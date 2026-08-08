@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey } from "@/lib/anthropic";
 import { checkAiUsage } from "@/lib/usage/guard";
+import { withCors } from "@/lib/http/cors";
 
 export const maxDuration = 30;
 
@@ -34,7 +35,7 @@ Rules:
 - "partOfSpeech": noun, verb, adjective, adverb, phrasal verb, idiom, grammar term, or phrase — whichever fits. Keep it to a few words.
 - Never refuse a normal English word. If the input is not English or is not a word, say so plainly in "short".`;
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: UNAVAILABLE }, { status: 503 });
   }
@@ -82,3 +83,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }
+
+
+/*
+  CORS lives on the route now rather than in proxy.ts, which cannot run on
+  Cloudflare. Same behaviour, different place — see lib/http/cors.ts.
+*/
+export { OPTIONS } from "@/lib/http/cors";
+export const POST = withCors(handlePOST);

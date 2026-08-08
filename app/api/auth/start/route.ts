@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeUrl, isOAuthProvider } from "@/lib/auth/oauth";
 import { logInternal } from "@/lib/auth/errors";
+import { withCors } from "@/lib/http/cors";
 
 /*
   Starts a provider handshake by redirecting to Supabase.
@@ -12,7 +13,7 @@ import { logInternal } from "@/lib/auth/errors";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const url = new URL(req.url);
   const provider = url.searchParams.get("provider");
 
@@ -44,3 +45,11 @@ export async function GET(req: Request) {
 
   return NextResponse.redirect(target, { status: 302 });
 }
+
+
+/*
+  CORS lives on the route now rather than in proxy.ts, which cannot run on
+  Cloudflare. Same behaviour, different place — see lib/http/cors.ts.
+*/
+export { OPTIONS } from "@/lib/http/cors";
+export const GET = withCors(handleGET);

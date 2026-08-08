@@ -3,6 +3,7 @@ import { accountsEnabled } from "@/lib/auth/env";
 import { supabaseConfigured, sendMagicLink } from "@/lib/auth/supabase";
 import { callbackUrl } from "@/lib/auth/oauth";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
+import { withCors } from "@/lib/http/cors";
 
 /*
   Account recovery: email a one-time sign-in link.
@@ -40,7 +41,7 @@ function looksLikeEmail(value: unknown): value is string {
   );
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   if (!accountsEnabled() || !supabaseConfigured()) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
@@ -83,6 +84,15 @@ export async function POST(req: Request) {
   Any other method gets the same nothing as a wrong URL, rather than a 405 that
   confirms the path exists.
 */
-export async function GET() {
+async function handleGET() {
   return safeJsonError(MESSAGES.accountUnavailable, 404);
 }
+
+
+/*
+  CORS lives on the route now rather than in proxy.ts, which cannot run on
+  Cloudflare. Same behaviour, different place — see lib/http/cors.ts.
+*/
+export { OPTIONS } from "@/lib/http/cors";
+export const POST = withCors(handlePOST);
+export const GET = withCors(handleGET);
