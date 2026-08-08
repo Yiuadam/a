@@ -20,6 +20,14 @@ const eslintConfig = defineConfig([
     // warnings about generated code — which is exactly what happened after
     // running the Worker locally to test the account routes.
     ".wrangler/**",
+    /*
+      Worktrees created for background agents. Each is a full checkout with its
+      own .next and node_modules, so without this `npx eslint .` lints every
+      agent's build output as well as this one's — thousands of warnings about
+      generated code, and a red tree that has nothing to do with the change in
+      front of you.
+    */
+    ".claude/**",
     "ios/**",
     // Agent worktrees. A worktree is a whole second checkout of this repo,
     // build output and all, so without this `npx eslint .` lints the project
