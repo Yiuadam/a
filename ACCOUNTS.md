@@ -33,6 +33,7 @@ Metered, because each call spends money:
 | `/api/generate` | generates a new reading or listening test |
 | `/api/grade/writing` | examiner feedback on an essay |
 | `/api/grade/speaking` | examiner feedback on a mock speaking test |
+| `/api/chat` | the tutor chat, metered per question asked |
 
 Allowances are in `lib/usage/limits.ts`, counted over a rolling 24 hours rather
 than a calendar day, so there is no midnight cliff and no argument about which
@@ -57,7 +58,7 @@ timezone the day belongs to.
    lib/http/cors.ts ──── answers CORS preflights for allow-listed origins,
             │                applied per route via withCors()
             ▼
-   app/api/{define,generate,grade/*}/route.ts
+   app/api/{define,generate,grade/*,chat}/route.ts
             │  const denied = await checkAiUsage(req, "define");
             │  if (denied) return denied;
             ▼

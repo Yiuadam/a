@@ -66,6 +66,11 @@ const SENT = [
     route: "/api/define",
     what: "The word you selected and the sentence it appeared in.",
   },
+  {
+    feature: "Ask a tutor",
+    route: "/api/chat",
+    what: "The question you typed, and the recent messages of that conversation so the answer follows on. The conversation lives in the tab you are reading it in and is gone when you close it.",
+  },
 ];
 
 export default function PrivacyPage() {

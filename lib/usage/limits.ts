@@ -10,11 +10,33 @@
   drills. Those are static content served from the bundle. They cost nothing per
   use, so charging for them would be charging for nothing.
 
-  Only the four routes that call an AI model are metered, because those are the
-  four that spend money per request.
+  Only the routes that call an AI model are metered, because those are the ones
+  that spend money per request.
+
+  The allowance is one pool shared across all of them rather than a separate
+  budget per feature, and the tutor chat is the first route where that is a
+  visible trade-off: a learner can now spend a day's allowance on questions and
+  have none left to get an essay marked. It is still one pool. Splitting it
+  would mean a learner who wants only marking is capped below what their tier
+  paid for, and it would mean explaining five numbers instead of one — so the
+  chat page says plainly that the count is shared, which is the honest version
+  of the same fact.
 */
 
-export const AI_ROUTES = ["define", "generate", "grade/writing", "grade/speaking"] as const;
+export const AI_ROUTES = [
+  "define",
+  "generate",
+  "grade/writing",
+  "grade/speaking",
+  /*
+    The tutor chat, metered per question asked rather than per conversation.
+    A conversation has no end a server can observe — a learner who comes back
+    an hour later is still in the same thread — so "per conversation" would be
+    a limit on nothing. Note that this string is also an allowed value of
+    usage_events_route_check; see supabase/migrations/0007_chat_route.sql.
+  */
+  "chat",
+] as const;
 
 export type AiRoute = (typeof AI_ROUTES)[number];
 

@@ -35,14 +35,24 @@ const NAV = [
   { href: "/plan", label: "My plan" },
   /*
     Next to the plan on purpose: the plan is what to do next, history is
-    whether it is working. Eight items now — the nav scrolls inside itself
-    (see the header comment below), so the count costs layout nothing.
+    whether it is working. The nav scrolls inside itself (see the header
+    comment below), so adding to this list costs the layout nothing — what it
+    does cost is a destination pushed past the fold, which is why the fade on
+    .nav-scroll now applies at every width and not only on a phone.
   */
   { href: "/history", label: "History" },
   { href: "/practice", label: "Practice" },
   { href: "/grammar", label: "Grammar" },
   { href: "/vocabulary", label: "Vocabulary" },
   { href: "/speaking", label: "Speaking" },
+  /*
+    Beside Guides rather than beside Practice, because the two of them answer
+    the same kind of moment: the learner has stopped practising and wants
+    something explained rather than more to do. It sits before Guides so that
+    the pair of them read as one idea; both are past the fold on a desktop,
+    which is a real cost and is what the fade above is now for.
+  */
+  { href: "/chat", label: "Ask a tutor" },
   { href: "/resources", label: "Guides" },
 ] as const;
 
@@ -67,7 +77,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         {/*
-          The header has to survive a narrow phone with seven destinations in
+          The header has to survive a narrow phone with nine destinations in
           it. The logo and the theme toggle are pinned and never shrink; the
           nav between them takes whatever is left and scrolls inside itself, so
           a long list of links can never widen the page. The wordmark is hidden
@@ -115,7 +125,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </nav>
             {/*
               Account sits beside the theme toggle rather than in NAV, which is
-              already seven items on a phone-width scroller. It is also not a
+              already nine items on a scroller that overflows at every width. It is also not a
               destination in the way "Practice" is — most visits never need it,
               because everything on this app works signed out.
             */}
