@@ -11,6 +11,11 @@ name: Deploy to Cloudflare
 on:
   push:
     branches: [main]
+  # Lets a deploy be triggered from the Actions tab without inventing a commit.
+  # The case that keeps coming up: the credentials were added *after* the last
+  # push, so the run that mattered skipped its deploy step and there is nothing
+  # left to re-run with the secrets now in place.
+  workflow_dispatch:
 
 concurrency:
   group: deploy-cloudflare-${{ github.ref }}
