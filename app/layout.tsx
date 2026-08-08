@@ -155,6 +155,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             >
               Privacy policy
             </Link>
+            <span className="px-2 text-slate-400" aria-hidden>
+              ·
+            </span>
+            <Link
+              href="/terms"
+              className="inline-block rounded text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-900"
+            >
+              Terms
+            </Link>
           </div>
         </footer>
       </body>
