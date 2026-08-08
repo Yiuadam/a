@@ -54,8 +54,8 @@ timezone the day belongs to.
    browser / iOS WebView
             │  Authorization: Bearer <supabase access token>   (no cookies)
             ▼
-   proxy.ts ──────────── strips forgeable trust headers, answers CORS
-            │                preflights for allow-listed origins
+   lib/http/cors.ts ──── answers CORS preflights for allow-listed origins,
+            │                applied per route via withCors()
             ▼
    app/api/{define,generate,grade/*}/route.ts
             │  const denied = await checkAiUsage(req, "define");
@@ -82,7 +82,8 @@ timezone the day belongs to.
 | `lib/billing/providers.ts` | The shape Stripe and Apple must both produce. Phase 3. |
 | `lib/usage/limits.ts` | The numbers. |
 | `lib/usage/guard.ts` | The one call the AI routes make. |
-| `proxy.ts` | Header hygiene and CORS. |
+| `lib/http/cors.ts` | CORS, applied per route. |
+| `lib/http/trust.ts` | The forgeable-header list the tests enforce. |
 | `app/api/account/status/` | What the UI is allowed to know. |
 
 ### Why the entitlement lives in one function
@@ -242,7 +243,7 @@ it depends on.
 API cross-origin. A token scheme that quietly depends on same-origin behaviour
 works in every test on a laptop and fails on the device.
 
-**The defence.** Bearer header, never a cookie — see above. `proxy.ts` answers
+**The defence.** Bearer header, never a cookie — see above. `lib/http/cors.ts` answers
 CORS preflights for origins listed in `ACCOUNTS_ALLOWED_ORIGINS`, matched
 exactly (a prefix test is how an allowlist becomes a way in for
 `evil-bandup.example`). The list is empty by default, so nothing is granted
@@ -432,14 +433,35 @@ Nothing below exists yet. In dependency order:
 
 ## Notes
 
-**`proxy.ts`, not `middleware.ts`.** The brief named the file `middleware.ts`.
-Next.js 16 deprecated that convention and renamed it to `proxy.ts`; same
-feature, same semantics. `AGENTS.md` says to heed deprecation notices, so it is
-spelled the current way.
+**No middleware at all — and this is load-bearing.** The brief named the file
+`middleware.ts`; Next.js 16 deprecated that convention and renamed it to
+`proxy.ts`, so phase 1 shipped a `proxy.ts`. It had to be removed.
 
-**A new warning in `npm run build:mobile`.** Next prints "Statically exporting a
+Next.js 16 runs `proxy.ts` on the Node.js runtime and **refuses
+`export const runtime`** in that file — the docs say setting it throws — while
+OpenNext's Cloudflare adapter rejects Node middleware outright:
+
+```
+ERROR Node.js middleware is not currently supported.
+```
+
+No configuration satisfies both, so it was middleware or Cloudflare. Its two
+jobs moved to `lib/http/cors.ts` (CORS, applied per route by `withCors`) and
+`lib/http/trust.ts` (the forgeable-header list).
+
+The header stripping did not survive as stripping, and the replacement is
+better. `proxy.ts` deleted six header names it knew about. `tests/trust-headers
+.test.mjs` fails the build if *any* source file reads a forgeable trust header,
+which also catches the seventh — the one someone invents next month and trusts
+two lines later. `tests/cors.test.mjs` asserts every route under `app/api` is
+wrapped, which is the part middleware used to give for free.
+
+**Do not reintroduce a `proxy.ts` or a `middleware.ts`.** `npm run cf:build`
+runs in CI and will fail.
+
+**A warning in `npm run build:mobile`.** Next prints "Statically exporting a
 Next.js application via `next export` disables API routes and middleware". A
-static export has no server, so `proxy.ts` has no effect there — which is
+static export has no server, so the API routes have no effect there — which is
 correct and expected. The build succeeds and CI passes.
 
 **No new dependencies.** `lib/auth/supabase.ts` is about ninety lines of `fetch`

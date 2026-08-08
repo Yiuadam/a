@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
 import { checkAiUsage } from "@/lib/usage/guard";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
+import { withCors } from "@/lib/http/cors";
 
 export const maxDuration = 60;
 
@@ -96,7 +97,7 @@ const LISTENING_SCHEMA = {
   additionalProperties: false,
 };
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
@@ -161,3 +162,11 @@ Requirements:
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }
+
+
+/*
+  CORS lives on the route now rather than in proxy.ts, which cannot run on
+  Cloudflare. Same behaviour, different place — see lib/http/cors.ts.
+*/
+export { OPTIONS } from "@/lib/http/cors";
+export const POST = withCors(handlePOST);

@@ -1,0 +1,54 @@
+name: Deploy to Cloudflare
+
+# Pushes to main go live on Cloudflare Workers. The Worker keeps one stable
+# address, so a bookmark or an App Store review link survives a deployment.
+#
+# This runs alongside the Vercel workflow rather than replacing it. Two hosts
+# serving the same commit is a deliberate overlap while the move is in
+# progress: the Cloudflare deployment can be exercised for real before anything
+# is switched off. Delete deploy.yml once the Worker's URL is the one people
+# use.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-cloudflare-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cloudflare:
+    name: Deploy to Cloudflare Workers
+    runs-on: ubuntu-latest
+    if: ${{ github.event.repository.fork == false }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Same shape as the Vercel workflow: a repository without the secrets set
+      # skips quietly instead of showing a red X for a deployment it was never
+      # configured to make.
+      - name: Check for deploy credentials
+        id: creds
+        run: |
+          if [ -n "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] && [ -n "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is not set — skipping deploy. See DEPLOY.md."
+          fi
+
+      - name: Build and deploy the Worker
+        if: steps.creds.outputs.ready == 'true'
+        run: |
+          npm run cf:deploy
+          echo "### Deployed to Cloudflare Workers" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -54,3 +54,11 @@ jobs:
         run: npm run build:mobile
         env:
           NEXT_PUBLIC_API_BASE: https://example.invalid
+
+      # So is the Cloudflare Worker, and it is stricter than the other two:
+      # OpenNext refuses Node middleware, and Next 16 will not let a proxy.ts
+      # run anywhere else. A change that reintroduces one passes every check
+      # above and breaks deployment — which is exactly how it happened once,
+      # in the pull request that added proxy.ts.
+      - name: Build the Cloudflare Worker
+        run: npm run cf:build

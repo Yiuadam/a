@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { resolveEntitlement, ANONYMOUS_ENTITLEMENT } from "@/lib/billing/entitlements";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { USAGE_LIMITS, USAGE_WINDOW_SECONDS } from "@/lib/usage/limits";
+import { withCors } from "@/lib/http/cors";
 
 /*
   What the UI is allowed to know about the current account.
@@ -21,7 +22,7 @@ import { USAGE_LIMITS, USAGE_WINDOW_SECONDS } from "@/lib/usage/limits";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   // With the flag off this is the entire response: a flat "there are no
   // accounts here". Nothing is looked up, and the answer is the same for
   // everyone, so the endpoint tells an unauthenticated prober nothing.
@@ -70,3 +71,11 @@ export async function GET(req: Request) {
     return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
 }
+
+
+/*
+  CORS lives on the route now rather than in proxy.ts, which cannot run on
+  Cloudflare. Same behaviour, different place — see lib/http/cors.ts.
+*/
+export { OPTIONS } from "@/lib/http/cors";
+export const GET = withCors(handleGET);

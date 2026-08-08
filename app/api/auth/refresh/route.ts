@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { accountsEnabled } from "@/lib/auth/env";
 import { supabaseConfigured, refreshAccessToken } from "@/lib/auth/supabase";
 import { logInternal } from "@/lib/auth/errors";
+import { withCors } from "@/lib/http/cors";
 
 /*
   Renews an access token.
@@ -14,7 +15,7 @@ import { logInternal } from "@/lib/auth/errors";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   if (!accountsEnabled() || !supabaseConfigured()) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
@@ -49,3 +50,11 @@ export async function POST(req: Request) {
     email: session.email,
   });
 }
+
+
+/*
+  CORS lives on the route now rather than in proxy.ts, which cannot run on
+  Cloudflare. Same behaviour, different place — see lib/http/cors.ts.
+*/
+export { OPTIONS } from "@/lib/http/cors";
+export const POST = withCors(handlePOST);
