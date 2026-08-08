@@ -366,8 +366,31 @@ Nothing below exists yet. In dependency order:
    variables from `.env.example`, promote the owner (`supabase/README.md`), and
    run the three curl checks in that file against the live project. RLS that has
    not been probed on the real database has not been verified.
-2. **Sign-in UI.** Supabase Auth, magic link or OAuth. It must be genuinely
-   optional — the free tier works signed out, and phase 1 is built that way.
+2. ~~**Sign-in UI.**~~ **Built.** Google and Apple through Supabase Auth, plus
+   an emailed one-time link for recovery. It is genuinely optional: everything
+   except the AI features works signed out, and the account page says so.
+
+   The redirect is mediated by `/api/auth/start` rather than run by
+   supabase-js in the browser, so no Supabase credential enters a client
+   bundle and `tests/no-secret-leak.test.mjs` keeps checking an invariant with
+   no exceptions in it. Tokens come back in the URL fragment, which no server
+   ever receives. See `lib/auth/oauth.ts` for why that is the implicit flow and
+   not PKCE.
+
+   **What has not been proved.** Nothing here has spoken to a real Supabase
+   project or a real identity provider — this environment can reach neither,
+   and no OAuth client ids exist yet. What was verified is the shape: the
+   authorize redirect is built correctly for both providers, the endpoints stay
+   silent when the flag is off, and the fragment parsing is unit-tested.
+   Whether Google actually returns a session has not been observed.
+
+   **iOS is not covered by this.** The static export has no `/api` routes, so
+   the buttons point at the deployed web API, and `redirect_to` is built from
+   that origin — a user signing in from the app finishes on the website and the
+   token lands in Safari rather than in the WebView. iOS needs
+   `ASWebAuthenticationSession` and a custom scheme in the allow list, which is
+   native work behind the same Mac as everything else in APPSTORE.md. Until
+   then, sign-in is a web feature.
 3. **Progress migration.** The rules in threat 5, in that order. This is the
    part that can destroy something a learner cares about; it deserves its own
    change and its own testing against a browser that already holds real data.
@@ -375,11 +398,13 @@ Nothing below exists yet. In dependency order:
    accounts are a hypothesis.
 5. **Account screen.** Reads `/api/account/status`. It renders what the server
    says and computes nothing itself.
-6. **Update the privacy policy.** `app/privacy/page.tsx` currently says "There
-   is no account to create, so there is nothing to sign up with and no profile
-   held about you." That is true today and becomes false the moment sign-in
-   ships. Shipping accounts without changing it is a false privacy statement in
-   an App Store app.
+6. ~~**Update the privacy policy.**~~ **Done, in the same change as the UI.**
+   The page said "There is no account to create, so there is nothing to sign up
+   with and no profile held about you." It now describes what an account holds
+   — email address, the 24-hour request count, and synced progress — names
+   Supabase as the processor, and says signing out deletes nothing. The
+   cookie section is unchanged and still true: the session lives in the
+   device's own storage, so signing in still sets no cookie.
 7. **Fix the error leak in the four AI routes.** Threat 7.
 8. **Turn the flag on.** Watch `usage_events` before adding a paywall — the
    allowances in `lib/usage/limits.ts` are guesses until there is data.

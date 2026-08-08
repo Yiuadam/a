@@ -17,10 +17,10 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Privacy — BandUp",
   description:
-    "What BandUp stores, what leaves your device, and what happens to your microphone. No account, no cookies, no trackers.",
+    "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, and there are no cookies or trackers.",
 };
 
-const LAST_UPDATED = "7 August 2026";
+const LAST_UPDATED = "8 August 2026";
 
 /* The four keys are the whole of what BandUp writes — see lib/store.ts,
    lib/drills.ts, lib/lookups.ts and lib/theme.ts. */
@@ -74,9 +74,9 @@ export default function PrivacyPage() {
       <div className="max-w-xl space-y-2">
         <h1 className="text-[26px] font-semibold text-slate-900">Privacy</h1>
         <p className="text-[15px] leading-7 text-slate-600">
-          BandUp has no accounts and no user database. Your practice stays in the browser or
-          app on your device. This page says exactly what that means, and where the exceptions
-          are.
+          Your practice stays in the browser or app on your device. An account is optional and
+          changes only what is named below. This page says exactly what that means, and where
+          the exceptions are.
         </p>
         <p className="text-xs text-slate-500">Last updated {LAST_UPDATED}</p>
       </div>
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">The short version</h2>
         <ul className="mt-4 space-y-3">
           {[
-            "There is no account to create, so there is nothing to sign up with and no profile held about you.",
+            "An account is optional. Signed out — which is the default, and how the app ships today — nothing identifies you and nothing is held about you.",
             "Your progress is saved on your device only. It never reaches a server of ours.",
             "No cookies, no analytics, no advertising and no third-party trackers.",
             "Your writing and your speaking transcript are sent for marking when you ask for it, and are not stored afterwards.",
@@ -249,12 +249,53 @@ export default function PrivacyPage() {
 
       <section className="card">
         <h2 className="heading-rule text-base font-semibold text-slate-900">
+          If you sign in
+        </h2>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          BandUp can be used entirely signed out, and is by default. The placement test, your
+          study plan, every practice test and both sets of drills work without an account and
+          always will. An account exists to carry that work between your phone and your laptop,
+          and to raise the daily limit on AI feedback.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Signing in uses Google or Apple. BandUp never sees your password — the provider
+          confirms it is you and passes on your email address and nothing else. There is no
+          password here to lose or to leak, because there is none to set.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">If you do sign in, we hold:</p>
+        <ul className="mt-4 space-y-3">
+          {[
+            "Your email address, so the account can be recovered if you lose access to Google or Apple.",
+            "A count of AI requests over the last 24 hours, so the daily allowance can be applied. It records that a request happened and to which feature — never what you wrote, said or were told.",
+            "A copy of your study progress, if you choose to sync it, so a new device can pick up where the last one left off.",
+          ].map((line) => (
+            <li key={line} className="flex gap-3 text-[15px] leading-7 text-slate-700">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
+              {line}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+          Account data is stored with Supabase, who host the database on our behalf. Signing out
+          ends the session on that device and deletes nothing — your practice stays where it is.
+          To close an account and delete what it holds, sign in and use the link on your account
+          page, or write to us.
+        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Sessions are kept in your device&rsquo;s own storage rather than in a cookie, which is
+          why signing in still sets none.
+        </p>
+      </section>
+
+      <section className="card">
+        <h2 className="heading-rule text-base font-semibold text-slate-900">
           Cookies and tracking
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           There are none. BandUp sets no cookies, includes no analytics or advertising scripts,
           and loads nothing from a third party that could watch you across sites. There is no
-          consent banner here because there is nothing to consent to.
+          consent banner here because there is nothing to consent to. Signing in does not change
+          this: the session is held in your device&rsquo;s own storage, not in a cookie.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           The web version is served by a hosting provider that, like any web host, records
@@ -282,9 +323,9 @@ export default function PrivacyPage() {
           </li>
         </ul>
         <p className="mt-4 text-sm leading-6 text-slate-600">
-          There is no request to send us and no account to close, because there is nothing held
-          on our side to delete. That deletion is final — your progress cannot be restored
-          afterwards.
+          Signed out there is no request to send us and no account to close, because nothing is
+          held on our side to delete. That deletion is final — your progress cannot be restored
+          afterwards. If you have an account, see below for what it holds and how to close it.
         </p>
       </section>
 

@@ -1,0 +1,46 @@
+import { NextResponse } from "next/server";
+import { authorizeUrl, isOAuthProvider } from "@/lib/auth/oauth";
+import { logInternal } from "@/lib/auth/errors";
+
+/*
+  Starts a provider handshake by redirecting to Supabase.
+
+  The browser cannot build this URL itself — it does not know the project URL,
+  and that is the point (see lib/auth/oauth.ts). So it asks for a provider by
+  name and gets a 302 or nothing.
+*/
+
+export const dynamic = "force-dynamic";
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const provider = url.searchParams.get("provider");
+
+  /*
+    An unknown provider is a 400 and no more. Echoing the value back would
+    reflect attacker-controlled text into a response; naming the ones that do
+    exist would turn this into a discovery endpoint.
+  */
+  if (!isOAuthProvider(provider)) {
+    return NextResponse.json({ error: "Unknown sign-in method." }, { status: 400 });
+  }
+
+  /*
+    `url.origin` comes from the request, which on Vercel is reconstructed from
+    the Host header. That is enough to send the user back to the deployment
+    they started on, and it is not enough to be dangerous on its own: Supabase
+    refuses any redirect_to outside the project's configured allow list, so a
+    forged Host produces a failed sign-in rather than a redirect to an
+    attacker. The allow list is the control; this is the convenience.
+  */
+  const target = authorizeUrl(provider, url.origin);
+
+  if (!target) {
+    // Accounts are off or unconfigured. Same answer either way, and the same
+    // answer an unrouted path would give, so nothing is learned by asking.
+    logInternal("auth/start", new Error(`sign-in requested while accounts are unavailable`));
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  return NextResponse.redirect(target, { status: 302 });
+}
