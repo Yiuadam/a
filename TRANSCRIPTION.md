@@ -93,6 +93,13 @@ default would be a claim about accuracy that nobody has yet earned.
 `base.en` is the default *model within* the local option for the same reason:
 when a mis-transcription costs marks, the accurate model beats the small one.
 
+The same rule governs what the interface is allowed to say. The model picker
+once read *"Noticeably better on accented English"*; it now reads *"The more
+accurate of the two."* Everything above supports the second sentence and none
+of it supports the first. The accented-English claim is the one a learner here
+would most want to hear, which is precisely why it may not be made until the
+comparison above has actually been run.
+
 ### How to run the comparison
 
 On a machine with a microphone, and ideally with several speakers whose first

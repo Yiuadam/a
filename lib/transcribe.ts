@@ -44,9 +44,15 @@ export interface LocalModel {
 /*
   English-only weights. The multilingual models of the same size are weaker on
   English, and every word in this test is English by definition. `base.en` is
-  the accurate one and `tiny.en` the one that fits a phone; the gap between
-  them is widest on exactly the accented speech this app hears, which is why
-  the smaller model is offered rather than assumed.
+  the accurate one and `tiny.en` the one that fits a phone.
+
+  The notes below say only that one is more accurate than the other, which is
+  what Whisper's published English word-error rates support. They do not say
+  how the two compare on *accented* English, because nobody here has measured
+  that. The temptation is real — the learners using this app are non-native
+  speakers, so a claim about accented speech is the claim they would most want
+  to hear — and that is exactly why it stays out until there is a measurement
+  behind it. See TRANSCRIPTION.md.
 */
 export const LOCAL_MODELS: Record<LocalModelId, LocalModel> = {
   "base.en": {
@@ -54,14 +60,14 @@ export const LOCAL_MODELS: Record<LocalModelId, LocalModel> = {
     file: "ggml-base.en.bin",
     label: "Accurate",
     bytes: 148_000_000,
-    note: "About 145 MB, downloaded once. Noticeably better on accented English.",
+    note: "About 145 MB, downloaded once. The more accurate of the two.",
   },
   "tiny.en": {
     id: "tiny.en",
     file: "ggml-tiny.en.bin",
     label: "Light",
     bytes: 78_000_000,
-    note: "About 75 MB and quicker, but it mishears accented speech more often.",
+    note: "About 75 MB and quicker, but it makes more mistakes.",
   },
 };
 
