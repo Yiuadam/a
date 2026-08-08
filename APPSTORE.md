@@ -42,8 +42,10 @@ afterwards. `cap sync` copies that bundle into the iOS project.
 ## Step 3 — Configure the app in Xcode
 
 1. **Signing** — select your team under *Signing & Capabilities*. Bundle ID is
-   `com.bandup.ielts` (change it in `capacitor.config.ts` if you prefer, then
-   re-run `cap sync`).
+   `com.yiuadam.bandup` (change it in `capacitor.config.ts` if you prefer, then
+   re-run `cap sync`). **Do not put IELTS in the bundle id.** It reads as a claim
+   of affiliation, and unlike the app name or the description it cannot be
+   changed after the first submission — Apple fixes a bundle id permanently.
 2. **Permission strings** — add these to `ios/App/App/Info.plist`. iOS crashes
    the app on launch of the feature if they're missing, and App Review checks
    the wording:
