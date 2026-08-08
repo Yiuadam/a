@@ -426,14 +426,42 @@ function ProAction({
     );
   }
 
+  /*
+    The renewal terms sit here, attached to the button, and not only in the
+    terms of use.
+
+    That placement is the requirement rather than a preference. California's
+    Automatic Renewal Law — the strictest of the several that apply, and so the
+    one worth writing to — asks for the renewal terms "in visual proximity" to
+    the thing the buyer clicks, in a way they cannot reasonably miss. A link to
+    a document two pages away does not satisfy it, and more to the point does
+    not satisfy the person: nobody should discover the word "automatically" a
+    month after they agreed to it.
+
+    Four facts, in the order somebody needs them: what it costs, how often,
+    that it keeps going, and how to make it stop.
+  */
   return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={() => onStart("/api/billing/checkout", { plan: planId })}
-      className="btn-primary w-full"
-    >
-      {busy ? "Opening checkout…" : "Subscribe"}
-    </button>
+    <div className="space-y-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onStart("/api/billing/checkout", { plan: planId })}
+        className="btn-primary w-full"
+      >
+        {busy ? "Opening checkout…" : "Subscribe"}
+      </button>
+      <p className="text-xs leading-5 text-slate-500">
+        {formatPrice(PLANS[planId].amountMinor, PLANS[planId].currency)} every{" "}
+        {PLANS[planId].interval === "year" ? "year" : "month"}, renewing automatically until you
+        cancel.
+        Cancel any time from your billing page — it takes one button. Full refund within 14 days
+        of any charge, no reason needed. See the{" "}
+        <Link href="/terms" className="underline underline-offset-2 hover:text-slate-700">
+          terms
+        </Link>
+        .
+      </p>
+    </div>
   );
 }

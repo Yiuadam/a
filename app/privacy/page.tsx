@@ -17,7 +17,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Privacy — BandUp",
   description:
-    "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, and there are no cookies or trackers.",
+    "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, there are no cookies or trackers, and card details never reach our servers.",
 };
 
 const LAST_UPDATED = "8 August 2026";
@@ -333,10 +333,58 @@ export default function PrivacyPage() {
           consent banner here because there is nothing to consent to. Signing in does not change
           this: the session is held in your device&rsquo;s own storage, not in a cookie.
         </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          One honest edge: if you subscribe, the payment page is Stripe&rsquo;s own, on
+          Stripe&rsquo;s domain, and it sets its own cookies under its own policy — as any
+          payment page does. You are on their site for those two minutes, and back here after.
+        </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           The web version is served by a hosting provider that, like any web host, records
           ordinary server request logs. BandUp does not use those logs to build any picture of
           you.
+        </p>
+      </section>
+
+      {/*
+        Payments.
+
+        Stripe is a processor of a subscriber's personal data, so it has to be
+        named here — GDPR Article 13 requires the recipients of personal data
+        to be disclosed, not merely the fact that some exist. What matters most
+        to a reader is the thing this section leads with: card numbers never
+        arrive here at all, so there is no story where BandUp leaks one.
+      */}
+      <section className="card">
+        <h2 className="heading-rule text-base font-semibold text-slate-900">
+          If you subscribe
+        </h2>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          <strong>Your card details never reach BandUp.</strong> Paying takes you to Stripe, the
+          payment company, and the card is typed on their page and stored by them. Nothing here
+          ever sees a card number, an expiry date or a security code, which means there is no
+          version of this app being breached that exposes your card.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Stripe tells us only what is needed to know what you have bought: that a subscription
+          started, renewed or ended, which plan it is, and an identifier that links it to your
+          account. That is what the app stores — the plan, the dates, and the identifier.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Stripe is a separate company and handles your payment information under{" "}
+          <a
+            href="https://stripe.com/privacy"
+            className="underline underline-offset-2 hover:text-slate-900"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            its own privacy policy
+          </a>
+          . It needs your name, email and card to process a payment, and it uses that
+          information to detect fraud, which is the reason payment works at all.
+        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          If you never subscribe, none of this applies to you and no payment company is involved
+          in your account at all.
         </p>
       </section>
 

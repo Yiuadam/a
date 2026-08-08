@@ -308,8 +308,20 @@ a.card:hover {
     0 16px 32px -16px color-mix(in srgb, var(--color-indigo-600) 45%, transparent);
 }
 
+/*
+  min-h-11 is 44px, and it is not decoration.
+
+  px-5 py-2.5 on 14px text renders a 40px button, which looks right on a
+  desktop and is under the minimum on a phone: Apple's guidance and WCAG 2.5.8
+  both put the floor at 44px, and the buttons that miss it are the ones people
+  are trying hardest to hit — Subscribe, Submit answers, Start the test. A
+  4px shortfall is invisible in a screenshot and is a mis-tap on a bus.
+
+  As a floor rather than a fixed height, so a button with two lines of label
+  still grows.
+*/
 @utility btn {
-  @apply relative inline-flex select-none items-center justify-center gap-2 overflow-hidden rounded-xl px-5 py-2.5 text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply relative inline-flex min-h-11 select-none items-center justify-center gap-2 overflow-hidden rounded-xl px-5 py-2.5 text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .btn:focus-visible {
