@@ -72,6 +72,15 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/chat", label: "Ask a tutor" },
       { href: "/resources", label: "Guides" },
       { href: "/account", label: "Your account" },
+      /*
+        Its own row rather than a section of the account page. Usage and money
+        are not the same question as name and email, and the test of whether a
+        split was right is whether you can name the second thing in a menu
+        without saying "and" — "Usage and plan" is one idea, "your details and
+        your bill" is two.
+      */
+      { href: "/billing", label: "Usage and plan" },
+      { href: "/pricing", label: "Plans and pricing" },
     ],
   },
 ];

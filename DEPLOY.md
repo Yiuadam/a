@@ -56,12 +56,83 @@ with its type set to **Secret**:
 | `SUPABASE_SERVICE_ROLE_KEY` | accounts |
 | `USAGE_IP_HASH_SALT` | per-address rate limiting; without it that limit is skipped rather than done badly |
 | `ACCOUNTS_ALLOWED_ORIGINS` | the iOS app; `capacitor://localhost,https://localhost` |
+| `STRIPE_SECRET_KEY` | subscriptions: creating a Checkout Session and a billing portal session |
+| `STRIPE_WEBHOOK_SECRET` | subscriptions: verifying that a webhook delivery really came from Stripe |
+| `STRIPE_PRICE_PRO_MONTHLY` | the Stripe Price id behind the monthly Pro plan |
+| `STRIPE_PRICE_PRO_YEARLY` | the Stripe Price id behind the yearly Pro plan |
 
 See `.env.example`. A missing `ANTHROPIC_API_KEY` is the common one: the app
 loads and every page works, and only the AI features answer with an error.
+Missing Stripe variables are similar and deliberately quiet: `/pricing` still
+renders both plans and their prices and says subscriptions are not open yet,
+rather than showing a button that fails.
 
 Changing any of them takes effect on the next deploy, so click **Deploy** after
 editing.
+
+## Turning subscriptions on
+
+Four things, in this order. Nothing before the last step changes what a visitor
+sees.
+
+**1. Create the product and its two prices.** Stripe dashboard → Product
+catalogue → Add product. One product, "BandUp Pro", with two recurring prices:
+`$9.00` monthly and `$72.00` yearly. The amounts have to match what `/pricing`
+shows, which lives in `lib/billing/tiers.ts` — Stripe is what actually charges,
+and the page is only copy, so a mismatch charges the amount the page did not
+say. Copy each `price_…` id into `STRIPE_PRICE_PRO_MONTHLY` and
+`STRIPE_PRICE_PRO_YEARLY`.
+
+**2. Add the webhook endpoint.** Developers → Webhooks → Add endpoint, pointing
+at:
+
+```
+https://bandup.siksafe-realtime-ai-vision.workers.dev/api/billing/webhook/stripe
+```
+
+Subscribe it to exactly three events, and no others:
+
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+Between them they carry the whole lifecycle — the first fires the moment
+checkout completes, the second on every renewal, plan change, failed payment
+and cancellation. `checkout.session.completed` is deliberately not needed:
+it arrives with no period end, and the account id it carries is also stamped
+onto the subscription itself, where every later event carries it too. Anything
+else that is subscribed is acknowledged and ignored, which shows up in the
+Worker log as noise.
+
+Copy the signing secret into `STRIPE_WEBHOOK_SECRET`. If it is ever rotated,
+update it here in the same minute: in between, every delivery fails its
+signature check and no payment is recorded, and nothing about the app looks
+broken while that is happening.
+
+**3. Set the four variables on the Worker**, as **Secret**, and deploy.
+
+**4. Check it with a real payment.** Stripe's test mode is the right place to
+start — a test-mode key and a test-mode endpoint work exactly the same way —
+but the thing worth doing at least once in live mode is buying a subscription
+with a real card and cancelling it. What that proves, which nothing else does:
+that the webhook reaches the Worker at all (Cloudflare, DNS, the route), that
+the signature verifies against the secret as it was actually pasted, and that
+the row lands with the right account on it.
+
+**Enable the customer portal** while you are there — Settings → Billing →
+Customer portal — with cancellation allowed. `/pricing` sends a subscriber
+there to cancel, and cancelling has to be at least as easy as subscribing.
+
+### On iOS this will not be Stripe
+
+Apple requires in-app purchase for digital goods, so the App Store build cannot
+sell through the checkout above. That work is not done. The database is ready
+for it — `subscriptions.provider` already accepts `apple`, and the entitlement
+resolver does not care which provider granted a tier — but the StoreKit side,
+the receipt verification and App Store Server Notifications v2 all still have
+to be built, and all of them need the Mac that everything else in APPSTORE.md
+is waiting on. Until then, `/pricing` says so, and subscribing is a web
+feature.
 
 ## Deploying by hand
 

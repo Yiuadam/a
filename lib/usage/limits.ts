@@ -1,9 +1,22 @@
-/*
-  What each tier may spend, and over what window.
+import { TIERS } from "@/lib/billing/tiers";
 
-  Policy lives here rather than in the database so that changing an allowance
-  is a deploy, not a migration against a live database. The database is the
-  mechanism — it counts and it decides atomically — but it is told the numbers.
+/*
+  What each bucket may spend, and over what window.
+
+  Policy lives in the application rather than in the database so that changing
+  an allowance is a deploy, not a migration against a live database. The
+  database is the mechanism — it counts and it decides atomically — but it is
+  told the numbers.
+
+  The per-tier numbers are no longer written here. They come from
+  lib/billing/tiers.ts, which is also what the pricing page reads, because a
+  page that promises 500 requests a day while the meter enforces 200 is a
+  support ticket that arrives once per subscriber. There is one figure and both
+  read it.
+
+  The two buckets below that are *not* tiers stay here, because they are
+  properties of the meter rather than of anything a learner can buy. Nobody
+  subscribes to "anonymous" and nobody subscribes to an IP address.
 
   What is *not* metered, and never will be: the placement test, the study plan,
   the bundled reading and listening tests, the grammar drills and the vocabulary
@@ -15,12 +28,12 @@
 
   The allowance is one pool shared across all of them rather than a separate
   budget per feature, and the tutor chat is the first route where that is a
-  visible trade-off: a learner can now spend a day's allowance on questions and
+  visible trade-off: a learner can spend a day's allowance on questions and
   have none left to get an essay marked. It is still one pool. Splitting it
   would mean a learner who wants only marking is capped below what their tier
   paid for, and it would mean explaining five numbers instead of one — so the
-  chat page says plainly that the count is shared, which is the honest version
-  of the same fact.
+  chat page and /billing both say plainly that the count is shared, which is
+  the honest version of the same fact.
 */
 
 export const AI_ROUTES = [
@@ -44,29 +57,48 @@ export type AiRoute = (typeof AI_ROUTES)[number];
 export const USAGE_WINDOW_SECONDS = 24 * 60 * 60;
 
 /**
+ * Zero, deliberately.
+ *
+ * It was 5. The reasoning then was that a visitor should be able to try a
+ * feature before deciding an account was worth it, which is a fair instinct
+ * and the wrong trade here. An unauthenticated caller is one nobody can ban,
+ * bill or rate-limit by identity — only by address, and addresses are cheap.
+ * Five calls each, across the four most expensive routes in the app, is a
+ * standing invitation to spend the owner's API budget from a script, and the
+ * owner carries that cost with nothing to show for it.
+ *
+ * What a visitor gets instead is everything that costs nothing to serve: the
+ * placement test, the study plan, a listening and a reading paper, and every
+ * grammar and vocabulary drill. All of those are marked against an answer key
+ * from the bundle, so they work perfectly with no model behind them. That is a
+ * real trial of the app, not a crippled one — it just isn't a trial of the AI.
+ */
+export const ANONYMOUS_DAILY_AI_CALLS = 0;
+
+/**
+ * The per-address ceiling exists so that "no account" is not a way to spend the
+ * owner's API budget. It applies to signed-in users too — one address is one
+ * address, however many accounts are driven from it — with admins exempt,
+ * because the owner working from a single address would otherwise trip it.
+ */
+export const IP_DAILY_CEILING = 60;
+
+/**
  * Per-bucket allowances within the window. `null` means unlimited.
  *
  * `admin` is null because the owner has to be able to exercise the app without
  * tripping a limit built for other people — and because an admin flag that
  * still throttled would be a flag that did nothing.
- *
- * `anonymous` is small but not zero: phase 1 must not break a visitor who has
- * never signed in, and phase 2 rolls login out gradually. It is enough to try
- * the feature and see why it is worth an account.
  */
 export const USAGE_LIMITS: Record<"free" | "pro" | "admin" | "anonymous" | "ip", number | null> = {
-  free: 20,
-  pro: 500,
-  admin: null,
-  anonymous: 5,
-  ip: 60,
+  free: TIERS.free.dailyAiCalls,
+  pro: TIERS.pro.dailyAiCalls,
+  admin: TIERS.admin.dailyAiCalls,
+  anonymous: ANONYMOUS_DAILY_AI_CALLS,
+  ip: IP_DAILY_CEILING,
 };
 
-/**
- * The per-address ceiling exists so that "no account" is not a way to spend
- * the owner's API budget. It applies to signed-in users too — one address is
- * one address, however many accounts are driven from it — with admins exempt.
- */
+/** The jsonb object `check_and_record_usage` meters from. */
 export function limitsForDatabase(): Record<string, number | null> {
   return { ...USAGE_LIMITS };
 }
