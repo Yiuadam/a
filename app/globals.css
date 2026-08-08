@@ -239,21 +239,12 @@ body {
 */
 
 /*
-  The nav scrolls sideways on a phone, and a scroll container with no visible
-  scrollbar gives no clue that it does. Fading the trailing edge is that clue —
-  without it a learner simply never discovers the destinations past the fold,
-  which is precisely how the Grammar section went unnoticed.
+  The header nav used to scroll sideways on a phone and this faded its trailing
+  edge, because a scroll container with no visible scrollbar gives no clue that
+  it scrolls. Both are gone: the destinations now live behind a menu button
+  (components/MobileNav.tsx), which needs no hint because the button is the
+  hint. .no-scrollbar below stays — tables and code blocks still use it.
 */
-@media (width < 40rem) {
-  .nav-scroll {
-    mask-image: linear-gradient(
-      to right,
-      #000 0,
-      #000 calc(100% - 1.75rem),
-      transparent 100%
-    );
-  }
-}
 
 /* A scroll container the user drags rather than one they aim a scrollbar at. */
 .no-scrollbar {
