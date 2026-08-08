@@ -56,7 +56,16 @@ export default function Review({
   total: number;
 }) {
   return (
-    <section className="space-y-4" data-lookupable>
+    /*
+      id="review" is what ScoreFooter's "Read the review" link points at. The
+      score is shown twice — once heading this section, once at the foot of
+      the paper where the learner is standing when it marks — and this anchor
+      is what makes the second one a way back rather than a dead end.
+
+      scroll-mt clears the sticky header, which would otherwise cover the
+      heading the link just jumped to.
+    */
+    <section id="review" className="scroll-mt-24 space-y-4" data-lookupable>
       <div className="card grid gap-6 sm:grid-cols-2">
         <Bullets title="Going well" icon="✓" tone="good" items={advice.good} />
         <Bullets title="Work on" icon="→" tone="improve" items={advice.improve} />
