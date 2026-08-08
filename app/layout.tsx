@@ -4,6 +4,7 @@ import Link from "next/link";
 import LookupProvider from "@/components/Lookup";
 import ThemeToggle from "@/components/ThemeToggle";
 import AutoSync from "@/components/AutoSync";
+import MobileNav from "@/components/MobileNav";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -67,14 +68,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         {/*
-          The header has to survive a narrow phone with seven destinations in
-          it. The logo and the theme toggle are pinned and never shrink; the
-          nav between them takes whatever is left and scrolls inside itself, so
-          a long list of links can never widen the page. The wordmark is hidden
-          on the smallest screens to hand those pixels to the nav.
+          Two headers in one, split at md.
+
+          Below it, the destinations live behind a menu button — see
+          components/MobileNav.tsx for why the horizontal scroller that used to
+          be here was the wrong answer. Above it they sit inline as usual.
+
+          --header-h is the header's own height, published as a custom property
+          so the menu panel can hang off the bottom edge of it without either
+          side hard-coding a number the other could change.
         */}
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/85 backdrop-blur">
-          <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 sm:gap-3 sm:px-5">
+        <header
+          className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/85 backdrop-blur"
+          style={{ "--header-h": "3.75rem" } as React.CSSProperties}
+        >
+          <div className="mx-auto flex h-[var(--header-h)] max-w-4xl items-center gap-2 px-4 sm:gap-3 sm:px-5">
             <Link
               href="/"
               className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
@@ -102,7 +110,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               />
               <span className="hidden xs:inline">BandUp</span>
             </Link>
-            <nav className="nav-scroll no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
+            {/*
+              min-w-0 keeps this from forcing the row wider than the screen if
+              the list ever outgrows the space; below md it is not rendered at
+              all, so the phone never sees it.
+            */}
+            <nav
+              aria-label="Main"
+              className="hidden min-w-0 flex-1 items-center gap-1 text-sm md:flex"
+            >
               {NAV.map((item) => (
                 <Link
                   key={item.href}
@@ -113,6 +129,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 </Link>
               ))}
             </nav>
+            {/* Takes the space the desktop nav would have, so the account and
+                theme controls stay pinned right on a phone. */}
+            <div className="flex-1 md:hidden" />
             {/*
               Account sits beside the theme toggle rather than in NAV, which is
               already seven items on a phone-width scroller. It is also not a
@@ -120,6 +139,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               because everything on this app works signed out.
             */}
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              <MobileNav items={NAV} />
               <Link
                 href="/account"
                 aria-label="Your account"
