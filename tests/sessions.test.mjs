@@ -50,10 +50,10 @@ test("the two skills anonymous may sit are the two that need no model", () => {
     allowance ever stops being zero, this stops being a safe assumption.
   */
   assert.equal(ANONYMOUS_DAILY_AI_CALLS, 0, "anonymous has an AI allowance again — recheck this table");
-  for (const module of ["writing", "speaking"]) {
+  for (const skill of ["writing", "speaking"]) {
     assert.ok(
-      isLocked("anonymous", module),
-      `${module} is marked by the model and anonymous has no model, so it must be locked`,
+      isLocked("anonymous", skill),
+      `${skill} is marked by the model and anonymous has no model, so it must be locked`,
     );
   }
 });
@@ -68,20 +68,20 @@ test("a free account gets two of each reading and listening, one of each writing
 test("a free speaking session allows exactly one question", () => {
   assert.equal(allowanceFor("free", "speaking").maxQuestions, 1);
   // And nothing else caps questions — only speaking runs to several.
-  for (const module of ["listening", "reading", "writing"]) {
-    assert.equal(allowanceFor("free", module).maxQuestions, null, module);
+  for (const skill of ["listening", "reading", "writing"]) {
+    assert.equal(allowanceFor("free", skill).maxQuestions, null, skill);
   }
 });
 
 test("a free account is not locked out of anything", () => {
-  for (const module of MODULES) assert.equal(isLocked("free", module), false, module);
+  for (const skill of MODULES) assert.equal(isLocked("free", skill), false, skill);
 });
 
 test("Standard and the owner have no session limit at all", () => {
   for (const tier of ["pro", "admin"]) {
-    for (const module of MODULES) {
-      assert.equal(allowanceFor(tier, module).perWeek, null, `${tier}/${module}`);
-      assert.equal(allowanceFor(tier, module).maxQuestions, null, `${tier}/${module}`);
+    for (const skill of MODULES) {
+      assert.equal(allowanceFor(tier, skill).perWeek, null, `${tier}/${skill}`);
+      assert.equal(allowanceFor(tier, skill).maxQuestions, null, `${tier}/${skill}`);
     }
   }
 });
@@ -113,8 +113,8 @@ test("the label says what a learner gets, including the speaking caveat", () => 
 
 test("every tier has a row for every skill", () => {
   for (const [tier, row] of Object.entries(SESSION_LIMITS)) {
-    for (const module of MODULES) {
-      assert.ok(row[module], `${tier} is missing ${module}`);
+    for (const skill of MODULES) {
+      assert.ok(row[skill], `${tier} is missing ${skill}`);
     }
   }
 });
@@ -125,14 +125,14 @@ test("a paid tier is never worse off than a free one", () => {
     the largest value, which is exactly the comparison a plain `>=` gets wrong.
   */
   const rank = (v) => (v === null ? Infinity : v);
-  for (const module of MODULES) {
+  for (const skill of MODULES) {
     assert.ok(
-      rank(allowanceFor("free", module).perWeek) >= rank(allowanceFor("anonymous", module).perWeek),
-      `free gets less ${module} than anonymous`,
+      rank(allowanceFor("free", skill).perWeek) >= rank(allowanceFor("anonymous", skill).perWeek),
+      `free gets less ${skill} than anonymous`,
     );
     assert.ok(
-      rank(allowanceFor("pro", module).perWeek) >= rank(allowanceFor("free", module).perWeek),
-      `Standard gets less ${module} than free`,
+      rank(allowanceFor("pro", skill).perWeek) >= rank(allowanceFor("free", skill).perWeek),
+      `Standard gets less ${skill} than free`,
     );
   }
 });
