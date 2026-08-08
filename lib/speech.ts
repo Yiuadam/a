@@ -1,6 +1,97 @@
 "use client";
 
 import { isNative, nativeSTT, nativeTTS } from "./native";
+import { DEFAULT_LOCAL_MODEL, LOCAL_MODELS, type LocalModelId } from "./transcribe";
+
+/*
+  Two ways to turn speech into text, and the learner picks.
+
+    "platform" — the recogniser built into the browser or the phone. It streams
+                 words as they are spoken, and on Chrome it does that by
+                 uploading the audio to Google.
+    "local"    — whisper.cpp on the device (lib/transcribe.ts). Nothing is
+                 uploaded, but nothing appears until the answer is finished.
+
+  Neither is a prerequisite for sitting the test: the answer box is always
+  editable, so someone with no working recogniser can type.
+*/
+export type SpeechEngine = "platform" | "local";
+
+export interface SpeechPrefs {
+  engine: SpeechEngine;
+  model: LocalModelId;
+}
+
+/*
+  "platform" is the default deliberately. On-device transcription is the more
+  private option, but the users of this app are non-native speakers by
+  definition, and a recogniser that mishears accented English costs them marks
+  in a way a privacy footnote does not. See TRANSCRIPTION.md for what has and
+  has not been measured.
+*/
+export const DEFAULT_SPEECH_PREFS: SpeechPrefs = {
+  engine: "platform",
+  model: DEFAULT_LOCAL_MODEL,
+};
+
+const PREFS_KEY = "bandup.speech.v1";
+
+/** Read the saved choice out of raw storage text, tolerating anything. */
+export function parseSpeechPrefs(raw: string | null): SpeechPrefs {
+  if (!raw) return DEFAULT_SPEECH_PREFS;
+  try {
+    const parsed = JSON.parse(raw) as Partial<SpeechPrefs>;
+    return {
+      engine: parsed.engine === "local" ? "local" : "platform",
+      model:
+        parsed.model && parsed.model in LOCAL_MODELS ? parsed.model : DEFAULT_SPEECH_PREFS.model,
+    };
+  } catch {
+    return DEFAULT_SPEECH_PREFS;
+  }
+}
+
+/*
+  Exposed as an external store, the same way lib/store.ts exposes the profile,
+  so a component can read the saved choice with `useSyncExternalStore` without
+  a hydration mismatch and without setting state inside an effect.
+*/
+let cache: SpeechPrefs | null = null;
+const listeners = new Set<() => void>();
+
+export function subscribeSpeechPrefs(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/** The saved choice on the client. Cached, because the snapshot must be stable. */
+export function speechPrefs(): SpeechPrefs {
+  if (cache) return cache;
+  if (typeof window === "undefined") return DEFAULT_SPEECH_PREFS;
+  try {
+    cache = parseSpeechPrefs(window.localStorage.getItem(PREFS_KEY));
+  } catch {
+    cache = DEFAULT_SPEECH_PREFS;
+  }
+  return cache;
+}
+
+/** What the server renders, and what the first client render must match. */
+export function serverSpeechPrefs(): SpeechPrefs {
+  return DEFAULT_SPEECH_PREFS;
+}
+
+export function writeSpeechPrefs(prefs: SpeechPrefs): void {
+  cache = prefs;
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    } catch {
+      // Storage can be full or blocked; the choice just will not persist.
+    }
+  }
+  for (const listener of listeners) listener();
+}
 
 // Minimal typings for the Web Speech API, which TypeScript's DOM lib does not
 // include. Only the members this app uses are declared.
