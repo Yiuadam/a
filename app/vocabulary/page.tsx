@@ -64,7 +64,7 @@ export default function VocabularyPage() {
     <div className="space-y-8">
       <DrillSection
         title="Vocabulary practice"
-        intro="Eight topics covering what actually earns vocabulary marks: the words that go together, the phrasal verbs that fill spoken English, the word families that let you produce whatever form a sentence needs, and the pairs that are easy to confuse. Read the note, then drill it — you find out immediately whether you were right and why."
+        intro="Eight topics on the vocabulary that earns marks — collocations, phrasal verbs, word families and easy confusions. Read the note, then drill it."
         topics={topics}
       />
       <MyWords />

@@ -138,6 +138,93 @@ export async function enabledOAuthProviders(): Promise<string[] | null> {
     .map(([name]) => name);
 }
 
+export interface ProgressSnapshot {
+  storeKey: string;
+  payload: unknown;
+  clientUpdatedAt: string | null;
+}
+
+/*
+  The three localStorage keys a snapshot may hold, mirrored from the CHECK
+  constraint in 0001_accounts_core.sql.
+
+  Duplicated on purpose. The database is the authority and will reject anything
+  else, but a request that has already crossed the network to be refused is a
+  worse error than one refused here — and the failure it produces is a 500 with
+  a Postgres constraint name in it, which threat 7 says must never leave.
+*/
+const PROGRESS_KEYS = ["ielts-prep-v1", "bandup.drills.v1", "bandup.lookups.v1"];
+
+export function isProgressKey(key: unknown): key is string {
+  return typeof key === "string" && PROGRESS_KEYS.includes(key);
+}
+
+/** Everything this user has synced. An account with nothing returns []. */
+export async function getProgressSnapshots(userId: string): Promise<ProgressSnapshot[] | null> {
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/progress_snapshots?user_id=eq.${encodeURIComponent(userId)}` +
+        `&select=store_key,payload,client_updated_at`,
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+
+  let rows: unknown;
+  try {
+    rows = await res.json();
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(rows)) return null;
+
+  return rows.map((r) => {
+    const row = r as { store_key?: unknown; payload?: unknown; client_updated_at?: unknown };
+    return {
+      storeKey: String(row.store_key ?? ""),
+      payload: row.payload,
+      clientUpdatedAt:
+        typeof row.client_updated_at === "string" ? row.client_updated_at : null,
+    };
+  });
+}
+
+/**
+ * Writes one snapshot, replacing whatever was there.
+ *
+ * Replacing rather than appending is safe only because the caller merges
+ * first: sync.ts reads the account, merges it with the browser, and writes the
+ * union back. A client that wrote its raw local state here would overwrite the
+ * other device — which is the exact harm ACCOUNTS.md threat 5 is about.
+ */
+export async function putProgressSnapshot(
+  userId: string,
+  storeKey: string,
+  payload: unknown,
+  clientUpdatedAt: string,
+): Promise<boolean> {
+  if (!isProgressKey(storeKey)) return false;
+  try {
+    const res = await request("/rest/v1/progress_snapshots?on_conflict=user_id,store_key", {
+      method: "POST",
+      asServiceRole: true,
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({
+        user_id: userId,
+        store_key: storeKey,
+        payload,
+        client_updated_at: clientUpdatedAt,
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export interface RefreshedSession {
   accessToken: string;
   refreshToken: string | null;

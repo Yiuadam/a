@@ -10,6 +10,8 @@ import {
   subscribe,
 } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import { useMounted } from "@/lib/hooks";
+import { syncProgress, lastSyncedAt, type SyncOutcome } from "@/lib/progress/sync";
 
 /*
   The account screen, and the only place in the app where signing in happens.
@@ -367,6 +369,64 @@ function RecoveryForm({ onDone }: { onDone: () => void }) {
   );
 }
 
+function SyncCard() {
+  const [state, setState] = useState<"idle" | "working" | SyncOutcome["status"]>("idle");
+  /*
+    Read during render rather than held in state. localStorage does not exist
+    on the server, so a plain initial value would hydrate to a different
+    string than it rendered with; useMounted is the codebase's answer to that
+    and costs no effect. Re-reading after a sync happens for free, because
+    setState above already re-renders this component.
+  */
+  const mounted = useMounted();
+  const at = mounted ? lastSyncedAt() : null;
+
+  async function run() {
+    setState("working");
+    const outcome = await syncProgress();
+    setState(outcome.status);
+  }
+
+  return (
+    <section className="card">
+      <h2 className="text-[17px] font-semibold text-slate-900">Your practice on other devices</h2>
+      <p className="mt-2 text-[15px] leading-7 text-slate-600">
+        Syncing merges what is on this device with what is on your account, in both directions.
+        Nothing is replaced and nothing is deleted — if you have practised on your phone and your
+        laptop, you end up with both.
+      </p>
+
+      <button type="button" className="btn-primary mt-4" onClick={run} disabled={state === "working"}>
+        {state === "working" ? "Syncing…" : "Sync now"}
+      </button>
+
+      {state === "done" && (
+        <p className="mt-3 text-[15px] leading-7 text-emerald-800">
+          Done. Your practice is on your account and on this device.
+        </p>
+      )}
+      {state === "unavailable" && (
+        <p className="mt-3 text-[15px] leading-7 text-slate-600">
+          {/* Says plainly that nothing was lost, because that is the fear. */}
+          That didn&rsquo;t work. Nothing has changed on this device — your practice is exactly
+          where it was. Please try again in a minute.
+        </p>
+      )}
+      {state === "signed-out" && (
+        <p className="mt-3 text-[15px] leading-7 text-slate-600">
+          Your session expired. Sign in again and this will work.
+        </p>
+      )}
+
+      {at && (
+        <p className="mt-3 text-sm text-slate-500">
+          Last synced {new Date(at).toLocaleString()}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function SignedIn({
   status,
   email,
@@ -411,6 +471,8 @@ function SignedIn({
           limited.
         </p>
       </section>
+
+      <SyncCard />
 
       <section className="card">
         <h2 className="text-[17px] font-semibold text-slate-900">Sign out</h2>

@@ -69,7 +69,23 @@ function invalidate(next: Cache): void {
 
 export function subscribeLookups(listener: () => void): () => void {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  /*
+    A write from another tab — or from a progress sync in this one — has to
+    invalidate the cached snapshot, or the page keeps rendering data that is no
+    longer what is stored. `storage` fires in other tabs by default; sync.ts
+    dispatches it here as well so a merge repaints without a reload.
+  */
+  const onStorage = (e: StorageEvent) => {
+    if (e.key !== KEY && e.key !== null) return;
+    cache = null;
+    sorted = null;
+    listener();
+  };
+  if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(listener);
+    if (typeof window !== "undefined") window.removeEventListener("storage", onStorage);
+  };
 }
 
 /** Newest first, for the saved-words list. Stable until the data changes. */
