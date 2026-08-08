@@ -19,6 +19,51 @@ import { pathToFileURL } from "node:url";
 // The engine is TypeScript; Node strips the types, the hook finds the files.
 register("./ts-resolve.mjs", import.meta.url);
 
+/*
+  ---------------------------------------------------------------------------
+  Why this simulation is seeded
+  ---------------------------------------------------------------------------
+  It used to draw from Math.random, which made it a coin toss in CI. The
+  thresholds are worst bias 0.5 and worst RMSE 0.95; the engine measures around
+  0.42–0.49 and 0.83–0.91. That is inside a hundredth of the line on a bad
+  roll, and it failed twice in one day on pull requests that touched nothing
+  near the placement engine — once on a documentation change.
+
+  A flaky check is worse than no check. People learn to re-run it, and the run
+  where it means something looks exactly like the runs where it did not.
+
+  The fix is not a wider threshold, which would just lower the bar. It is to
+  make the run reproducible: a small deterministic generator, and a fixed set
+  of seeds. Every seed must pass, so this samples more of the space than one
+  random draw ever did while giving the same answer every time. A failure now
+  reproduces exactly — `node scripts/simulate-placement.mjs` on the same commit
+  fails the same way on any machine.
+
+  Adding a seed to SEEDS makes the check stricter, never flakier.
+*/
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function random() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/*
+  Math.random itself is replaced, not just this file's own draws. The engine
+  reaches for it too — lib/placement.ts breaks ties between equally informative
+  questions at random — and seeding only the harness left the run varying by a
+  few hundredths, which was the first attempt at this fix and did not work.
+  Overriding the global is safe here in a way it would not be in the app: this
+  script owns its process and does nothing else with it.
+*/
+function seedEverything(seed) {
+  Math.random = mulberry32(seed);
+}
+
 const bank = JSON.parse(
   readFileSync(join(process.cwd(), "data", "placement.json"), "utf8"),
 ).questions;
@@ -63,11 +108,17 @@ function runOne(trueTheta, length) {
 
 const RUNS = 400;
 const TRUE_THETAS = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5];
+/* Arbitrary but fixed. Five independent draws of 400 candidates each. */
+const SEEDS = [1, 7, 13, 42, 99];
 
 console.log("Adaptive placement simulation\n");
 let worstBias = 0;
 let worstRmse = 0;
+let worstSeed = SEEDS[0];
 
+for (const seed of SEEDS) {
+seedEverything(seed);
+console.log(`=== seed ${seed} ===`);
 for (const length of [5, 10]) {
   console.log(`--- ${length}-minute sitting (max ${LENGTHS[length].max} questions) ---`);
   console.log("true θ   true band   mean band   bias    RMSE(band)   avg items");
@@ -86,6 +137,7 @@ for (const length of [5, 10]) {
     const meanBand = sumBand / RUNS;
     const bias = meanBand - trueBand;
     const rmse = Math.sqrt(sumSqErr / RUNS);
+    if (Math.abs(bias) > worstBias || rmse > worstRmse) worstSeed = seed;
     worstBias = Math.max(worstBias, Math.abs(bias));
     worstRmse = Math.max(worstRmse, rmse);
     console.log(
@@ -96,11 +148,17 @@ for (const length of [5, 10]) {
   }
   console.log("");
 }
+}
 
-console.log(`worst bias ${worstBias.toFixed(2)} bands, worst RMSE ${worstRmse.toFixed(2)} bands`);
+console.log(
+  `worst bias ${worstBias.toFixed(2)} bands, worst RMSE ${worstRmse.toFixed(2)} bands ` +
+    `(across ${SEEDS.length} seeds \u00d7 ${RUNS} candidates; worst seed ${worstSeed})`,
+);
 
 // Thresholds sit just above where the engine currently measures, so a change
-// that quietly degrades placement accuracy fails CI instead of shipping.
+// that quietly degrades placement accuracy fails CI instead of shipping. They
+// are unchanged from when the run was random — seeding fixed the flakiness
+// without lowering the bar.
 if (worstBias > 0.5 || worstRmse > 0.95) {
   console.error("\nFAIL: the adaptive engine is not accurate enough.");
   process.exit(1);
