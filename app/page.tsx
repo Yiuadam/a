@@ -3,6 +3,8 @@
 import Link from "next/link";
 import BandBadge from "@/components/BandBadge";
 import { useProfile } from "@/lib/hooks";
+import { latestFor, newestFirst } from "@/lib/results";
+import { markVisited } from "@/lib/store";
 import type { ModuleName } from "@/lib/types";
 import { Icon } from "@/components/Icons";
 
@@ -94,11 +96,20 @@ export default function Dashboard() {
         <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">Practise a skill</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {MODULES.map((m) => {
-            const latest = profile.results.find((r) => r.module === m.key);
+            const latest = latestFor(profile.results, m.key);
+            const isNew = !latest && !(profile.visited ?? []).includes(m.key);
             return (
               <Link
                 key={m.key}
                 href={m.href}
+                /*
+                  "New" means "you have not looked at this", so opening it is
+                  what retires the badge — not finishing a test. Recorded on
+                  the click rather than on the destination page, because the
+                  four cards lead to three pages and two of them serve more
+                  than one module.
+                */
+                onClick={() => markVisited(m.key)}
                 className="card block transition-all hover:-translate-y-0.5 hover:border-indigo-300"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -113,11 +124,11 @@ export default function Dashboard() {
                     <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
                       {latest.band}
                     </span>
-                  ) : (
+                  ) : isNew ? (
                     <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
                       New
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </Link>
             );
@@ -157,7 +168,7 @@ export default function Dashboard() {
             </Link>
           </div>
           <ul className="space-y-2">
-            {profile.results.slice(0, 6).map((r, i) => (
+            {newestFirst(profile.results).slice(0, 6).map((r, i) => (
               <li
                 key={i}
                 className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-surface px-5 py-3.5"

@@ -1,4 +1,5 @@
 import type { ModuleName, Profile } from "./types";
+import { latestFor } from "./results";
 
 export interface PlanTask {
   label: string;
@@ -52,7 +53,7 @@ export function buildPlan(profile: Profile): StudyPlan | null {
 
   const moduleBands = new Map<ModuleName, number>();
   for (const m of MODULES) {
-    const latest = profile.results.find((r) => r.module === m);
+    const latest = latestFor(profile.results, m);
     if (latest) moduleBands.set(m, latest.band);
   }
 

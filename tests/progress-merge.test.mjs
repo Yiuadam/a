@@ -70,19 +70,26 @@ test("sitting the same test twice keeps both attempts", () => {
   assert.equal(merged.results.length, 2);
   assert.deepEqual(
     merged.results.map((r) => r.band),
-    [5, 7],
+    [7, 5],
   );
 });
 
-test("merged results come back in date order", () => {
-  // The band history and the study plan both read this in order; unsorted, a
-  // learner's progress appears to jump backwards.
+test("merged results come back newest first", () => {
+  /*
+    This assertion used to read the other way round, and that was the bug.
+    Order here is not a matter of taste: lib/store.ts addResult prepends, so a
+    single device is newest-first, and every reader was written against that —
+    the dashboard slices the first six as "recent", lib/plan.ts calls the first
+    match `latest`. Sorting the merged union the opposite way meant those
+    readers silently switched to the learner's oldest sitting the moment they
+    signed in on a second device. See lib/results.ts and tests/results.test.mjs.
+  */
   const local = { results: [result("a", "2026-03-01", 7), result("b", "2026-01-01", 5)] };
   const remote = { results: [result("c", "2026-02-01", 6)] };
   const merged = mergeProfiles(local, remote, OLD, NEW);
   assert.deepEqual(
     merged.results.map((r) => r.date),
-    ["2026-01-01", "2026-02-01", "2026-03-01"],
+    ["2026-03-01", "2026-02-01", "2026-01-01"],
   );
 });
 

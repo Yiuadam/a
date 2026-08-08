@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useProfile } from "@/lib/hooks";
+import { newestFirst, seriesFor } from "@/lib/results";
 import type { ModuleName, ModuleResult } from "@/lib/types";
 
 /*
@@ -24,30 +25,6 @@ const MODULES: { key: ModuleName; label: string; stroke: string; text: string }[
   { key: "writing", label: "Writing", stroke: "var(--color-amber-700)", text: "text-amber-700" },
   { key: "speaking", label: "Speaking", stroke: "var(--color-purple-700)", text: "text-purple-700" },
 ];
-
-function timeOf(r: ModuleResult): number {
-  const t = Date.parse(r.date);
-  return Number.isFinite(t) ? t : 0;
-}
-
-/*
-  Sorted, not reversed.
-
-  `addResult` prepends, so this device's own list is already newest-first — but
-  that is not the list this page gets. lib/progress/merge.ts unions the results
-  from every device on the account, and a union has no order: practise on the
-  phone on Tuesday and the laptop on Monday, and the merged array interleaves
-  them however the two happened to concatenate. Reversing that produced a
-  "history" whose dates jumped around, which is what the seeded render showed.
-*/
-function newestFirst(results: ModuleResult[]): ModuleResult[] {
-  return results.slice().sort((a, b) => timeOf(b) - timeOf(a));
-}
-
-/* Oldest first, which is the direction a trend reads in. */
-function seriesFor(results: ModuleResult[], module: ModuleName): ModuleResult[] {
-  return results.filter((r) => r.module === module).sort((a, b) => timeOf(a) - timeOf(b));
-}
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);

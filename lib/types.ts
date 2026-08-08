@@ -303,6 +303,12 @@ export interface GeneratedTest {
 
 export interface Profile {
   placement?: PlacementResult;
+  /*
+    Modules the learner has opened at least once. Drives nothing but the "New"
+    badge on the dashboard: a card stops being new the moment it is visited,
+    which is what "new" means to the person reading it — not "never finished".
+  */
+  visited?: string[];
   /** Question ids from the last two placement sittings, newest first. */
   placementHistory?: string[][];
   targetBand?: number;

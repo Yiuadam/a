@@ -50,8 +50,16 @@ function resultKey(r: ModuleResult): string {
   return `${r.module}|${r.testId}|${r.date}`;
 }
 
+/*
+  Newest first, matching what lib/store.ts addResult produces on a single
+  device. Both orders are defensible; having two is not. Every reader of this
+  list was written against addResult's order — the dashboard slices the first
+  six as "recent", lib/plan.ts calls the first match `latest` — so a merged
+  list in the opposite order silently answered those questions with the
+  learner's oldest sitting. See lib/results.ts.
+*/
 function byDate(a: { date: string }, b: { date: string }): number {
-  return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  return a.date > b.date ? -1 : a.date < b.date ? 1 : 0;
 }
 
 /** Union two lists on a key, keeping the first occurrence of each. */
@@ -89,10 +97,9 @@ export function mergeProfiles(
   const remoteIsNewer = newer(remoteAt, localAt);
 
   /*
-    Every attempt from both devices, oldest first. Sorting matters beyond
-    tidiness: the band history and the study plan both read this list in order,
-    and a merged list in arrival order would show a learner's progress
-    jumping backwards.
+    Every attempt from both devices, newest first. Sorting matters beyond
+    tidiness: the dashboard and the study plan both read this list positionally,
+    so arrival order would show a learner a band they got months ago.
   */
   const results = unionBy(
     asArray<ModuleResult>(a.results),
@@ -127,7 +134,10 @@ export function mergeProfiles(
       ? localHistory
       : remoteHistory;
 
-  return { placement, targetBand, placementHistory, results, genTests };
+  /* Opened on either device means opened. Nothing here is ever un-set. */
+  const visited = [...new Set([...asArray<string>(a.visited), ...asArray<string>(b.visited)])];
+
+  return { placement, targetBand, placementHistory, visited, results, genTests };
 }
 
 export interface DrillScore {
