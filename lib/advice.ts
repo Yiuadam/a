@@ -75,12 +75,20 @@ const TYPE_NAME: Record<TestQuestion["type"], string> = {
   tfng: "True/False",
   mcq: "Multiple choice",
   completion: "Completion",
+  ynng: "Yes/No",
+  matching: "Matching",
+  "short-answer": "Short answer",
 };
 
 const TYPE_FIX: Record<TestQuestion["type"], string> = {
   tfng: "Not Given means unsaid",
   mcq: "Find the line first",
   completion: "Copy the word exactly",
+  // Each of these is the single habit that fixes most of the losses on that
+  // task, written short enough to sit on a results card.
+  ynng: "Ask what the writer thinks",
+  matching: "Read the whole paragraph",
+  "short-answer": "Stay inside the word limit",
 };
 
 /** Advice after a reading or listening practice test. */

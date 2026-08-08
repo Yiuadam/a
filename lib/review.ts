@@ -7,12 +7,56 @@ const TYPE_LABEL: Record<TestQuestion["type"], string> = {
   tfng: "true / false / not given",
   mcq: "multiple choice",
   completion: "sentence completion",
+  // Named apart from true/false on purpose: a learner reviewing a mistake
+  // needs to see which of the two tasks they were actually doing.
+  ynng: "yes / no / not given",
+  matching: "matching",
+  "short-answer": "short answer",
 };
 
+/**
+ * The question types a paper actually contains, named for a candidate.
+ *
+ * The reading page used to state its three types in hardcoded prose. That was
+ * true of every paper in the bank until one arrived with matching headings in
+ * it, at which point the sentence became a confident lie on the screen the
+ * candidate reads before starting. Deriving it means the sentence cannot
+ * disagree with the paper again.
+ */
+export function questionTypeNames(questions: QuestionSet): string[] {
+  const seen = new Set<TestQuestion["type"]>();
+  for (const q of flatQuestions(questions)) seen.add(q.type);
+  // A stable order, so the sentence does not reshuffle between papers.
+  const order: TestQuestion["type"][] = [
+    "mcq",
+    "tfng",
+    "ynng",
+    "matching",
+    "completion",
+    "short-answer",
+  ];
+  return order.filter((t) => seen.has(t)).map((t) => TYPE_LABEL[t]);
+}
+
+/** "a, b and c" — the Oxford-comma-free list English prose actually uses. */
+export function joinWithAnd(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
 function prompt(q: TestQuestion): string {
-  if (q.type === "tfng") return q.statement;
-  if (q.type === "mcq") return q.question;
-  return q.sentence;
+  switch (q.type) {
+    case "tfng":
+    case "ynng":
+      return q.statement;
+    case "mcq":
+    case "short-answer":
+      return q.question;
+    case "matching":
+      return q.prompt;
+    case "completion":
+      return q.sentence;
+  }
 }
 
 function shown(q: TestQuestion, value: string | number | undefined): string {

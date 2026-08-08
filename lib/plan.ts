@@ -79,6 +79,10 @@ export function buildPlan(profile: Profile): StudyPlan | null {
       { label: "How Seeds Travel (medium)", href: "/practice/reading?id=reading-3" },
       { label: "The Outsourced Mind (hard)", href: "/practice/reading?id=reading-2" },
       { label: "The Value of Waiting (hard)", href: "/practice/reading?id=reading-4" },
+      {
+        label: "Buried Rivers — headings, Yes/No, short answer (medium)",
+        href: "/practice/reading?id=reading-5",
+      },
       { label: "Generate a fresh reading test with AI", href: "/practice#generate" },
     ],
     writing: [

@@ -14,15 +14,16 @@ import readingOne from "@/data/reading-1.json";
 import readingTwo from "@/data/reading-2.json";
 import readingThree from "@/data/reading-3.json";
 import readingFour from "@/data/reading-4.json";
+import readingFive from "@/data/reading-5.json";
 import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
 import { useMounted, useProfile } from "@/lib/hooks";
 import { flatQuestions, questionCount } from "@/lib/questions";
-import { buildReview } from "@/lib/review";
+import { buildReview, joinWithAnd, questionTypeNames } from "@/lib/review";
 import { addResult } from "@/lib/store";
 import type { ReadingTest } from "@/lib/types";
 
-const bundled = [readingOne, readingTwo, readingThree, readingFour] as ReadingTest[];
+const bundled = [readingOne, readingTwo, readingThree, readingFour, readingFive] as ReadingTest[];
 
 function ReadingTestPageRunner() {
   const params = useSearchParams();
@@ -96,8 +97,8 @@ function ReadingTestPageRunner() {
           <p className="text-sm text-slate-600">{test.topic}</p>
           <p className="text-sm text-slate-600">
             One academic passage, {questionCount(test.questions)} questions,{" "}
-            {test.timeMinutes} minutes. Question types: True/False/Not Given, multiple choice,
-            and sentence completion — exactly like the real exam.
+            {test.timeMinutes} minutes. Question types:{" "}
+            {joinWithAnd(questionTypeNames(test.questions))} — exactly like the real exam.
           </p>
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
             You can check any single answer as you go and read the explanation straight away.
