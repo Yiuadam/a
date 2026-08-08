@@ -33,6 +33,12 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/plan", label: "My plan" },
+  /*
+    Next to the plan on purpose: the plan is what to do next, history is
+    whether it is working. Eight items now — the nav scrolls inside itself
+    (see the header comment below), so the count costs layout nothing.
+  */
+  { href: "/history", label: "History" },
   { href: "/practice", label: "Practice" },
   { href: "/grammar", label: "Grammar" },
   { href: "/vocabulary", label: "Vocabulary" },
@@ -45,6 +51,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       data-theme="warm"
+      /*
+        The theme script in <head> rewrites data-theme from localStorage before
+        React hydrates, so the attribute React finds is not the one it rendered.
+        That is the intended design — it is what stops a dark-theme user seeing
+        a white flash — but React reports it as a hydration mismatch on every
+        page, in every theme except the default. Suppressing it here is the
+        documented answer, and it is scoped to this element's own attributes.
+      */
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>

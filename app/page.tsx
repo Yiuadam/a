@@ -150,7 +150,12 @@ export default function Dashboard() {
 
       {profile.results.length > 0 && (
         <section>
-          <h2 className="heading-rule mb-4 text-base font-semibold text-slate-900">Your recent practice</h2>
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <h2 className="heading-rule flex-1 text-base font-semibold text-slate-900">Your recent practice</h2>
+            <Link href="/history" className="shrink-0 text-sm font-medium text-indigo-700 underline underline-offset-2">
+              All history →
+            </Link>
+          </div>
           <ul className="space-y-2">
             {profile.results.slice(0, 6).map((r, i) => (
               <li

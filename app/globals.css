@@ -382,7 +382,21 @@ a.card:hover {
   dragged the whole page sideways with it.
 */
 .input {
-  @apply min-w-0 max-w-full rounded-xl border border-slate-200 bg-surface px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100;
+  @apply min-w-0 max-w-full rounded-xl border border-slate-200 bg-surface px-4 py-2.5 text-[16px] text-slate-900 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100;
+}
+
+/*
+  Never below 16px in a form control, anywhere. iOS Safari zooms the whole
+  page in when a focused field's text is smaller than 16px, and it does not
+  zoom back out when the field is left — the single most common "the site
+  jumped" report on phones. The floor lives on the elements rather than on
+  .input so a field that never got the class is covered too; max() keeps any
+  deliberately larger size.
+*/
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
 }
 
 /* Long-form reading text: slightly larger and more leaded than UI text. */
