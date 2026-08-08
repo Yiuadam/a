@@ -113,12 +113,17 @@ will fail if you do.
 
 ### One-time setup
 
-1. Create the Worker and set the API key as a secret:
+1. Create the Worker. Note the order: `preview` and `deploy` both act on an
+   *already built* app and neither builds one, so `cf:build` comes first or
+   they fail with `Could not find compiled Open Next config`. And the secret
+   comes last, because `wrangler secret put` needs a Worker that already
+   exists.
 
    ```bash
-   npm run cf:preview                      # run it locally first
+   npm run cf:build                        # required before either of the next two
+   npm run cf:preview                      # optional: run it locally first
+   npm run cf:deploy                       # creates the Worker
    npx wrangler secret put ANTHROPIC_API_KEY
-   npm run cf:deploy
    ```
 
 2. To deploy from CI instead, add two repository secrets under
