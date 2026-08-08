@@ -51,6 +51,20 @@ export interface TierState {
   signedIn: boolean;
   /** Requests left in the rolling window, or null when there is no cap. */
   remaining: number | null;
+  /** Requests spent inside the window. */
+  used: number;
+  /** The cap itself, or null when there is none. */
+  quota: number | null;
+  /** How long the window is, in seconds. */
+  windowSeconds: number;
+  /**
+   * When the oldest request in the window expires — not a reset hour, because
+   * the window rolls and there isn't one. Null when nothing is waiting to come
+   * back. See supabase/migrations/0010_usage_detail.sql.
+   */
+  oldestAt: string | null;
+  /** What the allowance went on, keyed by route. */
+  byRoute: Record<string, number>;
   /** When the current subscription lapses, ISO, or null. */
   expiresAt: string | null;
 }
@@ -61,6 +75,11 @@ const INITIAL: TierState = {
   accountsEnabled: false,
   signedIn: false,
   remaining: null,
+  used: 0,
+  quota: null,
+  windowSeconds: 24 * 60 * 60,
+  oldestAt: null,
+  byRoute: {},
   expiresAt: null,
 };
 
@@ -76,7 +95,14 @@ interface AccountStatus {
   signedIn?: boolean;
   tier?: string;
   unlimited?: boolean;
-  usage?: { remaining?: number | null };
+  usage?: {
+    remaining?: number | null;
+    used?: number;
+    quota?: number | null;
+    windowSeconds?: number;
+    oldestAt?: string | null;
+    byRoute?: Record<string, number>;
+  };
   expiresAt?: string | null;
 }
 
@@ -111,6 +137,11 @@ export function useTier(): TierState {
           accountsEnabled: body.enabled === true,
           signedIn: body.signedIn === true,
           remaining: body.usage?.remaining ?? null,
+          used: body.usage?.used ?? 0,
+          quota: body.usage?.quota ?? null,
+          windowSeconds: body.usage?.windowSeconds ?? 24 * 60 * 60,
+          oldestAt: body.usage?.oldestAt ?? null,
+          byRoute: body.usage?.byRoute ?? {},
           expiresAt: body.expiresAt ?? null,
         });
       })

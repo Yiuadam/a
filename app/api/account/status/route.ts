@@ -44,12 +44,39 @@ async function handleGET(req: Request) {
       ? USAGE_LIMITS[entitlement.tier]
       : USAGE_LIMITS.anonymous;
 
+    /*
+      usage_detail rather than usage_summary: the billing screen needs to say
+      when some allowance comes back, and the window rolls, so the answer is
+      "your oldest request drops off 24 hours after you made it" — which needs
+      that timestamp. by_route is what turns "18 of 20" into something a
+      learner can act on. See supabase/migrations/0010_usage_detail.sql.
+
+      Falls back to the old summary if 0010 has not been applied yet, because
+      an un-run migration should cost this screen its extra detail and not the
+      whole account status — every signed-in page depends on this route.
+    */
     let used = 0;
+    let oldestAt: string | null = null;
+    let byRoute: Record<string, number> = {};
     if (user) {
-      used = await rpc<number>("usage_summary", {
-        p_user_id: user.id,
-        p_window_seconds: USAGE_WINDOW_SECONDS,
-      });
+      try {
+        const detail = await rpc<{
+          used: number;
+          oldest_at: string | null;
+          by_route: Record<string, number>;
+        }>("usage_detail", {
+          p_user_id: user.id,
+          p_window_seconds: USAGE_WINDOW_SECONDS,
+        });
+        used = detail?.used ?? 0;
+        oldestAt = detail?.oldest_at ?? null;
+        byRoute = detail?.by_route ?? {};
+      } catch {
+        used = await rpc<number>("usage_summary", {
+          p_user_id: user.id,
+          p_window_seconds: USAGE_WINDOW_SECONDS,
+        });
+      }
     }
 
     /*
@@ -75,6 +102,13 @@ async function handleGET(req: Request) {
         quota,
         windowSeconds: USAGE_WINDOW_SECONDS,
         remaining: quota === null ? null : Math.max(0, quota - used),
+        /*
+          When the oldest request in the window expires — not a reset hour,
+          because there isn't one. Null when nothing is in the window, which
+          means there is nothing waiting to come back.
+        */
+        oldestAt,
+        byRoute,
       },
       expiresAt: entitlement.expiresAt,
     });

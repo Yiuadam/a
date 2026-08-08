@@ -46,7 +46,7 @@ const BASE = process.env.BASE_URL || "http://localhost:3000";
 const PAGES = [
   "/", "/plan", "/history", "/practice", "/practice/listening", "/practice/reading",
   "/practice/writing", "/speaking", "/grammar", "/vocabulary", "/resources", "/chat",
-  "/account", "/placement", "/privacy", "/terms",
+  "/account", "/billing", "/pricing", "/placement", "/privacy", "/terms",
 ];
 
 /*
@@ -58,36 +58,56 @@ const PAGES = [
 const WIDTHS = [390, 430, 768, 1024, 1280, 1440];
 
 /*
-  Resolved from the project first, then from the global npm root. The second
-  path is what makes this runnable without adding a browser to package.json,
-  which is the whole reason it is not a dependency.
+  Finding a Playwright that can actually launch.
+
+  Resolving the module is not the same as being able to use it, and the
+  difference bites here: this project resolves a Playwright whose browser build
+  was never downloaded, so `import` succeeds and `launch()` throws with a
+  message telling you to run `npx playwright install`. A globally installed
+  copy with its browsers present sits right next to it and works fine.
+
+  So each candidate is tried by launching it, not by importing it, and the
+  first browser that actually starts is the one used. Anything else is a check
+  that passes locally and fails on someone else's machine for a reason the
+  error message buries.
 */
-async function loadPlaywright() {
+async function launchBrowser() {
+  const candidates = [];
+
   try {
-    return await import("playwright");
+    candidates.push(["project", await import("playwright")]);
   } catch {
-    /* fall through to the global install */
+    /* not installed here; that is normal — it is not a dependency */
   }
+
   try {
     const { execSync } = await import("node:child_process");
     const { pathToFileURL } = await import("node:url");
     const { join } = await import("node:path");
     const root = execSync("npm root -g", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-    return await import(pathToFileURL(join(root, "playwright", "index.mjs")).href);
+    candidates.push(["global", await import(pathToFileURL(join(root, "playwright", "index.mjs")).href)]);
   } catch {
-    return null;
+    /* no global install either */
   }
+
+  for (const [where, mod] of candidates) {
+    try {
+      return { browser: await mod.chromium.launch(), where };
+    } catch {
+      /* this copy has no browser downloaded — try the next */
+    }
+  }
+  return null;
 }
 
-const playwright = await loadPlaywright();
-if (!playwright) {
-  console.log("playwright is not installed — skipping the layout audit.");
-  console.log("Install it (npm i -D playwright && npx playwright install chromium) to run this.");
+const launched = await launchBrowser();
+if (!launched) {
+  console.log("No Playwright with a working browser was found — skipping the layout audit.");
+  console.log("Install one (npm i -D playwright && npx playwright install chromium) to run this.");
   process.exit(0);
 }
-const { chromium } = playwright;
+const { browser } = launched;
 
-const browser = await chromium.launch();
 const page = await browser.newPage();
 let problems = 0;
 

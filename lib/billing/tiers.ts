@@ -115,26 +115,29 @@ export const TIERS: Record<Tier, TierDefinition> = {
   free: {
     id: "free",
     name: "Free",
-    blurb: "Everything you need to study, with a daily allowance of AI feedback.",
+    blurb: "A real account, with a daily allowance of AI feedback.",
     dailyAiCalls: 20,
     features: EVERYTHING_METERED,
     includes: [
-      "The placement test, your study plan, every practice test, and both sets of drills — unlimited, always",
+      "The placement test, your study plan, and every grammar and vocabulary drill — unlimited, always",
+      "Two listening papers and two reading papers a week, marked the moment you submit",
+      "One essay and one speaking answer a week, marked by the AI examiner",
       "20 AI requests a day: essay feedback, speaking feedback, word lookups and generated tests, in any mix",
       "Your progress synced between your phone and your laptop",
     ],
   },
   pro: {
     id: "pro",
-    name: "Pro",
+    name: "Standard",
     blurb: "For the weeks before the exam, when you want feedback on everything you write.",
     dailyAiCalls: 500,
     features: [...EVERYTHING_METERED, "tutor-chat"],
     includes: [
-      "Everything in Free",
+      "Everything in Free, with no weekly limit on how many papers you sit",
+      "The full mock exam: Listening, Reading, Writing and Speaking in one sitting, timed like the real thing",
+      "The AI tutor chat: ask why an answer was wrong, and keep asking",
       "500 AI requests a day, which in practice means you will not meet the limit",
-      "The AI tutor chat: ask why an answer was wrong and keep asking",
-      "Cancel whenever you like — one button, on this page",
+      "Cancel whenever you like — one button, on your billing page",
     ],
   },
   /*
@@ -205,7 +208,7 @@ export interface Plan {
   id: PlanId;
   tier: Exclude<Tier, "free" | "admin">;
   interval: BillingInterval;
-  /** Minor units, as Stripe stores them: 900 is $9.00. */
+  /** Minor units, as Stripe stores them: 650 is $6.50. */
   amountMinor: number;
   /** ISO 4217, lower case, as Stripe writes it. */
   currency: string;
@@ -216,17 +219,25 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "pro-monthly",
     tier: "pro",
     interval: "month",
-    amountMinor: 900,
+    /*
+      $6.50, which is the owner's "about $1.50 a week" turned into a billing
+      interval that works. Weekly billing is possible and a bad idea: a card is
+      authorised every seven days, a subscriber collects 52 receipts a year,
+      and every extra renewal attempt is another chance for one to fail.
+      $1.50 x 52 / 12 is $6.50, so what a learner pays across a year is exactly
+      the number the owner named.
+    */
+    amountMinor: 650,
     currency: "usd",
   },
   "pro-yearly": {
     id: "pro-yearly",
     tier: "pro",
     interval: "year",
-    // Twelve months at $6 rather than $9. Shown as a total and as the monthly
-    // figure it divides into, so the saving is something the reader works out
-    // rather than something we assert.
-    amountMinor: 7200,
+    // Ten months' money for twelve months' access. Shown as a total and as the
+    // monthly figure it divides into, so the saving is something the reader
+    // works out rather than something we assert.
+    amountMinor: 6500,
     currency: "usd",
   },
 };
