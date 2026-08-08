@@ -1,7 +1,20 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.bandup.ielts",
+  /*
+    No trademark in the bundle identifier.
+
+    "IELTS" belongs to the British Council, IDP and Cambridge English, and a
+    bundle id carrying it reads as a claim of affiliation — the one thing
+    APPSTORE.md's trademark section says to avoid. It said so about the app
+    *name*; the identifier was missed.
+
+    This is the only such mistake that cannot be undone later: Apple fixes a
+    bundle id at first submission and it can never be changed for that app.
+    Change it now if a different one is wanted; after the first upload it is
+    permanent.
+  */
+  appId: "com.yiuadam.bandup",
   appName: "BandUp",
   // Populated by `npm run build:mobile` (a static Next.js export).
   webDir: "out-mobile",
