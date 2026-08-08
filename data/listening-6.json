@@ -1,0 +1,235 @@
+{
+  "id": "listening-6",
+  "title": "Planning a Fieldwork Study on Chapel Street",
+  "context": "Three geography students meet their tutor to plan a fieldwork project on a recently pedestrianised shopping street.",
+  "difficulty": "hard",
+  "timeMinutes": 12,
+  "speakers": [
+    "Dr Hale",
+    "Priya",
+    "Marcus",
+    "Elena"
+  ],
+  "script": [
+    {
+      "speaker": "Dr Hale",
+      "text": "Come in, all three of you. Right — I've read the proposal you sent over on Friday, and I want to say first that there's a good project in there. It just isn't the project you've written down yet. So let's use this hour to get it into a shape you can actually carry out. Priya, tell me what you think the study is about."
+    },
+    {
+      "speaker": "Priya",
+      "text": "We want to find out whether pedestrianising Chapel Street has changed the way people use it. Not simply how many people walk down it, but what they do when they're there — whether they stop, whether they sit down, whether they treat the street as somewhere to go rather than somewhere to walk through."
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "That's the right question, and it's a genuinely interesting one. My difficulty is entirely with the scale. You've written \"the city centre\" all the way through, and the city centre is nineteen streets. To cover that properly you'd need something like thirty observers and a term and a half that you don't have."
+    },
+    {
+      "speaker": "Marcus",
+      "text": "We did wonder about that. Although I'd assumed the real obstacle was going to be the data — somebody told us the council won't release their footfall figures to students."
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "They will, in fact. Ask the transport team rather than the press office and it usually comes back inside a fortnight. No, the data isn't your problem at all. The area is. Cut it down to Chapel Street and the two junctions at either end, and suddenly everything else becomes possible."
+    },
+    {
+      "speaker": "Elena",
+      "text": "Chapel Street only, then. In that case we need to settle how we're measuring. Priya wants to count people. I think we learn far more by asking them."
+    },
+    {
+      "speaker": "Priya",
+      "text": "It isn't that I don't want to ask anyone. It's that a questionnaire only ever reaches the people who are willing to stop and talk to you. The man hurrying through with two children isn't going to stop, and he's precisely the person whose behaviour we're claiming to describe. A count doesn't have that problem. Everybody who walks past is in it, whether they'd have agreed to talk to us or not."
+    },
+    {
+      "speaker": "Marcus",
+      "text": "That's fair, but a count can't tell you why. You can watch a thousand people walk down that street and still have no idea whether a single one of them came because it's pedestrianised."
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "You're both right, which is the usual outcome of that particular argument. Count for coverage, ask for explanation, and then be honest in the write-up about what each method can and cannot support. Do that and you'll have a methodology chapter worth reading."
+    },
+    {
+      "speaker": "Elena",
+      "text": "What should we be reading, though? The chapter on the module list is all about out-of-town retail parks, which isn't really us."
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "No, that chapter won't take you far. There's a paper on a scheme in Leeds that's methodologically very close to what you're proposing — read it, certainly, although it's fifteen years old now and the retail context has changed out of all recognition since. But the thing to start with is the council's own consultation report from before the scheme opened. It has the before figures in it, and without those your numbers have nothing to be compared against."
+    },
+    {
+      "speaker": "Marcus",
+      "text": "And when do we start collecting?"
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "Not immediately. Give the first week to a pilot — one afternoon, one corner of the street, using the recording sheet you've designed. Every group I have ever supervised discovers on their first real day that the sheet has no column for something completely obvious, and by then they've thrown away a whole Saturday. Find that out in the pilot, while it still costs you nothing."
+    },
+    {
+      "speaker": "Elena",
+      "text": "Should we be noting the weather as well? A wet afternoon would halve our numbers."
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "Note it on every sheet, yes, and never compare a wet day with a dry one. But the weather is manageable. So is half-term, as long as you know when it falls. What will actually ruin this project is the resurfacing work at the north end of Chapel Street. It begins in the second week of November, the street will be half closed for two months, and any count you take after that is measuring the roadworks rather than the scheme. Get your fieldwork finished before then."
+    },
+    {
+      "speaker": "Priya",
+      "text": "Then let's fix the plan now, while we're all in the room. Counts on a Friday, three times in the day—"
+    },
+    {
+      "speaker": "Marcus",
+      "text": "Friday's the market."
+    },
+    {
+      "speaker": "Priya",
+      "text": "Oh — of course it is. Thursday, then. Thursday, three counts: morning, lunchtime and late afternoon, fifteen minutes each — no, make it twenty. Fifteen won't give us enough to work with on a quiet morning."
+    },
+    {
+      "speaker": "Elena",
+      "text": "And what exactly are we recording? Do we want a column for which direction people are walking in?"
+    },
+    {
+      "speaker": "Marcus",
+      "text": "I'd keep it as simple as we possibly can. A tally sheet, one line per category — walking through, stopped, seated — with the time written at the top. Make it any more elaborate than that and nobody can fill it in and watch the street at the same time."
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "That's the right instinct. Keep the sheet simple and keep the questionnaire short. How many questions were you planning on?"
+    },
+    {
+      "speaker": "Elena",
+      "text": "We'd drafted about twelve."
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "Cut it to six. Nobody standing in the cold on a high street in November answers twelve questions honestly — they answer the first four and then guess their way to the end. Six questions, and design them so the whole thing is over in under two minutes."
+    },
+    {
+      "speaker": "Priya",
+      "text": "What about consent? Do we need people to sign something?"
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "Not signatures, for something this brief. But everyone you approach has to be handed an information sheet: who you are, what the study is for, that they may stop at any point, and how to contact me if they're unhappy about anything. Print them before you go out. And incidentally, holding that sheet out is the best opening line you will ever have."
+    },
+    {
+      "speaker": "Marcus",
+      "text": "When would you like the methodology section?"
+    },
+    {
+      "speaker": "Dr Hale",
+      "text": "End of week four, please. And I'd far rather have four honest pages than ten that describe a study you didn't actually do. Write it as you go along, not afterwards."
+    }
+  ],
+  "questions": [
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "mcq",
+          "question": "What does Dr Hale say is the main weakness of the group's proposal?",
+          "options": [
+            "It relies on figures the council will not release.",
+            "It tries to cover too large an area.",
+            "It repeats a study that has already been published."
+          ],
+          "answer": 1,
+          "explanation": "Marcus raises the council data and Dr Hale dismisses it — \"they will, in fact\". The objection is scale: \"the city centre is nineteen streets... you'd need something like thirty observers\". The problem a student names is not always the one the tutor has."
+        },
+        {
+          "id": "q2",
+          "type": "mcq",
+          "question": "Why does Priya prefer counting people to using a questionnaire?",
+          "options": [
+            "It would take the group much less time.",
+            "It includes people who would not stop to be asked.",
+            "The results are easier to analyse statistically."
+          ],
+          "answer": 1,
+          "explanation": "\"A questionnaire only ever reaches the people who are willing to stop and talk to you... Everybody who walks past is in it.\" She is describing sampling bias, not convenience — no claim is made about time or analysis."
+        },
+        {
+          "id": "q3",
+          "type": "mcq",
+          "question": "What does Dr Hale tell the students to read first?",
+          "options": [
+            "the council's consultation report",
+            "a paper on a similar scheme in Leeds",
+            "the chapter on the module reading list"
+          ],
+          "answer": 0,
+          "explanation": "All three are discussed, which is what makes this hard. The module chapter \"won't take you far\", the Leeds paper is worth reading but fifteen years old, and \"the thing to start with is the council's own consultation report\"."
+        },
+        {
+          "id": "q4",
+          "type": "mcq",
+          "question": "Why does Dr Hale want the first week spent on a pilot?",
+          "options": [
+            "to test whether the recording sheet works",
+            "to give the group practice at handling statistics",
+            "to satisfy the department's ethics requirements"
+          ],
+          "answer": 0,
+          "explanation": "\"Every group I have ever supervised discovers on their first real day that the sheet has no column for something completely obvious.\" The pilot exists to expose that fault while it is still cheap to fix."
+        },
+        {
+          "id": "q5",
+          "type": "mcq",
+          "question": "What does Dr Hale say is the greatest threat to the results?",
+          "options": [
+            "wet weather on the days of the counts",
+            "the timing of the half-term holiday",
+            "resurfacing work on part of the street"
+          ],
+          "answer": 2,
+          "explanation": "Weather and half-term are both raised and then described as \"manageable\". The word that signals the real answer is \"actually\": \"what will actually ruin this project is the resurfacing work at the north end\"."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the fieldwork plan below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Counts will be carried out on a ___.",
+          "answer": "Thursday",
+          "maxWords": 1,
+          "explanation": "Priya proposes Friday, Marcus points out that Friday is market day, and she changes it: \"Thursday, then.\" A day named early in a discussion is very often the one that gets replaced."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Each of the three counts will last ___ minutes.",
+          "answer": "20",
+          "maxWords": 1,
+          "explanation": "Priya corrects herself mid-sentence: \"fifteen minutes each — no, make it twenty\". The first number is spoken more clearly than the second, which is exactly why candidates write it down."
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "Pedestrians will be recorded on a ___.",
+          "answer": "tally sheet",
+          "maxWords": 2,
+          "explanation": "Marcus argues for keeping it simple: \"A tally sheet, one line per category.\" Elena's suggestion of a column for direction is raised but never agreed to, so it is not part of the plan."
+        },
+        {
+          "id": "q9",
+          "type": "completion",
+          "sentence": "The questionnaire must have no more than ___ questions.",
+          "answer": "6",
+          "maxWords": 1,
+          "explanation": "The group had drafted about twelve and Dr Hale says \"cut it to six\". Twelve is repeated straight afterwards in his explanation, which makes it easy to write down the wrong figure."
+        },
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "Every person approached must be given an ___.",
+          "answer": "information sheet",
+          "maxWords": 2,
+          "explanation": "Signatures are explicitly ruled out — \"not signatures, for something this brief\" — but \"everyone you approach has to be handed an information sheet\" setting out the purpose of the study."
+        }
+      ]
+    }
+  ]
+}

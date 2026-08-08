@@ -1,0 +1,168 @@
+{
+  "id": "listening-5",
+  "title": "Volunteering at Marlow Fen Nature Reserve",
+  "context": "A reserve manager briefs a group of new volunteers on how the site works and what their first day will involve.",
+  "difficulty": "medium",
+  "timeMinutes": 12,
+  "speakers": [
+    "Reserve Manager"
+  ],
+  "script": [
+    {
+      "speaker": "Reserve Manager",
+      "text": "Good morning, everyone, and thank you for coming out so early on a cold day. My name's Ruth and I manage Marlow Fen, so I'm the person you'll see most often on volunteering days. Before we walk out onto the paths, I'd like ten minutes to explain how the site works, what we'd like you to do, and one or two things we'd rather you didn't."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "Let me start with the reserve itself, because almost everybody assumes it's ancient, and it isn't. Until the middle of the last century every acre of this was farmland. There were pumps running day and night to keep the water off the fields, and what the fields were used for, of all things, was growing potatoes. The trust bought the land in 1974, switched the pumps off, and then simply waited. Nobody planted the fen back. The seed had been lying in the soil for forty years, and inside a decade the reedbed had returned on its own."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "People always ask how big we are. The whole holding is eighty hectares, though a good deal of that is wet grazing with no public access at all. The part that's open, and the part you'll be working on, is sixty hectares, and you can walk the whole of it comfortably in about two hours."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "Now, the practical business. Volunteering sessions run every week of the year, and they've always been on a Saturday morning — no, forgive me, that's out of date and I should know better. From the beginning of this month they've moved to Sunday, because the contractors are on site on Saturdays and it simply wasn't safe. So it's Sunday mornings from now on."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "We start at nine, and we don't meet at the visitor centre, which is what catches new people out. The visitor centre doesn't open its doors until ten, so you'd be standing outside it in the rain for an hour. We gather in the old barn instead — that's the low brick building just beyond the pond — and that's where the sign-in book lives as well."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "Kit, then. We supply everything you need for the work itself: gloves, hand tools, waterproof trousers if you want a pair, and boots in most sizes. What we can't supply is food. There's no shop within three miles of here and the café shuts for the whole winter, so please bring a packed lunch and something hot to drink. That's the one thing people forget, and they only forget it once."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "As for the work, it changes with the season. In spring and summer it's mostly path repair, and helping the ecologists with their surveys. From November onwards, though, it's almost all one job, and that job is cutting back willow. Willow will take a fen over in three or four years if you let it, and everything that makes this place worth protecting — the reeds, the orchids, the birds you can hear behind me — depends on us keeping it out."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "A few practical points before we set off. Parking first. The main visitor car park at the front is full by half past nine on a good weekend, and we'd much rather those spaces went to the public. The layby on Fen Road looks tempting, and people used it for years, but it was turned into a passing place last spring and there's a fine now. So volunteers should drive round and use the yard behind the office. The gate is usually open; if it isn't, the code is printed on the sign-in sheet."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "If you come across a bird that's injured — and at some point you will — please don't pick it up. I know that's the instinct, and I know it feels unkind to walk away. But a frightened bird will hurt itself further struggling to get away from you, and a swan will happily hurt you as well. There's a wildlife vet in the village and volunteers do sometimes ring her directly, which only means the bird ends up being moved twice. Note exactly where it is, carry on with what you're doing, and tell one of the wardens at the next break. We'll go out with the right equipment."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "Two things we ask you not to do. The first is straightforward: no dogs, I'm afraid. Not on a lead, and not the well-behaved ones either. A ground-nesting bird reads a dog as a fox, and it will abandon a nest for the whole afternoon over an animal that never left the path. Cameras, on the other hand, are very welcome indeed — we use volunteers' photographs on the website all the time. And do stay on the boardwalk rather than cutting across the grass. It's there to keep your feet dry, but it's mainly there to keep the vegetation alive."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "And finally, the end of the day. Leave the tools wherever you finish — one of the wardens comes round and counts them back in, so please don't helpfully tidy them away yourself. We've lost more tools that way than any other. What you must do before you go is sign out in the book in the barn. It isn't bureaucracy. If there's ever a fire or an accident out on the fen, that book is the only way we know whether everyone is off the site. If you've had to cancel and you've already texted me, that's a different matter — but if you're here, you sign in and you sign out."
+    },
+    {
+      "speaker": "Reserve Manager",
+      "text": "Right. That's everything from me. Take a pair of gloves from the crate by the door and I'll walk you up to the north end, where there's a great deal of willow waiting for us."
+    }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Before the trust bought it, the land was used for growing ___.",
+          "answer": "potatoes",
+          "maxWords": 1,
+          "explanation": "\"What the fields were used for, of all things, was growing potatoes.\" The phrase \"of all things\" is the speaker flagging something worth noticing, which is often where an answer sits."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Area of the reserve open to the public: ___ hectares",
+          "answer": "60",
+          "maxWords": 1,
+          "explanation": "Eighty hectares is the whole holding; the part that is open is sixty. When two figures arrive in one breath, check which one the question actually asks about before you write."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Volunteering sessions now take place on ___ mornings.",
+          "answer": "Sunday",
+          "maxWords": 1,
+          "explanation": "Ruth begins \"they've always been on a Saturday morning\" and then corrects herself: \"no, forgive me, that's out of date... they've moved to Sunday\". Always take the version that comes after the correction."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Volunteers meet at nine in the ___.",
+          "answer": "old barn",
+          "maxWords": 2,
+          "explanation": "\"We don't meet at the visitor centre... We gather in the old barn instead.\" The wrong place is named first and ruled out, which is a very common shape in Part 2."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Volunteers need to bring their own ___ and a drink.",
+          "answer": "packed lunch",
+          "maxWords": 2,
+          "explanation": "Gloves, tools, trousers and boots are all supplied, so none of those can be the answer. \"What we can't supply is food... please bring a packed lunch.\""
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Main task from November onwards: cutting back ___",
+          "answer": "willow",
+          "maxWords": 1,
+          "explanation": "\"From November onwards... it's almost all one job, and that job is cutting back willow.\" Path repair and surveys belong to spring and summer, so they are the wrong season."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "Where does Ruth tell volunteers to park?",
+          "options": [
+            "in the main visitor car park",
+            "in the layby on Fen Road",
+            "in the yard behind the office"
+          ],
+          "answer": 2,
+          "explanation": "The main car park is kept for the public, and the layby became a passing place with a fine attached. \"Volunteers should drive round and use the yard behind the office.\" Both wrong options are mentioned and then closed off."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What should a volunteer do on finding an injured bird?",
+          "options": [
+            "carry it carefully to the visitor centre",
+            "note the place and tell a warden later",
+            "telephone the wildlife vet in the village"
+          ],
+          "answer": 1,
+          "explanation": "\"Please don't pick it up\" rules out carrying it, and ringing the vet directly \"only means the bird ends up being moved twice\". The instruction is \"note exactly where it is... and tell one of the wardens at the next break\"."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What are volunteers asked NOT to bring onto the reserve?",
+          "options": [
+            "cameras",
+            "food",
+            "dogs"
+          ],
+          "answer": 2,
+          "explanation": "Cameras are \"very welcome indeed\" and volunteers are told to bring food, so both are traps for anyone matching words rather than meaning. Only dogs are refused, \"not on a lead, and not the well-behaved ones either\"."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What must volunteers do before leaving at the end of a session?",
+          "options": [
+            "put the tools away in the store",
+            "sign out in the book",
+            "send Ruth a text message"
+          ],
+          "answer": 1,
+          "explanation": "Volunteers are explicitly told to leave the tools where they finish, and the text message is for cancelling in advance, not for leaving. \"What you must do before you go is sign out in the book in the barn.\""
+        }
+      ]
+    }
+  ]
+}
