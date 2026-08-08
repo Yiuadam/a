@@ -1,6 +1,7 @@
 "use client";
 
 import type { GeneratedTest, ModuleResult, PlacementResult, Profile } from "./types";
+import { PROGRESS_WRITE_EVENT } from "./progress/events";
 
 const KEY = "ielts-prep-v1";
 
@@ -41,6 +42,9 @@ function commit(next: Profile): Profile {
     } catch {
       // Storage can be full or blocked (private mode) — keep the in-memory copy.
     }
+    // Signed in, this is what makes the account copy follow along — see
+    // lib/progress/autosync.ts. Signed out, nothing listens.
+    window.dispatchEvent(new Event(PROGRESS_WRITE_EVENT));
   }
   for (const l of listeners) l();
   return next;

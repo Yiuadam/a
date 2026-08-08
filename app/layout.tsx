@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import LookupProvider from "@/components/Lookup";
 import ThemeToggle from "@/components/ThemeToggle";
+import AutoSync from "@/components/AutoSync";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -132,6 +133,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           in the app — a passage, a transcript, a question, an explanation — can
           be looked up without leaving the page.
         */}
+        {/* Renders nothing; keeps a signed-in account's progress current. */}
+        <AutoSync />
         <LookupProvider>
           <main data-lookupable className="mx-auto w-full max-w-5xl flex-1 px-5 py-10">
             {children}
