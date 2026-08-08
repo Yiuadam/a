@@ -26,6 +26,13 @@ function read(): Profile {
       placement: parsed.placement,
       targetBand: parsed.targetBand,
       placementHistory: parsed.placementHistory ?? [],
+      /*
+        Must be listed here as well as written by its setter. This function
+        rebuilds the profile field by field, so anything missing from it is
+        dropped silently on the next load — the field would appear to save and
+        then quietly forget itself.
+      */
+      visited: parsed.visited ?? [],
       results: parsed.results ?? [],
       genTests: parsed.genTests ?? [],
     };
@@ -104,6 +111,20 @@ export function recentPlacementSittings(): string[][] {
 
 export function setTargetBand(band: number): Profile {
   return commit({ ...getSnapshot(), targetBand: band });
+}
+
+/**
+ * Records that a learner has opened a module, which retires its "New" badge.
+ *
+ * Returns without writing when it is already recorded. Every write now
+ * schedules a sync, so a no-op write would mean a network round trip each
+ * time the dashboard link is followed.
+ */
+export function markVisited(key: string): Profile {
+  const p = getSnapshot();
+  const seen = p.visited ?? [];
+  if (seen.includes(key)) return p;
+  return commit({ ...p, visited: [...seen, key] });
 }
 
 export function addResult(result: ModuleResult): Profile {
