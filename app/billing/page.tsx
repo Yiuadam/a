@@ -32,13 +32,9 @@ export default function BillingPage() {
   const monthly = plansForTier("pro").find((p) => p.interval === "month");
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Usage and plan</h1>
-        <p className="mt-1.5 max-w-2xl text-[15px] leading-7 text-slate-600">
-          What you have used today, and what you are on.
-        </p>
-      </header>
+    <div className="space-y-4">
+      {/* No standfirst: "Usage and plan" already says what this is. */}
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Usage and plan</h1>
 
       {/*
         Three states, and each is said plainly rather than defaulted around.
@@ -138,35 +134,34 @@ export default function BillingPage() {
             />
           </section>
 
-          <section className="card">
-            <h2 className="heading-rule mb-3 text-base font-semibold text-slate-900">
-              What your plan includes
-            </h2>
-            <ul className="space-y-2">
+          {/*
+            Folded shut. What a learner opens this page for is the bar; what
+            their plan includes is a thing they read once when they chose it,
+            and it was pushing the page past a screen.
+          */}
+          <details className="card [&[open]_.chev]:rotate-90">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-base font-semibold text-slate-900">
+              <span aria-hidden="true" className="chev text-slate-400 transition-transform">›</span>
+              What {definition.name} includes
+            </summary>
+            <ul className="mt-3 space-y-1.5">
               {definition.includes.map((line) => (
-                <li key={line} className="flex gap-2.5 text-[15px] leading-7 text-slate-700">
+                <li key={line} className="flex gap-2.5 text-[15px] leading-6 text-slate-700">
                   <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600" />
                   {line}
                 </li>
               ))}
             </ul>
-            {tier === "free" && (
-              <p className="mt-4 text-sm leading-6 text-slate-600">
-                Standard lifts the weekly limits, adds the full mock exam and the tutor chat.{" "}
-                <Link href="/pricing" className="font-medium text-indigo-700 underline underline-offset-2">
-                  Compare the plans
-                </Link>
-                .
-              </p>
-            )}
-          </section>
+          </details>
 
           <p className="text-sm text-slate-500">
-            Your name, email and picture are on{" "}
-            <Link href="/account" className="font-medium text-indigo-700 underline underline-offset-2">
-              your account page
+            <Link href="/pricing" className="font-medium text-indigo-700 underline underline-offset-2">
+              Compare plans
             </Link>
-            .
+            {" · "}
+            <Link href="/account" className="font-medium text-indigo-700 underline underline-offset-2">
+              Your name, email and picture
+            </Link>
           </p>
         </>
       )}

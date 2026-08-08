@@ -118,12 +118,17 @@ export const TIERS: Record<Tier, TierDefinition> = {
     blurb: "A real account, with a daily allowance of AI feedback.",
     dailyAiCalls: 20,
     features: EVERYTHING_METERED,
+    /*
+      Short lines, deliberately. A bullet that wraps to three lines is a
+      paragraph wearing a dot, and five of those turned this card into most of
+      a screen. Each of these says one thing and stops.
+    */
     includes: [
-      "The placement test, your study plan, and every grammar and vocabulary drill — unlimited, always",
-      "Two listening papers and two reading papers a week, marked the moment you submit",
-      "One essay and one speaking answer a week, marked by the AI examiner",
-      "20 AI requests a day: essay feedback, speaking feedback, word lookups and generated tests, in any mix",
-      "Your progress synced between your phone and your laptop",
+      "Placement test, study plan and all drills — unlimited",
+      "2 listening and 2 reading papers a week",
+      "1 essay and 1 speaking answer marked a week",
+      "20 AI requests a day, in any mix",
+      "Progress synced across your devices",
     ],
   },
   pro: {
@@ -133,11 +138,11 @@ export const TIERS: Record<Tier, TierDefinition> = {
     dailyAiCalls: 500,
     features: [...EVERYTHING_METERED, "tutor-chat"],
     includes: [
-      "Everything in Free, with no weekly limit on how many papers you sit",
-      "The full mock exam: Listening, Reading, Writing and Speaking in one sitting, timed like the real thing",
-      "The AI tutor chat: ask why an answer was wrong, and keep asking",
-      "500 AI requests a day, which in practice means you will not meet the limit",
-      "Cancel whenever you like — one button, on your billing page",
+      "Everything in Free, with no weekly limits",
+      "The full mock exam — all four skills, timed",
+      "The AI tutor chat, whenever you are stuck",
+      "500 AI requests a day",
+      "Cancel any time, one button",
     ],
   },
   /*

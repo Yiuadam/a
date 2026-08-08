@@ -193,10 +193,10 @@ export default function UsageMeter({
         </dl>
       )}
 
-      <p className="mt-3 text-xs leading-5 text-slate-500">
-        One allowance covers everything: essay marking, speaking marking, word lookups, generated
-        tests and tutor questions all draw on the same count. It is a rolling 24 hours rather than a
-        daily reset, so each request frees itself up 24 hours after you make it.
+      {/* One line. The detail is true and it is not worth four lines of a card. */}
+      <p className="mt-2.5 text-xs leading-5 text-slate-500">
+        One shared allowance, over a rolling 24 hours — each request frees itself up a day after
+        you make it.
       </p>
     </div>
   );

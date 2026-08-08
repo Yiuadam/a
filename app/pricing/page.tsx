@@ -31,13 +31,12 @@ const ALWAYS_FREE = [
 
 export default function PricingPage() {
   return (
-    <div className="space-y-10">
-      <div className="max-w-2xl space-y-2">
+    <div className="space-y-6">
+      <div className="max-w-2xl">
         <h1 className="text-[26px] font-semibold text-slate-900">Plans</h1>
-        <p className="text-[15px] leading-7 text-slate-600">
-          Most of BandUp is free and always will be. What costs money to run is the AI —
-          marking an essay, listening to a speaking test, generating a new passage — so that is
-          what a plan buys more of.
+        {/* One line. The two cards below say the rest, and say it better. */}
+        <p className="mt-1 text-[15px] leading-6 text-slate-600">
+          Most of BandUp is free. A plan buys more of the part that costs money to run — the AI.
         </p>
       </div>
 
@@ -54,10 +53,11 @@ export default function PricingPage() {
 
       <PricingPlans />
 
-      <section className="card">
-        <h2 className="heading-rule text-base font-semibold text-slate-900">
+      <details className="card [&[open]_.chev]:rotate-90">
+        <summary className="flex cursor-pointer list-none items-center gap-2 text-base font-semibold text-slate-900">
+          <span aria-hidden="true" className="chev text-slate-400 transition-transform">›</span>
           Free forever, on every plan
-        </h2>
+        </summary>
         <p className="mt-3 text-[15px] leading-7 text-slate-600">
           These are shipped inside the app. Serving them a thousand times costs the same as
           serving them once, which is nothing — so there is nothing to charge for.
@@ -69,12 +69,13 @@ export default function PricingPage() {
             </li>
           ))}
         </ul>
-      </section>
+      </details>
 
-      <section className="card">
-        <h2 className="heading-rule text-base font-semibold text-slate-900">
+      <details className="card [&[open]_.chev]:rotate-90">
+        <summary className="flex cursor-pointer list-none items-center gap-2 text-base font-semibold text-slate-900">
+          <span aria-hidden="true" className="chev text-slate-400 transition-transform">›</span>
           Things worth knowing before you pay
-        </h2>
+        </summary>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           <strong>A band score here is an estimate, not a result.</strong> The AI examiner is a
           language model. It can be wrong, and it can be confidently wrong. Nothing this app
@@ -100,7 +101,7 @@ export default function PricingPage() {
           through its own payment system rather than the one on this page. That is not built
           yet; until it is, subscribing is a web feature.
         </p>
-      </section>
+      </details>
     </div>
   );
 }
