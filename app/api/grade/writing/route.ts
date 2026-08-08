@@ -5,6 +5,7 @@ import { clampBand } from "@/lib/band";
 import { WRITING_TASK1_CRITERIA, WRITING_TASK2_CRITERIA } from "@/lib/descriptors";
 import type { WritingGrade } from "@/lib/types";
 import { withCors } from "@/lib/http/cors";
+import { logInternal, safeJsonError } from "@/lib/auth/errors";
 
 export const maxDuration = 60;
 
@@ -92,8 +93,17 @@ Grade this response. In "criteria", give exactly four entries named ${
       criteria: grade.criteria.map((c) => ({ ...c, band: clampBand(c.band) })),
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Grading failed.";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    /*
+      The upstream message is logged, never returned. It can carry the
+      model name, a request id, a rate-limit detail or a fragment of the
+      key — none of which a learner can act on, and all of which describe
+      how this server is built. ACCOUNTS.md, threat 7.
+    */
+    logInternal("grade/writing", err);
+    return safeJsonError(
+      "Couldn't mark your writing just now. Your essay is still here — please try again in a minute.",
+      502,
+    );
   }
 }
 

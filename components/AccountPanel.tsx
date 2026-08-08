@@ -34,6 +34,13 @@ import { apiUrl } from "@/lib/api";
 */
 interface AccountStatus {
   enabled: boolean;
+  /*
+    Which sign-in buttons to draw. Comes from the server, which asks Supabase,
+    so a provider that was never configured cannot get a button. Apple waits on
+    an Apple Developer membership; until that exists the project reports Google
+    alone and only Google is offered.
+  */
+  providers?: string[];
   signedIn?: boolean;
   tier?: string;
   unlimited?: boolean;
@@ -175,7 +182,7 @@ export default function AccountPanel() {
         figure on it would be a guess.
       */}
       {phase === "ready" && status?.enabled === true && !status.signedIn && (
-        <SignedOut onRecovered={reload} />
+        <SignedOut providers={status.providers ?? []} onRecovered={reload} />
       )}
 
       {phase === "ready" && status?.enabled === true && status.signedIn === true && (
@@ -211,17 +218,47 @@ function AccountsNotYetOpen() {
   );
 }
 
-function SignedOut({ onRecovered }: { onRecovered: () => void }) {
+const PROVIDER_BUTTONS = [
+  { id: "google", label: "Continue with Google", Mark: GoogleMark },
+  { id: "apple", label: "Continue with Apple", Mark: AppleMark },
+] as const;
+
+function SignedOut({
+  providers,
+  onRecovered,
+}: {
+  providers: string[];
+  onRecovered: () => void;
+}) {
   const [showRecovery, setShowRecovery] = useState(false);
+  const available = PROVIDER_BUTTONS.filter((p) => providers.includes(p.id));
+
+  /*
+    Naming only what is actually on offer. Saying "Google and Apple" while
+    showing one button reads as something being broken, and a learner who came
+    here to use Apple deserves to be told it is not available rather than left
+    hunting for the button.
+  */
+  const names = available.map((p) => (p.id === "google" ? "Google" : "Apple"));
+  const who =
+    names.length === 2 ? "Google and Apple" : names.length === 1 ? names[0] : "your provider";
 
   return (
     <div className="space-y-6">
       <section className="card">
         <h2 className="text-[17px] font-semibold text-slate-900">Sign in</h2>
-        <p className="mt-2 text-[15px] leading-7 text-slate-600">
-          Use the account you already have. BandUp never sees your password — Google and Apple
-          confirm it&rsquo;s you and tell us nothing else beyond your email address.
-        </p>
+
+        {available.length === 0 ? (
+          <p className="mt-2 text-[15px] leading-7 text-slate-600">
+            Signing in isn&rsquo;t available at the moment. Everything else on BandUp works as
+            usual — your practice is stored on this device and is unaffected.
+          </p>
+        ) : (
+          <p className="mt-2 text-[15px] leading-7 text-slate-600">
+            Use the account you already have. BandUp never sees your password — {who} confirms
+            it&rsquo;s you and tells us nothing else beyond your email address.
+          </p>
+        )}
 
         <div className="mt-5 flex flex-col gap-3 sm:max-w-sm">
           {/*
@@ -231,22 +268,24 @@ function SignedOut({ onRecovered }: { onRecovered: () => void }) {
             redirect and hand us HTML from Google that we could do nothing
             with.
           */}
-          <a href={apiUrl("/api/auth/start?provider=google")} className="btn-secondary">
-            <GoogleMark />
-            Continue with Google
-          </a>
-          <a href={apiUrl("/api/auth/start?provider=apple")} className="btn-secondary">
-            <AppleMark />
-            Continue with Apple
-          </a>
+          {available.map(({ id, label, Mark }) => (
+            <a
+              key={id}
+              href={apiUrl(`/api/auth/start?provider=${id}`)}
+              className="btn-secondary"
+            >
+              <Mark />
+              {label}
+            </a>
+          ))}
         </div>
       </section>
 
       <section className="card">
         <h2 className="text-[17px] font-semibold text-slate-900">Lost access to those?</h2>
         <p className="mt-2 text-[15px] leading-7 text-slate-600">
-          If you can&rsquo;t get into the Google or Apple account you signed up with, BandUp can
-          email a one-time sign-in link to the address on your account instead.
+          If you can&rsquo;t get into the account you signed up with, BandUp can email a
+          one-time sign-in link to the address on your account instead.
         </p>
 
         {showRecovery ? (

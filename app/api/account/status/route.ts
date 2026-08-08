@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { accountsEnabled } from "@/lib/auth/env";
-import { supabaseConfigured, rpc } from "@/lib/auth/supabase";
+import { supabaseConfigured, rpc, enabledOAuthProviders } from "@/lib/auth/supabase";
 import { getSessionUser } from "@/lib/auth/session";
 import { resolveEntitlement, ANONYMOUS_ENTITLEMENT } from "@/lib/billing/entitlements";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { USAGE_LIMITS, USAGE_WINDOW_SECONDS } from "@/lib/usage/limits";
+import { OAUTH_PROVIDERS } from "@/lib/auth/oauth";
 import { withCors } from "@/lib/http/cors";
 
 /*
@@ -51,8 +52,19 @@ async function handleGET(req: Request) {
       });
     }
 
+    /*
+      Only the providers this app offers *and* the project has configured. The
+      intersection matters in both directions: a provider enabled in Supabase
+      that this app has no button for is not offered, and a button this app
+      could render for a provider that was never set up is not shown.
+    */
+    const configured = await enabledOAuthProviders();
+    const providers =
+      configured === null ? [] : OAUTH_PROVIDERS.filter((p) => configured.includes(p));
+
     return NextResponse.json({
       enabled: true,
+      providers,
       signedIn: Boolean(user),
       tier: entitlement.tier,
       // The UI needs to know an admin has no cap so it can stop rendering a
