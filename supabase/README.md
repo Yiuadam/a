@@ -28,13 +28,25 @@ being recreated.
 | `0005_profile_fields.sql` | Display name, avatar path and date of birth on `profiles`, and a private `avatars` bucket. |
 | `0006_drop_gender_add_age_check.sql` | Drops `gender`, and makes the under-13 claim on `/privacy` a constraint rather than a sentence. |
 
-`0005` is the one file that may not do everything it says. Its storage policy
-needs ownership of `storage.objects`, which the SQL editor has on most projects
-and not on all; where it does not, the file raises a notice, applies everything
-else and carries on. That is safe — the `avatars` bucket is private, no client
-role is granted anything on it, and the application serves signed URLs — so the
-policy is a second lock rather than the only one. Add it from **Storage →
-Policies** in the dashboard if you want it.
+`0005` is the one file that may not do everything it says, and it is written
+so that this cannot hurt. Its two storage steps — creating the private
+`avatars` bucket and putting a policy on it — need rights over
+`storage.buckets` and `storage.objects`, which are owned by
+`supabase_storage_admin` and not reachable from every project's SQL editor.
+
+Each step is guarded separately, so a refusal becomes a notice carrying the
+real error rather than a failed file. That matters more than it sounds: the SQL
+editor runs a pasted file as a single transaction, so without the guards one
+refused storage statement would roll back the profile columns as well — and
+`0006` would then fail with `column "birth_date" does not exist`, pointing at
+the wrong file entirely.
+
+If you see the bucket notice, make it by hand: **Storage → New bucket**, name
+`avatars`, Public **off**, file size limit 2 MB, allowed MIME types
+`image/jpeg, image/png, image/webp`. Profile pictures will not upload until it
+exists. If you see only the policy notice, nothing needs doing — the bucket is
+private, no client role holds a storage grant, and every read is a short-lived
+signed URL issued by the server.
 
 ## Making the owner an admin
 
