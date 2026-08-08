@@ -61,18 +61,39 @@ alter table public.profiles
 -- lib/auth/supabase.ts.
 -- ---------------------------------------------------------------------------
 
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'avatars',
-  'avatars',
-  false,
-  2097152,                                            -- 2 MB
-  array['image/jpeg', 'image/png', 'image/webp']
-)
-on conflict (id) do update
-  set public             = excluded.public,
-      file_size_limit    = excluded.file_size_limit,
-      allowed_mime_types = excluded.allowed_mime_types;
+-- Both blocks below are guarded, and they are guarded separately.
+--
+-- The reason is the SQL editor: it runs a pasted file as a single transaction,
+-- so one refused statement rolls back everything above it. Storage is the part
+-- of this file most likely to be refused — `storage.buckets` and
+-- `storage.objects` are owned by `supabase_storage_admin`, and not every
+-- project's SQL editor is a member of that role — and it would take the
+-- profile columns down with it. Those columns are what the application
+-- actually needs; the bucket can be made by hand in thirty seconds and the
+-- policy is a second lock on a private bucket. The optional part must not be
+-- able to veto the necessary part.
+--
+-- Two blocks rather than one because a plpgsql exception handler rolls back
+-- its own block: a refused policy in the same block would undo a bucket that
+-- had already been created.
+--
+-- Nothing is swallowed. Each handler reports the real error as a notice.
+
+do $guard$
+begin
+  execute $stmt$
+    insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    values ('avatars', 'avatars', false, 2097152, array['image/jpeg', 'image/png', 'image/webp'])
+    on conflict (id) do update
+      set public             = excluded.public,
+          file_size_limit    = excluded.file_size_limit,
+          allowed_mime_types = excluded.allowed_mime_types
+  $stmt$;
+exception
+  when others then
+    raise notice 'Could not create the avatars bucket (%). Everything else in this file applied. Make it by hand: Storage -> New bucket, name "avatars", Public OFF, file size limit 2 MB, allowed MIME types image/jpeg, image/png, image/webp. Profile pictures will not upload until it exists.', sqlerrm;
+end;
+$guard$;
 
 -- Objects live under a folder named for the owner's id, which is what the
 -- policy below matches on. Two things about it are worth stating plainly,
@@ -88,15 +109,6 @@ on conflict (id) do update
 -- service role, which bypasses this policy entirely, so a client write grant
 -- would buy no feature and would let anyone with a token fill their own folder
 -- with 2 MB files. Same rule as 0002: read your own rows, write nothing.
---
--- The whole block is guarded, because `storage.objects` is owned by
--- `supabase_storage_admin` and on some projects the SQL editor is not a member
--- of that role. There the statement fails with `must be owner of table
--- objects`, which would otherwise abort this file after the bucket was already
--- created. A missing policy costs nothing here — no client is given a storage
--- grant, and the application serves signed URLs rather than direct reads — so
--- a notice is the honest response, not a failed migration. Add it from
--- Storage → Policies in the dashboard if you want the second lock.
 do $guard$
 begin
   execute $stmt$
@@ -118,7 +130,7 @@ begin
   execute $stmt$drop policy if exists "avatars are replaceable by their owner" on storage.objects$stmt$;
   execute $stmt$drop policy if exists "avatars are deletable by their owner" on storage.objects$stmt$;
 exception
-  when insufficient_privilege then
-    raise notice 'Skipped the avatars storage policy: this project''s SQL editor does not own storage.objects. The bucket is private and every read is a signed URL issued by the server, so nothing is exposed. Add the policy from Storage -> Policies if you want it.';
+  when others then
+    raise notice 'Skipped the avatars storage policy (%). Nothing is exposed: the bucket is private, no client role holds a storage grant, and every read is a short-lived signed URL issued by the server. Add it from Storage -> Policies if you want the second lock.', sqlerrm;
 end;
 $guard$;
