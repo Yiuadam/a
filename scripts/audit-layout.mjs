@@ -112,6 +112,28 @@ const { browser } = launched;
 const page = await browser.newPage();
 
 /*
+  Every page is swept signed *out*, with accounts switched on.
+
+  That is the state where the locks are drawn, and it is the state this sweep
+  never used to see: without the interception below, a dev server with no
+  Supabase answers {enabled:false}, every card renders unlocked, and
+  components/LockedCard.tsx is never on the page at all.
+
+  It cost a real bug. LockedCard shipped without min-w-0, its min-content was a
+  whole untruncated sentence, and the grid column it sits in was sized to 654px
+  inside a 320px page — text running off the right edge on every phone. This
+  file swept 19 pages at 7 widths and reported no sideways scroll, because it
+  was looking at a version of those pages that had no locked cards on them.
+*/
+await page.route("**/api/account/status", (route) =>
+  route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ enabled: true, signedIn: false, providers: ["google"] }),
+  }),
+);
+
+/*
   A learner who has done something, rather than an empty app.
 
   This is not garnish. Every run before it existed visited each page cold, with

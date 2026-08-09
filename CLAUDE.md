@@ -2,23 +2,34 @@
 
 # Working agreement
 
-**Ship every change straight to production.** The owner has asked not to be
-consulted per change: build what was asked, verify it, push, wait for CI, then
-merge to `main` yourself. Cloudflare deploys `main` automatically, so merging
-is what makes a change live.
+**Preview every change. Never deploy to production yourself.** BandUp has real
+users. The owner reviews each change on its own preview URL and decides when it
+goes live; nothing reaches `bandup.life` without that.
+
+This replaces the earlier agreement to merge straight to `main`, which was the
+right trade only while a bad deploy could inconvenience nobody but the owner.
 
 The flow for each request:
 
-1. Work on the branch `claude/english-exam-prep-app-rbklw7`, restarting it from
-   the latest `main` whenever its previous pull request has been merged.
+1. Work on a branch off the latest `main`.
 2. Before pushing, run everything CI runs — `npx eslint .`, `npm run build`,
-   `node scripts/validate-content.mjs`, `node scripts/simulate-placement.mjs`,
-   and `npm run build:mobile` — and exercise the change in a real browser.
-   Nothing reaches production that has not been seen working.
-3. Push, open a pull request, wait for the checks, merge it.
-4. Say plainly what went live, and say so just as plainly if something is
-   broken. There is no review step now, so honesty about failures is the only
-   safeguard left.
+   `npm test`, `node scripts/validate-content.mjs`,
+   `node scripts/simulate-placement.mjs`, `npm run build:mobile`,
+   `npm run cf:build` and `node scripts/check-delivery.mjs` — and exercise the
+   change in a real browser. A preview the owner has to debug is worse than no
+   preview.
+3. Push and open a pull request. `.github/workflows/preview-cloudflare.yml`
+   uploads it as its own Worker version and comments the preview URL.
+4. Give the owner the preview link and say what to look at. **Then stop.**
+   Do not merge, and do not run the deploy workflow, unless the owner says so
+   for that specific change.
+5. Say plainly what is in it, and just as plainly if something is broken.
+
+Two things to remember about a preview: it runs against the **real** Supabase
+and the real Stripe configuration, because secrets belong to the Worker rather
+than to a version — so anything done on a preview happens to real data. And a
+database migration is not previewable at all: applying one changes production
+immediately, so say so before asking for one.
 
 Production is <https://bandup.siksafe-realtime-ai-vision.workers.dev>. The URL is
 permanent; every deployment replaces what is served there. It becomes

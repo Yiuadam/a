@@ -72,7 +72,22 @@ export default function LockedCard({
     <Link
       href={href}
       aria-label={said}
-      className={`group relative block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${fill ? "h-full" : ""}`}
+      /*
+        min-w-0, and the same on the wrapper below.
+
+        This link is a grid item, and a grid item's automatic minimum width is
+        its min-content — not zero. The card inside carries `truncate`, which
+        sets white-space: nowrap, so its min-content is the *whole* untruncated
+        sentence. Without this the column is sized to the longest description
+        in the list and every card in it overflows the screen: 654px of card in
+        a 320px grid, with the text running off the right edge and the page
+        scrolling sideways.
+
+        The same trap has now been hit four times in this codebase, always with
+        `truncate` at the bottom of it. If a card here ever stops truncating,
+        this is the line to look at first.
+      */
+      className={`group relative block min-w-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${fill ? "h-full" : ""}`}
     >
       {/*
         The card itself, dimmed and desaturated. pointer-events-none so that
@@ -80,7 +95,7 @@ export default function LockedCard({
         stray button underneath would send a learner somewhere that refuses
         them.
       */}
-      <div className={`pointer-events-none select-none opacity-45 grayscale-[35%] ${fill ? "h-full" : ""}`}>
+      <div className={`pointer-events-none min-w-0 select-none opacity-45 grayscale-[35%] ${fill ? "h-full" : ""}`}>
         {children}
       </div>
 
