@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey } from "@/lib/anthropic";
+import { requireAccess } from "@/lib/gate";
 
 export const maxDuration = 30;
 
@@ -34,6 +35,8 @@ Rules:
 - Never refuse a normal English word. If the input is not English or is not a word, say so plainly in "short".`;
 
 export async function POST(req: Request) {
+  const gate = requireAccess(req);
+  if (!gate.ok) return gate.response;
   if (!hasApiKey()) {
     return NextResponse.json({ error: UNAVAILABLE }, { status: 503 });
   }

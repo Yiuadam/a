@@ -10,6 +10,8 @@ import listeningOne from "@/data/listening-1.json";
 import listeningTwo from "@/data/listening-2.json";
 import listeningThree from "@/data/listening-3.json";
 import listeningFour from "@/data/listening-4.json";
+import UpgradeNotice from "@/components/UpgradeNotice";
+import { PaywallError, postJSON } from "@/lib/api";
 import { useProfile } from "@/lib/hooks";
 import { questionCount } from "@/lib/questions";
 import { addGeneratedTest } from "@/lib/store";
@@ -30,22 +32,21 @@ export default function PracticePage() {
   const [genTopic, setGenTopic] = useState("");
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const [genPaywalled, setGenPaywalled] = useState<string | null>(null);
 
   async function generate() {
     setGenerating(true);
     setGenError(null);
+    setGenPaywalled(null);
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const data = await postJSON<{ kind: GeneratedTest["kind"]; test: GeneratedTest["test"] }>(
+        "/api/generate",
+        {
           kind: genKind,
           difficulty: genDifficulty,
           topicHint: genTopic || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Generation failed.");
+        },
+      );
       const entry: GeneratedTest = {
         kind: data.kind,
         createdAt: new Date().toISOString(),
@@ -53,7 +54,8 @@ export default function PracticePage() {
       };
       addGeneratedTest(entry);
     } catch (err) {
-      setGenError(err instanceof Error ? err.message : "Generation failed.");
+      if (err instanceof PaywallError) setGenPaywalled(err.message);
+      else setGenError(err instanceof Error ? err.message : "Generation failed.");
     } finally {
       setGenerating(false);
     }
@@ -187,6 +189,11 @@ export default function PracticePage() {
           </button>
         </div>
         {genError && <p className="mt-3 text-sm text-rose-600">{genError}</p>}
+        {genPaywalled && (
+          <div className="mt-3">
+            <UpgradeNotice message={genPaywalled} />
+          </div>
+        )}
       </section>
     </div>
   );

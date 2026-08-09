@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
+import { requireAccess } from "@/lib/gate";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 
 export const maxDuration = 60;
@@ -96,6 +97,8 @@ const LISTENING_SCHEMA = {
 };
 
 export async function POST(req: Request) {
+  const gate = requireAccess(req);
+  if (!gate.ok) return gate.response;
   if (!hasApiKey()) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }

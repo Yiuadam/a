@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import ExplainText from "@/components/ExplainText";
+import UpgradeNotice from "@/components/UpgradeNotice";
 import speakingData from "@/data/speaking-topics.json";
+import { PaywallError, postJSON } from "@/lib/api";
 import { useMounted } from "@/lib/hooks";
 import {
   cancelSpeech,
@@ -68,6 +70,7 @@ export default function SpeakingPage() {
   const [elapsed, setElapsed] = useState(0);
   const [grade, setGrade] = useState<SpeakingGrade | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paywalled, setPaywalled] = useState<string | null>(null);
   const [micBlocked, setMicBlocked] = useState(false);
   const mounted = useMounted();
   const micSupported = mounted && speechRecognitionSupported() && !micBlocked;
@@ -211,25 +214,23 @@ export default function SpeakingPage() {
     async (finalTranscript: Turn[]) => {
       setStage("grading");
       setError(null);
+      setPaywalled(null);
       try {
-        const res = await fetch("/api/grade/speaking", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript: finalTranscript }),
+        const payload = await postJSON<SpeakingGrade>("/api/grade/speaking", {
+          transcript: finalTranscript,
         });
-        const payload = await res.json();
-        if (!res.ok) throw new Error(payload.error ?? "Grading failed.");
-        setGrade(payload as SpeakingGrade);
+        setGrade(payload);
         setStage("result");
         addResult({
           module: "speaking",
           testId: "mock-speaking",
           testTitle: "Mock speaking interview",
-          band: (payload as SpeakingGrade).overallBand,
+          band: payload.overallBand,
           date: new Date().toISOString(),
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Grading failed.");
+        if (err instanceof PaywallError) setPaywalled(err.message);
+        else setError(err instanceof Error ? err.message : "Grading failed.");
         setStage("interview");
       }
     },
@@ -536,6 +537,7 @@ export default function SpeakingPage() {
           {stepIndex + 1 >= totalSteps ? "Finish and get my band score" : "Next question"}
         </button>
         {error && <p className="text-sm text-rose-600">{error}</p>}
+        {paywalled && <UpgradeNotice message={paywalled} />}
       </div>
     </div>
   );

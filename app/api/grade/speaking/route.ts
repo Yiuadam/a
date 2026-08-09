@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
 import { clampBand } from "@/lib/band";
 import { SPEAKING_CRITERIA } from "@/lib/descriptors";
+import { requireAccess } from "@/lib/gate";
 import type { SpeakingGrade } from "@/lib/types";
 
 export const maxDuration = 60;
@@ -45,6 +46,8 @@ interface Turn {
 }
 
 export async function POST(req: Request) {
+  const gate = requireAccess(req);
+  if (!gate.ok) return gate.response;
   if (!hasApiKey()) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }

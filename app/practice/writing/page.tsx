@@ -5,7 +5,9 @@ import { useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import ExplainText from "@/components/ExplainText";
 import Timer from "@/components/Timer";
+import UpgradeNotice from "@/components/UpgradeNotice";
 import writingData from "@/data/writing-tasks.json";
+import { PaywallError, postJSON } from "@/lib/api";
 import { addResult } from "@/lib/store";
 import type { WritingGrade, WritingTasksData } from "@/lib/types";
 
@@ -18,6 +20,7 @@ export default function WritingPage() {
   const [grading, setGrading] = useState(false);
   const [grade, setGrade] = useState<WritingGrade | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paywalled, setPaywalled] = useState<string | null>(null);
 
   const task = useMemo(() => tasks.find((t) => t.id === taskId)!, [taskId]);
   const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0;
@@ -25,30 +28,26 @@ export default function WritingPage() {
   async function submit() {
     setGrading(true);
     setError(null);
+    setPaywalled(null);
     setGrade(null);
     try {
-      const res = await fetch("/api/grade/writing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          task: task.task,
-          prompt: task.prompt,
-          essay,
-          minWords: task.minWords,
-        }),
+      const data = await postJSON<WritingGrade>("/api/grade/writing", {
+        task: task.task,
+        prompt: task.prompt,
+        essay,
+        minWords: task.minWords,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Grading failed.");
-      setGrade(data as WritingGrade);
+      setGrade(data);
       addResult({
         module: "writing",
         testId: task.id,
         testTitle: task.title,
-        band: (data as WritingGrade).overallBand,
+        band: data.overallBand,
         date: new Date().toISOString(),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Grading failed.");
+      if (err instanceof PaywallError) setPaywalled(err.message);
+      else setError(err instanceof Error ? err.message : "Grading failed.");
     } finally {
       setGrading(false);
     }
@@ -156,6 +155,11 @@ export default function WritingPage() {
           )}
         </div>
         {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+        {paywalled && (
+          <div className="mt-3">
+            <UpgradeNotice message={paywalled} />
+          </div>
+        )}
       </div>
 
       {grade && (
