@@ -4,6 +4,8 @@ import Link from "next/link";
 import BandBadge from "@/components/BandBadge";
 import { useProfile } from "@/lib/hooks";
 import { latestFor, newestFirst } from "@/lib/results";
+import LockedCard from "@/components/LockedCard";
+import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { markVisited } from "@/lib/store";
 import type { ModuleName } from "@/lib/types";
 import { Icon } from "@/components/Icons";
@@ -57,6 +59,7 @@ const STUDY = [
 
 export default function Dashboard() {
   const profile = useProfile();
+  const access = useSessionAccess();
   const placement = profile.placement;
   const recent = newestFirst(profile.results).slice(0, 6);
 
@@ -129,7 +132,19 @@ export default function Dashboard() {
         it, which is the same trap /practice hit at 390px.
       */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="min-w-0 space-y-4 lg:col-span-2">
+        {/*
+          Two thirds when there is something in the third column, all three
+          when there is not.
+
+          The right column only renders once a learner has practised. Before
+          that the left column was still spanning 2 of 3, so a new account got
+          its six tiles squeezed into two thirds of the page with 524px of
+          nothing beside them — measured at 1920px. The grid was reserving room
+          for a section that had decided not to appear.
+        */}
+        <div
+          className={`min-w-0 space-y-4 ${recent.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}
+        >
           <section>
             <h2 className="heading-rule mb-2.5 text-sm font-semibold text-slate-900">
               Practise a skill
@@ -144,6 +159,31 @@ export default function Dashboard() {
               {MODULES.map((m) => {
                 const latest = latestFor(profile.results, m.key);
                 const isNew = !latest && !(profile.visited ?? []).includes(m.key);
+                const skill = access[m.key];
+
+                /*
+                  The same lock as /practice, on the same skills, because a
+                  learner meets these cards first. A door that is locked should
+                  look locked wherever you find it — being told on the
+                  dashboard that Writing is available and discovering one page
+                  later that it is not is worse than never offering it.
+                */
+                if (skill.locked && skill.reason) {
+                  return (
+                    <LockedCard key={m.key} reason={skill.reason} label={`${m.label} practice`}>
+                      <div className="card !p-3.5">
+                        <div className="flex items-start gap-2.5">
+                          <Icon name={m.icon} className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-semibold text-slate-900">{m.label}</h3>
+                            <p className="mt-0.5 text-xs leading-5 text-slate-600">{m.blurb}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </LockedCard>
+                  );
+                }
+
                 return (
                   <Link
                     key={m.key}
