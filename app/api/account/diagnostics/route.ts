@@ -115,23 +115,60 @@ async function handleGET(req: Request) {
     `provider_customer_for_user` is checked with a real user id — the caller's
     own, which is the only one this route is allowed to ask about — because it
     is the one the billing portal button depends on.
+
+    Both are also a reminder that a missing function is only half the failure.
+    Supabase serves these through PostgREST, which keeps its own cache of what
+    exists; a migration can apply cleanly and still 404 until the cache is told
+    to reload. That happened twice on the day this panel was written, which is
+    why the advice below names the reload as well as the file.
   */
-  const applyFn = await rpcDiagnostic("apply_provider_subscription_event", {});
   /*
-    Called with no arguments on purpose. A function that exists answers 400 —
-    "missing required argument" — and one that does not answers 404 with
-    PGRST202. So the check is for the *absence* of that code rather than for a
-    success that would mean writing a fake subscription row into a live
-    database to find out.
+    Called with the *real* argument list, and with an event that cannot match an
+    account.
+
+    The first version of this check called it with no arguments, on the theory
+    that a function which exists answers 400 and one which does not answers 404.
+    That was wrong, and wrong in the direction that matters: PostgREST resolves
+    a function by the exact set of named arguments it was given, so "no such
+    function" and "no overload with these arguments" are the same 404. The check
+    reported a perfectly healthy database as broken.
+
+    Passing the twelve real arguments fixes that and buys something better than
+    an existence check: it exercises the same signature lib/billing/subscriptions.ts
+    calls with, so a function that has drifted from the code is caught here too.
+
+    It is safe to call. The function resolves the account before it claims
+    anything — see the comment above `v_user_id := p_user_id` in
+    0009_billing_webhooks.sql — and with no user id, no subscription id and no
+    customer id there is nothing to resolve, so it returns 'unknown_user' having
+    written nothing at all.
   */
-  const applyMissing = /PGRST202|Could not find the function/i.test(applyFn.detail);
+  const applyFn = await rpcDiagnostic("apply_provider_subscription_event", {
+    p_provider: "stripe",
+    p_event_id: "diagnostic",
+    p_event_at: new Date().toISOString(),
+    p_payload: {},
+    p_user_id: null,
+    p_status: "canceled",
+    p_tier: "free",
+    p_customer_id: null,
+    p_subscription_id: null,
+    p_price_id: null,
+    p_current_period_end: null,
+    p_cancel_at_period_end: false,
+  });
+  const applyWorks = applyFn.ok && /unknown_user/.test(applyFn.detail);
   add(
     "apply_provider_subscription_event",
-    !applyMissing,
-    applyMissing
-      ? `${applyFn.status}: not found — apply supabase/migrations/0009_billing_webhooks.sql, ` +
-        "or every Stripe webhook answers 503 and a paid subscription is never granted"
-      : "exists — this is what the Stripe webhook writes through",
+    applyWorks,
+    applyWorks
+      ? "answers — this is what the Stripe webhook writes through"
+      : `${applyFn.status}: ${applyFn.detail}` +
+        (/PGRST202|Could not find the function/i.test(applyFn.detail)
+          ? " — apply supabase/migrations/0009_billing_webhooks.sql, then run" +
+            " `notify pgrst, 'reload schema';`. Without it every Stripe webhook" +
+            " answers 503 and a paid subscription is never granted"
+          : ""),
   );
 
   const customerFn = await rpcDiagnostic("provider_customer_for_user", {
