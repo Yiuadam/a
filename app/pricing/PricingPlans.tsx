@@ -471,8 +471,9 @@ function PaidAction({
         {formatPrice(PLANS[planId].amountMinor, PLANS[planId].currency)} every{" "}
         {PLANS[planId].interval === "year" ? "year" : "month"}, renewing automatically until you
         cancel.
-        Cancel any time from your billing page — it takes one button. Full refund within 14 days
-        of any charge, no reason needed. See the{" "}
+        Cancel any time from your billing page — it takes one button. Refunds: fourteen days and
+        no reason needed if the law where you live says so, as it does in the EU and the UK; two
+        days by request everywhere else. See the{" "}
         <Link href="/terms" className="underline underline-offset-2 hover:text-slate-700">
           terms
         </Link>

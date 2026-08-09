@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, there are no cookies or trackers, and card details never reach our servers.",
 };
 
-const LAST_UPDATED = "8 August 2026";
+const LAST_UPDATED = "9 August 2026";
 
 /* The four keys are the whole of what BandUp writes — see lib/store.ts,
    lib/drills.ts, lib/lookups.ts and lib/theme.ts. */
@@ -87,9 +87,10 @@ export default function PrivacyPage() {
       <div className="max-w-xl space-y-2">
         <h1 className="text-[26px] font-semibold text-slate-900">Privacy</h1>
         <p className="text-[15px] leading-7 text-slate-600">
-          Your practice stays in the browser or app on your device. An account is optional and
-          changes only what is named below. This page says exactly what that means, and where
-          the exceptions are.
+          Without an account, your practice stays on your device and is gone when you close the
+          browser. With one, it is synced so a second device can pick it up. An account is
+          optional and changes only what is named below. This page says exactly what that means,
+          and where the exceptions are.
         </p>
         <p className="text-xs text-slate-500">Last updated {LAST_UPDATED}</p>
       </div>
@@ -273,15 +274,19 @@ export default function PrivacyPage() {
           and to raise the daily limit on AI feedback.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Signing in uses Google or Apple. BandUp never sees your password — the provider
-          confirms it is you and passes on your email address and nothing else. There is no
-          password here to lose or to leak, because there is none to set.
+          You can sign in with Google, with Apple, or with an email address and a password. With
+          Google or Apple, BandUp never sees a password at all — the provider confirms it is you
+          and passes on your email address and nothing else. If you set a password instead, it is
+          held by Supabase, our database provider, as a one-way hash: a value that can check a
+          password is right and cannot be turned back into it. Nobody here can read your password,
+          including us.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">If you do sign in, we hold:</p>
         <ul className="mt-4 space-y-3">
           {[
             "Your email address, so the account can be recovered if you lose access to Google or Apple.",
-            "A count of AI requests over the last 24 hours, so the daily allowance can be applied. It records that a request happened and to which feature — never what you wrote, said or were told.",
+            "A count of AI requests over the last thirty days, so each feature's allowance can be applied. It records that a request happened and to which feature — never what you wrote, said or were told.",
+            "A one-way hash of the internet address the request came from, so that one address cannot spend an unlimited amount of AI by making accounts. It is salted and cannot be turned back into an address, and it is used for nothing else — not location, not advertising, not analytics.",
             "A copy of your study progress, if you choose to sync it, so a new device can pick up where the last one left off.",
             "Anything you choose to put on your account page: a display name, a profile picture, and optionally your date of birth. All of it is optional, all of it can be cleared, and the account works exactly the same if you leave it empty.",
           ].map((line) => (
@@ -315,8 +320,8 @@ export default function PrivacyPage() {
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
           Questions about any of this, or a request about your data, go to{" "}
-          <a href="mailto:hello@bandup.study" className="underline underline-offset-2 hover:text-slate-900">
-            hello@bandup.study
+          <a href="mailto:hello@bandup.life" className="underline underline-offset-2 hover:text-slate-900">
+            hello@bandup.life
           </a>
           .
         </p>
@@ -403,8 +408,8 @@ export default function PrivacyPage() {
           Deleting your data
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Everything is on your device, so deleting it is entirely in your hands and takes
-          effect immediately:
+          Without an account everything is on your device, so deleting it is entirely in your
+          hands and takes effect immediately:
         </p>
         <ul className="mt-4 space-y-3">
           <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
@@ -427,7 +432,11 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">Children</h2>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           BandUp is a study tool for people preparing for an English exam and is not aimed at
-          children under 13. It collects nothing that would identify anyone of any age.
+          children under 13. Without an account it collects nothing that identifies anybody. With
+          one it holds an email address, and whatever else you choose to add, which is why the
+          age limit exists at all. If you are in the EU or the UK and under 16, the law may
+          require a parent&rsquo;s permission before an account is made in your name — please ask
+          them first.
         </p>
       </section>
 

@@ -99,7 +99,7 @@ https://bandup.siksafe-realtime-ai-vision.workers.dev
 ```
 
 That URL does not change between deployments, so a bookmark or an App Store
-listing keeps working. It becomes `bandup.study` when that domain is ready —
+listing keeps working. The custom domain is `bandup.life` —
 a DNS change pointed at the same Worker, not a move.
 
 `.github/workflows/deploy-cloudflare.yml` does the work. It needs two
