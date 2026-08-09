@@ -53,7 +53,7 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const PAGES = [
   "/", "/plan", "/history", "/practice", "/practice/listening", "/practice/reading",
   "/practice/writing", "/speaking", "/grammar", "/vocabulary", "/resources", "/chat",
-  "/account", "/billing", "/pricing", "/placement", "/privacy", "/terms",
+  "/account", "/billing", "/pricing", "/placement", "/privacy", "/terms", "/credits",
 ];
 
 const problems = [];

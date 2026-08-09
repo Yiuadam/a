@@ -47,7 +47,7 @@ const BASE = process.env.BASE_URL || "http://localhost:3000";
 const PAGES = [
   "/", "/plan", "/history", "/practice", "/practice/listening", "/practice/reading",
   "/practice/writing", "/speaking", "/grammar", "/vocabulary", "/resources", "/chat",
-  "/account", "/billing", "/pricing", "/placement", "/privacy", "/terms",
+  "/account", "/billing", "/pricing", "/placement", "/privacy", "/terms", "/credits",
 ];
 
 /*
