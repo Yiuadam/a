@@ -16,6 +16,11 @@ import { useSearchParams } from "next/navigation";
   guess; what is true is that the payment went through and the account catches
   up within seconds. The cancelled message says nothing was charged, because
   that is the thing somebody who backed out of a payment page wants confirmed.
+
+  It lives in components/ rather than beside the pricing page because the two
+  answers now land in two places: paying takes you to /billing, where your plan
+  and what it includes are, and backing out leaves you on /pricing, where the
+  prices are. One component, two pages, one story about what just happened.
 */
 export default function CheckoutNotice() {
   const state = useSearchParams().get("checkout");

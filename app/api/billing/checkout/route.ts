@@ -81,9 +81,17 @@ async function handlePOST(req: Request) {
     without either being configured. A forged Host would only change where the
     forger's own browser lands.
 
-    Both point at /pricing rather than at the account page, because /pricing is
-    where the learner was and it is a page this lane owns. It reads the query
-    parameter and says something true about what just happened.
+    They point at different pages, and the difference is what the learner wants
+    next. Somebody who has just paid wants to see what they bought — their plan,
+    the date it renews, the allowances that came with it — and that is /billing.
+    Sending them back to the price list they had already decided on reads as
+    though the payment did not register.
+
+    Somebody who backed out wants the prices, because backing out is usually
+    reconsidering which plan rather than whether. So they land where they were.
+
+    Both pages read the query parameter and say something true about what just
+    happened — see components/billing/CheckoutNotice.tsx.
   */
   const origin = new URL(req.url).origin;
 
@@ -94,7 +102,7 @@ async function handlePOST(req: Request) {
       tier: PLANS[plan].tier,
       userId: user.id,
       email: user.email,
-      successUrl: `${origin}/pricing?checkout=done`,
+      successUrl: `${origin}/billing?checkout=done`,
       cancelUrl: `${origin}/pricing?checkout=cancelled`,
     });
   } catch (err) {

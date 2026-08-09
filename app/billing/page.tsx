@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
+import CheckoutNotice from "@/components/billing/CheckoutNotice";
 import OwnerDiagnostics from "@/components/billing/OwnerDiagnostics";
 import OwnerSwitch from "@/components/billing/OwnerSwitch";
 import UsageMeter from "@/components/billing/UsageMeter";
@@ -42,6 +44,17 @@ export default function BillingPage() {
     <div className="space-y-4">
       {/* No standfirst: the title already says what this is. */}
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Bill and usage</h1>
+
+      {/*
+        Where somebody lands the moment after paying. Suspense because
+        useSearchParams opts everything up to the nearest boundary out of
+        prerendering, and there is no reason for that to be the whole page; the
+        fallback is nothing, because on almost every visit there is nothing to
+        say.
+      */}
+      <Suspense fallback={null}>
+        <CheckoutNotice />
+      </Suspense>
 
       {/*
         Three states, and each is said plainly rather than defaulted around.

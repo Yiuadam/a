@@ -369,7 +369,12 @@ function PaidAction({
   */
   if (isCurrent) {
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
+        {account.expiresAt && (
+          <p className="text-xs leading-5 text-slate-500">
+            Renews {new Date(account.expiresAt).toLocaleDateString()}.
+          </p>
+        )}
         <button
           type="button"
           disabled={busy}
@@ -378,11 +383,6 @@ function PaidAction({
         >
           {busy ? "Opening…" : "Manage or cancel"}
         </button>
-        {account.expiresAt && (
-          <p className="text-xs text-slate-500">
-            Renews {new Date(account.expiresAt).toLocaleDateString()}.
-          </p>
-        )}
       </div>
     );
   }
@@ -431,20 +431,28 @@ function PaidAction({
 
   if (account.accountsEnabled && !account.signedIn) {
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
+        <p className="text-xs leading-5 text-slate-500">
+          A subscription attaches to an account, so the account comes first. It is free.
+        </p>
         <Link href="/account" className="btn-primary w-full">
           Sign in to subscribe
         </Link>
-        <p className="text-xs text-slate-500">
-          A subscription attaches to an account, so the account comes first. It is free.
-        </p>
       </div>
     );
   }
 
   /*
     The renewal terms sit here, attached to the button, and not only in the
-    terms of use.
+    terms of use — and *above* it rather than below.
+
+    Above, because every card in the row has to end on its button or the row
+    looks broken: a card whose small print is four lines long and one whose
+    renewal date is one line put their buttons a hundred pixels apart when the
+    print sits underneath. Putting the print first makes the button the last
+    thing in every card, so every button lands on the same line. It also means
+    the terms are read on the way to the button rather than after it, which is
+    the order they are for.
 
     That placement is the requirement rather than a preference. California's
     Automatic Renewal Law — the strictest of the several that apply, and so the
@@ -458,15 +466,7 @@ function PaidAction({
     that it keeps going, and how to make it stop.
   */
   return (
-    <div className="space-y-2">
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => onStart("/api/billing/checkout", { plan: planId })}
-        className="btn-primary w-full"
-      >
-        {busy ? "Opening checkout…" : "Subscribe"}
-      </button>
+    <div className="flex flex-col gap-2">
       <p className="text-xs leading-5 text-slate-500">
         {formatPrice(PLANS[planId].amountMinor, PLANS[planId].currency)} every{" "}
         {PLANS[planId].interval === "year" ? "year" : "month"}, renewing automatically until you
@@ -478,6 +478,14 @@ function PaidAction({
         </Link>
         .
       </p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onStart("/api/billing/checkout", { plan: planId })}
+        className="btn-primary w-full"
+      >
+        {busy ? "Opening checkout…" : "Subscribe"}
+      </button>
     </div>
   );
 }
