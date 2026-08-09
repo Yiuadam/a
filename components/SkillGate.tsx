@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import LockedCard from "@/components/LockedCard";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
+import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { ModuleName } from "@/lib/types";
 
 /*
@@ -109,8 +110,10 @@ export default function SkillGate({
           <p className="min-w-0 flex-1 text-sm leading-6 text-amber-900">
             {signedIn ? (
               <>
-                <span className="font-semibold">Standard unlocks this.</span> Everything else stays
-                free — the placement test, your study plan and every drill.
+                <span className="font-semibold">Standard unlocks this.</span>{" "}
+                {IS_MOBILE_BUILD
+                  ? `Subscriptions are managed on ${WEB_HOME}, not in the app.`
+                  : "Everything else stays free — the placement test, your study plan and every drill."}
               </>
             ) : (
               <>
@@ -119,9 +122,16 @@ export default function SkillGate({
               </>
             )}
           </p>
-          <Link href={signedIn ? "/pricing" : "/account"} className="btn-primary shrink-0">
-            {signedIn ? "See Standard" : "Sign in"}
-          </Link>
+          {/*
+            The iOS build has no /pricing to send anyone to, and must not offer
+            to sell this — so a signed-in learner who is out of reach of a skill
+            is told where it lives and nothing more. See lib/platform.ts.
+          */}
+          {signedIn && IS_MOBILE_BUILD ? null : (
+            <Link href={signedIn ? "/pricing" : "/account"} className="btn-primary shrink-0">
+              {signedIn ? "See Standard" : "Sign in"}
+            </Link>
+          )}
         </div>
 
         <LockedCard reason={skill.reason} label={LABEL[module]} standoff>

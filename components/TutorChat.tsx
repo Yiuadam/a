@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import UpgradePanel from "@/components/billing/UpgradePanel";
+import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import { tierShows, useTier } from "@/lib/billing/useTier";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
@@ -444,18 +445,31 @@ function Allowance({ status }: { status: AccountStatus | null }) {
       ) : !status.signedIn ? (
         <>
           The tutor comes with Plus and Pro.{" "}
-          <Link href="/pricing" className="underline underline-offset-2 hover:text-slate-700">
-            See the plans
-          </Link>
-          , or keep going with the practice tests, drills and your study plan — those are free.
+          {IS_MOBILE_BUILD ? (
+            <>Those are managed on {WEB_HOME}, not in the app.</>
+          ) : (
+            <>
+              <Link href="/pricing" className="underline underline-offset-2 hover:text-slate-700">
+                See the plans
+              </Link>
+              ,
+            </>
+          )}{" "}
+          or keep going with the practice tests, drills and your study plan — those are free.
         </>
       ) : quota === 0 ? (
         <>
           The tutor comes with Plus and Pro.{" "}
-          <Link href="/pricing" className="underline underline-offset-2 hover:text-slate-700">
-            See the plans
-          </Link>
-          .
+          {IS_MOBILE_BUILD ? (
+            <>Those are managed on {WEB_HOME}, not in the app.</>
+          ) : (
+            <>
+              <Link href="/pricing" className="underline underline-offset-2 hover:text-slate-700">
+                See the plans
+              </Link>
+              .
+            </>
+          )}
         </>
       ) : (
         <>

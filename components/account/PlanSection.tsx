@@ -1,6 +1,7 @@
 "use client";
 
 import { TIERS, type Tier } from "@/lib/billing/tiers";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 import type { AccountStatus } from "./types";
 
 /*
@@ -76,14 +77,17 @@ export default function PlanSection({ status }: { status: AccountStatus }) {
                   ? `${included.length} allowance${included.length === 1 ? "" : "s"}, all with room`
                   : `${spent.length} of ${included.length} used up`}
           </dd>
-          <dd className="mt-1 text-xs text-slate-500">
-            <a
-              href="/billing"
-              className="font-medium text-indigo-700 underline underline-offset-2"
-            >
-              See what is left
-            </a>
-          </dd>
+          {/* /billing is not in the iOS bundle — see lib/platform.ts. */}
+          {!IS_MOBILE_BUILD && (
+            <dd className="mt-1 text-xs text-slate-500">
+              <a
+                href="/billing"
+                className="font-medium text-indigo-700 underline underline-offset-2"
+              >
+                See what is left
+              </a>
+            </dd>
+          )}
         </div>
       </dl>
 

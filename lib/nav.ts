@@ -1,4 +1,5 @@
 import type { Route } from "next";
+import { IS_MOBILE_BUILD } from "./platform";
 
 /*
   Where the app can go, in one place.
@@ -89,7 +90,13 @@ export const NAV_GROUPS: NavGroup[] = [
         /pricing is still a real page with its own URL. It is simply not a
         thing to go browsing for from a menu.
       */
-      { href: "/billing", label: "Bill and usage" },
+      /*
+        Absent from the iOS build, where /billing is not in the bundle at all —
+        see lib/platform.ts. A menu entry pointing at a route that was moved
+        aside is a broken link, and a bill is the one thing an iOS app must not
+        offer to settle.
+      */
+      ...(IS_MOBILE_BUILD ? [] : [{ href: "/billing", label: "Bill and usage" } as const]),
       /* Read once, if ever — so it lives in the menu and not the header row. */
       { href: "/credits", label: "Credits" },
     ],

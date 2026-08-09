@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { LockReason } from "@/lib/entitlements/sessions";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 
 /*
   A card you cannot use yet.
@@ -75,8 +76,15 @@ export default function LockedCard({
   standoff?: boolean;
   children: ReactNode;
 }) {
-  const href = reason === "sign-in" ? "/account" : "/pricing";
-  const line = reason === "sign-in" ? "Sign in to unlock" : "On Standard";
+  /*
+    On iOS a locked card leads to the account rather than to a price list —
+    /pricing is not in that bundle, and a card that says "On Standard" over a
+    tappable route to a checkout is the shape review looks for. It still says
+    it is locked, which is the honest half. See lib/platform.ts.
+  */
+  const href = reason === "sign-in" || IS_MOBILE_BUILD ? "/account" : "/pricing";
+  const line =
+    reason === "sign-in" ? "Sign in to unlock" : IS_MOBILE_BUILD ? "Not on your plan" : "On Standard";
   const said =
     reason === "sign-in"
       ? `${label}. Locked — sign in with a free account to unlock.`

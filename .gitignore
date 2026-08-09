@@ -53,3 +53,6 @@ next-env.d.ts
 
 # Isolated worktrees created for background agents — never part of the repo.
 .claude/worktrees/
+
+# Where scripts/build-mobile.mjs parks the routes it keeps out of the iOS bundle.
+/.mobile-stash/

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { TIERS, formatPrice, plansForTier, type Tier } from "@/lib/billing/tiers";
+import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 
 /*
   What a learner sees when they reach something their plan does not include.
@@ -119,21 +120,35 @@ export default function UpgradePanel({
         ))}
       </ul>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Link href="/pricing" className="btn-primary">
-          {monthly
-            ? `See ${definition.name} — ${formatPrice(monthly.amountMinor, monthly.currency)} a month`
-            : `See ${definition.name}`}
-        </Link>
-        <Link href="/billing" className="btn-secondary">
-          Your usage
-        </Link>
-      </div>
+      {/*
+        The iOS build offers nothing to buy and links to neither page — both
+        are out of that bundle, and a priced button is the thing App Review
+        looks for. See lib/platform.ts.
+      */}
+      {IS_MOBILE_BUILD ? (
+        <p className="mt-4 text-sm leading-6 text-slate-600">
+          {definition.name} is managed on {WEB_HOME} rather than in the app. Sign in here with the
+          same account and it works straight away.
+        </p>
+      ) : (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Link href="/pricing" className="btn-primary">
+            {monthly
+              ? `See ${definition.name} — ${formatPrice(monthly.amountMinor, monthly.currency)} a month`
+              : `See ${definition.name}`}
+          </Link>
+          <Link href="/billing" className="btn-secondary">
+            Your usage
+          </Link>
+        </div>
+      )}
       {/* Stated here too, so nobody meets the word "automatically" later. */}
-      <p className="mt-2 text-xs leading-5 text-slate-500">
-        Renews automatically until you cancel. Cancel any time in one button, and a full refund
-        within 14 days of any charge.
-      </p>
+      {!IS_MOBILE_BUILD && (
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+          Renews automatically until you cancel. Cancel any time in one button, and a full refund
+          within 14 days of any charge.
+        </p>
+      )}
     </div>
   );
 }
