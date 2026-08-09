@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
+import { CHEAP_MODEL, callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
 import { requireAccess } from "@/lib/gate";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 
@@ -97,8 +97,16 @@ const LISTENING_SCHEMA = {
 };
 
 export async function POST(req: Request) {
-  const gate = requireAccess(req);
+  const gate = await requireAccess(req, "generation");
   if (!gate.ok) return gate.response;
+  // The credit is taken before the work starts, so anything that fails after
+  // this point — a malformed request, a generation error — hands it back.
+  const res = await handle(req);
+  if (!res.ok) await gate.release();
+  return res;
+}
+
+async function handle(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
@@ -133,7 +141,9 @@ Requirements:
 - questions: exactly 13, ids q1..q13 — 5 "tfng" (answers must include at least one each of TRUE, FALSE, NOT GIVEN), then 4 "mcq" (4 options each, answer = correct index), then 4 "completion" (sentence contains ___, answer is 1-2 words appearing VERBATIM in the passage, maxWords set accordingly)
 - Questions follow passage order within each group and test paraphrase understanding, not word-spotting.`,
         schema: READING_SCHEMA,
-        maxTokens: 16000,
+        label: "generate:reading",
+        model: CHEAP_MODEL,
+        maxTokens: 8000,
       });
       return NextResponse.json({ kind, test });
     }
@@ -152,7 +162,9 @@ Requirements:
 - questions: exactly 10, ids q1..q10, in the order answers occur in the script — mostly "completion" (answer is 1-2 words/numbers appearing VERBATIM in the script) plus 2-3 "mcq" (3 options each)
 - The script will be read aloud by text-to-speech, so write natural spoken English with no stage directions.`,
       schema: LISTENING_SCHEMA,
-      maxTokens: 16000,
+      label: "generate:listening",
+      model: CHEAP_MODEL,
+      maxTokens: 8000,
     });
     return NextResponse.json({ kind, test });
   } catch (err) {

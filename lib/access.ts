@@ -1,24 +1,40 @@
 "use client";
 
+import type { Meter, PlanId } from "./plans";
+
 /*
-  The learner's proof of purchase, on this device.
+  The learner's plan, on this device.
 
   It sits beside the profile in localStorage and is deliberately not part of it:
-  the profile is study history worth exporting and importing between devices,
-  this is a credential that should not travel in a JSON file. Same storage,
-  separate key, separate lifetime.
+  the profile is study history worth exporting between devices, this is a
+  credential that should not travel in a JSON file. Same storage, separate key,
+  separate lifetime.
+
+  The usage figures cached here are a display convenience only — the server
+  keeps the authoritative counters, because a number the client can edit is a
+  number the client can reset. Nothing is gated on what is stored here.
 
   As with `lib/store.ts` this is exposed as an external store so components can
   read it through `useSyncExternalStore` and stay consistent between the server
   render and the client one.
 */
 
-const KEY = "bandup-access-v1";
+const KEY = "bandup-access-v2";
+
+export interface Usage {
+  used: number;
+  limit: number;
+  remaining: number;
+}
 
 export interface Access {
   token: string;
   /** Epoch ms the server said this token runs out — a hint for refresh only. */
   expiresAt: number;
+  plan?: PlanId;
+  planName?: string;
+  /** Last figures the server reported. Display only. */
+  usage?: Partial<Record<Meter, Usage>>;
 }
 
 let cache: Access | null | undefined;
@@ -31,7 +47,13 @@ function read(): Access | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<Access>;
     if (typeof parsed?.token !== "string" || !parsed.token) return null;
-    return { token: parsed.token, expiresAt: Number(parsed.expiresAt) || 0 };
+    return {
+      token: parsed.token,
+      expiresAt: Number(parsed.expiresAt) || 0,
+      plan: parsed.plan,
+      planName: parsed.planName,
+      usage: parsed.usage,
+    };
   } catch {
     return null;
   }
@@ -65,8 +87,29 @@ export function getServerSnapshot(): Access | null {
   return null;
 }
 
-export function saveAccess(token: string, expiresInSeconds: number): void {
-  commit({ token, expiresAt: Date.now() + expiresInSeconds * 1000 });
+export interface AccessPayload {
+  token: string;
+  expiresIn: number;
+  plan?: PlanId;
+  planName?: string;
+  usage?: Partial<Record<Meter, Usage>>;
+}
+
+export function saveAccess(payload: AccessPayload): void {
+  commit({
+    token: payload.token,
+    expiresAt: Date.now() + payload.expiresIn * 1000,
+    plan: payload.plan,
+    planName: payload.planName,
+    usage: payload.usage,
+  });
+}
+
+/** Record what the server last said was left, without touching the token. */
+export function noteUsage(meter: Meter, usage: Usage): void {
+  const current = getSnapshot();
+  if (!current) return;
+  commit({ ...current, usage: { ...current.usage, [meter]: usage } });
 }
 
 export function clearAccess(): void {

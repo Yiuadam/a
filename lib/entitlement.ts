@@ -1,34 +1,39 @@
 import { createHmac } from "node:crypto";
+import { planForPriceId, PLANS, type PlanId } from "./plans";
 import { stripe } from "./stripe";
 
 /*
   Who is allowed to spend our Claude budget, decided without a database.
 
-  The app has no accounts and no server-side storage — `lib/store.ts` keeps a
-  learner's whole profile in one localStorage key — so Stripe itself is the
+  The app has no accounts and ROADMAP.md defers building them, so Stripe is the
   record of who has paid. Asking Stripe on every graded essay would be slow and
-  would tie the examiner to Stripe's uptime, so instead a successful checkout
-  mints a short-lived token that the learner's browser keeps and presents.
+  would tie the examiner to Stripe's uptime, so a successful checkout mints a
+  short-lived token that the learner's browser keeps and presents.
 
   The token is a signed claim, not a secret to be looked up: verifying it is one
-  HMAC and no network call. It carries only a Stripe id and an expiry, so a
-  stolen token grants the paid features for at most TTL_SECONDS and reveals
-  nothing about the customer beyond an opaque id.
+  HMAC and no network call. It carries a Stripe customer id, which plan was
+  bought, and when the current billing period began — the last of these is what
+  `lib/quota.ts` keys allowances on, so a period rolling over resets them with
+  no reset job to run.
 
-  The cost of holding no state is that a cancellation is not felt until the
-  token expires. TTL_SECONDS is the whole of that exposure: twelve hours of
-  access already paid for, in exchange for never having a database to keep in
-  step with Stripe.
+  What the token deliberately does not carry is how much of the plan is left.
+  A counter the client holds is a counter the client can wind back by
+  presenting an older copy of it; usage is server-side for that reason alone.
+
+  The cost of holding no state here is that a cancellation is not felt until
+  the token expires. TTL_SECONDS is the whole of that exposure: twelve hours of
+  access already paid for, in exchange for never having a subscription table to
+  keep in step with Stripe.
 */
 
-export type AccessKind = "sub" | "seat";
-
 export interface AccessClaims {
-  /** Format version, so a later change can reject old tokens deliberately. */
-  v: 1;
-  /** "sub" — `ref` is a Stripe customer; "seat" — `ref` is a paid invoice. */
-  k: AccessKind;
+  /** Bumped to 2 when plans arrived; v1 tokens carried no plan and are refused. */
+  v: 2;
+  /** Stripe customer id. */
   ref: string;
+  plan: PlanId;
+  /** Start of the current billing period, epoch seconds — the quota window. */
+  ps: number;
   /** Expiry, epoch seconds. */
   e: number;
 }
@@ -74,8 +79,8 @@ function unb64url(input: string): string {
   return Buffer.from(input, "base64url").toString("utf8");
 }
 
-function sign(payload: string, domain: string): string {
-  return createHmac("sha256", secret()).update(`${domain}.${payload}`).digest("base64url");
+function sign(payload: string): string {
+  return createHmac("sha256", secret()).update(`access.${payload}`).digest("base64url");
 }
 
 /**
@@ -93,31 +98,15 @@ export function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-function encode(claims: object, domain: string): string {
-  const payload = b64url(JSON.stringify(claims));
-  return `${payload}.${sign(payload, domain)}`;
-}
-
-function decode<T>(token: string, domain: string): T | null {
-  const dot = token.lastIndexOf(".");
-  if (dot <= 0) return null;
-  const payload = token.slice(0, dot);
-  if (!safeEqual(token.slice(dot + 1), sign(payload, domain))) return null;
-  try {
-    return JSON.parse(unb64url(payload)) as T;
-  } catch {
-    return null;
-  }
-}
-
 function now(): number {
   return Math.floor(Date.now() / 1000);
 }
 
-/** A token proving the bearer may use the AI features, valid for TTL_SECONDS. */
-export function mintAccessToken(kind: AccessKind, ref: string): string {
-  const claims: AccessClaims = { v: 1, k: kind, ref, e: now() + TTL_SECONDS };
-  return encode(claims, "access");
+/** A token proving the bearer holds `plan`, valid for TTL_SECONDS. */
+export function mintAccessToken(ref: string, plan: PlanId, periodStart: number): string {
+  const claims: AccessClaims = { v: 2, ref, plan, ps: periodStart, e: now() + TTL_SECONDS };
+  const payload = b64url(JSON.stringify(claims));
+  return `${payload}.${sign(payload)}`;
 }
 
 export type VerifyFailure = "invalid" | "expired" | "stale";
@@ -135,12 +124,22 @@ export interface VerifyResult {
  * to go and ask Stripe whether the subscription is still live.
  */
 export function verifyAccessToken(token: string, allowExpired = false): VerifyResult {
-  const claims = decode<AccessClaims>(token, "access");
-  if (!claims || claims.v !== 1 || typeof claims.ref !== "string" || !claims.ref) {
+  const dot = token.lastIndexOf(".");
+  if (dot <= 0) return { failure: "invalid" };
+  const payload = token.slice(0, dot);
+  if (!safeEqual(token.slice(dot + 1), sign(payload))) return { failure: "invalid" };
+
+  let claims: AccessClaims;
+  try {
+    claims = JSON.parse(unb64url(payload)) as AccessClaims;
+  } catch {
     return { failure: "invalid" };
   }
-  if (claims.k !== "sub" && claims.k !== "seat") return { failure: "invalid" };
-  if (typeof claims.e !== "number") return { failure: "invalid" };
+
+  if (claims?.v !== 2) return { failure: "invalid" };
+  if (typeof claims.ref !== "string" || !claims.ref) return { failure: "invalid" };
+  if (!(claims.plan in PLANS)) return { failure: "invalid" };
+  if (typeof claims.ps !== "number" || typeof claims.e !== "number") return { failure: "invalid" };
 
   const age = now() - claims.e;
   if (age > 0) {
@@ -150,52 +149,41 @@ export function verifyAccessToken(token: string, allowExpired = false): VerifyRe
   return { claims };
 }
 
+export interface Entitlement {
+  plan: PlanId;
+  periodStart: number;
+}
+
 /**
- * Ask Stripe whether this reference still entitles its holder.
+ * Ask Stripe what this customer currently holds.
  *
- * The only place the two kinds of access differ: a subscriber is entitled while
- * a subscription is live, a school seat while the invoice that bought it is
- * paid. Everything downstream treats them alike.
+ * Returns the best live subscription rather than the first: someone who
+ * upgraded mid-period briefly has two, and the one they just paid more for is
+ * the one they should get. `current_period_start` is read off the subscription
+ * item — Stripe moved it there from the subscription itself, and reading the
+ * old location silently yields undefined rather than an error.
  */
-export async function isStillEntitled(kind: AccessKind, ref: string): Promise<boolean> {
-  if (kind === "seat") {
-    const invoice = await stripe().invoices.retrieve(ref);
-    return invoice.status === "paid";
+export async function resolveEntitlement(customerId: string): Promise<Entitlement | null> {
+  const subs = await stripe().subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 20,
+  });
+
+  let best: Entitlement | null = null;
+  for (const sub of subs.data) {
+    if (!ENTITLING_STATUSES.has(sub.status)) continue;
+    for (const item of sub.items.data) {
+      const priceId = typeof item.price === "string" ? item.price : item.price?.id;
+      if (!priceId) continue;
+      const plan = planForPriceId(priceId);
+      if (!plan) continue;
+      const periodStart = item.current_period_start;
+      if (typeof periodStart !== "number") continue;
+      if (!best || PLANS[plan].rank > PLANS[best.plan].rank) {
+        best = { plan, periodStart };
+      }
+    }
   }
-  const subs = await stripe().subscriptions.list({ customer: ref, status: "all", limit: 20 });
-  return subs.data.some((s) => ENTITLING_STATUSES.has(s.status));
-}
-
-/*
-  School seats.
-
-  An invoice buys a school N seats, and each seat is handed to one learner as a
-  code they paste into /redeem. The code is another signed claim — the invoice
-  it came from, plus which seat it is — so redeeming needs no lookup table:
-  verify the signature, ask Stripe whether that invoice is paid, mint access.
-
-  What this deliberately does not do is stop a school sharing one code with a
-  whole class. Counting redemptions means storing which codes have been used,
-  which means the database this design exists to avoid. Seat *counts* are
-  therefore contractual rather than enforced, and BILLING.md says so plainly.
-*/
-
-export interface SeatClaims {
-  v: 1;
-  inv: string;
-  /** 1-based seat number, for the school's own records. */
-  n: number;
-}
-
-export function mintSeatCode(invoiceId: string, seat: number): string {
-  const claims: SeatClaims = { v: 1, inv: invoiceId, n: seat };
-  return `BU-${encode(claims, "seat")}`;
-}
-
-export function readSeatCode(code: string): SeatClaims | null {
-  const trimmed = code.trim();
-  if (!trimmed.startsWith("BU-")) return null;
-  const claims = decode<SeatClaims>(trimmed.slice(3), "seat");
-  if (!claims || claims.v !== 1 || typeof claims.inv !== "string" || !claims.inv) return null;
-  return claims;
+  return best;
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { saveAccess } from "@/lib/access";
+import { saveAccess, type AccessPayload } from "@/lib/access";
 import { postJSON } from "@/lib/api";
 
 /*
@@ -18,7 +18,7 @@ import { postJSON } from "@/lib/api";
 
 type State =
   | { status: "claiming" }
-  | { status: "done" }
+  | { status: "done"; planName?: string }
   | { status: "failed"; message: string };
 
 function Claim() {
@@ -38,10 +38,10 @@ function Claim() {
     if (started.current || !sessionId) return;
     started.current = true;
 
-    postJSON<{ token: string; expiresIn: number }>("/api/billing/claim", { sessionId })
-      .then(({ token, expiresIn }) => {
-        saveAccess(token, expiresIn);
-        setState({ status: "done" });
+    postJSON<AccessPayload>("/api/billing/claim", { sessionId })
+      .then((payload) => {
+        saveAccess(payload);
+        setState({ status: "done", planName: payload.planName });
       })
       .catch((err: unknown) => {
         setState({
@@ -74,10 +74,12 @@ function Claim() {
 
   return (
     <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
-      <h2 className="text-base font-semibold text-slate-900">Plus is on</h2>
+      <h2 className="text-base font-semibold text-slate-900">
+        {state.planName ? `${state.planName} is on` : "Your plan is on"}
+      </h2>
       <p className="mt-2 text-sm text-slate-700">
         Writing marking, the speaking examiner, generated tests and word lookup are unlocked on
-        this device. Stripe has emailed your receipt.
+        this device, up to your plan&rsquo;s allowance. Stripe has emailed your receipt.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link

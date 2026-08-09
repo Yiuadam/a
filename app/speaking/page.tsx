@@ -70,7 +70,7 @@ export default function SpeakingPage() {
   const [elapsed, setElapsed] = useState(0);
   const [grade, setGrade] = useState<SpeakingGrade | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [paywalled, setPaywalled] = useState<string | null>(null);
+  const [paywalled, setPaywalled] = useState<PaywallError | null>(null);
   const [micBlocked, setMicBlocked] = useState(false);
   const mounted = useMounted();
   const micSupported = mounted && speechRecognitionSupported() && !micBlocked;
@@ -229,7 +229,7 @@ export default function SpeakingPage() {
           date: new Date().toISOString(),
         });
       } catch (err) {
-        if (err instanceof PaywallError) setPaywalled(err.message);
+        if (err instanceof PaywallError) setPaywalled(err);
         else setError(err instanceof Error ? err.message : "Grading failed.");
         setStage("interview");
       }
@@ -537,7 +537,7 @@ export default function SpeakingPage() {
           {stepIndex + 1 >= totalSteps ? "Finish and get my band score" : "Next question"}
         </button>
         {error && <p className="text-sm text-rose-600">{error}</p>}
-        {paywalled && <UpgradeNotice message={paywalled} />}
+        {paywalled && <UpgradeNotice error={paywalled} />}
       </div>
     </div>
   );

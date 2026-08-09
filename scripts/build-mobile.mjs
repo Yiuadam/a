@@ -23,11 +23,7 @@ const root = process.cwd();
 const stash = join(root, ".mobile-stash");
 
 /** Everything that must not exist in the iOS bundle, relative to the repo. */
-const EXCLUDED = [
-  join("app", "api"),
-  join("app", "pricing"),
-  join("app", "redeem"),
-];
+const EXCLUDED = [join("app", "api"), join("app", "pricing")];
 
 if (!process.env.NEXT_PUBLIC_API_BASE) {
   console.error(

@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import {
   hasBillingSecret,
-  isStillEntitled,
   mintAccessToken,
   NO_SECRET_MESSAGE,
+  resolveEntitlement,
   TTL_SECONDS,
 } from "@/lib/entitlement";
+import { PLANS } from "@/lib/plans";
+import { readUsage } from "@/lib/quota";
 import { hasStripeKey, NO_STRIPE_MESSAGE, stripe } from "@/lib/stripe";
 
 /*
@@ -53,9 +55,9 @@ export async function POST(req: Request) {
     }
 
     // A complete session is not the same as a live subscription — it can have
-    // been cancelled between paying and landing here, and a trial that failed
-    // to convert leaves the session complete for good.
-    if (!(await isStillEntitled("sub", customer))) {
+    // been cancelled between paying and landing here.
+    const entitlement = await resolveEntitlement(customer);
+    if (!entitlement) {
       return NextResponse.json(
         { error: "That subscription is not active. Check your email from Stripe for details." },
         { status: 402 },
@@ -63,8 +65,11 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      token: mintAccessToken("sub", customer),
+      token: mintAccessToken(customer, entitlement.plan, entitlement.periodStart),
       expiresIn: TTL_SECONDS,
+      plan: entitlement.plan,
+      planName: PLANS[entitlement.plan].name,
+      usage: await readUsage(entitlement.plan, customer, entitlement.periodStart),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Could not confirm that payment.";

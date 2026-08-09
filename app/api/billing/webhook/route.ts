@@ -7,9 +7,9 @@ import { hasStripeKey, stripe } from "@/lib/stripe";
 
   Because entitlement is read from Stripe rather than mirrored into a database,
   this endpoint has no state to keep in step and the app stays correct even if
-  every event here is dropped: a cancellation is caught when the learner's
-  token next refreshes, and a school's seat codes start working the moment the
-  invoice reads as paid, whether or not `invoice.paid` ever arrived.
+  every event here is dropped: a cancellation, an upgrade and a new billing
+  period are all caught when the learner's token next refreshes, which happens
+  at least twice a day.
 
   What it is for is the things Stripe alone knows and nobody would otherwise
   see — a card failing on renewal, a dispute, a school paying at last — and it
@@ -49,9 +49,8 @@ export async function POST(req: Request) {
   switch (event.type) {
     case "invoice.paid": {
       const invoice = event.data.object;
-      const seats = invoice.lines.data.reduce((n, line) => n + (line.quantity ?? 0), 0);
       console.info(
-        `[billing] invoice ${invoice.id} paid (${invoice.customer_email ?? "no email"}), ${seats} seat(s) now redeemable`,
+        `[billing] invoice ${invoice.id} paid (${invoice.customer_email ?? "no email"})`,
       );
       break;
     }

@@ -32,7 +32,7 @@ export default function PracticePage() {
   const [genTopic, setGenTopic] = useState("");
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
-  const [genPaywalled, setGenPaywalled] = useState<string | null>(null);
+  const [genPaywalled, setGenPaywalled] = useState<PaywallError | null>(null);
 
   async function generate() {
     setGenerating(true);
@@ -54,7 +54,7 @@ export default function PracticePage() {
       };
       addGeneratedTest(entry);
     } catch (err) {
-      if (err instanceof PaywallError) setGenPaywalled(err.message);
+      if (err instanceof PaywallError) setGenPaywalled(err);
       else setGenError(err instanceof Error ? err.message : "Generation failed.");
     } finally {
       setGenerating(false);
@@ -191,7 +191,7 @@ export default function PracticePage() {
         {genError && <p className="mt-3 text-sm text-rose-600">{genError}</p>}
         {genPaywalled && (
           <div className="mt-3">
-            <UpgradeNotice message={genPaywalled} />
+            <UpgradeNotice error={genPaywalled} />
           </div>
         )}
       </section>

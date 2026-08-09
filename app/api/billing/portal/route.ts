@@ -33,12 +33,6 @@ export async function POST(req: Request) {
   if (!claims) {
     return NextResponse.json({ error: "Sign in with your access link first." }, { status: 402 });
   }
-  if (claims.k !== "sub") {
-    return NextResponse.json(
-      { error: "School seats are managed by whoever bought them, not from here." },
-      { status: 400 },
-    );
-  }
 
   try {
     const session = await stripe().billingPortal.sessions.create({

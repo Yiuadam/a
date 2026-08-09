@@ -20,7 +20,7 @@ export default function WritingPage() {
   const [grading, setGrading] = useState(false);
   const [grade, setGrade] = useState<WritingGrade | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [paywalled, setPaywalled] = useState<string | null>(null);
+  const [paywalled, setPaywalled] = useState<PaywallError | null>(null);
 
   const task = useMemo(() => tasks.find((t) => t.id === taskId)!, [taskId]);
   const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0;
@@ -46,7 +46,7 @@ export default function WritingPage() {
         date: new Date().toISOString(),
       });
     } catch (err) {
-      if (err instanceof PaywallError) setPaywalled(err.message);
+      if (err instanceof PaywallError) setPaywalled(err);
       else setError(err instanceof Error ? err.message : "Grading failed.");
     } finally {
       setGrading(false);
@@ -157,7 +157,7 @@ export default function WritingPage() {
         {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
         {paywalled && (
           <div className="mt-3">
-            <UpgradeNotice message={paywalled} />
+            <UpgradeNotice error={paywalled} />
           </div>
         )}
       </div>

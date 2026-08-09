@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callClaudeJSON, hasApiKey } from "@/lib/anthropic";
+import { CHEAP_MODEL, callClaudeJSON, hasApiKey } from "@/lib/anthropic";
 import { requireAccess } from "@/lib/gate";
 
 export const maxDuration = 30;
@@ -35,8 +35,16 @@ Rules:
 - Never refuse a normal English word. If the input is not English or is not a word, say so plainly in "short".`;
 
 export async function POST(req: Request) {
-  const gate = requireAccess(req);
+  const gate = await requireAccess(req, "lookup");
   if (!gate.ok) return gate.response;
+  // The credit is taken before the work starts, so anything that fails after
+  // this point — a malformed request, a lookup error — hands it back.
+  const res = await handle(req);
+  if (!res.ok) await gate.release();
+  return res;
+}
+
+async function handle(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: UNAVAILABLE }, { status: 503 });
   }
@@ -71,7 +79,9 @@ export async function POST(req: Request) {
         context ? `\n\nThey were reading this sentence: "${context}"` : ""
       }`,
       schema: SCHEMA,
-      maxTokens: 1000,
+      label: "define",
+      model: CHEAP_MODEL,
+      maxTokens: 300,
       // A definition is a small, well-defined task; low effort keeps it fast.
       effort: "low",
     });

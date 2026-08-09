@@ -46,8 +46,16 @@ interface Turn {
 }
 
 export async function POST(req: Request) {
-  const gate = requireAccess(req);
+  const gate = await requireAccess(req, "marking");
   if (!gate.ok) return gate.response;
+  // The credit is taken before the work starts, so anything that fails after
+  // this point — a malformed request, a grading error — hands it back.
+  const res = await handle(req);
+  if (!res.ok) await gate.release();
+  return res;
+}
+
+async function handle(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
@@ -111,8 +119,9 @@ ${rendered}
 
 Grade the candidate. In "criteria", give exactly four entries named "Fluency and Coherence", "Lexical Resource", "Grammatical Range and Accuracy", "Pronunciation" with a band and a 2-3 sentence comment each, quoting short examples from the candidate's answers. Since you only see a transcript, estimate Pronunciation conservatively from fluency/coherence proxies and explain that limitation in "pronunciationNote". Give 3 strengths and 3-5 prioritised improvements. In "betterAnswerExample", pick the candidate's weakest answer and show a band-8 model answer to that same question (natural spoken style, 60-100 words).`,
       schema: SCHEMA,
-      effort: "high",
-      maxTokens: 10000,
+      label: "speaking",
+      effort: "medium",
+      maxTokens: 4000,
     });
     // The model can return an out-of-range or quarter-point band; the UI and
     // stored history must only ever see valid half bands from 1 to 9.

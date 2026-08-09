@@ -1,4 +1,5 @@
-import { accessToken, clearAccess, saveAccess } from "./access";
+import { accessToken, clearAccess, saveAccess, type AccessPayload } from "./access";
+import type { Meter, PlanId } from "./plans";
 
 /*
   On the web the app and its API share an origin, so a relative path is right.
@@ -13,22 +14,44 @@ export function apiUrl(path: string): string {
 }
 
 /**
- * The API said this needs a subscription.
+ * The API said this needs a plan, or more of one.
  *
  * A subclass rather than a flag so the existing `err instanceof Error`
  * handling in every caller keeps working unchanged, while a caller that wants
- * to offer the upgrade can ask for this specifically.
+ * to offer the upgrade can ask for this specifically — `code` separates "you
+ * have no plan" from "you have spent this period's allowance", which want
+ * different words and a different button.
  */
 export class PaywallError extends Error {
-  constructor(message: string) {
+  readonly code: "payment-required" | "quota-exhausted";
+  readonly meter?: Meter;
+  readonly plan?: PlanId;
+  readonly nextPlan?: PlanId | null;
+
+  constructor(
+    message: string,
+    detail: {
+      code?: unknown;
+      meter?: unknown;
+      plan?: unknown;
+      nextPlan?: unknown;
+    } = {},
+  ) {
     super(message);
     this.name = "PaywallError";
+    this.code = detail.code === "quota-exhausted" ? "quota-exhausted" : "payment-required";
+    this.meter = detail.meter as Meter | undefined;
+    this.plan = detail.plan as PlanId | undefined;
+    this.nextPlan = (detail.nextPlan ?? null) as PlanId | null;
   }
 }
 
 interface ApiError {
   error?: unknown;
   code?: unknown;
+  meter?: unknown;
+  plan?: unknown;
+  nextPlan?: unknown;
 }
 
 function messageOf(payload: unknown, fallback: string): string {
@@ -63,9 +86,9 @@ async function renew(token: string): Promise<string | null> {
   }
   if (!res.ok) return null;
   try {
-    const data = (await res.json()) as { token?: string; expiresIn?: number };
+    const data = (await res.json()) as Partial<AccessPayload>;
     if (!data.token) return null;
-    saveAccess(data.token, data.expiresIn ?? 0);
+    saveAccess({ ...data, token: data.token, expiresIn: data.expiresIn ?? 0 });
     return data.token;
   } catch {
     return null;
@@ -91,10 +114,12 @@ export async function postJSON<T>(path: string, body: unknown): Promise<T> {
       if (fresh) res = await send(path, body, fresh);
       else clearAccess();
     } else if (code === "payment-required") {
-      // The token verified but no longer entitles anything — a cancellation,
-      // or a seat whose invoice was voided. Stop presenting the app as paid.
+      // The token verified but no longer entitles anything — a cancellation.
+      // Stop presenting the app as paid.
       clearAccess();
     }
+    // "quota-exhausted" is left alone: the plan is real and still theirs, it
+    // just has nothing left this period.
   }
 
   let payload: unknown;
@@ -106,7 +131,8 @@ export async function postJSON<T>(path: string, body: unknown): Promise<T> {
 
   if (!res.ok) {
     if (res.status === 402) {
-      throw new PaywallError(messageOf(payload, "This feature is part of BandUp Plus."));
+      const detail = (payload ?? {}) as ApiError;
+      throw new PaywallError(messageOf(payload, "This feature needs a BandUp plan."), detail);
     }
     throw new Error(messageOf(payload, "Something went wrong. Please try again."));
   }

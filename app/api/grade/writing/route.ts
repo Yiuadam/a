@@ -32,8 +32,16 @@ const SCHEMA = {
 };
 
 export async function POST(req: Request) {
-  const gate = requireAccess(req);
+  const gate = await requireAccess(req, "marking");
   if (!gate.ok) return gate.response;
+  // The credit is taken before the work starts, so anything that fails after
+  // this point — a malformed request, a grading error — hands it back.
+  const res = await handle(req);
+  if (!res.ok) await gate.release();
+  return res;
+}
+
+async function handle(req: Request) {
   if (!hasApiKey()) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
@@ -79,8 +87,9 @@ Grade this response. In "criteria", give exactly four entries named ${
           : '"Task Response", "Coherence and Cohesion", "Lexical Resource", "Grammatical Range and Accuracy"'
       } with a band and a 2-3 sentence comment each, quoting short examples from the essay. Give 3 concrete strengths and 3-5 prioritised improvements. In "rewrittenExcerpt", take the weakest paragraph of the essay and rewrite it at one band higher so the candidate can see the difference.`,
       schema: SCHEMA,
-      effort: "high",
-      maxTokens: 10000,
+      label: "writing",
+      effort: "medium",
+      maxTokens: 4000,
     });
     // The model can return an out-of-range or quarter-point band; the UI and
     // stored history must only ever see valid half bands from 1 to 9.
