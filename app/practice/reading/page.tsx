@@ -109,10 +109,6 @@ function ReadingTestPageRunner() {
             {test.timeMinutes} minutes. Question types:{" "}
             {joinWithAnd(questionTypeNames(test.questions))} — the same question types the exam uses.
           </p>
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            You can check any single answer as you go and read the explanation straight away.
-            Checking locks that question, so your band stays honest.
-          </p>
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
               How do you want to practise?
@@ -122,12 +118,12 @@ function ReadingTestPageRunner() {
                 {
                   id: "timed" as const,
                   title: "Exam conditions",
-                  blurb: `${test.timeMinutes} minutes, clock running`,
+                  blurb: `${test.timeMinutes} minutes, no checking as you go`,
                 },
                 {
                   id: "free" as const,
                   title: "No time limit",
-                  blurb: "Take as long as you like",
+                  blurb: "Check answers as you go",
                 },
               ]).map((option) => (
                 <button
@@ -147,6 +143,17 @@ function ReadingTestPageRunner() {
                 </button>
               ))}
             </div>
+            {/*
+              Under the choice, not above it, and describing the option that is
+              actually selected. It used to sit above and describe checking as
+              though it applied to both — next to a button labelled "Exam
+              conditions", which is where the contradiction came from.
+            */}
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm leading-6 text-amber-800">
+              {mode === "timed"
+                ? "Nothing is marked until you submit — no checking, no explanations, exactly like the real thing. Your band at the end is the one you would have got."
+                : "Check any single answer as you go and read the explanation straight away. Checking locks that question, so the band at the end still means something."}
+            </p>
           </div>
           <button className="btn-primary" onClick={() => setStarted(true)}>
             Start reading test
@@ -225,7 +232,7 @@ function ReadingTestPageRunner() {
             submitted={submitted}
             checked={checked}
             onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
-            mode="practice"
+            mode={mode === "timed" ? "exam" : "practice"}
           />
           {!submitted && (
             <button className="btn-primary mt-5 w-full" onClick={submit}>

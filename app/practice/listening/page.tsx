@@ -227,10 +227,6 @@ function ListeningTestPageRunner() {
             In exam conditions you hear the recording <span className="font-medium">once</span> —
             but you can replay while practising.
           </p>
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            You can check any single answer as you go and read the explanation straight away.
-            Checking locks that question, so your band stays honest.
-          </p>
           {!ttsSupported && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
               Your browser does not support speech synthesis. Use Chrome, Edge or Safari for
@@ -246,7 +242,7 @@ function ListeningTestPageRunner() {
                 {
                   id: "timed" as const,
                   title: "Exam conditions",
-                  blurb: `${test.timeMinutes} minutes, clock running`,
+                  blurb: `${test.timeMinutes} minutes, no checking as you go`,
                 },
                 {
                   id: "free" as const,
@@ -271,6 +267,17 @@ function ListeningTestPageRunner() {
                 </button>
               ))}
             </div>
+            {/*
+              Under the choice, not above it, and describing the option that is
+              actually selected. It used to sit above and describe checking as
+              though it applied to both — next to a button labelled "Exam
+              conditions", which is where the contradiction came from.
+            */}
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm leading-6 text-amber-800">
+              {mode === "timed"
+                ? "Nothing is marked until you submit — no checking, no explanations, exactly like the real thing. Your band at the end is the one you would have got."
+                : "Check any single answer as you go and read the explanation straight away. Checking locks that question, so the band at the end still means something."}
+            </p>
           </div>
           <button className="btn-primary" onClick={() => setStarted(true)}>
             Open the test
@@ -376,7 +383,7 @@ function ListeningTestPageRunner() {
             submitted={submitted}
             checked={checked}
             onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
-            mode="practice"
+            mode={mode === "timed" ? "exam" : "practice"}
           />
           {!submitted && (
             <button className="btn-primary mt-5 w-full" onClick={submit}>
