@@ -400,57 +400,65 @@ export interface Plan {
 }
 
 /*
-  The ladder: $2.99, $5.99, $9.99.
+  The ladder: $0.99, $3.49, $6.99.
 
-  Each step is roughly double the last, which is what makes the middle one
-  read as the sensible choice rather than as a compromise, and each step buys
-  something a learner can name — the library, then an examiner, then an
-  examiner they can use every day.
+  These are cost-plus prices, and that is the owner's decision rather than an
+  accident of rounding. Each one is the worst a subscriber on that tier can
+  cost — every AI request taken at its ceiling, plus Stripe's cut — with a
+  margin of about HK$3 a month on top, then rounded up to a price that looks
+  like a price. tests/ai-economics.test.mjs is what holds that floor.
+
+  The margin is deliberately thin and it is worth being clear-eyed about what
+  that means: at full usage these plans cover the AI and the card fee and very
+  little else. What makes them work is that nobody uses their whole allowance —
+  a typical month costs a fraction of the ceiling, so the real margin is several
+  times the floor. The floor is what guarantees there is never a loss; it is not
+  what the business runs on.
 
   The yearly prices are ten months' money for twelve months' access, rounded to
-  the nearest of the prices people expect to see: $29, $59, $99.
+  the nearest of the prices people expect to see.
 */
 export const PLANS: Record<PlanId, Plan> = {
   "standard-monthly": {
     id: "standard-monthly",
     tier: "standard",
     interval: "month",
-    amountMinor: 299,
+    amountMinor: 99,
     currency: "usd",
   },
   "standard-yearly": {
     id: "standard-yearly",
     tier: "standard",
     interval: "year",
-    amountMinor: 2900,
+    amountMinor: 999,
     currency: "usd",
   },
   "plus-monthly": {
     id: "plus-monthly",
     tier: "plus",
     interval: "month",
-    amountMinor: 599,
+    amountMinor: 349,
     currency: "usd",
   },
   "plus-yearly": {
     id: "plus-yearly",
     tier: "plus",
     interval: "year",
-    amountMinor: 5900,
+    amountMinor: 3499,
     currency: "usd",
   },
   "pro-monthly": {
     id: "pro-monthly",
     tier: "pro",
     interval: "month",
-    amountMinor: 999,
+    amountMinor: 699,
     currency: "usd",
   },
   "pro-yearly": {
     id: "pro-yearly",
     tier: "pro",
     interval: "year",
-    amountMinor: 9900,
+    amountMinor: 7499,
     currency: "usd",
   },
 };
@@ -479,6 +487,25 @@ export function plansForTier(tier: Tier): Plan[] {
 */
 export const STRIPE_PERCENT_FEE = 0.029;
 export const STRIPE_FIXED_FEE_MINOR = 30;
+
+/**
+ * The margin every plan must clear, per subscriber per month, in Hong Kong
+ * dollars — the owner's own currency, and the number they set.
+ *
+ * Written in HKD rather than converted once and forgotten, so that revisiting
+ * the decision means changing the number that was actually decided.
+ */
+export const MIN_MONTHLY_MARGIN_HKD = 3;
+
+/**
+ * HKD per USD. The Hong Kong dollar is pegged to a 7.75-7.85 band, so this is
+ * a real constant rather than a rate that has to be fetched; 7.8 is the middle
+ * of the band the Monetary Authority defends.
+ */
+export const HKD_PER_USD = 7.8;
+
+/** The margin floor in US dollars, which is what the prices are set in. */
+export const MIN_MONTHLY_MARGIN_USD = MIN_MONTHLY_MARGIN_HKD / HKD_PER_USD;
 
 /** What actually lands, in US dollars, after the processor takes its cut. */
 export function netRevenue(plan: Plan): number {
