@@ -103,6 +103,53 @@ async function handleGET(req: Request) {
     row takes the whole call down and every /api/chat request answers 503.
   */
   /*
+    The two functions the Stripe webhook calls, from 0009_billing_webhooks.sql.
+
+    These are here because leaving them out cost an afternoon. Every other row
+    on this panel was green while 0009 had not been applied, because nothing the
+    panel checked touches it — and the failure it produces arrives at the worst
+    possible moment: somebody's card is charged, Stripe records the
+    subscription, and the webhook answers 503 forever, so the tier is never
+    granted. From the outside that looks like the app losing a payment.
+
+    `provider_customer_for_user` is checked with a real user id — the caller's
+    own, which is the only one this route is allowed to ask about — because it
+    is the one the billing portal button depends on.
+  */
+  const applyFn = await rpcDiagnostic("apply_provider_subscription_event", {});
+  /*
+    Called with no arguments on purpose. A function that exists answers 400 —
+    "missing required argument" — and one that does not answers 404 with
+    PGRST202. So the check is for the *absence* of that code rather than for a
+    success that would mean writing a fake subscription row into a live
+    database to find out.
+  */
+  const applyMissing = /PGRST202|Could not find the function/i.test(applyFn.detail);
+  add(
+    "apply_provider_subscription_event",
+    !applyMissing,
+    applyMissing
+      ? `${applyFn.status}: not found — apply supabase/migrations/0009_billing_webhooks.sql, ` +
+        "or every Stripe webhook answers 503 and a paid subscription is never granted"
+      : "exists — this is what the Stripe webhook writes through",
+  );
+
+  const customerFn = await rpcDiagnostic("provider_customer_for_user", {
+    p_user_id: user.id,
+    p_provider: "stripe",
+  });
+  add(
+    "provider_customer_for_user",
+    customerFn.ok,
+    customerFn.ok
+      ? "answers — this is what opens the billing portal"
+      : `${customerFn.status}: ${customerFn.detail}` +
+        (/PGRST202|Could not find the function/i.test(customerFn.detail)
+          ? " — apply supabase/migrations/0009_billing_webhooks.sql"
+          : ""),
+  );
+
+  /*
     Which shape of allowances the database understands. Without
     0012_route_limits.sql the meter still answers and still records — it just
     refuses every AI request for every paying tier, because the application
