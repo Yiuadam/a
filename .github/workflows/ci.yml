@@ -62,3 +62,13 @@ jobs:
       # in the pull request that added proxy.ts.
       - name: Build the Cloudflare Worker
         run: npm run cf:build
+
+      # Building the Worker is not the same as checking what it sends. The app
+      # once went live as unstyled HTML with every check above green: a page
+      # was cacheable for a year, the stylesheet is fingerprinted and replaced
+      # on every deploy, so a cached page asked for a hash that no longer
+      # existed and got a 404. Every artifact was correct and the wreck
+      # happened between two of them. This runs the built Worker and reads the
+      # headers it actually sends.
+      - name: Check how pages are delivered
+        run: node scripts/check-delivery.mjs
