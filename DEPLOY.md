@@ -94,6 +94,14 @@ If the address has no account yet, that creates one and marks it confirmed. The
 password is never stored in this repository and the script prints neither it nor
 the key.
 
+*Without a terminal*, the Supabase dashboard does the same thing and no SQL is
+involved: **Authentication → Users**. If the address is already listed, open the
+row's `⋯` menu and choose **Reset password** (or **Edit user**, depending on
+your dashboard version) and type the new one. If it is not listed, **Add user →
+Create new user**, enter the address and the password, and tick **Auto Confirm
+User** — without that tick the account exists but cannot sign in until it
+confirms by email.
+
 **With a username.** Set `ADMIN_USERNAME` to whatever you would rather type —
 it resolves to the first address in `ADMIN_EMAILS` on the server, before the
 password is checked. It is a convenience and not a secret, and there is no
