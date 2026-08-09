@@ -323,17 +323,28 @@ function SpeakingSession() {
   }, [usingLocal, finishLocal, stopRecording, interim]);
 
   /*
-    Download and load the model while the examiner reads the first question,
-    rather than making the candidate stare at a progress bar after answering it.
+    Get the model before the test, not during it.
+
+    It used to be started alongside the first question and not waited for, on
+    the reasoning that the download would finish while the examiner was
+    talking. When it worked, it did. When it failed, the candidate was already
+    in the exam, one question in, being told the speech model could not be
+    downloaded — with no way back and nothing to do about it. A setup problem
+    had been turned into an exam problem.
+
+    So it is now a gate. Returns whether it succeeded, and the caller does not
+    begin the interview unless it did.
   */
-  const warmUpLocal = useCallback(async () => {
+  const warmUpLocal = useCallback(async (): Promise<boolean> => {
     try {
       await prepareLocal(prefs.model, setLocalStatus);
       setModelCached(true);
+      return true;
     } catch {
       setError(
-        "Couldn't download the on-device speech model. Check your connection, or switch to the device recogniser.",
+        "Couldn't download the speech model for on-device transcription. Check your connection and try again, or switch to your device's recogniser above — that needs no download.",
       );
+      return false;
     } finally {
       setLocalStatus(null);
     }
@@ -421,8 +432,16 @@ function SpeakingSession() {
     setAnswer("");
     setInterim("");
     answerRef.current = "";
+    /*
+      Downloaded and loaded before the interview begins, so a failure is
+      something the candidate meets on the start screen — where switching
+      recogniser is one tap away — rather than one question into the exam.
+    */
+    if (usingLocal) {
+      const ready = await warmUpLocal();
+      if (!ready) return;
+    }
     setStage("interview");
-    if (usingLocal) void warmUpLocal();
     await askCurrent(0, list);
   }, [askCurrent, usingLocal, warmUpLocal]);
 
@@ -518,9 +537,41 @@ function SpeakingSession() {
                 answers — or switch to Chrome, Edge or Safari to speak them.
               </p>
             )}
-            <button className="btn-primary mt-3 w-full" onClick={begin}>
-              Start the interview
+            {/* Disabled while the model comes down, and says so — the progress
+                card below it is already showing how far along it is. */}
+            <button
+              className="btn-primary mt-3 w-full"
+              onClick={begin}
+              disabled={localStatus !== null}
+            >
+              {localStatus !== null ? "Getting ready\u2026" : "Start the interview"}
             </button>
+            {localStatus && (
+              <div className="mt-3 rounded-2xl bg-indigo-50 px-4 py-3 text-left" aria-live="polite">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-indigo-800">
+                  <span>{describeStatus(localStatus)}</span>
+                  {localStatus.phase === "downloading" && (
+                    <span className="text-xs text-indigo-700">once only</span>
+                  )}
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-indigo-100">
+                  <div
+                    className={`h-full rounded-full bg-indigo-500 transition-all duration-300 ${
+                      localStatus.percent === null ? "animate-pulse" : ""
+                    }`}
+                    style={{ width: `${localStatus.percent ?? 100}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs leading-5 text-indigo-700">
+                  This is happening on your device \u2014 no audio is being uploaded.
+                </p>
+              </div>
+            )}
+            {error && (
+              <p role="alert" className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-left text-sm leading-6 text-rose-900">
+                {error}
+              </p>
+            )}
             <p className="mt-2 text-xs leading-5 text-slate-400">
               {usingLocal
                 ? "Your voice is transcribed on this device and never uploaded. Only the text transcript is sent for marking."
