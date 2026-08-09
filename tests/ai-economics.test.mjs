@@ -26,22 +26,28 @@
   money are by definition not typical.
 
   ---------------------------------------------------------------------------
-  Two thresholds, because one is not enough
+  The threshold, and why it is one number in Hong Kong dollars
 
-  A ratio alone passes a plan that is cheap to serve and earns almost nothing,
-  and an absolute alone passes an expensive plan that happens to be priced high.
-  So both must hold:
+  The prices are cost-plus by the owner's decision: each plan is priced at what
+  it can be made to cost, plus a margin of MIN_MONTHLY_MARGIN_HKD a month, then
+  rounded up to something that looks like a price. So the check is that same
+  rule, stated once and applied to every plan:
 
-    ratio     worst-case cost is at most MAX_COST_RATIO of what actually lands
-              after the card processor takes its cut.
+      price - worst-case AI - Stripe's cut  >=  HK$3 per subscriber-month
 
-    absolute  at least MIN_MONTHLY_PROFIT of margin per month per subscriber,
-              which is what has to cover everything this file does not model —
-              Supabase, Cloudflare, refunds, chargebacks, the higher rate on
-              international cards, and the owner's time.
+  An earlier version of this file also enforced a ratio — cost as a share of
+  revenue. That was the right check for the prices it was written against and
+  is the wrong one now: cost-plus pricing makes the ratio large by construction
+  on the expensive tiers and zero on the cheap one, so it would fail plans that
+  are correct and pass plans that are not. The absolute floor is the rule, so
+  the absolute floor is what is tested.
 
-  Both are deliberately strict. Passing them at the ceiling means that in
-  practice the margin is far wider.
+  What that margin does *not* cover is worth saying plainly rather than
+  implying: at full usage HK$3 a month per subscriber does not pay for Supabase,
+  Cloudflare, the Apple developer programme, refunds or chargebacks. What makes
+  the plans work is that nobody uses their whole allowance — a real month costs
+  a fraction of the ceiling, so the realised margin is several times this. This
+  floor guarantees there is never a loss. It is not the business case.
 */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -63,17 +69,16 @@ const {
   PLANS,
   PLAN_IDS,
   SELLABLE_TIERS,
+  HKD_PER_USD,
+  MIN_MONTHLY_MARGIN_HKD,
   monthsCovered,
   netRevenue,
   tierHasAi,
   worstCaseTierCost,
 } = tiers;
 
-/** Worst-case AI spend may not exceed this share of what actually lands. */
-const MAX_COST_RATIO = 0.75;
-
-/** And whatever the ratio says, this much has to be left, per subscriber-month. */
-const MIN_MONTHLY_PROFIT = 2.0;
+/** The floor, in US dollars, from the number the owner actually set in HKD. */
+const MIN_MONTHLY_PROFIT = tiers.MIN_MONTHLY_MARGIN_USD;
 
 const usd = (n) => `$${n.toFixed(4)}`;
 
@@ -95,16 +100,9 @@ test("every plan makes money even if the subscriber uses every last request", ()
       `${planId} loses money at the cap: ${usd(cost)} of AI against ${usd(net)} of revenue`,
     );
     assert.ok(
-      ratio <= MAX_COST_RATIO,
-      `${planId} spends ${(ratio * 100).toFixed(1)}% of its revenue on AI, over the ${(
-        MAX_COST_RATIO * 100
-      ).toFixed(0)}% ceiling`,
-    );
-    assert.ok(
       profit / months >= MIN_MONTHLY_PROFIT,
-      `${planId} leaves only ${usd(profit / months)} a month, under the ${usd(
-        MIN_MONTHLY_PROFIT,
-      )} floor`,
+      `${planId} leaves only HK$${((profit / months) * HKD_PER_USD).toFixed(2)} a month, ` +
+        `under the HK$${MIN_MONTHLY_MARGIN_HKD.toFixed(2)} floor`,
     );
   }
 
@@ -113,9 +111,9 @@ test("every plan makes money even if the subscriber uses every last request", ()
   for (const r of rows) {
     console.log(
       `  ${r.planId.padEnd(18)} net ${usd(r.net).padStart(10)}  ai ${usd(r.cost).padStart(10)}` +
-        `  profit ${usd(r.profit).padStart(10)}  (${usd(r.perMonth)}/mo, ${(r.ratio * 100).toFixed(
-          1,
-        )}% on AI)`,
+        `  profit ${usd(r.profit).padStart(10)}  (HK$${(r.perMonth * HKD_PER_USD)
+          .toFixed(2)
+          .padStart(6)}/mo, ${(r.ratio * 100).toFixed(1)}% on AI)`,
     );
   }
 });

@@ -22,6 +22,14 @@ import { IS_MOBILE_BUILD } from "@/lib/platform";
   behind the lock would make it impossible to want, and wanting it is the whole
   mechanism. It is dimmed rather than blurred for the same reason.
 
+  That rule is what decides where the padlock goes on a card, and it was got
+  wrong once. A padlock on a plate in the middle of a card sat squarely on top
+  of the card's title — so the two cards a visitor most needs to recognise were
+  the two that no longer said what they were, which is the exact opposite of
+  the point. On a card the padlock is a chip in the corner, where the "New"
+  badge goes, and the title and the description stay legible under the tint.
+  The tint alone is what says "off"; the chip says why.
+
   It is also still one tap, and the tap goes somewhere useful: a visitor lands
   on sign-in, a free account lands on the plans. The lock is the invitation.
 
@@ -100,6 +108,8 @@ export default function LockedCard({
   const href = reason === "sign-in" || IS_MOBILE_BUILD ? "/account" : "/pricing";
   const line =
     reason === "sign-in" ? "Sign in to unlock" : IS_MOBILE_BUILD ? "Not on your plan" : "On Standard";
+  /** The corner chip's word. A card has room for one, not for a sentence. */
+  const short = reason === "sign-in" ? "Sign in" : IS_MOBILE_BUILD ? "Locked" : "Standard";
   const said =
     reason === "sign-in"
       ? `${label}. Locked — sign in with a free account to unlock.`
@@ -109,8 +119,16 @@ export default function LockedCard({
     The dimmed content, the tint, and the plate — the three layers, written
     once and arranged twice below.
   */
+  /*
+    Dimmed enough to read as switched off, and no more.
+
+    It was opacity-45, which on a small card left the title barely legible —
+    and the title is the thing that has to survive, because it is what tells a
+    visitor whether they want this. 70% with a light desaturation still reads
+    as off next to a card that is not.
+  */
   const dimmed = (
-    <div className={`pointer-events-none min-w-0 select-none opacity-45 grayscale-[35%] ${fill ? "h-full" : ""}`}>
+    <div className={`pointer-events-none min-w-0 select-none opacity-70 grayscale-[25%] ${fill ? "h-full" : ""}`}>
       {children}
     </div>
   );
@@ -217,9 +235,41 @@ export default function LockedCard({
     >
       {dimmed}
       {tint}
-      <div className={OVER}>
-        <span className={PLATE}>{plate}</span>
-      </div>
+      {/*
+        A corner, and which corner depends on how wide the card is.
+
+        The middle is out: that was a panel sitting on the card's own title,
+        which is the one thing that has to survive — see the note at the top.
+
+        Neither corner works everywhere either, because the card changes shape.
+        On a phone it is half the screen wide, the title runs most of the way
+        across it, and the description wraps to three short lines — so the top
+        right is taken and the bottom right is empty. On a wide screen it is the
+        other way round: the title is a word on a long line and the description
+        is one line that ends at the right. So the chip moves: bottom right when
+        the card is narrow, top right from `sm` up, where the "New" badge
+        already lives.
+
+        Small, upper-case and muted, because it is a state label and not a call
+        to action — the whole card is already the link.
+      */}
+      <span className="pointer-events-none absolute bottom-2 right-2 inline-flex sm:bottom-auto sm:top-2 items-center gap-1 rounded-full border border-slate-300/70 bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm transition-colors group-hover:text-slate-700">
+        <svg
+          viewBox="0 0 24 24"
+          width="12"
+          height="12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+          <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+        </svg>
+        {short}
+      </span>
     </Link>
   );
 }

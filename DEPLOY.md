@@ -145,20 +145,28 @@ recurring price:
 
 | Product | Monthly | Yearly | Variables |
 |---|---|---|---|
-| BandUp Standard | `$2.99` | `$29.00` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
-| BandUp Plus | `$5.99` | `$59.00` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
-| BandUp Pro | `$9.99` | `$99.00` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
+| BandUp Standard | `$0.99` | `$9.99` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
+| BandUp Plus | `$3.49` | `$34.99` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
+| BandUp Pro | `$6.99` | `$74.99` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
 
 The amounts have to match what `/pricing` shows, which lives in
 `lib/billing/tiers.ts` — Stripe is what actually charges, and the page is only
 copy, so a mismatch charges the amount the page did not say. Copy each
 `price_…` id into the variable beside it.
 
-These are not arbitrary numbers. Each tier's AI allowances were set so that a
-subscriber who uses every last request still costs less than they paid, and
-`tests/ai-economics.test.mjs` fails the build if that stops being true. Changing
-a price here without changing it there breaks the only check standing between
-the app and a subscriber who costs more than they are worth.
+These are not arbitrary numbers, and they have very little room in them. Each
+one is what the tier can be made to cost at full usage — every AI request at its
+ceiling — plus Stripe's 2.9% + 30c, plus a margin of about HK$3 a month, rounded
+up to a price that looks like a price. `tests/ai-economics.test.mjs` fails the
+build if any plan drops below that floor.
+
+Two consequences worth knowing before you set them. On Standard, Stripe's fixed
+30c is about a third of the charge, so most of what a Standard subscriber pays
+goes to the card network. And HK$3 a month per subscriber does not cover
+Supabase, Cloudflare or the Apple developer programme — what makes the plans
+work is that nobody uses their whole allowance, so a real month costs a fraction
+of the ceiling. The floor guarantees there is never a loss; it is not the
+business case.
 
 **2. Add the webhook endpoint.** Developers → Webhooks → Add endpoint, pointing
 at:
