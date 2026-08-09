@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import CheckoutNotice from "./CheckoutNotice";
+import CheckoutNotice from "@/components/billing/CheckoutNotice";
 import PricingPlans from "./PricingPlans";
 
 /*
