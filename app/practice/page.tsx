@@ -168,8 +168,9 @@ export default function PracticePage() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">Practice tests</h1>
         <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">
-          Exam-format tests on the 9-band scale — reading and listening auto-marked, writing and
-          speaking graded by the AI examiner.
+          Tests in the same format as the real exam, marked on the 9-band scale. Reading and
+          listening are marked straight away. Writing and speaking are marked by the AI
+          examiner.
         </p>
       </div>
 

@@ -82,7 +82,7 @@ export default function VocabularyPage() {
         <DrillSection
           kind="vocabulary"
           title="Vocabulary practice"
-          intro="Eight topics on the vocabulary that earns marks. Read the note, then drill it."
+          intro="Eight topics of words that raise your band. Read the note, then answer the questions."
           topics={topics}
         />
       </div>

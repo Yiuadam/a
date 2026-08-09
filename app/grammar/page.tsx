@@ -13,7 +13,7 @@ export default function GrammarPage() {
       <DrillSection
         kind="grammar"
         title="Grammar practice"
-        intro="Ten topics on the mistakes learners make most. Read the rule, then drill it."
+        intro="Ten topics, each on a mistake learners make often. Read the rule, then answer the questions."
         topics={topics}
       />
     </div>
