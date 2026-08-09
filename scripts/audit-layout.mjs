@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /*
-  Sweeps every page at several widths and reports two things a build can never
-  catch: text painted on top of a control, and a page that scrolls sideways.
+  Sweeps every page at several widths and reports three things a build can
+  never catch: text painted on top of a control, a page that scrolls sideways,
+  and content drawn off the right edge of the screen.
 
   Why this exists
   ---------------
@@ -55,7 +56,7 @@ const PAGES = [
   changes its mind and therefore where it breaks; 1280 and 1440 are ordinary
   laptop and desktop.
 */
-const WIDTHS = [390, 430, 768, 1024, 1280, 1440];
+const WIDTHS = [360, 390, 430, 768, 1024, 1280, 1440];
 
 /*
   Finding a Playwright that can actually launch.
@@ -109,6 +110,49 @@ if (!launched) {
 const { browser } = launched;
 
 const page = await browser.newPage();
+
+/*
+  A learner who has done something, rather than an empty app.
+
+  This is not garnish. Every run before it existed visited each page cold, with
+  no history — and a cold dashboard has no "recent practice" column, so its
+  two-column grid never rendered and the 141px of cards hanging off the right
+  edge of a 390px phone were never drawn. The audit was green for a version of
+  the app that only a first-time visitor ever sees, while every returning
+  learner got the broken one.
+
+  A placement result, a target band, four sittings across all four skills, and
+  a deliberately long test title — the widest unbreakable string is what
+  decides whether a grid column can shrink.
+
+  Seeded after a navigation, because localStorage is per-origin.
+*/
+const daysAgo = (d) => new Date(Date.now() - d * 86400e3).toISOString();
+
+await page.goto(BASE, { waitUntil: "domcontentloaded" });
+await page.evaluate(
+  (profile) => localStorage.setItem("ielts-prep-v1", JSON.stringify(profile)),
+  {
+    targetBand: 7,
+    visited: ["reading", "listening", "writing", "speaking"],
+    placement: { band: 5.5, date: daysAgo(30), bySkill: {}, byLevel: {} },
+    results: [
+      {
+        module: "reading",
+        testId: "reading-2",
+        testTitle: "The Outsourced Mind: Cognitive Offloading and Its Discontents",
+        band: 6.5,
+        date: daysAgo(1),
+        raw: 9,
+        total: 13,
+      },
+      { module: "listening", testId: "listening-1", testTitle: "Booking a studio", band: 6, date: daysAgo(4), raw: 25, total: 40 },
+      { module: "writing", testId: "w1", testTitle: "Task 1", band: 6, date: daysAgo(8) },
+      { module: "speaking", testId: "s1", testTitle: "Part 2", band: 5.5, date: daysAgo(11) },
+    ],
+  },
+);
+
 let problems = 0;
 
 for (const width of WIDTHS) {
@@ -126,7 +170,52 @@ for (const width of WIDTHS) {
       const out = {
         sideways: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         overlaps: [],
+        offscreen: [],
       };
+
+      /*
+        Content past the right edge, which the sideways check above cannot see.
+
+        A grid item's automatic minimum width is its min-content, not zero, so a
+        column holding a two-up card grid can refuse to shrink below the width
+        of its widest unbreakable child. On a 390px phone the dashboard's left
+        column came to 531px and 141px of it sat off the screen — and the
+        document never grew, because the page simply drew outside itself. Every
+        check here was green while the cards were cut in half.
+
+        The fix is always min-w-0 on the offending child. The bug is invisible
+        to scrollWidth, so it is measured directly.
+
+        Elements inside a horizontal scroller are skipped, and that exception
+        is the whole difference between a bug and a feature. A wide data table
+        in an overflow-x-auto wrapper is *meant* to extend past its container —
+        that is what makes it scrollable — and getBoundingClientRect reports
+        its full box whether or not any of it is currently visible. Without
+        this, every deliberate table scroller in the app reads as broken, which
+        is how a check stops being believed.
+      */
+      const inAScroller = (el) => {
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          const ox = getComputedStyle(p).overflowX;
+          if (ox === "auto" || ox === "scroll") return true;
+        }
+        return false;
+      };
+
+      for (const el of document.querySelectorAll("main *")) {
+        const r = el.getBoundingClientRect();
+        if (r.width < 8 || r.height < 8) continue;
+        const s = getComputedStyle(el);
+        if (s.visibility === "hidden" || s.display === "none") continue;
+        if (r.right <= innerWidth + 1) continue;
+        if (inAScroller(el)) continue;
+        out.offscreen.push({
+          px: Math.round(r.right - innerWidth),
+          text: (el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 34),
+        });
+      }
+      out.offscreen.sort((a, b) => b.px - a.px);
+      out.offscreen = out.offscreen.slice(0, 2);
 
       const leaves = [...document.querySelectorAll("a, button, h1, h2, h3, p, span, li, td, th, label")]
         .filter((el) => {
@@ -143,8 +232,30 @@ for (const width of WIDTHS) {
           return cx >= 0 && cx <= innerWidth && cy >= 0 && cy <= innerHeight;
         });
 
+      /*
+        An element whose middle is clipped by a scrolling ancestor is not
+        covered by anything — it is scrolled out of view, and elementFromPoint
+        at that midpoint answers about whatever is painted there instead. The
+        study plan's week cards hold fixed-height task lists, so the row at the
+        boundary reports its own container as "covering" it. Six findings, all
+        false, and a check nobody believes is worse than no check.
+      */
+      const clippedByScroller = (el) => {
+        const b = el.getBoundingClientRect();
+        const midY = b.top + b.height / 2;
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          const s = getComputedStyle(p);
+          if (s.overflowY !== "auto" && s.overflowY !== "scroll" &&
+              s.overflowX !== "auto" && s.overflowX !== "scroll") continue;
+          const pb = p.getBoundingClientRect();
+          if (midY < pb.top - 1 || midY > pb.bottom + 1) return true;
+        }
+        return false;
+      };
+
       for (const el of leaves) {
         const b = el.getBoundingClientRect();
+        if (clippedByScroller(el)) continue;
         const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
         if (!hit || hit === el || el.contains(hit) || hit.contains(el)) continue;
         /*
@@ -165,6 +276,10 @@ for (const width of WIDTHS) {
       return out;
     });
 
+    for (const o of found.offscreen) {
+      console.log(`  ${String(width).padEnd(5)} ${path.padEnd(22)} "${o.text}" runs ${o.px}px past the right edge (needs min-w-0)`);
+      problems++;
+    }
     if (found.sideways > 0) {
       console.log(`  ${String(width).padEnd(5)} ${path.padEnd(22)} scrolls sideways by ${found.sideways}px`);
       problems++;

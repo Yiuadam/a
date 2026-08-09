@@ -113,8 +113,23 @@ export default function Dashboard() {
         phone — a tile is a title, one line and an icon, which fits in half a
         390px screen and halves the height of the page.
       */}
+      {/*
+        min-w-0 on both columns, and it is load-bearing rather than tidy.
+
+        A grid item's automatic minimum width is its min-content, not zero. The
+        left column holds a two-up card grid whose min-content is the widest
+        unbreakable thing inside it, and on a 390px phone that came to 531px —
+        so the column refused to shrink and 141px of it sat off the right edge
+        of the screen. Nothing scrolled, because the body has no
+        overflow-x: hidden and the page simply drew outside itself; the cards
+        were cut in half and every automated check stayed green.
+
+        min-w-0 removes that floor and lets the column be as narrow as the
+        screen. Every grid or flex child in this app that contains a grid needs
+        it, which is the same trap /practice hit at 390px.
+      */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           <section>
             <h2 className="heading-rule mb-2.5 text-sm font-semibold text-slate-900">
               Practise a skill
@@ -192,7 +207,7 @@ export default function Dashboard() {
         </div>
 
         {recent.length > 0 && (
-          <section className="lg:col-span-1">
+          <section className="min-w-0 lg:col-span-1">
             <div className="mb-2.5 flex items-baseline justify-between gap-3">
               <h2 className="heading-rule flex-1 text-sm font-semibold text-slate-900">
                 Your recent practice

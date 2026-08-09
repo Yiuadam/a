@@ -10,6 +10,9 @@ import listeningOne from "@/data/listening-1.json";
 import listeningTwo from "@/data/listening-2.json";
 import listeningThree from "@/data/listening-3.json";
 import listeningFour from "@/data/listening-4.json";
+import LockedCard from "@/components/LockedCard";
+import SessionCount from "@/components/SessionCount";
+import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { useProfile } from "@/lib/hooks";
 import { questionCount } from "@/lib/questions";
 import { addGeneratedTest } from "@/lib/store";
@@ -25,6 +28,7 @@ const listeningTests = [
 
 export default function PracticePage() {
   const profile = useProfile();
+  const access = useSessionAccess();
   const [genKind, setGenKind] = useState<"reading" | "listening">("reading");
   const [genDifficulty, setGenDifficulty] = useState<"medium" | "hard">("medium");
   const [genTopic, setGenTopic] = useState("");
@@ -120,7 +124,10 @@ export default function PracticePage() {
       */}
       <div className="grid gap-3 lg:grid-cols-3">
         <section className="min-w-0">
-          <h2 className="heading-rule mb-2 text-sm font-semibold text-slate-900">Reading</h2>
+          <div className="mb-2 flex items-baseline justify-between gap-2">
+            <h2 className="heading-rule text-sm font-semibold text-slate-900">Reading</h2>
+            <SessionCount access={access.reading} />
+          </div>
           <div className="space-y-2">
             {readingTests.map((t) => testRow("reading", t))}
             {profile.genTests
@@ -130,7 +137,10 @@ export default function PracticePage() {
         </section>
 
         <section className="min-w-0">
-          <h2 className="heading-rule mb-2 text-sm font-semibold text-slate-900">Listening</h2>
+          <div className="mb-2 flex items-baseline justify-between gap-2">
+            <h2 className="heading-rule text-sm font-semibold text-slate-900">Listening</h2>
+            <SessionCount access={access.listening} />
+          </div>
           <div className="space-y-2">
             {listeningTests.map((t) => testRow("listening", t))}
             {profile.genTests
@@ -141,16 +151,39 @@ export default function PracticePage() {
 
         <div className="min-w-0 space-y-3">
           <section className="min-w-0">
-            <h2 className="heading-rule mb-2 text-sm font-semibold text-slate-900">Writing</h2>
-            <Link href="/practice/writing" className="card !p-3 block">
-              <h3 className="text-sm font-semibold text-slate-900">
-                Writing tasks with AI examiner feedback
-              </h3>
-              <p className="mt-0.5 text-xs leading-5 text-slate-600">
-                Task 1 reports and letters, Task 2 essays — graded on all four criteria with a
-                rewritten model paragraph.
-              </p>
-            </Link>
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <h2 className="heading-rule text-sm font-semibold text-slate-900">Writing</h2>
+              <SessionCount access={access.writing} />
+            </div>
+            {/*
+              The card is drawn either way, and locked over the top when it is
+              not available. It is not swapped for a different card: a learner
+              deciding whether an account is worth making needs to see what is
+              behind the lock. See components/LockedCard.tsx.
+            */}
+            {access.writing.locked && access.writing.reason ? (
+              <LockedCard reason={access.writing.reason} label="Writing practice">
+                <div className="card !p-3">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Writing tasks with AI examiner feedback
+                  </h3>
+                  <p className="mt-0.5 text-xs leading-5 text-slate-600">
+                    Task 1 reports and letters, Task 2 essays — graded on all four criteria with a
+                    rewritten model paragraph.
+                  </p>
+                </div>
+              </LockedCard>
+            ) : (
+              <Link href="/practice/writing" className="card !p-3 block">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Writing tasks with AI examiner feedback
+                </h3>
+                <p className="mt-0.5 text-xs leading-5 text-slate-600">
+                  Task 1 reports and letters, Task 2 essays — graded on all four criteria with a
+                  rewritten model paragraph.
+                </p>
+              </Link>
+            )}
           </section>
 
           <section id="generate" className="card !p-3 min-w-0 border-indigo-200 bg-indigo-50/40">
