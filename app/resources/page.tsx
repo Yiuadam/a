@@ -111,7 +111,7 @@ export default function ResourcesPage() {
           </ul>
         </section>
 
-        <div className="order-1 grid min-w-0 gap-3 sm:grid-cols-2 lg:order-2 lg:col-span-2 lg:content-start">
+        <div className="order-1 grid min-w-0 gap-3 sm:grid-cols-2 lg:order-2 lg:col-span-2 2xl:grid-cols-3 lg:content-start">
           {SECTIONS.map((s) => (
             <details key={s.title} className="card !p-4 group h-fit min-w-0">
               <summary className="flex cursor-pointer list-none items-center gap-2.5 [&::-webkit-details-marker]:hidden">

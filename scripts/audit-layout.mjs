@@ -209,6 +209,7 @@ for (const width of WIDTHS) {
         if (s.visibility === "hidden" || s.display === "none") continue;
         if (r.right <= innerWidth + 1) continue;
         if (inAScroller(el)) continue;
+        if (inClosedDetails(el)) continue;
         out.offscreen.push({
           px: Math.round(r.right - innerWidth),
           text: (el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 34),
@@ -240,6 +241,20 @@ for (const width of WIDTHS) {
         boundary reports its own container as "covering" it. Six findings, all
         false, and a check nobody believes is worse than no check.
       */
+      /*
+        A closed <details> is the third false positive of the same family. The
+        browser gives its contents layout — display is still list-item, a
+        getBoundingClientRect returns a real box — and simply does not paint
+        them, so elementFromPoint answers about the <details> instead and every
+        collapsed disclosure on the page reads as an overlap.
+      */
+      const inClosedDetails = (el) => {
+        for (let p = el.parentElement; p; p = p.parentElement) {
+          if (p.tagName === "DETAILS" && !p.open) return true;
+        }
+        return false;
+      };
+
       const clippedByScroller = (el) => {
         const b = el.getBoundingClientRect();
         const midY = b.top + b.height / 2;
@@ -255,7 +270,7 @@ for (const width of WIDTHS) {
 
       for (const el of leaves) {
         const b = el.getBoundingClientRect();
-        if (clippedByScroller(el)) continue;
+        if (clippedByScroller(el) || inClosedDetails(el)) continue;
         const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
         if (!hit || hit === el || el.contains(hit) || hit.contains(el)) continue;
         /*

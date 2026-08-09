@@ -60,7 +60,27 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Renders nothing; keeps a signed-in account's progress current. */}
         <AutoSync />
         <LookupProvider>
-          <main data-lookupable className="mx-auto w-full max-w-5xl flex-1 px-5 py-10">
+          {/*
+            The shell grows with the screen instead of stopping at 1024px.
+
+            It used to be max-w-5xl at every width, which on a 2560px display
+            left 31% of the screen empty and the app sitting in a column down
+            one side. Now it steps up: 1024 to lg, then 1152, 1280, and 1536 on
+            a very wide monitor.
+
+            It does not go to full bleed, and that is the whole judgement here.
+            Line length is not a style preference — prose past about 90
+            characters is measurably harder to read, because the eye loses the
+            start of the next line on the way back. So the shell widens for
+            things that come in columns (cards, lists, grids, which get more
+            columns as it grows) while every page with real prose in it keeps
+            its own inner max-w-xl. Widening the container and letting a
+            paragraph run 1500px would be worse than the empty space it fixed.
+          */}
+          <main
+            data-lookupable
+            className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]"
+          >
             {children}
           </main>
         </LookupProvider>
@@ -70,7 +90,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           to accept a submission at all. A footer is where people look for it.
         */}
         <footer className="mt-4 border-t border-slate-200">
-          <div className="mx-auto max-w-4xl space-y-3 px-5 py-6 text-xs leading-5 text-slate-400">
+          <div className="mx-auto max-w-5xl space-y-3 px-5 py-6 text-xs leading-5 text-slate-400 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
             <p>
               Band scores here are practice estimates. BandUp is an independent study tool, not
               affiliated with or endorsed by IELTS, the British Council, IDP or Cambridge English.

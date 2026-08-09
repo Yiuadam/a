@@ -134,7 +134,13 @@ export default function Dashboard() {
             <h2 className="heading-rule mb-2.5 text-sm font-semibold text-slate-900">
               Practise a skill
             </h2>
-            <div className="grid grid-cols-2 gap-3">
+            {/*
+              Two-up on a phone, four-up from xl. More columns rather than
+              wider cards: a tile is a title and one line, and stretching it to
+              600px makes an icon with a lot of whitespace after it, not a
+              better tile.
+            */}
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {MODULES.map((m) => {
                 const latest = latestFor(profile.results, m.key);
                 const isNew = !latest && !(profile.visited ?? []).includes(m.key);

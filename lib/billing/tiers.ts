@@ -162,8 +162,13 @@ export const TIERS: Record<Tier, TierDefinition> = {
   */
   admin: {
     id: "admin",
-    name: "Owner",
-    blurb: "The owner's own account.",
+    /*
+      Named rather than titled. There is exactly one of these accounts and it
+      belongs to a person, so "Adam" reads as what it is; "Owner" read like a
+      tier somebody might be sold.
+    */
+    name: "Adam",
+    blurb: "Your own account. No limits on anything.",
     dailyAiCalls: null,
     features: [...EVERYTHING_METERED, "tutor-chat"],
     includes: [],

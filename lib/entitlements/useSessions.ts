@@ -3,6 +3,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { useProfile } from "@/lib/hooks";
 import { useTier } from "@/lib/billing/useTier";
+import { previewOnServer, readPreview, subscribePreview } from "@/lib/billing/preview";
 import { allowanceFor, lockReason, sessionsLeft, type LockReason, type SessionTier } from "./sessions";
 import type { ModuleName, ModuleResult } from "@/lib/types";
 
@@ -110,7 +111,7 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & { tier: Se
     appear locked for a moment on a slow connection. The server is what
     refuses; being briefly optimistic here costs nothing.
   */
-  const tier: SessionTier =
+  const real: SessionTier =
     account.phase !== "ready" || !account.accountsEnabled
       ? "pro"
       : !account.signedIn
@@ -120,6 +121,15 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & { tier: Se
           : account.tier === "pro"
             ? "pro"
             : "free";
+
+  /*
+    The owner's preview switch, and note the guard: it is only honoured when
+    the server has already said this account is an admin. Anybody else can set
+    that key by hand and change nothing, because a preview is a drawing tool
+    rather than an entitlement. See lib/billing/preview.ts.
+  */
+  const preview = useSyncExternalStore(subscribePreview, readPreview, previewOnServer);
+  const tier: SessionTier = real === "admin" && preview !== null ? preview : real;
 
   /*
     The clock comes from a store rather than from Date.now() in render.
