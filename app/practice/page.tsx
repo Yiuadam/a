@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import DoneBadge, { bestResultFor } from "@/components/DoneBadge";
 import LockedCard from "@/components/LockedCard";
+import MoreComing from "@/components/MoreComing";
 import { LISTENING_TESTS, READING_TESTS } from "@/lib/tests";
 import SessionCount from "@/components/SessionCount";
 import { allowanceFor } from "@/lib/entitlements/sessions";
@@ -104,6 +106,7 @@ export default function PracticePage() {
       <>
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="min-w-0 truncate text-sm font-semibold text-slate-900">{t.title}</h3>
+          <DoneBadge result={bestResultFor(profile.results, t.id)} />
         </div>
         <p className="mt-0.5 truncate text-xs leading-5 text-slate-600">
           {"topic" in t ? t.topic : t.context}
@@ -136,7 +139,7 @@ export default function PracticePage() {
 
     if (beyond) {
       return (
-        <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`}>
+        <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`} fill>
           <div className="card !p-3 h-full">{inner}</div>
         </LockedCard>
       );
@@ -180,6 +183,7 @@ export default function PracticePage() {
             {profile.genTests
               .filter((g) => g.kind === "reading")
               .map((g, i) => testRow("reading", g.test, true, readingTests.length + i))}
+            <MoreComing what="reading papers" />
           </div>
         </section>
 
@@ -193,6 +197,7 @@ export default function PracticePage() {
             {profile.genTests
               .filter((g) => g.kind === "listening")
               .map((g, i) => testRow("listening", g.test, true, listeningTests.length + i))}
+            <MoreComing what="listening papers" />
           </div>
         </section>
 

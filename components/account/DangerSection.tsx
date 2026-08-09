@@ -83,7 +83,7 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
           Delete my account
         </button>
       ) : (
-        <div className="mt-4 flex flex-col gap-3 sm:max-w-sm">
+        <div className="mt-4 flex flex-col gap-3">
           <label htmlFor="confirm-delete" className="text-sm font-medium text-slate-700">
             Type DELETE to confirm
           </label>
