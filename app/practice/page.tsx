@@ -11,6 +11,7 @@ import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { useProfile } from "@/lib/hooks";
 import { questionCount } from "@/lib/questions";
+import { postJSON } from "@/lib/api";
 import { addGeneratedTest } from "@/lib/store";
 import type { GeneratedTest, ListeningTest, ReadingTest } from "@/lib/types";
 
@@ -30,17 +31,16 @@ export default function PracticePage() {
     setGenerating(true);
     setGenError(null);
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: genKind,
-          difficulty: genDifficulty,
-          topicHint: genTopic || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Generation failed.");
+      /*
+        postJSON, not fetch. It carries the session token and the iOS API base;
+        a bare fetch carried neither, so a signed-in learner was metered as
+        anonymous — allowance zero — and told on their first attempt that they
+        had used all of today's AI. See lib/api.ts.
+      */
+      const data = await postJSON<{ kind: GeneratedTest["kind"]; test: GeneratedTest["test"] }>(
+        "/api/generate",
+        { kind: genKind, difficulty: genDifficulty, topicHint: genTopic || undefined },
+      );
       const entry: GeneratedTest = {
         kind: data.kind,
         createdAt: new Date().toISOString(),

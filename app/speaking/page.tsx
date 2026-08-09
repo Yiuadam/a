@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import BandBadge from "@/components/BandBadge";
 import ExplainText from "@/components/ExplainText";
 import SkillGate from "@/components/SkillGate";
+import { postJSON } from "@/lib/api";
 import speakingData from "@/data/speaking-topics.json";
 import { useMounted } from "@/lib/hooks";
 import {
@@ -349,20 +350,17 @@ function SpeakingSession() {
       setStage("grading");
       setError(null);
       try {
-        const res = await fetch("/api/grade/speaking", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript: finalTranscript }),
+        /* postJSON carries the session token and the iOS API base — see lib/api.ts. */
+        const payload = await postJSON<SpeakingGrade>("/api/grade/speaking", {
+          transcript: finalTranscript,
         });
-        const payload = await res.json();
-        if (!res.ok) throw new Error(payload.error ?? "Grading failed.");
-        setGrade(payload as SpeakingGrade);
+        setGrade(payload);
         setStage("result");
         addResult({
           module: "speaking",
           testId: "mock-speaking",
           testTitle: "Mock speaking interview",
-          band: (payload as SpeakingGrade).overallBand,
+          band: payload.overallBand,
           date: new Date().toISOString(),
         });
       } catch (err) {

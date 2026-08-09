@@ -6,6 +6,7 @@ import BandBadge from "@/components/BandBadge";
 import ExplainText from "@/components/ExplainText";
 import Timer from "@/components/Timer";
 import writingData from "@/data/writing-tasks.json";
+import { postJSON } from "@/lib/api";
 import { addResult } from "@/lib/store";
 import type { WritingGrade, WritingTasksData } from "@/lib/types";
 import Chart from "@/components/Chart";
@@ -29,24 +30,19 @@ function WritingSession() {
     setError(null);
     setGrade(null);
     try {
-      const res = await fetch("/api/grade/writing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          task: task.task,
-          prompt: task.prompt,
-          essay,
-          minWords: task.minWords,
-        }),
+      /* postJSON carries the session token and the iOS API base — see lib/api.ts. */
+      const data = await postJSON<WritingGrade>("/api/grade/writing", {
+        task: task.task,
+        prompt: task.prompt,
+        essay,
+        minWords: task.minWords,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Grading failed.");
-      setGrade(data as WritingGrade);
+      setGrade(data);
       addResult({
         module: "writing",
         testId: task.id,
         testTitle: task.title,
-        band: (data as WritingGrade).overallBand,
+        band: data.overallBand,
         date: new Date().toISOString(),
       });
     } catch (err) {
