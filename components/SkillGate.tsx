@@ -67,9 +67,21 @@ const LABEL: Record<ModuleName, string> = {
 
 export default function SkillGate({
   module,
+  className = "",
   children,
 }: {
   module: ModuleName;
+  /**
+   * How wide the lock is, from the page that knows.
+   *
+   * Most pages fill the layout container, so the lock does too and nothing has
+   * to be said. The speaking page does not: its opening card is centred at
+   * `max-w-3xl`, so a full-width lock drew its tint and its ring right across
+   * the empty gutters either side — two grey rectangles flanking the card,
+   * belonging to nothing. The page is the only thing that knows its own width,
+   * so the page is what says it.
+   */
+  className?: string;
   children: ReactNode;
 }) {
   const access = useSessionAccess();
@@ -77,7 +89,7 @@ export default function SkillGate({
 
   if (skill.pending) {
     return (
-      <div className="card" aria-busy="true">
+      <div className={`card ${className}`} aria-busy="true">
         <p className="text-[15px] text-slate-500">Checking your account…</p>
       </div>
     );
@@ -86,7 +98,7 @@ export default function SkillGate({
   if (skill.locked && skill.reason) {
     const signedIn = access.tier !== "anonymous";
     return (
-      <div className="space-y-3">
+      <div className={`space-y-3 ${className}`}>
         {/*
           One line, not a panel. The page behind the lock is what is doing the
           work; this only has to say what stands between them and it, and give
@@ -112,7 +124,7 @@ export default function SkillGate({
           </Link>
         </div>
 
-        <LockedCard reason={skill.reason} label={LABEL[module]}>
+        <LockedCard reason={skill.reason} label={LABEL[module]} standoff>
           {children}
         </LockedCard>
       </div>

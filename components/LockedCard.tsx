@@ -43,6 +43,7 @@ export default function LockedCard({
   reason,
   label,
   fill = false,
+  standoff = false,
   children,
 }: {
   reason: Exclude<LockReason, null>;
@@ -59,6 +60,19 @@ export default function LockedCard({
    * enormous empty box with a padlock floating in the middle of it.
    */
   fill?: boolean;
+  /**
+   * Hold the tint and its ring away from the content.
+   *
+   * Off by default, and it has to be. In a grid every cell is the same size, so
+   * padding inside a locked cell makes the card *inside* it narrower than its
+   * unlocked neighbours and the row stops lining up.
+   *
+   * On a whole page drawn behind its lock there is no row to line up with, and
+   * the opposite problem appears: the ring lands hard against the first
+   * heading and the left edge of the prose, so the boundary reads as touching
+   * the words rather than framing them. That is what this is for.
+   */
+  standoff?: boolean;
   children: ReactNode;
 }) {
   const href = reason === "sign-in" ? "/account" : "/pricing";
@@ -87,7 +101,7 @@ export default function LockedCard({
         `truncate` at the bottom of it. If a card here ever stops truncating,
         this is the line to look at first.
       */
-      className={`group relative block min-w-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${fill ? "h-full" : ""}`}
+      className={`group relative block min-w-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${fill ? "h-full" : ""} ${standoff ? "p-2.5 sm:p-3.5" : ""}`}
     >
       {/*
         The card itself, dimmed and desaturated. pointer-events-none so that
@@ -119,24 +133,35 @@ export default function LockedCard({
         below the fold, marking something the reader has to scroll to find. The
         cap keeps it over the part of the panel they are actually looking at.
       */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex h-full max-h-96 flex-col items-center justify-center gap-1.5">
-        <svg
-          viewBox="0 0 24 24"
-          width="26"
-          height="26"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className="text-slate-600/70 transition-all group-hover:text-slate-700/90"
-        >
-          <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
-          <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
-        </svg>
-        <span className="rounded-full bg-surface/85 px-2.5 py-0.5 text-xs font-semibold text-slate-700 shadow-sm">
-          {line}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex h-full max-h-96 items-center justify-center">
+        {/*
+          One plate holding both, rather than a bare icon and a bare pill.
+
+          Loose over a card it looked fine, because a card has a picture and
+          three words under it. Over a whole page it sat directly on top of the
+          prose — the padlock in the middle of a sentence, the label's edge
+          cutting through the line below it — and two pieces of text on top of
+          each other is unreadable however faint one of them is. The plate gives
+          the words underneath somewhere to stop, and its padding is what keeps
+          its own boundary off them.
+        */}
+        <span className="flex flex-col items-center gap-1.5 rounded-2xl border border-slate-300/70 bg-surface/90 px-4 py-3 shadow-sm">
+          <svg
+            viewBox="0 0 24 24"
+            width="26"
+            height="26"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="text-slate-600/80 transition-all group-hover:text-slate-700"
+          >
+            <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+            <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+          </svg>
+          <span className="text-xs font-semibold text-slate-700">{line}</span>
         </span>
       </div>
     </Link>

@@ -1039,7 +1039,13 @@ function EngineOption({
 */
 export default function SpeakingPage() {
   return (
-    <SkillGate module="speaking">
+    /*
+      The width is named here rather than in the gate, because this page is the
+      only one whose opening card is narrower than the layout container — see
+      the note on SkillGate's className. Locked, the lock is this wide; open,
+      the intro card centres itself the same way and the gate adds nothing.
+    */
+    <SkillGate module="speaking" className="mx-auto max-w-3xl">
       <SpeakingSession />
     </SkillGate>
   );
