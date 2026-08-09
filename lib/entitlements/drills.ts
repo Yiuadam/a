@@ -35,6 +35,8 @@ export type DrillKind = "grammar" | "vocabulary";
 export const DRILL_LIMITS: Record<SessionTier, number | null> = {
   anonymous: 1,
   free: 2,
+  standard: null,
+  plus: null,
   pro: null,
   admin: null,
 };

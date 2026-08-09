@@ -1,5 +1,6 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { stripeSecretKey, stripePriceId } from "./env";
+import { isPaidTier } from "./tiers";
 import type { Tier, PlanId } from "./tiers";
 import type { SubscriptionStatus } from "./providers";
 
@@ -333,8 +334,8 @@ export function subscriptionFromStripeEvent(
   */
   const metadataTier = readString(metadata, TIER_METADATA_KEY);
   const tier: Tier =
-    metadataTier === "pro"
-      ? "pro"
+    metadataTier !== null && isPaidTier(metadataTier as Tier)
+      ? (metadataTier as Tier)
       : (priceId && tierForPrice?.(priceId)) || "free";
 
   return {

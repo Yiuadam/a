@@ -78,7 +78,6 @@ export interface SkillAccess {
   /** Out of sessions, but not locked — a different message and a different fix. */
   usedUp: boolean;
   /** Questions answerable in one session, or null for all of them. */
-  maxQuestions: number | null;
   /**
    * The answer is not known yet — the account lookup is still in flight.
    *
@@ -133,16 +132,26 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & {
   */
   const pending = account.phase === "loading";
 
+  /*
+    The account's tier, as a session tier.
+
+    Every paid tier maps to itself; anything unrecognised falls to "free",
+    which is the restrictive end. With accounts switched off there is no tier at
+    all and the whole app is open, so that a deployment without Supabase is a
+    working app rather than a locked one — see the note above about being
+    optimistic in the client and strict on the server.
+  */
   const real: SessionTier =
     account.phase !== "ready" || !account.accountsEnabled
       ? "pro"
       : !account.signedIn
         ? "anonymous"
-        : account.tier === "admin"
-          ? "admin"
-          : account.tier === "pro"
-            ? "pro"
-            : "free";
+        : account.tier === "admin" ||
+            account.tier === "pro" ||
+            account.tier === "plus" ||
+            account.tier === "standard"
+          ? account.tier
+          : "free";
 
   /*
     The owner's preview switch, and note the guard: it is only honoured when
@@ -176,7 +185,6 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & {
         satThisWeek: sat,
         left,
         usedUp: !locked && left === 0,
-        maxQuestions: allowanceFor(tier, module).maxQuestions,
         pending,
       };
     };

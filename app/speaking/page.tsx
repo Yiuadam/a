@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import BandBadge from "@/components/BandBadge";
 import ExplainText from "@/components/ExplainText";
 import SkillGate from "@/components/SkillGate";
+import UpgradePanel from "@/components/billing/UpgradePanel";
+import { tierShows, useTier } from "@/lib/billing/useTier";
 import VolumeMeter from "@/components/speaking/VolumeMeter";
 import { postJSON } from "@/lib/api";
 import speakingData from "@/data/speaking-topics.json";
@@ -81,7 +83,28 @@ const PART_INTRO: Record<1 | 2 | 3, string> = {
 };
 
 function SpeakingSession() {
-  const [stage, setStage] = useState<"intro" | "interview" | "grading" | "result">("intro");
+  /*
+    Whether the interview gets marked, which is not the same as whether it can
+    be taken. Standard unlocks the mock test — the examiner's questions, the
+    clock, the recording, the transcript — and does not include the AI marking;
+    Plus is where a band comes from.
+
+    On this page that distinction matters more than anywhere else in the app. A
+    speaking test is fourteen minutes of somebody talking into a microphone, and
+    discovering at the end that there is no band would be the single worst
+    moment BandUp could produce. So it is said on the intro card, before they
+    start, and the interview ends on its transcript instead of on an error.
+
+    Generous while the answer is unknown, like every other client-side gate
+    here. The server refuses if it should — lib/billing/gate.ts.
+  */
+  const account = useTier();
+  const marked =
+    account.phase !== "ready" || !account.accountsEnabled || tierShows(account, "grade-speaking");
+
+  const [stage, setStage] = useState<"intro" | "interview" | "grading" | "result" | "unmarked">(
+    "intro",
+  );
   const [steps, setSteps] = useState<Step[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [transcript, setTranscript] = useState<Turn[]>([]);
@@ -490,12 +513,22 @@ function SpeakingSession() {
 
     const nextIndex = stepIndex + 1;
     if (nextIndex >= steps.length) {
+      /*
+        No marking on this plan, so no request. Calling the route anyway would
+        spend fourteen minutes of somebody's afternoon and answer 402, and the
+        transcript — which is the part that costs nothing and is genuinely
+        useful — would be behind an error message.
+      */
+      if (!marked) {
+        setStage("unmarked");
+        return;
+      }
       await gradeInterview(updated);
       return;
     }
     setStepIndex(nextIndex);
     await askCurrent(nextIndex, steps);
-  }, [step, stepIndex, steps, transcript, stopAnswer, askCurrent, gradeInterview]);
+  }, [step, stepIndex, steps, transcript, stopAnswer, askCurrent, gradeInterview, marked]);
 
   // ---------- Screens ----------
 
@@ -514,8 +547,9 @@ function SpeakingSession() {
               <h1 className="text-xl font-semibold text-slate-900">Mock speaking test</h1>
             </div>
             <p className="mt-1.5 text-sm leading-6 text-slate-600">
-              An AI examiner asks you questions out loud. You answer out loud. At the end you
-              get a band and feedback on the four things the real exam marks you on.
+              {marked
+                ? "An AI examiner asks you questions out loud. You answer out loud. At the end you get a band and feedback on the four things the real exam marks you on."
+                : "An examiner asks you questions out loud and you answer out loud, in exam order and against the exam clock. At the end you get your full transcript. AI marking is on Plus."}
             </p>
             <ol className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
               <li className="flex gap-2.5">
@@ -643,6 +677,59 @@ function SpeakingSession() {
               </p>
             )}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  /*
+    The end of an interview that this plan does not have marking for.
+
+    It is a real ending rather than an apology: the transcript is here, it is the
+    thing a learner can actually work from without a model, and it is presented
+    first. The upgrade sits under it, once, without a countdown or a nag.
+  */
+  if (stage === "unmarked") {
+    return (
+      <div className="space-y-3">
+        <div className="card !p-4">
+          <h1 className="text-xl font-semibold text-slate-900">Interview complete</h1>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            You answered every question, in exam order and against the clock. Here is everything
+            you said. AI marking — a band for each criterion, and what to fix first — is part of
+            Plus.
+          </p>
+        </div>
+
+        <div className="card !p-4">
+          <h2 className="text-sm font-semibold text-slate-900">Your transcript</h2>
+          <div className="mt-3 max-h-[24rem] space-y-2 overflow-y-auto">
+            {transcript.map((t, i) => (
+              <p key={i} className="text-sm leading-6">
+                <span
+                  className={
+                    t.role === "examiner"
+                      ? "font-semibold text-slate-500"
+                      : "font-semibold text-indigo-700"
+                  }
+                >
+                  {t.role === "examiner" ? "Examiner" : "You"}:
+                </span>{" "}
+                <span className="text-slate-700">{t.text}</span>
+              </p>
+            ))}
+          </div>
+        </div>
+
+        <UpgradePanel feature="have this marked" signedIn={account.signedIn} tier="plus" />
+
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-primary" onClick={() => setStage("intro")}>
+            Take another interview
+          </button>
+          <Link href="/plan" className="btn-secondary">
+            Back to my plan
+          </Link>
         </div>
       </div>
     );

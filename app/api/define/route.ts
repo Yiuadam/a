@@ -74,9 +74,7 @@ async function handlePOST(req: Request) {
         context ? `\n\nThey were reading this sentence: "${context}"` : ""
       }`,
       schema: SCHEMA,
-      maxTokens: 1000,
-      // A definition is a small, well-defined task; low effort keeps it fast.
-      effort: "low",
+      route: "define",
     });
     return NextResponse.json({ definition: { term, ...definition } });
   } catch (err) {

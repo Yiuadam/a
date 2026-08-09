@@ -73,16 +73,22 @@ with its type set to **Secret**:
 | `ACCOUNTS_ALLOWED_ORIGINS` | the iOS app; `capacitor://localhost,https://localhost` |
 | `STRIPE_SECRET_KEY` | subscriptions: creating a Checkout Session and a billing portal session |
 | `STRIPE_WEBHOOK_SECRET` | subscriptions: verifying that a webhook delivery really came from Stripe |
-| `STRIPE_PRICE_PRO_MONTHLY` | the Stripe Price id behind the monthly Pro plan |
-| `STRIPE_PRICE_PRO_YEARLY` | the Stripe Price id behind the yearly Pro plan |
+| `STRIPE_PRICE_STANDARD_MONTHLY` | the Stripe Price id behind Standard, monthly |
+| `STRIPE_PRICE_STANDARD_YEARLY` | the Stripe Price id behind Standard, yearly |
+| `STRIPE_PRICE_PLUS_MONTHLY` | the Stripe Price id behind Plus, monthly |
+| `STRIPE_PRICE_PLUS_YEARLY` | the Stripe Price id behind Plus, yearly |
+| `STRIPE_PRICE_PRO_MONTHLY` | the Stripe Price id behind Pro, monthly |
+| `STRIPE_PRICE_PRO_YEARLY` | the Stripe Price id behind Pro, yearly |
 | `ADMIN_EMAILS` | your own address, so signing in with it makes you the owner. Comma-separate for more than one |
 | `ADMIN_USERNAME` | a name you can type instead of that address at sign-in. Optional |
 
 See `.env.example`. A missing `ANTHROPIC_API_KEY` is the common one: the app
 loads and every page works, and only the AI features answer with an error.
 Missing Stripe variables are similar and deliberately quiet: `/pricing` still
-renders both plans and their prices and says subscriptions are not open yet,
-rather than showing a button that fails.
+renders every plan and its price and says subscriptions are not open yet,
+rather than showing a button that fails. A plan whose Price id is missing is
+simply not offered, so it is fine to set Standard up first and add the others
+later.
 
 Changing any of them takes effect on the next deploy, so click **Deploy** after
 editing.
@@ -133,13 +139,26 @@ short numeric password. A passphrase costs a few seconds a week.
 Four things, in this order. Nothing before the last step changes what a visitor
 sees.
 
-**1. Create the product and its two prices.** Stripe dashboard → Product
-catalogue → Add product. One product, "BandUp Pro", with two recurring prices:
-`$9.00` monthly and `$72.00` yearly. The amounts have to match what `/pricing`
-shows, which lives in `lib/billing/tiers.ts` — Stripe is what actually charges,
-and the page is only copy, so a mismatch charges the amount the page did not
-say. Copy each `price_…` id into `STRIPE_PRICE_PRO_MONTHLY` and
-`STRIPE_PRICE_PRO_YEARLY`.
+**1. Create three products, each with two prices.** Stripe dashboard → Product
+catalogue → Add product. One product per tier, each with a monthly and a yearly
+recurring price:
+
+| Product | Monthly | Yearly | Variables |
+|---|---|---|---|
+| BandUp Standard | `$2.99` | `$29.00` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
+| BandUp Plus | `$5.99` | `$59.00` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
+| BandUp Pro | `$9.99` | `$99.00` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
+
+The amounts have to match what `/pricing` shows, which lives in
+`lib/billing/tiers.ts` — Stripe is what actually charges, and the page is only
+copy, so a mismatch charges the amount the page did not say. Copy each
+`price_…` id into the variable beside it.
+
+These are not arbitrary numbers. Each tier's AI allowances were set so that a
+subscriber who uses every last request still costs less than they paid, and
+`tests/ai-economics.test.mjs` fails the build if that stops being true. Changing
+a price here without changing it there breaks the only check standing between
+the app and a subscriber who costs more than they are worth.
 
 **2. Add the webhook endpoint.** Developers → Webhooks → Add endpoint, pointing
 at:

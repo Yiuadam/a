@@ -136,7 +136,7 @@ Requirements:
 - questions: exactly 13, ids q1..q13 — 5 "tfng" (answers must include at least one each of TRUE, FALSE, NOT GIVEN), then 4 "mcq" (4 options each, answer = correct index), then 4 "completion" (sentence contains ___, answer is 1-2 words appearing VERBATIM in the passage, maxWords set accordingly)
 - Questions follow passage order within each group and test paraphrase understanding, not word-spotting.`,
         schema: READING_SCHEMA,
-        maxTokens: 16000,
+        route: "generate",
       });
       return NextResponse.json({ kind, test });
     }
@@ -155,7 +155,7 @@ Requirements:
 - questions: exactly 10, ids q1..q10, in the order answers occur in the script — mostly "completion" (answer is 1-2 words/numbers appearing VERBATIM in the script) plus 2-3 "mcq" (3 options each)
 - The script will be read aloud by text-to-speech, so write natural spoken English with no stage directions.`,
       schema: LISTENING_SCHEMA,
-      maxTokens: 16000,
+      route: "generate",
     });
     return NextResponse.json({ kind, test });
   } catch (err) {

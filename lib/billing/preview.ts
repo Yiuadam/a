@@ -48,13 +48,17 @@ export type PreviewTier = SessionTier;
 
 export const PREVIEW_TIERS: { id: PreviewTier; label: string; note: string }[] = [
   { id: "admin", label: "Adam", note: "No limits on anything" },
-  { id: "pro", label: "Standard", note: "As a subscriber sees it" },
+  { id: "pro", label: "Pro", note: "Every paper, the largest AI allowance" },
+  { id: "plus", label: "Plus", note: "Every paper, a smaller AI allowance" },
+  { id: "standard", label: "Standard", note: "Every paper, no AI at all" },
   { id: "free", label: "Free", note: "Weekly limits and the paywall" },
   { id: "anonymous", label: "Signed out", note: "Locks on writing and speaking" },
 ];
 
+const PREVIEW_IDS: readonly string[] = PREVIEW_TIERS.map((t) => t.id);
+
 function isPreviewTier(v: unknown): v is PreviewTier {
-  return v === "admin" || v === "pro" || v === "free" || v === "anonymous";
+  return typeof v === "string" && PREVIEW_IDS.includes(v);
 }
 
 /*

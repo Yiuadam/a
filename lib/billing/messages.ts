@@ -18,7 +18,7 @@ export const BILLING_MESSAGES = {
    * sentence is the part that matters: nothing a learner relies on is missing.
    */
   checkoutUnavailable:
-    "Subscriptions aren't open yet. Everything on BandUp works in the meantime — practice tests, drills and your study plan are free and unlimited, and a free account raises the daily allowance on AI feedback.",
+    "Subscriptions aren't open yet. Everything on BandUp works in the meantime — the placement test, practice tests, drills and your study plan are free and unlimited, and a free account syncs your progress between devices.",
 
   /** Signed out, on a route that needs to know whose subscription it is. */
   signInFirst: "Please sign in first, so your subscription is attached to your account.",

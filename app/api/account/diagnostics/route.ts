@@ -3,7 +3,7 @@ import { accountsEnabled, adminEmails, adminUsername, isAdminEmail } from "@/lib
 import { getSessionUser } from "@/lib/auth/session";
 import { rpcDiagnostic, supabaseConfigured } from "@/lib/auth/supabase";
 import { withCors } from "@/lib/http/cors";
-import { USAGE_WINDOW_SECONDS, limitsForDatabase } from "@/lib/usage/limits";
+import { LIMITS_SCHEMA_VERSION, USAGE_WINDOW_SECONDS, limitsForDatabase } from "@/lib/usage/limits";
 import { hasApiKey } from "@/lib/anthropic";
 
 /*
@@ -102,6 +102,28 @@ async function handleGET(req: Request) {
     and nowhere else. The insert happens before the decision, so the rejected
     row takes the whole call down and every /api/chat request answers 503.
   */
+  /*
+    Which shape of allowances the database understands. Without
+    0012_route_limits.sql the meter still answers and still records — it just
+    refuses every AI request for every paying tier, because the application
+    deliberately sends zeroes in the old keys rather than risk enforcing the
+    wrong caps. That is the safe direction and an invisible one, so it is asked
+    about directly.
+  */
+  const schema = await rpcDiagnostic("usage_limits_schema", {});
+  // The body of a scalar RPC is the number itself, so it arrives in `detail`.
+  const schemaVersion = schema.ok ? Number(schema.detail.trim()) : NaN;
+  const schemaCurrent = Number.isFinite(schemaVersion) && schemaVersion >= LIMITS_SCHEMA_VERSION;
+  add(
+    "usage_limits_schema",
+    schemaCurrent,
+    schemaCurrent
+      ? `answers ${schemaVersion} — per-route allowances are being enforced`
+      : schema.ok
+        ? `answers ${schema.detail.trim()}, but this build sends ${LIMITS_SCHEMA_VERSION} — apply supabase/migrations/0012_route_limits.sql`
+        : `${schema.status}: ${schema.detail} — apply supabase/migrations/0012_route_limits.sql, or every paid tier is refused all AI`,
+  );
+
   const meter = await rpcDiagnostic("check_and_record_usage", {
     p_user_id: user.id,
     p_ip_hash: null,

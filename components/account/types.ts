@@ -20,10 +20,18 @@ export interface AccountStatus {
   tier?: string;
   unlimited?: boolean;
   usage?: {
-    used: number;
-    quota: number | null;
-    remaining: number | null;
+    /** A rolling 30 days, in seconds. */
     windowSeconds: number;
+    oldestAt: string | null;
+    /** One entry per metered route, in a fixed order. */
+    routes: {
+      route: string;
+      label: string;
+      used: number;
+      /** Null is no cap; zero is "not on this plan". */
+      quota: number | null;
+      remaining: number | null;
+    }[];
   };
 }
 

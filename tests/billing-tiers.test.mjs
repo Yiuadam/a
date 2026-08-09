@@ -25,16 +25,19 @@ const limits = await import(pathToFileURL(join(process.cwd(), "lib", "usage", "l
 
 const {
   FEATURES,
+  MONTHLY_AI_CAPS,
+  PAID_TIERS,
   PLANS,
   PLAN_IDS,
   SELLABLE_TIERS,
   TIERS,
-  dailyAiCalls,
   formatPrice,
   isPlanId,
+  monthlyCap,
   perMonthEquivalent,
   plansForTier,
   tierAllows,
+  tierHasAi,
 } = tiers;
 
 /* ------------------------------------------------------------------ gate -- */
@@ -51,25 +54,41 @@ test("every tier and feature pair has a definite answer", () => {
   }
 });
 
-test("the tutor chat is the paid feature, and only the paid tiers have it", () => {
-  assert.equal(tierAllows("free", "tutor-chat"), false);
-  assert.equal(tierAllows("pro", "tutor-chat"), true);
-  // The owner's own account is not a plan, but it must not be locked out of
-  // the app it exists to exercise.
-  assert.equal(tierAllows("admin", "tutor-chat"), true);
+test("AI starts at Plus, and the tiers below it get none of it", () => {
+  for (const feature of ["define", "generate", "grade-writing", "grade-speaking", "tutor-chat"]) {
+    assert.equal(tierAllows("free", feature), false, `free should not have ${feature}`);
+    assert.equal(tierAllows("standard", feature), false, `standard should not have ${feature}`);
+    assert.equal(tierAllows("plus", feature), true, `plus is missing ${feature}`);
+    assert.equal(tierAllows("pro", feature), true, `pro is missing ${feature}`);
+    // The owner's own account is not a plan, but it must not be locked out of
+    // the app it exists to exercise.
+    assert.equal(tierAllows("admin", feature), true, `admin is missing ${feature}`);
+  }
+  assert.equal(tierHasAi("free"), false);
+  assert.equal(tierHasAi("standard"), false);
+  assert.equal(tierHasAi("plus"), true);
+  assert.equal(tierHasAi("pro"), true);
 });
 
-test("everything that is free stays free on the free tier", () => {
-  for (const feature of ["define", "generate", "grade-writing", "grade-speaking", "progress-sync"]) {
-    assert.equal(tierAllows("free", feature), true, `free lost ${feature}`);
+test("syncing progress costs nothing, so every tier has it", () => {
+  for (const tier of Object.keys(TIERS)) {
+    assert.equal(tierAllows(tier, "progress-sync"), true, `${tier} lost progress-sync`);
   }
 });
 
-test("a paid tier is never worse off than the free one", () => {
-  // The mistake this catches is a feature added to `free` and forgotten on
-  // `pro` — which reads as a subscriber losing something by paying.
-  for (const feature of TIERS.free.features) {
-    assert.equal(tierAllows("pro", feature), true, `pro is missing ${feature}`);
+test("a paid tier is never worse off than the one below it", () => {
+  // The mistake this catches is an allowance raised on one tier and forgotten
+  // on the one above — which reads as a subscriber losing something by paying
+  // more.
+  let below = "free";
+  for (const tier of PAID_TIERS) {
+    for (const feature of FEATURES) {
+      if (!tierAllows(below, feature)) continue;
+      assert.equal(tierAllows(tier, feature), true, `${tier} is missing ${feature}`);
+    }
+    below = tier;
+  }
+  for (const feature of FEATURES) {
     assert.equal(tierAllows("admin", feature), true, `admin is missing ${feature}`);
   }
 });
@@ -95,18 +114,34 @@ test("a feature name that does not exist is refused by every tier", () => {
 
 /* ------------------------------------------------------- quotas and copy -- */
 
-test("the meter enforces the number the pricing page promises", () => {
-  assert.equal(limits.USAGE_LIMITS.free, TIERS.free.dailyAiCalls);
-  assert.equal(limits.USAGE_LIMITS.pro, TIERS.pro.dailyAiCalls);
-  assert.equal(limits.USAGE_LIMITS.admin, TIERS.admin.dailyAiCalls);
-  assert.equal(dailyAiCalls("pro"), limits.USAGE_LIMITS.pro);
+test("the meter is handed exactly the allowances the catalogue defines", () => {
+  const forDatabase = limits.limitsForDatabase();
+  for (const tier of [...SELLABLE_TIERS, "admin"]) {
+    for (const route of limits.AI_ROUTES) {
+      assert.equal(
+        forDatabase.monthly[tier][route],
+        monthlyCap(tier, route),
+        `${tier}.${route} is metered at a different number than the page promises`,
+      );
+    }
+  }
 });
 
-test("the paid tier buys more than the free one, and the owner has no cap", () => {
-  assert.ok(TIERS.pro.dailyAiCalls > TIERS.free.dailyAiCalls);
-  assert.equal(TIERS.admin.dailyAiCalls, null);
-  // A null here would mean an unlimited free tier, which is an uncapped bill.
-  assert.equal(typeof TIERS.free.dailyAiCalls, "number");
+test("an un-migrated database refuses AI rather than uncapping it", () => {
+  /*
+    The flat per-tier keys are the pre-0012 shape. A database that has not had
+    supabase/migrations/0012_route_limits.sql applied reads only those, so they
+    must all be zero: a missing key reads as unlimited on the old function, and
+    a real number there would enforce the wrong cap silently. Admin stays null
+    so the owner's account still works and can diagnose it.
+  */
+  const forDatabase = limits.limitsForDatabase();
+  for (const tier of SELLABLE_TIERS) {
+    assert.equal(forDatabase[tier], 0, `${tier} would be metered wrongly by an old database`);
+  }
+  assert.equal(forDatabase.admin, null);
+  assert.equal(forDatabase.anonymous, 0);
+  assert.equal(forDatabase.schema, limits.LIMITS_SCHEMA_VERSION);
 });
 
 test("the database is handed every bucket the meter knows how to read", () => {
@@ -114,13 +149,20 @@ test("the database is handed every bucket the meter knows how to read", () => {
   assert.deepEqual(Object.keys(forDatabase).sort(), [
     "admin",
     "anonymous",
+    "daily",
     "free",
     "ip",
+    "monthly",
+    "month_seconds",
+    "plus",
     "pro",
-  ]);
+    "schema",
+    "standard",
+  ].sort());
   // A copy, not the live object: the meter must not be able to edit policy.
-  forDatabase.free = 9999;
-  assert.equal(limits.USAGE_LIMITS.free, TIERS.free.dailyAiCalls);
+  forDatabase.monthly.plus.chat = 9999;
+  assert.equal(MONTHLY_AI_CAPS.plus.chat, monthlyCap("plus", "chat"));
+  assert.notEqual(monthlyCap("plus", "chat"), 9999);
 });
 
 test("every tier shown on the pricing page has something to say for itself", () => {
@@ -149,16 +191,45 @@ test("no plan sells the free tier or the owner's account", () => {
     assert.notEqual(PLANS[id].tier, "admin");
   }
   assert.deepEqual(plansForTier("free"), []);
-  assert.equal(plansForTier("pro").length, PLAN_IDS.length);
+  assert.deepEqual(plansForTier("admin"), []);
+  // Every paid tier is sold monthly and yearly, and between them they account
+  // for every plan id.
+  let total = 0;
+  for (const tier of PAID_TIERS) {
+    const plans = plansForTier(tier);
+    assert.equal(plans.length, 2, `${tier} should be sold monthly and yearly`);
+    assert.deepEqual(
+      plans.map((p) => p.interval).sort(),
+      ["month", "year"],
+      `${tier} is missing an interval`,
+    );
+    total += plans.length;
+  }
+  assert.equal(total, PLAN_IDS.length);
+});
+
+test("the ladder goes up, and every step is a real price", () => {
+  let below = 0;
+  for (const tier of PAID_TIERS) {
+    const monthly = plansForTier(tier).find((p) => p.interval === "month");
+    assert.ok(monthly.amountMinor > below, `${tier} does not cost more than the tier below it`);
+    below = monthly.amountMinor;
+  }
 });
 
 test("the yearly plan costs less per month than the monthly one", () => {
   // Not a marketing claim in a string: the two numbers, compared.
-  const monthly = PLANS["pro-monthly"];
-  const yearly = PLANS["pro-yearly"];
-  assert.ok(perMonthEquivalent(yearly) < monthly.amountMinor);
-  assert.equal(perMonthEquivalent(monthly), monthly.amountMinor);
-  assert.equal(perMonthEquivalent(yearly), Math.round(yearly.amountMinor / 12));
+  for (const tier of PAID_TIERS) {
+    const monthly = plansForTier(tier).find((p) => p.interval === "month");
+    const yearly = plansForTier(tier).find((p) => p.interval === "year");
+    assert.ok(
+      perMonthEquivalent(yearly) < monthly.amountMinor,
+      `${tier} yearly is not cheaper per month than ${tier} monthly`,
+    );
+    assert.equal(perMonthEquivalent(monthly), monthly.amountMinor);
+    assert.equal(perMonthEquivalent(yearly), Math.round(yearly.amountMinor / 12));
+  }
+  assert.ok(PLANS["pro-monthly"].amountMinor > 0);
 });
 
 test("prices are formatted as money, without inventing pennies", () => {

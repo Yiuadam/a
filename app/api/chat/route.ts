@@ -135,8 +135,16 @@ interface Turn {
   chat box — and twelve of them bounds the whole prompt at something the
   essay-grading route would not blink at.
 */
-const MAX_HISTORY = 12;
+const MAX_HISTORY = 10;
 const MAX_CHARS = 2000;
+/*
+  Replayed turns are held to half of that. The learner's new question deserves
+  the full 2000 characters; the ten turns behind it do not, and they are what
+  make this request cost more than a word lookup — ten times 2000 would be five
+  thousand tokens of history on every question. A tutor answer is 40-80 words,
+  so 1000 characters truncates almost nothing that was actually said.
+*/
+const MAX_HISTORY_CHARS = 1000;
 
 /**
  * Whether the tutor can answer at all, asked before the learner types anything.
@@ -220,7 +228,7 @@ async function handlePOST(req: Request) {
         ((t as Turn).role === "learner" || (t as Turn).role === "tutor"),
     )
     .slice(-MAX_HISTORY)
-    .map((t) => ({ role: t.role, text: t.text.slice(0, MAX_CHARS) }));
+    .map((t) => ({ role: t.role, text: t.text.slice(0, MAX_HISTORY_CHARS) }));
 
   /*
     Why the conversation is rendered into a single user message rather than
@@ -256,7 +264,6 @@ Answer them in "reply". In "followUps", suggest two or three short questions the
         here and costs seconds that make a chat feel broken. Grading an essay
         is the opposite trade-off, which is why those routes ask for high.
       */
-      effort: "medium",
       /*
         800 rather than 2000. The prompt asks for 40–80 words and the schema
         carries two or three short follow-ups, so 2000 was headroom nothing was
@@ -264,7 +271,7 @@ Answer them in "reply". In "followUps", suggest two or three short questions the
         rambling answer fail loudly rather than ship quietly, high enough that a
         legitimately long correction is not truncated mid-sentence.
       */
-      maxTokens: 800,
+      route: "chat",
     });
 
     return NextResponse.json({

@@ -75,6 +75,10 @@ export function stripeWebhookSecret(): string | undefined {
   experiment and every one-cent price somebody made while debugging.
 */
 const PRICE_VARS: Record<PlanId, string> = {
+  "standard-monthly": "STRIPE_PRICE_STANDARD_MONTHLY",
+  "standard-yearly": "STRIPE_PRICE_STANDARD_YEARLY",
+  "plus-monthly": "STRIPE_PRICE_PLUS_MONTHLY",
+  "plus-yearly": "STRIPE_PRICE_PLUS_YEARLY",
   "pro-monthly": "STRIPE_PRICE_PRO_MONTHLY",
   "pro-yearly": "STRIPE_PRICE_PRO_YEARLY",
 };

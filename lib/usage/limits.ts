@@ -1,4 +1,5 @@
-import { TIERS } from "@/lib/billing/tiers";
+import { COSTED_ROUTES, type CostedRoute } from "@/lib/ai/models";
+import { DAILY_AI_CAPS, MONTHLY_AI_CAPS, SELLABLE_TIERS, type Tier } from "@/lib/billing/tiers";
 
 /*
   What each bucket may spend, and over what window.
@@ -8,9 +9,9 @@ import { TIERS } from "@/lib/billing/tiers";
   database is the mechanism — it counts and it decides atomically — but it is
   told the numbers.
 
-  The per-tier numbers are no longer written here. They come from
+  The per-tier numbers are not written here. They come from
   lib/billing/tiers.ts, which is also what the pricing page reads, because a
-  page that promises 500 requests a day while the meter enforces 200 is a
+  page that promises 100 tutor questions while the meter enforces 50 is a
   support ticket that arrives once per subscriber. There is one figure and both
   read it.
 
@@ -26,35 +27,37 @@ import { TIERS } from "@/lib/billing/tiers";
   Only the routes that call an AI model are metered, because those are the ones
   that spend money per request.
 
-  The allowance is one pool shared across all of them rather than a separate
-  budget per feature, and the tutor chat is the first route where that is a
-  visible trade-off: a learner can spend a day's allowance on questions and
-  have none left to get an essay marked. It is still one pool. Splitting it
-  would mean a learner who wants only marking is capped below what their tier
-  paid for, and it would mean explaining five numbers instead of one — so the
-  chat page and /billing both say plainly that the count is shared, which is
-  the honest version of the same fact.
+  ---------------------------------------------------------------------------
+  One allowance per route, over two windows
+
+  The allowance used to be a single pool shared across every route: twenty
+  requests a day, spend them how you like. It was easier to explain and it could
+  not be costed, because the five routes differ in price by a factor of thirty —
+  see the note in lib/billing/tiers.ts. Now each route has its own allowance, and
+  each allowance is checked over two windows:
+
+    monthly  a rolling 30 days. This is the one that bounds the money, and it is
+             the number the pricing page prints.
+
+    daily    a rolling 24 hours, at roughly a fifth of the month. It cannot make
+             the bill smaller — the monthly cap already did that — it stops one
+             account draining a month of allowance in an afternoon and colliding
+             with the upstream API's own rate limits.
 */
 
-export const AI_ROUTES = [
-  "define",
-  "generate",
-  "grade/writing",
-  "grade/speaking",
-  /*
-    The tutor chat, metered per question asked rather than per conversation.
-    A conversation has no end a server can observe — a learner who comes back
-    an hour later is still in the same thread — so "per conversation" would be
-    a limit on nothing. Note that this string is also an allowed value of
-    usage_events_route_check; see supabase/migrations/0007_chat_route.sql.
-  */
-  "chat",
-] as const;
+export const AI_ROUTES = COSTED_ROUTES;
 
-export type AiRoute = (typeof AI_ROUTES)[number];
+export type AiRoute = CostedRoute;
 
 /** A rolling 24 hours, not a calendar day: no midnight cliff, no timezone argument. */
 export const USAGE_WINDOW_SECONDS = 24 * 60 * 60;
+
+/**
+ * A rolling 30 days, for the same reason. "A month" is not a fixed length and
+ * a calendar month would hand a subscriber who joined on the 28th three days of
+ * allowance for a month of money.
+ */
+export const MONTH_WINDOW_SECONDS = 30 * 24 * 60 * 60;
 
 /**
  * Zero, deliberately.
@@ -63,7 +66,7 @@ export const USAGE_WINDOW_SECONDS = 24 * 60 * 60;
  * feature before deciding an account was worth it, which is a fair instinct
  * and the wrong trade here. An unauthenticated caller is one nobody can ban,
  * bill or rate-limit by identity — only by address, and addresses are cheap.
- * Five calls each, across the four most expensive routes in the app, is a
+ * Five calls each, across the five most expensive routes in the app, is a
  * standing invitation to spend the owner's API budget from a script, and the
  * owner carries that cost with nothing to show for it.
  *
@@ -83,24 +86,59 @@ export const ANONYMOUS_DAILY_AI_CALLS = 0;
  */
 export const IP_DAILY_CEILING = 60;
 
-/**
- * Per-bucket allowances within the window. `null` means unlimited.
- *
- * `admin` is null because the owner has to be able to exercise the app without
- * tripping a limit built for other people — and because an admin flag that
- * still throttled would be a flag that did nothing.
- */
-export const USAGE_LIMITS: Record<"free" | "pro" | "admin" | "anonymous" | "ip", number | null> = {
-  free: TIERS.free.dailyAiCalls,
-  pro: TIERS.pro.dailyAiCalls,
-  admin: TIERS.admin.dailyAiCalls,
-  anonymous: ANONYMOUS_DAILY_AI_CALLS,
-  ip: IP_DAILY_CEILING,
-};
+/** The shape of `p_limits` that supabase/migrations/0012_route_limits.sql reads. */
+export const LIMITS_SCHEMA_VERSION = 2;
 
-/** The jsonb object `check_and_record_usage` meters from. */
-export function limitsForDatabase(): Record<string, number | null> {
-  return { ...USAGE_LIMITS };
+type RouteCaps = Record<CostedRoute, number | null>;
+
+/*
+  A copy, two levels deep, and that is the point rather than tidiness.
+
+  This object is handed to the meter, and a shallow copy would share the
+  per-tier records with lib/billing/tiers.ts — so anything holding the payload
+  could write through it and change the policy the pricing page reads. The
+  catalogue is the definition; nothing downstream of it gets a handle on it.
+*/
+function capsFor(source: Record<Tier, RouteCaps>): Record<string, RouteCaps> {
+  const out: Record<string, RouteCaps> = {};
+  for (const tier of [...SELLABLE_TIERS, "admin"] as const) out[tier] = { ...source[tier] };
+  return out;
+}
+
+/**
+ * The jsonb object `check_and_record_usage` meters from.
+ *
+ * ---------------------------------------------------------------------------
+ * Why the flat per-tier numbers are all zero
+ *
+ * They are the *old* shape, kept only so that a database which has not had
+ * 0012_route_limits.sql applied fails safely. The old function reads
+ * `p_limits ->> tier` as a single number and knows nothing about `monthly` or
+ * `daily`; handed a zero it refuses every AI request for every paying tier,
+ * which is inconvenient and cannot cost the owner a penny. The alternatives are
+ * both worse: omit the key and the old function reads it as unlimited, and put
+ * a real number there and the caps are silently the wrong ones.
+ *
+ * `admin` stays null — unlimited — so that when this happens the owner's own
+ * account still works and the diagnostics panel can say what is wrong.
+ */
+export function limitsForDatabase(): Record<string, unknown> {
+  return {
+    schema: LIMITS_SCHEMA_VERSION,
+
+    // Fail-closed fallback for a database still on the pre-0012 function.
+    free: 0,
+    standard: 0,
+    plus: 0,
+    pro: 0,
+    admin: null,
+
+    anonymous: ANONYMOUS_DAILY_AI_CALLS,
+    ip: IP_DAILY_CEILING,
+    month_seconds: MONTH_WINDOW_SECONDS,
+    monthly: capsFor(MONTHLY_AI_CAPS),
+    daily: capsFor(DAILY_AI_CAPS),
+  };
 }
 
 export function isAiRoute(value: string): value is AiRoute {

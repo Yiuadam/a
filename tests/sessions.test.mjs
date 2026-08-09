@@ -7,12 +7,18 @@
   twice; these tests are where they are written down in a form that fails
   rather than in a comment nobody re-reads.
 
-  The one worth reading twice is the anonymous row. Writing and Speaking are
-  locked there not because they are premium but because they are *marked by
-  the model*, and anonymous callers get no model at all. A writing session with
-  no marking is forty minutes and a blank box. If a later change gives
-  anonymous an AI allowance, these two tests are the ones that should make
-  somebody stop and think.
+  The one worth reading twice is the writing and speaking column. They are
+  locked for a visitor and for a free account not because they are premium but
+  because they are *marked by the model*, and neither of those tiers gets a
+  model at all (lib/billing/tiers.ts — AI starts at Plus). A writing session
+  with no marking is forty minutes and a blank box.
+
+  Standard is the deliberate exception, and it is the one line here that has to
+  be argued rather than asserted: it unlocks writing and speaking with no
+  marking behind them, because Standard is a plan somebody chose from a card
+  that says "marked from the answer key, not by AI" in as many words. A free
+  account has agreed to nothing, so it gets the version that cannot
+  disappoint.
 */
 import assert from "node:assert/strict";
 import { register } from "node:module";
@@ -32,6 +38,7 @@ const load = (...parts) => import(pathToFileURL(join(process.cwd(), ...parts)).h
 const { allowanceFor, allowanceLabel, isLocked, lockReason, sessionsLeft, SESSION_LIMITS } =
   await load("lib", "entitlements", "sessions.ts");
 const { ANONYMOUS_DAILY_AI_CALLS } = await load("lib", "usage", "limits.ts");
+const { tierHasAi } = await load("lib", "billing", "tiers.ts");
 
 const MODULES = ["listening", "reading", "writing", "speaking"];
 
@@ -58,30 +65,36 @@ test("the two skills anonymous may sit are the two that need no model", () => {
   }
 });
 
-test("a free account gets two of each reading and listening, one of each writing and speaking", () => {
+test("a free account gets two reading and two listening papers, and no marking", () => {
   assert.equal(allowanceFor("free", "listening").perWeek, 2);
   assert.equal(allowanceFor("free", "reading").perWeek, 2);
-  assert.equal(allowanceFor("free", "writing").perWeek, 1);
-  assert.equal(allowanceFor("free", "speaking").perWeek, 1);
+  assert.equal(allowanceFor("free", "writing").perWeek, 0);
+  assert.equal(allowanceFor("free", "speaking").perWeek, 0);
 });
 
-test("a free speaking session allows exactly one question", () => {
-  assert.equal(allowanceFor("free", "speaking").maxQuestions, 1);
-  // And nothing else caps questions — only speaking runs to several.
-  for (const skill of ["listening", "reading", "writing"]) {
-    assert.equal(allowanceFor("free", skill).maxQuestions, null, skill);
+test("no tier is offered a marked skill without the marking behind it", () => {
+  /*
+    The load-bearing invariant, now that AI starts at Plus. Free has no model,
+    so free may not sit writing or speaking — the same argument that locks them
+    for a visitor.
+
+    Standard is the exception and is asserted as one rather than skipped: it
+    has no model either, and it opens both anyway, because its card says so.
+  */
+  for (const tier of ["anonymous", "free"]) {
+    assert.equal(tierHasAi(tier === "anonymous" ? "free" : tier), false);
+    for (const skill of ["writing", "speaking"]) {
+      assert.ok(isLocked(tier, skill), `${tier} may sit ${skill} with nothing to mark it`);
+    }
   }
+  assert.equal(tierHasAi("standard"), false);
+  assert.equal(isLocked("standard", "writing"), false, "Standard sells the timer, not the marking");
 });
 
-test("a free account is not locked out of anything", () => {
-  for (const skill of MODULES) assert.equal(isLocked("free", skill), false, skill);
-});
-
-test("Standard and the owner have no session limit at all", () => {
-  for (const tier of ["pro", "admin"]) {
+test("every paid tier and the owner have no session limit at all", () => {
+  for (const tier of ["standard", "plus", "pro", "admin"]) {
     for (const skill of MODULES) {
       assert.equal(allowanceFor(tier, skill).perWeek, null, `${tier}/${skill}`);
-      assert.equal(allowanceFor(tier, skill).maxQuestions, null, `${tier}/${skill}`);
     }
   }
 });
@@ -89,7 +102,12 @@ test("Standard and the owner have no session limit at all", () => {
 test("a lock sends a visitor to sign in and a free account to the plans", () => {
   assert.equal(lockReason("anonymous", "writing"), "sign-in");
   assert.equal(lockReason("anonymous", "speaking"), "sign-in");
-  assert.equal(lockReason("free", "writing"), null, "nothing is locked for a free account");
+  // An account is not the missing piece for a free account, so it is not what
+  // they are asked for.
+  assert.equal(lockReason("free", "writing"), "subscribe");
+  assert.equal(lockReason("free", "speaking"), "subscribe");
+  assert.equal(lockReason("free", "reading"), null);
+  assert.equal(lockReason("standard", "writing"), null);
   assert.equal(lockReason("pro", "speaking"), null);
 });
 
@@ -99,15 +117,16 @@ test("sessionsLeft counts down and stops at zero", () => {
   assert.equal(sessionsLeft("free", "reading", 2), 0);
   // Never negative, even if an allowance was lowered under a learner.
   assert.equal(sessionsLeft("free", "reading", 9), 0);
+  assert.equal(sessionsLeft("standard", "reading", 500), null, "no limit means no number");
   assert.equal(sessionsLeft("pro", "reading", 500), null, "no limit means no number");
 });
 
 test("the label says what a learner gets, including the speaking caveat", () => {
   assert.equal(allowanceLabel("free", "reading"), "2 sessions a week");
-  assert.equal(allowanceLabel("free", "writing"), "1 session a week");
-  assert.equal(allowanceLabel("free", "speaking"), "1 session a week, 1 question");
+  assert.equal(allowanceLabel("free", "writing"), "On Standard and up");
   assert.equal(allowanceLabel("anonymous", "listening"), "1 session a week");
   assert.equal(allowanceLabel("anonymous", "writing"), "Sign in to use this");
+  assert.equal(allowanceLabel("standard", "speaking"), "Unlimited");
   assert.equal(allowanceLabel("pro", "speaking"), "Unlimited");
 });
 
@@ -125,14 +144,15 @@ test("a paid tier is never worse off than a free one", () => {
     the largest value, which is exactly the comparison a plain `>=` gets wrong.
   */
   const rank = (v) => (v === null ? Infinity : v);
+  const LADDER = ["anonymous", "free", "standard", "plus", "pro", "admin"];
   for (const skill of MODULES) {
-    assert.ok(
-      rank(allowanceFor("free", skill).perWeek) >= rank(allowanceFor("anonymous", skill).perWeek),
-      `free gets less ${skill} than anonymous`,
-    );
-    assert.ok(
-      rank(allowanceFor("pro", skill).perWeek) >= rank(allowanceFor("free", skill).perWeek),
-      `Standard gets less ${skill} than free`,
-    );
+    for (let i = 1; i < LADDER.length; i += 1) {
+      const above = LADDER[i];
+      const below = LADDER[i - 1];
+      assert.ok(
+        rank(allowanceFor(above, skill).perWeek) >= rank(allowanceFor(below, skill).perWeek),
+        `${above} gets less ${skill} than ${below}`,
+      );
+    }
   }
 });

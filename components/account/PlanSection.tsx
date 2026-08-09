@@ -33,19 +33,16 @@ function planName(tier: string | null | undefined): string {
   return Object.prototype.hasOwnProperty.call(TIERS, tier) ? TIERS[tier as Tier].name : tier;
 }
 export default function PlanSection({ status }: { status: AccountStatus }) {
-  const used = status.usage?.used ?? 0;
-  const quota = status.usage?.quota ?? null;
-  const unlimited = status.unlimited === true || quota === null;
-
+  const routes = status.usage?.routes ?? [];
+  const unlimited = status.unlimited === true;
   /*
-    The bar is decoration over a sentence that already says the same thing, so
-    it is hidden from assistive technology rather than given a role and a
-    duplicate label. It is drawn only when there is a real limit to draw
-    against; on an unlimited plan a full bar would read as "you have run out",
-    which is the opposite of the truth.
+    A summary, not the meter. /billing draws a bar per allowance; this page is
+    about identity and only needs to answer "is there AI on this plan, and am I
+    close to the end of it". So it counts the allowances that are included and
+    the ones that are spent, which is the smallest true thing to say.
   */
-  const proportion =
-    !unlimited && quota !== null && quota > 0 ? Math.min(1, used / quota) : null;
+  const included = routes.filter((r) => r.quota === null || r.quota > 0);
+  const spent = included.filter((r) => r.quota !== null && r.used >= r.quota);
 
   return (
     <section className="card">
@@ -69,18 +66,24 @@ export default function PlanSection({ status }: { status: AccountStatus }) {
           </dd>
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <dt className="text-xs uppercase tracking-wide text-slate-500">AI feedback today</dt>
+          <dt className="text-xs uppercase tracking-wide text-slate-500">AI this month</dt>
           <dd className="mt-1 text-[15px] font-medium text-slate-900">
-            {unlimited ? `${used} used — no limit` : `${used} of ${quota} used`}
+            {unlimited
+              ? "No limit"
+              : included.length === 0
+                ? "Not on this plan"
+                : spent.length === 0
+                  ? `${included.length} allowance${included.length === 1 ? "" : "s"}, all with room`
+                  : `${spent.length} of ${included.length} used up`}
           </dd>
-          {proportion !== null && (
-            <dd aria-hidden="true" className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
-              <div
-                className="h-full rounded-full bg-indigo-500"
-                style={{ width: `${Math.round(proportion * 100)}%` }}
-              />
-            </dd>
-          )}
+          <dd className="mt-1 text-xs text-slate-500">
+            <a
+              href="/billing"
+              className="font-medium text-indigo-700 underline underline-offset-2"
+            >
+              See what is left
+            </a>
+          </dd>
         </div>
       </dl>
 
