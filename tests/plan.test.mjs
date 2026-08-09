@@ -225,15 +225,31 @@ test("a length that is not a number does not take the plan down with it", () => 
   whitelist entry breaks, and it is why the seeding is not a shortcut.
 */
 const KEY = "ielts-prep-v1";
-const storage = new Map([
+
+/*
+  Two shelves, because there are two in the browser and the store now uses both
+  for different reasons: sessionStorage is where a learner's work lives, and
+  localStorage is only ever read once, to move anything left there by an older
+  build (lib/progress/storage.ts).
+
+  Seeded on the *old* shelf on purpose. That makes this file prove the
+  migration as well as the whitelist: the value has to be found, moved, read
+  back, and the original removed.
+*/
+const durable = new Map([
   [KEY, JSON.stringify({ planDays: 14, targetBand: 7.5, results: [], genTests: [] })],
 ]);
+const perTab = new Map();
+
+const shelf = (map) => ({
+  getItem: (k) => (map.has(k) ? map.get(k) : null),
+  setItem: (k, v) => map.set(k, String(v)),
+  removeItem: (k) => map.delete(k),
+});
 
 globalThis.window = {
-  localStorage: {
-    getItem: (k) => (storage.has(k) ? storage.get(k) : null),
-    setItem: (k, v) => storage.set(k, String(v)),
-  },
+  localStorage: shelf(durable),
+  sessionStorage: shelf(perTab),
   dispatchEvent: () => true,
   addEventListener: () => {},
   removeEventListener: () => {},
@@ -251,9 +267,15 @@ test("a stored plan length survives being read back", () => {
   assert.equal(loaded.targetBand, 7.5);
 });
 
+test("data from an older build is moved to the tab, not left behind", () => {
+  // loadProfile above has already read once, which is what triggers the move.
+  assert.ok(perTab.has(KEY), "it should have been copied to the tab");
+  assert.equal(durable.get(KEY), undefined, "and removed from the durable shelf");
+});
+
 test("choosing a length writes it out, and leaves the target band alone", () => {
   setPlanDays(5);
-  const written = JSON.parse(storage.get(KEY));
+  const written = JSON.parse(perTab.get(KEY));
   assert.equal(written.planDays, 5);
   assert.equal(written.targetBand, 7.5);
 });
