@@ -149,3 +149,22 @@ export function addGeneratedTest(test: GeneratedTest): Profile {
   const p = getSnapshot();
   return commit({ ...p, genTests: [test, ...p.genTests].slice(0, 20) });
 }
+
+/**
+ * Throws away one generated test.
+ *
+ * By id rather than by index, because the list is rendered filtered by kind
+ * and re-sorted, so the position a learner tapped is not the position in the
+ * array. An id that is not there is a no-op rather than an error — two taps on
+ * the same card, or a card removed in another tab, are both ordinary.
+ *
+ * Nothing else is touched. A generated test a learner has already sat leaves
+ * its result behind in `results`, where it belongs: they did sit it, and their
+ * history should not quietly lose a band because they tidied up afterwards.
+ */
+export function removeGeneratedTest(id: string): Profile {
+  const p = getSnapshot();
+  const next = p.genTests.filter((g) => g.test.id !== id);
+  if (next.length === p.genTests.length) return p;
+  return commit({ ...p, genTests: next });
+}

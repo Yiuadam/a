@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import DeleteGenerated from "@/components/DeleteGenerated";
 import DoneBadge, { bestResultFor } from "@/components/DoneBadge";
 import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
@@ -127,10 +128,20 @@ export default function TestChooser({
             );
           }
 
-          return (
-            <Link key={t.id} href={`/practice/${kind}?id=${t.id}`} className="card !p-3 block min-w-0">
+          const link = (
+            <Link href={`/practice/${kind}?id=${t.id}`} className="card !p-3 block min-w-0">
               {inner}
             </Link>
+          );
+
+          /* Only the generated ones can be thrown away, and the button is a
+             sibling of the link rather than a child — see DeleteGenerated. */
+          if (!isGenerated) return <div key={t.id} className="min-w-0">{link}</div>;
+          return (
+            <div key={t.id} className="relative min-w-0">
+              {link}
+              <DeleteGenerated id={t.id} title={t.title} />
+            </div>
           );
         })}
 

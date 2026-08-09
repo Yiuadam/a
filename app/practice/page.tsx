@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import DeleteGenerated from "@/components/DeleteGenerated";
 import DoneBadge, { bestResultFor } from "@/components/DoneBadge";
 import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
@@ -145,10 +146,20 @@ export default function PracticePage() {
       );
     }
 
-    return (
-      <Link key={t.id} href={`/practice/${kind}?id=${t.id}`} className="card !p-3 block">
+    const link = (
+      <Link href={`/practice/${kind}?id=${t.id}`} className="card !p-3 block">
         {inner}
       </Link>
+    );
+
+    /* A generated test can be thrown away; a bundled one cannot. The button is
+       a sibling of the link, never a child — see DeleteGenerated. */
+    if (!generated) return <div key={t.id}>{link}</div>;
+    return (
+      <div key={t.id} className="relative">
+        {link}
+        <DeleteGenerated id={t.id} title={t.title} />
+      </div>
     );
   };
 
