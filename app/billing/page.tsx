@@ -100,8 +100,16 @@ export default function BillingPage() {
           <section className="card space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
                   {definition.name}
+                  {/* Same badge as /account, for the same reason: the owner
+                      tier is named by its owner, so the name alone does not
+                      say what it is. */}
+                  {tier === "admin" && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                      Admin
+                    </span>
+                  )}
                   {tier === "pro" && monthly && (
                     <span className="ml-2 text-sm font-normal text-slate-500">
                       {formatPrice(monthly.amountMinor, monthly.currency)} a month

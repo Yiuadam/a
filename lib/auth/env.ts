@@ -1,4 +1,5 @@
 import { assertServerOnly } from "./server-only";
+import { normaliseUsername } from "./usernames";
 
 /*
   Every environment variable the accounts system reads, in one place.
@@ -157,24 +158,32 @@ export function isAdminEmail(email: string | null | undefined): boolean {
  */
 export function adminUsername(): string | null {
   assertServerOnly(MODULE);
-  const raw = secret("ADMIN_USERNAME");
-  return raw ? raw.trim().toLowerCase() : null;
+  /*
+    Put through the same rules a learner's username would face, rather than
+    trimmed and trusted. A value with an @ in it could never be reached — the
+    sign-in form sends anything with an @ down the email path — so it would
+    silently lock the owner out of the door they had just configured, and the
+    only symptom would be a wrong password. Returning null is not better, but
+    it is at least the same failure the form already knows how to describe.
+  */
+  return normaliseUsername(secret("ADMIN_USERNAME"));
 }
 
-/**
- * Resolves whatever was typed in the identifier box to an email address.
- *
- * Returns the input unchanged when it already looks like an address, the
- * owner's address when it matches ADMIN_USERNAME, and null when it is a name
- * this deployment does not know — which the caller must answer exactly as it
- * answers a wrong password, or the form becomes a way to enumerate usernames.
- */
 export function emailForIdentifier(identifier: string): string | null {
   assertServerOnly(MODULE);
   const value = identifier.trim();
   if (value.includes("@")) return value.toLowerCase();
 
+  /*
+    Normalised on both sides, so the comparison is between two canonical forms
+    and never between a typed string and a stored one. A name that is not a
+    valid username at all fails here rather than being compared — which is why
+    an empty box, a string of spaces and "ad am" all resolve to nothing.
+  */
+  const typed = normaliseUsername(value);
+  if (typed === null) return null;
+
   const username = adminUsername();
-  if (username && value.toLowerCase() === username) return adminEmails()[0] ?? null;
+  if (username !== null && typed === username) return adminEmails()[0] ?? null;
   return null;
 }

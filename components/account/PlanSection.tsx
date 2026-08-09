@@ -1,5 +1,6 @@
 "use client";
 
+import { TIERS, type Tier } from "@/lib/billing/tiers";
 import type { AccountStatus } from "./types";
 
 /*
@@ -16,10 +17,21 @@ import type { AccountStatus } from "./types";
   Everything below is rendered from what the server said, and nothing is worked
   out here. A client that computes its own tier is a client that can be edited
   into a better one (ACCOUNTS.md, threat 1) — so the tier, the count and the
-  quota are printed exactly as they arrived, and an unrecognised tier prints
-  itself rather than being mapped through a table this file would have to keep
-  in step with the entitlements code.
+  quota are printed exactly as they arrived. The tier is *named* through
+  lib/billing/tiers.ts rather than printed raw, which is a presentation change
+  and not a decision: an unrecognised tier still prints itself, so a value this
+  file has never heard of is shown rather than hidden behind a default.
+
+  Why it used to print raw: this page said `admin` in lower case while /billing
+  said `Adam` for the same account. Two screens, one tier, two answers — and
+  the raw one is the one that looks like a bug.
 */
+
+/** The tier's own name, and the raw value for anything not in the table. */
+function planName(tier: string | null | undefined): string {
+  if (!tier) return "Free";
+  return Object.prototype.hasOwnProperty.call(TIERS, tier) ? TIERS[tier as Tier].name : tier;
+}
 export default function PlanSection({ status }: { status: AccountStatus }) {
   const used = status.usage?.used ?? 0;
   const quota = status.usage?.quota ?? null;
@@ -40,7 +52,21 @@ export default function PlanSection({ status }: { status: AccountStatus }) {
       <dl className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <dt className="text-xs uppercase tracking-wide text-slate-500">Plan</dt>
-          <dd className="mt-1 text-[15px] font-medium text-slate-900">{status.tier ?? "Free"}</dd>
+          <dd className="mt-1 flex flex-wrap items-center gap-2 text-[15px] font-medium text-slate-900">
+            {planName(status.tier)}
+            {/*
+              The owner's account says so, here and on /billing. The name is
+              the owner's own — it could be anything — so without this the
+              screen gives no clue that this account is not an ordinary one,
+              which matters most on the page where the owner is checking
+              whether their own limits are switched off.
+            */}
+            {status.tier === "admin" && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                Admin
+              </span>
+            )}
+          </dd>
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <dt className="text-xs uppercase tracking-wide text-slate-500">AI feedback today</dt>
