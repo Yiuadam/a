@@ -1,4 +1,5 @@
 import type { CEFRLevel } from "./types";
+import { readLearnerItem, writeLearnerItem } from "./progress/storage";
 import { PROGRESS_WRITE_EVENT } from "./progress/events";
 
 export interface DrillQuestion {
@@ -67,7 +68,7 @@ let cache: Scores | null = null;
 function read(): Scores {
   if (typeof window === "undefined") return EMPTY;
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = readLearnerItem(KEY);
     return raw ? (JSON.parse(raw) as Scores) : EMPTY;
   } catch {
     return EMPTY;
@@ -113,7 +114,7 @@ export function recordDrill(topicId: string, correct: number, total: number): vo
   };
   cache = next;
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(next));
+    writeLearnerItem(KEY, JSON.stringify(next));
   } catch {
     // Storage can be full or blocked — keep the in-memory copy.
   }

@@ -2,13 +2,15 @@
 
 import type { GeneratedTest, ModuleResult, PlacementResult, Profile } from "./types";
 import { PROGRESS_WRITE_EVENT } from "./progress/events";
+import { readLearnerItem, writeLearnerItem } from "./progress/storage";
 
 const KEY = "ielts-prep-v1";
 
 const EMPTY: Profile = Object.freeze({ results: [], genTests: [] }) as Profile;
 
 /*
-  The profile lives in localStorage. It is exposed as an external store so
+  The profile lives in sessionStorage — see lib/progress/storage.ts for why.
+  It is exposed as an external store so
   components can read it with `useSyncExternalStore` — that keeps server and
   client renders consistent without loading state inside an effect.
 */
@@ -19,7 +21,7 @@ const listeners = new Set<() => void>();
 function read(): Profile {
   if (typeof window === "undefined") return EMPTY;
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = readLearnerItem(KEY);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<Profile>;
     return {
@@ -46,7 +48,7 @@ function commit(next: Profile): Profile {
   cache = next;
   if (typeof window !== "undefined") {
     try {
-      window.localStorage.setItem(KEY, JSON.stringify(next));
+      writeLearnerItem(KEY, JSON.stringify(next));
     } catch {
       // Storage can be full or blocked (private mode) — keep the in-memory copy.
     }

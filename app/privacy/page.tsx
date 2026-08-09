@@ -99,7 +99,7 @@ export default function PrivacyPage() {
         <ul className="mt-4 space-y-3">
           {[
             "An account is optional. Signed out — which is the default, and how the app ships today — nothing identifies you and nothing is held about you.",
-            "Your progress is saved on your device only. It never reaches a server of ours.",
+            "Signed out, your progress lives only in the tab you have open and is gone when you close it. Signed in, it is kept on your account so it follows you between devices.",
             "No cookies, no analytics, no advertising and no third-party trackers.",
             "Your writing and your speaking transcript are sent for marking when you ask for it, and are not stored afterwards.",
             "BandUp never uploads audio from your microphone and never saves it as a file.",
@@ -118,9 +118,11 @@ export default function PrivacyPage() {
           What is stored, and where
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Everything BandUp remembers about you is written to your browser&rsquo;s local storage
-          — inside the app on iOS, in the browser on the web. It is readable only by BandUp on
-          that device. These five entries are the whole of it:
+          Signed out, everything BandUp remembers about you lives in the tab you are using and
+          nowhere else. Close the tab or the browser and it is gone; open BandUp again and you
+          start fresh. Nothing is left behind on the machine, which matters most on a shared or
+          borrowed one. Signed in, the same five entries are kept on your account instead, so
+          they follow you between devices. Either way, this is the whole of it:
         </p>
         <ul className="mt-4 space-y-3">
           {STORED.map((s) => (

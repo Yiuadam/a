@@ -76,7 +76,8 @@ export default function ClearDeviceSection() {
       </h2>
       <p className="text-[15px] leading-7 text-slate-600">
         Your placement result, practice scores, study plan, saved words and drill progress are kept
-        in this browser. This clears all of it, here, straight away. Your theme is kept.
+        in this tab while you use BandUp. This clears all of it, here, straight away. Your theme and
+        your sign-in are kept.
       </p>
       <p className="mt-2 text-sm leading-6 text-slate-500">
         This is not your account. If you are signed in and your progress has synced, it will come

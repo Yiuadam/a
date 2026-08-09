@@ -1,6 +1,7 @@
 "use client";
 
 import { PROGRESS_WRITE_EVENT } from "./progress/events";
+import { readLearnerItem, writeLearnerItem } from "./progress/storage";
 
 export interface Definition {
   term: string;
@@ -40,7 +41,7 @@ const EMPTY_WORDS: Definition[] = Object.freeze([]) as unknown as Definition[];
 function read(): Cache {
   if (typeof window === "undefined") return EMPTY_CACHE;
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = readLearnerItem(KEY);
     return raw ? (JSON.parse(raw) as Cache) : EMPTY_CACHE;
   } catch {
     return EMPTY_CACHE;
@@ -114,7 +115,7 @@ export function cachedLookup(term: string): Definition | undefined {
 
 function persist(next: Cache): void {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(next));
+    writeLearnerItem(KEY, JSON.stringify(next));
   } catch {
     // A full or unavailable localStorage just means no caching.
   }
