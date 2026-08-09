@@ -56,8 +56,8 @@ export default function TestChooser({
         <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">{label} practice</h1>
         <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">
           {kind === "reading"
-            ? "One academic passage and its questions, marked the moment you submit."
-            : "A recording played once, then its questions, marked the moment you submit."}
+            ? "Read one passage, answer the questions, and get your band as soon as you submit."
+            : "Listen to a recording, answer the questions, and get your band as soon as you submit."}
         </p>
       </div>
 

@@ -495,8 +495,8 @@ function SpeakingSession() {
               <h1 className="text-xl font-semibold text-slate-900">Mock speaking test</h1>
             </div>
             <p className="mt-1.5 text-sm leading-6 text-slate-600">
-              An AI examiner asks you questions out loud, you answer out loud, and at the end you
-              get a band score with feedback on all four speaking criteria.
+              An AI examiner asks you questions out loud. You answer out loud. At the end you
+              get a band and feedback on the four things the real exam marks you on.
             </p>
             <ol className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
               <li className="flex gap-2.5">

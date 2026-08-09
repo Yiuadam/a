@@ -108,7 +108,7 @@ export default function DrillSection({
         <h1 className="text-[26px] font-semibold text-slate-900">{title}</h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">{intro}</p>
         <p className="mt-2 text-xs text-slate-400">
-          No clock, no band score — work through a topic as slowly as you like.
+          There is no clock and no band score here. Take as long as you like.
           {done > 0 ? ` You have practised ${done} of ${topics.length} topics.` : ""}
         </p>
       </div>

@@ -105,25 +105,25 @@ function ReadingTestPageRunner() {
           <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>
           <p className="text-sm text-slate-600">{test.topic}</p>
           <p className="text-sm text-slate-600">
-            One academic passage, {questionCount(test.questions)} questions,{" "}
-            {test.timeMinutes} minutes. Question types:{" "}
-            {joinWithAnd(questionTypeNames(test.questions))} — the same question types the exam uses.
+            One passage to read, {questionCount(test.questions)} questions,{" "}
+            {test.timeMinutes} minutes. You will answer these kinds of question:{" "}
+            {joinWithAnd(questionTypeNames(test.questions))}. The real exam uses the same kinds.
           </p>
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              How do you want to practise?
+              How do you want to do this test?
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {([
                 {
                   id: "timed" as const,
-                  title: "Exam conditions",
-                  blurb: `${test.timeMinutes} minutes, no checking as you go`,
+                  title: "Like the real exam",
+                  blurb: `${test.timeMinutes} minutes. You cannot check answers`,
                 },
                 {
                   id: "free" as const,
-                  title: "No time limit",
-                  blurb: "Check answers as you go",
+                  title: "Practice slowly",
+                  blurb: "No clock. Check answers as you go"
                 },
               ]).map((option) => (
                 <button
@@ -151,8 +151,8 @@ function ReadingTestPageRunner() {
             */}
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm leading-6 text-amber-800">
               {mode === "timed"
-                ? "Nothing is marked until you submit — no checking, no explanations, exactly like the real thing. Your band at the end is the one you would have got."
-                : "Check any single answer as you go and read the explanation straight away. Checking locks that question, so the band at the end still means something."}
+                ? "Like the real exam: you cannot see any answers until you finish. When you finish, you get your band and every explanation."
+                : "You can check one answer at a time and read why it is right. Once you check a question you cannot change it, so your band still means something."}
             </p>
           </div>
           <button className="btn-primary" onClick={() => setStarted(true)}>

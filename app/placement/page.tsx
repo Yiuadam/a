@@ -216,14 +216,14 @@ export default function PlacementPage() {
         <div className="card !p-5 w-full space-y-3 text-center">
           <h1 className="text-xl font-semibold text-slate-900">Placement test</h1>
           <p className="text-sm leading-6 text-slate-600">
-            The test adapts as you go. Get one right and the next is harder; get one wrong and
-            the next is easier. Each question is chosen to tell it the most about you, and it
-            stops early if your level becomes clear.
+            This test finds your level. Answer a question right and the next one is harder.
+            Answer it wrong and the next one is easier. It stops as soon as your level is
+            clear, so it may end early.
           </p>
 
           <div>
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              How long have you got?
+              How much time do you have?
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {(Object.keys(LENGTHS) as unknown as TestLength[]).map((key) => {
@@ -245,7 +245,7 @@ export default function PlacementPage() {
                     </span>
                     <span className="block text-xs text-slate-500">
                       up to {LENGTHS[value].max} questions
-                      {value === 10 ? " · more accurate" : ""}
+                      {value === 10 ? " · a better result" : ""}
                     </span>
                   </button>
                 );
@@ -254,8 +254,8 @@ export default function PlacementPage() {
           </div>
 
           <p className="text-xs text-slate-500">
-            Questions come from a bank of {bank.length} and never repeat within three sittings,
-            so retaking it is a real re-test rather than a memory test.
+            There are {bank.length} questions in total, and you will not see the same one
+            again for three tries. So you can take this test again and it still means something.
           </p>
           <button className="btn-primary" onClick={start}>
             Start the test

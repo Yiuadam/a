@@ -235,19 +235,19 @@ function ListeningTestPageRunner() {
           )}
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              How do you want to practise?
+              How do you want to do this test?
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {([
                 {
                   id: "timed" as const,
-                  title: "Exam conditions",
-                  blurb: `${test.timeMinutes} minutes, no checking as you go`,
+                  title: "Like the real exam",
+                  blurb: `${test.timeMinutes} minutes. You cannot check answers`,
                 },
                 {
                   id: "free" as const,
-                  title: "No time limit",
-                  blurb: "Replay and pause as much as you like",
+                  title: "Practice slowly",
+                  blurb: "No clock. Replay, pause and check answers",
                 },
               ]).map((option) => (
                 <button
@@ -275,8 +275,8 @@ function ListeningTestPageRunner() {
             */}
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm leading-6 text-amber-800">
               {mode === "timed"
-                ? "Nothing is marked until you submit — no checking, no explanations, exactly like the real thing. Your band at the end is the one you would have got."
-                : "Check any single answer as you go and read the explanation straight away. Checking locks that question, so the band at the end still means something."}
+                ? "Like the real exam: you cannot see any answers until you finish. When you finish, you get your band and every explanation."
+                : "You can check one answer at a time and read why it is right. Once you check a question you cannot change it, so your band still means something."}
             </p>
           </div>
           <button className="btn-primary" onClick={() => setStarted(true)}>

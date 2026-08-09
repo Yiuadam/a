@@ -58,7 +58,8 @@ function WritingSession() {
         <div>
           <h1 className="text-[26px] font-semibold text-slate-900">Writing practice</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Write under exam conditions, then get band estimates against all four published criteria.
+            Write your answer, then an AI examiner marks it. You get a band for each of the
+            four things the real exam marks you on.
           </p>
         </div>
         {started && !grade && <Timer minutes={task.timeMinutes} running />}
