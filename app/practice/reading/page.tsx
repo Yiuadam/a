@@ -212,8 +212,29 @@ function ReadingTestPageRunner() {
         />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
-        <div className="card prose-reading max-h-[78vh] overflow-y-auto lg:sticky lg:top-24">
+      {/*
+        Two panes side by side, and on a phone you swipe between them.
+
+        Stacked, a reading paper is unusable on a phone: the passage is 800
+        words, so answering question 7 means scrolling up past all of it, and
+        scrolling back down to find where you were. People do it by holding the
+        phone in one hand and their place in the passage in their head.
+
+        So below `lg` the two become a horizontal snap track — passage, then
+        questions — each with its own vertical scroll. That is what makes the
+        two independent: they are separate scroll containers, so moving
+        sideways cannot disturb either one's position, and swiping back finds
+        the passage exactly where it was left. No JavaScript and no state; the
+        browser keeps a scroll offset per element for free.
+
+        From `lg` up nothing changes: the same two children become the grid
+        they always were, and the snap and the overflow are turned back off.
+      */}
+      <p className="pb-1 text-center text-xs text-slate-400 lg:hidden">
+        Swipe sideways to move between the passage and the questions
+      </p>
+      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:-mx-5 sm:px-5 lg:mx-0 lg:grid lg:snap-none lg:grid-cols-[1.15fr_1fr] lg:gap-6 lg:overflow-visible lg:px-0">
+        <div className="card prose-reading h-[68vh] w-[86vw] shrink-0 snap-start overflow-y-auto sm:w-[88vw] lg:h-auto lg:max-h-[78vh] lg:w-auto lg:shrink lg:snap-align-none lg:sticky lg:top-24">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Passage
@@ -224,7 +245,7 @@ function ReadingTestPageRunner() {
             <p key={i}>{p}</p>
           ))}
         </div>
-        <div>
+        <div className="h-[68vh] w-[86vw] shrink-0 snap-start overflow-y-auto sm:w-[88vw] lg:h-auto lg:w-auto lg:shrink lg:overflow-visible">
           <TestQuestions
             questions={test.questions}
             answers={answers}
