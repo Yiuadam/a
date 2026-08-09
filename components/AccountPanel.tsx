@@ -13,6 +13,7 @@ import { apiUrl } from "@/lib/api";
 import PlanSection from "@/components/account/PlanSection";
 import ProfileSection from "@/components/account/ProfileSection";
 import SignedOut from "@/components/account/SignedOut";
+import ClearDeviceSection from "@/components/account/ClearDeviceSection";
 import SyncSection from "@/components/account/SyncSection";
 import { DeleteAccountSection, SignOutSection } from "@/components/account/DangerSection";
 import type { AccountStatus } from "@/components/account/types";
@@ -139,7 +140,17 @@ export default function AccountPanel() {
         figure on it would be a guess.
       */}
       {phase === "ready" && status?.enabled === true && !status.signedIn && (
-        <SignedOut providers={status.providers ?? []} onRecovered={reload} />
+        <>
+          <SignedOut providers={status.providers ?? []} onRecovered={reload} />
+          {/*
+            Shown signed out as well, and that is the case it matters most in:
+            a visitor has every one of their scores in this browser and no
+            account to delete them from. Offering the control only to people
+            who have signed in would be offering it to everyone except the
+            people whose data has nowhere else to live.
+          */}
+          <ClearDeviceSection />
+        </>
       )}
 
       {phase === "ready" && status?.enabled === true && status.signedIn === true && (
@@ -247,6 +258,8 @@ function SignedIn({
         title="This account"
         lead="Leaving this device, or leaving BandUp altogether."
       >
+        <ClearDeviceSection />
+
         <SignOutSection onSignOut={onSignOut} />
         {/* Last on the page, because it is the one action that cannot be undone. */}
         <DeleteAccountSection onDeleted={onSignOut} />

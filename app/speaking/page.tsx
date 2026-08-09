@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import BandBadge from "@/components/BandBadge";
 import ExplainText from "@/components/ExplainText";
+import SkillGate from "@/components/SkillGate";
 import speakingData from "@/data/speaking-topics.json";
 import { useMounted } from "@/lib/hooks";
 import {
@@ -77,7 +78,7 @@ const PART_INTRO: Record<1 | 2 | 3, string> = {
   3: "Part 3. We'll discuss some more general questions related to that topic.",
 };
 
-export default function SpeakingPage() {
+function SpeakingSession() {
   const [stage, setStage] = useState<"intro" | "interview" | "grading" | "result">("intro");
   const [steps, setSteps] = useState<Step[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -828,5 +829,18 @@ function EngineOption({
         <span className="block text-xs leading-5 text-slate-600">{blurb}</span>
       </span>
     </label>
+  );
+}
+
+/*
+  Speaking is model-marked too, and a visitor gets no model at all — so the
+  examiner would ask its questions and then have nothing to say about the
+  answers. Locked at the door instead. See lib/entitlements/sessions.ts.
+*/
+export default function SpeakingPage() {
+  return (
+    <SkillGate module="speaking">
+      <SpeakingSession />
+    </SkillGate>
   );
 }

@@ -60,6 +60,8 @@ with its type set to **Secret**:
 | `STRIPE_WEBHOOK_SECRET` | subscriptions: verifying that a webhook delivery really came from Stripe |
 | `STRIPE_PRICE_PRO_MONTHLY` | the Stripe Price id behind the monthly Pro plan |
 | `STRIPE_PRICE_PRO_YEARLY` | the Stripe Price id behind the yearly Pro plan |
+| `ADMIN_EMAILS` | your own address, so signing in with it makes you the owner. Comma-separate for more than one |
+| `ADMIN_USERNAME` | a name you can type instead of that address at sign-in. Optional |
 
 See `.env.example`. A missing `ANTHROPIC_API_KEY` is the common one: the app
 loads and every page works, and only the AI features answer with an error.
@@ -69,6 +71,47 @@ rather than showing a button that fails.
 
 Changing any of them takes effect on the next deploy, so click **Deploy** after
 editing.
+
+## Signing in as the owner
+
+Three ways in, and they land on the same account. Which you use is a matter of
+taste; what makes it the *owner's* account is `ADMIN_EMAILS`, not the door.
+
+**With Google or Apple.** Sign in as normal with the address in `ADMIN_EMAILS`.
+Nothing else to do — `lib/billing/entitlements.ts` checks that variable before
+it reads the database, so the very first sign-in is already an owner's.
+
+**With a password.** Give the account one, from a shell that has the
+deployment's variables:
+
+```
+SUPABASE_URL=https://xxxx.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=eyJ... \
+node scripts/set-admin-password.mjs --email you@example.com --password 'a long passphrase'
+```
+
+If the address has no account yet, that creates one and marks it confirmed. The
+password is never stored in this repository and the script prints neither it nor
+the key.
+
+*Without a terminal*, the Supabase dashboard does the same thing and no SQL is
+involved: **Authentication → Users**. If the address is already listed, open the
+row's `⋯` menu and choose **Reset password** (or **Edit user**, depending on
+your dashboard version) and type the new one. If it is not listed, **Add user →
+Create new user**, enter the address and the password, and tick **Auto Confirm
+User** — without that tick the account exists but cannot sign in until it
+confirms by email.
+
+**With a username.** Set `ADMIN_USERNAME` to whatever you would rather type —
+it resolves to the first address in `ADMIN_EMAILS` on the server, before the
+password is checked. It is a convenience and not a secret, and there is no
+separate username account: it is the same row in Supabase either way.
+
+One thing worth saying plainly, because it is the weakest link in the whole
+deployment: the owner's account can change prices and read every learner's
+usage. `/api/auth/password` limits failed attempts per address per isolate, and
+Supabase applies its own limits on top, but a short numeric password is still a
+short numeric password. A passphrase costs a few seconds a week.
 
 ## Turning subscriptions on
 

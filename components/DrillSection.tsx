@@ -3,6 +3,14 @@
 import { useState, useSyncExternalStore } from "react";
 import Drill from "@/components/Drill";
 import ExplainText from "@/components/ExplainText";
+import LockedCard from "@/components/LockedCard";
+import {
+  drillLimit,
+  drillLockReason,
+  orderTopics,
+  type DrillKind,
+} from "@/lib/entitlements/drills";
+import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import {
   type DrillTopic,
   drillScores,
@@ -30,18 +38,39 @@ function firstSentence(text: string): string {
 }
 
 export default function DrillSection({
+  kind,
   title,
   intro,
   topics,
 }: {
+  /** Which list this is, for what a lock says out loud. */
+  kind: DrillKind;
   title: string;
   intro: string;
   topics: DrillTopic[];
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const scores = useSyncExternalStore(subscribeDrills, drillScores, getServerDrillScores);
+  const access = useSessionAccess();
 
-  const topic = topics.find((t) => t.id === openId) ?? null;
+  /*
+    Openable ones first, medium first among those — see
+    lib/entitlements/drills.ts. Everything past the allowance is still drawn,
+    title and level and question count readable, behind a lock.
+  */
+  const ordered = orderTopics(topics, access.tier);
+  const limit = drillLimit(access.tier);
+
+  /*
+    Position-checked, not just found. A locked card is a link rather than a
+    button so nothing in the UI can set `openId` to a locked topic — but a tier
+    that drops under a learner mid-session (a subscription ending while the
+    page is open) would otherwise leave them inside a topic they no longer
+    have, and the honest answer there is to put them back on the index.
+  */
+  const openIndex = ordered.findIndex((t) => t.id === openId);
+  const topic =
+    openIndex >= 0 && (limit === null || openIndex < limit) ? ordered[openIndex] : null;
 
   if (topic) {
     return (
@@ -84,16 +113,14 @@ export default function DrillSection({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {topics.map((t) => {
+        {ordered.map((t, i) => {
           const score = scores[t.id];
           const pct = score ? Math.round((score.correct / score.total) * 100) : null;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setOpenId(t.id)}
-              className="card block text-left transition-all hover:-translate-y-0.5 hover:border-indigo-300"
-            >
+          /* Strictly by position, on the order above. Same rule as the papers. */
+          const beyond = limit !== null && i >= limit;
+
+          const inner = (
+            <>
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-semibold text-slate-900">{t.title}</h2>
                 <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
@@ -125,6 +152,42 @@ export default function DrillSection({
                   </span>
                 )}
               </div>
+            </>
+          );
+
+          /*
+            Not known yet — inert rather than open. Drawing these as buttons
+            while the account lookup is in flight is what let a visitor click
+            into a topic a second before its lock arrived.
+          */
+          if (access.pending) {
+            return (
+              <div key={t.id} className="card cursor-wait opacity-60" aria-busy="true">
+                {inner}
+              </div>
+            );
+          }
+
+          if (beyond) {
+            return (
+              <LockedCard
+                key={t.id}
+                reason={drillLockReason(access.tier)}
+                label={`${t.title}, a ${kind} topic`}
+              >
+                <div className="card h-full">{inner}</div>
+              </LockedCard>
+            );
+          }
+
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setOpenId(t.id)}
+              className="card block w-full text-left transition-all hover:-translate-y-0.5 hover:border-indigo-300"
+            >
+              {inner}
             </button>
           );
         })}

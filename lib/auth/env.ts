@@ -34,6 +34,7 @@ export const SERVER_ONLY_ENV_VARS = [
   "APPLE_IAP_PRIVATE_KEY",
   "ANTHROPIC_API_KEY",
   "ADMIN_EMAILS",
+  "ADMIN_USERNAME",
 ] as const;
 
 function secret(name: (typeof SERVER_ONLY_ENV_VARS)[number]): string | undefined {
@@ -139,4 +140,41 @@ export function adminEmails(): string[] {
 export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;
   return adminEmails().includes(email.trim().toLowerCase());
+}
+
+/**
+ * A name the owner can type instead of an email address.
+ *
+ * Supabase knows every account by its email, and that does not change here —
+ * this resolves to `ADMIN_EMAILS[0]` on the server before the password is ever
+ * checked, so there is no second kind of account and no second way to be
+ * authenticated. It is a nicer thing to type on a phone, and nothing more.
+ *
+ * Note what it deliberately is not: a way to hide which address is the owner's.
+ * Anyone can put an address into the form and find out whether it has a
+ * password by the same means as before. A username is convenience, and treating
+ * it as a secret would be the kind of security that is only felt.
+ */
+export function adminUsername(): string | null {
+  assertServerOnly(MODULE);
+  const raw = secret("ADMIN_USERNAME");
+  return raw ? raw.trim().toLowerCase() : null;
+}
+
+/**
+ * Resolves whatever was typed in the identifier box to an email address.
+ *
+ * Returns the input unchanged when it already looks like an address, the
+ * owner's address when it matches ADMIN_USERNAME, and null when it is a name
+ * this deployment does not know — which the caller must answer exactly as it
+ * answers a wrong password, or the form becomes a way to enumerate usernames.
+ */
+export function emailForIdentifier(identifier: string): string | null {
+  assertServerOnly(MODULE);
+  const value = identifier.trim();
+  if (value.includes("@")) return value.toLowerCase();
+
+  const username = adminUsername();
+  if (username && value.toLowerCase() === username) return adminEmails()[0] ?? null;
+  return null;
 }

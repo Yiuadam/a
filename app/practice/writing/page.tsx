@@ -9,10 +9,11 @@ import writingData from "@/data/writing-tasks.json";
 import { addResult } from "@/lib/store";
 import type { WritingGrade, WritingTasksData } from "@/lib/types";
 import Chart from "@/components/Chart";
+import SkillGate from "@/components/SkillGate";
 
 const tasks = (writingData as WritingTasksData).tasks;
 
-export default function WritingPage() {
+function WritingSession() {
   const [taskId, setTaskId] = useState(tasks[0].id);
   const [essay, setEssay] = useState("");
   const [started, setStarted] = useState(false);
@@ -240,5 +241,17 @@ export default function WritingPage() {
         </section>
       )}
     </div>
+  );
+}
+
+/*
+  Writing is model-marked, so a visitor with no model gets a lock rather than a
+  blank box and forty minutes. See lib/entitlements/sessions.ts.
+*/
+export default function WritingPage() {
+  return (
+    <SkillGate module="writing">
+      <WritingSession />
+    </SkillGate>
   );
 }

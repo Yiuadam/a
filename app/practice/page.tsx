@@ -133,10 +133,23 @@ export default function PracticePage() {
       </>
     );
 
+    /*
+      Not known yet: drawn, dimmed, and not a link. See `pending` in
+      lib/entitlements/useSessions.ts — this is the second the account lookup
+      takes, and it used to be a second in which everything was openable.
+    */
+    if (access[kind].pending) {
+      return (
+        <div key={t.id} className="card !p-3 min-w-0 cursor-wait opacity-60" aria-busy="true">
+          {inner}
+        </div>
+      );
+    }
+
     if (beyond) {
       return (
         <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`}>
-          <div className="card !p-3">{inner}</div>
+          <div className="card !p-3 h-full">{inner}</div>
         </LockedCard>
       );
     }
@@ -232,6 +245,59 @@ export default function PracticePage() {
             )}
           </section>
 
+          {/*
+            Generating a test is an AI call, so it follows the AI rules rather
+            than the session rules: a visitor has no model at all, so the panel
+            is locked rather than offered and then refused.
+          */}
+          {access.tier === "anonymous" ? (
+            <LockedCard reason="sign-in" label="Generate a fresh test with AI">
+              <section id="generate" className="card !p-3 min-w-0 border-indigo-200 bg-indigo-50/40">
+            <h2 className="text-sm font-semibold text-slate-900">Generate a fresh test with AI</h2>
+            <p className="mt-0.5 text-xs leading-5 text-slate-600">
+              Never run out of material — the AI writes a brand-new exam-format test on demand,
+              saved on this device.
+            </p>
+            <div className="mt-2 flex flex-wrap items-end gap-2">
+              <label className="min-w-0 flex-1 basis-28 text-xs text-slate-700">
+                <span className="mb-0.5 block text-slate-500">Module</span>
+                <select
+                  className="input !py-2 w-full"
+                  value={genKind}
+                  onChange={(e) => setGenKind(e.target.value as "reading" | "listening")}
+                >
+                  <option value="reading">Reading</option>
+                  <option value="listening">Listening</option>
+                </select>
+              </label>
+              <label className="min-w-0 flex-1 basis-36 text-xs text-slate-700">
+                <span className="mb-0.5 block text-slate-500">Difficulty</span>
+                <select
+                  className="input !py-2 w-full"
+                  value={genDifficulty}
+                  onChange={(e) => setGenDifficulty(e.target.value as "medium" | "hard")}
+                >
+                  <option value="medium">Medium (5–6.5)</option>
+                  <option value="hard">Hard (6.5–8)</option>
+                </select>
+              </label>
+              <label className="min-w-0 flex-1 basis-40 text-xs text-slate-700">
+                <span className="mb-0.5 block text-slate-500">Topic (optional)</span>
+                <input
+                  className="input !py-2 w-full"
+                  placeholder="e.g. space exploration"
+                  value={genTopic}
+                  onChange={(e) => setGenTopic(e.target.value)}
+                />
+              </label>
+              <button className="btn-primary w-full" onClick={generate} disabled={generating}>
+                {generating ? "Generating (about a minute)…" : "Generate test"}
+              </button>
+            </div>
+            {genError && <p className="mt-2 text-sm text-rose-600">{genError}</p>}
+              </section>
+            </LockedCard>
+          ) : (
           <section id="generate" className="card !p-3 min-w-0 border-indigo-200 bg-indigo-50/40">
             <h2 className="text-sm font-semibold text-slate-900">Generate a fresh test with AI</h2>
             <p className="mt-0.5 text-xs leading-5 text-slate-600">
@@ -276,6 +342,7 @@ export default function PracticePage() {
             </div>
             {genError && <p className="mt-2 text-sm text-rose-600">{genError}</p>}
           </section>
+          )}
         </div>
       </div>
     </div>
