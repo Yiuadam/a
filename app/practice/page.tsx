@@ -74,14 +74,36 @@ export default function PracticePage() {
     cost them in time — three things that fit on two lines, so eight tests fit
     on a screen instead of filling two.
   */
+  /*
+    How many papers of a skill this account may open, as a count rather than a
+    counter.
+
+    "2 left this week" is a number somebody has to hold in their head while
+    they scan a list. Locking the papers past the allowance says the same thing
+    in the place the decision is made: the ones you can sit look normal, the
+    rest wear a padlock, and you can still read every title to see what you
+    would be getting. A visitor gets one of each, a free account two.
+  */
+  const openable = (kind: "reading" | "listening") => access[kind].left;
+
   const testRow = (
     kind: "reading" | "listening",
     t: ReadingTest | ListeningTest,
     generated?: boolean,
+    index = 0,
   ) => {
     const band = bestBand(t.id);
-    return (
-      <Link key={t.id} href={`/practice/${kind}?id=${t.id}`} className="card !p-3 block">
+    const limit = openable(kind);
+    /*
+      Locked past the allowance — but never a paper already sat. A best band on
+      it means it has been opened, and taking it away afterwards would read as
+      a punishment for having practised.
+    */
+    const beyond = limit !== null && index >= limit && band === undefined;
+    const reason = access[kind].reason ?? (access.tier === "anonymous" ? "sign-in" : "subscribe");
+
+    const inner = (
+      <>
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="min-w-0 truncate text-sm font-semibold text-slate-900">{t.title}</h3>
           {band !== undefined && (
@@ -103,6 +125,20 @@ export default function PracticePage() {
             <span className="rounded bg-purple-100 px-1.5 text-purple-700">AI-generated</span>
           )}
         </p>
+      </>
+    );
+
+    if (beyond) {
+      return (
+        <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`}>
+          <div className="card !p-3">{inner}</div>
+        </LockedCard>
+      );
+    }
+
+    return (
+      <Link key={t.id} href={`/practice/${kind}?id=${t.id}`} className="card !p-3 block">
+        {inner}
       </Link>
     );
   };
@@ -134,10 +170,10 @@ export default function PracticePage() {
             <SessionCount access={access.reading} />
           </div>
           <div className="space-y-2">
-            {readingTests.map((t) => testRow("reading", t))}
+            {readingTests.map((t, i) => testRow("reading", t, false, i))}
             {profile.genTests
               .filter((g) => g.kind === "reading")
-              .map((g) => testRow("reading", g.test, true))}
+              .map((g, i) => testRow("reading", g.test, true, readingTests.length + i))}
           </div>
         </section>
 
@@ -147,10 +183,10 @@ export default function PracticePage() {
             <SessionCount access={access.listening} />
           </div>
           <div className="space-y-2">
-            {listeningTests.map((t) => testRow("listening", t))}
+            {listeningTests.map((t, i) => testRow("listening", t, false, i))}
             {profile.genTests
               .filter((g) => g.kind === "listening")
-              .map((g) => testRow("listening", g.test, true))}
+              .map((g, i) => testRow("listening", g.test, true, listeningTests.length + i))}
           </div>
         </section>
 

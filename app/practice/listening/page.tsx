@@ -22,6 +22,7 @@ import { flatQuestions, questionCount } from "@/lib/questions";
 import { buildReview } from "@/lib/review";
 import { addResult } from "@/lib/store";
 import type { ListeningTest } from "@/lib/types";
+import TestChooser from "@/components/TestChooser";
 
 const bundled = [
   listeningOne,
@@ -198,15 +199,26 @@ function ListeningTestPageRunner() {
 
   // Generated tests are read from localStorage, so wait for hydration before
   // deciding a test is genuinely missing.
+  /*
+    No id in the URL is not an error — it is the header's "Listening" link,
+    which is how most people arrive. It used to answer "we couldn't find that
+    test on this device", which is a dead end wearing an error message: a
+    learner who clicked Listening gets told something is missing and is sent
+    to a page listing all four skills.
+
+    So it lists the listening papers, and only those. An id that genuinely does
+    not resolve — a stale bookmark, a generated test cleared from this browser
+    — still says so, because that one is a real miss.
+  */
   if (!test) {
     if (!mounted) return null;
+    const asked = params.get("id");
     return (
-      <div className="card mx-auto mt-[10vh] max-w-xl text-center">
-        <p className="text-slate-600">We couldn&apos;t find that test on this device.</p>
-        <Link href="/practice" className="btn-primary mt-4">
-          Back to practice tests
-        </Link>
-      </div>
+      <TestChooser
+        kind="listening"
+        tests={bundled}
+        missingId={asked}
+      />
     );
   }
 

@@ -202,6 +202,20 @@ for (const width of WIDTHS) {
         return false;
       };
 
+      /*
+        A closed <details> is the third false positive of the same family. The
+        browser gives its contents layout — display is still list-item, a
+        getBoundingClientRect returns a real box — and simply does not paint
+        them, so elementFromPoint answers about the <details> instead and every
+        collapsed disclosure on the page reads as an overlap.
+      */
+      const inClosedDetails = (el) => {
+        for (let p = el.parentElement; p; p = p.parentElement) {
+          if (p.tagName === "DETAILS" && !p.open) return true;
+        }
+        return false;
+      };
+
       for (const el of document.querySelectorAll("main *")) {
         const r = el.getBoundingClientRect();
         if (r.width < 8 || r.height < 8) continue;
@@ -241,20 +255,6 @@ for (const width of WIDTHS) {
         boundary reports its own container as "covering" it. Six findings, all
         false, and a check nobody believes is worse than no check.
       */
-      /*
-        A closed <details> is the third false positive of the same family. The
-        browser gives its contents layout — display is still list-item, a
-        getBoundingClientRect returns a real box — and simply does not paint
-        them, so elementFromPoint answers about the <details> instead and every
-        collapsed disclosure on the page reads as an overlap.
-      */
-      const inClosedDetails = (el) => {
-        for (let p = el.parentElement; p; p = p.parentElement) {
-          if (p.tagName === "DETAILS" && !p.open) return true;
-        }
-        return false;
-      };
-
       const clippedByScroller = (el) => {
         const b = el.getBoundingClientRect();
         const midY = b.top + b.height / 2;
