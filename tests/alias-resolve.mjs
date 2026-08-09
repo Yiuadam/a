@@ -12,7 +12,8 @@
   that have no need of the alias.
 */
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { readFile } from "node:fs/promises";
 
 const ROOT = process.cwd();
 
@@ -35,4 +36,29 @@ export async function resolve(specifier, context, nextResolve) {
   }
 
   return nextResolve(request, context);
+}
+
+/*
+  JSON, without the import attribute.
+
+  A bundler treats `import data from "./x.json"` as ordinary; Node's ESM loader
+  refuses it unless the import statement says `with { type: "json" }`. The app
+  is built by a bundler and cannot carry that attribute, so a module that reads
+  the content bank could not be imported by a test at all — which is the class
+  of module most worth testing.
+
+  Handing it back as a module whose default export is the parsed literal avoids
+  the attribute check rather than trying to satisfy it, and gives the importer
+  exactly what the bundler would have.
+*/
+export async function load(url, context, nextLoad) {
+  if (url.endsWith(".json")) {
+    const text = await readFile(fileURLToPath(url), "utf8");
+    return {
+      format: "module",
+      shortCircuit: true,
+      source: `export default ${text};`,
+    };
+  }
+  return nextLoad(url, context);
 }

@@ -1,0 +1,219 @@
+{
+  "id": "listening-10",
+  "title": "Reporting a Lost Bag at the Station",
+  "context": "A passenger reports a bag left on a train and is told how lost property is handled.",
+  "difficulty": "medium",
+  "timeMinutes": 12,
+  "speakers": [
+    "Clerk",
+    "Passenger"
+  ],
+  "script": [
+    {
+      "speaker": "Clerk",
+      "text": "Lost property, good afternoon."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "Hello — I think I've left a bag on a train. I only realised when I got to the office."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "We'll see what we can do. Which service were you on?"
+    },
+    {
+      "speaker": "Passenger",
+      "text": "The 8:14 from Ashford, arriving here at about twenty to nine."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "Right, that's the Ashford service that terminates on platform six. Was the bag with you in the carriage or in the rack at the end?"
+    },
+    {
+      "speaker": "Passenger",
+      "text": "In the overhead rack, above my seat. Coach C, I think, near the doors."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "That helps. Can you describe it?"
+    },
+    {
+      "speaker": "Passenger",
+      "text": "It's a soft rucksack, dark green, with a broken zip on the front pocket. It's got a luggage tag with my initials on it — J.M."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "Dark green rucksack, broken front zip, tag with initials. Anything distinctive inside?"
+    },
+    {
+      "speaker": "Passenger",
+      "text": "A grey laptop, a notebook, and a pair of running shoes. Oh — and a blue umbrella strapped to the side."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "Good, the umbrella is the sort of detail that identifies it. Now, your name and a contact number?"
+    },
+    {
+      "speaker": "Passenger",
+      "text": "Jenna Marsh. My mobile is 0-7-7-0-0, then 9-1-4-2-6-3."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "07700 914263. And an email in case we can't reach you by phone?"
+    },
+    {
+      "speaker": "Passenger",
+      "text": "It's j dot marsh at brightwell dot co dot uk."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "Thank you. Now, what happens next. Anything found on a terminating train is collected by the cleaning team and brought to the depot, not to this office, and the depot sends items across the following morning. So if it was handed in today, we'd see it tomorrow."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "So there's no point coming in this evening."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "None at all, I'm afraid. What I'd suggest is that you check the online register first. Every item is logged with a reference number, and you can search by station and date. Save yourself the journey."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "How long do you keep things?"
+    },
+    {
+      "speaker": "Clerk",
+      "text": "Three months for most items. Electronic items we keep for six months, because people so often come back for them late. After that they go to auction, and the proceeds go to a railway charity."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "Is there a fee?"
+    },
+    {
+      "speaker": "Clerk",
+      "text": "There's a handling charge of five pounds for a bag, and it's ten pounds for anything with a laptop in it, because those are stored separately in a secure cabinet. Cash or card, either is fine."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "That's reasonable. And if it turns up somewhere else?"
+    },
+    {
+      "speaker": "Clerk",
+      "text": "Everything is on the same national register, so if a colleague at another station logs a dark green rucksack, your description will match it and we'll contact you. That happens more often than you'd think — people pick up the wrong bag and hand it in three stops down the line."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "Thank you, that's very helpful."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "Give it until midday tomorrow and then check the register. If nothing shows by Friday, call us back and we'll widen the search."
+    }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the lost property form below. Write NO MORE THAN TWO WORDS OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Passenger's name: Jenna ___",
+          "answer": "Marsh",
+          "maxWords": 2,
+          "explanation": "“Jenna Marsh.” The surname is what the form line is missing, and it is repeated in her email address."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Train: the ___ service from Ashford.",
+          "answer": "8:14",
+          "maxWords": 2,
+          "explanation": "“The 8:14 from Ashford, arriving here at about twenty to nine.” The arrival time is the distractor."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Bag left in the overhead rack in coach ___.",
+          "answer": "C",
+          "maxWords": 2,
+          "explanation": "“In the overhead rack, above my seat. Coach C, I think, near the doors.” Platform six is a different number in the same passage."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Item: a dark green ___ with a broken front zip.",
+          "answer": "rucksack",
+          "maxWords": 2,
+          "explanation": "“It's a soft rucksack, dark green, with a broken zip on the front pocket.” The clerk repeats the description back."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Attached to the side: a blue ___.",
+          "answer": "umbrella",
+          "maxWords": 2,
+          "explanation": "“And a blue umbrella strapped to the side.” The clerk singles it out as the identifying detail."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Contact number: 07700 ___",
+          "answer": "914263",
+          "maxWords": 2,
+          "explanation": "She reads it in groups — “9-1-4-2-6-3” — and the clerk reads the whole number back as 07700 914263."
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the questions below. Write NO MORE THAN THREE WORDS OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q7",
+          "type": "short-answer",
+          "question": "Where are items from a terminating train taken first?",
+          "answer": "the depot",
+          "accept": [
+            "depot"
+          ],
+          "maxWords": 3,
+          "explanation": "“Anything found on a terminating train is collected by the cleaning team and brought to the depot, not to this office.”"
+        },
+        {
+          "id": "q8",
+          "type": "short-answer",
+          "question": "What does the clerk suggest checking before travelling in?",
+          "answer": "the online register",
+          "accept": [
+            "online register"
+          ],
+          "maxWords": 3,
+          "explanation": "“What I'd suggest is that you check the online register first… Save yourself the journey.”"
+        },
+        {
+          "id": "q9",
+          "type": "short-answer",
+          "question": "For how many months are electronic items kept?",
+          "answer": "six months",
+          "accept": [
+            "6",
+            "six"
+          ],
+          "maxWords": 3,
+          "explanation": "“Three months for most items. Electronic items we keep for six.” Three months is the general rule and the distractor."
+        },
+        {
+          "id": "q10",
+          "type": "short-answer",
+          "question": "What is the handling charge for a bag containing a laptop?",
+          "answer": "ten pounds",
+          "accept": [
+            "10",
+            "ten"
+          ],
+          "maxWords": 3,
+          "explanation": "“There's a handling charge of five pounds for a bag, and it's ten for anything with a laptop in it.” Five pounds applies to a bag without one."
+        }
+      ]
+    }
+  ]
+}

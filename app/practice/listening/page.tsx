@@ -10,10 +10,6 @@ import TestQuestions, {
   type AnswerMap,
   type CheckedMap,
 } from "@/components/TestQuestions";
-import listeningOne from "@/data/listening-1.json";
-import listeningTwo from "@/data/listening-2.json";
-import listeningThree from "@/data/listening-3.json";
-import listeningFour from "@/data/listening-4.json";
 import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
 import { rankedEnglishVoices, toSentences } from "@/lib/speech";
@@ -21,15 +17,11 @@ import { useMounted, useProfile } from "@/lib/hooks";
 import { flatQuestions, questionCount } from "@/lib/questions";
 import { buildReview } from "@/lib/review";
 import { addResult } from "@/lib/store";
+import { LISTENING_TESTS } from "@/lib/tests";
 import type { ListeningTest } from "@/lib/types";
 import TestChooser from "@/components/TestChooser";
 
-const bundled = [
-  listeningOne,
-  listeningTwo,
-  listeningThree,
-  listeningFour,
-] as ListeningTest[];
+const bundled = LISTENING_TESTS;
 
 interface PlaybackHooks {
   voices: SpeechSynthesisVoice[];

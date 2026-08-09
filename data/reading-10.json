@@ -1,0 +1,172 @@
+{
+  "id": "reading-10",
+  "title": "The Problem with Averages",
+  "topic": "Why designing for the average person produces designs that fit nobody",
+  "difficulty": "hard",
+  "timeMinutes": 20,
+  "passage": "In 1950 the United States Air Force had a problem it could not explain. Its aircraft were crashing at a rate that pilot error alone did not account for, and the cockpits in which those pilots sat had been designed, carefully, around the average airman. The dimensions had been taken from a survey of over four thousand men in the 1920s and averaged; every seat, every stick, every panel was placed where the average body would find it. If the design was correct, the failures had to lie with the men.\n\nA young researcher named Gilbert Daniels was asked to update the measurements. He measured four thousand and sixty-three pilots on ten dimensions relevant to cockpit design — height, chest circumference, arm length and so on — and then asked a question nobody had thought to ask: how many of these men were average on all ten? He allowed a generous definition of average, the middle thirty per cent of the range on each measure. The answer was none. Not one pilot in four thousand fell within the middle band on all ten dimensions. Even on any three of the ten, fewer than one in twenty did.\n\nThe finding is not a curiosity about pilots. It follows from arithmetic that applies wherever measurements are only loosely related to one another. If being average on one dimension gives you a thirty per cent chance, and the dimensions were entirely independent, the chance of being average on ten would be thirty per cent multiplied by itself ten times — a number so small that a population of millions would contain nobody. Real body measurements are correlated, so the true figure is higher than that, but not nearly high enough to produce anybody at all in a sample of four thousand. The average man, in the sense the designers meant, does not exist.\n\nWhat the Air Force did next is the part usually left out of the retelling. It did not commission a better average. It required manufacturers to build cockpits that adjusted: seats that moved through a defined range, pedals that slid, straps that lengthened. The specification changed from a single point to a set of ranges that had to accommodate the middle ninety per cent of the measured population. Adjustable seating, now unremarkable in any car, entered mass production largely through this route, and the accident rate fell.\n\nThe lesson has been learned unevenly. Medicine has been slower than engineering, partly because the equivalent of an adjustable seat is a treatment tailored to a patient, and that is expensive to develop and difficult to test. A drug trial reports an average response, and a drug that helps a third of patients considerably while doing nothing for the rest can produce the same average as a drug that helps everybody slightly. The two are entirely different medicines and the summary statistic cannot tell them apart. Reporting the distribution rather than the mean would distinguish them, and journals have begun, slowly, to ask for it.\n\nEducation has been slower still, and here the problem is not measurement but sequence. Curricula assume that learners progress through material in the same order at roughly the same rate, and a class is paced to a notional middle. The evidence that learners differ is not seriously disputed; what is disputed is what to do about it, since the obvious remedy — individual pacing — is expensive in teacher time and has a poor record when delegated to software.\n\nA caution is in order, because the argument is easily overextended. Averages are not useless; they are indispensable for describing populations, comparing groups and detecting change over time. The error Daniels identified is narrower and more specific: it is designing for an individual by using a statistic that describes a group. A bridge engineer who designs for the average load would be negligent, and nobody thinks otherwise. The cockpit designers made the same mistake and it took thirty years and a great many crashes to see it, because the statistic they used was about people, and a number about people is easy to mistake for a person.",
+  "questions": [
+    {
+      "instruction": "Look at the following statements and the list of fields below. Match each statement with the correct field, A–E. You may use any letter once only.",
+      "sharedOptions": [
+        {
+          "key": "A",
+          "text": "Aircraft design"
+        },
+        {
+          "key": "B",
+          "text": "Medicine"
+        },
+        {
+          "key": "C",
+          "text": "Education"
+        },
+        {
+          "key": "D",
+          "text": "Bridge engineering"
+        },
+        {
+          "key": "E",
+          "text": "Motor manufacturing"
+        }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "A field in which designing for the average is universally recognised as negligent.",
+          "answer": "D",
+          "explanation": "“A bridge engineer who designs for the average load would be negligent, and nobody thinks otherwise.” The writer uses it as the case where the error is already obvious."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "A field where a summary figure can conceal two quite different outcomes.",
+          "answer": "B",
+          "explanation": "A drug helping a third of patients a lot can produce the same average as one helping everybody slightly — “the summary statistic cannot tell them apart”."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "A field where the difficulty lies in the order and pace of material rather than in measurement.",
+          "answer": "C",
+          "explanation": "For education “the problem is not measurement but sequence”: curricula assume the same order at roughly the same rate."
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "A field that adopted a widely used adjustable feature as a consequence of the finding.",
+          "answer": "E",
+          "explanation": "“Adjustable seating, now unremarkable in any car, entered mass production largely through this route.” The car industry is where the feature became common."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN THREE WORDS OR A NUMBER from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Daniels measured pilots on ___ dimensions relevant to cockpit design.",
+          "answer": "ten",
+          "maxWords": 2,
+          "explanation": "“He measured four thousand and sixty-three pilots on ten dimensions relevant to cockpit design.” The number of dimensions, not of pilots, is what the sentence asks for."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "He counted a pilot as average if he fell in the middle ___ per cent of the range.",
+          "answer": "thirty",
+          "maxWords": 2,
+          "explanation": "“He allowed a generous definition of average, the middle thirty per cent of the range on each measure.”"
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "New cockpits had to accommodate the middle ___ per cent of the measured population.",
+          "answer": "ninety",
+          "maxWords": 2,
+          "explanation": "The specification became “a set of ranges that had to accommodate the middle ninety per cent of the measured population”."
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "Because body measurements are ___, the true proportion is higher than pure multiplication suggests.",
+          "answer": "correlated",
+          "maxWords": 3,
+          "explanation": "“Real body measurements are correlated, so the true figure is higher than that” — though still not high enough to produce anybody."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Before Daniels's study, how did the Air Force explain its accident rate?",
+          "options": [
+            "As a fault in the aircraft engines",
+            "As the fault of the pilots",
+            "As the result of poor training schedules",
+            "As an effect of bad weather"
+          ],
+          "answer": 1,
+          "explanation": "The design was assumed correct, so “If the design was correct, the failures had to lie with the men.” The blame fell on pilots by elimination."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "How many pilots were average on all ten dimensions?",
+          "options": [
+            "Fewer than one in twenty",
+            "About one in a hundred",
+            "None",
+            "Roughly a third"
+          ],
+          "answer": 2,
+          "explanation": "“The answer was none. Not one pilot in four thousand fell within the middle band on all ten dimensions.” One in twenty refers to being average on any three."
+        },
+        {
+          "id": "q11",
+          "type": "mcq",
+          "question": "What was the Air Force's response to the finding?",
+          "options": [
+            "It calculated a more accurate average",
+            "It selected pilots closer to the average",
+            "It required cockpits that could be adjusted",
+            "It reduced the number of instruments in the cockpit"
+          ],
+          "answer": 2,
+          "explanation": "“It did not commission a better average. It required manufacturers to build cockpits that adjusted”, replacing a single point with ranges."
+        },
+        {
+          "id": "q12",
+          "type": "mcq",
+          "question": "What does the writer say journals have started to do?",
+          "options": [
+            "Reject trials that report averages",
+            "Ask for the distribution of responses",
+            "Require larger sample sizes",
+            "Publish raw patient data"
+          ],
+          "answer": 1,
+          "explanation": "“Reporting the distribution rather than the mean would distinguish them, and journals have begun, slowly, to ask for it.”"
+        },
+        {
+          "id": "q13",
+          "type": "mcq",
+          "question": "What qualification does the writer add in the final paragraph?",
+          "options": [
+            "Averages are of little value in any field",
+            "The error is specifically about designing for individuals",
+            "Daniels's study has since been disproved",
+            "Statistics should be left to specialists"
+          ],
+          "answer": 1,
+          "explanation": "Averages are “indispensable for describing populations”; the narrow error is “designing for an individual by using a statistic that describes a group”."
+        }
+      ]
+    }
+  ]
+}

@@ -95,7 +95,7 @@ const NUMBER_WORDS: Record<string, string> = {
   thirteen: "13", fourteen: "14", fifteen: "15", sixteen: "16",
   seventeen: "17", eighteen: "18", nineteen: "19", twenty: "20",
   thirty: "30", forty: "40", fifty: "50", sixty: "60", seventy: "70",
-  eighty: "80", ninety: "90", hundred: "100",
+  eighty: "80", ninety: "90", hundred: "100", thousand: "1000",
   first: "1", second: "2", third: "3", fourth: "4", fifth: "5", sixth: "6",
   seventh: "7", eighth: "8", ninth: "9", tenth: "10", eleventh: "11",
   twelfth: "12", thirteenth: "13", fourteenth: "14", fifteenth: "15",
@@ -144,7 +144,14 @@ function normalise(s: string): string {
       continue;
     }
     const value = Number(digits);
-    if (running !== null && value === 100 && running < 100) running *= 100;
+    /*
+      A multiplier, not an addend. Scripts say "four thousand signatures" and
+      answer keys say "4000"; without this the two never match and a learner
+      who types the digits is told they are wrong. Placed before the hundred
+      rule because "a hundred thousand" must multiply twice.
+    */
+    if (running !== null && value === 1000) running *= 1000;
+    else if (running !== null && value === 100 && running < 100) running *= 100;
     else if (running !== null && running >= 20 && running % 10 === 0 && value < 10) {
       running += value;
     } else if (running !== null && running % 100 === 0 && value < 100) running += value;
