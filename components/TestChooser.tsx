@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import LockedCard from "@/components/LockedCard";
+import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { useProfile } from "@/lib/hooks";
 import { questionCount } from "@/lib/questions";
-import { latestFor } from "@/lib/results";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 
 /*
@@ -40,11 +40,11 @@ export default function TestChooser({
 }) {
   const profile = useProfile();
   const access = useSessionAccess();
-  const skill = access[kind];
 
   const generated = profile.genTests.filter((g) => g.kind === kind).map((g) => g.test);
   const all = [...tests, ...generated];
-  const limit = skill.left;
+  /* The cap the tier unlocks, not what is left of it — see app/practice/page.tsx. */
+  const limit = allowanceFor(access.tier, kind).perWeek;
   const label = kind === "reading" ? "Reading" : "Listening";
 
   return (
@@ -79,21 +79,14 @@ export default function TestChooser({
       */}
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {all.map((t, i) => {
-          const band = latestFor(profile.results, kind)?.testId === t.id
-            ? latestFor(profile.results, kind)?.band
-            : profile.results.find((r) => r.testId === t.id)?.band;
           const isGenerated = i >= tests.length;
-          const beyond = limit !== null && i >= limit && band === undefined;
+          /* Strictly by position — see app/practice/page.tsx for why. */
+          const beyond = limit !== null && i >= limit;
 
           const inner = (
             <>
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="min-w-0 truncate text-sm font-semibold text-slate-900">{t.title}</h2>
-                {band !== undefined && (
-                  <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
-                    Best band {band}
-                  </span>
-                )}
               </div>
               <p className="mt-0.5 truncate text-xs leading-5 text-slate-600">
                 {"topic" in t ? t.topic : t.context}

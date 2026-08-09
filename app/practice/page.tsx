@@ -12,6 +12,7 @@ import listeningThree from "@/data/listening-3.json";
 import listeningFour from "@/data/listening-4.json";
 import LockedCard from "@/components/LockedCard";
 import SessionCount from "@/components/SessionCount";
+import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { useProfile } from "@/lib/hooks";
 import { questionCount } from "@/lib/questions";
@@ -63,10 +64,6 @@ export default function PracticePage() {
     }
   }
 
-  const bestBand = (testId: string) => {
-    const bands = profile.results.filter((r) => r.testId === testId).map((r) => r.band);
-    return bands.length > 0 ? Math.max(...bands) : undefined;
-  };
 
   /*
     One row per test rather than a card the size of a paragraph. A learner
@@ -84,7 +81,17 @@ export default function PracticePage() {
     rest wear a padlock, and you can still read every title to see what you
     would be getting. A visitor gets one of each, a free account two.
   */
-  const openable = (kind: "reading" | "listening") => access[kind].left;
+  /*
+    The cap, not what is left of it.
+
+    `left` counts down as papers are sat, so a visitor who had tried both of
+    theirs saw every card locked — including the two they had already opened.
+    The number that should decide this is how many the tier unlocks at all: one
+    for a visitor, two for a free account. The weekly counter is a separate
+    idea and lives in the heading.
+  */
+  const openable = (kind: "reading" | "listening") =>
+    allowanceFor(access.tier, kind).perWeek;
 
   const testRow = (
     kind: "reading" | "listening",
@@ -92,25 +99,23 @@ export default function PracticePage() {
     generated?: boolean,
     index = 0,
   ) => {
-    const band = bestBand(t.id);
     const limit = openable(kind);
     /*
-      Locked past the allowance — but never a paper already sat. A best band on
-      it means it has been opened, and taking it away afterwards would read as
-      a punishment for having practised.
+      Locked strictly by position: the first N are open and the rest are not.
+
+      An earlier version exempted any paper already sat, on the reasoning that
+      taking one back reads as a punishment. It also meant a visitor who had
+      tried two papers could see two unlocked, which is not what "one paper"
+      means — the allowance stopped describing anything. Position is the rule a
+      learner can predict.
     */
-    const beyond = limit !== null && index >= limit && band === undefined;
+    const beyond = limit !== null && index >= limit;
     const reason = access[kind].reason ?? (access.tier === "anonymous" ? "sign-in" : "subscribe");
 
     const inner = (
       <>
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="min-w-0 truncate text-sm font-semibold text-slate-900">{t.title}</h3>
-          {band !== undefined && (
-            <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
-              Best band {band}
-            </span>
-          )}
         </div>
         <p className="mt-0.5 truncate text-xs leading-5 text-slate-600">
           {"topic" in t ? t.topic : t.context}
