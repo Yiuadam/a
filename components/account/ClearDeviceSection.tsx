@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SESSION_KEY } from "@/lib/account";
 
 /*
   Delete everything this browser is keeping.
@@ -34,7 +35,17 @@ import { useState } from "react";
   theme back. Anything new is therefore deleted by default, which is the safe
   direction to be wrong in.
 */
-const KEEP_ACROSS_WIPE = ["bandup.theme"];
+const KEEP_ACROSS_WIPE = [
+  "bandup.theme",
+  /*
+    The session, which this screen promises in as many words not to touch:
+    "This is not your account." Clearing the origin took the token with it and
+    signed the learner out — so the sentence was false, and the one thing they
+    were told was safe was the thing that broke. Imported rather than spelled
+    again, so a rename cannot quietly reintroduce it.
+  */
+  SESSION_KEY,
+];
 
 export default function ClearDeviceSection() {
   const [armed, setArmed] = useState(false);
