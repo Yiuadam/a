@@ -297,6 +297,20 @@ export default function TermsPage() {
           Council, IDP, or Cambridge University Press &amp; Assessment.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          BandUp is run by <strong>Adam Yiu</strong>, as an individual rather than through a
+          company. There is no company registration number to give, because there is no company —
+          the person you are contracting with is the person named here.
+        </p>
+        <address className="mt-3 not-italic text-[15px] leading-7 text-slate-700">
+          Adam Yiu
+          <br />
+          11B, Chai Kung Mansion
+          <br />
+          Taikoo Shing
+          <br />
+          Hong Kong
+        </address>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Contact:{" "}
           <a
             href="mailto:hello@bandup.life"
@@ -304,13 +318,7 @@ export default function TermsPage() {
           >
             hello@bandup.life
           </a>
-        </p>
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-800">
-          <strong>To complete before selling:</strong> the trading name, legal form and
-          geographic address of whoever is taking the payment, plus a company or tax
-          registration number if one exists. EU and UK consumer law require these to be given
-          before a distance sale, Stripe asks for them at onboarding, and the app stores check
-          for them. They are deliberately blank rather than filled with something plausible.
+          . Every message is read by that person.
         </p>
       </Section>
 

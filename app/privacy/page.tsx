@@ -440,6 +440,48 @@ export default function PrivacyPage() {
         </p>
       </section>
 
+      {/*
+        Who is answerable for the data.
+
+        GDPR Article 13 requires the controller's identity and contact details
+        to be given at the point personal data is collected, and it means a
+        person or a company rather than a product name — "BandUp" is not an
+        entity anybody can write to or complain about. The UK GDPR and Hong
+        Kong's PDPO ask for the same thing in their own words.
+
+        It is repeated here rather than linked from /terms because a reader who
+        has come to the privacy page to find out who holds their data should
+        find the answer on it.
+      */}
+      <section className="card">
+        <h2 className="heading-rule text-base font-semibold text-slate-900">
+          Who is responsible for your data
+        </h2>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          BandUp is run by <strong>Adam Yiu</strong>, as an individual rather than through a
+          company. That is the person responsible for the data described on this page — what the
+          GDPR calls the controller — and the person any request or complaint reaches.
+        </p>
+        <address className="mt-3 not-italic text-[15px] leading-7 text-slate-700">
+          Adam Yiu
+          <br />
+          11B, Chai Kung Mansion
+          <br />
+          Taikoo Shing
+          <br />
+          Hong Kong
+        </address>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Write to{" "}
+          <a href="mailto:hello@bandup.life" className="underline underline-offset-2 hover:text-slate-900">
+            hello@bandup.life
+          </a>{" "}
+          to ask what is held about you, to have it corrected, or to have it deleted. If you are
+          in the EU or the UK you also have the right to complain to your national data protection
+          authority; in Hong Kong that is the Privacy Commissioner for Personal Data.
+        </p>
+      </section>
+
       <section className="card">
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           Changes to this policy
