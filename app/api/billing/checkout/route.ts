@@ -77,7 +77,7 @@ async function handlePOST(req: Request) {
     Where Stripe sends the learner afterwards. `url.origin` is reconstructed
     from the Host header, which on Workers means it follows the host the
     request actually arrived on — so somebody who started on the .workers.dev
-    address comes back to it and somebody on bandup.study comes back there,
+    address comes back to it and somebody on bandup.life comes back there,
     without either being configured. A forged Host would only change where the
     forger's own browser lands.
 

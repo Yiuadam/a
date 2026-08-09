@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PAID_TIERS, TIERS, formatPrice, plansForTier } from "@/lib/billing/tiers";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 
 /*
   A server component, like app/privacy, because `export const metadata` is only
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
     "What BandUp promises, what it does not, and the one thing that matters most: a band estimate here is not an IELTS result.",
 };
 
-const LAST_UPDATED = "8 August 2026";
+const LAST_UPDATED = "9 August 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -105,9 +107,11 @@ export default function TermsPage() {
 
       <Section title="Fair use of the AI features">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Writing feedback, the speaking examiner, word lookup and generated tests each cost
-          money to run, so they carry a daily allowance. Practice tests, drills and your study
-          plan do not count towards it and are never limited.
+          Writing feedback, the speaking examiner, the tutor, word lookup and generated tests
+          each cost money to run, so each one carries its own allowance, counted over a rolling
+          thirty days. Running out of one leaves the others untouched, and you can see what is
+          left of each on your billing page. Practice tests, drills and your study plan cost
+          nothing to serve, do not count towards any allowance, and are never limited.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Please do not automate requests, share an account to multiply the allowance, or use
@@ -125,32 +129,84 @@ export default function TermsPage() {
         writing to — and a consumer in the EU or UK has a statutory right to
         withdraw from a distance contract within fourteen days.
 
-        The withdrawal right can technically be waived for digital services if
-        the buyer consents to immediate access and acknowledges losing it. We
-        do not do that. Asking somebody to sign away a consumer right in order
-        to press a button is a dark pattern with a legal department, and the
-        fourteen days cost less than the goodwill.
+        That right is often described as waivable. For digital *content* — a
+        download, a file — it is: consent to immediate supply plus an
+        acknowledgement of losing the right, and it is gone. A subscription is
+        a *service*, and for a service the right only disappears once the
+        service has been fully performed, which never happens on a plan that
+        renews. What consent to immediate access actually buys is the ability
+        to keep a proportionate amount for the days already used rather than
+        refunding the whole period. So the page says fourteen days and means
+        it.
+
+        Everywhere without such a law — Hong Kong, most of Asia, the United
+        States — the policy is the owner's own: two days, by request, answered
+        by a person. The two-tier shape is deliberate. A single strict policy
+        would be unlawful in Europe; a single generous one would leave the
+        owner refunding a month of AI to anyone who asked, and the AI is
+        already spent by then.
+
+        The prices below are rendered from lib/billing/tiers.ts rather than
+        typed here. They were typed here once, and by the time anybody looked
+        this page was promising $6.50 a month for a plan that had not existed
+        for weeks — on the document that governs the sale. A terms page quoting
+        a price the checkout does not charge is worse than one quoting no price
+        at all.
       */}
       <Section title="Subscriptions, and how the money works">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          BandUp is free to use. Standard is a paid subscription that lifts the weekly limits on
-          practice sessions, opens the full mock exam and the tutor chat, and raises the daily AI
-          allowance from 20 requests to 500.
+          BandUp is free to use, and most of it stays free whatever you do: the placement test,
+          your study plan, the practice papers that ship with the app, and every grammar and
+          vocabulary drill. What a subscription buys is the part that costs money to run each
+          time you press the button — the AI examiner, the tutor and word lookup — and, on every
+          paid plan, the whole library of practice papers with no weekly limit.
+        </p>
+        <dl className="mt-3 space-y-2">
+          {PAID_TIERS.map((id) => {
+            const monthly = plansForTier(id).find((p) => p.interval === "month");
+            const yearly = plansForTier(id).find((p) => p.interval === "year");
+            return (
+              <div key={id} className="text-[15px] leading-7 text-slate-700">
+                <dt className="inline font-semibold">{TIERS[id].name}</dt>
+                <dd className="inline">
+                  {" — "}
+                  {monthly ? formatPrice(monthly.amountMinor, monthly.currency) : "—"} a month
+                  {yearly
+                    ? `, or ${formatPrice(yearly.amountMinor, yearly.currency)} a year`
+                    : ""}
+                  . {TIERS[id].blurb}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          <strong>Every plan renews automatically</strong>, at the same price, on the same date
+          each period, until you cancel it. We say this here and again beside the button, because
+          a subscription that renews quietly is a subscription somebody did not agree to.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          <strong>It renews automatically.</strong> Standard is $6.50 a month, or $65 a year, and
-          it will keep renewing at that price on the same date each period until you cancel it. We
-          say this here and again beside the button, because a subscription that renews quietly is
-          a subscription somebody did not agree to.
+          The AI allowances are counted per feature, over a rolling thirty days — so many essays
+          marked, so many tutor questions, so many word lookups. The exact numbers are{" "}
+          {/* /pricing is not in the iOS bundle — see lib/platform.ts. */}
+          {IS_MOBILE_BUILD ? (
+            "on the plans page at bandup.life"
+          ) : (
+            <Link href="/pricing" className="underline underline-offset-2 hover:text-slate-900">
+              on the plans page
+            </Link>
+          )}{" "}
+          and on your own billing page, where you can see what is left. They do not reset when you
+          cancel and subscribe again; each request simply expires thirty days after you made it.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Payment is taken by <strong>Stripe</strong>, not by us. Your card details go to Stripe
           and never reach BandUp&rsquo;s servers — we could not see them if we wanted to.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          If we ever change the price, we will tell you by email before it takes effect, and the
-          new price will only apply from your next renewal. You can cancel in the meantime and
-          nothing further is charged.
+          If we ever change a price, we will tell you by email before it takes effect, and the new
+          price will only apply from your next renewal. You can cancel in the meantime and nothing
+          further is charged.
         </p>
       </Section>
 
@@ -161,32 +217,42 @@ export default function TermsPage() {
           you out of it.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Cancelling stops the next charge. You keep Standard until the end of the period you have
-          already paid for, and then the account drops back to Free — with everything you have
-          done still in it. Nothing is deleted for cancelling.
+          Cancelling stops the next charge. You keep the plan you are on until the end of the
+          period you have already paid for, and then the account drops back to Free — with
+          everything you have done still in it. Nothing is deleted for cancelling.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          <strong>Refunds: within 14 days of a charge, ask and you will get it back in full.</strong>{" "}
-          No reason needed, and it applies whether or not you have used the app in the meantime.
-          Email{" "}
+          <strong>
+            If the law where you live gives you a right to cancel, that right applies and
+            nothing below takes it away.
+          </strong>{" "}
+          In the European Union and the United Kingdom that is fourteen days from the day you
+          subscribed, and you do not have to give a reason. Email{" "}
           <a
-            href="mailto:hello@bandup.study"
+            href="mailto:hello@bandup.life"
             className="underline underline-offset-2 hover:text-slate-900"
           >
-            hello@bandup.study
+            hello@bandup.life
           </a>{" "}
-          and we will refund the last payment.
+          and we will refund you. Because your access begins straight away, at your request, we
+          may keep a proportionate amount for the days you had it — on a monthly plan that is
+          usually a matter of pence.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          If you are in the EU or the UK you have a statutory right to withdraw from a distance
-          contract within 14 days. Some services ask you to waive that right in exchange for
-          immediate access. We do not — the refund above is the same 14 days, given freely, and
-          you keep the statutory right as well.
+          <strong>Everywhere else, refunds are by request within two days of a charge.</strong>{" "}
+          Write to the same address, tell us what went wrong, and we will answer within three
+          working days. We are a small operation and we read every one of these ourselves; where
+          the reason is a fair one you get your money back.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          After 14 days we do not refund part-used periods as a rule, because you can cancel at
-          any point and keep what you paid for until it runs out. If something has genuinely gone
-          wrong — you were charged twice, or the app was broken for you — write to us anyway.
+          Most of the time cancelling serves you better than a refund. It is one button, it takes
+          effect immediately, and you keep everything you have paid for until the period runs
+          out.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          If something has genuinely gone wrong — you were charged twice, or the app was broken
+          for you — write to us whenever it happened. Those are not refunds under a policy, they
+          are mistakes, and we fix mistakes.
         </p>
       </Section>
 
@@ -197,14 +263,17 @@ export default function TermsPage() {
           examiner is a language model: it can be wrong, and it can be confidently wrong.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Your practice is stored in your own browser. Clearing your browser data, or losing
-          the device, loses it — which is why syncing to an account exists. We cannot recover
-          progress that was never synced.
+          Without an account, your practice is stored on the device you are using and is cleared
+          when you close the browser — nothing about it reaches us, so there is nothing for us to
+          restore. With an account it is synced and comes back on any device you sign in to. We
+          cannot recover progress that was never synced.
         </p>
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-800">
-          <strong>Note for review:</strong> the limitation of liability that would normally sit
-          here has deliberately been left for a solicitor to write rather than imitated. See
-          the legal review for context.
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Where the law allows it, our liability to you is limited to what you have paid us in
+          the twelve months before whatever went wrong. Nothing here limits liability for death,
+          personal injury, fraud, or anything else that cannot lawfully be limited — and if you
+          are a consumer, your statutory rights come first and this paragraph does not touch
+          them.
         </p>
       </Section>
 
@@ -228,20 +297,28 @@ export default function TermsPage() {
           Council, IDP, or Cambridge University Press &amp; Assessment.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          BandUp is run by <strong>Adam Yiu</strong>, as an individual rather than through a
+          company. There is no company registration number to give, because there is no company —
+          the person you are contracting with is the person named here.
+        </p>
+        <address className="mt-3 not-italic text-[15px] leading-7 text-slate-700">
+          Adam Yiu
+          <br />
+          11B, Chai Kung Mansion
+          <br />
+          Taikoo Shing
+          <br />
+          Hong Kong
+        </address>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Contact:{" "}
           <a
-            href="mailto:hello@bandup.study"
+            href="mailto:hello@bandup.life"
             className="underline underline-offset-2 hover:text-slate-900"
           >
-            hello@bandup.study
+            hello@bandup.life
           </a>
-        </p>
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-800">
-          <strong>To complete before selling:</strong> the trading name, legal form and
-          geographic address of whoever is taking the payment, plus a company or tax
-          registration number if one exists. EU and UK consumer law require these to be given
-          before a distance sale, Stripe asks for them at onboarding, and the app stores check
-          for them. They are deliberately blank rather than filled with something plausible.
+          . Every message is read by that person.
         </p>
       </Section>
 
@@ -252,10 +329,10 @@ export default function TermsPage() {
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Questions about these terms, or about your data:{" "}
           <a
-            href="mailto:hello@bandup.study"
+            href="mailto:hello@bandup.life"
             className="underline underline-offset-2 hover:text-slate-900"
           >
-            hello@bandup.study
+            hello@bandup.life
           </a>
           . See also the{" "}
           <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-900">

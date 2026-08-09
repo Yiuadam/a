@@ -33,7 +33,8 @@ immediately, so say so before asking for one.
 
 Production is <https://bandup.siksafe-realtime-ai-vision.workers.dev>. The URL is
 permanent; every deployment replaces what is served there. It becomes
-`bandup.study` when that domain is ready, which is a DNS change and not a move.
+`bandup.life`, which it now is — a DNS change rather than a move, so the
+workers.dev URL still serves the same deployment.
 
 # House style
 

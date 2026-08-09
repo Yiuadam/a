@@ -145,8 +145,8 @@ export default function UpgradePanel({
       {/* Stated here too, so nobody meets the word "automatically" later. */}
       {!IS_MOBILE_BUILD && (
         <p className="mt-2 text-xs leading-5 text-slate-500">
-          Renews automatically until you cancel. Cancel any time in one button, and a full refund
-          within 14 days of any charge.
+          Renews automatically until you cancel. Cancel any time in one button. Refunds are
+          fourteen days where the law says so, and two days by request elsewhere.
         </p>
       )}
     </div>

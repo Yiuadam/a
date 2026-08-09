@@ -17,7 +17,7 @@ hand it to a tester — it keeps working. (Cloudflare also keeps every previous
 version, which is what makes a rollback possible, but you never have to use
 those addresses.)
 
-When `bandup.study` is ready, add it under **Workers & Pages → bandup →
+The custom domain `bandup.life` is live. To add another, use **Workers & Pages → bandup →
 Settings → Domains & Routes → Add custom domain**. That is a DNS change
 pointing at the same Worker, not a move: the app, the secrets and the database
 all stay exactly where they are. The `.workers.dev` address keeps working
