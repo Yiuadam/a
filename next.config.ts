@@ -45,6 +45,37 @@ const nextConfig: NextConfig = isMobile
               { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
             ],
           },
+          /*
+            Never reuse a page without asking whether it is still the current
+            one.
+
+            This is not a performance preference, it is a correctness fix, and
+            the failure it prevents is total. Next fingerprints the stylesheet,
+            so every deploy that changes a single class writes a new
+            `/_next/static/chunks/<hash>.css` and *deletes the old one*.
+            Meanwhile a prerendered page was going out with
+            `Cache-Control: s-maxage=31536000` and nothing addressed to the
+            browser at all — a year to any shared cache, and heuristic
+            freshness everywhere else.
+
+            Put those together and a cached page outlives the stylesheet it
+            names. The browser asks for a hash that no longer exists, gets a
+            404, and renders the whole app as unstyled HTML: no layout, no
+            colours, icons drawn at the width of the page. It looks like a
+            broken deployment and the deployment is fine.
+
+            `max-age=0, must-revalidate` keeps the copy and revalidates it, so
+            a page that has not changed still costs a 304 and not a download.
+            The exclusion below is the part that must not be got wrong:
+            /_next/static is content-addressed and immutable, so it keeps its
+            own far-future caching. Only documents lose theirs.
+          */
+          {
+            source: "/((?!_next/static|_next/image).*)",
+            headers: [
+              { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+            ],
+          },
         ];
       },
     };
