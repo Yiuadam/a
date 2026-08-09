@@ -81,7 +81,7 @@ export async function checkFeature(req: Request, feature: Feature): Promise<Feat
   if (!accountsEnabled() || !supabaseConfigured()) return { allowed: true, tier: null };
 
   const user = await getSessionUser(req);
-  const entitlement = user ? await resolveEntitlement(user.id) : ANONYMOUS_ENTITLEMENT;
+  const entitlement = user ? await resolveEntitlement(user.id, user.email) : ANONYMOUS_ENTITLEMENT;
   return { allowed: tierAllows(entitlement.tier, feature), tier: entitlement.tier };
 }
 
