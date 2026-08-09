@@ -70,6 +70,36 @@ export async function rpc<T>(fn: string, args: Record<string, unknown>): Promise
 }
 
 /**
+ * Calls a Postgres function and reports what happened, body and all.
+ *
+ * `rpc` above deliberately throws away the response body, because PostgREST
+ * names columns and constraints in it and none of that belongs in an answer to
+ * a learner. This one keeps it, and is used from exactly one place: the
+ * owner-only diagnostics route.
+ *
+ * That distinction is the whole reason it is a separate function rather than a
+ * flag on `rpc`. A flag would sit there waiting for somebody to pass it from a
+ * route that answers the public.
+ */
+export async function rpcDiagnostic(
+  fn: string,
+  args: Record<string, unknown>,
+): Promise<{ ok: boolean; status: number; detail: string }> {
+  let res: Response;
+  try {
+    res = await request(`/rest/v1/rpc/${fn}`, {
+      method: "POST",
+      body: JSON.stringify(args),
+      asServiceRole: true,
+    });
+  } catch (err) {
+    return { ok: false, status: 0, detail: err instanceof Error ? err.message : String(err) };
+  }
+  const body = await res.text().catch(() => "");
+  return { ok: res.ok, status: res.status, detail: body.slice(0, 600) };
+}
+
+/**
  * Emails a one-time sign-in link.
  *
  * This is the whole of account recovery, and it is worth being explicit about

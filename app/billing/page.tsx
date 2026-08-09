@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import OwnerDiagnostics from "@/components/billing/OwnerDiagnostics";
 import OwnerSwitch from "@/components/billing/OwnerSwitch";
 import UsageMeter from "@/components/billing/UsageMeter";
 import { useDrawnTier, useTier } from "@/lib/billing/useTier";
@@ -93,7 +94,12 @@ export default function BillingPage() {
 
       {/* The switch reads the real tier, not the drawn one — previewing "free"
           must not hide the control that gets you back. */}
-      {state.phase === "ready" && state.signedIn && state.tier === "admin" && <OwnerSwitch />}
+      {state.phase === "ready" && state.signedIn && state.tier === "admin" && (
+        <>
+          <OwnerSwitch />
+          <OwnerDiagnostics />
+        </>
+      )}
 
       {state.phase === "ready" && state.signedIn && definition && (
         <>
