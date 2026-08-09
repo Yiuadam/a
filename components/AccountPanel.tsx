@@ -102,14 +102,32 @@ export default function AccountPanel() {
 
   const accountsOff = phase === "ready" && status?.enabled === false;
 
+  /*
+    Signed out, this page is one thing: a sign-in form. Signed in it is several
+    — name, picture, sync, plan, deletion — and those want the full width the
+    shell now gives them.
+
+    Left in one column at both, the form sat against the left edge of a card
+    stretched to 1400px, with the whole right half of the card empty. So the
+    signed-out case gets its own narrow, centred column and the card ends where
+    the form ends.
+  */
+  const signingIn = phase === "ready" && status?.enabled === true && !status.signedIn;
+
   return (
-    <div className="space-y-10">
+    <div className={`space-y-10 ${signingIn ? "mx-auto w-full max-w-lg" : ""}`}>
       <div className="max-w-xl space-y-2">
         <h1 className="text-[26px] font-semibold text-slate-900">Your account</h1>
+        {/*
+          Two sentences signed in, one signed out. The long version explains
+          what an account is for, which is the right thing to read when you are
+          deciding — but on the sign-in screen it is four lines above the only
+          control on the page, and it pushed the recovery card off the bottom.
+        */}
         <p className="text-[15px] leading-7 text-slate-600">
-          An account is optional. The placement test, your study plan, every practice test and
-          both sets of drills work without one — signing in carries them between your phone and
-          your laptop, and raises the daily limit on AI feedback.
+          {signingIn
+            ? "Optional — everything works without one. Signing in carries your progress between devices."
+            : "An account is optional. The placement test, your study plan, every practice test and both sets of drills work without one — signing in carries them between your phone and your laptop, and raises the daily limit on AI feedback."}
         </p>
       </div>
 
