@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiUrl } from "@/lib/api";
+import { saveSession } from "@/lib/account";
 
 /*
   Signing in, and the second door for people who cannot.
@@ -89,34 +90,50 @@ export default function SignedOut({
     <div className="space-y-6">
       <section className="card">
         <h2 className="text-[17px] font-semibold text-slate-900">Sign in</h2>
+        <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+          With an email address and a password, or with an account you already have.
+        </p>
 
-        {available.length === 0 ? (
-          <p className="mt-2 text-[15px] leading-7 text-slate-600">
-            Signing in isn&rsquo;t available at the moment. Everything else on BandUp works as
-            usual — your practice is stored on this device and is unaffected.
-          </p>
-        ) : (
-          <p className="mt-2 text-[15px] leading-7 text-slate-600">
-            Use the account you already have. BandUp never sees your password — {who} confirms
-            it&rsquo;s you and tells us nothing else beyond your email address.
-          </p>
+        <PasswordForm />
+
+        {available.length > 0 && (
+          <>
+            {/*
+              A rule with a word in it, rather than a second heading. The two
+              halves of this card are two doors to the same place, and giving
+              the lower one its own title made it read as a different subject.
+            */}
+            <div className="mt-5 flex items-center gap-3" aria-hidden="true">
+              <span className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-400">or</span>
+              <span className="h-px flex-1 bg-slate-200" />
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3 sm:max-w-sm">
+              {/*
+                Plain links, not fetch. The whole point of /api/auth/start is
+                that it answers with a 302 to the provider, and a full
+                navigation is what carries the user there and back. An XHR
+                would follow the redirect and hand us HTML from Google that we
+                could do nothing with.
+              */}
+              {available.map(({ id, label, Mark }) => (
+                <a
+                  key={id}
+                  href={apiUrl(`/api/auth/start?provider=${id}`)}
+                  className="btn-secondary"
+                >
+                  <Mark />
+                  {label}
+                </a>
+              ))}
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              BandUp never sees the password on your {who} account — {who} confirms it&rsquo;s you
+              and tells us nothing else beyond your email address.
+            </p>
+          </>
         )}
-
-        <div className="mt-5 flex flex-col gap-3 sm:max-w-sm">
-          {/*
-            Plain links, not fetch. The whole point of /api/auth/start is that
-            it answers with a 302 to the provider, and a full navigation is
-            what carries the user there and back. An XHR would follow the
-            redirect and hand us HTML from Google that we could do nothing
-            with.
-          */}
-          {available.map(({ id, label, Mark }) => (
-            <a key={id} href={apiUrl(`/api/auth/start?provider=${id}`)} className="btn-secondary">
-              <Mark />
-              {label}
-            </a>
-          ))}
-        </div>
       </section>
 
       <section className="card">
@@ -135,6 +152,174 @@ export default function SignedOut({
         )}
       </section>
     </div>
+  );
+}
+
+
+/*
+  Email and password, and for one account a name instead of an email.
+
+  ---------------------------------------------------------------------------
+  One box for both
+
+  There is a single identifier field rather than a tab for "email" and a tab
+  for "username", because the person typing already knows which one they have
+  and does not need to tell the form. The server decides: anything with an @ is
+  an address, anything else is checked against the one name this deployment
+  knows. See lib/auth/env.ts.
+
+  ---------------------------------------------------------------------------
+  Why a wrong password says so little
+
+  The server answers every failure the same way, so this cannot say more than
+  it does — and it should not want to. What it can do is put the other doors
+  right underneath the error, so somebody who signed up with Google and forgot
+  finds the way in rather than a dead end.
+*/
+function PasswordForm() {
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy || identifier.trim().length === 0 || password.length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(apiUrl("/api/auth/password"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: identifier.trim(),
+          password,
+          mode: creating ? "signup" : "signin",
+        }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        confirm?: boolean;
+        accessToken?: string;
+        refreshToken?: string | null;
+        expiresAt?: number | null;
+        email?: string | null;
+      };
+
+      if (!res.ok) {
+        /*
+          A 404 means this deployment has no password sign-in wired up at all —
+          the route answers the same nothing as a wrong URL, deliberately, and
+          "Not found." is a sentence for whoever deployed the app rather than
+          for the person looking at it. Everything else the server says here is
+          already written for a learner, so it is passed through.
+        */
+        setError(
+          res.status === 404
+            ? "Signing in with a password isn't set up here yet. The other ways in still work."
+            : (data.error ?? "That didn't work. Please try again."),
+        );
+        return;
+      }
+      if (data.confirm) {
+        setConfirm(true);
+        return;
+      }
+      if (typeof data.accessToken === "string" && data.accessToken.length > 0) {
+        saveSession({
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken ?? null,
+          expiresAt: data.expiresAt ?? null,
+          email: data.email ?? null,
+        });
+        /*
+          A full reload rather than a re-render. Half the app reads the session
+          at mount — the header, the tier, the sync — and a reload is one line
+          against half a dozen subscriptions that would each need waking.
+        */
+        window.location.assign("/account/");
+        return;
+      }
+      setError("That didn't work. Please try again.");
+    } catch {
+      setError("Couldn't reach the server. Please check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (confirm) {
+    return (
+      <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[15px] leading-7 text-emerald-800">
+        Check your inbox — there is a link there that finishes setting up your account. If that
+        address already had an account, use your existing password instead.
+      </p>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:max-w-sm">
+      <div>
+        <label htmlFor="signin-identifier" className="block text-sm font-medium text-slate-700">
+          {creating ? "Email address" : "Email address or username"}
+        </label>
+        <input
+          id="signin-identifier"
+          type={creating ? "email" : "text"}
+          autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          required
+          className="input mt-1 w-full"
+          placeholder="you@example.com"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="signin-password" className="block text-sm font-medium text-slate-700">
+          Password
+        </label>
+        <input
+          id="signin-password"
+          type="password"
+          autoComplete={creating ? "new-password" : "current-password"}
+          required
+          className="input mt-1 w-full"
+          placeholder={creating ? "At least 8 characters" : "Your password"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+
+      {error && (
+        <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm leading-6 text-rose-900">
+          {error}
+        </p>
+      )}
+
+      <button type="submit" className="btn-primary" disabled={busy}>
+        {busy ? (creating ? "Creating…" : "Signing in…") : creating ? "Create account" : "Sign in"}
+      </button>
+
+      <p className="text-sm leading-6 text-slate-500">
+        {creating ? "Already have one? " : "No account yet? "}
+        <button
+          type="button"
+          onClick={() => {
+            setCreating(!creating);
+            setError(null);
+          }}
+          className="font-medium text-indigo-700 underline underline-offset-2"
+        >
+          {creating ? "Sign in instead" : "Create one with an email address"}
+        </button>
+      </p>
+    </form>
   );
 }
 

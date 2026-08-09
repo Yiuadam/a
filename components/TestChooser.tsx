@@ -117,7 +117,7 @@ export default function TestChooser({
             const reason = access.tier === "anonymous" ? "sign-in" : "subscribe";
             return (
               <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`}>
-                <div className="card !p-3 min-w-0">{inner}</div>
+                <div className="card !p-3 h-full min-w-0">{inner}</div>
               </LockedCard>
             );
           }

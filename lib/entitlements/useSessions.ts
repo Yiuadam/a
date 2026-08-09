@@ -108,7 +108,11 @@ function countThisWeek(results: readonly ModuleResult[], module: ModuleName, now
   return n;
 }
 
-export function useSessionAccess(): Record<ModuleName, SkillAccess> & { tier: SessionTier } {
+export function useSessionAccess(): Record<ModuleName, SkillAccess> & {
+  tier: SessionTier;
+  /** The account lookup is still in flight — see `pending` on SkillAccess. */
+  pending: boolean;
+} {
   const profile = useProfile();
   const account = useTier();
 
@@ -178,6 +182,7 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & { tier: Se
     };
     return {
       tier,
+      pending,
       listening: of("listening"),
       reading: of("reading"),
       writing: of("writing"),

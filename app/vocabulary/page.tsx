@@ -80,6 +80,7 @@ export default function VocabularyPage() {
       {/* See `.drill-dense` in globals.css — four topics across, not two. */}
       <div className="drill-dense">
         <DrillSection
+          kind="vocabulary"
           title="Vocabulary practice"
           intro="Eight topics on the vocabulary that earns marks. Read the note, then drill it."
           topics={topics}

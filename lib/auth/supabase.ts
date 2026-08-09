@@ -453,6 +453,146 @@ export async function refreshAccessToken(refreshToken: string): Promise<Refreshe
   };
 }
 
+/**
+ * Signs in with an email address and a password.
+ *
+ * Mediated by the server for the same reason the refresh is: GoTrue wants the
+ * anon key as `apikey`, and no Supabase credential belongs in a client bundle.
+ *
+ * Returns null for every failure — wrong password, no such account, account
+ * with no password set, upstream outage. The caller must not distinguish them
+ * in what it sends back, because "no such account" is the answer that turns a
+ * login form into a way to ask whether a given person uses this app.
+ */
+export async function signInWithPassword(
+  email: string,
+  password: string,
+): Promise<RefreshedSession | null> {
+  /*
+    Bounded before it leaves this process. GoTrue hashes the password with
+    bcrypt, and bcrypt's cost is paid by whoever runs it — an unbounded field
+    here is a way to spend the auth server's CPU from an unauthenticated form.
+  */
+  if (!email || email.length > 254) return null;
+  if (!password || password.length > 200) return null;
+
+  let res: Response;
+  try {
+    res = await request("/auth/v1/token?grant_type=password", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    return null;
+  }
+  const session = body as {
+    access_token?: unknown;
+    refresh_token?: unknown;
+    expires_in?: unknown;
+    user?: { email?: unknown };
+  };
+  if (typeof session.access_token !== "string" || session.access_token.length === 0) return null;
+
+  return {
+    accessToken: session.access_token,
+    refreshToken: typeof session.refresh_token === "string" ? session.refresh_token : null,
+    expiresIn: typeof session.expires_in === "number" ? session.expires_in : null,
+    email: typeof session.user?.email === "string" ? session.user.email : null,
+  };
+}
+
+export type SignUpOutcome = "session" | "confirm" | "taken" | "weak" | "failed";
+
+export interface SignUpResult {
+  outcome: SignUpOutcome;
+  /** Present only when the project is set to sign people in immediately. */
+  session: RefreshedSession | null;
+}
+
+/**
+ * Creates an account from an email address and a password.
+ *
+ * Two good outcomes, and which one happens is a Supabase project setting
+ * rather than anything this code decides: with email confirmation on, GoTrue
+ * returns a user and no session and posts a confirmation link; with it off, a
+ * session comes straight back. Both are reported so the page can say which
+ * one happened rather than guessing and being wrong half the time.
+ */
+export async function signUpWithPassword(
+  email: string,
+  password: string,
+  redirectTo: string,
+): Promise<SignUpResult> {
+  const fail: SignUpResult = { outcome: "failed", session: null };
+  if (!email || email.length > 254) return fail;
+  if (!password || password.length > 200) return fail;
+
+  let res: Response;
+  try {
+    res = await request("/auth/v1/signup", {
+      method: "POST",
+      body: JSON.stringify({ email, password, options: { emailRedirectTo: redirectTo } }),
+    });
+  } catch {
+    return fail;
+  }
+
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+
+  if (!res.ok) {
+    /*
+      GoTrue's own words are read here and never returned. The two cases worth
+      separating are the ones a person can act on: a password the project
+      considers too weak, and an address that already has an account.
+    */
+    const code = (body as { error_code?: unknown; msg?: unknown } | null)?.error_code;
+    if (code === "weak_password") return { outcome: "weak", session: null };
+    if (res.status === 422 || res.status === 400) return { outcome: "taken", session: null };
+    return fail;
+  }
+
+  const parsed = body as {
+    access_token?: unknown;
+    refresh_token?: unknown;
+    expires_in?: unknown;
+    user?: { email?: unknown };
+  } | null;
+
+  if (parsed && typeof parsed.access_token === "string" && parsed.access_token.length > 0) {
+    return {
+      outcome: "session",
+      session: {
+        accessToken: parsed.access_token,
+        refreshToken: typeof parsed.refresh_token === "string" ? parsed.refresh_token : null,
+        expiresIn: typeof parsed.expires_in === "number" ? parsed.expires_in : null,
+        email: typeof parsed.user?.email === "string" ? parsed.user.email : null,
+      },
+    };
+  }
+
+  /*
+    A 200 with no token is the confirmation path, and it is also what GoTrue
+    returns for an address that already exists when the project is set to hide
+    that fact. Reporting "check your inbox" for both is the correct answer to
+    each: one has mail waiting, and the other already has an account and will
+    not learn so from here.
+  */
+  return { outcome: "confirm", session: null };
+}
+
 export interface AuthedUser {
   id: string;
   email: string | null;

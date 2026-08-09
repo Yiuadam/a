@@ -60,7 +60,14 @@ export default function LockedCard({
     <Link
       href={href}
       aria-label={said}
-      className="group relative block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+      /*
+        h-full, and the same on the wrapper below. As a grid item this link
+        stretches to its row, but the card inside it does not — so a short
+        locked card sat in a tall row drew its tint and its padlock over an
+        inch of empty space below itself. Caught on /grammar, where the rows
+        are as tall as the longest summary in them.
+      */
+      className="group relative block h-full rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
     >
       {/*
         The card itself, dimmed and desaturated. pointer-events-none so that
@@ -68,7 +75,7 @@ export default function LockedCard({
         stray button underneath would send a learner somewhere that refuses
         them.
       */}
-      <div className="pointer-events-none select-none opacity-45 grayscale-[35%]">{children}</div>
+      <div className="pointer-events-none h-full select-none opacity-45 grayscale-[35%]">{children}</div>
 
       {/*
         The tint. A wash of the card's own surface colour rather than grey, so

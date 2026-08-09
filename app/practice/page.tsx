@@ -149,7 +149,7 @@ export default function PracticePage() {
     if (beyond) {
       return (
         <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`}>
-          <div className="card !p-3">{inner}</div>
+          <div className="card !p-3 h-full">{inner}</div>
         </LockedCard>
       );
     }
