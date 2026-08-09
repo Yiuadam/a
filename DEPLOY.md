@@ -47,6 +47,21 @@ Repository secrets let CI *deploy* the Worker. They are not what the Worker
 under **Workers & Pages → bandup → Settings → Variables and Secrets**, each one
 with its type set to **Secret**:
 
+> **Type must be Secret, not Text — including for the ones that are not
+> secret.** This is a Cloudflare mechanic and it has bitten this project once
+> already. `wrangler deploy` replaces the Worker's bindings with what is in
+> `wrangler.jsonc`, so a plain **Text** variable added in the dashboard is
+> *deleted by the next deploy*. Encrypted **Secret** values are preserved.
+>
+> The symptom is the confusing kind: you add the variable, the deploy goes
+> green, and the app behaves as though you never added it — because by then you
+> hadn't. `ADMIN_USERNAME` is the one most likely to be got wrong, since it
+> genuinely holds nothing secret; store it as a Secret anyway, because the
+> choice is about surviving a deploy rather than about confidentiality.
+>
+> If a variable stops working right after a deploy, this is why. Re-add it as a
+> Secret and deploy again.
+
 | Variable | Needed for |
 |---|---|
 | `ANTHROPIC_API_KEY` | writing feedback, the speaking examiner, word definitions, test generation |
