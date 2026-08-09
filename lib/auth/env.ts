@@ -33,6 +33,7 @@ export const SERVER_ONLY_ENV_VARS = [
   "APPLE_IAP_KEY_ID",
   "APPLE_IAP_PRIVATE_KEY",
   "ANTHROPIC_API_KEY",
+  "ADMIN_EMAILS",
 ] as const;
 
 function secret(name: (typeof SERVER_ONLY_ENV_VARS)[number]): string | undefined {
@@ -113,4 +114,29 @@ export function allowedOrigins(): string[] {
     .split(",")
     .map((o) => o.trim().replace(/\/$/, ""))
     .filter(Boolean);
+}
+
+
+/**
+ * Addresses that are the owner, comma-separated.
+ *
+ * Exists so that promoting an account does not require opening a SQL editor.
+ * Whoever can set this variable already has the service-role key and could
+ * write the row directly, so it grants nothing that was not already theirs —
+ * it just spells it in the place the other secrets live.
+ *
+ * Lower-cased and trimmed, because an address a person types into a login form
+ * and an address they type into a Cloudflare secret will not match otherwise.
+ */
+export function adminEmails(): string[] {
+  assertServerOnly(MODULE);
+  return (secret("ADMIN_EMAILS") ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return adminEmails().includes(email.trim().toLowerCase());
 }

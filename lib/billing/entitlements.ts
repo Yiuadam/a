@@ -1,3 +1,4 @@
+import { isAdminEmail } from "@/lib/auth/env";
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { rpc } from "@/lib/auth/supabase";
 import type { Tier } from "./tiers";
@@ -79,9 +80,32 @@ function normalise(raw: RawEntitlement | null): Entitlement {
  * unreachable database means — see `usageFailOpen` — because "assume free" and
  * "refuse the request" are different answers in different places.
  */
-export async function resolveEntitlement(userId: string | null): Promise<Entitlement> {
+export async function resolveEntitlement(
+  userId: string | null,
+  email?: string | null,
+): Promise<Entitlement> {
   assertServerOnly(MODULE);
   if (!userId) return ANONYMOUS_ENTITLEMENT;
+
+  /*
+    The owner, named in an environment variable rather than a database row.
+
+    Promoting an account otherwise means opening a SQL editor and calling
+    set_account_role, which is a fine thing to do once and a poor thing to
+    require. This grants nothing new: whoever can set a Worker secret already
+    holds SUPABASE_SERVICE_ROLE_KEY and could write the row by hand. It just
+    spells it where the other secrets live.
+
+    Checked before the database rather than after, so it works on the very
+    first sign-in — there is no profile row to promote yet at that point, and
+    an owner who has to sign in twice will reasonably think it is broken.
+
+    The email comes from the verified session, never from the request body.
+  */
+  if (isAdminEmail(email)) {
+    return { role: "admin", tier: "admin", source: "role", expiresAt: null };
+  }
+
   const raw = await rpc<RawEntitlement | null>("resolve_entitlement", { p_user_id: userId });
   return normalise(raw);
 }

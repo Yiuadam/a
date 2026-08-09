@@ -38,7 +38,7 @@ async function handleGET(req: Request) {
 
   try {
     const user = await getSessionUser(req);
-    const entitlement = user ? await resolveEntitlement(user.id) : ANONYMOUS_ENTITLEMENT;
+    const entitlement = user ? await resolveEntitlement(user.id, user.email) : ANONYMOUS_ENTITLEMENT;
 
     const quota = user
       ? USAGE_LIMITS[entitlement.tier]
