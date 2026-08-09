@@ -28,7 +28,15 @@
   month of practice went with the session (ACCOUNTS.md, threat 5).
 */
 
-const KEY = "bandup.session.v1";
+/*
+  Exported so components/account/ClearDeviceSection.tsx can keep it. That file
+  wipes the whole origin and puts back a named list, which is the right
+  direction to be wrong in — but it means anything not on the list is deleted,
+  and deleting this one signs the learner out of an account the same screen
+  promises not to touch.
+*/
+export const SESSION_KEY = "bandup.session.v1";
+const KEY = SESSION_KEY;
 
 export interface Session {
   accessToken: string;
