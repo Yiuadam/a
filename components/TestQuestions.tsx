@@ -270,6 +270,13 @@ export default function TestQuestions({
               return (
                 <li
                   key={q.id}
+                  /*
+                    The anchor the exam palette scrolls to. Clicking 23 along
+                    the bottom of the screen has to land on question 23, and the
+                    palette has no other way to find it — see
+                    lib/exam/navigation.ts.
+                  */
+                  data-question-id={q.id}
                   className={`card ${
                     revealed
                       ? correct

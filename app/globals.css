@@ -498,3 +498,99 @@ textarea {
     transform: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Inside the exam shell.
+
+   Computer-delivered IELTS offers three colour schemes — black on white, white
+   on black, yellow on black — and they are an accessibility feature rather than
+   a theme: some candidates cannot read dark-on-light at all. Reproducing the
+   Settings panel and then leaving the paper underneath in the app's own colours
+   would make two of the three unreadable, which is worse than not offering
+   them.
+
+   The shell (components/exam/ExamShell.tsx) sets --exam-* on itself. This block
+   is what makes the *contents* follow, and it is deliberately blunt: it matches
+   Tailwind's generated colour utilities by substring rather than restyling
+   every component that sits inside an exam.
+
+   That is a trade with its eyes open. The alternative is threading a scheme
+   prop through TestQuestions and everything it renders, which would put exam
+   concerns inside components that are also used outside one. Scoping it to
+   [data-exam] keeps the blast radius to the exam screen: nothing here can
+   affect a page that is not one.
+
+   If a component inside an exam ever needs a colour of its own, give it a
+   var(--exam-*) directly — those win, because they are not what this matches.
+--------------------------------------------------------------------------- */
+
+[data-exam] .card {
+  border-radius: 4px;
+  border-color: var(--exam-line);
+  background: var(--exam-bg);
+  box-shadow: none;
+}
+
+/* The hairline reads as a physical card; an exam paper is not one. */
+[data-exam] .card::before {
+  display: none;
+}
+
+[data-exam] [class*="text-slate-"],
+[data-exam] [class*="text-indigo-"],
+[data-exam] [class*="text-amber-"] {
+  color: var(--exam-fg);
+}
+
+/* The quieter greys stay quieter, so hierarchy survives the scheme change. */
+[data-exam] [class*="text-slate-4"],
+[data-exam] [class*="text-slate-5"] {
+  color: var(--exam-muted);
+}
+
+[data-exam] [class*="bg-slate-1"],
+[data-exam] [class*="bg-slate-5"],
+[data-exam] [class*="bg-indigo-5"],
+[data-exam] [class*="bg-amber-5"] {
+  background: var(--exam-hover);
+}
+
+[data-exam] [class*="border-slate-"] {
+  border-color: var(--exam-line);
+}
+
+/* Inputs are part of the paper, so they take its colours too. */
+[data-exam] .input,
+[data-exam] input,
+[data-exam] textarea,
+[data-exam] select {
+  border-radius: 3px;
+  border-color: var(--exam-line);
+  background: var(--exam-bg);
+  color: var(--exam-fg);
+}
+
+/*
+  Right and wrong keep their own colours after marking, in every scheme. A
+  green tick that turned monochrome to match the paper would take away the one
+  thing a review screen is for — and these only ever appear once the clock has
+  stopped, so they cannot help anybody during the exam.
+*/
+[data-exam] .card[class*="border-emerald"] {
+  border-color: #2f7d5b;
+}
+[data-exam] .card[class*="border-rose"] {
+  border-color: #b3453f;
+}
+
+/*
+  The passage is the primary text on a reading screen, so it takes the full
+  foreground colour rather than the muted one. `.prose-reading p` is
+  `text-slate-700`, which the substring rules above quite reasonably read as
+  body text and dim — correct for a caption, wrong for eight hundred words
+  somebody has to read closely under time pressure.
+*/
+[data-exam] .prose-reading,
+[data-exam] .prose-reading p {
+  color: var(--exam-fg);
+}
