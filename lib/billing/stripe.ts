@@ -448,6 +448,28 @@ export async function createCheckoutSession(args: {
     "/checkout/sessions",
     form({
       mode: "subscription",
+      /*
+        Managed Payments off, deliberately, and it is a pricing decision rather
+        than a technical one.
+
+        Stripe enables it by default on new accounts. It makes Stripe the
+        merchant of record: it registers for, collects and remits sales tax and
+        VAT on your behalf, which for digital goods sold to consumers in dozens
+        of countries is a real burden lifted. It also charges more than the
+        2.9% + 30c that lib/billing/tiers.ts prices every plan against — and
+        those prices carry about HK$3 of margin a month, so a higher fee does
+        not thin the margin, it removes it.
+
+        Leaving it on would also have needed a tax code on every product, which
+        is what Stripe refuses the session for without this.
+
+        Turning it back on is a deliberate change and not a one-liner: the fee
+        assumption in lib/billing/tiers.ts has to be re-measured and every price
+        recomputed first. tests/ai-economics.test.mjs asserts this line is here,
+        so removing it fails the build rather than quietly invalidating the
+        arithmetic.
+      */
+      "managed_payments[enabled]": "false",
       "line_items[0][price]": price,
       "line_items[0][quantity]": 1,
       success_url: args.successUrl,

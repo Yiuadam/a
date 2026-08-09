@@ -233,6 +233,26 @@ test("the largest input a route accepts fits inside its budget", () => {
   );
 });
 
+/*
+  Every price above is set against Stripe's standard 2.9% + 30c. That is only
+  what Stripe charges while Managed Payments is off — with it on, Stripe becomes
+  the merchant of record, handles sales tax and VAT, and charges more for doing
+  it. Plans carrying about HK$3 of margin a month cannot absorb that.
+
+  The switch lives in one line of the checkout call, which means it can be
+  deleted in a refactor by somebody who has never read this file. So the line is
+  asserted here, next to the arithmetic that depends on it.
+*/
+test("the fee model the prices assume is the one checkout actually asks for", () => {
+  const source = readFileSync(join(process.cwd(), "lib", "billing", "stripe.ts"), "utf8");
+  assert.match(
+    source,
+    /"managed_payments\[enabled\]":\s*"false"/,
+    "checkout no longer disables Managed Payments, so Stripe's cut is higher than " +
+      "lib/billing/tiers.ts assumes and every price needs recomputing",
+  );
+});
+
 test("nothing runs on a model this file has not priced", () => {
   for (const route of COSTED_ROUTES) {
     const budget = ROUTE_BUDGETS[route];
