@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey } from "@/lib/anthropic";
+import { requireFeature } from "@/lib/billing/gate";
 import { checkAiUsage } from "@/lib/usage/guard";
 import { withCors } from "@/lib/http/cors";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
@@ -147,10 +148,25 @@ async function handlePOST(req: Request) {
   }
 
   /*
-    Before the model, always. The guard reads headers only and never touches
-    the body, so the parsing below is unaffected by it having run first — and
-    running it first is what makes the meter a meter rather than a report.
+    Two gates, and they are asked in this order for a reason.
+
+    requireFeature answers "may this account use the tutor at all", which is a
+    property of the tier and is the thing being sold. checkAiUsage answers "has
+    it used too much today", which is a property of the last 24 hours. Asking
+    the tier question first means a free account gets "this is part of
+    Standard" — something it can act on — rather than being told it is out of
+    an allowance it was never going to be allowed to spend here.
+
+    It also means a refused free request never touches usage_events, so the
+    tutor cannot burn a learner's allowance on answers they will not receive.
+
+    Both run before the model and before the body is parsed. The guards read
+    headers only, so nothing below is affected by their having run first — and
+    running them first is what makes a meter a meter rather than a report.
   */
+  const unentitled = await requireFeature(req, "tutor-chat");
+  if (unentitled) return unentitled;
+
   const denied = await checkAiUsage(req, "chat");
   if (denied) return denied;
 
