@@ -1,0 +1,144 @@
+{
+  "id": "reading-8",
+  "title": "The Economics of Repair",
+  "topic": "Why household goods became hard to mend, and whether legislation can change it",
+  "difficulty": "hard",
+  "timeMinutes": 20,
+  "passage": "Nothing about a modern appliance is designed to be opened. The screws, where they exist at all, are of a pattern that ordinary tools do not fit; more often the case is glued, and separating it destroys the seal that made the device waterproof. Batteries are soldered rather than clipped. Diagnostic software is licensed only to authorised workshops, and a replacement part fitted by anyone else may be rejected by the machine itself, which recognises that the component is not the one it left the factory with. None of this happened by accident, and the usual explanation — that manufacturers deliberately build products to fail — is both popular and largely wrong.\n\nThe deliberate-failure story has a famous precedent. In the 1920s an international cartel of lamp makers agreed to cap the working life of a light bulb at a thousand hours, fining members whose products lasted longer. It is a genuine case of planned obsolescence and it is cited constantly, which is unfortunate, because it is unrepresentative. Most short product lives today are the result not of a conspiracy but of a series of individually reasonable engineering decisions, each of which happens to make repair harder.\n\nConsider the glue. A phone that survives immersion needs a continuous seal, and adhesive gives a better seal than a gasket and screws while adding almost no thickness. A manufacturer choosing adhesive is not thinking about repair at all; it is meeting a waterproofing specification that customers demanded and reviewers test. The same logic applies to soldered batteries, which allow a thinner case, and to bonded screens, which are brighter because there is no air gap to reflect light. Each decision is defensible in isolation. Their combined effect is a device that cannot be opened without ruining it.\n\nEconomics does the rest. A repair costs roughly what an hour of skilled labour costs, and that price has risen steadily in wealthy countries while the manufacturing cost of the product it repairs has fallen. Somewhere between those two lines is the point at which replacing becomes cheaper than mending, and for a growing number of household goods the lines crossed decades ago. No conspiracy is required to explain why a toaster is not repaired; a repair costs more than a toaster.\n\nRight-to-repair legislation, now in force in several jurisdictions, attacks the problem from a different direction. Rather than mandating repairable designs, which would require regulators to make engineering decisions they are poorly placed to make, most of these laws require manufacturers to sell spare parts, publish repair manuals and license diagnostic tools on fair terms. The theory is that if the information and the components are available, a repair market will form and prices will fall. Early evidence is mixed. Parts are indeed being sold, but sometimes at prices that make the repair uneconomic anyway, and a manual is of limited use for a case that must be destroyed to open.\n\nSome manufacturers have responded with genuine redesigns, and the results are instructive. A handful of laptop and phone makers now ship devices with modular components and published schematics, and they charge a premium for them. Sales have been respectable rather than transformative, which suggests that repairability is a real preference for a minority of buyers rather than a suppressed universal demand. Whether that changes as legislation raises the availability of parts across the whole market is the interesting open question.\n\nThe environmental case is where the argument is strongest and the evidence most awkward. Extending the working life of a device avoids the emissions of manufacturing a replacement, and for most electronics manufacturing rather than use dominates the total. But not for everything. An inefficient old refrigerator replaced by a modern one pays back the emissions of its own manufacture within a few years, and keeping it running is worse for the climate than scrapping it. The rule that repair is always greener is therefore false, and the exceptions are precisely the products that consume most energy in use.\n\nWhat emerges is less satisfying than either side of the public argument. Manufacturers are not, in the main, sabotaging their own products. Nor are they innocent: they have consistently chosen specifications that make repair harder, resisted parts availability, and used software to discourage independent workshops. The honest description is a market that optimised for thinness, waterproofing and price because those were the things customers compared, and that produced disposability as a by-product nobody had to intend.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the claims of the writer? Write YES if the statement agrees with the claims of the writer, NO if the statement contradicts the claims of the writer, or NOT GIVEN if it is impossible to say what the writer thinks about this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "ynng",
+          "statement": "Most short product lifespans today are the result of a deliberate plan to make goods fail.",
+          "answer": "NO",
+          "explanation": "The writer calls that explanation “both popular and largely wrong”, and attributes short lives to “individually reasonable engineering decisions”. The statement contradicts the writer's claim."
+        },
+        {
+          "id": "q2",
+          "type": "ynng",
+          "statement": "The 1920s lamp cartel is a poor example to use in the current debate.",
+          "answer": "YES",
+          "explanation": "The writer says it is cited constantly, “which is unfortunate, because it is unrepresentative”. Calling it unrepresentative is calling it a poor example."
+        },
+        {
+          "id": "q3",
+          "type": "ynng",
+          "statement": "Right-to-repair laws should require regulators to approve product designs.",
+          "answer": "NO",
+          "explanation": "The writer says mandating repairable designs “would require regulators to make engineering decisions they are poorly placed to make”, and presents the parts-and-manuals approach as the better one."
+        },
+        {
+          "id": "q4",
+          "type": "ynng",
+          "statement": "Repairable laptops sell better in some countries than in others.",
+          "answer": "NOT GIVEN",
+          "explanation": "Sales are described only as “respectable rather than transformative”, with no comparison between countries. The passage offers nothing on which to judge the statement."
+        },
+        {
+          "id": "q5",
+          "type": "ynng",
+          "statement": "Repairing a device is always better for the environment than replacing it.",
+          "answer": "NO",
+          "explanation": "The writer states the opposite: “The rule that repair is always greener is therefore false”, using the example of an inefficient old refrigerator."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the summary below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Adhesive is chosen over a gasket and screws because it gives a better ___ while adding little thickness.",
+          "answer": "seal",
+          "maxWords": 2,
+          "explanation": "“Adhesive gives a better seal than a gasket and screws while adding almost no thickness.” The blank takes the noun the adhesive provides."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Screens that are ___ appear brighter because no air gap reflects light.",
+          "answer": "bonded",
+          "maxWords": 2,
+          "explanation": "“Bonded screens, which are brighter because there is no air gap to reflect light.” The word describing the screen is the one required."
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "For most electronics, ___ rather than use accounts for the greater part of total emissions.",
+          "answer": "manufacturing",
+          "maxWords": 2,
+          "explanation": "“For most electronics manufacturing rather than use dominates the total.” The sentence is a direct restatement."
+        },
+        {
+          "id": "q9",
+          "type": "completion",
+          "sentence": "The writer says the market optimised for thinness, waterproofing and ___, because those were what buyers compared.",
+          "answer": "price",
+          "maxWords": 2,
+          "explanation": "The final paragraph names the three: “thinness, waterproofing and price because those were the things customers compared”."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "Why does the writer describe a toaster?",
+          "options": [
+            "To show that some products were never repairable",
+            "To illustrate why repair can cost more than replacement",
+            "To criticise the quality of cheap kitchen goods",
+            "To argue that labour costs should be subsidised"
+          ],
+          "answer": 1,
+          "explanation": "The toaster follows the point about rising labour costs and falling manufacturing costs: “a repair costs more than a toaster.” It is an example of the economics, not of design."
+        },
+        {
+          "id": "q11",
+          "type": "mcq",
+          "question": "What does the writer say about early results from right-to-repair laws?",
+          "options": [
+            "Parts are unavailable in most markets",
+            "Parts are sold but prices can still make repair uneconomic",
+            "Manuals have proved more useful than expected",
+            "Diagnostic tools remain entirely unlicensed"
+          ],
+          "answer": 1,
+          "explanation": "“Parts are indeed being sold, but sometimes at prices that make the repair uneconomic anyway.” Availability improved; affordability did not necessarily follow."
+        },
+        {
+          "id": "q12",
+          "type": "mcq",
+          "question": "What does the modest success of repairable devices suggest to the writer?",
+          "options": [
+            "That buyers do not understand repairability",
+            "That repairability appeals to a minority rather than to everyone",
+            "That such devices are not genuinely repairable",
+            "That prices will have to rise further"
+          ],
+          "answer": 1,
+          "explanation": "Respectable but not transformative sales “suggest that repairability is a real preference for a minority of buyers rather than a suppressed universal demand”."
+        },
+        {
+          "id": "q13",
+          "type": "mcq",
+          "question": "How would the writer's overall conclusion best be summarised?",
+          "options": [
+            "Manufacturers are blameless and consumers are at fault",
+            "Manufacturers conspired to shorten product lives",
+            "Disposability arose as a by-product, though manufacturers are not innocent",
+            "Legislation has already solved the problem"
+          ],
+          "answer": 2,
+          "explanation": "The last paragraph refuses both simple positions: manufacturers are “not, in the main, sabotaging their own products” but “nor are they innocent”, and disposability was “a by-product nobody had to intend”."
+        }
+      ]
+    }
+  ]
+}

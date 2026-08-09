@@ -1,0 +1,144 @@
+{
+  "id": "reading-6",
+  "title": "The Return of the Night Train",
+  "topic": "Why European sleeper services collapsed, and why they came back",
+  "difficulty": "medium",
+  "timeMinutes": 20,
+  "passage": "For nearly forty years the night train looked like a relic. Across Europe, sleeper services were cut one after another through the 1990s and 2000s, and the reasons given were always much the same: the carriages were old, the staffing costs were high, and a budget airline could carry the same passenger the same distance for a fraction of the fare in a tenth of the time. By 2016 the German operator had withdrawn from the business altogether, and the remaining routes were widely expected to follow.\n\nThey did not. Within five years the same operators were ordering new sleeper stock, and routes that had been closed as hopeless were reopening with waiting lists. The reversal was so quick that it caught the industry itself by surprise, and understanding it means separating three quite different things that happened at once.\n\nThe first was a change in what passengers were counting. A flight from Berlin to Paris takes under two hours, but the journey is not two hours. It is the trip to an airport on the edge of the city, the queue, the wait, the flight, and the trip back into the centre at the other end — and it consumes an evening or a morning that cannot be used for anything else. A night train consumes a night, which most travellers were going to spend asleep in any case. Measured in hours the aeroplane wins comfortably. Measured in usable days it often does not, and once operators began advertising the second figure rather than the first, the comparison changed.\n\nThe second was cost, and here the picture is less flattering than enthusiasts often suggest. A sleeper carriage carries far fewer passengers than a seated one — perhaps thirty where a day coach carries eighty — and it earns money on only one journey in twenty-four hours, while a high-speed set can run the same route four times. It also needs cleaning, bedding and a member of staff on board through the night. These are real costs and they have not gone away. What changed was the price of the alternative: aviation fuel taxes, carbon pricing and the withdrawal of some regional airport subsidies narrowed a gap that had once looked unbridgeable.\n\nThe third factor was infrastructure, and it is the one that receives the least attention and causes the most trouble. A night train is a slow train that must cross several countries while their high-speed lines are quiet, which sounds convenient until one considers what those lines are doing at night. They are being maintained. Engineering work is concentrated in the hours when passenger traffic is lightest, which is precisely when a sleeper wants to pass, and a train that must be diverted around a closed section arrives late or does not run at all. Track access charges compound the problem: several countries price a path by the kilometre regardless of the hour, so a service that occupies a line for nine hours pays for nine hours of a resource nobody else wanted.\n\nRolling stock has proved an equally stubborn constraint. A sleeper carriage is a hotel room that must survive thirty years of being shaken, and the market for them is small enough that only a handful of manufacturers bid. Orders placed in 2019 were still being delivered years later, and in the meantime operators ran refurbished carriages built in the 1970s and 1980s. Passengers who had booked expecting something new sometimes found something merely repainted, and the reviews reflected it.\n\nWhat the new services have got right is a matter of design rather than engineering. The older sleepers offered two extremes: a private cabin at a price close to a flight and a hotel, or a seat that made sleep almost impossible. The newer stock fills the middle with small enclosed pods, each with a bed, a door and somewhere to put a bag, sold at a price between the two. That single change has done more for occupancy than any amount of marketing, because it made a night train affordable to a traveller who is not willing to sleep in a room with five strangers but is not willing to pay hotel rates either.\n\nWhether the revival lasts is not yet clear. Most of the new routes carry some form of public support, and the honest question is not whether night trains can be popular — they plainly can — but whether they can cover their costs once that support is withdrawn. Several operators argue that the comparison is unfair, since the aviation they compete with pays no tax on fuel and no duty on international tickets. That argument may well be correct. It is also, at present, an argument rather than a business model.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if the statement contradicts the information, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "The German operator stopped running sleeper services before 2016.",
+          "answer": "TRUE",
+          "explanation": "The passage says “By 2016 the German operator had withdrawn from the business altogether”. “By 2016” means the withdrawal was complete at that point, so it happened before then."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "The speed of the revival was expected by people working in the rail industry.",
+          "answer": "FALSE",
+          "explanation": "The passage states the reversal “was so quick that it caught the industry itself by surprise”. Being caught by surprise is the opposite of expecting something."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "More women than men travel on the new sleeper services.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage never breaks passengers down by any personal characteristic. When a statement introduces a comparison the text simply does not make, the answer is NOT GIVEN rather than FALSE."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "A sleeper carriage carries fewer passengers than a day coach.",
+          "answer": "TRUE",
+          "explanation": "The text gives the figures directly: “perhaps thirty where a day coach carries eighty”. The statement is a plainer restatement of the same fact."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "The high costs of running a sleeper service have now largely disappeared.",
+          "answer": "FALSE",
+          "explanation": "The passage is explicit: “These are real costs and they have not gone away.” What changed was the price of flying, not the cost of the train."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN THREE WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Operators began advertising journey length in ___ rather than in hours.",
+          "answer": "usable days",
+          "maxWords": 3,
+          "explanation": "The passage contrasts “Measured in hours” with “Measured in usable days”, and says operators began advertising “the second figure” — which is the one in usable days."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "At night, high-speed lines are often occupied by ___.",
+          "answer": "engineering work",
+          "maxWords": 3,
+          "explanation": "The text asks what the lines are doing at night and answers “They are being maintained”, then names it: “Engineering work is concentrated in the hours when passenger traffic is lightest.”"
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "Some countries charge for a route by the ___, whatever time of day a train runs.",
+          "answer": "kilometre",
+          "maxWords": 2,
+          "explanation": "“Several countries price a path by the kilometre regardless of the hour.” The blank needs the unit of charging, not the charge itself."
+        },
+        {
+          "id": "q9",
+          "type": "completion",
+          "sentence": "The writer compares a sleeper carriage to a ___ that has to withstand decades of movement.",
+          "answer": "hotel room",
+          "maxWords": 3,
+          "explanation": "“A sleeper carriage is a hotel room that must survive thirty years of being shaken.” The comparison is stated as a metaphor rather than with ‘like’."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "Why does the writer mention orders placed in 2019?",
+          "options": [
+            "To show that operators were slow to recognise demand",
+            "To explain why passengers sometimes travelled in old carriages",
+            "To argue that manufacturers charge too much for sleeper stock",
+            "To suggest that new carriages are less comfortable than old ones"
+          ],
+          "answer": 1,
+          "explanation": "The orders “were still being delivered years later, and in the meantime operators ran refurbished carriages built in the 1970s and 1980s”. The delay is offered as the reason passengers met old stock."
+        },
+        {
+          "id": "q11",
+          "type": "mcq",
+          "question": "According to the passage, what has most improved occupancy on the new services?",
+          "options": [
+            "Lower track access charges",
+            "Advertising aimed at younger travellers",
+            "A type of accommodation priced between a cabin and a seat",
+            "Faster journey times between major cities"
+          ],
+          "answer": 2,
+          "explanation": "The passage says the small enclosed pods “done more for occupancy than any amount of marketing”, because they fill the gap between an expensive cabin and an uncomfortable seat."
+        },
+        {
+          "id": "q12",
+          "type": "mcq",
+          "question": "What does the writer say about the argument that aviation is undertaxed?",
+          "options": [
+            "It is probably wrong",
+            "It may be true but does not prove night trains are viable",
+            "It has already persuaded most governments",
+            "It matters less than the cost of rolling stock"
+          ],
+          "answer": 1,
+          "explanation": "“That argument may well be correct. It is also, at present, an argument rather than a business model.” The writer concedes it may be true while denying it settles the question of viability."
+        },
+        {
+          "id": "q13",
+          "type": "mcq",
+          "question": "Which best describes the writer's overall position?",
+          "options": [
+            "Night trains have proved they can succeed commercially",
+            "Night trains are popular but their finances remain unproven",
+            "Night trains should be closed again on cost grounds",
+            "Night trains will replace short-haul flights within a decade"
+          ],
+          "answer": 1,
+          "explanation": "The final paragraph separates the two questions: night trains “plainly can” be popular, but whether they can cover their costs without public support “is not yet clear”."
+        }
+      ]
+    }
+  ]
+}

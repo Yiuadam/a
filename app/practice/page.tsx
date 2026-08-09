@@ -2,15 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import readingOne from "@/data/reading-1.json";
-import readingTwo from "@/data/reading-2.json";
-import readingThree from "@/data/reading-3.json";
-import readingFour from "@/data/reading-4.json";
-import listeningOne from "@/data/listening-1.json";
-import listeningTwo from "@/data/listening-2.json";
-import listeningThree from "@/data/listening-3.json";
-import listeningFour from "@/data/listening-4.json";
 import LockedCard from "@/components/LockedCard";
+import { LISTENING_TESTS, READING_TESTS } from "@/lib/tests";
 import SessionCount from "@/components/SessionCount";
 import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
@@ -19,13 +12,8 @@ import { questionCount } from "@/lib/questions";
 import { addGeneratedTest } from "@/lib/store";
 import type { GeneratedTest, ListeningTest, ReadingTest } from "@/lib/types";
 
-const readingTests = [readingOne, readingThree, readingTwo, readingFour] as ReadingTest[];
-const listeningTests = [
-  listeningOne,
-  listeningThree,
-  listeningTwo,
-  listeningFour,
-] as ListeningTest[];
+const readingTests = READING_TESTS;
+const listeningTests = LISTENING_TESTS;
 
 export default function PracticePage() {
   const profile = useProfile();

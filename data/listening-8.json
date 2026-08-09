@@ -1,0 +1,124 @@
+{
+  "id": "listening-8",
+  "title": "A Tour of the Harbour Museum",
+  "context": "A guide introduces a museum housed in a former ice house before taking a group inside.",
+  "difficulty": "medium",
+  "timeMinutes": 12,
+  "speakers": [
+    "Guide"
+  ],
+  "script": [
+    {
+      "speaker": "Guide",
+      "text": "Good morning, everyone, and welcome to the Harbour Museum. Before we go inside, let me give you a sense of what you're about to see, because the building itself is half the story.\n\nWe're standing in front of what was, until 1974, a working ice house. Before refrigeration, fishing ports needed somewhere to store the ice that kept the catch fresh on its way to market, and this building held roughly two thousand tonnes of it, cut from lakes in winter and packed in straw. The walls behind me are just over a metre thick, which is why the interior stays cool even in August. You may want a jumper.\n\nThe museum opened in 1989, and it was very nearly not built at all. The town council had approved demolition, and the site was to become a car park. What saved it was a campaign led by a retired trawler skipper named Edith Vaughan, who collected four thousand signatures in a town of eleven thousand people. There's a portrait of her in the entrance hall, and I'd ask you to look at it, because almost everything else you'll see today was donated by people she persuaded.\n\nNow, the layout. There are three floors and I'll take you round the ground floor together, then leave you to explore the upper two at your own pace.\n\nThe ground floor covers the working port from about 1850 to the Second World War. The centrepiece is a herring drifter called the Mary Ann, built in 1911, which sits in the middle of the hall with a walkway around it. She is not a replica. She was sailed here under her own power in 1988 and the roof was built over her afterwards, which is a detail visitors often don't believe until they see the photographs on the wall beside her.\n\nThe first floor is about the people rather than the boats, and it is the part most visitors tell us they remember. It holds the oral history collection: over six hundred recordings made with people who worked the port, the earliest from 1976. You'll find headphones at each station. I'd particularly recommend the recordings of the women who gutted and packed the herring — they followed the fleet down the coast each season, living in shared lodgings, and several of them describe the work in terms that will change how you look at the boat downstairs.\n\nThe second floor is temporary exhibitions. At the moment it's a display on marine plastics, which runs until the end of October. There's a section on how nets are recovered from the seabed, and a sculpture made entirely from material picked up on the beach half a mile from here in a single weekend.\n\nA few practical points. Photography is fine everywhere except the second floor, where some items are on loan and the lenders have asked us not to. There's no cafe in the building — the nearest is the bakery opposite, which does soup — but you're welcome to eat your own food in the courtyard. The toilets are on the ground floor only, behind the shop.\n\nLastly, the shop. It's small, but the one thing worth knowing is that the book of collected photographs from the oral history project is sold nowhere else, and the proceeds fund the recordings. Right — let's go in, and mind the step."
+    }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "The building was originally an ___ and closed in 1974.",
+          "answer": "ice house",
+          "maxWords": 2,
+          "explanation": "“What was, until 1974, a working ice house.” The date confirms which building is meant."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "The walls are just over a ___ thick, keeping the interior cool.",
+          "answer": "metre",
+          "maxWords": 2,
+          "explanation": "“The walls behind me are just over a metre thick, which is why the interior stays cool even in August.”"
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "The campaign to save the building collected ___ signatures.",
+          "answer": "4000",
+          "maxWords": 2,
+          "explanation": "Edith Vaughan “collected four thousand signatures in a town of eleven thousand people”. Eleven thousand is the town's population, not the signature count."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "The site was going to be turned into a ___.",
+          "answer": "car park",
+          "maxWords": 2,
+          "explanation": "“The town council had approved demolition, and the site was to become a car park.”"
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "The oral history collection holds over ___ recordings.",
+          "answer": "600",
+          "maxWords": 2,
+          "explanation": "“Over six hundred recordings made with people who worked the port, the earliest from 1976.” 1976 is the date of the earliest, not a quantity."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "The temporary exhibition on marine plastics runs until the end of ___.",
+          "answer": "October",
+          "maxWords": 2,
+          "explanation": "“It's a display on marine plastics, which runs until the end of October.”"
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What does the guide say about the Mary Ann?",
+          "options": [
+            "She is a full-size replica built in 1988",
+            "She sailed here herself and the roof was built over her",
+            "She was carried into the hall in sections"
+          ],
+          "answer": 1,
+          "explanation": "“She is not a replica. She was sailed here under her own power in 1988 and the roof was built over her afterwards.”"
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Which floor do visitors most often say they remember?",
+          "options": [
+            "The ground floor",
+            "The first floor",
+            "The second floor"
+          ],
+          "answer": 1,
+          "explanation": "“The first floor is about the people rather than the boats, and it is the part most visitors tell us they remember.”"
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Where is photography not allowed?",
+          "options": [
+            "In the shop",
+            "On the first floor",
+            "On the second floor"
+          ],
+          "answer": 2,
+          "explanation": "“Photography is fine everywhere except the second floor, where some items are on loan and the lenders have asked us not to.”"
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What does the guide say about eating?",
+          "options": [
+            "There is a cafe on the ground floor",
+            "Visitors may eat their own food in the courtyard",
+            "Food may not be brought into the grounds"
+          ],
+          "answer": 1,
+          "explanation": "“There's no cafe in the building — the nearest is the bakery opposite … but you're welcome to eat your own food in the courtyard.”"
+        }
+      ]
+    }
+  ]
+}

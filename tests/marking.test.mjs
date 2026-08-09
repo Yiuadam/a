@@ -50,6 +50,27 @@ test("completion accepts a number written as digits or as words", () => {
   assert.equal(isCorrect(gap, "sixty-three"), false);
 });
 
+/*
+  Thousands, which the marker could not read until a listening script said
+  "four thousand signatures" against a key of "4000". Every number in a
+  listening script is spoken in words and every answer key is written in
+  digits, so a gap here is not an edge case — it is a learner typing the right
+  answer and being told it is wrong.
+*/
+test("completion accepts thousands written either way", () => {
+  const k = (answer) => ({ id: "t", type: "completion", sentence: "___", answer, maxWords: 3 });
+  assert.equal(isCorrect(k("4000"), "four thousand"), true);
+  assert.equal(isCorrect(k("four thousand"), "4000"), true);
+  assert.equal(isCorrect(k("11000"), "eleven thousand"), true);
+  assert.equal(isCorrect(k("25000"), "twenty-five thousand"), true);
+  assert.equal(isCorrect(k("100000"), "a hundred thousand"), true);
+  /* Still wrong when it is wrong — the rule must not make everything match. */
+  assert.equal(isCorrect(k("4000"), "five thousand"), false);
+  assert.equal(isCorrect(k("4000"), "four hundred"), false);
+  /* And the hundreds rule it sits in front of still works. */
+  assert.equal(isCorrect(k("600"), "six hundred"), true);
+});
+
 test("completion ignores surrounding punctuation and case", () => {
   const word = { id: "w", type: "completion", sentence: "___", answer: "warehouse", maxWords: 1 };
   assert.equal(isCorrect(word, "Warehouse."), true);

@@ -109,7 +109,7 @@ export default function SignedOut({
               <span className="h-px flex-1 bg-slate-200" />
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 sm:max-w-sm">
+            <div className="mt-4 flex flex-col gap-3">
               {/*
                 Plain links, not fetch. The whole point of /api/auth/start is
                 that it answers with a 302 to the provider, and a full
@@ -136,19 +136,36 @@ export default function SignedOut({
         )}
       </section>
 
-      <section className="card">
-        <h2 className="text-[17px] font-semibold text-slate-900">Lost access to those?</h2>
-        <p className="mt-2 text-[15px] leading-7 text-slate-600">
-          If you can&rsquo;t get into the account you signed up with, BandUp can email a one-time
-          sign-in link to the address on your account instead.
-        </p>
+      {/*
+        The second door, at the size of a footnote.
 
+        It was a full card with its own heading and two lines of explanation,
+        which put it below the fold on a laptop — the worst place for the thing
+        somebody looks for precisely because they are stuck. As one line it is
+        visible without scrolling, and the explanation moves inside, where it is
+        read by the people who open it rather than by everybody.
+      */}
+      <section className="card !py-3">
         {showRecovery ? (
-          <RecoveryForm onDone={onRecovered} />
+          <>
+            <h2 className="text-[15px] font-semibold text-slate-900">Email me a sign-in link</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              A one-time link to the address on your account, for when you can&rsquo;t get into the
+              account you signed up with.
+            </p>
+            <RecoveryForm onDone={onRecovered} />
+          </>
         ) : (
-          <button type="button" className="btn-secondary mt-4" onClick={() => setShowRecovery(true)}>
-            Email me a sign-in link
-          </button>
+          <p className="text-sm leading-6 text-slate-600">
+            Can&rsquo;t get in?{" "}
+            <button
+              type="button"
+              className="font-medium text-indigo-700 underline underline-offset-2"
+              onClick={() => setShowRecovery(true)}
+            >
+              Email me a sign-in link
+            </button>
+          </p>
         )}
       </section>
     </div>
@@ -260,7 +277,7 @@ function PasswordForm() {
   }
 
   return (
-    <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:max-w-sm">
+    <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
       <div>
         <label htmlFor="signin-identifier" className="block text-sm font-medium text-slate-700">
           {creating ? "Email address" : "Email address or username"}
@@ -365,7 +382,7 @@ function RecoveryForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:max-w-sm">
+    <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
       <label htmlFor="recovery-email" className="text-sm font-medium text-slate-700">
         Email address
       </label>

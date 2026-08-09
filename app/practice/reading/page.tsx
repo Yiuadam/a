@@ -11,21 +11,17 @@ import TestQuestions, {
   type CheckedMap,
 } from "@/components/TestQuestions";
 import Timer from "@/components/Timer";
-import readingOne from "@/data/reading-1.json";
-import readingTwo from "@/data/reading-2.json";
-import readingThree from "@/data/reading-3.json";
-import readingFour from "@/data/reading-4.json";
-import readingFive from "@/data/reading-5.json";
 import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
 import { useMounted, useProfile } from "@/lib/hooks";
 import { flatQuestions, questionCount } from "@/lib/questions";
 import { buildReview, joinWithAnd, questionTypeNames } from "@/lib/review";
 import { addResult } from "@/lib/store";
+import { READING_TESTS } from "@/lib/tests";
 import type { ReadingTest } from "@/lib/types";
 import TestChooser from "@/components/TestChooser";
 
-const bundled = [readingOne, readingTwo, readingThree, readingFour, readingFive] as ReadingTest[];
+const bundled = READING_TESTS;
 
 function ReadingTestPageRunner() {
   const params = useSearchParams();

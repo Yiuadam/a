@@ -1,0 +1,221 @@
+{
+  "id": "listening-7",
+  "title": "Joining a Community Choir",
+  "context": "A caller telephones the secretary of a local choir to ask about joining.",
+  "difficulty": "medium",
+  "timeMinutes": 12,
+  "speakers": [
+    "Secretary",
+    "Caller"
+  ],
+  "script": [
+    {
+      "speaker": "Secretary",
+      "text": "Good evening, Riverbank Community Choir, Anna speaking."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Oh, hello. I saw a poster in the library about joining, and I wanted to ask a few questions before I turn up."
+    },
+    {
+      "speaker": "Secretary",
+      "text": "Of course. Have you sung in a choir before?"
+    },
+    {
+      "speaker": "Caller",
+      "text": "Not since school, so about fifteen years ago. I'm a bit worried I've forgotten everything."
+    },
+    {
+      "speaker": "Secretary",
+      "text": "Don't be. We're what's called a non-auditioned choir, which means anyone can join — there's no test at the door. About a third of our members hadn't sung since school either."
+    },
+    {
+      "speaker": "Caller",
+      "text": "That's reassuring. Do I need to read music?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "It helps, but it isn't required. We record each voice part separately and put the files online, so people can learn at home by listening. Quite a lot of our members work that way entirely."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Good. And when do you meet?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "Thursdays, seven until nine, in the hall behind Saint Alban's Church. That's on Mill Lane, not the church on the high street — people get those two confused constantly."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Mill Lane. I'll write that down. Is there parking?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "There's a small car park but it fills up by about ten to seven. Most people use the multi-storey on Bridge Street and walk across; it's four minutes."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Fine. What about the cost?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "The term fee is forty-eight pounds, and that covers ten rehearsals and the sheet music. If you're a student or over sixty-five it's thirty-two. And your first rehearsal is free, so you can come along and see whether you like us before paying anything."
+    },
+    {
+      "speaker": "Caller",
+      "text": "That's very fair. Do you perform?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "Twice a term. The winter concert is always in the church itself, and the summer one has been outdoors in the park for the last few years, weather permitting."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Do I need to buy anything to wear?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "Just plain black — trousers or a skirt, and a black top. We provide a scarf in the choir colours, and you give that back if you leave. Please don't buy anything special before your first concert; people always buy the wrong thing."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Understood. One last thing — my daughter is twelve and she sings all the time. Could she come?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "Not to the main choir, I'm afraid; the minimum age is sixteen. But we run a youth section on Saturday mornings, ten until half past eleven, and that takes children from eight upwards. Same hall."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Perfect. Who should I speak to about that?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "That's Ravi Sharma — I'll give you his email. It's r dot sharma at riverbankchoir dot org."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Got it. And should I bring anything on Thursday?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "A bottle of water and a pencil. Everyone forgets the pencil, and you'll want to mark your part."
+    },
+    {
+      "speaker": "Caller",
+      "text": "A pencil. Right. Thank you very much."
+    },
+    {
+      "speaker": "Secretary",
+      "text": "See you Thursday."
+    }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Rehearsals are held on ___ evenings.",
+          "answer": "Thursday",
+          "maxWords": 2,
+          "explanation": "The secretary says “Thursdays, seven until nine”. The caller confirms at the end with “on Thursday”, so the day is stated twice."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "The hall is behind Saint Alban's Church on ___ Lane.",
+          "answer": "Mill",
+          "maxWords": 2,
+          "explanation": "“In the hall behind Saint Alban's Church. That's on Mill Lane, not the church on the high street.” The distractor is the high-street church."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "The full term fee is ___ pounds.",
+          "answer": "48",
+          "maxWords": 2,
+          "explanation": "“The term fee is forty-eight pounds.” Thirty-two is the concession rate for students and the over-sixty-fives, so it is the distractor."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Members must wear plain ___ clothing for concerts.",
+          "answer": "black",
+          "maxWords": 2,
+          "explanation": "“Just plain black — trousers or a skirt, and a black top.” The scarf is supplied by the choir, so it is not what members must wear of their own."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "The minimum age for the main choir is ___.",
+          "answer": "16",
+          "maxWords": 2,
+          "explanation": "“The minimum age is sixteen.” Eight is the minimum for the youth section and twelve is the daughter's age — both are distractors."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Newcomers are told to bring water and a ___.",
+          "answer": "pencil",
+          "maxWords": 2,
+          "explanation": "“A bottle of water and a pencil. Everyone forgets the pencil, and you'll want to mark your part.”"
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What does the secretary say about musical ability?",
+          "options": [
+            "Applicants must pass a short audition",
+            "Anyone may join without being tested",
+            "Only former choir members are accepted"
+          ],
+          "answer": 1,
+          "explanation": "“We're what's called a non-auditioned choir, which means anyone can join — there's no test at the door.”"
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "How do many members learn their part?",
+          "options": [
+            "By reading printed sheet music at home",
+            "By listening to recordings put online",
+            "By attending an extra weekly class"
+          ],
+          "answer": 1,
+          "explanation": "“We record each voice part separately and put the files online, so people can learn at home by listening.” Reading music “helps, but it isn't required”."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What is the caller advised about parking?",
+          "options": [
+            "To arrive before ten to seven for the car park",
+            "To use the multi-storey on Bridge Street",
+            "To park in the church grounds"
+          ],
+          "answer": 1,
+          "explanation": "The car park “fills up by about ten to seven”, so “most people use the multi-storey on Bridge Street and walk across”. The advice is the recommendation, not the deadline."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "Where is the summer concert normally held?",
+          "options": [
+            "Inside the church",
+            "In the rehearsal hall",
+            "Outdoors in the park"
+          ],
+          "answer": 2,
+          "explanation": "“The winter concert is always in the church itself, and the summer one has been outdoors in the park for the last few years.”"
+        }
+      ]
+    }
+  ]
+}

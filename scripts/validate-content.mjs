@@ -9,7 +9,7 @@
   learner types the right answer and is told it is wrong, so the duplication is
   deliberate and worth keeping honest.
 */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const DATA = join(process.cwd(), "data");
@@ -35,7 +35,7 @@ const NUMBER_WORDS = {
   eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
   fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
   nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
-  seventy: 70, eighty: 80, ninety: 90, hundred: 100,
+  seventy: 70, eighty: 80, ninety: 90, hundred: 100, thousand: 1000,
   first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7,
   eighth: 8, ninth: 9, tenth: 10, eleventh: 11, twelfth: 12, thirteenth: 13,
   fourteenth: 14, fifteenth: 15, sixteenth: 16, seventeenth: 17,
@@ -78,7 +78,10 @@ function normalise(value) {
     const value = digits;
     const isTens = running !== null && running >= 20 && running % 10 === 0;
     const isHundreds = running !== null && running % 100 === 0;
-    if (value === 100 && running !== null && running < 100) running *= 100;
+    // Mirrors lib/band.ts: a multiplier, not an addend, so a script that says
+    // "four thousand" satisfies a key of "4000".
+    if (value === 1000 && running !== null) running *= 1000;
+    else if (value === 100 && running !== null && running < 100) running *= 100;
     else if (isTens && value < 10) running += value;
     else if (isHundreds && value < 100) running += value;
     else {
@@ -313,8 +316,24 @@ if (placement) {
   }
 }
 
+/*
+  Found on disk rather than listed here.
+
+  The list used to be written out by hand and it went stale the moment somebody
+  added a paper: listening-5 and listening-6 were written, committed and never
+  validated, because the loop only knew about four. A directory listing cannot
+  forget.
+*/
+function papers(prefix) {
+  return readdirSync(DATA)
+    .filter((f) => new RegExp(`^${prefix}-\\d+\\.json$`).test(f))
+    .sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
+}
+
 // ---- Reading ----
-for (const name of ["reading-1.json", "reading-2.json", "reading-3.json", "reading-4.json", "reading-5.json"]) {
+const readingPapers = papers("reading");
+if (readingPapers.length === 0) fail("data/", "no reading papers found at all");
+for (const name of readingPapers) {
   const test = load(name);
   if (!test) continue;
   const words = (test.passage ?? "").split(/\s+/).filter(Boolean).length;
@@ -325,7 +344,9 @@ for (const name of ["reading-1.json", "reading-2.json", "reading-3.json", "readi
 }
 
 // ---- Listening ----
-for (const name of ["listening-1.json", "listening-2.json", "listening-3.json", "listening-4.json"]) {
+const listeningPapers = papers("listening");
+if (listeningPapers.length === 0) fail("data/", "no listening papers found at all");
+for (const name of listeningPapers) {
   const test = load(name);
   if (!test) continue;
   const script = (test.script ?? []).map((turn) => turn.text).join(" ");

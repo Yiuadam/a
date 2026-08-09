@@ -1,0 +1,238 @@
+{
+  "id": "listening-9",
+  "title": "Planning a Presentation on Food Waste",
+  "context": "Two students discuss a presentation with their tutor, who challenges their argument and their timing.",
+  "difficulty": "hard",
+  "timeMinutes": 12,
+  "speakers": [
+    "Dr Okafor",
+    "Tomas",
+    "Leyla"
+  ],
+  "script": [
+    {
+      "speaker": "Dr Okafor",
+      "text": "Right — Tomas, Leyla, let's look at where you've got to with the food waste presentation. You sent me an outline. What's the argument?"
+    },
+    {
+      "speaker": "Tomas",
+      "text": "We started with the household angle, because that's where most of the waste is. About seventy per cent of it in the UK happens after the food reaches someone's kitchen."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "That figure is right, and it's also the reason your first draft went wrong. If seventy per cent is domestic, what does that tell an audience they should do?"
+    },
+    {
+      "speaker": "Leyla",
+      "text": "Buy less. Plan meals. Which is what every campaign already says."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "And how well has that worked?"
+    },
+    {
+      "speaker": "Leyla",
+      "text": "Not very. That was our problem. We had four slides of advice nobody would follow."
+    },
+    {
+      "speaker": "Tomas",
+      "text": "So we changed it. We're now arguing that the interesting waste isn't the largest share, it's the share that's easiest to move. And that's not households."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "Go on."
+    },
+    {
+      "speaker": "Tomas",
+      "text": "Retail is only about two per cent of the total, which sounds trivial. But a supermarket makes a small number of decisions that determine what happens in millions of kitchens — how big the pack is, what the date label says, whether the offer is buy one get one free."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "That's a much better argument. Where's your evidence for the date labels?"
+    },
+    {
+      "speaker": "Leyla",
+      "text": "There are trials where retailers removed 'best before' from fresh produce and measured what happened. The reductions were real but smaller than the press releases suggested. We want to be careful there."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "Good instinct. What's your source?"
+    },
+    {
+      "speaker": "Leyla",
+      "text": "A government-funded review from 2022. It pools about a dozen studies, so it's stronger than any single trial, but it does say the evidence quality is mostly moderate."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "Say that out loud in the presentation. An audience trusts you more when you name the weakness than when they find it in the questions. Now — timing. How long have you got?"
+    },
+    {
+      "speaker": "Tomas",
+      "text": "Fifteen minutes, plus five for questions."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "And how many slides?"
+    },
+    {
+      "speaker": "Tomas",
+      "text": "Twenty-two at the moment."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "That's a slide every forty seconds. Cut it to twelve."
+    },
+    {
+      "speaker": "Leyla",
+      "text": "Twelve? We'd lose the whole section on anaerobic digestion."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "Which is the section I'd cut first. It's interesting, but it's about what to do with waste once it exists, and your argument is about preventing it. It belongs in a different talk."
+    },
+    {
+      "speaker": "Tomas",
+      "text": "We could put it in the handout instead."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "Do that. What about the division of labour?"
+    },
+    {
+      "speaker": "Leyla",
+      "text": "I'm doing the evidence and Tomas is doing the retail case."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "Then swap the order. Open with the retail decisions, because that's the counterintuitive part and it earns you attention, and put the evidence review after it so it answers the doubt the opening creates. And whoever isn't speaking should be watching the clock, not the slides."
+    },
+    {
+      "speaker": "Tomas",
+      "text": "Understood. When do you want the draft?"
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "Rehearse it in front of each other first — properly, standing up, timed. Then send me the recording rather than the slides. I learn far more from three minutes of you talking than from twenty-two slides."
+    }
+  ],
+  "questions": [
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "mcq",
+          "question": "Why does Dr Okafor say the household figure led the students astray?",
+          "options": [
+            "The figure they used was inaccurate",
+            "It pointed them towards advice that campaigns already give",
+            "It applies only outside the UK"
+          ],
+          "answer": 1,
+          "explanation": "He confirms the figure is right, then asks what it tells an audience to do. Leyla answers “Buy less. Plan meals. Which is what every campaign already says.”"
+        },
+        {
+          "id": "q2",
+          "type": "mcq",
+          "question": "What is the students' revised argument?",
+          "options": [
+            "That the largest source of waste deserves most attention",
+            "That the share easiest to change matters more than the largest share",
+            "That households cannot reduce waste at all"
+          ],
+          "answer": 1,
+          "explanation": "Tomas: “the interesting waste isn't the largest share, it's the share that's easiest to move. And that's not households.”"
+        },
+        {
+          "id": "q3",
+          "type": "mcq",
+          "question": "Why does Tomas think retail matters despite its small share?",
+          "options": [
+            "Supermarkets waste more than they report",
+            "A few retail decisions shape what happens in millions of kitchens",
+            "Retail waste is growing faster than household waste"
+          ],
+          "answer": 1,
+          "explanation": "“A supermarket makes a small number of decisions that determine what happens in millions of kitchens — how big the pack is, what the date label says…”"
+        },
+        {
+          "id": "q4",
+          "type": "mcq",
+          "question": "What does Leyla say about the date-label trials?",
+          "options": [
+            "The reductions were smaller than press releases suggested",
+            "No reductions were found at all",
+            "Only one retailer has ever tried it"
+          ],
+          "answer": 0,
+          "explanation": "“The reductions were real but smaller than the press releases suggested. We want to be careful there.”"
+        },
+        {
+          "id": "q5",
+          "type": "mcq",
+          "question": "What does Dr Okafor advise about the weakness in their evidence?",
+          "options": [
+            "To leave it out of the presentation",
+            "To state it themselves during the talk",
+            "To mention it only if asked"
+          ],
+          "answer": 1,
+          "explanation": "“Say that out loud in the presentation. An audience trusts you more when you name the weakness than when they find it in the questions.”"
+        },
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "Why does he want the anaerobic digestion section cut?",
+          "options": [
+            "It is too technical for the audience",
+            "It concerns dealing with waste rather than preventing it",
+            "The evidence for it is unreliable"
+          ],
+          "answer": 1,
+          "explanation": "“It's about what to do with waste once it exists, and your argument is about preventing it. It belongs in a different talk.”"
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What does he tell them to send him?",
+          "options": [
+            "The finished slides",
+            "A recording of their rehearsal",
+            "A written script"
+          ],
+          "answer": 1,
+          "explanation": "“Then send me the recording rather than the slides. I learn far more from three minutes of you talking than from twenty-two slides.”"
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "Roughly ___ per cent of UK food waste happens after food reaches the kitchen.",
+          "answer": "70",
+          "maxWords": 2,
+          "explanation": "“About seventy per cent of it in the UK happens after the food reaches someone's kitchen.” Two per cent is the retail share."
+        },
+        {
+          "id": "q9",
+          "type": "completion",
+          "sentence": "The talk lasts fifteen minutes with ___ minutes for questions.",
+          "answer": "5",
+          "maxWords": 2,
+          "explanation": "“Fifteen minutes, plus five for questions.” Fifteen is the talk itself, so the blank takes the question time."
+        },
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "The tutor tells them to reduce the deck to ___ slides.",
+          "answer": "12",
+          "maxWords": 2,
+          "explanation": "“That's a slide every forty seconds. Cut it to twelve.” Twenty-two is the current number, not the target."
+        }
+      ]
+    }
+  ]
+}
