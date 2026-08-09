@@ -90,6 +90,8 @@ export const NAV_GROUPS: NavGroup[] = [
         thing to go browsing for from a menu.
       */
       { href: "/billing", label: "Bill and usage" },
+      /* Read once, if ever — so it lives in the menu and not the header row. */
+      { href: "/credits", label: "Credits" },
     ],
   },
 ];
