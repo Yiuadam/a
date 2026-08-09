@@ -14,14 +14,17 @@ const MODULES: { key: ModuleName; label: string; href: string; blurb: string; ic
   {
     key: "listening",
     label: "Listening",
-    href: "/practice",
+    /* The skill's own page, not the index. Tapping Listening and landing on a
+       page listing reading and writing too is answering a wider question than
+       the one that was asked. */
+    href: "/practice/listening",
     blurb: "Audio played once, then questions",
     icon: "listening",
   },
   {
     key: "reading",
     label: "Reading",
-    href: "/practice",
+    href: "/practice/reading",
     blurb: "Real passages, real question types",
     icon: "reading",
   },
@@ -168,6 +171,20 @@ export default function Dashboard() {
                   dashboard that Writing is available and discovering one page
                   later that it is not is worse than never offering it.
                 */
+                if (skill.pending) {
+                  return (
+                    <div key={m.key} className="card !p-3.5 cursor-wait opacity-60" aria-busy="true">
+                      <div className="flex items-start gap-2.5">
+                        <Icon name={m.icon} className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-semibold text-slate-900">{m.label}</h3>
+                          <p className="mt-0.5 text-xs leading-5 text-slate-600">{m.blurb}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 if (skill.locked && skill.reason) {
                   return (
                     <LockedCard key={m.key} reason={skill.reason} label={`${m.label} practice`}>

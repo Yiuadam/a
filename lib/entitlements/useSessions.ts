@@ -79,6 +79,17 @@ export interface SkillAccess {
   usedUp: boolean;
   /** Questions answerable in one session, or null for all of them. */
   maxQuestions: number | null;
+  /**
+   * The answer is not known yet — the account lookup is still in flight.
+   *
+   * Neither open nor locked. A card in this state must not be clickable: for
+   * the second or two the request takes, treating "unknown" as "allowed" left
+   * every paper openable, and a visitor who tapped quickly was into a locked
+   * one before the lock arrived. Treating it as "locked" instead would flash a
+   * paywall at a subscriber, which is the failure the optimism was there to
+   * avoid. So it is a third state, and it is inert.
+   */
+  pending: boolean;
 }
 
 function countThisWeek(results: readonly ModuleResult[], module: ModuleName, now: number): number {
@@ -111,6 +122,13 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & { tier: Se
     appear locked for a moment on a slow connection. The server is what
     refuses; being briefly optimistic here costs nothing.
   */
+  /*
+    Still asking. Not the same as "allowed" — see `pending` on SkillAccess.
+    Accounts being switched off entirely is a settled answer, not a pending
+    one, so it is excluded here.
+  */
+  const pending = account.phase === "loading";
+
   const real: SessionTier =
     account.phase !== "ready" || !account.accountsEnabled
       ? "pro"
@@ -155,6 +173,7 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & { tier: Se
         left,
         usedUp: !locked && left === 0,
         maxQuestions: allowanceFor(tier, module).maxQuestions,
+        pending,
       };
     };
     return {
@@ -164,5 +183,5 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & { tier: Se
       writing: of("writing"),
       speaking: of("speaking"),
     };
-  }, [profile.results, tier, now]);
+  }, [profile.results, tier, now, pending]);
 }

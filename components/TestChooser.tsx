@@ -104,6 +104,15 @@ export default function TestChooser({
             </>
           );
 
+          /* Not known yet — inert, not open. See app/practice/page.tsx. */
+          if (access[kind].pending) {
+            return (
+              <div key={t.id} className="card !p-3 min-w-0 cursor-wait opacity-60" aria-busy="true">
+                {inner}
+              </div>
+            );
+          }
+
           if (beyond) {
             const reason = access.tier === "anonymous" ? "sign-in" : "subscribe";
             return (
