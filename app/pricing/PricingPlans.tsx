@@ -10,7 +10,9 @@ import {
   SELLABLE_TIERS,
   TIERS,
   formatPrice,
+  isPaidTier,
   perMonthEquivalent,
+  plansForTier,
   type BillingInterval,
   type PlanId,
   type Tier,
@@ -112,22 +114,29 @@ function IntervalToggle({
   );
 }
 
+/** The plan a tier sells at a given interval, or null for the free tier. */
+function planFor(tier: Tier, interval: BillingInterval): PlanId | null {
+  const plan = plansForTier(tier).find((p) => p.interval === interval);
+  return plan ? plan.id : null;
+}
+
 function Price({ tier, interval }: { tier: Tier; interval: BillingInterval }) {
-  if (tier === "free") {
+  const id = planFor(tier, interval);
+  if (id === null) {
     return (
       <p className="mt-4">
-        <span className="text-[32px] font-semibold text-slate-900">Free</span>
+        <span className="text-[28px] font-semibold text-slate-900">Free</span>
         <span className="ml-2 text-sm text-slate-500">no card, no trial that expires</span>
       </p>
     );
   }
 
-  const plan = interval === "year" ? PLANS["pro-yearly"] : PLANS["pro-monthly"];
+  const plan = PLANS[id];
 
   return (
     <div className="mt-4">
       <p>
-        <span className="text-[32px] font-semibold text-slate-900">
+        <span className="text-[28px] font-semibold text-slate-900">
           {formatPrice(plan.amountMinor, plan.currency)}
         </span>
         <span className="ml-2 text-sm text-slate-500">
@@ -210,8 +219,6 @@ export default function PricingPlans() {
 
   const currentTier = account.tier;
   const checkoutOpen = configPhase === "ready" && config?.checkout === true;
-  const planId: PlanId = interval === "year" ? "pro-yearly" : "pro-monthly";
-  const planOffered = checkoutOpen && config?.plans.includes(planId) === true;
 
   return (
     <div className="space-y-6">
@@ -235,11 +242,20 @@ export default function PricingPlans() {
         )}
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      {/*
+        Four across on a wide screen, two on a tablet, stacked on a phone. Four
+        in a row on a 13-inch laptop is about 240px a card, which is narrow but
+        readable, and it is the only arrangement in which the ladder — free,
+        then three steps — is visible as a ladder rather than as a list.
+      */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {SELLABLE_TIERS.map((id) => {
           const tier = TIERS[id];
+          const planId = planFor(id, interval);
+          const planOffered =
+            planId !== null && checkoutOpen && config?.plans.includes(planId) === true;
           /*
-            An admin is marked as being on Pro rather than on a fourth plan
+            An admin is marked as being on Pro rather than on a fifth plan
             nobody can buy. The account screen is where "no limits" is
             explained; here the only useful thing to say is that everything on
             this page is already included.
@@ -257,7 +273,7 @@ export default function PricingPlans() {
               }
             >
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-[19px] font-semibold text-slate-900">{tier.name}</h2>
+                <h2 className="text-[18px] font-semibold text-slate-900">{tier.name}</h2>
                 {isCurrent && (
                   <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700">
                     Your plan
@@ -265,13 +281,13 @@ export default function PricingPlans() {
                 )}
               </div>
 
-              <p className="mt-2 text-[15px] leading-7 text-slate-600">{tier.blurb}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{tier.blurb}</p>
 
               <Price tier={id} interval={interval} />
 
-              <ul className="mt-5 flex-1 space-y-3">
+              <ul className="mt-5 flex-1 space-y-2.5">
                 {tier.includes.map((line) => (
-                  <li key={line} className="flex gap-2.5 text-[15px] leading-7 text-slate-700">
+                  <li key={line} className="flex gap-2 text-sm leading-6 text-slate-700">
                     <Check />
                     <span>{line}</span>
                   </li>
@@ -279,10 +295,10 @@ export default function PricingPlans() {
               </ul>
 
               <div className="mt-6">
-                {id === "free" ? (
+                {!isPaidTier(id) || planId === null ? (
                   <FreeAction isCurrent={isCurrent} account={account} />
                 ) : (
-                  <ProAction
+                  <PaidAction
                     isCurrent={isCurrent}
                     planId={planId}
                     planOffered={planOffered}
@@ -329,7 +345,7 @@ function FreeAction({
   );
 }
 
-function ProAction({
+function PaidAction({
   isCurrent,
   planId,
   planOffered,
@@ -407,8 +423,8 @@ function ProAction({
   if (!planOffered) {
     return (
       <p className="text-sm leading-6 text-slate-500">
-        Subscriptions aren&rsquo;t open yet. Your study plan and every drill are free either way,
-        and a free account raises the daily allowance on AI feedback.
+        Subscriptions aren&rsquo;t open yet. The placement test, your study plan and every drill
+        are free either way, and a free account syncs your progress between devices.
       </p>
     );
   }

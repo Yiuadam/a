@@ -3,10 +3,22 @@
 import { useSyncExternalStore } from "react";
 
 /*
-  How much of today's AI allowance is gone, and when some of it comes back.
+  How much of each month's AI allowance is gone, and when some of it comes back.
 
   ---------------------------------------------------------------------------
-  The bar
+  Five bars, not one
+
+  There used to be one bar over one shared allowance. It could not be costed —
+  see lib/billing/tiers.ts — and it could not be acted on either: "18 of 20"
+  told a learner they were nearly out and nothing about what to stop doing.
+
+  One bar per route says both. It also has to show the routes with a zero
+  allowance rather than hiding them, because a hidden row reads as a feature
+  that does not exist, and what is actually true is that it exists and is on a
+  higher plan.
+
+  ---------------------------------------------------------------------------
+  Each bar
 
   It fills toward the limit rather than draining away from it, because the
   question a learner actually has is "how much have I used", and a bar that
@@ -21,10 +33,11 @@ import { useSyncExternalStore } from "react";
   ---------------------------------------------------------------------------
   "Resets in" is the hard part, and it is worth being exact
 
-  There is no reset. The window is a rolling 24 hours — see
-  lib/usage/limits.ts, where it is a deliberate choice: no midnight cliff, no
-  argument about whose timezone midnight is in. Each request expires 24 hours
-  after the moment it was made, one at a time.
+  There is no reset. The window is a rolling 30 days — see lib/usage/limits.ts,
+  where it is a deliberate choice: no reset day, no argument about whose
+  calendar month it is, and no subscriber who joins on the 28th getting three
+  days of allowance for a month of money. Each request expires 30 days after the
+  moment it was made, one at a time.
 
   So this does not say "resets at midnight", because that would be a lie a
   learner could plan around and be wrong about. It says when the *oldest*
@@ -49,7 +62,8 @@ function formatGap(ms: number): string {
       ? `in ${hours} hour${hours === 1 ? "" : "s"}`
       : `in ${hours}h ${rest}m`;
   }
-  return "in about a day";
+  const days = Math.round(hours / 24);
+  return days <= 1 ? "in about a day" : `in about ${days} days`;
 }
 
 /*
@@ -92,111 +106,137 @@ function useMinuteClock(): number | null {
   return useSyncExternalStore(subscribeToMinute, minuteNow, noClockOnTheServer);
 }
 
-const ROUTE_NAMES: Record<string, string> = {
-  define: "Word lookups",
-  chat: "Tutor questions",
-  "grade/writing": "Essays marked",
-  "grade/speaking": "Speaking marked",
-  generate: "Tests generated",
-};
-
-export default function UsageMeter({
-  used,
-  quota,
-  windowSeconds,
-  oldestAt,
-  byRoute,
-}: {
+/** One allowance, as /api/account/status reports it. */
+export interface RouteUsage {
+  route: string;
+  label: string;
   used: number;
-  /** null means no cap — the owner's own account. */
   quota: number | null;
-  windowSeconds: number;
-  oldestAt: string | null;
-  byRoute: Record<string, number>;
-}) {
-  const now = useMinuteClock();
+  remaining: number | null;
+}
+
+/*
+  One row. Three shapes, because a row means three different things:
+
+    no cap        the owner's own account — a count and no bar, because a full
+                  bar would read as "you have run out".
+    zero cap      the plan does not include this. Said in words, with no bar at
+                  all: an empty bar would read as "you have used none of it",
+                  which is true and misleading.
+    a real cap    the bar, both numbers, and the state named in words.
+*/
+function RouteRow({ usage }: { usage: RouteUsage }) {
+  const { label, used, quota } = usage;
 
   if (quota === null) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-surface p-4">
-        <p className="text-sm text-slate-600">
-          No limit on this account. {used} request{used === 1 ? "" : "s"} in the last 24 hours.
-        </p>
+      <div className="flex items-baseline justify-between gap-3 py-1.5">
+        <span className="text-sm text-slate-700">{label}</span>
+        <span className="text-sm tabular-nums text-slate-500">{used} used · no limit</span>
+      </div>
+    );
+  }
+
+  if (quota === 0) {
+    return (
+      <div className="flex items-baseline justify-between gap-3 py-1.5">
+        <span className="text-sm text-slate-400">{label}</span>
+        <span className="text-sm text-slate-400">Not on your plan</span>
       </div>
     );
   }
 
   const left = Math.max(0, quota - used);
-  const pct = quota === 0 ? 100 : Math.min(100, Math.round((used / quota) * 100));
+  const pct = Math.min(100, Math.round((used / quota) * 100));
 
   /* Named states, so the colour is never carrying the meaning alone. */
   const state = left === 0 ? "spent" : pct >= 80 ? "low" : "fine";
   const bar =
     state === "spent" ? "bg-rose-600" : state === "low" ? "bg-amber-500" : "bg-indigo-600";
-  const note =
-    state === "spent"
-      ? "You have used today's allowance."
-      : state === "low"
-        ? "Running low."
-        : null;
-
-  const expiresAt = oldestAt ? Date.parse(oldestAt) + windowSeconds * 1000 : null;
-  const spentOn = Object.entries(byRoute)
-    .filter(([, n]) => n > 0)
-    .sort((a, b) => b[1] - a[1]);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-surface p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-sm font-semibold text-slate-900">AI requests</h3>
-        <p className="text-sm tabular-nums text-slate-600">
-          <span className="font-semibold text-slate-900">{used}</span> of {quota} used
+    <div className="py-1.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+        <span className="text-sm text-slate-700">{label}</span>
+        <span className="text-sm tabular-nums text-slate-600">
+          <span className="font-semibold text-slate-900">{used}</span> of {quota}
           <span className="text-slate-400"> · </span>
           {left} left
-        </p>
+        </span>
       </div>
-
       <div
-        className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full bg-slate-200"
+        className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-slate-200"
         role="progressbar"
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`${pct}% of your daily AI allowance used, ${left} of ${quota} remaining`}
+        aria-label={`${label}: ${pct}% used, ${left} of ${quota} left this month`}
       >
-        <div className={`h-full rounded-full ${bar} transition-[width] duration-500`} style={{ width: `${pct}%` }} />
+        <div
+          className={`h-full rounded-full ${bar} transition-[width] duration-500`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
+      {state !== "fine" && (
+        <p className={`mt-1 text-xs ${state === "spent" ? "text-rose-700" : "text-amber-700"}`}>
+          {state === "spent" ? "You have used this month's allowance." : "Running low."}
+        </p>
+      )}
+    </div>
+  );
+}
 
-      <p className="mt-2 text-sm text-slate-600">
-        <span className="font-medium tabular-nums text-slate-800">{pct}%</span>
-        {note && <span className={state === "spent" ? " text-rose-700" : " text-amber-700"}> · {note}</span>}
-        {expiresAt !== null && now !== null && (
-          <>
-            {" · "}
+export default function UsageMeter({
+  routes,
+  windowSeconds,
+  oldestAt,
+}: {
+  routes: RouteUsage[];
+  windowSeconds: number;
+  oldestAt: string | null;
+}) {
+  const now = useMinuteClock();
+
+  if (routes.length === 0) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-surface p-4">
+        <p className="text-sm text-slate-600">Your usage isn&rsquo;t loading just now.</p>
+      </div>
+    );
+  }
+
+  const uncapped = routes.every((r) => r.quota === null);
+  const nothingIncluded = routes.every((r) => r.quota === 0);
+  const expiresAt = oldestAt ? Date.parse(oldestAt) + windowSeconds * 1000 : null;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-surface p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="text-sm font-semibold text-slate-900">AI this month</h3>
+        {expiresAt !== null && now !== null && !uncapped && !nothingIncluded && (
+          <p className="text-xs text-slate-500">
             {/*
               "one request comes back", not "resets". The window rolls; see the
               note at the top of this file.
             */}
             one request comes back {formatGap(expiresAt - now)}
-          </>
+          </p>
         )}
-      </p>
+      </div>
 
-      {spentOn.length > 0 && (
-        <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-200 pt-3 text-xs text-slate-500">
-          {spentOn.map(([route, n]) => (
-            <div key={route} className="flex gap-1.5">
-              <dt>{ROUTE_NAMES[route] ?? route}</dt>
-              <dd className="font-semibold tabular-nums text-slate-700">{n}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
+      <div className="mt-2 divide-y divide-slate-100">
+        {routes.map((usage) => (
+          <RouteRow key={usage.route} usage={usage} />
+        ))}
+      </div>
 
       {/* One line. The detail is true and it is not worth four lines of a card. */}
-      <p className="mt-2.5 text-xs leading-5 text-slate-500">
-        One shared allowance, over a rolling 24 hours — each request frees itself up a day after
-        you make it.
+      <p className="mt-3 border-t border-slate-200 pt-3 text-xs leading-5 text-slate-500">
+        {uncapped
+          ? "No limits on this account."
+          : nothingIncluded
+            ? "Practice tests, drills and your study plan are unlimited on every plan, and never count towards this."
+            : "Each allowance runs over a rolling 30 days — a request frees itself up 30 days after you make it. Practice tests, drills and your study plan never count towards these."}
       </p>
     </div>
   );

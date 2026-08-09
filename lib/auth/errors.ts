@@ -11,9 +11,17 @@ import { NextResponse } from "next/server";
 
 /** Messages are written for a learner, not for whoever deployed the app. */
 export const MESSAGES = {
+  /*
+    Deliberately does not say which allowance, because this one message is
+    returned by five routes and the route the learner is standing in is the one
+    they already know about. It also does not say "resets tomorrow": each
+    allowance rolls over 30 days, one request at a time, and /billing is where
+    that is drawn properly.
+  */
   quotaExceeded:
-    "You've used all of today's AI feedback. It resets tomorrow — practice tests, drills and your study plan are always unlimited.",
-  rateLimited: "That's a lot of requests at once. Please wait a moment and try again.",
+    "You've used this month's allowance for this. Your billing page shows what's left of the others — and practice tests, drills and your study plan are never limited.",
+  rateLimited:
+    "That's a lot of requests at once. Please wait a little and try again — there's a daily ceiling as well as a monthly one, so this comes back on its own.",
   unavailable: "The AI tutor is briefly unavailable. Please try again in a minute.",
   // The account endpoints are not the AI tutor, so they say something true of
   // themselves — and equally uninformative about why.

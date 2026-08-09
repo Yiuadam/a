@@ -9,6 +9,9 @@ import { logInternal, safeJsonError } from "@/lib/auth/errors";
 
 export const maxDuration = 60;
 
+/** See the note where this is enforced, and lib/ai/models.ts. */
+export const MAX_ESSAY_CHARS = 12000;
+
 const CRITERION = {
   type: "object",
   properties: {
@@ -51,8 +54,19 @@ async function handlePOST(req: Request) {
   if (typeof prompt !== "string" || typeof essay !== "string" || (task !== 1 && task !== 2)) {
     return NextResponse.json({ error: "Missing task, prompt or essay." }, { status: 400 });
   }
-  if (essay.length > 30000) {
-    return NextResponse.json({ error: "Essay is too long." }, { status: 400 });
+  /*
+    A full-length Task 2 answer is 250-350 words, so 12000 characters is about
+    eight times what the exam asks for and no real candidate meets it. It is a
+    cost ceiling rather than a rule about essays: the input half of what this
+    request costs is exactly this number, and lib/ai/models.ts budgets against
+    it. Raising it here without raising it there is caught by
+    tests/ai-economics.test.mjs.
+  */
+  if (essay.length > MAX_ESSAY_CHARS) {
+    return NextResponse.json(
+      { error: "That essay is longer than the exam allows. Trim it and try again." },
+      { status: 400 },
+    );
   }
   const minimumWords = typeof minWords === "number" ? minWords : task === 1 ? 150 : 250;
 
@@ -82,8 +96,7 @@ Grade this response. In "criteria", give exactly four entries named ${
           : '"Task Response", "Coherence and Cohesion", "Lexical Resource", "Grammatical Range and Accuracy"'
       } with a band and a 2-3 sentence comment each, quoting short examples from the essay. Give 3 concrete strengths and 3-5 prioritised improvements. In "rewrittenExcerpt", take the weakest paragraph of the essay and rewrite it at one band higher so the candidate can see the difference.`,
       schema: SCHEMA,
-      effort: "high",
-      maxTokens: 10000,
+      route: "grade/writing",
     });
     // The model can return an out-of-range or quarter-point band; the UI and
     // stored history must only ever see valid half bands from 1 to 9.

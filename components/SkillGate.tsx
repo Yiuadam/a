@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import LockedCard from "@/components/LockedCard";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
+import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { ModuleName } from "@/lib/types";
 
 /*
@@ -67,9 +68,21 @@ const LABEL: Record<ModuleName, string> = {
 
 export default function SkillGate({
   module,
+  className = "",
   children,
 }: {
   module: ModuleName;
+  /**
+   * How wide the lock is, from the page that knows.
+   *
+   * Most pages fill the layout container, so the lock does too and nothing has
+   * to be said. The speaking page does not: its opening card is centred at
+   * `max-w-3xl`, so a full-width lock drew its tint and its ring right across
+   * the empty gutters either side — two grey rectangles flanking the card,
+   * belonging to nothing. The page is the only thing that knows its own width,
+   * so the page is what says it.
+   */
+  className?: string;
   children: ReactNode;
 }) {
   const access = useSessionAccess();
@@ -77,7 +90,7 @@ export default function SkillGate({
 
   if (skill.pending) {
     return (
-      <div className="card" aria-busy="true">
+      <div className={`card ${className}`} aria-busy="true">
         <p className="text-[15px] text-slate-500">Checking your account…</p>
       </div>
     );
@@ -86,7 +99,7 @@ export default function SkillGate({
   if (skill.locked && skill.reason) {
     const signedIn = access.tier !== "anonymous";
     return (
-      <div className="space-y-3">
+      <div className={`space-y-3 ${className}`}>
         {/*
           One line, not a panel. The page behind the lock is what is doing the
           work; this only has to say what stands between them and it, and give
@@ -97,8 +110,10 @@ export default function SkillGate({
           <p className="min-w-0 flex-1 text-sm leading-6 text-amber-900">
             {signedIn ? (
               <>
-                <span className="font-semibold">Standard unlocks this.</span> Everything else stays
-                free — the placement test, your study plan and every drill.
+                <span className="font-semibold">Standard unlocks this.</span>{" "}
+                {IS_MOBILE_BUILD
+                  ? `Subscriptions are managed on ${WEB_HOME}, not in the app.`
+                  : "Everything else stays free — the placement test, your study plan and every drill."}
               </>
             ) : (
               <>
@@ -107,12 +122,19 @@ export default function SkillGate({
               </>
             )}
           </p>
-          <Link href={signedIn ? "/pricing" : "/account"} className="btn-primary shrink-0">
-            {signedIn ? "See Standard" : "Sign in"}
-          </Link>
+          {/*
+            The iOS build has no /pricing to send anyone to, and must not offer
+            to sell this — so a signed-in learner who is out of reach of a skill
+            is told where it lives and nothing more. See lib/platform.ts.
+          */}
+          {signedIn && IS_MOBILE_BUILD ? null : (
+            <Link href={signedIn ? "/pricing" : "/account"} className="btn-primary shrink-0">
+              {signedIn ? "See Standard" : "Sign in"}
+            </Link>
+          )}
         </div>
 
-        <LockedCard reason={skill.reason} label={LABEL[module]}>
+        <LockedCard reason={skill.reason} label={LABEL[module]} standoff>
           {children}
         </LockedCard>
       </div>

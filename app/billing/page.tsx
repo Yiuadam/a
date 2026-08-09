@@ -36,7 +36,7 @@ export default function BillingPage() {
   */
   const tier = useDrawnTier(state);
   const definition = tier ? TIERS[tier] : null;
-  const monthly = plansForTier("pro").find((p) => p.interval === "month");
+  const monthly = tier ? plansForTier(tier).find((p) => p.interval === "month") : undefined;
 
   return (
     <div className="space-y-4">
@@ -116,7 +116,7 @@ export default function BillingPage() {
                       Admin
                     </span>
                   )}
-                  {tier === "pro" && monthly && (
+                  {monthly && (
                     <span className="ml-2 text-sm font-normal text-slate-500">
                       {formatPrice(monthly.amountMinor, monthly.currency)} a month
                     </span>
@@ -139,7 +139,7 @@ export default function BillingPage() {
               <div className="flex shrink-0 gap-2">
                 {tier === "free" ? (
                   <Link href="/pricing" className="btn-primary">
-                    See Standard
+                    See the plans
                   </Link>
                 ) : (
                   <Link href="/pricing" className="btn-secondary">
@@ -150,11 +150,9 @@ export default function BillingPage() {
             </div>
 
             <UsageMeter
-              used={state.used}
-              quota={state.quota}
+              routes={state.routes}
               windowSeconds={state.windowSeconds}
               oldestAt={state.oldestAt}
-              byRoute={state.byRoute}
             />
           </section>
 

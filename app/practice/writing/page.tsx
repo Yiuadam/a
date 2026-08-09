@@ -11,10 +11,31 @@ import { addResult } from "@/lib/store";
 import type { WritingGrade, WritingTasksData } from "@/lib/types";
 import Chart from "@/components/Chart";
 import SkillGate from "@/components/SkillGate";
+import UpgradePanel from "@/components/billing/UpgradePanel";
+import { tierShows, useTier } from "@/lib/billing/useTier";
 
 const tasks = (writingData as WritingTasksData).tasks;
 
 function WritingSession() {
+  /*
+    Whether marking is included, which is not the same as whether the page is
+    open. Standard unlocks writing practice — the task, the timer, the word
+    count — and does not include the AI examiner; Plus is where marking starts.
+
+    That distinction has to be visible *before* somebody writes, not after. The
+    failure it prevents is the worst one this page has: forty minutes of work,
+    then a paywall. So the standfirst changes and the submit button is replaced,
+    rather than the button being left in place to fail on the click.
+
+    Generous while the answer is unknown, like every other client-side gate
+    here: during `loading`, and with accounts switched off, marking is offered.
+    The server refuses if it should — lib/billing/gate.ts — and a paywall that
+    flashes on a subscriber's screen is worse than one that arrives a beat late.
+  */
+  const account = useTier();
+  const marked =
+    account.phase !== "ready" || !account.accountsEnabled || tierShows(account, "grade-writing");
+
   const [taskId, setTaskId] = useState(tasks[0].id);
   const [essay, setEssay] = useState("");
   const [started, setStarted] = useState(false);
@@ -58,8 +79,9 @@ function WritingSession() {
         <div>
           <h1 className="text-[26px] font-semibold text-slate-900">Writing practice</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Write your answer, then an AI examiner marks it. You get a band for each of the
-            four things the real exam marks you on.
+            {marked
+              ? "Write your answer, then an AI examiner marks it. You get a band for each of the four things the real exam marks you on."
+              : "Write your answer against the exam clock, with the same task types and word counts as the real thing. AI marking is on Plus."}
           </p>
         </div>
         {started && !grade && <Timer minutes={task.timeMinutes} running />}
@@ -148,20 +170,38 @@ function WritingSession() {
           onChange={(e) => setEssay(e.target.value)}
           disabled={grading}
         />
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button
-            className="btn-primary"
-            onClick={submit}
-            disabled={grading || wordCount < 40}
-          >
-            {grading ? "Examiner is marking…" : "Submit for AI marking"}
-          </button>
-          {wordCount < 40 && (
-            <span className="text-xs text-slate-400">Write at least 40 words to submit.</span>
-          )}
-        </div>
-        {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+        {marked ? (
+          <>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                className="btn-primary"
+                onClick={submit}
+                disabled={grading || wordCount < 40}
+              >
+                {grading ? "Examiner is marking…" : "Submit for AI marking"}
+              </button>
+              {wordCount < 40 && (
+                <span className="text-xs text-slate-400">Write at least 40 words to submit.</span>
+              )}
+            </div>
+            {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+          </>
+        ) : (
+          /*
+            Not a disabled button. A disabled control says "not yet", and this
+            is not a "not yet" — it is a different plan, and saying which one
+            is more useful than greying something out.
+          */
+          <p className="mt-3 text-sm leading-6 text-slate-500">
+            Your answer is saved on this device. AI marking is part of Plus — everything on this
+            page, including the timer and the word count, stays on your plan either way.
+          </p>
+        )}
       </div>
+
+      {!marked && (
+        <UpgradePanel feature="have this marked" signedIn={account.signedIn} tier="plus" />
+      )}
 
       {grade && (
         <section className="space-y-4" data-lookupable>

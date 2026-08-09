@@ -34,43 +34,76 @@ import type { ModuleName } from "@/lib/types";
   ---------------------------------------------------------------------------
   Why `null` for a subscriber
 
-  Standard does not ration sessions at all; its limit is the daily AI
-  allowance, which is 500 rather than 20. That is the honest shape of the
-  thing — the sessions are unlocked and the model time is what is metered —
-  and the pricing page says both halves rather than only the flattering one.
+  No paid tier rations sessions. Standard, Plus and Pro all unlock the whole
+  library; what separates them is the AI, which is metered per route in
+  lib/billing/tiers.ts and is the thing that actually costs money to serve.
+  That is the honest shape of it, and the pricing page says both halves rather
+  than only the flattering one.
 */
 
-export type SessionTier = "anonymous" | "free" | "pro" | "admin";
+export type SessionTier = "anonymous" | "free" | "standard" | "plus" | "pro" | "admin";
 
 export interface SkillAllowance {
   /** Sessions per week, or null for no limit. */
   perWeek: number | null;
-  /**
-   * How many questions of a session are answerable, or null for all of them.
-   *
-   * Only speaking uses this. A real speaking test runs to several questions
-   * across three parts, and a free account gets one — enough to hear what the
-   * examiner does with an answer, which is the thing worth trying before you
-   * pay for it.
-   */
-  maxQuestions: number | null;
 }
 
-const LOCKED: SkillAllowance = { perWeek: 0, maxQuestions: 0 };
-const UNLIMITED: SkillAllowance = { perWeek: null, maxQuestions: null };
+/*
+  There used to be a `maxQuestions` here, capping a free speaking session at one
+  question. It is gone with the tier that used it: free no longer sits speaking
+  at all, because free no longer has the model that marks it, and every tier
+  that does sit speaking sits the whole test. A field whose only remaining
+  values were "all of them" and "none, because this is locked" was saying
+  nothing that perWeek did not already say.
+*/
+const LOCKED: SkillAllowance = { perWeek: 0 };
+const UNLIMITED: SkillAllowance = { perWeek: null };
 
 export const SESSION_LIMITS: Record<SessionTier, Record<ModuleName, SkillAllowance>> = {
   anonymous: {
-    listening: { perWeek: 1, maxQuestions: null },
-    reading: { perWeek: 1, maxQuestions: null },
+    listening: { perWeek: 1 },
+    reading: { perWeek: 1 },
     writing: LOCKED,
     speaking: LOCKED,
   },
+  /*
+    Two papers a week each of the two skills that cost nothing to serve, and
+    neither of the two that do.
+
+    Writing and speaking are locked here for exactly the reason they are locked
+    for a visitor: both are marked by the model, a free account gets no model at
+    all, and a writing session with no marking is a blank box, forty minutes and
+    nothing at the end. Unlocking them without marking would be worse than
+    locking them, because it would look like the feature and not be it.
+  */
   free: {
-    listening: { perWeek: 2, maxQuestions: null },
-    reading: { perWeek: 2, maxQuestions: null },
-    writing: { perWeek: 1, maxQuestions: null },
-    speaking: { perWeek: 1, maxQuestions: 1 },
+    listening: { perWeek: 2 },
+    reading: { perWeek: 2 },
+    writing: LOCKED,
+    speaking: LOCKED,
+  },
+  /*
+    Everything, unlimited — the whole library with no AI behind it.
+
+    Writing and speaking are open here even though Standard has no marking, and
+    that is the one place this table needs defending. The difference from Free
+    is that Standard is a plan somebody chose knowing what is in it: the pricing
+    card says "marked from the answer key, not by AI" in as many words, so the
+    exam timer, the cue cards, the word count and the recording are what was
+    bought, and they are worth buying. A free account has agreed to nothing, so
+    it gets the version that cannot disappoint.
+  */
+  standard: {
+    listening: UNLIMITED,
+    reading: UNLIMITED,
+    writing: UNLIMITED,
+    speaking: UNLIMITED,
+  },
+  plus: {
+    listening: UNLIMITED,
+    reading: UNLIMITED,
+    writing: UNLIMITED,
+    speaking: UNLIMITED,
   },
   pro: {
     listening: UNLIMITED,
@@ -129,14 +162,12 @@ export function sessionsLeft(
  * One line saying what a tier gets in a skill, for a card or a tooltip.
  *
  * Written for a learner rather than assembled from the numbers: "1 a week"
- * rather than "perWeek: 1", and the speaking caveat stated rather than left
- * for them to discover at question two.
+ * rather than "perWeek: 1", and a lock says what would open it rather than
+ * saying nothing.
  */
 export function allowanceLabel(tier: SessionTier, module: ModuleName): string {
-  const { perWeek, maxQuestions } = allowanceFor(tier, module);
+  const { perWeek } = allowanceFor(tier, module);
   if (perWeek === null) return "Unlimited";
-  if (perWeek === 0) return tier === "anonymous" ? "Sign in to use this" : "On Standard";
-  const sessions = perWeek === 1 ? "1 session a week" : `${perWeek} sessions a week`;
-  if (maxQuestions === null) return sessions;
-  return maxQuestions === 1 ? `${sessions}, 1 question` : `${sessions}, ${maxQuestions} questions`;
+  if (perWeek === 0) return tier === "anonymous" ? "Sign in to use this" : "On Standard and up";
+  return perWeek === 1 ? "1 session a week" : `${perWeek} sessions a week`;
 }

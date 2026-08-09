@@ -1,6 +1,31 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { maxOutputTokens, modelFor, type CostedRoute } from "@/lib/ai/models";
 
-export const MODEL = "claude-opus-5";
+/*
+  The one place this app talks to the model.
+
+  ---------------------------------------------------------------------------
+  A call names its route, not its model
+
+  Every caller used to pass its own `maxTokens` and its own `effort`, and the
+  model was a single constant shared by all of them. That put the three numbers
+  that decide what a request costs — model, input size, output size — in five
+  different files as incidental arguments, where nothing could add them up and
+  nothing could stop one of them growing.
+
+  Now a caller names the route it is, and the model and the output ceiling come
+  from lib/ai/models.ts, which is the same file the pricing arithmetic reads.
+  A route cannot ask for more tokens than its own budget allows, because it has
+  no way to say so.
+*/
+
+/**
+ * The model most of this app runs on.
+ *
+ * Kept exported because it is the honest answer to "what model is this?" for
+ * anything that needs one, but no request is built from it — see `modelFor`.
+ */
+export const MODEL = "claude-haiku-4-5";
 
 export function hasApiKey(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
@@ -10,26 +35,41 @@ export const NO_KEY_MESSAGE =
   "AI features are not configured. Add ANTHROPIC_API_KEY to .env.local (see .env.example) and restart the server.";
 
 interface CallOptions {
+  /** Which metered route this is. Decides the model and the output ceiling. */
+  route: CostedRoute;
   system: string;
   user: string;
   /** JSON schema for structured output (additionalProperties:false everywhere). */
   schema: Record<string, unknown>;
-  maxTokens?: number;
-  /** Lower effort keeps latency inside serverless function limits. */
+  /**
+   * Reasoning effort, on the models that accept it.
+   *
+   * Silently dropped for Haiku, which rejects the parameter with a 400 rather
+   * than ignoring it. Dropping it here rather than making each caller remember
+   * is the difference between one rule and five chances to forget it.
+   */
   effort?: "low" | "medium" | "high";
 }
 
 type AnyParams = Record<string, unknown>;
 
+/** Only the larger models accept an effort setting. */
+function acceptsEffort(model: string): boolean {
+  return !model.startsWith("claude-haiku");
+}
+
 function baseParams(opts: CallOptions): AnyParams {
+  const model = modelFor(opts.route);
+  const outputConfig: AnyParams = {
+    format: { type: "json_schema", schema: opts.schema },
+  };
+  if (acceptsEffort(model)) outputConfig.effort = opts.effort ?? "medium";
+
   return {
-    model: MODEL,
-    max_tokens: opts.maxTokens ?? 8000,
+    model,
+    max_tokens: maxOutputTokens(opts.route),
     system: opts.system,
-    output_config: {
-      effort: opts.effort ?? "medium",
-      format: { type: "json_schema", schema: opts.schema },
-    },
+    output_config: outputConfig,
     messages: [{ role: "user", content: opts.user }],
   };
 }

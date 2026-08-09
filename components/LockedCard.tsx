@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { LockReason } from "@/lib/entitlements/sessions";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 
 /*
   A card you cannot use yet.
@@ -37,12 +38,28 @@ import type { LockReason } from "@/lib/entitlements/sessions";
   Focus is visible on the card itself rather than on anything inside it, so
   tabbing through a grid of half-locked cards behaves like tabbing through a
   grid of cards.
+
+  ---------------------------------------------------------------------------
+  Why a whole page is not one link, and a card is
+
+  A card is a link because a card is one thing you tap, and on a phone the
+  whole card is a far better target than a word inside it.
+
+  A whole page drawn behind its lock cannot be, and the reason is not taste:
+  the writing page contains links, and the speaking page contains "What that
+  means". An <a> inside an <a> is invalid HTML — React logs a hydration error
+  and browsers recover from it however they like, so what a tap does stops
+  being something anybody can predict. So the page-level lock is a plain
+  element, and the only link is the one in the padlock plate. Nothing is lost:
+  the content underneath is already pointer-events-none, so it was never the
+  tap target anyway.
 */
 
 export default function LockedCard({
   reason,
   label,
   fill = false,
+  standoff = false,
   children,
 }: {
   reason: Exclude<LockReason, null>;
@@ -59,28 +76,137 @@ export default function LockedCard({
    * enormous empty box with a padlock floating in the middle of it.
    */
   fill?: boolean;
+  /**
+   * Hold the tint and its ring away from the content.
+   *
+   * Off by default, and it has to be. In a grid every cell is the same size, so
+   * padding inside a locked cell makes the card *inside* it narrower than its
+   * unlocked neighbours and the row stops lining up.
+   *
+   * On a whole page drawn behind its lock there is no row to line up with, and
+   * the opposite problem appears: the ring lands hard against the first
+   * heading and the left edge of the prose, so the boundary reads as touching
+   * the words rather than framing them. That is what this is for.
+   */
+  standoff?: boolean;
   children: ReactNode;
 }) {
-  const href = reason === "sign-in" ? "/account" : "/pricing";
-  const line = reason === "sign-in" ? "Sign in to unlock" : "On Standard";
+  /*
+    On iOS a locked card leads to the account rather than to a price list —
+    /pricing is not in that bundle, and a card that says "On Standard" over a
+    tappable route to a checkout is the shape review looks for. It still says
+    it is locked, which is the honest half. See lib/platform.ts.
+  */
+  const href = reason === "sign-in" || IS_MOBILE_BUILD ? "/account" : "/pricing";
+  const line =
+    reason === "sign-in" ? "Sign in to unlock" : IS_MOBILE_BUILD ? "Not on your plan" : "On Standard";
   const said =
     reason === "sign-in"
       ? `${label}. Locked — sign in with a free account to unlock.`
       : `${label}. Locked — included with Standard.`;
+
+  /*
+    The dimmed content, the tint, and the plate — the three layers, written
+    once and arranged twice below.
+  */
+  const dimmed = (
+    <div className={`pointer-events-none min-w-0 select-none opacity-45 grayscale-[35%] ${fill ? "h-full" : ""}`}>
+      {children}
+    </div>
+  );
+
+  /*
+    The tint. A wash of the card's own surface colour rather than grey, so a
+    locked card reads as the same object turned off rather than as a different,
+    greyer object.
+  */
+  const tint = (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 rounded-2xl bg-slate-100/45 ring-1 ring-inset ring-slate-300/60 transition-colors group-hover:bg-slate-100/25"
+    />
+  );
+
+  /*
+    The padlock and the reason, on one plate.
+
+    Loose over a card it looked fine, because a card has a picture and three
+    words under it. Over a whole page it sat directly on top of the prose — the
+    padlock in the middle of a sentence, the label's edge cutting through the
+    line below it — and two pieces of text on top of each other is unreadable
+    however faint one of them is. The plate gives the words underneath
+    somewhere to stop, and its padding is what keeps its own boundary off them.
+  */
+  const plate = (
+    <>
+      <svg
+        viewBox="0 0 24 24"
+        width="26"
+        height="26"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="text-slate-600/80 transition-all group-hover:text-slate-700"
+      >
+        <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+        <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+      </svg>
+      <span className="text-xs font-semibold text-slate-700">{line}</span>
+    </>
+  );
+
+  const PLATE = "flex flex-col items-center gap-1.5 rounded-2xl border border-slate-300/70 bg-surface/90 px-4 py-3 shadow-sm";
+
+  /*
+    Centred within the top 24rem rather than within the panel. On a card the two
+    are the same thing. On a tall panel — a whole writing page drawn behind its
+    lock — dead-centre puts the padlock hundreds of pixels down, below the fold,
+    marking something the reader has to scroll to find. The cap keeps it over
+    the part of the panel they are actually looking at.
+  */
+  const OVER = "pointer-events-none absolute inset-x-0 top-0 flex h-full max-h-96 items-center justify-center";
+
+  /*
+    A page-level lock is a plain element with one link inside it; a card is one
+    big link. The difference is not taste — see the note at the top. A whole
+    page contains links of its own, and an <a> inside an <a> is invalid HTML
+    that React reports as a hydration error and browsers recover from however
+    they like.
+  */
+  if (standoff) {
+    return (
+      <div className="group relative block min-w-0 rounded-2xl p-2.5 sm:p-3.5">
+        {dimmed}
+        {tint}
+        <div className={OVER}>
+          <Link
+            href={href}
+            aria-label={said}
+            className={`pointer-events-auto ${PLATE} transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600`}
+          >
+            {plate}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Link
       href={href}
       aria-label={said}
       /*
-        min-w-0, and the same on the wrapper below.
+        min-w-0, and the same on the wrapper inside.
 
         This link is a grid item, and a grid item's automatic minimum width is
         its min-content — not zero. The card inside carries `truncate`, which
         sets white-space: nowrap, so its min-content is the *whole* untruncated
-        sentence. Without this the column is sized to the longest description
-        in the list and every card in it overflows the screen: 654px of card in
-        a 320px grid, with the text running off the right edge and the page
+        sentence. Without this the column is sized to the longest description in
+        the list and every card in it overflows the screen: 654px of card in a
+        320px grid, with the text running off the right edge and the page
         scrolling sideways.
 
         The same trap has now been hit four times in this codebase, always with
@@ -89,55 +215,10 @@ export default function LockedCard({
       */
       className={`group relative block min-w-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${fill ? "h-full" : ""}`}
     >
-      {/*
-        The card itself, dimmed and desaturated. pointer-events-none so that
-        nothing inside it can take the tap — the whole card is one link, and a
-        stray button underneath would send a learner somewhere that refuses
-        them.
-      */}
-      <div className={`pointer-events-none min-w-0 select-none opacity-45 grayscale-[35%] ${fill ? "h-full" : ""}`}>
-        {children}
-      </div>
-
-      {/*
-        The tint. A wash of the card's own surface colour rather than grey, so
-        a locked card reads as the same object turned off rather than as a
-        different, greyer object.
-      */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-2xl bg-slate-100/45 ring-1 ring-inset ring-slate-300/60 transition-colors group-hover:bg-slate-100/25"
-      />
-
-      {/*
-        The padlock and the reason. Half-transparent, as asked, and it lifts on
-        hover so the card still answers a pointer the way a card should.
-
-        Centred within the top 24rem rather than within the card. On a card the
-        two are the same thing. On a tall panel — a whole writing page drawn
-        behind its lock — dead-centre puts the padlock hundreds of pixels down,
-        below the fold, marking something the reader has to scroll to find. The
-        cap keeps it over the part of the panel they are actually looking at.
-      */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex h-full max-h-96 flex-col items-center justify-center gap-1.5">
-        <svg
-          viewBox="0 0 24 24"
-          width="26"
-          height="26"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className="text-slate-600/70 transition-all group-hover:text-slate-700/90"
-        >
-          <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
-          <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
-        </svg>
-        <span className="rounded-full bg-surface/85 px-2.5 py-0.5 text-xs font-semibold text-slate-700 shadow-sm">
-          {line}
-        </span>
+      {dimmed}
+      {tint}
+      <div className={OVER}>
+        <span className={PLATE}>{plate}</span>
       </div>
     </Link>
   );

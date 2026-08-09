@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import UpgradePanel from "@/components/billing/UpgradePanel";
+import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import { tierShows, useTier } from "@/lib/billing/useTier";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
@@ -20,12 +21,12 @@ import { apiUrl } from "@/lib/api";
      writes a paragraph — so the page asks /api/chat up front rather than
      finding out on send. See `probe` below.
 
-  2. It can show a confident number for the daily allowance. It cannot always
-     know one: /api/account/status counts admitted calls per *account*, so a
-     signed-out learner's usage is not attributable and the "remaining" figure
-     in that response is the full allowance every time. Rendering it as "5
-     left" would be a lie told in a reassuring tone, so signed out we state the
-     allowance and say the count needs an account. See `Allowance`.
+  2. It can show a confident number for the allowance. It cannot always know
+     one: /api/account/status counts admitted calls per *account*, so a
+     signed-out learner has no allowance to report at all — the tutor is a paid
+     feature and there is nothing to count. Rendering "5 left" would be a lie
+     told in a reassuring tone, so signed out we say what it takes to use this
+     and nothing about numbers. See `Allowance`.
 
   3. It can imply the tutor is an examiner. The copy here calls it a study
      assistant, and the system prompt in app/api/chat/route.ts holds the same
@@ -54,7 +55,9 @@ interface AccountStatus {
   enabled: boolean;
   signedIn?: boolean;
   unlimited?: boolean;
-  usage?: { used: number; quota: number | null; remaining: number | null };
+  usage?: {
+    routes?: { route: string; used: number; quota: number | null; remaining: number | null }[];
+  };
 }
 
 /*
@@ -424,29 +427,57 @@ function Allowance({ status }: { status: AccountStatus | null }) {
   */
   if (status.enabled === false) return null;
 
-  const quota = status.usage?.quota ?? null;
-  const remaining = status.usage?.remaining ?? null;
+  /*
+    The tutor's own allowance, not a shared pool. Every route has its own
+    monthly count now (lib/billing/tiers.ts), which is what makes this sentence
+    worth printing at all — under one shared pool "40 left" could be spent on
+    anything and told a learner nothing about whether they could keep asking.
+  */
+  const chat = status.usage?.routes?.find((r) => r.route === "chat") ?? null;
+  const quota = chat?.quota ?? null;
+  const remaining = chat?.remaining ?? null;
   const unlimited = status.unlimited === true || quota === null;
 
   return (
     <p className="text-sm leading-6 text-slate-500">
       {unlimited ? (
-        "No daily limit on this account."
-      ) : status.signedIn ? (
+        "No limit on this account."
+      ) : !status.signedIn ? (
         <>
-          <span className="font-medium text-slate-700">
-            {remaining} {remaining === 1 ? "question" : "questions"} left today
-          </span>{" "}
-          of {quota}. The same daily allowance covers marking and word lookup, and it tops back
-          up over the following 24 hours.
+          The tutor comes with Plus and Pro.{" "}
+          {IS_MOBILE_BUILD ? (
+            <>Those are managed on {WEB_HOME}, not in the app.</>
+          ) : (
+            <>
+              <Link href="/pricing" className="underline underline-offset-2 hover:text-slate-700">
+                See the plans
+              </Link>
+              ,
+            </>
+          )}{" "}
+          or keep going with the practice tests, drills and your study plan — those are free.
+        </>
+      ) : quota === 0 ? (
+        <>
+          The tutor comes with Plus and Pro.{" "}
+          {IS_MOBILE_BUILD ? (
+            <>Those are managed on {WEB_HOME}, not in the app.</>
+          ) : (
+            <>
+              <Link href="/pricing" className="underline underline-offset-2 hover:text-slate-700">
+                See the plans
+              </Link>
+              .
+            </>
+          )}
         </>
       ) : (
         <>
-          Signed out you get {quota} AI answers a day, shared with marking and word lookup.{" "}
-          <Link href="/account" className="underline underline-offset-2 hover:text-slate-700">
-            Sign in
-          </Link>{" "}
-          for a larger allowance and to see how many you have left.
+          <span className="font-medium text-slate-700">
+            {remaining} {remaining === 1 ? "question" : "questions"} left this month
+          </span>{" "}
+          of {quota}. Only questions count — reading a reply, or asking again about the same
+          thing, does not.
         </>
       )}
     </p>

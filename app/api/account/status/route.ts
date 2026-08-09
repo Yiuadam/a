@@ -4,7 +4,9 @@ import { supabaseConfigured, rpc, enabledOAuthProviders } from "@/lib/auth/supab
 import { getSessionUser } from "@/lib/auth/session";
 import { resolveEntitlement, ANONYMOUS_ENTITLEMENT } from "@/lib/billing/entitlements";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
-import { USAGE_LIMITS, USAGE_WINDOW_SECONDS } from "@/lib/usage/limits";
+import { MONTH_WINDOW_SECONDS } from "@/lib/usage/limits";
+import { COSTED_ROUTES, ROUTE_BUDGETS } from "@/lib/ai/models";
+import { monthlyCap } from "@/lib/billing/tiers";
 import { OAUTH_PROVIDERS } from "@/lib/auth/oauth";
 import { withCors } from "@/lib/http/cors";
 
@@ -40,22 +42,22 @@ async function handleGET(req: Request) {
     const user = await getSessionUser(req);
     const entitlement = user ? await resolveEntitlement(user.id, user.email) : ANONYMOUS_ENTITLEMENT;
 
-    const quota = user
-      ? USAGE_LIMITS[entitlement.tier]
-      : USAGE_LIMITS.anonymous;
-
     /*
-      usage_detail rather than usage_summary: the billing screen needs to say
-      when some allowance comes back, and the window rolls, so the answer is
-      "your oldest request drops off 24 hours after you made it" — which needs
-      that timestamp. by_route is what turns "18 of 20" into something a
-      learner can act on. See supabase/migrations/0010_usage_detail.sql.
+      One allowance per route, counted over a rolling 30 days.
 
-      Falls back to the old summary if 0010 has not been applied yet, because
-      an un-run migration should cost this screen its extra detail and not the
-      whole account status — every signed-in page depends on this route.
+      usage_detail rather than usage_summary, because the billing screen needs
+      two things a single total cannot give it. `by_route` is what turns "18 of
+      20" into something a learner can act on — it names which allowance is
+      nearly gone. `oldest_at` is when some of it comes back: the window rolls,
+      so there is no reset day, and the honest answer is "your oldest request
+      drops off 30 days after you made it". See
+      supabase/migrations/0010_usage_detail.sql.
+
+      If 0010 has not been applied this falls back to no detail at all rather
+      than failing, because an un-run migration should cost this screen its
+      usage bars and not the whole account status — every signed-in page depends
+      on this route.
     */
-    let used = 0;
     let oldestAt: string | null = null;
     let byRoute: Record<string, number> = {};
     if (user) {
@@ -66,18 +68,34 @@ async function handleGET(req: Request) {
           by_route: Record<string, number>;
         }>("usage_detail", {
           p_user_id: user.id,
-          p_window_seconds: USAGE_WINDOW_SECONDS,
+          p_window_seconds: MONTH_WINDOW_SECONDS,
         });
-        used = detail?.used ?? 0;
         oldestAt = detail?.oldest_at ?? null;
         byRoute = detail?.by_route ?? {};
-      } catch {
-        used = await rpc<number>("usage_summary", {
-          p_user_id: user.id,
-          p_window_seconds: USAGE_WINDOW_SECONDS,
-        });
+      } catch (err) {
+        logInternal("account/status/usage_detail", err);
       }
     }
+
+    /*
+      Every route, always, in a fixed order — including the ones this tier has
+      no allowance for. A tier with a zero allowance is a fact the screen should
+      state ("Writing marked — not on your plan") rather than a row it quietly
+      omits, because an omitted row reads as a missing feature rather than as an
+      upgrade.
+    */
+    const routes = COSTED_ROUTES.map((route) => {
+      const quota = user ? monthlyCap(entitlement.tier, route) : 0;
+      const used = byRoute[route] ?? 0;
+      return {
+        route,
+        label: ROUTE_BUDGETS[route].label,
+        used,
+        quota,
+        remaining: quota === null ? null : Math.max(0, quota - used),
+      };
+    });
+    const unlimited = routes.every((r) => r.quota === null);
 
     /*
       Only the providers this app offers *and* the project has configured. The
@@ -96,19 +114,16 @@ async function handleGET(req: Request) {
       tier: entitlement.tier,
       // The UI needs to know an admin has no cap so it can stop rendering a
       // counter, but the reason is not its business.
-      unlimited: quota === null,
+      unlimited,
       usage: {
-        used,
-        quota,
-        windowSeconds: USAGE_WINDOW_SECONDS,
-        remaining: quota === null ? null : Math.max(0, quota - used),
+        windowSeconds: MONTH_WINDOW_SECONDS,
         /*
-          When the oldest request in the window expires — not a reset hour,
+          When the oldest request in the window expires — not a reset day,
           because there isn't one. Null when nothing is in the window, which
           means there is nothing waiting to come back.
         */
         oldestAt,
-        byRoute,
+        routes,
       },
       expiresAt: entitlement.expiresAt,
     });

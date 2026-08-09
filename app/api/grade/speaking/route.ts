@@ -9,6 +9,10 @@ import { logInternal, safeJsonError } from "@/lib/auth/errors";
 
 export const maxDuration = 60;
 
+/** See the notes where these are enforced, and lib/ai/models.ts. */
+export const MAX_TURN_CHARS = 2000;
+export const MAX_TRANSCRIPT_CHARS = 20000;
+
 const CRITERION = {
   type: "object",
   properties: {
@@ -79,7 +83,7 @@ async function handlePOST(req: Request) {
     .map((t) => ({
       role: t.role,
       part: t.part === 1 || t.part === 2 || t.part === 3 ? t.part : 1,
-      text: t.text.slice(0, 4000),
+      text: t.text.slice(0, MAX_TURN_CHARS),
     }));
   if (transcript.length === 0) {
     return NextResponse.json({ error: "Transcript is not in the expected format." }, { status: 400 });
@@ -97,9 +101,18 @@ async function handlePOST(req: Request) {
     );
   }
 
+  /*
+    Capped once more after rendering, and this is the cap that counts. The
+    per-turn limit above bounds one turn; sixty of them still multiply, and a
+    fourteen-minute interview transcribes to about 8000 characters — so 20000 is
+    generous and is what lib/ai/models.ts budgets the input half of this request
+    against. Trimming the *start* rather than the end keeps Part 3, which is the
+    part the band descriptors discriminate on.
+  */
   const rendered = transcript
     .map((t) => `[Part ${t.part}] ${t.role === "examiner" ? "EXAMINER" : "CANDIDATE"}: ${t.text}`)
-    .join("\n");
+    .join("\n")
+    .slice(-MAX_TRANSCRIPT_CHARS);
 
   try {
     const grade = await callClaudeJSON<SpeakingGrade>({
@@ -114,8 +127,7 @@ ${rendered}
 
 Grade the candidate. In "criteria", give exactly four entries named "Fluency and Coherence", "Lexical Resource", "Grammatical Range and Accuracy", "Pronunciation" with a band and a 2-3 sentence comment each, quoting short examples from the candidate's answers. Since you only see a transcript, estimate Pronunciation conservatively from fluency/coherence proxies and explain that limitation in "pronunciationNote". Give 3 strengths and 3-5 prioritised improvements. In "betterAnswerExample", pick the candidate's weakest answer and show a band-8 model answer to that same question (natural spoken style, 60-100 words).`,
       schema: SCHEMA,
-      effort: "high",
-      maxTokens: 10000,
+      route: "grade/speaking",
     });
     // The model can return an out-of-range or quarter-point band; the UI and
     // stored history must only ever see valid half bands from 1 to 9.

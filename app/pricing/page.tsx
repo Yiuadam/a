@@ -18,7 +18,7 @@ import PricingPlans from "./PricingPlans";
 export const metadata: Metadata = {
   title: "Plans — BandUp",
   description:
-    "The placement test, your study plan and every drill are free and unlimited. Standard adds the full mock exam, the tutor chat, more practice sessions and a much larger AI allowance.",
+    "The placement test, your study plan and every drill are free and unlimited. Standard unlocks every practice paper, Plus adds AI marking and the tutor, and Pro raises every allowance.",
 };
 
 const ALWAYS_FREE = [
@@ -42,7 +42,8 @@ export default function PricingPage() {
         <h1 className="text-[26px] font-semibold text-slate-900">Plans</h1>
         {/* One line. The two cards below say the rest, and say it better. */}
         <p className="mt-1 text-[15px] leading-6 text-slate-600">
-          Most of BandUp is free. A plan buys more of the part that costs money to run — the AI.
+          Most of BandUp is free. Standard unlocks every practice paper; Plus and Pro add the
+          part that costs money to run — the AI examiner, the tutor and word lookup.
         </p>
       </div>
 
@@ -98,8 +99,10 @@ export default function PricingPage() {
           period you paid for, and it does not renew after that.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          <strong>The daily allowance is a rolling 24 hours</strong>, not a calendar day, so
-          there is no midnight cliff and no argument about which timezone the day belongs to.
+          <strong>Each AI allowance runs over a rolling 30 days</strong>, not a calendar month.
+          There is no reset day: a request frees itself up 30 days after you make it, one at a
+          time. Every kind of AI has its own allowance rather than sharing one pool, so a month
+          of word lookups cannot use up the essays you have left.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           <strong>On iPhone, subscriptions will be bought through Apple.</strong> Apple requires

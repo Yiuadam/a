@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { authedFetch, getServerSnapshot, getSnapshot, subscribe } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { previewOnServer, readPreview, subscribePreview } from "./preview";
-import { tierAllows, type Feature, type Tier } from "./tiers";
+import { TIER_NAMES, tierAllows, type Feature, type Tier } from "./tiers";
 
 /*
   What the browser knows about which tier it is in — which is to say, whatever
@@ -38,6 +38,17 @@ import { tierAllows, type Feature, type Tier } from "./tiers";
 
 export type Phase = "loading" | "ready" | "unavailable";
 
+/** One route's allowance, as /api/account/status reports it. */
+export interface RouteUsage {
+  route: string;
+  /** What a learner calls it: "Word lookups", "Writing marked". */
+  label: string;
+  used: number;
+  /** Null means no cap — the owner's own account. Zero means not on this plan. */
+  quota: number | null;
+  remaining: number | null;
+}
+
 export interface TierState {
   phase: Phase;
   /**
@@ -50,22 +61,20 @@ export interface TierState {
   /** Whether accounts exist at all in this deployment. */
   accountsEnabled: boolean;
   signedIn: boolean;
-  /** Requests left in the rolling window, or null when there is no cap. */
-  remaining: number | null;
-  /** Requests spent inside the window. */
-  used: number;
-  /** The cap itself, or null when there is none. */
-  quota: number | null;
-  /** How long the window is, in seconds. */
+  /** How long the window is, in seconds. A rolling 30 days. */
   windowSeconds: number;
   /**
-   * When the oldest request in the window expires — not a reset hour, because
+   * When the oldest request in the window expires — not a reset day, because
    * the window rolls and there isn't one. Null when nothing is waiting to come
    * back. See supabase/migrations/0010_usage_detail.sql.
    */
   oldestAt: string | null;
-  /** What the allowance went on, keyed by route. */
-  byRoute: Record<string, number>;
+  /**
+   * One allowance per metered route, in a fixed order, including the routes
+   * this tier has no allowance for. A zero quota is a fact worth drawing —
+   * "not on your plan" — rather than a row to leave out.
+   */
+  routes: RouteUsage[];
   /** When the current subscription lapses, ISO, or null. */
   expiresAt: string | null;
 }
@@ -75,12 +84,9 @@ const INITIAL: TierState = {
   tier: null,
   accountsEnabled: false,
   signedIn: false,
-  remaining: null,
-  used: 0,
-  quota: null,
-  windowSeconds: 24 * 60 * 60,
+  windowSeconds: 30 * 24 * 60 * 60,
   oldestAt: null,
-  byRoute: {},
+  routes: [],
   expiresAt: null,
 };
 
@@ -97,18 +103,17 @@ interface AccountStatus {
   tier?: string;
   unlimited?: boolean;
   usage?: {
-    remaining?: number | null;
-    used?: number;
-    quota?: number | null;
     windowSeconds?: number;
     oldestAt?: string | null;
-    byRoute?: Record<string, number>;
+    routes?: RouteUsage[];
   };
   expiresAt?: string | null;
 }
 
 function readTier(value: unknown): Tier | null {
-  return value === "pro" || value === "admin" || value === "free" ? value : null;
+  return typeof value === "string" && (TIER_NAMES as readonly string[]).includes(value)
+    ? (value as Tier)
+    : null;
 }
 
 /** The current account's tier and allowance, as the server reports them. */
@@ -137,12 +142,9 @@ export function useTier(): TierState {
           tier: body.enabled === true ? readTier(body.tier) : null,
           accountsEnabled: body.enabled === true,
           signedIn: body.signedIn === true,
-          remaining: body.usage?.remaining ?? null,
-          used: body.usage?.used ?? 0,
-          quota: body.usage?.quota ?? null,
-          windowSeconds: body.usage?.windowSeconds ?? 24 * 60 * 60,
+          windowSeconds: body.usage?.windowSeconds ?? 30 * 24 * 60 * 60,
           oldestAt: body.usage?.oldestAt ?? null,
-          byRoute: body.usage?.byRoute ?? {},
+          routes: body.usage?.routes ?? [],
           expiresAt: body.expiresAt ?? null,
         });
       })
@@ -162,6 +164,11 @@ export function useTier(): TierState {
   }, [session]);
 
   return state;
+}
+
+/** One route's allowance, or null if the server has not reported it. */
+export function usageFor(state: TierState, route: string): RouteUsage | null {
+  return state.routes.find((r) => r.route === route) ?? null;
 }
 
 /**

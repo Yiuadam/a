@@ -1,12 +1,54 @@
+import {
+  COSTED_ROUTES,
+  worstCaseMonthlyCost,
+  type CostedRoute,
+} from "@/lib/ai/models";
+
 /*
-  What the tiers are: what each one costs, what it unlocks, and how much AI it
-  may spend in a day.
+  What the tiers are: what each one costs, what it unlocks, and exactly how much
+  AI it may spend before it is stopped.
 
   This file is the single definition of all three. Before it existed the numbers
   were in two places — the allowances in lib/usage/limits.ts and the marketing
   copy nowhere at all — and a paywall whose page promises one figure while the
   meter enforces another is a paywall that generates support mail. So the page,
   the meter and the gate all read from here.
+
+  ---------------------------------------------------------------------------
+  The rule this file exists to keep
+
+  A subscriber pays a fixed amount once a month and can press the AI buttons as
+  often as they like. Those two facts together are how a subscription business
+  loses money, and the only defence is a cap that is *lower than what they
+  paid*. So every allowance below was chosen by working backwards from the
+  price:
+
+      worst-case monthly AI cost  <  price  -  payment fees
+
+  Worst case means every call at the ceiling: the largest input the route
+  accepts and the full `max_tokens` of output, at list price, on every call up
+  to the cap. Real use costs a fraction of it.
+
+  tests/ai-economics.test.mjs recomputes that inequality for every tier on
+  every build and fails if any tier is even close. Raising a cap here without
+  raising the price fails the build, which is the point — the guarantee is not
+  something anybody has to remember.
+
+  ---------------------------------------------------------------------------
+  Why the caps are per route and not one shared pool
+
+  They used to be one pool: twenty requests a day, spend them how you like.
+  That reads well and cannot be costed, because the five routes differ in price
+  by a factor of thirty. Twenty lookups cost six cents; twenty generated tests
+  cost two dollars. A single number cannot bound both, so it bounds neither,
+  and the only way to make it safe would be to set it low enough for the most
+  expensive route — which would mean rationing word lookups as though each one
+  were a whole practice test.
+
+  Per route, each allowance can be as generous as that route is cheap. It also
+  reads better on the billing page: five short bars saying what you have used
+  each thing for, instead of one bar that says nothing about what to stop
+  doing.
 
   ---------------------------------------------------------------------------
   Why this module is deliberately pure
@@ -45,10 +87,20 @@
  * a database column, and it appears here only so that a tier→feature question
  * has an answer for every value `resolve_entitlement` can return.
  */
-export type Tier = "free" | "pro" | "admin";
+export const TIER_NAMES = ["free", "standard", "plus", "pro", "admin"] as const;
+
+export type Tier = (typeof TIER_NAMES)[number];
 
 /** The tiers the pricing page shows, in the order it shows them. */
-export const SELLABLE_TIERS = ["free", "pro"] as const satisfies readonly Tier[];
+export const SELLABLE_TIERS = ["free", "standard", "plus", "pro"] as const satisfies readonly Tier[];
+
+/** The tiers somebody actually pays for. */
+export const PAID_TIERS = ["standard", "plus", "pro"] as const satisfies readonly Tier[];
+export type PaidTier = (typeof PAID_TIERS)[number];
+
+export function isPaidTier(tier: Tier): tier is PaidTier {
+  return (PAID_TIERS as readonly Tier[]).includes(tier);
+}
 
 /*
   The things a tier can unlock.
@@ -58,7 +110,8 @@ export const SELLABLE_TIERS = ["free", "pro"] as const satisfies readonly Tier[]
   listening tests, the grammar drills and the vocabulary drills are static
   content shipped in the app bundle, cost nothing per use, and are free forever
   for everyone signed in or not. What is listed here is only what costs money
-  each time somebody presses the button.
+  each time somebody presses the button — plus one thing that costs nothing and
+  is named so it can be promised.
 */
 export const FEATURES = [
   /** Word lookup — /api/define. */
@@ -69,16 +122,7 @@ export const FEATURES = [
   "grade-writing",
   /** Examiner feedback on a mock speaking test — /api/grade/speaking. */
   "grade-speaking",
-  /*
-    The conversational tutor. This is the one feature that is genuinely a paid
-    feature rather than a bigger allowance of a free one: a chat turn costs a
-    model call every few seconds rather than once per essay, so a free tier that
-    included it would be an uncapped bill wearing a friendly face.
-
-    The chat route itself is being built separately. It is named here so that
-    the gate exists before the feature does, rather than being retrofitted to a
-    route that shipped open.
-  */
+  /** The conversational tutor — /api/chat. */
   "tutor-chat",
   /** Carrying progress between devices. Free with any account, and stays free. */
   "progress-sync",
@@ -86,38 +130,111 @@ export const FEATURES = [
 
 export type Feature = (typeof FEATURES)[number];
 
+/**
+ * Which metered route a feature spends from.
+ *
+ * `progress-sync` is absent because it spends nothing: it is a database write,
+ * and a tier is allowed it simply for being an account. Everything else maps to
+ * exactly one route, and that mapping is what makes the caps below the single
+ * definition of who may use what — there is no second list of features per tier
+ * that could disagree with the allowances.
+ */
+export const FEATURE_ROUTES: Record<Exclude<Feature, "progress-sync">, CostedRoute> = {
+  define: "define",
+  generate: "generate",
+  "grade-writing": "grade/writing",
+  "grade-speaking": "grade/speaking",
+  "tutor-chat": "chat",
+};
+
+/**
+ * How many calls a tier gets per route, per rolling 30 days.
+ *
+ * Zero means the route is refused outright — that is how "no AI at all" is
+ * expressed, and it is the same number the gate reads, so a tier can never be
+ * shown a button that its allowance would refuse. `null` is unlimited and only
+ * the owner's own account is ever null.
+ *
+ * The window rolls: there is no reset day, no midnight, nothing that empties at
+ * once. Each call expires thirty days after it was made. That is harder to
+ * explain than "resets on the 1st" and it is fairer — a subscriber who joins on
+ * the 28th does not get three days of allowance for a month of money.
+ */
+export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> = {
+  /*
+    Nothing. A free account is a real account with progress sync, the placement
+    test, the study plan, every drill and two reading and two listening papers a
+    week — all of which are marked from an answer key that ships in the bundle
+    and cost nothing to serve. What it is not is a free sample of the API.
+
+    Free AI was tried and it does not survive contact with arithmetic: twenty
+    requests a day is up to six hundred a month, from an account that costs
+    nothing to create, of which somebody can create as many as they like.
+  */
+  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  /*
+    Also nothing, and that is what Standard is: the whole library, unlocked, with
+    no AI. It exists because most of what BandUp does needs no model — a reading
+    paper is marked against its answer key, and the mark is exactly as accurate
+    as the expensive kind. Somebody who wants unlimited practice and does not
+    want an essay marked should not be made to pay for marking.
+  */
+  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  /*
+    Enough AI for a normal month of preparation: an essay marked every weekday
+    or two, a speaking test a fortnight, a few questions a day, and a couple of
+    fresh papers.
+  */
+  plus: { define: 200, chat: 100, "grade/writing": 20, "grade/speaking": 12, generate: 4 },
+  /*
+    Two to three times Plus on every route, for the weeks before the exam. It
+    is the most expensive tier to serve and therefore the one with the thinnest
+    margin, which is why its caps are the ones to check first when anything
+    about the cost model changes.
+  */
+  pro: { define: 350, chat: 200, "grade/writing": 60, "grade/speaking": 40, generate: 10 },
+  /*
+    The owner's account. An admin flag that still enforced a limit would be a
+    flag that did nothing.
+  */
+  admin: { define: null, chat: null, "grade/writing": null, "grade/speaking": null, generate: null },
+};
+
+/**
+ * A ceiling on how fast a monthly allowance can be spent, per rolling 24 hours.
+ *
+ * This is not a cost control — the monthly cap already bounds the money, and
+ * this one cannot make the bill smaller. It bounds the *rate*, so that a
+ * month's worth of requests cannot arrive in an afternoon and collide with the
+ * upstream API's own rate limits, taking the app down for everybody else while
+ * one account drains its allowance.
+ *
+ * Set at roughly a fifth of the month on the cheap routes and a sixth on the
+ * expensive ones, so nobody meets it during a normal day's work.
+ */
+export const DAILY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> = {
+  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  plus: { define: 40, chat: 25, "grade/writing": 5, "grade/speaking": 4, generate: 2 },
+  pro: { define: 70, chat: 40, "grade/writing": 12, "grade/speaking": 8, generate: 3 },
+  admin: { define: null, chat: null, "grade/writing": null, "grade/speaking": null, generate: null },
+};
+
 export interface TierDefinition {
   id: Tier;
   /** What the learner sees this called. */
   name: string;
   /** One line, in the second person, saying who the tier is for. */
   blurb: string;
-  /**
-   * AI calls per rolling 24 hours across every metered route. `null` is
-   * unlimited, which only the owner's own account ever is.
-   */
-  dailyAiCalls: number | null;
-  /** Everything this tier may use. Absence from this list is the whole gate. */
-  features: readonly Feature[];
   /** Bullets for the pricing page. Written to be read, not to be skimmed past. */
   includes: readonly string[];
 }
-
-const EVERYTHING_METERED: readonly Feature[] = [
-  "define",
-  "generate",
-  "grade-writing",
-  "grade-speaking",
-  "progress-sync",
-];
 
 export const TIERS: Record<Tier, TierDefinition> = {
   free: {
     id: "free",
     name: "Free",
-    blurb: "A real account, with a daily allowance of AI feedback.",
-    dailyAiCalls: 20,
-    features: EVERYTHING_METERED,
+    blurb: "A real account, with the placement test, your plan and every drill.",
     /*
       Short lines, deliberately. A bullet that wraps to three lines is a
       paragraph wearing a dot, and five of those turned this card into most of
@@ -126,39 +243,49 @@ export const TIERS: Record<Tier, TierDefinition> = {
     includes: [
       "Placement test, study plan and all drills — unlimited",
       "2 listening and 2 reading papers a week",
-      "1 writing and 1 speaking session a week, 1 question in the speaking",
-      "20 AI requests a day, in any mix",
       "Progress synced across your devices",
+      "No AI marking or tutor — those start on Plus",
+    ],
+  },
+  standard: {
+    id: "standard",
+    name: "Standard",
+    blurb: "The whole library, unlocked. Every paper, as often as you like.",
+    includes: [
+      "Every reading and listening paper, no weekly limit",
+      "Writing and speaking practice with the exam timer",
+      "The full mock exam — all four skills, timed",
+      "Marked from the answer key, not by AI",
+      "Cancel any time, one button",
+    ],
+  },
+  plus: {
+    id: "plus",
+    name: "Plus",
+    blurb: "Everything in Standard, plus an examiner for your writing and speaking.",
+    includes: [
+      "Everything in Standard",
+      "20 essays and 12 speaking tests marked a month",
+      "100 tutor questions and 200 word lookups a month",
+      "4 fresh AI-written papers a month",
+      "Cancel any time, one button",
     ],
   },
   pro: {
     id: "pro",
-    name: "Standard",
-    blurb: "For the weeks before the exam, when one paper a week is not enough.",
-    dailyAiCalls: 500,
-    features: [...EVERYTHING_METERED, "tutor-chat"],
-    /*
-      Both halves, in the order they matter.
-
-      Standard does not ration sessions — that is what it unlocks — and it
-      does cap the model, at 500 a day rather than 20. An early draft said
-      only "no weekly limits", which reads as no limit at all and is the
-      sentence a subscriber would remember; a later one said "many more
-      sessions", which undersold the thing that is actually unlimited. Saying
-      both, plainly, costs one line and is the only version that is true.
-    */
+    name: "Pro",
+    blurb: "For the weeks before the exam, when you are practising every day.",
     includes: [
-      "No weekly limit on practice sessions, in any skill",
-      "The full mock exam — all four skills, timed",
-      "The AI tutor chat, whenever you are stuck",
-      "500 AI requests a day instead of 20",
+      "Everything in Plus, two to three times over",
+      "60 essays and 40 speaking tests marked a month",
+      "200 tutor questions and 350 word lookups a month",
+      "10 fresh AI-written papers a month",
       "Cancel any time, one button",
     ],
   },
   /*
     Not sold, not shown, and listed only so that every tier the database can
-    return has a definition here. An admin flag that still enforced a limit
-    would be a flag that did nothing.
+    return has a definition here.
   */
   admin: {
     id: "admin",
@@ -169,11 +296,26 @@ export const TIERS: Record<Tier, TierDefinition> = {
     */
     name: "Adam",
     blurb: "Your own account. No limits on anything.",
-    dailyAiCalls: null,
-    features: [...EVERYTHING_METERED, "tutor-chat"],
     includes: [],
   },
 };
+
+/**
+ * The monthly allowance for one route, `null` meaning unlimited.
+ *
+ * An unrecognised tier gets zero rather than unlimited. A typo should cost
+ * somebody a feature, never hand out one they have not paid for.
+ */
+export function monthlyCap(tier: string, route: CostedRoute): number | null {
+  if (!Object.prototype.hasOwnProperty.call(MONTHLY_AI_CAPS, tier)) return 0;
+  return MONTHLY_AI_CAPS[tier as Tier][route];
+}
+
+/** The 24-hour ceiling for one route, `null` meaning unlimited. */
+export function dailyCap(tier: string, route: CostedRoute): number | null {
+  if (!Object.prototype.hasOwnProperty.call(DAILY_AI_CAPS, tier)) return 0;
+  return DAILY_AI_CAPS[tier as Tier][route];
+}
 
 /**
  * May a tier use a feature?
@@ -184,26 +326,42 @@ export const TIERS: Record<Tier, TierDefinition> = {
  * `resolveEntitlement` — never from anything the caller said about itself. See
  * lib/billing/gate.ts, and ACCOUNTS.md threats 1 and 3.
  *
- * An unrecognised tier is refused rather than allowed. A typo in this file
- * should cost a user a feature, never hand out one they have not paid for.
+ * There is no separate list of which features a tier has. The answer is read
+ * off the allowance: an allowance of zero *is* the refusal, so the gate and
+ * the meter can never disagree about whether somebody may press a button.
  */
 export function tierAllows(tier: string, feature: Feature): boolean {
-  /*
-    `hasOwnProperty` rather than a truthiness test on the lookup, and the
-    difference is not pedantry. `TIERS["toString"]` finds Object.prototype's
-    method, which is truthy, so a plain `if (!definition) return false` sails
-    past it and then throws on `.features`. The tier is a string that reached
-    here from the database, and the failure it produced was a 500 rather than a
-    refusal — which is a worse answer to an unrecognised tier than "no".
-  */
   if (!Object.prototype.hasOwnProperty.call(TIERS, tier)) return false;
-  const definition = TIERS[tier as Tier];
-  return definition.features.includes(feature);
+  // Costs nothing to serve, so every account has it.
+  if (feature === "progress-sync") return true;
+  const cap = monthlyCap(tier, FEATURE_ROUTES[feature]);
+  return cap === null || cap > 0;
 }
 
-/** The daily AI allowance for a tier, `null` meaning unlimited. */
-export function dailyAiCalls(tier: Tier): number | null {
-  return TIERS[tier].dailyAiCalls;
+/** Whether a tier may use any AI at all — what the pricing page reads. */
+export function tierHasAi(tier: Tier): boolean {
+  return COSTED_ROUTES.some((route) => {
+    const cap = monthlyCap(tier, route);
+    return cap === null || cap > 0;
+  });
+}
+
+/**
+ * The worst this tier's AI can cost in a month, in US dollars.
+ *
+ * Unlimited counts as zero here rather than as infinity, because the only
+ * unlimited tier is the owner's own account: it is not sold, so there is no
+ * revenue for it to lose against, and including it would make the number
+ * meaningless rather than alarming.
+ */
+export function worstCaseTierCost(tier: Tier): number {
+  const caps = MONTHLY_AI_CAPS[tier];
+  const finite: Partial<Record<CostedRoute, number>> = {};
+  for (const route of COSTED_ROUTES) {
+    const cap = caps[route];
+    if (cap !== null) finite[route] = cap;
+  }
+  return worstCaseMonthlyCost(finite);
 }
 
 /*
@@ -221,43 +379,78 @@ export function dailyAiCalls(tier: Tier): number | null {
 
 export type BillingInterval = "month" | "year";
 
-export const PLAN_IDS = ["pro-monthly", "pro-yearly"] as const;
+export const PLAN_IDS = [
+  "standard-monthly",
+  "standard-yearly",
+  "plus-monthly",
+  "plus-yearly",
+  "pro-monthly",
+  "pro-yearly",
+] as const;
 export type PlanId = (typeof PLAN_IDS)[number];
 
 export interface Plan {
   id: PlanId;
-  tier: Exclude<Tier, "free" | "admin">;
+  tier: PaidTier;
   interval: BillingInterval;
-  /** Minor units, as Stripe stores them: 650 is $6.50. */
+  /** Minor units, as Stripe stores them: 299 is $2.99. */
   amountMinor: number;
   /** ISO 4217, lower case, as Stripe writes it. */
   currency: string;
 }
 
+/*
+  The ladder: $2.99, $5.99, $9.99.
+
+  Each step is roughly double the last, which is what makes the middle one
+  read as the sensible choice rather than as a compromise, and each step buys
+  something a learner can name — the library, then an examiner, then an
+  examiner they can use every day.
+
+  The yearly prices are ten months' money for twelve months' access, rounded to
+  the nearest of the prices people expect to see: $29, $59, $99.
+*/
 export const PLANS: Record<PlanId, Plan> = {
+  "standard-monthly": {
+    id: "standard-monthly",
+    tier: "standard",
+    interval: "month",
+    amountMinor: 299,
+    currency: "usd",
+  },
+  "standard-yearly": {
+    id: "standard-yearly",
+    tier: "standard",
+    interval: "year",
+    amountMinor: 2900,
+    currency: "usd",
+  },
+  "plus-monthly": {
+    id: "plus-monthly",
+    tier: "plus",
+    interval: "month",
+    amountMinor: 599,
+    currency: "usd",
+  },
+  "plus-yearly": {
+    id: "plus-yearly",
+    tier: "plus",
+    interval: "year",
+    amountMinor: 5900,
+    currency: "usd",
+  },
   "pro-monthly": {
     id: "pro-monthly",
     tier: "pro",
     interval: "month",
-    /*
-      $6.50, which is the owner's "about $1.50 a week" turned into a billing
-      interval that works. Weekly billing is possible and a bad idea: a card is
-      authorised every seven days, a subscriber collects 52 receipts a year,
-      and every extra renewal attempt is another chance for one to fail.
-      $1.50 x 52 / 12 is $6.50, so what a learner pays across a year is exactly
-      the number the owner named.
-    */
-    amountMinor: 650,
+    amountMinor: 999,
     currency: "usd",
   },
   "pro-yearly": {
     id: "pro-yearly",
     tier: "pro",
     interval: "year",
-    // Ten months' money for twelve months' access. Shown as a total and as the
-    // monthly figure it divides into, so the saving is something the reader
-    // works out rather than something we assert.
-    amountMinor: 6500,
+    amountMinor: 9900,
     currency: "usd",
   },
 };
@@ -269,6 +462,33 @@ export function isPlanId(value: unknown): value is PlanId {
 /** Every plan that buys a given tier. */
 export function plansForTier(tier: Tier): Plan[] {
   return PLAN_IDS.map((id) => PLANS[id]).filter((plan) => plan.tier === tier);
+}
+
+/*
+  What the card processor keeps.
+
+  Stripe's standard rate is 2.9% plus 30 cents on a successful card charge. It
+  is written here rather than in the test because it is part of what a plan
+  earns, and the margin check is meaningless without it — on a $2.99 charge the
+  fixed 30 cents alone is a tenth of the price.
+
+  Deliberately no allowance for the higher international-card rate, chargebacks,
+  refunds or currency conversion. Those exist and they make the real margin
+  thinner than this, so the headroom the economics test insists on is what
+  covers them.
+*/
+export const STRIPE_PERCENT_FEE = 0.029;
+export const STRIPE_FIXED_FEE_MINOR = 30;
+
+/** What actually lands, in US dollars, after the processor takes its cut. */
+export function netRevenue(plan: Plan): number {
+  const fee = plan.amountMinor * STRIPE_PERCENT_FEE + STRIPE_FIXED_FEE_MINOR;
+  return (plan.amountMinor - fee) / 100;
+}
+
+/** How many months of allowance one payment has to cover. */
+export function monthsCovered(plan: Plan): number {
+  return plan.interval === "year" ? 12 : 1;
 }
 
 /**

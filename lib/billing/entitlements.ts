@@ -1,4 +1,5 @@
 import { isAdminEmail } from "@/lib/auth/env";
+import { TIER_NAMES } from "./tiers";
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { rpc } from "@/lib/auth/supabase";
 import type { Tier } from "./tiers";
@@ -55,8 +56,17 @@ function normalise(raw: RawEntitlement | null): Entitlement {
   // permissive default. A typo in this file should cost a user their extras,
   // never hand out an unlimited allowance.
   const role: Role = raw.role === "admin" ? "admin" : "user";
+  /*
+    Any tier this build knows about is taken at face value; anything else falls
+    to free. Written against TIER_NAMES rather than as a chain of comparisons
+    because the chain was where the last tier was forgotten — adding "plus" to
+    the catalogue and not here would have silently served every Plus subscriber
+    the free tier, and nothing would have failed.
+  */
   const tier: Tier =
-    raw.tier === "admin" ? "admin" : raw.tier === "pro" ? "pro" : "free";
+    typeof raw.tier === "string" && (TIER_NAMES as readonly string[]).includes(raw.tier)
+      ? (raw.tier as Tier)
+      : "free";
   const source =
     raw.source === "role" ||
     raw.source === "stripe" ||

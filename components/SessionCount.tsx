@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 import type { SkillAccess } from "@/lib/entitlements/useSessions";
 
 /*
@@ -36,6 +37,15 @@ export default function SessionCount({ access }: { access: SkillAccess }) {
         {access.left} left this week
       </span>
     );
+  }
+
+  /*
+    Nothing to tap in the iOS build: /pricing is not in that bundle, and an
+    invitation to buy is exactly what must not be there. The count still tells
+    the truth — it just stops offering a way out of it. See lib/platform.ts.
+  */
+  if (IS_MOBILE_BUILD) {
+    return <span className="shrink-0 text-xs font-medium text-slate-500">None left this week</span>;
   }
 
   return (

@@ -31,11 +31,20 @@ test("the tutor is told to be short, with a number rather than an adjective", ()
 });
 
 test("the answer cap leaves no room to ramble", () => {
-  const m = source.match(/maxTokens:\s*(\d+)/);
-  assert.ok(m, "the chat route must set an explicit token cap");
+  /*
+    The cap moved out of this route and into lib/ai/models.ts, where the same
+    number is what the pricing arithmetic is built on — a route can no longer
+    ask for more tokens than its own budget. So the assertion follows it: the
+    route must name itself, and the budget must hold the cap.
+  */
+  assert.match(source, /route: "chat"/, "the chat route must name itself so its budget applies");
+  const budgets = readFileSync(join(process.cwd(), "lib", "ai", "models.ts"), "utf8");
+  const block = budgets.slice(budgets.indexOf("  chat: {"), budgets.indexOf("  chat: {") + 400);
+  const m = block.match(/maxOutputTokens:\s*(\d+)/);
+  assert.ok(m, "lib/ai/models.ts must set an explicit output cap for the chat route");
   const cap = Number(m[1]);
-  assert.ok(cap <= 1000, `maxTokens is ${cap}; headroom is what a model spreads into`);
-  assert.ok(cap >= 400, `maxTokens is ${cap}; a legitimate correction would be cut mid-sentence`);
+  assert.ok(cap <= 1000, `maxOutputTokens is ${cap}; headroom is what a model spreads into`);
+  assert.ok(cap >= 400, `maxOutputTokens is ${cap}; a legitimate correction would be cut mid-sentence`);
 });
 
 test("off-subject questions are refused rather than answered with a caveat", () => {
