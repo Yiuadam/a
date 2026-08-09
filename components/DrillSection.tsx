@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import Drill from "@/components/Drill";
 import ExplainText from "@/components/ExplainText";
 import LockedCard from "@/components/LockedCard";
+import MoreComing from "@/components/MoreComing";
 import {
   drillLimit,
   drillLockReason,
@@ -122,7 +123,7 @@ export default function DrillSection({
           const inner = (
             <>
               <div className="flex items-start justify-between gap-3">
-                <h2 className="font-semibold text-slate-900">{t.title}</h2>
+                <h2 className="min-w-0 font-semibold text-slate-900">{t.title}</h2>
                 <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
                   {t.level}
                 </span>
@@ -141,15 +142,27 @@ export default function DrillSection({
                   {t.questions.length} questions
                 </span>
                 {pct !== null && (
-                  <span
-                    className={`rounded px-2 py-0.5 font-semibold ${
-                      pct >= 75
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-amber-50 text-amber-800"
-                    }`}
-                  >
-                    Best {score.correct}/{score.total}
-                  </span>
+                  <>
+                    {/* Same two facts as a paper card: that it is done, and
+                        how well. A drill is scored out of its own question
+                        count rather than in bands, so the number differs; the
+                        badge does not. */}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                      Done
+                    </span>
+                    <span
+                      className={`rounded px-2 py-0.5 font-semibold ${
+                        pct >= 75
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-800"
+                      }`}
+                    >
+                      Best {score.correct}/{score.total}
+                    </span>
+                  </>
                 )}
               </div>
             </>
@@ -173,6 +186,7 @@ export default function DrillSection({
               <LockedCard
                 key={t.id}
                 reason={drillLockReason(access.tier)}
+                fill
                 label={`${t.title}, a ${kind} topic`}
               >
                 <div className="card h-full">{inner}</div>
@@ -191,6 +205,8 @@ export default function DrillSection({
             </button>
           );
         })}
+
+        <MoreComing what={`${kind} topics`} />
       </div>
     </div>
   );

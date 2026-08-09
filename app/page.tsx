@@ -187,7 +187,7 @@ export default function Dashboard() {
 
                 if (skill.locked && skill.reason) {
                   return (
-                    <LockedCard key={m.key} reason={skill.reason} label={`${m.label} practice`}>
+                    <LockedCard key={m.key} reason={skill.reason} label={`${m.label} practice`} fill>
                       <div className="card !p-3.5 h-full">
                         <div className="flex items-start gap-2.5">
                           <Icon name={m.icon} className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />

@@ -42,11 +42,23 @@ import type { LockReason } from "@/lib/entitlements/sessions";
 export default function LockedCard({
   reason,
   label,
+  fill = false,
   children,
 }: {
   reason: Exclude<LockReason, null>;
   /** What is locked, for the screen reader: "Writing practice". */
   label: string;
+  /**
+   * Stretch to the height of the row.
+   *
+   * Opt-in, and it must stay that way. As a grid item this link stretches to
+   * its row whether it wants to or not, so a locked card in a grid needs
+   * h-full to stop its tint and padlock hanging below the card inside it. But
+   * a locked panel sitting in a *column* has no row to match, and h-full made
+   * it swallow every pixel left in the column — a small form drawn inside an
+   * enormous empty box with a padlock floating in the middle of it.
+   */
+  fill?: boolean;
   children: ReactNode;
 }) {
   const href = reason === "sign-in" ? "/account" : "/pricing";
@@ -60,14 +72,7 @@ export default function LockedCard({
     <Link
       href={href}
       aria-label={said}
-      /*
-        h-full, and the same on the wrapper below. As a grid item this link
-        stretches to its row, but the card inside it does not — so a short
-        locked card sat in a tall row drew its tint and its padlock over an
-        inch of empty space below itself. Caught on /grammar, where the rows
-        are as tall as the longest summary in them.
-      */
-      className="group relative block h-full rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+      className={`group relative block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${fill ? "h-full" : ""}`}
     >
       {/*
         The card itself, dimmed and desaturated. pointer-events-none so that
@@ -75,7 +80,9 @@ export default function LockedCard({
         stray button underneath would send a learner somewhere that refuses
         them.
       */}
-      <div className="pointer-events-none h-full select-none opacity-45 grayscale-[35%]">{children}</div>
+      <div className={`pointer-events-none select-none opacity-45 grayscale-[35%] ${fill ? "h-full" : ""}`}>
+        {children}
+      </div>
 
       {/*
         The tint. A wash of the card's own surface colour rather than grey, so
@@ -88,11 +95,16 @@ export default function LockedCard({
       />
 
       {/*
-        The padlock and the reason, centred. Half-transparent, as asked, and it
-        lifts on hover so the card still answers a pointer the way a card
-        should.
+        The padlock and the reason. Half-transparent, as asked, and it lifts on
+        hover so the card still answers a pointer the way a card should.
+
+        Centred within the top 24rem rather than within the card. On a card the
+        two are the same thing. On a tall panel — a whole writing page drawn
+        behind its lock — dead-centre puts the padlock hundreds of pixels down,
+        below the fold, marking something the reader has to scroll to find. The
+        cap keeps it over the part of the panel they are actually looking at.
       */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex h-full max-h-96 flex-col items-center justify-center gap-1.5">
         <svg
           viewBox="0 0 24 24"
           width="26"

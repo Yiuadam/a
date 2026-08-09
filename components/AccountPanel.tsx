@@ -115,7 +115,16 @@ export default function AccountPanel() {
   const signingIn = phase === "ready" && status?.enabled === true && !status.signedIn;
 
   return (
-    <div className={`space-y-10 ${signingIn ? "mx-auto w-full max-w-lg" : ""}`}>
+    /*
+      Narrow and centred at both, and narrower still when it is only a form.
+
+      Signed in this page is a column of short forms — a name, a picture, a
+      plan, two buttons that delete things. Not one of them wants the 1500px
+      the shell offers on a desktop, and stretched to it a 384px form sat
+      against the left edge of a card with the whole right half of the card
+      empty. A card should end where its contents end.
+    */
+    <div className={`mx-auto w-full space-y-10 ${signingIn ? "max-w-lg" : "max-w-2xl"}`}>
       <div className="max-w-xl space-y-2">
         <h1 className="text-[26px] font-semibold text-slate-900">Your account</h1>
         {/*

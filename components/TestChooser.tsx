@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import DoneBadge, { bestResultFor } from "@/components/DoneBadge";
 import LockedCard from "@/components/LockedCard";
+import MoreComing from "@/components/MoreComing";
 import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { useProfile } from "@/lib/hooks";
@@ -83,10 +85,13 @@ export default function TestChooser({
           /* Strictly by position — see app/practice/page.tsx for why. */
           const beyond = limit !== null && i >= limit;
 
+          const best = bestResultFor(profile.results, t.id);
+
           const inner = (
             <>
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="min-w-0 truncate text-sm font-semibold text-slate-900">{t.title}</h2>
+                <DoneBadge result={best} />
               </div>
               <p className="mt-0.5 truncate text-xs leading-5 text-slate-600">
                 {"topic" in t ? t.topic : t.context}
@@ -116,7 +121,7 @@ export default function TestChooser({
           if (beyond) {
             const reason = access.tier === "anonymous" ? "sign-in" : "subscribe";
             return (
-              <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`}>
+              <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`} fill>
                 <div className="card !p-3 h-full min-w-0">{inner}</div>
               </LockedCard>
             );
@@ -128,6 +133,9 @@ export default function TestChooser({
             </Link>
           );
         })}
+
+        {/* Last in the grid, so it is what you reach after the final paper. */}
+        <MoreComing what={`${kind} papers`} />
       </div>
 
       <p className="text-sm text-slate-500">
