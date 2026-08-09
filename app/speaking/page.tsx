@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import BandBadge from "@/components/BandBadge";
 import ExplainText from "@/components/ExplainText";
 import SkillGate from "@/components/SkillGate";
+import VolumeMeter from "@/components/speaking/VolumeMeter";
 import { postJSON } from "@/lib/api";
 import speakingData from "@/data/speaking-topics.json";
 import { useMounted } from "@/lib/hooks";
@@ -93,6 +94,21 @@ function SpeakingSession() {
   const [grade, setGrade] = useState<SpeakingGrade | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [micBlocked, setMicBlocked] = useState(false);
+  /*
+    The microphone, held open for the whole interview.
+
+    Opened once rather than per answer, for two reasons. A real sitting does not
+    ask the candidate to press anything — the recorder runs, and this now works
+    the same way. And the level meter has to be live between questions, because
+    a microphone that is muted at the operating system is a fault a candidate
+    must find before they talk for two minutes into nothing, not after.
+
+    Separate from whatever the recogniser opens for itself: the Web Speech API
+    manages its own microphone internally and hands out no stream, so there is
+    nothing to share even when it is the one being used.
+  */
+  const [micStream, setMicStream] = useState<MediaStream | null>(null);
+
   const prefs = useSyncExternalStore(subscribeSpeechPrefs, speechPrefs, serverSpeechPrefs);
   const [localBlock, setLocalBlock] = useState<LocalBlocker | null>("server");
   const [modelCached, setModelCached] = useState(false);
@@ -155,6 +171,37 @@ function SpeakingSession() {
     };
   }, []);
 
+  /*
+    Open the microphone when the interview begins and hold it until it ends.
+    Failure is not fatal: the meter simply has nothing to draw, and the
+    recogniser reports the problem in its own words when it tries.
+  */
+  useEffect(() => {
+    if (stage !== "interview" || !micSupported) return;
+    let cancelled = false;
+    let opened: MediaStream | null = null;
+
+    navigator.mediaDevices
+      ?.getUserMedia({ audio: true })
+      .then((s) => {
+        if (cancelled) {
+          s.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        opened = s;
+        setMicStream(s);
+      })
+      .catch(() => {
+        if (!cancelled) setMicBlocked(true);
+      });
+
+    return () => {
+      cancelled = true;
+      opened?.getTracks().forEach((t) => t.stop());
+      setMicStream(null);
+    };
+  }, [stage, micSupported]);
+
   // Elapsed-time ticker while the candidate is answering.
   useEffect(() => {
     if (!recording) return;
@@ -162,12 +209,7 @@ function SpeakingSession() {
     return () => clearInterval(t);
   }, [recording]);
 
-  // One-minute preparation countdown for Part 2.
-  useEffect(() => {
-    if (prepSeconds <= 0) return;
-    const t = setTimeout(() => setPrepSeconds((s) => Math.max(0, s - 1)), 1000);
-    return () => clearTimeout(t);
-  }, [prepSeconds]);
+
 
   const stopRecording = useCallback(() => {
     wantRecordingRef.current = false;
@@ -297,6 +339,41 @@ function SpeakingSession() {
     }
   }, [prefs.model]);
 
+  /*
+    Open the answer window.
+
+    There is no button to press, because there is none in the exam: the
+    examiner stops talking and you answer. So this is called when the question
+    has finished being read, and — for Part 2 — when the preparation minute
+    runs out.
+
+    Deliberately not an effect watching `examinerSpeaking`. Starting a
+    recogniser is a response to an event, and an effect that starts one on a
+    render has to be guarded against every re-render that is not that event.
+    It is also the shape react-hooks/set-state-in-effect exists to catch.
+  */
+  const openAnswerWindow = useCallback(() => {
+    if (!micSupported || micBlocked) return;
+    if (usingLocal) void startLocal();
+    else startRecording();
+  }, [micSupported, micBlocked, usingLocal, startLocal, startRecording]);
+
+  /*
+    One-minute preparation countdown for Part 2. The moment it ends is the
+    moment the candidate should start talking, so the last tick opens the
+    answer window itself — inside the timeout, which is an event, rather than
+    from an effect watching the number reach zero.
+  */
+  useEffect(() => {
+    if (prepSeconds <= 0) return;
+    const last = prepSeconds === 1;
+    const t = setTimeout(() => {
+      setPrepSeconds((n) => Math.max(0, n - 1));
+      if (last) openAnswerWindow();
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [prepSeconds, openAnswerWindow]);
+
   const askCurrent = useCallback(
     async (index: number, list: Step[]) => {
       const s = list[index];
@@ -306,10 +383,14 @@ function SpeakingSession() {
       await speak(intro + s.question, 0.95);
       setExaminerSpeaking(false);
       if (s.part === 2) {
+        /* The minute of preparation comes first; the window opens when it
+           runs out, in the countdown below. */
         setPrepSeconds(60);
+        return;
       }
+      openAnswerWindow();
     },
-    [],
+    [openAnswerWindow],
   );
 
   /** Leave the interview: silence the examiner and release the microphone. */
@@ -692,46 +773,29 @@ function SpeakingSession() {
         )}
       </div>
 
-      {/* One big, obvious control. */}
-      <div className="card !p-4 flex flex-col items-center gap-3 text-center">
+      {/*
+        No button. The recorder runs from the moment the question has been
+        read, which is what a real sitting does — nobody presses anything, they
+        just answer. What replaces it is a meter showing the microphone is
+        genuinely hearing them, which is the reassurance the button was
+        standing in for and never actually gave.
+      */}
+      <div className="card !p-4 flex flex-col items-center gap-2 text-center">
         {micSupported ? (
           <>
-            <button
-              onClick={() => {
-                if (recording) void stopAnswer();
-                else if (usingLocal) void startLocal();
-                else startRecording();
-              }}
-              disabled={examinerSpeaking || preparing || transcribing}
-              className={`flex h-20 w-20 items-center justify-center rounded-full text-3xl transition-all disabled:opacity-40 ${
-                recording
-                  ? "bg-rose-600 text-accent-fg shadow-lg ring-8 ring-rose-100"
-                  : "bg-indigo-600 text-accent-fg shadow-md hover:bg-indigo-700 hover:shadow-lg"
-              }`}
-              aria-label={recording ? "Stop recording" : "Start recording"}
-            >
-              {transcribing ? (
-                <span className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-500" />
-              ) : recording ? (
-                "⏹"
-              ) : (
-                "🎤"
-              )}
-            </button>
+            <VolumeMeter stream={micStream} muted={examinerSpeaking || preparing} />
             <p className="text-sm text-slate-600">
               {examinerSpeaking
-                ? "Listen to the question…"
+                ? "Listen to the question\u2026"
                 : preparing
-                  ? "Wait for the preparation minute to finish"
+                  ? "Make notes \u2014 you will start speaking when the minute is up"
                   : transcribing
-                    ? "Working out what you said…"
+                    ? "Working out what you said\u2026"
                     : recording
-                      ? `Recording — ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}${
-                          step?.part === 2 ? " (aim for 1–2 minutes)" : ""
+                      ? `Answering \u2014 ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}${
+                          step?.part === 2 ? " (aim for 1\u20132 minutes)" : ""
                         }`
-                      : usingLocal
-                        ? "Tap to answer out loud. The words appear once you stop."
-                        : "Tap to answer out loud"}
+                      : "Speak your answer out loud"}
             </p>
           </>
         ) : null}
