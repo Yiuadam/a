@@ -270,7 +270,8 @@ export default function TutorChat() {
   const locked = !off && !entitled;
 
   return (
-    <div className="space-y-8">
+    /* Same reasoning as the legal pages: a conversation is prose. */
+    <div className="mx-auto max-w-3xl space-y-8">
       <div className="max-w-xl space-y-2">
         <h1 className="text-[26px] font-semibold text-slate-900">Ask a tutor</h1>
         <p className="text-[15px] leading-7 text-slate-600">

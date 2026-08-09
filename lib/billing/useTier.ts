@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { authedFetch, getServerSnapshot, getSnapshot, subscribe } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import { previewOnServer, readPreview, subscribePreview } from "./preview";
 import { tierAllows, type Feature, type Tier } from "./tiers";
 
 /*
@@ -169,4 +170,19 @@ export function useTier(): TierState {
  */
 export function tierShows(state: TierState, feature: Feature): boolean {
   return state.tier === null ? false : tierAllows(state.tier, feature);
+}
+
+/**
+ * The tier to *draw*, which is the real one unless the owner is previewing
+ * another.
+ *
+ * Only honoured for an admin — see lib/billing/preview.ts. A preview of "free"
+ * paints the paywall on the owner's own screen while the server continues to
+ * answer them as an admin, which is the point: it is the only way to look at
+ * your own paywall without signing out.
+ */
+export function useDrawnTier(state: TierState): Tier | null {
+  const preview = useSyncExternalStore(subscribePreview, readPreview, previewOnServer);
+  if (state.tier !== "admin" || preview === null) return state.tier;
+  return preview === "anonymous" ? "free" : preview;
 }

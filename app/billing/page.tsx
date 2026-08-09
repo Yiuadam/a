@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import OwnerSwitch from "@/components/billing/OwnerSwitch";
 import UsageMeter from "@/components/billing/UsageMeter";
-import { useTier } from "@/lib/billing/useTier";
+import { useDrawnTier, useTier } from "@/lib/billing/useTier";
 import { TIERS, plansForTier, formatPrice } from "@/lib/billing/tiers";
 
 /*
@@ -27,7 +28,12 @@ import { TIERS, plansForTier, formatPrice } from "@/lib/billing/tiers";
 
 export default function BillingPage() {
   const state = useTier();
-  const tier = state.tier;
+  /*
+    The tier to draw. For everyone but the owner that is the real one; for the
+    owner it is whatever the switch below is set to, so the page they use to
+    check the paywall shows them the paywall. See lib/billing/preview.ts.
+  */
+  const tier = useDrawnTier(state);
   const definition = tier ? TIERS[tier] : null;
   const monthly = plansForTier("pro").find((p) => p.interval === "month");
 
@@ -84,6 +90,10 @@ export default function BillingPage() {
           </div>
         </div>
       )}
+
+      {/* The switch reads the real tier, not the drawn one — previewing "free"
+          must not hide the control that gets you back. */}
+      {state.phase === "ready" && state.signedIn && state.tier === "admin" && <OwnerSwitch />}
 
       {state.phase === "ready" && state.signedIn && definition && (
         <>

@@ -122,6 +122,11 @@ export default function PracticePage() {
         the two things you do rather than sit — writing, and generating a fresh
         test — in the third. Below `lg` they stack in the same order.
       */}
+      {/*
+        Three columns, not four. A fourth was tried and left empty — the page
+        has exactly three things in it, and an empty column is worse than a
+        wider one. The columns take the extra width instead.
+      */}
       <div className="grid gap-3 lg:grid-cols-3">
         <section className="min-w-0">
           <div className="mb-2 flex items-baseline justify-between gap-2">

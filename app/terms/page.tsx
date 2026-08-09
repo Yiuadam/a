@@ -36,7 +36,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function TermsPage() {
   return (
-    <div className="space-y-10">
+    /*
+      Capped at 3xl even though the shell is now much wider. A legal page is
+      prose end to end, and prose has an optimum measure of roughly 60-90
+      characters — past that the eye loses the start of the next line on the
+      way back. When the shell went 1024px -> 1536px these paragraphs went with
+      it, to 1446px, about 220 characters a line. Wide shells are for grids;
+      text keeps its own ceiling.
+    */
+    <div className="mx-auto max-w-3xl space-y-10">
       <div className="max-w-xl space-y-2">
         <h1 className="text-[26px] font-semibold text-slate-900">Terms of use</h1>
         <p className="text-[15px] leading-7 text-slate-600">

@@ -100,7 +100,7 @@ export default function SiteHeader() {
       className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/85 backdrop-blur"
       style={{ "--header-h": "3.75rem" } as React.CSSProperties}
     >
-      <div className="mx-auto flex h-[var(--header-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5">
+      <div className="mx-auto flex h-[var(--header-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
         <Link
           href="/"
           className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
@@ -240,7 +240,7 @@ export default function SiteHeader() {
             id="nav-menu"
             className="fixed inset-x-0 top-[var(--header-h)] z-40 max-h-[calc(100dvh-var(--header-h))] overflow-y-auto border-b border-slate-200 bg-slate-50 shadow-lg"
           >
-            <nav aria-label="All pages" className="mx-auto max-w-5xl px-4 py-5 sm:px-5">
+            <nav aria-label="All pages" className="mx-auto max-w-5xl px-4 py-5 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
               <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
                 {NAV_GROUPS.map((group) => (
                   <div key={group.title}>
