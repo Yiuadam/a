@@ -594,3 +594,63 @@ textarea {
 [data-exam] .prose-reading p {
   color: var(--exam-fg);
 }
+
+/* ---------------------------------------------------------------------------
+   Text size, and why it needs a block of its own.
+
+   The shell sets a root font-size from the Settings panel, which does nothing
+   on its own: every piece of text inside is a Tailwind utility with an absolute
+   size — text-sm is 14px whatever its parent says — so the setting moved a
+   number and changed no pixels. The owner pressed the control, watched nothing
+   happen, and was right to call it a bug.
+
+   These re-express the sizes actually used inside an exam as multiples of the
+   shell's own base, which it sets as --exam-base.
+
+   A multiple of the base rather than `em`, and that is the second bug rather
+   than a style preference: `em` compounds. A text-xs span inside a text-sm div
+   is 0.76 x 0.88 of its parent, so a caption inside a card came out at ten
+   pixels while the passage was fifteen. calc() against a single variable gives
+   every rule the same origin, so nesting cannot shrink anything.
+
+   Not `rem`, because rem is relative to the document — the one thing a panel
+   inside one region of one page must not change.
+
+   Line height comes with each of them, because Tailwind pairs a fixed leading
+   with every size and 14px leading under 24px text is unreadable in a
+   different way.
+
+   Only the sizes that appear inside an exam are here; grep before adding a new
+   one to a component that renders in this shell.
+--------------------------------------------------------------------------- */
+
+[data-exam] [class*="text-[10px]"] {
+  font-size: calc(var(--exam-base) * 0.62);
+}
+[data-exam] [class*="text-[11px]"] {
+  font-size: calc(var(--exam-base) * 0.68);
+}
+[data-exam] [class*="text-xs"] {
+  font-size: calc(var(--exam-base) * 0.76);
+  line-height: 1.6;
+}
+[data-exam] [class*="text-sm"] {
+  font-size: calc(var(--exam-base) * 0.88);
+  line-height: 1.6;
+}
+[data-exam] [class*="text-base"] {
+  font-size: var(--exam-base);
+  line-height: 1.6;
+}
+[data-exam] [class*="text-[19px]"] {
+  font-size: calc(var(--exam-base) * 1.15);
+}
+[data-exam] [class*="text-[26px]"] {
+  font-size: calc(var(--exam-base) * 1.5);
+}
+
+/* The passage, which is the reason the setting exists at all. */
+[data-exam] .prose-reading p {
+  font-size: var(--exam-base);
+  line-height: 1.8;
+}

@@ -84,6 +84,7 @@ export default function ExamShell({
   onPrev,
   onNext,
   onToggleReview,
+  onNextFlagged,
   topRight,
   bottomLeft,
   bottomRight,
@@ -111,6 +112,7 @@ export default function ExamShell({
   onPrev?: () => void;
   onNext?: () => void;
   onToggleReview?: () => void;
+  onNextFlagged?: () => void;
   bottomLeft?: ReactNode;
   bottomRight?: ReactNode;
   /** Anything the section adds beside Settings — Listening puts volume here. */
@@ -133,7 +135,18 @@ export default function ExamShell({
         an exam follows the scheme; nothing outside one is touched.
       */
       data-exam=""
-      style={{ ...vars, fontSize: sizeInPx(display.size) } as React.CSSProperties}
+      /*
+        --exam-base is what app/globals.css sizes everything inside against.
+        fontSize is set from the same number so that any text with no utility
+        of its own inherits it rather than falling back to the page.
+      */
+      style={
+        {
+          ...vars,
+          "--exam-base": `${sizeInPx(display.size)}px`,
+          fontSize: sizeInPx(display.size),
+        } as React.CSSProperties
+      }
       className="-mx-4 flex min-h-[80vh] flex-col overflow-hidden border-y border-[color:var(--exam-line)] bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)] sm:mx-0 sm:rounded-lg sm:border"
     >
       <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-3 py-1.5">
@@ -172,6 +185,7 @@ export default function ExamShell({
           onPrev={onPrev ?? (() => {})}
           onNext={onNext ?? (() => {})}
           onToggleReview={onToggleReview ?? (() => {})}
+          onNextFlagged={onNextFlagged ?? (() => {})}
         />
       ) : (
         <div className="flex items-center justify-between gap-3 border-t border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-3 py-2 text-xs text-[color:var(--exam-fg)]">

@@ -19,7 +19,25 @@
     plain outline      not answered
     filled             answered
     circle             flagged for review (with or without an answer)
-    ring               where you are now
+    thick border       where you are now
+
+  The last one was a ring drawn outside the box, and it looked like brackets
+  around the number rather than part of it. Thickening the box's own edge says
+  the same thing without adding a shape — which matters here more than usual,
+  because the flag is *already* a shape change and two shape languages in one
+  strip is one too many.
+
+  ---------------------------------------------------------------------------
+  What Review is for
+
+  A candidate who is unsure of question 12 should not spend three minutes on it
+  with 28 questions unread. Flagging it and moving on is the single most useful
+  habit in a timed reading paper, and the exam gives it a button.
+
+  It only earns that button if coming back is easy, which the first version of
+  this got wrong: it changed a square to a circle and offered no way to reach
+  the circles. So the bar now also counts them and steps through them — flag
+  four questions, then press the count to visit them in turn.
 */
 
 export interface PaletteItem {
@@ -37,6 +55,7 @@ export default function QuestionPalette({
   onPrev,
   onNext,
   onToggleReview,
+  onNextFlagged,
 }: {
   items: PaletteItem[];
   currentId: string | null;
@@ -44,8 +63,10 @@ export default function QuestionPalette({
   onPrev: () => void;
   onNext: () => void;
   onToggleReview: () => void;
+  onNextFlagged: () => void;
 }) {
   const current = items.find((i) => i.id === currentId) ?? null;
+  const flaggedCount = items.filter((i) => i.flagged).length;
 
   return (
     <div className="flex items-center gap-3 border-t border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-3 py-2">
@@ -53,20 +74,42 @@ export default function QuestionPalette({
         Review sits bottom-left, where the exam puts it. It flags the question
         you are on, which is why it says which one — a button labelled only
         "Review" beside forty numbers is ambiguous about what it acts on.
+
+        The label says what pressing it will do rather than what it is called,
+        because "Review Q1" reads as a command to review question 1 and that is
+        not what happens.
       */}
-      <button
-        type="button"
-        onClick={onToggleReview}
-        disabled={!current}
-        className={`shrink-0 rounded border px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${
-          current?.flagged
-            ? "border-[color:var(--exam-fg)] bg-[color:var(--exam-fg)] text-[color:var(--exam-bg)]"
-            : "border-[color:var(--exam-line)] text-[color:var(--exam-fg)] hover:bg-[color:var(--exam-hover)]"
-        }`}
-        aria-pressed={current?.flagged ?? false}
-      >
-        Review{current ? ` Q${current.number}` : ""}
-      </button>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onToggleReview}
+          disabled={!current}
+          title="Mark this question to come back to it"
+          className={`rounded border px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${
+            current?.flagged
+              ? "border-[color:var(--exam-fg)] bg-[color:var(--exam-fg)] text-[color:var(--exam-bg)]"
+              : "border-[color:var(--exam-line)] text-[color:var(--exam-fg)] hover:bg-[color:var(--exam-hover)]"
+          }`}
+          aria-pressed={current?.flagged ?? false}
+        >
+          {current?.flagged ? `Unflag Q${current.number}` : `Flag Q${current?.number ?? ""}`}
+        </button>
+
+        {/*
+          Only once there is something to come back to. A counter reading zero
+          is a control that does nothing, sitting next to one that does.
+        */}
+        {flaggedCount > 0 && (
+          <button
+            type="button"
+            onClick={onNextFlagged}
+            title="Go to the next flagged question"
+            className="rounded border border-[color:var(--exam-line)] px-2 py-1.5 text-xs font-semibold text-[color:var(--exam-fg)] transition-colors hover:bg-[color:var(--exam-hover)]"
+          >
+            {flaggedCount} flagged ›
+          </button>
+        )}
+      </div>
 
       {/*
         The numbers. Scrolls sideways rather than wrapping, because forty
@@ -88,13 +131,14 @@ export default function QuestionPalette({
                   (item.flagged ? ", flagged for review" : "")
                 }
                 className={[
-                  "flex h-7 w-7 items-center justify-center border text-xs font-semibold tabular-nums transition-colors",
+                  "flex h-7 w-7 items-center justify-center text-xs font-semibold tabular-nums transition-colors",
                   /* Shape carries the flag — see the note at the top. */
                   item.flagged ? "rounded-full" : "rounded-[3px]",
                   item.answered
                     ? "border-[color:var(--exam-fg)] bg-[color:var(--exam-fg)] text-[color:var(--exam-bg)]"
                     : "border-[color:var(--exam-line)] text-[color:var(--exam-fg)] hover:bg-[color:var(--exam-hover)]",
-                  isCurrent ? "outline outline-2 outline-offset-2 outline-[color:var(--exam-accent)]" : "",
+                  /* Where you are: the box's own edge, thickened. See above. */
+                  isCurrent ? "border-[2.5px] border-[color:var(--exam-accent)]" : "border",
                 ].join(" ")}
               >
                 {item.number}

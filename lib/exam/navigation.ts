@@ -78,8 +78,24 @@ export function useExamNavigation(questions: NavQuestion[]) {
     });
   }, [currentId]);
 
+  /*
+    Round-robin through the flagged questions, from wherever you are.
+
+    Wrapping matters: a candidate who flags three and reaches the last one
+    expects the next press to take them back to the first, not to do nothing.
+    Without the wrap the control appears broken exactly when it has finished
+    being useful.
+  */
+  const nextFlagged = useCallback(() => {
+    const flaggedIds = questions.map((q) => q.id).filter((id) => flagged[id]);
+    if (flaggedIds.length === 0) return;
+    const after = flaggedIds.find((id) => questions.findIndex((q) => q.id === id) > index);
+    jump(after ?? flaggedIds[0]);
+  }, [questions, flagged, index, jump]);
+
   return {
     items,
+    nextFlagged,
     currentId: questions[index]?.id ?? null,
     jump,
     prev: useCallback(() => step(-1), [step]),

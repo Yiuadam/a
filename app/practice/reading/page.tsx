@@ -284,6 +284,7 @@ function ReadingTestPageRunner() {
         onPrev={nav.prev}
         onNext={nav.next}
         onToggleReview={nav.toggleReview}
+        onNextFlagged={nav.nextFlagged}
         bottomLeft={
           submitted ? `${raw} of ${questionCount(test.questions)} correct` : "No time limit"
         }

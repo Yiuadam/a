@@ -10,16 +10,18 @@ import { useEffect, useRef, useState } from "react";
   1. It sits top-centre. Not in a corner — the middle of the screen, where you
      cannot avoid it.
 
-  2. It shows minutes only, and hovering expands it to minutes and seconds. A
-     seconds display running all the time is a metronome for panic; a candidate
-     who wants the precision can ask for it.
+  2. It counts. Always, visibly, in minutes and seconds.
 
-  3. Inside the last minute it stops showing seconds altogether. That is the
-     real exam's behaviour and it is deliberately unnerving: you know it is
-     nearly over and you do not know exactly when. Reproducing it is the point
-     of practising under exam conditions.
+     This started as minutes-only with seconds on hover, which is what the real
+     exam does — and it was wrong here for a reason worth writing down. On the
+     real thing you have already been told how long you have and the clock has
+     been running for twenty minutes; a number that changes once a minute reads
+     as a clock. On a practice screen you have just pressed start, so a static
+     "20 min" for the first sixty seconds reads as a clock that is broken. The
+     owner said so within a minute of seeing it. Fidelity that makes somebody
+     doubt the software is not fidelity worth having.
 
-  4. It turns red and flashes when time is short. Not amber, not a subtle
+  3. It turns red and flashes when time is short. Not amber, not a subtle
      shift — the thing that makes people look up.
 
   It counts in wall-clock time rather than by counting ticks. A background tab
@@ -39,7 +41,6 @@ export default function ExamTimer({
   onExpire?: () => void;
 }) {
   const [remaining, setRemaining] = useState(minutes * 60);
-  const [showSeconds, setShowSeconds] = useState(false);
   const endsAt = useRef<number | null>(null);
   const fired = useRef(false);
 
@@ -66,6 +67,7 @@ export default function ExamTimer({
       }
     };
     tick();
+    /* Twice a second, so a second never appears to be skipped or repeated. */
     const id = setInterval(tick, 500);
     return () => clearInterval(id);
   }, [running, minutes, onExpire]);
@@ -77,24 +79,8 @@ export default function ExamTimer({
   const low = remaining <= 5 * 60;
   const critical = remaining <= 60;
 
-  /*
-    The last minute shows no seconds, however much you hover. See note 3.
-    Above it, hovering is what buys the precision.
-  */
-  const label = critical
-    ? "under 1 minute"
-    : showSeconds
-      ? `${m}:${s.toString().padStart(2, "0")}`
-      : `${Math.max(1, Math.ceil(remaining / 60))} min`;
-
   return (
-    <div
-      className="select-none text-center"
-      onMouseEnter={() => setShowSeconds(true)}
-      onMouseLeave={() => setShowSeconds(false)}
-      /* Touch has no hover, so a tap does the same job. */
-      onClick={() => setShowSeconds((v) => !v)}
-    >
+    <div className="select-none text-center">
       <div
         aria-hidden="true"
         className={`font-mono text-[19px] font-semibold tabular-nums transition-colors ${
@@ -105,7 +91,7 @@ export default function ExamTimer({
               : "text-[color:var(--exam-fg)]"
         }`}
       >
-        {label}
+        {m}:{s.toString().padStart(2, "0")}
       </div>
       {/*
         Announced separately and only every minute. A polite live region that
