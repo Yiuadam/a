@@ -6,7 +6,6 @@ import Maintenance from "@/components/Maintenance";
 import AppMain from "@/components/AppMain";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
-import { maintenanceSetting } from "@/lib/admin/settings";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -35,41 +34,26 @@ export const metadata: Metadata = {
 };
 
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: LayoutProps<"/">) {
   /*
-    Two switches, and the site is closed if either is thrown.
+    Build-time only, for now.
 
-    The build-time one is for planned work: it is baked into the bundle, so it
-    cannot fail to apply and it cannot be undone by a database being down. The
-    runtime one is for everything else — it is a row the owner can write from
-    the admin screen, and it closes the site in seconds without a deploy, which
-    is what you want when the reason to close is that something is wrong now.
+    The runtime switch — a row the owner writes from /admin, read here on each
+    render — made every page of the preview answer 500 while /api kept working,
+    which is exactly the shape of a fault in this function: the layout is the
+    only thing a page has that a route handler does not.
 
-    `||`, not a preference between them. A deploy that went out closed must
-    stay closed even if the database says otherwise, and an owner who pressed
-    the button must be obeyed even though the last deploy went out open.
+    It could not be reproduced locally in five configurations, including the
+    full production environment against a stub answering what Supabase answers.
+    So it is out until it can be, rather than shipped on the hope that the
+    hardening around it is enough. A switch that closes the site is not a thing
+    to leave a maybe in.
+
+    Everything else the switch needs is still here and still works: the row, the
+    two functions, the admin screen, the API that writes it. Only this read is
+    withdrawn, and closing the site stays a deploy in the meantime.
   */
-  /*
-    Wrapped again, on top of the try/catch inside the read itself.
-
-    Belt and braces, and earned: this runs in the root layout, so anything it
-    throws takes down every page of the site at once rather than one route. The
-    inner catch covers the request failing, which is the expected way this goes
-    wrong; this one covers the unexpected ways — a module that throws on import,
-    a runtime that disagrees about an API, a shape nobody predicted.
-
-    A site that stays open because a settings read went wrong is behaving
-    correctly. A site that returns 500 everywhere because of a switch nobody
-    threw is not.
-  */
-  let closedByOwner = false;
-  try {
-    closedByOwner = (await maintenanceSetting()).closed;
-  } catch {
-    closedByOwner = false;
-  }
-
-  const closed = MAINTENANCE_MODE || closedByOwner;
+  const closed = MAINTENANCE_MODE;
 
   return (
     <html
