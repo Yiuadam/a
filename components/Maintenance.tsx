@@ -62,14 +62,29 @@ export default function Maintenance() {
           />
         </span>
 
+        {/*
+          Deliberately says nothing about what is being changed.
+
+          The first version named the work — it was a pricing change — and that
+          was a mistake twice over. It told every visitor about a commercial
+          decision that was none of their business and not yet finished, and it
+          made the screen single-use: the next time the site closes for some
+          other reason, wording about prices is worse than no wording at all,
+          because it is wrong rather than merely vague.
+
+          So it says what a closed sign has to say and no more: that this is
+          deliberate, that it is brief, and that nothing of theirs is at risk.
+          That is true of every reason the site might close, which is what makes
+          it reusable — and reusable is what stops somebody shipping a rushed
+          sentence at the moment they are least able to write one.
+        */}
         <h1 className="mt-8 text-[32px] font-semibold leading-[1.15] tracking-[-0.02em] text-balance text-slate-900 sm:text-[38px]">
-          We&rsquo;re updating BandUp
+          BandUp is getting an upgrade
         </h1>
 
         <p className="mx-auto mt-5 max-w-sm text-[15px] leading-7 text-pretty text-slate-600">
-          We&rsquo;re changing our subscription plans — lower prices, and a clearer account of
-          what each one includes. BandUp is closed while that lands, so that nobody is shown one
-          price and charged another.
+          We&rsquo;re making some improvements behind the scenes. The site is closed for a short
+          while so that nothing breaks halfway through — it will be back to normal shortly.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-3">
