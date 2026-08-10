@@ -4,18 +4,16 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   authedFetch,
-  clearSession,
   getServerSnapshot,
   getSnapshot,
   subscribe,
 } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
-import PlanSection from "@/components/account/PlanSection";
-import ProfileSection from "@/components/account/ProfileSection";
 import SignedOut from "@/components/account/SignedOut";
 import ClearDeviceSection from "@/components/account/ClearDeviceSection";
-import SyncSection from "@/components/account/SyncSection";
-import { DeleteAccountSection, SignOutSection } from "@/components/account/DangerSection";
+import { HubMenu, type HubItem } from "@/components/HubMenu";
+import { TIERS, type Tier } from "@/lib/billing/tiers";
+import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { AccountStatus } from "@/components/account/types";
 
 /*
@@ -30,31 +28,28 @@ import type { AccountStatus } from "@/components/account/types";
 
   Everything here is optional by construction. The placement test, the study
   plan, every practice test and both drill sets work signed out and always
-  will; an account exists to carry them between devices and to raise the daily
-  allowance on the AI features. The copy says that rather than implying a wall.
+  will; an account exists to carry them between devices and to raise the limit
+  on the AI features. The copy says that rather than implying a wall.
 
   ---------------------------------------------------------------------------
-  What this file is now, after the split
+  Signed in, this is a menu
 
-  It was eight hundred lines holding every card on the screen, and the two
-  subjects a learner is most likely to come here for — who they are, and what
-  they are paying for — were interleaved inside a single card headed "Signed
-  in". Someone looking for their daily AI allowance read past a date of birth
-  to find it.
+  It was four groups of cards in a column: profile, plan, sync, and the two
+  buttons that delete things — 3049 pixels on a 390-wide phone. Every one of
+  them was a true thing about the account, and stacking them is how the page
+  got made, one true thing under the last.
 
-  So the cards moved to components/account/ and what is left here is the shell:
-  ask the server what is true, decide which of the three states to show, and
-  lay the signed-in screen out as four labelled groups. Each group is one
-  subject, each has a heading with a rule under it, and nothing in a group is
-  about anything else:
+  Nobody arrives here wanting all four. They arrive to change a picture, or to
+  sign out, or to find out why a phone and a laptop disagree — and the page
+  answered whichever it was somewhere in the middle of three answers to
+  questions they had not asked. So each is its own screen now, and this page is
+  the choice between them. What that costs is one tap for the thing you came
+  for; what it buys is that you can see all four options at once and know which
+  tap it is.
 
-    Your profile     name, date of birth, picture, the address you signed in with
-    Your plan        tier, and today's AI allowance
-    Your practice    carrying work between devices
-    This account     signing out, and closing the account
-
-  The behaviour is unchanged from before the split; only the arrangement and
-  the headings are new.
+  The plan row goes to /billing rather than to a screen of its own, because the
+  plan already has a page and two pages describing one subscription is how they
+  come to disagree.
 */
 
 type Phase = "loading" | "ready" | "unavailable";
@@ -103,40 +98,27 @@ export default function AccountPanel() {
   const accountsOff = phase === "ready" && status?.enabled === false;
 
   /*
-    Signed out, this page is one thing: a sign-in form. Signed in it is several
-    — name, picture, sync, plan, deletion — and those want the full width the
-    shell now gives them.
-
-    Left in one column at both, the form sat against the left edge of a card
-    stretched to 1400px, with the whole right half of the card empty. So the
-    signed-out case gets its own narrow, centred column and the card ends where
-    the form ends.
+    Signed out, this page is one thing: a sign-in form, and it gets a narrow
+    column so the card ends where the form ends rather than stretching to
+    1400px with its right half empty.
   */
   const signingIn = phase === "ready" && status?.enabled === true && !status.signedIn;
 
   return (
-    /*
-      Narrow and centred at both, and narrower still when it is only a form.
-
-      Signed in this page is a column of short forms — a name, a picture, a
-      plan, two buttons that delete things. Not one of them wants the 1500px
-      the shell offers on a desktop, and stretched to it a 384px form sat
-      against the left edge of a card with the whole right half of the card
-      empty. A card should end where its contents end.
-    */
-    <div className={`mx-auto w-full space-y-10 ${signingIn ? "max-w-lg" : "max-w-2xl"}`}>
-      <div className="max-w-xl space-y-2">
-        <h1 className="text-[26px] font-semibold text-slate-900">Your account</h1>
+    <div className={`mx-auto w-full space-y-6 ${signingIn ? "max-w-lg" : "max-w-2xl"}`}>
+      <div className="space-y-1.5">
+        <h1 className="text-[22px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
+          Your account
+        </h1>
         {/*
-          Two sentences signed in, one signed out. The long version explains
-          what an account is for, which is the right thing to read when you are
-          deciding — but on the sign-in screen it is four lines above the only
-          control on the page, and it pushed the recovery card off the bottom.
+          One sentence, not four. The long version explained what an account is
+          for, which is the right thing to read when you are deciding — and the
+          wrong thing on the screen of somebody who decided months ago.
         */}
-        <p className="text-[15px] leading-7 text-slate-600">
+        <p className="text-[14px] leading-6 text-slate-600">
           {signingIn
             ? "Optional — everything works without one. Signing in carries your progress between devices."
-            : "An account is optional. The placement test, your study plan, every practice test and both sets of drills work without one — signing in carries them between your phone and your laptop, and raises the daily limit on AI feedback."}
+            : "Everything about you, and the account itself. Pick one."}
         </p>
       </div>
 
@@ -181,7 +163,7 @@ export default function AccountPanel() {
       )}
 
       {phase === "ready" && status?.enabled === true && status.signedIn === true && (
-        <SignedIn status={status} email={session?.email ?? null} onSignOut={clearSession} />
+        <SignedIn status={status} email={session?.email ?? null} />
       )}
     </div>
   );
@@ -213,84 +195,68 @@ function AccountsNotYetOpen() {
   );
 }
 
-/*
-  One subject, one heading, one rule under it.
-
-  The heading carries the topic so the cards beneath it do not have to repeat
-  it — which is why a single-card group has no heading inside the card at all.
-  Groups with more than one card keep an h3 on each, so the outline of the page
-  still reads correctly with the cards collapsed.
-*/
-function Group({
-  id,
-  title,
-  lead,
-  children,
-}: {
-  id: string;
-  title: string;
-  lead: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section aria-labelledby={id}>
-      <div className="max-w-xl">
-        <h2 id={id} className="heading-rule text-[20px] font-semibold text-slate-900">
-          {title}
-        </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-600">{lead}</p>
-      </div>
-      <div className="mt-5 space-y-5">{children}</div>
-    </section>
-  );
+/** The tier's own name, and the raw value for anything not in the table. */
+function planName(tier: string | null | undefined): string {
+  if (!tier) return "Free";
+  return Object.prototype.hasOwnProperty.call(TIERS, tier) ? TIERS[tier as Tier].name : tier;
 }
 
-function SignedIn({
-  status,
-  email,
-  onSignOut,
-}: {
-  status: AccountStatus;
-  email: string | null;
-  onSignOut: () => void;
-}) {
+function SignedIn({ status, email }: { status: AccountStatus; email: string | null }) {
+  const items: HubItem[] = [
+    {
+      href: "/account/profile",
+      title: "Your profile",
+      detail: "Name, date of birth and picture",
+      /*
+        The address on the menu, because "which account am I in" is the single
+        commonest reason to open this page and it should not cost a tap. Long
+        addresses are left to truncate rather than shortened here — a cut in
+        the middle of a domain reads as a different address.
+      */
+      value: email ?? undefined,
+    },
+    {
+      href: "/account/sync",
+      title: "Practice on other devices",
+      detail: "Move your work between phone and laptop",
+    },
+    {
+      href: "/account/close",
+      title: "Sign out, or close the account",
+      detail: "Leave this device, or leave BandUp",
+    },
+  ];
+
+  /*
+    The plan row is a link to /billing, and /billing does not exist in the iOS
+    bundle — scripts/build-mobile.mjs removes it, because Apple requires
+    digital content used inside an app to be sold through In-App Purchase and
+    BandUp's answer is to sell nothing in the app at all. So on iOS the row is
+    replaced by a sentence naming where subscriptions live, which is prose
+    rather than a link and is the same thing the tutor screen says.
+
+    Inserted second rather than pushed on the end: it belongs next to the
+    profile, and tests/ios-no-purchase.test.mjs is what noticed the link was
+    there in the first place.
+  */
+  if (!IS_MOBILE_BUILD) {
+    items.splice(1, 0, {
+      href: "/billing",
+      title: "Plan and usage",
+      detail: "What you pay, and what AI you have left",
+      value: planName(status.tier),
+    });
+  }
+
   return (
-    <div className="space-y-12">
-      <Group
-        id="account-profile"
-        title="Your profile"
-        lead="Your picture, what BandUp calls you, and the address you signed in with."
-      >
-        <ProfileSection sessionEmail={email} />
-      </Group>
-
-      <Group
-        id="account-plan"
-        title="Your plan"
-        lead="What you are on, and how much of today's AI feedback you have used."
-      >
-        <PlanSection status={status} />
-      </Group>
-
-      <Group
-        id="account-practice"
-        title="Your practice on other devices"
-        lead="How your work moves between the phone and the laptop you study on."
-      >
-        <SyncSection />
-      </Group>
-
-      <Group
-        id="account-close"
-        title="This account"
-        lead="Leaving this device, or leaving BandUp altogether."
-      >
-        <ClearDeviceSection />
-
-        <SignOutSection onSignOut={onSignOut} />
-        {/* Last on the page, because it is the one action that cannot be undone. */}
-        <DeleteAccountSection onDeleted={onSignOut} />
-      </Group>
-    </div>
+    <>
+      <HubMenu items={items} />
+      {IS_MOBILE_BUILD && (
+        <p className="mt-3 text-[13px] leading-5 text-slate-500">
+          You are on {planName(status.tier)}. Subscriptions are managed on {WEB_HOME}, not in the
+          app — anything you buy there works here straight away.
+        </p>
+      )}
+    </>
   );
 }

@@ -273,24 +273,39 @@ export default function TutorChat() {
   const locked = !off && !entitled;
 
   return (
-    /* Same reasoning as the legal pages: a conversation is prose. */
-    <div className="mx-auto max-w-3xl space-y-8">
-      <div className="max-w-xl space-y-2">
-        <h1 className="text-[26px] font-semibold text-slate-900">Ask a tutor</h1>
-        <p className="text-[15px] leading-7 text-slate-600">
-          Ask anything about the IELTS exam — what a task is really asking for, how to plan your
-          study, a grammar rule that will not stick, a word you are not sure how to use. Answers
-          are written for a learner, not for a textbook.
-        </p>
-        {/*
-          Said once, plainly, at the top. The system prompt says the same thing
-          when asked, but a learner should not have to ask.
-        */}
-        <p className="text-[13px] leading-6 text-slate-500">
-          This is a study assistant, not an IELTS examiner. It knows the exam well and it is not
-          certified by anyone — where it is unsure it will say so, and anything about your own
-          test day is worth checking on the official IELTS site.
-        </p>
+    /*
+      A conversation that fills the screen instead of being a document on one.
+
+      What it was: a title, a paragraph explaining what you may ask, a
+      paragraph explaining what the tutor is not, then the starters, the box,
+      a hint about the Enter key and a note about storage — 1330 pixels on a
+      390-wide phone, of which the first 230 were read once and then scrolled
+      past every single visit afterwards.
+
+      A chat has an obvious shape and this is now it: a line of chrome, the
+      conversation, and the box at the bottom where your thumb already is. The
+      messages scroll inside their own panel rather than moving the page, so
+      the box stays on the screen.
+
+      The panel is capped in viewport units rather than told to fill what is
+      left, and the first attempt is worth recording because it looks like it
+      should work: `flex-1` with `min-h-0` all the way up the column, on a body
+      set to `min-h-dvh`. It does not, and the word is `min-` — a container
+      that may grow does not make its children shrink, so the panel simply grew
+      to its content and pushed the composer down exactly as before. A cap is a
+      definite number and behaves like one.
+
+      Nothing was deleted. The two paragraphs moved to the empty state, which
+      is the screen somebody sees exactly once — before they have asked
+      anything, when "what is this and what is it not" is the question they
+      actually have.
+    */
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h1 className="text-[20px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
+          Ask a tutor
+        </h1>
+        {!off && !locked && <Allowance status={status} />}
       </div>
 
       {off ? <NotSwitchedOn /> : null}
@@ -301,9 +316,16 @@ export default function TutorChat() {
 
       {!off && !locked && (
         <>
-          <Allowance status={status} />
-
-          <section className="card" aria-live="polite">
+          {/*
+            The conversation, and the only thing on this screen that scrolls.
+            `min-h-0` lets it shrink inside the column; without it the panel
+            grows to its content and takes the composer off the bottom of the
+            screen, which is the one thing a chat must never do.
+          */}
+          <section
+            className="card min-h-0 max-h-[54vh] flex-1 overflow-y-auto !p-4 sm:max-h-[60vh] sm:!p-6"
+            aria-live="polite"
+          >
             {messages.length === 0 ? (
               <Empty onPick={(q) => void ask(q)} disabled={sending} />
             ) : (
@@ -316,55 +338,59 @@ export default function TutorChat() {
               </ol>
             )}
 
-            {sending && (
-              <p className="mt-5 text-sm text-slate-500">
-                Thinking about that&hellip;
-              </p>
-            )}
+            {sending && <p className="mt-5 text-sm text-slate-500">Thinking about that&hellip;</p>}
             <div ref={bottom} />
           </section>
 
           {problem && (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[15px] leading-7 text-rose-800">
+            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-[14px] leading-6 text-rose-800">
               {problem}
             </p>
           )}
 
-          <form onSubmit={submit} className="space-y-3">
+          {/*
+            The box and its button on one row, because on a phone a full-width
+            Send under a full-width box is two rows to do what every messaging
+            app on the device does in one — and the second row was costing the
+            conversation forty pixels of the screen.
+          */}
+          <form onSubmit={submit} className="flex items-end gap-2">
             <label htmlFor="tutor-question" className="sr-only">
               Your question
             </label>
             <textarea
               id="tutor-question"
-              className="input min-h-[5.5rem] w-full resize-y leading-7"
-              placeholder="Ask about the exam, a grammar point, or a sentence you wrote…"
+              className="input max-h-40 min-h-[2.75rem] w-full flex-1 resize-y py-2.5 leading-6"
+              /* Short enough to fit one line of a one-line box. The long
+                 version was clipped mid-word on a phone, which reads as a
+                 broken control rather than a hint. */
+              placeholder="Ask about the exam…"
               value={draft}
-              rows={3}
+              rows={1}
               disabled={sending}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onKeyDown}
             />
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={sending || draft.trim().length === 0 || overLength}
-              >
-                {sending ? "Asking…" : "Ask"}
-              </button>
-              <span className="text-sm text-slate-500">
-                {overLength
-                  ? `That's ${draft.length} characters — the tutor takes ${MAX_CHARS} at a time.`
-                  : "Enter sends. Shift and Enter starts a new line."}
-              </span>
-            </div>
+            <button
+              type="submit"
+              className="btn-primary shrink-0"
+              disabled={sending || draft.trim().length === 0 || overLength}
+            >
+              {sending ? "Asking…" : "Ask"}
+            </button>
           </form>
 
-          <p className="text-xs leading-6 text-slate-400">
-            Your questions are sent for an answer and are not stored on our side — this
-            conversation lives in this tab only, and closing it ends it.{" "}
+          {/*
+            One line under the box instead of three paragraphs: what the Enter
+            key does, and what happens to what you type. The full privacy
+            answer is one tap away and has been all along.
+          */}
+          <p className="text-[11px] leading-4 text-slate-400">
+            {overLength
+              ? `That's ${draft.length} characters — the tutor takes ${MAX_CHARS} at a time.`
+              : "Enter sends, Shift and Enter starts a new line. Nothing you ask is stored on our side."}{" "}
             <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-600">
-              What BandUp stores, and what it doesn&rsquo;t
+              What BandUp stores
             </Link>
           </p>
         </>
@@ -439,7 +465,7 @@ function Allowance({ status }: { status: AccountStatus | null }) {
   const unlimited = status.unlimited === true || quota === null;
 
   return (
-    <p className="text-sm leading-6 text-slate-500">
+    <p className="text-[12px] leading-5 text-slate-500 sm:text-sm sm:leading-6">
       {unlimited ? (
         "No limit on this account."
       ) : !status.signedIn ? (
@@ -484,13 +510,30 @@ function Allowance({ status }: { status: AccountStatus | null }) {
   );
 }
 
+/*
+  The screen somebody sees exactly once — before they have asked anything.
+
+  Which is why the two paragraphs from the old page header live here now. "What
+  may I ask" and "what is this thing, exactly" are questions a first-time
+  visitor has and a returning one does not, and answering them above the box on
+  every visit was answering them to the wrong person nine times out of ten. The
+  words are unchanged; only who reads them is.
+*/
 function Empty({ onPick, disabled }: { onPick: (q: string) => void; disabled: boolean }) {
   return (
     <div>
-      <p className="text-[15px] leading-7 text-slate-600">
-        Ask anything below, or start with one of these.
+      <p className="text-[14px] leading-6 text-slate-600">
+        Ask anything about the IELTS exam — what a task is really asking for, how to plan your
+        study, a grammar rule that will not stick, a word you are not sure how to use. Answers are
+        written for a learner, not for a textbook.
       </p>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <p className="mt-2 text-[12px] leading-5 text-slate-500">
+        This is a study assistant, not an IELTS examiner. It knows the exam well and it is not
+        certified by anyone — where it is unsure it will say so, and anything about your own test
+        day is worth checking on the official IELTS site.
+      </p>
+      <p className="mt-4 text-[14px] font-medium text-slate-700">Start with one of these:</p>
+      <div className="mt-2 flex flex-wrap gap-2">
         {OPENERS.map((q) => (
           <button
             key={q}

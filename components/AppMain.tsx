@@ -36,8 +36,15 @@ export default function AppMain({ children }: { children: ReactNode }) {
       data-lookupable
       className={
         console_
-          ? "w-full flex-1"
-          : "mx-auto w-full max-w-5xl flex-1 px-5 py-10 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]"
+          ? "w-full min-h-0 flex-1"
+          : /* Less air above and below on a phone. Forty pixels top and bottom
+               is right on a laptop, where the page is a document in a window;
+               on a 844-pixel screen it is a tenth of everything there is, spent
+               before the first word. */
+            /* `min-h-0` so a child that wants to scroll inside this column can.
+               Without it a flex item refuses to shrink below its content and
+               the whole page scrolls instead of the conversation. */
+            "mx-auto w-full min-h-0 max-w-5xl flex-1 px-5 py-6 sm:py-10 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]"
       }
     >
       {children}

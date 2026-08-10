@@ -29,8 +29,15 @@ export default function StatCard({
   unavailable?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-surface p-5">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+    /*
+      Tighter on a phone, and the icon goes with it. Four of these stacked in a
+      column cost 600 pixels of an 844-pixel screen to say four numbers; two
+      across at this size cost 220. The glyph was never carrying meaning — the
+      comment above says as much — so it is the first thing to go when the room
+      runs out.
+    */
+    <div className="rounded-2xl border border-slate-200 bg-surface p-3.5 sm:p-5">
+      <span className="hidden h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-500 sm:flex">
         {icon}
       </span>
 
@@ -41,16 +48,22 @@ export default function StatCard({
             different mornings, and a dashboard that renders the second as the
             first is one somebody acts on.
           */}
-          <p className="mt-4 text-[15px] font-medium text-slate-400">Unavailable</p>
-          <p className="mt-0.5 text-xs leading-5 text-slate-400">{unavailable}</p>
+          <p className="text-[14px] font-medium text-slate-400 sm:mt-4 sm:text-[15px]">
+            Unavailable
+          </p>
+          <p className="mt-0.5 text-[11px] leading-4 text-slate-400 sm:text-xs sm:leading-5">
+            {unavailable}
+          </p>
         </>
       ) : (
         <>
-          <p className="mt-4 text-[28px] font-semibold leading-none tracking-tight text-slate-900 tabular-nums">
+          <p className="text-[24px] font-semibold leading-none tracking-tight text-slate-900 tabular-nums sm:mt-4 sm:text-[28px]">
             {value}
           </p>
-          <p className="mt-1.5 text-sm text-slate-500">{label}</p>
-          {hint && <p className="mt-0.5 text-xs leading-5 text-slate-400">{hint}</p>}
+          <p className="mt-1 text-[12px] leading-4 text-slate-500 sm:mt-1.5 sm:text-sm">{label}</p>
+          {hint && (
+            <p className="mt-0.5 hidden text-xs leading-5 text-slate-400 sm:block">{hint}</p>
+          )}
         </>
       )}
     </div>

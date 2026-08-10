@@ -45,20 +45,10 @@ export default function OwnerDiagnostics() {
   }
 
   return (
+    /* Headless for the same reason as OwnerSwitch: /billing/checks is its
+       screen, and the screen's title already says what it is. */
     <section className="card border-amber-300 bg-amber-50/50">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 className="text-base font-semibold text-slate-900">Is everything wired up?</h2>
-        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-          Only you can see this
-        </span>
-      </div>
-      <p className="mt-1.5 text-sm leading-6 text-slate-600">
-        Checks the variables and the database functions the app depends on, and prints what the
-        server actually said. It records one usage row against your own account, which is the only
-        way to test the call that records usage.
-      </p>
-
-      <button type="button" onClick={run} disabled={busy} className="btn-secondary mt-3">
+      <button type="button" onClick={run} disabled={busy} className="btn-secondary w-full">
         {busy ? "Checking…" : "Run the check"}
       </button>
 
