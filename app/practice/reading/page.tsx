@@ -291,22 +291,20 @@ function ReadingTestPageRunner() {
       >
         {wide ? (
           <SplitPanes
-            className="h-[62vh]"
+            className="h-full"
             left={<div className="prose-reading">{passage}</div>}
             right={questions}
           />
         ) : (
           <>
-            <p className="pb-2 text-center text-[11px] text-[color:var(--exam-muted)]">
+            <p className="shrink-0 pb-1 text-center text-[11px] text-[color:var(--exam-muted)]">
               Swipe sideways to move between the passage and the questions
             </p>
-            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
-              <div className="prose-reading h-[58vh] w-[86vw] shrink-0 snap-start overflow-y-auto">
+            <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto">
+              <div className="prose-reading w-[86vw] shrink-0 snap-start overflow-y-auto">
                 {passage}
               </div>
-              <div className="h-[58vh] w-[86vw] shrink-0 snap-start overflow-y-auto">
-                {questions}
-              </div>
+              <div className="w-[86vw] shrink-0 snap-start overflow-y-auto">{questions}</div>
             </div>
           </>
         )}

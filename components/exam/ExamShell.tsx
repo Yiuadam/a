@@ -147,7 +147,27 @@ export default function ExamShell({
           fontSize: sizeInPx(display.size),
         } as React.CSSProperties
       }
-      className="-mx-4 flex min-h-[80vh] flex-col overflow-hidden border-y border-[color:var(--exam-line)] bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)] sm:mx-0 sm:rounded-lg sm:border"
+      /*
+        Sized to the window rather than to a fraction of it.
+
+        It was min-h-[80vh] with the panes fixed at 62vh inside, which left a
+        band of nothing between the paper and the numbers — the app's chrome
+        and the exam's chrome each taking their share and the reading getting
+        what was left. Now the shell takes the viewport minus the site header,
+        the paper takes everything the two bars do not, and the gap is however
+        many pixels the bars actually need.
+
+        dvh rather than vh because mobile browsers count their own collapsing
+        toolbar in vh, which puts the question numbers below the fold on a
+        phone until you scroll — on the one bar that must never move.
+
+        The 8.5rem is the site header and the page's own padding, measured
+        rather than guessed, with enough left over that the question numbers
+        are never the thing at the very bottom edge of the window. The document
+        is still taller than the window — the site footer is below all of
+        this — but the exam does not depend on scrolling to it.
+      */
+      className="-mx-4 flex h-[calc(100dvh-8.5rem)] min-h-[26rem] flex-col overflow-hidden border-y border-[color:var(--exam-line)] bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)] sm:mx-0 sm:rounded-lg sm:border"
     >
       <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-3 py-1.5">
         {/*
@@ -175,7 +195,13 @@ export default function ExamShell({
         makes the clock and the numbers feel bolted to the screen rather than to
         the page.
       */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">{children}</div>
+      {/*
+        The paper. Fills what is left and does not scroll itself — the panes
+        inside it do, which is what keeps the passage and the questions
+        independent. A page that wants one scrolling column puts its own
+        overflow-y-auto in here.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-2">{children}</div>
 
       {palette && palette.length > 0 ? (
         <QuestionPalette
