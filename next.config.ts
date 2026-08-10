@@ -16,7 +16,7 @@ const isMobile = process.env.MOBILE_BUILD === "1";
   Closed for maintenance — see lib/maintenance.ts. Read here as well as there
   because the closed sign needs a different caching rule from the app.
 */
-const isClosed = process.env.MAINTENANCE_MODE === "1";
+const isClosed = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "1";
 
 const nextConfig: NextConfig = isMobile
   ? {
