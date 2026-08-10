@@ -17,6 +17,11 @@ on:
   # push, so the run that mattered skipped its deploy step and there is nothing
   # left to re-run with the secrets now in place.
   workflow_dispatch:
+    inputs:
+      maintenance:
+        description: "Close the site and show the maintenance screen"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-cloudflare-${{ github.ref }}
@@ -53,9 +58,25 @@ jobs:
       # `deploy` deploys an already-built app — it does not build one. Running it
       # alone fails with "Could not find compiled Open Next config", which is
       # exactly what happened the first time this workflow ran for real.
+      # MAINTENANCE_MODE is read at build time (lib/maintenance.ts), because
+      # most pages here are prerendered and a runtime flag would gate the
+      # dynamic ones only — leaving exactly the pages somebody would then use.
+      # So closing and reopening the site are both a deploy, and this checkbox
+      # is how either is done without editing anything.
       - name: Build the Worker
         if: steps.creds.outputs.ready == 'true'
         run: npm run cf:build
+        env:
+          MAINTENANCE_MODE: ${{ inputs.maintenance && '1' || '0' }}
+
+      - name: Say which way the site is going out
+        if: steps.creds.outputs.ready == 'true'
+        run: |
+          if [ "${{ inputs.maintenance }}" = "true" ]; then
+            echo "::warning::Deploying with the site CLOSED. Re-run this workflow with the maintenance box unticked to reopen it."
+          else
+            echo "::notice::Deploying with the site open."
+          fi
 
       - name: Deploy the Worker
         if: steps.creds.outputs.ready == 'true'

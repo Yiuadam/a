@@ -654,3 +654,29 @@ textarea {
   font-size: var(--exam-base);
   line-height: 1.8;
 }
+
+/*
+  The one moving thing on the maintenance screen — see components/Maintenance.tsx.
+
+  A segment that travels the width of its track and back, rather than a
+  percentage: nobody knows how long the work takes, and a progress bar that
+  claims to is a small lie repeated every second. Kept here rather than inline
+  because a keyframe cannot be expressed as a utility, and it is scoped to one
+  class so it cannot reach anything else.
+*/
+@keyframes maintenance-sweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(310%); }
+}
+
+.maintenance-bar {
+  animation: maintenance-sweep 1.9s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maintenance-bar {
+    /* Still reads as progress; simply does not move. */
+    animation: none;
+    width: 66%;
+  }
+}
