@@ -54,6 +54,18 @@ const tiers = await import(pathToFileURL(join(process.cwd(), "lib", "billing", "
 const { PLANS, PLAN_IDS, TIERS, formatPrice } = tiers;
 
 const DRY = process.argv.includes("--dry-run");
+
+/*
+  Where to write the six ids so they can be uploaded rather than retyped.
+
+  Six ids pasted into six dashboard fields is six chances to put Pro's id in
+  Standard's slot, which sells the expensive plan at the cheap price. The
+  checkout guard refuses that sale rather than charging wrongly, so it is
+  survivable — but not making the mistake is better than catching it, and the
+  file below is in exactly the KEY=VALUE shape `wrangler secret bulk` reads.
+*/
+const OUT_FLAG = process.argv.indexOf("--out");
+const OUT = OUT_FLAG === -1 ? null : (process.argv[OUT_FLAG + 1] ?? "stripe-prices.env");
 const KEY = process.env.STRIPE_SECRET_KEY;
 
 if (!KEY) {
@@ -229,12 +241,25 @@ for (const planId of PLAN_IDS) {
   process.exit(1);
 }
 
-console.log(
-  `\n${DRY ? "Nothing was created." : "Done."} Put these into Cloudflare -> Workers & Pages -> bandup\n` +
-    "-> Settings -> Variables and Secrets, each one as type **Secret**, not Text.\n" +
-    "A Text variable is deleted by the next deploy; a Secret survives.\n",
-);
+console.log(`\n${DRY ? "Nothing was created." : "Done."} The six ids:\n`);
 for (const line of lines) console.log(`  ${line}`);
+
+if (OUT && !DRY) {
+  const { writeFileSync } = await import("node:fs");
+  writeFileSync(OUT, lines.join("\n") + "\n", "utf8");
+  console.log(
+    `\nWritten to ${OUT}. Upload all six in one go, without retyping any of them:\n\n` +
+      `  npx wrangler secret bulk ${OUT}\n\n` +
+      "Then delete the file — it is not secret, but it is clutter that looks like\n" +
+      "configuration and will be out of date the next time a price moves.\n",
+  );
+} else {
+  console.log(
+    "\nPut them into Cloudflare -> Workers & Pages -> bandup -> Settings ->\n" +
+      "Variables and Secrets. Or re-run with `--out stripe-prices.env` to get a\n" +
+      "file you can upload with `npx wrangler secret bulk` instead of retyping.\n",
+  );
+}
 console.log(
   "\nStill to do by hand, because neither can be scripted safely:\n" +
     "  STRIPE_SECRET_KEY      the key you just used\n" +
