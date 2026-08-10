@@ -143,20 +143,42 @@ short numeric password. A passphrase costs a few seconds a week.
 Four things, in this order. Nothing before the last step changes what a visitor
 sees.
 
-**1. Create three products, each with two prices.** Stripe dashboard → Product
-catalogue → Add product. One product per tier, each with a monthly and a yearly
-recurring price:
+**1. Create the products and prices — with the script, not by hand.**
+
+There are six prices and each carries eight currencies, which is fifty-four
+amounts to type correctly into a dashboard. Don't. `scripts/stripe-setup.mjs`
+creates all of it from `lib/billing/tiers.ts`, which is the same catalogue the
+pricing page prints and the checkout guard checks against, so the three cannot
+disagree:
+
+```
+STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs --dry-run   # look first
+STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs             # then do it
+```
+
+It is idempotent — a Price that is already correct in every currency is left
+alone — and it prints the six `price_…` ids to paste into the variables below.
+
+The base prices, for reference:
 
 | Product | Monthly | Yearly | Variables |
 |---|---|---|---|
-| BandUp Standard | `$0.49` | `$4.99` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
-| BandUp Plus | `$1.69` | `$17.99` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
-| BandUp Pro | `$3.29` | `$35.99` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
+| BandUp Standard | `HK$4.90` | `HK$39` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
+| BandUp Plus | `HK$12.90` | `HK$129` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
+| BandUp Pro | `HK$25.90` | `HK$279` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
 
-The amounts have to match what `/pricing` shows, which lives in
-`lib/billing/tiers.ts` — Stripe is what actually charges, and the page is only
-copy, so a mismatch charges the amount the page did not say. Copy each
-`price_…` id into the variable beside it.
+Each Price also carries USD, EUR, GBP, AUD, CAD, SGD, JPY and INR as
+`currency_options`, so one Price id charges a Londoner in pounds and a Tokyo
+candidate in yen. Checkout picks by the customer's address; the pricing page
+picks by the same address, so what a reader is shown is what their card is
+charged. Any country not in that list is converted by Stripe from the base
+price.
+
+Two things the amounts must clear, both enforced by `tests/currency.test.mjs`:
+Stripe refuses a charge under about US$0.50, and every price has to cover what
+that subscriber costs to serve. There is no purchasing-power discount on the AI
+tiers — the model bill is the same wherever somebody lives, and it is already
+80-95% of the price.
 
 These are not arbitrary numbers, and they have very little room in them. Each
 one is what the tier can be made to cost at full usage — every AI request at its

@@ -497,6 +497,30 @@ async function assertPriceMatchesCatalogue(plan: PlanId, priceId: string): Promi
       `price ${priceId} for ${plan} renews ${String(interval)}ly but the catalogue advertises ${expected.interval}ly`,
     );
   }
+
+  /*
+    And every other currency the page might have quoted.
+
+    Checkout picks the currency from the customer's address, and the pricing
+    page picks it from the same address, so whichever one a reader was shown is
+    the one they are about to be charged in. Checking only the base amount would
+    leave every regional price unguarded — and a Price created before regional
+    pricing existed carries no currency_options at all, so a reader quoted
+    £1.29 would be charged the base amount converted, silently.
+  */
+  const options = (price.currency_options ?? {}) as Record<
+    string,
+    { unit_amount?: unknown } | undefined
+  >;
+  for (const [code, amount] of Object.entries(expected.prices)) {
+    if (code === expected.currency) continue;
+    const actual = options[code]?.unit_amount;
+    if (actual !== amount) {
+      throw new StripeError(
+        `price ${priceId} for ${plan} charges ${String(actual)} in ${code} but the catalogue advertises ${amount}`,
+      );
+    }
+  }
 }
 
 /**

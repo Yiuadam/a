@@ -129,7 +129,24 @@ async function priceFor(planId, productId) {
   const existing = await stripe("GET", `/prices?lookup_keys[]=${encodeURIComponent(planId)}&active=true`);
   const match = existing.data?.[0];
 
-  if (match && match.unit_amount === plan.amountMinor && match.currency === plan.currency) {
+  /*
+    A Price is correct only if every currency on it is correct. Checking the
+    base amount alone would leave a Price created before regional pricing in
+    place, still charging a Londoner in Hong Kong dollars while the page quotes
+    pounds — which is the mismatch the whole catalogue exists to prevent.
+  */
+  const currenciesMatch = () => {
+    if (match.unit_amount !== plan.amountMinor) return false;
+    if (match.currency !== plan.currency) return false;
+    const opts = match.currency_options ?? {};
+    for (const [code, amount] of Object.entries(plan.prices)) {
+      if (code === plan.currency) continue;
+      if (opts[code]?.unit_amount !== amount) return false;
+    }
+    return true;
+  };
+
+  if (match && currenciesMatch()) {
     return { price: match, state: "already correct" };
   }
   if (DRY) {
@@ -138,6 +155,19 @@ async function priceFor(planId, productId) {
       state: match ? `would re-price from ${formatPrice(match.unit_amount, match.currency)}` : "would create",
     };
   }
+  /*
+    One Price, many currencies. `currency_options` is what lets a single Price
+    id charge a Londoner in pounds and a Tokyo candidate in yen — Checkout picks
+    by the customer's address, and anything not named here Stripe converts from
+    the base amount. It is why regional pricing needs no second Price and no
+    second environment variable.
+  */
+  const currencyOptions = {};
+  for (const [code, amount] of Object.entries(plan.prices)) {
+    if (code === plan.currency) continue;
+    currencyOptions[`currency_options[${code}][unit_amount]`] = amount;
+  }
+
   const price = await stripe("POST", "/prices", {
     product: productId,
     unit_amount: plan.amountMinor,
@@ -145,6 +175,7 @@ async function priceFor(planId, productId) {
     "recurring[interval]": plan.interval,
     lookup_key: planId,
     transfer_lookup_key: match ? "true" : undefined,
+    ...currencyOptions,
   });
   return { price, state: match ? "re-priced" : "created" };
 }

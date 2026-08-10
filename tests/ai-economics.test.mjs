@@ -77,10 +77,15 @@ const {
   worstCaseTierCost,
 } = tiers;
 
-/** The floor, in US dollars, from the number the owner actually set in HKD. */
-const MIN_MONTHLY_PROFIT = tiers.MIN_MONTHLY_MARGIN_USD;
+/*
+  Everything here is in Hong Kong dollars now, because that is what the plans
+  are sold in and what the owner set the floor in. Only the model bill arrives
+  in US dollars, so that is the one number converted — at the peg, which is a
+  band the Monetary Authority defends rather than a rate that floats.
+*/
+const MIN_MONTHLY_PROFIT = tiers.MIN_MONTHLY_MARGIN_HKD;
 
-const usd = (n) => `$${n.toFixed(4)}`;
+const hk = (n) => `HK$${n.toFixed(4)}`;
 
 test("every plan makes money even if the subscriber uses every last request", () => {
   const rows = [];
@@ -89,7 +94,7 @@ test("every plan makes money even if the subscriber uses every last request", ()
     const plan = PLANS[planId];
     const months = monthsCovered(plan);
     const net = netRevenue(plan);
-    const cost = worstCaseTierCost(plan.tier) * months;
+    const cost = worstCaseTierCost(plan.tier) * months * HKD_PER_USD;
     const profit = net - cost;
     const ratio = cost / net;
 
@@ -97,11 +102,11 @@ test("every plan makes money even if the subscriber uses every last request", ()
 
     assert.ok(
       profit > 0,
-      `${planId} loses money at the cap: ${usd(cost)} of AI against ${usd(net)} of revenue`,
+      `${planId} loses money at the cap: ${hk(cost)} of AI against ${hk(net)} of revenue`,
     );
     assert.ok(
       profit / months >= MIN_MONTHLY_PROFIT,
-      `${planId} leaves only HK$${((profit / months) * HKD_PER_USD).toFixed(2)} a month, ` +
+      `${planId} leaves only HK$${(profit / months).toFixed(2)} a month, ` +
         `under the HK$${MIN_MONTHLY_MARGIN_HKD.toFixed(2)} floor`,
     );
   }
@@ -110,8 +115,8 @@ test("every plan makes money even if the subscriber uses every last request", ()
   // them in the test log is how a pricing change gets reviewed.
   for (const r of rows) {
     console.log(
-      `  ${r.planId.padEnd(18)} net ${usd(r.net).padStart(10)}  ai ${usd(r.cost).padStart(10)}` +
-        `  profit ${usd(r.profit).padStart(10)}  (HK$${(r.perMonth * HKD_PER_USD)
+      `  ${r.planId.padEnd(18)} net ${hk(r.net).padStart(12)}  ai ${hk(r.cost).padStart(12)}` +
+        `  profit ${hk(r.profit).padStart(12)}  (HK$${r.perMonth
           .toFixed(2)
           .padStart(6)}/mo, ${(r.ratio * 100).toFixed(1)}% on AI)`,
     );

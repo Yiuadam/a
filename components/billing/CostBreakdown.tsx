@@ -1,10 +1,12 @@
 import { COSTED_ROUTES, worstCaseCost } from "@/lib/ai/models";
+import { toMajor, toMinor } from "@/lib/billing/currency";
 import {
+  HKD_PER_USD,
   MONTHLY_AI_CAPS,
   PLANS,
-  STRIPE_FIXED_FEE_MINOR,
   STRIPE_PERCENT_FEE,
   TIERS,
+  fixedFeeMinor,
   formatPrice,
   type PlanId,
 } from "@/lib/billing/tiers";
@@ -58,9 +60,19 @@ export default function CostBreakdown({ plan }: { plan: PlanId }) {
   const detail = PLANS[plan];
   const months = detail.interval === "year" ? 12 : 1;
 
-  const price = detail.amountMinor / 100;
-  const cardFee = (detail.amountMinor * STRIPE_PERCENT_FEE + STRIPE_FIXED_FEE_MINOR) / 100;
-  const ai = monthlyAiCost(plan) * months;
+  /*
+    Shown in the base currency rather than the reader's, and on purpose. This is
+    an account of where the owner's money goes, and it is drawn on the server
+    where the reader's currency is not yet known. Converting it per reader would
+    also make the arithmetic harder to check rather than easier — the point of
+    the section is that the numbers add up, and they add up in one currency.
+  */
+  const price = toMajor(detail.amountMinor, detail.currency);
+  const cardFee = toMajor(
+    detail.amountMinor * STRIPE_PERCENT_FEE + fixedFeeMinor(detail.currency),
+    detail.currency,
+  );
+  const ai = monthlyAiCost(plan) * months * HKD_PER_USD;
   const left = price - cardFee - ai;
 
   const rows: { label: string; amount: number; note: string }[] = [
@@ -100,7 +112,7 @@ export default function CostBreakdown({ plan }: { plan: PlanId }) {
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-sm text-slate-800">{row.label}</span>
               <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
-                {formatPrice(Math.round(row.amount * 100), detail.currency)}
+                {formatPrice(toMinor(row.amount, detail.currency), detail.currency)}
               </span>
             </div>
             <div className="mt-1 flex items-center gap-2">
