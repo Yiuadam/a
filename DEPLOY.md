@@ -157,7 +157,21 @@ STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs             # then d
 ```
 
 It is idempotent — a Price that is already correct in every currency is left
-alone — and it prints the six `price_…` ids to paste into the variables below.
+alone — and it prints the six `price_…` ids.
+
+Add `--out stripe-prices.env` and it writes them in the shape Wrangler reads,
+so the six never have to be retyped:
+
+```
+STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs --out stripe-prices.env
+npx wrangler secret bulk stripe-prices.env
+rm stripe-prices.env
+```
+
+Six ids pasted into six dashboard fields is six chances to put Pro's id in
+Standard's slot, which sells the expensive plan at the cheap price. The
+checkout guard refuses that sale rather than charging wrongly, so it is
+survivable — but not making the mistake is better than catching it.
 
 The base prices, for reference:
 
