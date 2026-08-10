@@ -12,6 +12,12 @@ import type { NextConfig } from "next";
 */
 const isMobile = process.env.MOBILE_BUILD === "1";
 
+/*
+  Closed for maintenance — see lib/maintenance.ts. Read here as well as there
+  because the closed sign needs a different caching rule from the app.
+*/
+const isClosed = process.env.MAINTENANCE_MODE === "1";
+
 const nextConfig: NextConfig = isMobile
   ? {
       output: "export",
@@ -73,7 +79,33 @@ const nextConfig: NextConfig = isMobile
           {
             source: "/((?!_next/static|_next/image).*)",
             headers: [
-              { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+              {
+                key: "Cache-Control",
+                /*
+                  A closed site may not be cached by anything, anywhere.
+
+                  The ordinary rule below is `public, max-age=0,
+                  must-revalidate`: keep the copy, always revalidate. That is
+                  right for the app and wrong for a maintenance screen in both
+                  directions. `public` lets a shared cache — Cloudflare's edge,
+                  a corporate proxy — store the page, and the first thing that
+                  happens after a deploy is that somebody is served the app from
+                  a cache and reports the closed sign never appeared. Which is
+                  exactly what happened.
+
+                  It matters again on the way back: reopening must be visible
+                  immediately, and a stored closed sign outliving the deploy
+                  that reopened the site would be worse than the original
+                  problem — the shop is open and the door still says closed.
+
+                  no-store on both counts. A maintenance page is cheap to
+                  render and served for a few hours; there is nothing to gain by
+                  caching it and a great deal to lose.
+                */
+                value: isClosed
+                  ? "no-store, no-cache, must-revalidate, max-age=0"
+                  : "public, max-age=0, must-revalidate",
+              },
             ],
           },
         ];
