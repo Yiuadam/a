@@ -524,6 +524,77 @@ async function assertPriceMatchesCatalogue(plan: PlanId, priceId: string): Promi
 }
 
 /**
+ * What is currently being paid, straight from Stripe.
+ *
+ * Stripe rather than our own `subscriptions` table, and the difference matters.
+ * Our table is a copy kept in step by webhooks, so it is right until a webhook
+ * is missed — and a dashboard whose job is to tell the owner whether anything
+ * is wrong should not be reading the copy that goes stale when something is.
+ * Stripe is where the money actually is.
+ *
+ * Counts only `active` and `trialing`. A subscription that is past due or
+ * cancelled is not revenue, and rolling those in is how a dashboard reports
+ * growth on the day it should be reporting churn.
+ */
+export interface BillingSnapshot {
+  /** Live subscriptions, by plan id where we recognise the Price. */
+  byPlan: Record<string, number>;
+  active: number;
+  /** Monthly recurring revenue in Hong Kong dollars, yearly plans divided out. */
+  mrrHkd: number;
+}
+
+export async function billingSnapshot(): Promise<BillingSnapshot> {
+  const byPlan: Record<string, number> = {};
+  let active = 0;
+  let mrrMinor = 0;
+
+  /*
+    Paginated deliberately rather than capped at Stripe's default hundred. A
+    dashboard that silently stopped counting at subscriber 101 would be wrong
+    in the direction that matters and would look right for months.
+  */
+  let startingAfter: string | undefined;
+  for (let page = 0; page < 20; page++) {
+    const query = new URLSearchParams({ status: "active", limit: "100" });
+    if (startingAfter) query.set("starting_after", startingAfter);
+    const body = await stripeGet(`/subscriptions?${query.toString()}`);
+    const data = (body.data ?? []) as Array<Record<string, unknown>>;
+
+    for (const sub of data) {
+      active += 1;
+      const items = (sub.items as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
+      for (const item of items) {
+        const price = item.price as
+          | { id?: unknown; unit_amount?: unknown; recurring?: { interval?: unknown } }
+          | undefined;
+        const planId = price?.id ? planForStripePrice(String(price.id)) : null;
+        if (planId) byPlan[planId] = (byPlan[planId] ?? 0) + 1;
+
+        const amount = typeof price?.unit_amount === "number" ? price.unit_amount : 0;
+        /* A year's money spread over the months it covers, so the two plans
+           are comparable on one axis rather than one of them spiking once. */
+        mrrMinor += price?.recurring?.interval === "year" ? amount / 12 : amount;
+      }
+    }
+
+    if (data.length < 100) break;
+    startingAfter = String(data[data.length - 1]?.id ?? "");
+    if (!startingAfter) break;
+  }
+
+  return { byPlan, active, mrrHkd: Math.round(mrrMinor) / 100 };
+}
+
+/** Which plan a Stripe Price id belongs to, or null if we do not sell it. */
+function planForStripePrice(priceId: string): PlanId | null {
+  for (const id of Object.keys(PLANS) as PlanId[]) {
+    if (stripePriceId(id) === priceId) return id;
+  }
+  return null;
+}
+
+/**
  * Creates a Checkout Session and returns the URL to send the learner to.
  *
  * Two things travel with the session so that every later webhook can be tied

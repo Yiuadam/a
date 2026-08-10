@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 import LookupProvider from "@/components/Lookup";
 import AutoSync from "@/components/AutoSync";
 import Maintenance from "@/components/Maintenance";
+import AppMain from "@/components/AppMain";
+import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -34,6 +35,26 @@ export const metadata: Metadata = {
 
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  /*
+    Build-time only, for now.
+
+    The runtime switch — a row the owner writes from /admin, read here on each
+    render — made every page of the preview answer 500 while /api kept working,
+    which is exactly the shape of a fault in this function: the layout is the
+    only thing a page has that a route handler does not.
+
+    It could not be reproduced locally in five configurations, including the
+    full production environment against a stub answering what Supabase answers.
+    So it is out until it can be, rather than shipped on the hope that the
+    hardening around it is enough. A switch that closes the site is not a thing
+    to leave a maybe in.
+
+    Everything else the switch needs is still here and still works: the row, the
+    two functions, the admin screen, the API that writes it. Only this read is
+    withdrawn, and closing the site stays a deploy in the meantime.
+  */
+  const closed = MAINTENANCE_MODE;
+
   return (
     <html
       lang="en"
@@ -71,7 +92,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           arriving, so renewals and cancellations for existing subscribers are
           still recorded while the shop is shut.
         */}
-        {MAINTENANCE_MODE ? (
+        {closed ? (
           <Maintenance />
         ) : (
         <>
@@ -101,41 +122,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             its own inner max-w-xl. Widening the container and letting a
             paragraph run 1500px would be worse than the empty space it fixed.
           */}
-          <main
-            data-lookupable
-            className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]"
-          >
-            {children}
-          </main>
+          <AppMain>{children}</AppMain>
         </LookupProvider>
         {/*
           The privacy policy lives here rather than in the menu: it is a page a
           learner visits once, if ever, while Apple needs it publicly reachable
           to accept a submission at all. A footer is where people look for it.
         */}
-        <footer className="mt-4 border-t border-slate-200">
-          <div className="mx-auto max-w-5xl space-y-3 px-5 py-6 text-xs leading-5 text-slate-400 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
-            <p>
-              Band scores here are practice estimates. BandUp is an independent study tool, not
-              affiliated with or endorsed by IELTS, the British Council, IDP or Cambridge English.
-            </p>
-            <Link
-              href="/privacy"
-              className="inline-block rounded text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-900"
-            >
-              Privacy policy
-            </Link>
-            <span className="px-2 text-slate-400" aria-hidden>
-              ·
-            </span>
-            <Link
-              href="/terms"
-              className="inline-block rounded text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-900"
-            >
-              Terms
-            </Link>
-          </div>
-        </footer>
+        <SiteFooter />
         </>
         )}
       </body>
