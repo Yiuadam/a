@@ -75,13 +75,30 @@ export default function Dashboard() {
       */}
       <section className="card !p-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-3 sm:!p-5">
         <div className="min-w-0 flex-1 basis-64">
+          {/*
+            A first-time visitor is told what this is before being told what to
+            do, and the product is named rather than assumed.
+
+            It read "Let's find your band score." — warm, and it only works if
+            you already know where you are. Somebody arriving cold from a link
+            got a dashboard for an app whose name and purpose appeared nowhere
+            on the page. Google's OAuth reviewer was the first to say so out
+            loud, refusing to verify the consent screen on two counts: the
+            homepage "does not explain the purpose of your app", and the name
+            on it did not match the name asking for consent. Both were fair.
+
+            A returning learner still gets "Welcome back." — they know what
+            BandUp is, and re-introducing it every visit would be the other
+            mistake.
+          */}
           <h1 className="text-xl font-semibold leading-snug text-slate-900 sm:text-[22px]">
-            {placement ? "Welcome back." : "Let's find your band score."}
+            {placement ? "Welcome back." : "BandUp — free IELTS practice"}
           </h1>
           <p className="mt-1 text-sm leading-6 text-slate-600">
             {placement
               ? `Around band ${placement.band}. Your plan says what to do next.`
-              : "One short test, five minutes, and you'll know where you stand."}
+              : "Find your band score in five minutes, get a study plan built around it, and " +
+                "practise listening, reading, writing and speaking with an AI examiner."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
