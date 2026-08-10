@@ -20,8 +20,13 @@ export const MESSAGES = {
   */
   quotaExceeded:
     "You've used this month's allowance for this. Your billing page shows what's left of the others — and practice tests, drills and your study plan are never limited.",
+  /*
+    "This week" rather than "today": the second ceiling is a rolling seven days
+    now, and telling somebody to come back tomorrow when the answer is Thursday
+    is worse than saying nothing.
+  */
   rateLimited:
-    "That's a lot of requests at once. Please wait a little and try again — there's a daily ceiling as well as a monthly one, so this comes back on its own.",
+    "You've used this week's allowance for this. It refills a week after each request, so some of it comes back tomorrow — your billing page shows when.",
   unavailable: "The AI tutor is briefly unavailable. Please try again in a minute.",
   // The account endpoints are not the AI tutor, so they say something true of
   // themselves — and equally uninformative about why.

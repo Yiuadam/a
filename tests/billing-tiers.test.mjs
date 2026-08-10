@@ -239,3 +239,42 @@ test("prices are formatted as money, without inventing pennies", () => {
   assert.equal(formatPrice(799, "usd"), "$7.99");
   assert.equal(formatPrice(0, "usd"), "$0");
 });
+
+/*
+  What a plan is advertised as including, against what the meter will actually
+  allow.
+
+  These two live apart — one is marketing copy in `TIERS[...].includes`, the
+  other is arithmetic in `MONTHLY_AI_CAPS` — and they drifted the first time the
+  caps moved: the caps were halved to bring the prices down and the copy went on
+  promising twenty marked essays where the meter would allow ten.
+
+  That is not a display bug. It is a page taking somebody's money for a thing it
+  then refuses to deliver, and under the consumer law this app already writes
+  about on /terms it is the kind of thing that has to be refunded on request. So
+  the numbers in the sales copy are checked against the numbers in the meter.
+*/
+test("the plan features promise no more than the meter allows", () => {
+  const ROUTES = {
+    essays: "grade/writing",
+    "speaking tests": "grade/speaking",
+    "tutor questions": "chat",
+    "word lookups": "define",
+    "AI-written papers": "generate",
+  };
+
+  for (const tier of ["plus", "pro"]) {
+    const caps = MONTHLY_AI_CAPS[tier];
+    const copy = TIERS[tier].includes.join(" ");
+
+    for (const [phrase, route] of Object.entries(ROUTES)) {
+      const found = copy.match(new RegExp(String.raw`(\d+)\s+(?:fresh\s+)?` + phrase));
+      assert.ok(found, `${tier} does not say how many ${phrase} it includes`);
+      assert.equal(
+        Number(found[1]),
+        caps[route],
+        `${tier} advertises ${found[1]} ${phrase} a month but the meter allows ${caps[route]}`,
+      );
+    }
+  }
+});
