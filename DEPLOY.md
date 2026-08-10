@@ -149,9 +149,9 @@ recurring price:
 
 | Product | Monthly | Yearly | Variables |
 |---|---|---|---|
-| BandUp Standard | `$0.99` | `$9.99` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
-| BandUp Plus | `$3.49` | `$34.99` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
-| BandUp Pro | `$6.99` | `$74.99` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
+| BandUp Standard | `$0.49` | `$4.99` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
+| BandUp Plus | `$1.69` | `$17.99` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
+| BandUp Pro | `$3.29` | `$35.99` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
 
 The amounts have to match what `/pricing` shows, which lives in
 `lib/billing/tiers.ts` — Stripe is what actually charges, and the page is only

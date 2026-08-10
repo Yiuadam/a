@@ -415,13 +415,20 @@ export interface Plan {
 }
 
 /*
-  The ladder: $0.99, $3.49, $6.99.
+  The ladder: $0.49, $1.69, $3.29.
 
   These are cost-plus prices, and that is the owner's decision rather than an
   accident of rounding. Each one is the worst a subscriber on that tier can
   cost — every AI request taken at its ceiling, plus Stripe's cut — with a
-  margin of about HK$3 a month on top, then rounded up to a price that looks
+  margin of at least HK$1 a month on top, then rounded up to a price that looks
   like a price. tests/ai-economics.test.mjs is what holds that floor.
+
+  They were about twice this, and the halving came from the allowances rather
+  than from the margin. That is worth recording because the intuition runs the
+  other way: at the old caps, giving up every cent of profit still could not
+  price Pro below $5.94, because $5.39 of its $6.99 was AI. What a plan costs
+  to serve is what sets its price here, so the way to make a plan cheaper is to
+  put less in it.
 
   The margin is deliberately thin and it is worth being clear-eyed about what
   that means: at full usage these plans cover the AI and the card fee and very
