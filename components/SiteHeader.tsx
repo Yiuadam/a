@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
-import { NAV_GROUPS, PRIMARY, currentHref } from "@/lib/nav";
+import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref } from "@/lib/nav";
+import { useTier } from "@/lib/billing/useTier";
 
 /*
   The whole header, in one client component.
@@ -39,6 +40,27 @@ import { NAV_GROUPS, PRIMARY, currentHref } from "@/lib/nav";
 
 export default function SiteHeader() {
   const pathname = usePathname();
+
+  /*
+    The owner sees one row nobody else does. Appended to the last group rather
+    than given a heading of its own: a section containing a single item reads
+    as a mistake, and the menu is grouped by what a person is doing — settings
+    for the site belong beside settings for the account.
+
+    Generous while the answer is unknown is the wrong default here, so it is
+    the opposite of the tier gates elsewhere: the row appears only once the
+    account is known to be the owner's. Nothing is protected by that, and
+    nothing needs to be — /admin answers 404 to everyone else either way.
+  */
+  const account = useTier();
+  const isOwner = account.phase === "ready" && account.signedIn && account.tier === "admin";
+  const groups = isOwner
+    ? NAV_GROUPS.map((group, i) =>
+        i === NAV_GROUPS.length - 1
+          ? { ...group, items: [...group.items, OWNER_ITEM] }
+          : group,
+      )
+    : NAV_GROUPS;
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -242,7 +264,7 @@ export default function SiteHeader() {
           >
             <nav aria-label="All pages" className="mx-auto max-w-5xl px-4 py-5 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
               <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-                {NAV_GROUPS.map((group) => (
+                {groups.map((group) => (
                   <div key={group.title}>
                     <h2 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
                       {group.title}

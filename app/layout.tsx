@@ -5,6 +5,7 @@ import LookupProvider from "@/components/Lookup";
 import AutoSync from "@/components/AutoSync";
 import Maintenance from "@/components/Maintenance";
 import SiteHeader from "@/components/SiteHeader";
+import { maintenanceSetting } from "@/lib/admin/settings";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -33,7 +34,22 @@ export const metadata: Metadata = {
 };
 
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  /*
+    Two switches, and the site is closed if either is thrown.
+
+    The build-time one is for planned work: it is baked into the bundle, so it
+    cannot fail to apply and it cannot be undone by a database being down. The
+    runtime one is for everything else — it is a row the owner can write from
+    the admin screen, and it closes the site in seconds without a deploy, which
+    is what you want when the reason to close is that something is wrong now.
+
+    `||`, not a preference between them. A deploy that went out closed must
+    stay closed even if the database says otherwise, and an owner who pressed
+    the button must be obeyed even though the last deploy went out open.
+  */
+  const closed = MAINTENANCE_MODE || (await maintenanceSetting()).closed;
+
   return (
     <html
       lang="en"
@@ -71,7 +87,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           arriving, so renewals and cancellations for existing subscribers are
           still recorded while the shop is shut.
         */}
-        {MAINTENANCE_MODE ? (
+        {closed ? (
           <Maintenance />
         ) : (
         <>

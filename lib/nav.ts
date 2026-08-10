@@ -109,9 +109,22 @@ export const NAV_GROUPS: NavGroup[] = [
       ...(IS_MOBILE_BUILD ? [] : [{ href: "/billing", label: "Bill and usage" } as const]),
       /* Read once, if ever — so it lives in the menu and not the header row. */
       { href: "/credits", label: "Credits" },
+
     ],
   },
 ];
+
+/**
+ * The owner's own screen, added to the menu only for the owner.
+ *
+ * Kept out of NAV_GROUPS rather than filtered out of it, because a row that
+ * every learner can see and nobody but the owner can open is a menu item that
+ * answers "page not found" — confusing for them and no protection at all for
+ * it. Hiding a link is not access control and this does not pretend to be:
+ * /admin and the route behind it both answer 404 to anyone who is not the
+ * owner, whether or not they ever saw a link.
+ */
+export const OWNER_ITEM: NavItem = { href: "/admin", label: "Site settings" };
 
 /**
  * Which destination a path is "on", or null.
