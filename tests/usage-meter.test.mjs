@@ -57,7 +57,7 @@ const tiersModule = await import(
   pathToFileURL(join(process.cwd(), "lib", "billing", "tiers.ts")).href
 );
 const LIMITS = limitsModule.limitsForDatabase();
-const { monthlyCap, dailyCap } = tiersModule;
+const { monthlyCap, weeklyCap } = tiersModule;
 
 function findPostgresBin() {
   const base = "/usr/lib/postgresql";
@@ -234,11 +234,11 @@ test("the usage bar counts exactly what the gate enforces", async (t) => {
     }
 
     // ---- 3. The daily ceiling stops a month being spent in an afternoon ----
-    const DAY = dailyCap("plus", "grade/writing");
+    const WEEK = weeklyCap("plus", "grade/writing");
     const MONTHLY = monthlyCap("plus", "grade/writing");
-    assert.ok(DAY > 0 && MONTHLY > DAY, "this test needs a daily ceiling below the monthly cap");
+    assert.ok(WEEK > 0 && MONTHLY > WEEK, "this test needs a daily ceiling below the monthly cap");
 
-    for (let i = bar().by_route["grade/writing"] ?? 0; i < DAY; i += 1) {
+    for (let i = bar().by_route["grade/writing"] ?? 0; i < WEEK; i += 1) {
       assert.equal(call("grade/writing").allowed, true, `refused inside the daily ceiling at ${i}`);
     }
     const dayFull = call("grade/writing");
@@ -260,7 +260,7 @@ test("the usage bar counts exactly what the gate enforces", async (t) => {
     while ((bar().by_route["grade/writing"] ?? 0) < MONTHLY) {
       nextDay(user);
       const before = bar().by_route["grade/writing"] ?? 0;
-      for (let i = 0; i < Math.min(DAY, MONTHLY - before); i += 1) {
+      for (let i = 0; i < Math.min(WEEK, MONTHLY - before); i += 1) {
         assert.equal(
           call("grade/writing").allowed,
           true,
@@ -329,7 +329,7 @@ test("the usage bar counts exactly what the gate enforces", async (t) => {
     assert.equal(barFor(owner).used, beyond, "an uncapped account is still counted honestly");
 
     console.log(
-      `  proved against Postgres: plus gets ${DAY} essays a day and ${MONTHLY} a month, ` +
+      `  proved against Postgres: plus gets ${WEEK} essays a day and ${MONTHLY} a month, ` +
         `refusal at ${MONTHLY + 1}, free gets none, other routes unaffected, ` +
         `denials excluded, both windows roll.`,
     );

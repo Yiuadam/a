@@ -12,7 +12,8 @@ import TestQuestions, {
 } from "@/components/TestQuestions";
 import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
-import { rankedEnglishVoices, toSentences } from "@/lib/speech";
+import { rankedEnglishVoices } from "@/lib/speech";
+import { playScript } from "@/lib/exam/playback";
 import { useMounted, useProfile } from "@/lib/hooks";
 import { flatQuestions, questionCount } from "@/lib/questions";
 import { buildReview } from "@/lib/review";
@@ -22,61 +23,6 @@ import type { ListeningTest } from "@/lib/types";
 import TestChooser from "@/components/TestChooser";
 
 const bundled = LISTENING_TESTS;
-
-interface PlaybackHooks {
-  voices: SpeechSynthesisVoice[];
-  rate: () => number;
-  stillPlaying: () => boolean;
-  onTurn: (index: number) => void;
-  onEnd: () => void;
-}
-
-/**
- * Speak the script a sentence at a time rather than a turn at a time.
- *
- * Reading a whole paragraph as one utterance is what makes synthesised speech
- * sound mechanical: the pace never varies and there is no breath between
- * thoughts. Sentence-level playback with short gaps — longer when the speaker
- * changes, as in a real conversation — plus a little jitter in the rate, gets
- * much closer to a person reading aloud.
- */
-function playScript(test: ListeningTest, from: number, hooks: PlaybackHooks): void {
-  const speak = (turnIndex: number, sentenceIndex: number) => {
-    if (!hooks.stillPlaying()) return;
-    if (turnIndex >= test.script.length) {
-      hooks.onEnd();
-      return;
-    }
-    const turn = test.script[turnIndex];
-    const sentences = toSentences(turn.text);
-    if (sentenceIndex >= sentences.length) {
-      // Turn-taking gap: a beat longer than the pause between sentences.
-      const gap = turnIndex + 1 < test.script.length ? 420 : 0;
-      window.setTimeout(() => speak(turnIndex + 1, 0), gap);
-      return;
-    }
-
-    if (sentenceIndex === 0) hooks.onTurn(turnIndex);
-
-    const utter = new SpeechSynthesisUtterance(sentences[sentenceIndex]);
-    const speakerIdx = Math.max(0, test.speakers.indexOf(turn.speaker));
-    if (hooks.voices.length > 0) {
-      utter.voice = hooks.voices[speakerIdx % hooks.voices.length];
-    }
-    // Only shift pitch when one voice has to cover several speakers.
-    utter.pitch = hooks.voices.length > 1 ? 1 : speakerIdx === 0 ? 1.04 : 0.92;
-    // ±3% keeps the delivery from sounding metronomic.
-    utter.rate = hooks.rate() * (0.97 + Math.random() * 0.06);
-    const next = () => {
-      if (!hooks.stillPlaying()) return;
-      window.setTimeout(() => speak(turnIndex, sentenceIndex + 1), 180);
-    };
-    utter.onend = next;
-    utter.onerror = next;
-    window.speechSynthesis.speak(utter);
-  };
-  speak(from, 0);
-}
 
 function ListeningTestPageRunner() {
   const params = useSearchParams();

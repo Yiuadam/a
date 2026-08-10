@@ -44,23 +44,27 @@ Cloudflare → Run workflow**, which is what `workflow_dispatch` is there for.
 
 Repository secrets let CI *deploy* the Worker. They are not what the Worker
 *runs with*. Everything the app reads at runtime lives in Cloudflare, set
-under **Workers & Pages → bandup → Settings → Variables and Secrets**, each one
-with its type set to **Secret**:
+under **Workers & Pages → bandup → Settings → Variables and Secrets**.
 
-> **Type must be Secret, not Text — including for the ones that are not
-> secret.** This is a Cloudflare mechanic and it has bitten this project once
-> already. `wrangler deploy` replaces the Worker's bindings with what is in
-> `wrangler.jsonc`, so a plain **Text** variable added in the dashboard is
-> *deleted by the next deploy*. Encrypted **Secret** values are preserved.
+Use **Secret** for anything that is actually secret — a key, a token, a salt —
+because Secrets are encrypted at rest and hidden from the dashboard once saved.
+**Text** is fine for the rest. Either type survives a deploy.
+
+> **This used to be a trap, and it cost two outages.** Wrangler's default is to
+> treat `wrangler.jsonc` as the only source of truth for variables: every
+> deploy deleted the Worker's plain-text variables and then set whatever `vars`
+> said. There is no `vars` block, so it deleted and set nothing back. Secrets
+> survived, which made it look random rather than systematic.
 >
-> The symptom is the confusing kind: you add the variable, the deploy goes
-> green, and the app behaves as though you never added it — because by then you
-> hadn't. `ADMIN_USERNAME` is the one most likely to be got wrong, since it
-> genuinely holds nothing secret; store it as a Secret anyway, because the
-> choice is about surviving a deploy rather than about confidentiality.
+> The first time it took `ADMIN_USERNAME`. The second time it took
+> `ADMIN_USERNAME`, `ACCOUNTS_ENABLED` and all six `STRIPE_PRICE_*` together —
+> locking the owner out of admin and closing subscriptions on a live site, on a
+> deploy that reported success.
 >
-> If a variable stops working right after a deploy, this is why. Re-add it as a
-> Secret and deploy again.
+> `wrangler.jsonc` now sets `keep_vars: true`, so deploys leave variables
+> alone, and `tests/deploy-config.test.mjs` fails if that line is removed. The
+> old advice here — "mark everything Secret even when it holds nothing secret"
+> — is no longer needed.
 
 | Variable | Needed for |
 |---|---|
@@ -145,9 +149,9 @@ recurring price:
 
 | Product | Monthly | Yearly | Variables |
 |---|---|---|---|
-| BandUp Standard | `$0.99` | `$9.99` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
-| BandUp Plus | `$3.49` | `$34.99` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
-| BandUp Pro | `$6.99` | `$74.99` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
+| BandUp Standard | `$0.49` | `$4.99` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
+| BandUp Plus | `$1.69` | `$17.99` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
+| BandUp Pro | `$3.29` | `$35.99` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
 
 The amounts have to match what `/pricing` shows, which lives in
 `lib/billing/tiers.ts` — Stripe is what actually charges, and the page is only

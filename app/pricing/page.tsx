@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import CheckoutNotice from "@/components/billing/CheckoutNotice";
+import CostBreakdown from "@/components/billing/CostBreakdown";
 import PricingPlans from "./PricingPlans";
 
 /*
@@ -59,6 +60,14 @@ export default function PricingPage() {
       </Suspense>
 
       <PricingPlans />
+
+      {/*
+        The arithmetic behind one plan, before the small print rather than
+        inside it. Plus monthly because it is the plan most people are choosing
+        between, and because it is the one where the split is most worth seeing:
+        two thirds of it is gone before it arrives.
+      */}
+      <CostBreakdown plan="plus-monthly" />
 
       <details className="card [&[open]_.chev]:rotate-90">
         <summary className="flex cursor-pointer list-none items-center gap-2 text-base font-semibold text-slate-900">

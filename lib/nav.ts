@@ -55,6 +55,16 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/practice/writing", label: "Writing" },
       { href: "/speaking", label: "Speaking" },
       { href: "/practice", label: "All practice tests" },
+      /*
+        Last in the group, and deliberately not in PRIMARY.
+
+        A mock exam is not the thing to do on a Tuesday evening — it is nearly
+        three hours and it tells you nothing until the end. Putting it in the
+        header would offer it as a fifth way to practise, and most learners who
+        took it up on that would be spending an evening measuring instead of
+        learning. It belongs where somebody goes looking for it.
+      */
+      { href: "/exam", label: "Full mock exam" },
     ],
   },
   {

@@ -207,6 +207,7 @@ export default function TestQuestions({
   checked = {},
   onCheck,
   mode = "practice",
+  startNumber = 1,
 }: {
   questions: QuestionSet;
   answers: AnswerMap;
@@ -217,8 +218,16 @@ export default function TestQuestions({
   onCheck?: (id: string) => void;
   /** Practice reveals as you go; the exam reveals nothing until it ends. */
   mode?: TestMode;
+  /**
+   * What to call this paper's first question.
+   *
+   * 1 everywhere except inside a mock sitting, where four listening recordings
+   * or three reading passages are rendered one after another as a single
+   * 40-question paper. See `numberedGroups`.
+   */
+  startNumber?: number;
 }) {
-  const groups = numberedGroups(questions);
+  const groups = numberedGroups(questions, startNumber);
   const practising = mode === "practice";
 
   return (
@@ -270,6 +279,13 @@ export default function TestQuestions({
               return (
                 <li
                   key={q.id}
+                  /*
+                    The anchor the exam palette scrolls to. Clicking 23 along
+                    the bottom of the screen has to land on question 23, and the
+                    palette has no other way to find it — see
+                    lib/exam/navigation.ts.
+                  */
+                  data-question-id={q.id}
                   className={`card ${
                     revealed
                       ? correct

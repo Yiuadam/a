@@ -10,7 +10,9 @@ import TestQuestions, {
   type AnswerMap,
   type CheckedMap,
 } from "@/components/TestQuestions";
-import Timer from "@/components/Timer";
+import ExamShell from "@/components/exam/ExamShell";
+import SplitPanes, { useIsWide } from "@/components/exam/SplitPanes";
+import { useExamNavigation } from "@/lib/exam/navigation";
 import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
 import { useMounted, useProfile } from "@/lib/hooks";
@@ -50,6 +52,24 @@ function ReadingTestPageRunner() {
       null
     );
   }, [params, profile.genTests]);
+
+  /*
+    The palette's view of the paper: every question in the order the exam
+    numbers them, and whether anything has been put against it.
+
+    Above every early return, because these are hooks and `test` can be null —
+    a paper id that matches nothing renders a "not found" screen, and hooks
+    that ran only on the other branch would change order between renders.
+    `flatQuestions` is given an empty set in that case and answers nothing.
+  */
+  const flat = useMemo(() => (test ? flatQuestions(test.questions) : []), [test]);
+  const nav = useExamNavigation(
+    useMemo(
+      () => flat.map((q) => ({ id: q.id, answered: answers[q.id] !== undefined })),
+      [flat, answers],
+    ),
+  );
+  const wide = useIsWide();
 
   const submit = useCallback(() => {
     if (!test || submitted) return;
@@ -163,20 +183,43 @@ function ReadingTestPageRunner() {
     );
   }
 
+  const passage = (
+    <>
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
+          Passage
+        </h2>
+        <span className="text-[11px] text-[color:var(--exam-muted)]">
+          Select any word to look it up
+        </span>
+      </div>
+      {test.passage.split(/\n\n+/).map((p, i) => (
+        <p key={i}>{p}</p>
+      ))}
+    </>
+  );
+
+  const questions = (
+    <>
+      <TestQuestions
+        questions={test.questions}
+        answers={answers}
+        onAnswer={(id, v) => setAnswers((a) => ({ ...a, [id]: v }))}
+        submitted={submitted}
+        checked={checked}
+        onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
+        mode={mode === "timed" ? "exam" : "practice"}
+      />
+      {!submitted && (
+        <button className="btn-primary mt-5 w-full" onClick={submit}>
+          Submit answers
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-slate-900">{test.title}</h1>
-        {!submitted &&
-          (mode === "timed" ? (
-            <Timer minutes={test.timeMinutes} running onExpire={submit} />
-          ) : (
-            <span className="rounded-lg border border-slate-200 bg-surface px-3 py-1.5 text-sm text-slate-500">
-              No time limit
-            </span>
-          ))}
-      </div>
-
       {submitted && band !== null && (
         <div className="card flex flex-col items-center gap-4 py-6 sm:flex-row sm:justify-center sm:gap-10">
           <BandBadge band={band} caption={`${raw}/${questionCount(test.questions)} correct`} />
@@ -213,55 +256,59 @@ function ReadingTestPageRunner() {
       )}
 
       {/*
-        Two panes side by side, and on a phone you swipe between them.
+        The paper itself, inside the exam's own furniture.
 
-        Stacked, a reading paper is unusable on a phone: the passage is 800
-        words, so answering question 7 means scrolling up past all of it, and
-        scrolling back down to find where you were. People do it by holding the
-        phone in one hand and their place in the passage in their head.
+        Everything from here down is the computer-delivered IELTS screen rather
+        than a web page about it: the clock top-centre, Settings top-right, the
+        forty numbers along the bottom with the square-to-circle review flag,
+        and the passage and questions side by side with a bar you can drag.
+        components/exam/ExamShell.tsx has the reasoning for each.
 
-        So below `lg` the two become a horizontal snap track — passage, then
-        questions — each with its own vertical scroll. That is what makes the
-        two independent: they are separate scroll containers, so moving
-        sideways cannot disturb either one's position, and swiping back finds
-        the passage exactly where it was left. No JavaScript and no state; the
-        browser keeps a scroll offset per element for free.
-
-        From `lg` up nothing changes: the same two children become the grid
-        they always were, and the snap and the overflow are turned back off.
+        Below `lg` the split becomes the horizontal swipe track it already was,
+        because the real exam never has to answer for a 390px screen and this
+        app does. Stacked, a reading paper is unusable on a phone: the passage
+        is 800 words, so answering question 7 means scrolling up past all of it
+        and back down to find your place. As a snap track each half keeps its
+        own scroll position for free, and swiping back finds the passage exactly
+        where it was left.
       */}
-      <p className="pb-1 text-center text-xs text-slate-400 lg:hidden">
-        Swipe sideways to move between the passage and the questions
-      </p>
-      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:-mx-5 sm:px-5 lg:mx-0 lg:grid lg:snap-none lg:grid-cols-[1.15fr_1fr] lg:gap-6 lg:overflow-visible lg:px-0">
-        <div className="card prose-reading h-[68vh] w-[86vw] shrink-0 snap-start overflow-y-auto sm:w-[88vw] lg:h-auto lg:max-h-[78vh] lg:w-auto lg:shrink lg:snap-align-none lg:sticky lg:top-24">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Passage
-            </h2>
-            <span className="text-xs text-slate-400">Select any word to look it up</span>
-          </div>
-          {test.passage.split(/\n\n+/).map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-        </div>
-        <div className="h-[68vh] w-[86vw] shrink-0 snap-start overflow-y-auto sm:w-[88vw] lg:h-auto lg:w-auto lg:shrink lg:overflow-visible">
-          <TestQuestions
-            questions={test.questions}
-            answers={answers}
-            onAnswer={(id, v) => setAnswers((a) => ({ ...a, [id]: v }))}
-            submitted={submitted}
-            checked={checked}
-            onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
-            mode={mode === "timed" ? "exam" : "practice"}
+      <ExamShell
+        section="Reading"
+        paper={test.title}
+        minutes={test.timeMinutes}
+        running={mode === "timed" && !submitted}
+        onExpire={submit}
+        palette={submitted ? [] : nav.items}
+        currentId={nav.currentId}
+        onJump={nav.jump}
+        onPrev={nav.prev}
+        onNext={nav.next}
+        onToggleReview={nav.toggleReview}
+        onNextFlagged={nav.nextFlagged}
+        bottomLeft={
+          submitted ? `${raw} of ${questionCount(test.questions)} correct` : "No time limit"
+        }
+      >
+        {wide ? (
+          <SplitPanes
+            className="h-full"
+            left={<div className="prose-reading">{passage}</div>}
+            right={questions}
           />
-          {!submitted && (
-            <button className="btn-primary mt-5 w-full" onClick={submit}>
-              Submit answers
-            </button>
-          )}
-        </div>
-      </div>
+        ) : (
+          <>
+            <p className="shrink-0 pb-1 text-center text-[11px] text-[color:var(--exam-muted)]">
+              Swipe sideways to move between the passage and the questions
+            </p>
+            <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto">
+              <div className="prose-reading w-[86vw] shrink-0 snap-start overflow-y-auto">
+                {passage}
+              </div>
+              <div className="w-[86vw] shrink-0 snap-start overflow-y-auto">{questions}</div>
+            </div>
+          </>
+        )}
+      </ExamShell>
 
       {/*
         The score again, where the learner actually is when the paper is

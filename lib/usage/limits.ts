@@ -1,5 +1,5 @@
 import { COSTED_ROUTES, type CostedRoute } from "@/lib/ai/models";
-import { DAILY_AI_CAPS, MONTHLY_AI_CAPS, SELLABLE_TIERS, type Tier } from "@/lib/billing/tiers";
+import { MONTHLY_AI_CAPS, SELLABLE_TIERS, WEEKLY_AI_CAPS, type Tier } from "@/lib/billing/tiers";
 
 /*
   What each bucket may spend, and over what window.
@@ -49,8 +49,25 @@ export const AI_ROUTES = COSTED_ROUTES;
 
 export type AiRoute = CostedRoute;
 
-/** A rolling 24 hours, not a calendar day: no midnight cliff, no timezone argument. */
-export const USAGE_WINDOW_SECONDS = 24 * 60 * 60;
+/**
+ * A rolling 7 days, not a calendar week: no Monday cliff, no timezone argument.
+ *
+ * This was 24 hours. It became a week because an allowance that refills weekly
+ * is what the owner wanted subscribers to have — a plan whose usefulness comes
+ * back on a rhythm you can plan a week of study around, rather than a lump that
+ * arrives once and is gone.
+ *
+ * It changes nothing about what a plan costs to serve. The monthly cap is still
+ * the ceiling on the money and is unchanged; this is the *rate* at which that
+ * ceiling may be approached, and every weekly figure is set so that four and a
+ * bit weeks of it still runs into the monthly cap first. That ordering is what
+ * lets the economics test go on proving the margin from the monthly caps alone.
+ *
+ * Note it is deliberately *not* a fifty-second of the year. Weekly = monthly/4
+ * would be thirteen months of allowance across a year and would quietly cost
+ * about 8% more than the plans are priced for.
+ */
+export const USAGE_WINDOW_SECONDS = 7 * 24 * 60 * 60;
 
 /**
  * A rolling 30 days, for the same reason. "A month" is not a fixed length and
@@ -137,7 +154,20 @@ export function limitsForDatabase(): Record<string, unknown> {
     ip: IP_DAILY_CEILING,
     month_seconds: MONTH_WINDOW_SECONDS,
     monthly: capsFor(MONTHLY_AI_CAPS),
-    daily: capsFor(DAILY_AI_CAPS),
+    /*
+      Sent under the key `daily` because that is the key the database function
+      reads (supabase/migrations/0012_route_limits.sql), and the numbers under
+      it are now weekly.
+
+      The wire name lagging the meaning is not ideal and it is the cheaper of
+      two evils: the alternative is a migration to rename a JSON key, and a
+      migration on this project changes production the moment it runs. The
+      window's *length* was already a parameter the application sends — see
+      USAGE_WINDOW_SECONDS, passed as p_window_seconds — so moving from a day to
+      a week needed no database change at all. Renaming the key would have been
+      the only reason to touch the database, which is a poor reason.
+    */
+    daily: capsFor(WEEKLY_AI_CAPS),
   };
 }
 

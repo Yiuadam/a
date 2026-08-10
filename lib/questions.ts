@@ -83,9 +83,17 @@ export interface NumberedGroup {
  * is divided into, and candidates transfer those numbers to an answer sheet.
  * Restarting the count at each block would be a quiet fidelity bug: the
  * on-screen number would stop matching the number the question is known by.
+ *
+ * `from` exists because the mock exam's papers are not the exam's papers. A
+ * sitting's listening module is four recordings and its reading module three
+ * passages, each a separate `ReadingTest`/`ListeningTest` in this app and each
+ * numbered 1-13 on its own — but the candidate is sitting one paper numbered
+ * 1-40, and the second passage starts at 14. Without this the palette shows
+ * three questions called 1 and a candidate who says "I'm stuck on 23" is
+ * talking about a number that appears nowhere.
  */
-export function numberedGroups(set: QuestionSet): NumberedGroup[] {
-  let next = 1;
+export function numberedGroups(set: QuestionSet, from = 1): NumberedGroup[] {
+  let next = from;
   return toGroups(set).map((group) => {
     const questions = group.questions.map((question) => ({ question, number: next++ }));
     // An empty block owns no numbers at all. Reporting `next` would claim the

@@ -498,3 +498,185 @@ textarea {
     transform: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Inside the exam shell.
+
+   Computer-delivered IELTS offers three colour schemes — black on white, white
+   on black, yellow on black — and they are an accessibility feature rather than
+   a theme: some candidates cannot read dark-on-light at all. Reproducing the
+   Settings panel and then leaving the paper underneath in the app's own colours
+   would make two of the three unreadable, which is worse than not offering
+   them.
+
+   The shell (components/exam/ExamShell.tsx) sets --exam-* on itself. This block
+   is what makes the *contents* follow, and it is deliberately blunt: it matches
+   Tailwind's generated colour utilities by substring rather than restyling
+   every component that sits inside an exam.
+
+   That is a trade with its eyes open. The alternative is threading a scheme
+   prop through TestQuestions and everything it renders, which would put exam
+   concerns inside components that are also used outside one. Scoping it to
+   [data-exam] keeps the blast radius to the exam screen: nothing here can
+   affect a page that is not one.
+
+   If a component inside an exam ever needs a colour of its own, give it a
+   var(--exam-*) directly — those win, because they are not what this matches.
+--------------------------------------------------------------------------- */
+
+[data-exam] .card {
+  border-radius: 4px;
+  border-color: var(--exam-line);
+  background: var(--exam-bg);
+  box-shadow: none;
+}
+
+/* The hairline reads as a physical card; an exam paper is not one. */
+[data-exam] .card::before {
+  display: none;
+}
+
+[data-exam] [class*="text-slate-"],
+[data-exam] [class*="text-indigo-"],
+[data-exam] [class*="text-amber-"] {
+  color: var(--exam-fg);
+}
+
+/* The quieter greys stay quieter, so hierarchy survives the scheme change. */
+[data-exam] [class*="text-slate-4"],
+[data-exam] [class*="text-slate-5"] {
+  color: var(--exam-muted);
+}
+
+[data-exam] [class*="bg-slate-1"],
+[data-exam] [class*="bg-slate-5"],
+[data-exam] [class*="bg-indigo-5"],
+[data-exam] [class*="bg-amber-5"] {
+  background: var(--exam-hover);
+}
+
+[data-exam] [class*="border-slate-"] {
+  border-color: var(--exam-line);
+}
+
+/* Inputs are part of the paper, so they take its colours too. */
+[data-exam] .input,
+[data-exam] input,
+[data-exam] textarea,
+[data-exam] select {
+  border-radius: 3px;
+  border-color: var(--exam-line);
+  background: var(--exam-bg);
+  color: var(--exam-fg);
+}
+
+/*
+  Right and wrong keep their own colours after marking, in every scheme. A
+  green tick that turned monochrome to match the paper would take away the one
+  thing a review screen is for — and these only ever appear once the clock has
+  stopped, so they cannot help anybody during the exam.
+*/
+[data-exam] .card[class*="border-emerald"] {
+  border-color: #2f7d5b;
+}
+[data-exam] .card[class*="border-rose"] {
+  border-color: #b3453f;
+}
+
+/*
+  The passage is the primary text on a reading screen, so it takes the full
+  foreground colour rather than the muted one. `.prose-reading p` is
+  `text-slate-700`, which the substring rules above quite reasonably read as
+  body text and dim — correct for a caption, wrong for eight hundred words
+  somebody has to read closely under time pressure.
+*/
+[data-exam] .prose-reading,
+[data-exam] .prose-reading p {
+  color: var(--exam-fg);
+}
+
+/* ---------------------------------------------------------------------------
+   Text size, and why it needs a block of its own.
+
+   The shell sets a root font-size from the Settings panel, which does nothing
+   on its own: every piece of text inside is a Tailwind utility with an absolute
+   size — text-sm is 14px whatever its parent says — so the setting moved a
+   number and changed no pixels. The owner pressed the control, watched nothing
+   happen, and was right to call it a bug.
+
+   These re-express the sizes actually used inside an exam as multiples of the
+   shell's own base, which it sets as --exam-base.
+
+   A multiple of the base rather than `em`, and that is the second bug rather
+   than a style preference: `em` compounds. A text-xs span inside a text-sm div
+   is 0.76 x 0.88 of its parent, so a caption inside a card came out at ten
+   pixels while the passage was fifteen. calc() against a single variable gives
+   every rule the same origin, so nesting cannot shrink anything.
+
+   Not `rem`, because rem is relative to the document — the one thing a panel
+   inside one region of one page must not change.
+
+   Line height comes with each of them, because Tailwind pairs a fixed leading
+   with every size and 14px leading under 24px text is unreadable in a
+   different way.
+
+   Only the sizes that appear inside an exam are here; grep before adding a new
+   one to a component that renders in this shell.
+--------------------------------------------------------------------------- */
+
+[data-exam] [class*="text-[10px]"] {
+  font-size: calc(var(--exam-base) * 0.62);
+}
+[data-exam] [class*="text-[11px]"] {
+  font-size: calc(var(--exam-base) * 0.68);
+}
+[data-exam] [class*="text-xs"] {
+  font-size: calc(var(--exam-base) * 0.76);
+  line-height: 1.6;
+}
+[data-exam] [class*="text-sm"] {
+  font-size: calc(var(--exam-base) * 0.88);
+  line-height: 1.6;
+}
+[data-exam] [class*="text-base"] {
+  font-size: var(--exam-base);
+  line-height: 1.6;
+}
+[data-exam] [class*="text-[19px]"] {
+  font-size: calc(var(--exam-base) * 1.15);
+}
+[data-exam] [class*="text-[26px]"] {
+  font-size: calc(var(--exam-base) * 1.5);
+}
+
+/* The passage, which is the reason the setting exists at all. */
+[data-exam] .prose-reading p {
+  font-size: var(--exam-base);
+  line-height: 1.8;
+}
+
+/*
+  The one moving thing on the maintenance screen — see components/Maintenance.tsx.
+
+  A segment that travels the width of its track and back, rather than a
+  percentage: nobody knows how long the work takes, and a progress bar that
+  claims to is a small lie repeated every second. Kept here rather than inline
+  because a keyframe cannot be expressed as a utility, and it is scoped to one
+  class so it cannot reach anything else.
+*/
+@keyframes maintenance-sweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(310%); }
+}
+
+.maintenance-bar {
+  animation: maintenance-sweep 1.9s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maintenance-bar {
+    /* Still reads as progress; simply does not move. */
+    animation: none;
+    width: 66%;
+  }
+}

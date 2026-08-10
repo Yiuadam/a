@@ -82,7 +82,21 @@ const PART_INTRO: Record<1 | 2 | 3, string> = {
   3: "Part 3. We'll discuss some more general questions related to that topic.",
 };
 
-function SpeakingSession() {
+/**
+ * The interview, on its own page or as the last module of a mock sitting.
+ *
+ * `exam` is what tells the two apart. On its own page the interview ends on a
+ * band and a transcript, and records a speaking result; inside a sitting it
+ * ends by handing the band back, because the sitting owns the result and shows
+ * all four modules together. A null band means the interview happened and
+ * could not be marked — the plan has no AI marking — and the sitting says so
+ * rather than inventing a number.
+ */
+export function SpeakingSession({
+  exam,
+}: {
+  exam?: { onFinish: (band: number | null) => void };
+} = {}) {
   /*
     Whether the interview gets marked, which is not the same as whether it can
     be taken. Standard unlocks the mock test — the examiner's questions, the
@@ -479,6 +493,15 @@ function SpeakingSession() {
         });
         setGrade(payload);
         setStage("result");
+        if (exam) {
+          /*
+            The sitting records one result covering four modules, so recording a
+            speaking result here as well would put the same interview in the
+            history twice — once on its own and once inside the exam.
+          */
+          exam.onFinish(payload.overallBand);
+          return;
+        }
         addResult({
           module: "speaking",
           testId: "mock-speaking",
@@ -491,7 +514,7 @@ function SpeakingSession() {
         setStage("interview");
       }
     },
-    [],
+    [exam],
   );
 
   const nextQuestion = useCallback(async () => {
@@ -521,6 +544,13 @@ function SpeakingSession() {
       */
       if (!marked) {
         setStage("unmarked");
+        /*
+          The sitting still has to end. Reporting no band is the honest answer
+          and the results screen names Speaking as unmarked; stopping here
+          instead would strand a candidate on a transcript with the exam
+          apparently still running.
+        */
+        exam?.onFinish(null);
         return;
       }
       await gradeInterview(updated);
@@ -528,7 +558,7 @@ function SpeakingSession() {
     }
     setStepIndex(nextIndex);
     await askCurrent(nextIndex, steps);
-  }, [step, stepIndex, steps, transcript, stopAnswer, askCurrent, gradeInterview, marked]);
+  }, [step, stepIndex, steps, transcript, stopAnswer, askCurrent, gradeInterview, marked, exam]);
 
   // ---------- Screens ----------
 

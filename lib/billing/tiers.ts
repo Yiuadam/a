@@ -181,18 +181,25 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
   */
   standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
   /*
-    Enough AI for a normal month of preparation: an essay marked every weekday
-    or two, a speaking test a fortnight, a few questions a day, and a couple of
-    fresh papers.
+    Enough AI for a normal month of preparation: an essay marked most weeks, a
+    speaking test a fortnight, a couple of questions a day, and a fresh paper.
+
+    Halved from the original allowance, and that was the price cut. The owner
+    wanted plans cheap enough to bring people in, and the arithmetic said the
+    only lever that could do it was this one: at the old caps, giving up every
+    cent of profit still could not price Plus below $2.71, because the profit
+    was never what made the price — the AI was. Halving the allowance took Plus
+    to $1.69 *and* left real money on it. Ten marked essays a month is still an
+    essay every three days.
   */
-  plus: { define: 200, chat: 100, "grade/writing": 20, "grade/speaking": 12, generate: 4 },
+  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 2 },
   /*
-    Two to three times Plus on every route, for the weeks before the exam. It
-    is the most expensive tier to serve and therefore the one with the thinnest
-    margin, which is why its caps are the ones to check first when anything
-    about the cost model changes.
+    Three times Plus on the routes that matter, for the weeks before the exam.
+    It is the most expensive tier to serve and therefore the one with the
+    thinnest margin, which is why its caps are the ones to check first when
+    anything about the cost model changes.
   */
-  pro: { define: 350, chat: 200, "grade/writing": 60, "grade/speaking": 40, generate: 10 },
+  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 5 },
   /*
     The owner's account. An admin flag that still enforced a limit would be a
     flag that did nothing.
@@ -201,22 +208,30 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
 };
 
 /**
- * A ceiling on how fast a monthly allowance can be spent, per rolling 24 hours.
+ * What a plan gives you back each week, per rolling 7 days.
  *
- * This is not a cost control — the monthly cap already bounds the money, and
- * this one cannot make the bill smaller. It bounds the *rate*, so that a
- * month's worth of requests cannot arrive in an afternoon and collide with the
- * upstream API's own rate limits, taking the app down for everybody else while
- * one account drains its allowance.
+ * The monthly cap is the ceiling on the money; this is the rhythm the plan is
+ * actually used on. A subscriber gets a week's worth of marking, it refills
+ * seven days later, and they can plan a week of study around it — which is what
+ * the owner asked for, and is a better shape for exam preparation than a lump
+ * that arrives once a month and is gone by the tenth.
  *
- * Set at roughly a fifth of the month on the cheap routes and a sixth on the
- * expensive ones, so nobody meets it during a normal day's work.
+ * Every figure here is a seventh of a thirtieth of the month, rounded up. That
+ * rounding matters and is the right direction: four and a bit weeks of it still
+ * exceeds the monthly cap, so the *month* is what a heavy user runs into first.
+ * The monthly cap therefore remains the only number the cost model needs, and
+ * tests/ai-economics.test.mjs goes on proving the margin from it alone.
+ *
+ * It also still does the job the old 24-hour ceiling did: a month's requests
+ * cannot arrive in one afternoon and collide with the upstream API's own rate
+ * limits, taking the app down for everybody else while one account drains its
+ * allowance.
  */
-export const DAILY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> = {
+export const WEEKLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> = {
   free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
   standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
-  plus: { define: 40, chat: 25, "grade/writing": 5, "grade/speaking": 4, generate: 2 },
-  pro: { define: 70, chat: 40, "grade/writing": 12, "grade/speaking": 8, generate: 3 },
+  plus: { define: 24, chat: 12, "grade/writing": 3, "grade/speaking": 2, generate: 1 },
+  pro: { define: 41, chat: 24, "grade/writing": 7, "grade/speaking": 5, generate: 2 },
   admin: { define: null, chat: null, "grade/writing": null, "grade/speaking": null, generate: null },
 };
 
@@ -265,9 +280,9 @@ export const TIERS: Record<Tier, TierDefinition> = {
     blurb: "Everything in Standard, plus an examiner for your writing and speaking.",
     includes: [
       "Everything in Standard",
-      "20 essays and 12 speaking tests marked a month",
-      "100 tutor questions and 200 word lookups a month",
-      "4 fresh AI-written papers a month",
+      "10 essays and 6 speaking tests marked a month",
+      "50 tutor questions and 100 word lookups a month",
+      "2 fresh AI-written papers a month",
       "Cancel any time, one button",
     ],
   },
@@ -277,9 +292,9 @@ export const TIERS: Record<Tier, TierDefinition> = {
     blurb: "For the weeks before the exam, when you are practising every day.",
     includes: [
       "Everything in Plus, two to three times over",
-      "60 essays and 40 speaking tests marked a month",
-      "200 tutor questions and 350 word lookups a month",
-      "10 fresh AI-written papers a month",
+      "30 essays and 20 speaking tests marked a month",
+      "100 tutor questions and 175 word lookups a month",
+      "5 fresh AI-written papers a month",
       "Cancel any time, one button",
     ],
   },
@@ -311,10 +326,10 @@ export function monthlyCap(tier: string, route: CostedRoute): number | null {
   return MONTHLY_AI_CAPS[tier as Tier][route];
 }
 
-/** The 24-hour ceiling for one route, `null` meaning unlimited. */
-export function dailyCap(tier: string, route: CostedRoute): number | null {
-  if (!Object.prototype.hasOwnProperty.call(DAILY_AI_CAPS, tier)) return 0;
-  return DAILY_AI_CAPS[tier as Tier][route];
+/** The rolling-7-day ceiling for one route, `null` meaning unlimited. */
+export function weeklyCap(tier: string, route: CostedRoute): number | null {
+  if (!Object.prototype.hasOwnProperty.call(WEEKLY_AI_CAPS, tier)) return 0;
+  return WEEKLY_AI_CAPS[tier as Tier][route];
 }
 
 /**
@@ -400,13 +415,20 @@ export interface Plan {
 }
 
 /*
-  The ladder: $0.99, $3.49, $6.99.
+  The ladder: $0.49, $1.69, $3.29.
 
   These are cost-plus prices, and that is the owner's decision rather than an
   accident of rounding. Each one is the worst a subscriber on that tier can
   cost — every AI request taken at its ceiling, plus Stripe's cut — with a
-  margin of about HK$3 a month on top, then rounded up to a price that looks
+  margin of at least HK$1 a month on top, then rounded up to a price that looks
   like a price. tests/ai-economics.test.mjs is what holds that floor.
+
+  They were about twice this, and the halving came from the allowances rather
+  than from the margin. That is worth recording because the intuition runs the
+  other way: at the old caps, giving up every cent of profit still could not
+  price Pro below $5.94, because $5.39 of its $6.99 was AI. What a plan costs
+  to serve is what sets its price here, so the way to make a plan cheaper is to
+  put less in it.
 
   The margin is deliberately thin and it is worth being clear-eyed about what
   that means: at full usage these plans cover the AI and the card fee and very
@@ -423,42 +445,42 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "standard-monthly",
     tier: "standard",
     interval: "month",
-    amountMinor: 99,
+    amountMinor: 49,
     currency: "usd",
   },
   "standard-yearly": {
     id: "standard-yearly",
     tier: "standard",
     interval: "year",
-    amountMinor: 999,
+    amountMinor: 499,
     currency: "usd",
   },
   "plus-monthly": {
     id: "plus-monthly",
     tier: "plus",
     interval: "month",
-    amountMinor: 349,
+    amountMinor: 169,
     currency: "usd",
   },
   "plus-yearly": {
     id: "plus-yearly",
     tier: "plus",
     interval: "year",
-    amountMinor: 3499,
+    amountMinor: 1799,
     currency: "usd",
   },
   "pro-monthly": {
     id: "pro-monthly",
     tier: "pro",
     interval: "month",
-    amountMinor: 699,
+    amountMinor: 329,
     currency: "usd",
   },
   "pro-yearly": {
     id: "pro-yearly",
     tier: "pro",
     interval: "year",
-    amountMinor: 7499,
+    amountMinor: 3599,
     currency: "usd",
   },
 };
@@ -475,18 +497,34 @@ export function plansForTier(tier: Tier): Plan[] {
 /*
   What the card processor keeps.
 
-  Stripe's standard rate is 2.9% plus 30 cents on a successful card charge. It
-  is written here rather than in the test because it is part of what a plan
-  earns, and the margin check is meaningless without it — on a $2.99 charge the
-  fixed 30 cents alone is a tenth of the price.
+  These were 2.9% + 30 cents, described here as "Stripe's standard rate". It is
+  standard in the United States. This account is registered in Hong Kong, where
+  Stripe's published rate is 3.4% + HK$2.35 on a domestic card and 3.9% +
+  HK$2.35 on an international one — and for an app selling IELTS preparation,
+  the international card is not the edge case, it is the typical customer.
 
-  Deliberately no allowance for the higher international-card rate, chargebacks,
-  refunds or currency conversion. Those exist and they make the real margin
-  thinner than this, so the headroom the economics test insists on is what
-  covers them.
+  So the worst of the published rates is the one the margin is proved against.
+  A profit guarantee computed at somebody else's fee is not a guarantee, and
+  this one is load-bearing: the owner's instruction was that every plan must
+  make money at full AI usage, with no deficits.
+
+  Still no allowance for chargebacks, refunds, or the currency conversion that
+  applies when USD prices settle into a HKD account. Those exist and make the
+  real margin thinner, and the headroom tests/ai-economics.test.mjs insists on
+  is what covers them.
+
+  https://stripe.com/en-hk/pricing
 */
-export const STRIPE_PERCENT_FEE = 0.029;
-export const STRIPE_FIXED_FEE_MINOR = 30;
+export const STRIPE_PERCENT_FEE = 0.039;
+
+/**
+ * HK$2.35 per successful charge, in US cents — the prices are set in USD.
+ *
+ * Expressed as the arithmetic rather than as 30, so that it stays the fee
+ * Stripe actually charges if the peg is ever revisited, and so that nobody
+ * reads a bare 30 and assumes it is the US thirty cents it happens to resemble.
+ */
+export const STRIPE_FIXED_FEE_MINOR = (2.35 / 7.8) * 100;
 
 /**
  * The margin every plan must clear, per subscriber per month, in Hong Kong
@@ -495,7 +533,7 @@ export const STRIPE_FIXED_FEE_MINOR = 30;
  * Written in HKD rather than converted once and forgotten, so that revisiting
  * the decision means changing the number that was actually decided.
  */
-export const MIN_MONTHLY_MARGIN_HKD = 3;
+export const MIN_MONTHLY_MARGIN_HKD = 1;
 
 /**
  * HKD per USD. The Hong Kong dollar is pegged to a 7.75-7.85 band, so this is

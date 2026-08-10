@@ -1,6 +1,6 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { stripeSecretKey, stripePriceId } from "./env";
-import { isPaidTier } from "./tiers";
+import { PLANS, isPaidTier } from "./tiers";
 import type { Tier, PlanId } from "./tiers";
 import type { SubscriptionStatus } from "./providers";
 
@@ -415,6 +415,90 @@ async function stripePost(path: string, body: string): Promise<Record<string, un
   return payload as Record<string, unknown>;
 }
 
+async function stripeGet(path: string): Promise<Record<string, unknown>> {
+  assertServerOnly(MODULE);
+  const key = stripeSecretKey();
+  if (!key) throw new StripeError("Stripe is not configured");
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(10_000),
+      cache: "no-store",
+    });
+  } catch (err) {
+    throw new StripeError(`request to ${path} failed: ${err instanceof Error ? err.name : "unknown"}`);
+  }
+
+  let payload: unknown;
+  try {
+    payload = await res.json();
+  } catch {
+    throw new StripeError(`response from ${path} was not JSON (${res.status})`);
+  }
+
+  if (!res.ok) {
+    const error = (payload as { error?: { code?: unknown } }).error;
+    const detail = typeof error?.code === "string" ? error.code : String(res.status);
+    throw new StripeError(`${path} refused: ${detail}`);
+  }
+
+  return payload as Record<string, unknown>;
+}
+
+/**
+ * Refuses to sell a plan at a price other than the one on the page.
+ *
+ * The catalogue in lib/billing/tiers.ts is what /pricing and /terms print. The
+ * amount actually charged is whatever the Stripe Price behind that plan says,
+ * and the two are joined only by an environment variable holding an id. Nothing
+ * in the type system, the tests or the build connects them, and they come apart
+ * in the most ordinary way there is: prices are changed here, and the Stripe
+ * Prices — which are immutable objects that have to be recreated, not edited —
+ * are updated a day later, or on the wrong account, or not at all.
+ *
+ * What that produces is not a bug report. It is a page advertising $0.49, a
+ * card charged $0.99, and a customer who is right. Under the consumer law this
+ * app already sets out on /terms that is a misleading price indication and the
+ * charge is refundable on request; it is also the single most damaging thing
+ * this codebase could do to somebody, because it takes money.
+ *
+ * So the amount is checked against the catalogue before the session is made,
+ * and a mismatch refuses the sale. One extra call to Stripe on a path that was
+ * already calling Stripe, in exchange for it being impossible to charge a price
+ * that was never shown.
+ */
+async function assertPriceMatchesCatalogue(plan: PlanId, priceId: string): Promise<void> {
+  const expected = PLANS[plan];
+  const price = await stripeGet(`/prices/${encodeURIComponent(priceId)}`);
+
+  const amount = price.unit_amount;
+  const currency = price.currency;
+  const interval = (price.recurring as { interval?: unknown } | undefined)?.interval;
+
+  if (typeof amount !== "number" || amount !== expected.amountMinor) {
+    throw new StripeError(
+      `price ${priceId} for ${plan} charges ${String(amount)} but the catalogue advertises ${expected.amountMinor}`,
+    );
+  }
+  if (typeof currency !== "string" || currency.toLowerCase() !== expected.currency.toLowerCase()) {
+    throw new StripeError(
+      `price ${priceId} for ${plan} is in ${String(currency)} but the catalogue advertises ${expected.currency}`,
+    );
+  }
+  /*
+    A monthly Price sold as the yearly plan would charge the right number and
+    twelve times as often, which is worse than charging the wrong number once.
+  */
+  if (interval !== expected.interval) {
+    throw new StripeError(
+      `price ${priceId} for ${plan} renews ${String(interval)}ly but the catalogue advertises ${expected.interval}ly`,
+    );
+  }
+}
+
 /**
  * Creates a Checkout Session and returns the URL to send the learner to.
  *
@@ -444,6 +528,9 @@ export async function createCheckoutSession(args: {
   const price = stripePriceId(args.plan);
   if (!price) throw new StripeError(`no Price id configured for ${args.plan}`);
 
+  // Never charge an amount the page did not show. See above.
+  await assertPriceMatchesCatalogue(args.plan, price);
+
   const session = await stripePost(
     "/checkout/sessions",
     form({
@@ -456,9 +543,9 @@ export async function createCheckoutSession(args: {
         merchant of record: it registers for, collects and remits sales tax and
         VAT on your behalf, which for digital goods sold to consumers in dozens
         of countries is a real burden lifted. It also charges more than the
-        2.9% + 30c that lib/billing/tiers.ts prices every plan against — and
-        those prices carry about HK$3 of margin a month, so a higher fee does
-        not thin the margin, it removes it.
+        3.9% + HK$2.35 that lib/billing/tiers.ts prices every plan against — and
+        those prices carry as little as HK$1.26 of margin a month, so a higher
+        fee does not thin the margin, it removes it.
 
         Leaving it on would also have needed a tax code on every product, which
         is what Stripe refuses the session for without this.

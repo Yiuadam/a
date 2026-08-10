@@ -186,8 +186,11 @@ export default function TermsPage() {
           a subscription that renews quietly is a subscription somebody did not agree to.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          The AI allowances are counted per feature, over a rolling thirty days — so many essays
-          marked, so many tutor questions, so many word lookups. The exact numbers are{" "}
+          The AI allowances are counted per feature — so many essays marked, so many tutor
+          questions, so many word lookups — against two rolling windows at once: a weekly one,
+          which is the allowance refilling as you go, and a monthly one, which is the total. Both
+          roll continuously rather than resetting on a date, so nothing is lost by joining
+          mid-month. The exact numbers are{" "}
           {/* /pricing is not in the iOS bundle — see lib/platform.ts. */}
           {IS_MOBILE_BUILD ? (
             "on the plans page at bandup.life"

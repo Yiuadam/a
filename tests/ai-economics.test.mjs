@@ -63,7 +63,7 @@ const tiers = await import(pathToFileURL(join(process.cwd(), "lib", "billing", "
 
 const { COSTED_ROUTES, MODEL_PRICES, ROUTE_BUDGETS, worstCaseCost } = models;
 const {
-  DAILY_AI_CAPS,
+  WEEKLY_AI_CAPS,
   MONTHLY_AI_CAPS,
   PAID_TIERS,
   PLANS,
@@ -132,7 +132,7 @@ test("every sellable tier has an allowance for every route, and admin is unlimit
   for (const tier of SELLABLE_TIERS) {
     for (const route of COSTED_ROUTES) {
       const monthly = MONTHLY_AI_CAPS[tier][route];
-      const daily = DAILY_AI_CAPS[tier][route];
+      const daily = WEEKLY_AI_CAPS[tier][route];
       assert.equal(typeof monthly, "number", `${tier}.${route} monthly must be a number`);
       assert.equal(typeof daily, "number", `${tier}.${route} daily must be a number`);
       assert.ok(monthly >= 0 && daily >= 0, `${tier}.${route} must not be negative`);
@@ -153,7 +153,7 @@ test("every sellable tier has an allowance for every route, and admin is unlimit
   }
   for (const route of COSTED_ROUTES) {
     assert.equal(MONTHLY_AI_CAPS.admin[route], null, "admin must be uncapped");
-    assert.equal(DAILY_AI_CAPS.admin[route], null, "admin must be uncapped");
+    assert.equal(WEEKLY_AI_CAPS.admin[route], null, "admin must be uncapped");
   }
 });
 

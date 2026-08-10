@@ -3,7 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import LookupProvider from "@/components/Lookup";
 import AutoSync from "@/components/AutoSync";
+import Maintenance from "@/components/Maintenance";
 import SiteHeader from "@/components/SiteHeader";
+import { MAINTENANCE_MODE } from "@/lib/maintenance";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -51,6 +53,28 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
+        {/*
+          Closed for maintenance: the app is replaced rather than covered.
+
+          An overlay would have been less code and the wrong thing. A learner
+          can dismiss an overlay with the element inspector, a screen reader
+          walks straight past it into the app underneath, and the page behind it
+          still runs — fetching, syncing, spending an allowance. Replacing the
+          tree means there is nothing behind it to reach.
+
+          The header and footer go with it. They are navigation, and offering
+          navigation to a site that is closed is offering nine ways to find the
+          same notice.
+
+          API routes are untouched, which is the point of gating here rather
+          than in front of the whole deployment: Stripe's webhooks keep
+          arriving, so renewals and cancellations for existing subscribers are
+          still recorded while the shop is shut.
+        */}
+        {MAINTENANCE_MODE ? (
+          <Maintenance />
+        ) : (
+        <>
         <SiteHeader />
         {/*
           `data-lookupable` on <main> means any word a learner selects anywhere
@@ -112,6 +136,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Link>
           </div>
         </footer>
+        </>
+        )}
       </body>
     </html>
   );

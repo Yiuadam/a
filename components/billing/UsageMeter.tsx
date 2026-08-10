@@ -33,11 +33,11 @@ import { useSyncExternalStore } from "react";
   ---------------------------------------------------------------------------
   "Resets in" is the hard part, and it is worth being exact
 
-  There is no reset. The window is a rolling 30 days — see lib/usage/limits.ts,
-  where it is a deliberate choice: no reset day, no argument about whose
-  calendar month it is, and no subscriber who joins on the 28th getting three
-  days of allowance for a month of money. Each request expires 30 days after the
-  moment it was made, one at a time.
+  There is no reset. The windows are rolling — a week and 30 days, both of them
+  — see lib/usage/limits.ts, where it is a deliberate choice: no reset day, no
+  argument about whose calendar month it is, and no subscriber who joins on the
+  28th getting three days of allowance for a month of money. Each request
+  expires a week and then a month after the moment it was made, one at a time.
 
   So this does not say "resets at midnight", because that would be a lie a
   learner could plan around and be wrong about. It says when the *oldest*

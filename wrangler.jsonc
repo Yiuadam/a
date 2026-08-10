@@ -11,7 +11,38 @@
   },
   "observability": {
     "enabled": true
-  }
-  // ANTHROPIC_API_KEY is a secret, not a var — set it with:
-  //   npx wrangler secret put ANTHROPIC_API_KEY
+  },
+
+  /*
+    Do not delete the Worker's variables on the way past.
+
+    Wrangler's default is to treat this file as the only source of truth for
+    environment configuration — "like a terraform file", as its own schema puts
+    it — so every deploy first deletes every plain-text variable on the Worker
+    and then sets whatever `vars` says here. There is no `vars` block here, so
+    the second half of that sentence set nothing and the first half deleted
+    everything.
+
+    That is not a theoretical footgun. It has now taken production down twice:
+    once eating ADMIN_USERNAME, and once eating ADMIN_USERNAME again together
+    with ACCOUNTS_ENABLED and all six Stripe price ids — which locked the owner
+    out of their own admin account and closed subscriptions on a live site,
+    silently, on a deploy that reported success. Encrypted Secret values were
+    untouched both times, which is what made it look random.
+
+    DEPLOY.md used to answer this by telling whoever set a variable to mark it
+    Secret even when it held nothing secret. That worked and was the wrong fix:
+    it asked a person to remember a rule at the exact moment the dashboard is
+    offering them the sensible-looking default, forever, and the cost of one
+    lapse is a broken production site with no error anywhere.
+
+    So the trap goes instead. With this set, the dashboard is authoritative for
+    variables and a deploy leaves them alone. Nothing about which values are
+    secret changes — a key still belongs in a Secret, because Secrets are
+    encrypted at rest and hidden from the dashboard afterwards. What changes is
+    that getting that wrong is no longer a way to delete your configuration.
+
+    tests/deploy-config.test.mjs fails if this is removed.
+  */
+  "keep_vars": true
 }
