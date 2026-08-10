@@ -58,16 +58,16 @@ jobs:
       # `deploy` deploys an already-built app — it does not build one. Running it
       # alone fails with "Could not find compiled Open Next config", which is
       # exactly what happened the first time this workflow ran for real.
-      # MAINTENANCE_MODE is read at build time (lib/maintenance.ts), because
-      # most pages here are prerendered and a runtime flag would gate the
-      # dynamic ones only — leaving exactly the pages somebody would then use.
-      # So closing and reopening the site are both a deploy, and this checkbox
-      # is how either is done without editing anything.
+      # NEXT_PUBLIC_ is load-bearing, not decoration: it is the only prefix Next
+      # substitutes into the compiled code. A plain MAINTENANCE_MODE compiled to
+      # a runtime lookup that found nothing on the Worker, so the flag read
+      # false in production and the site stayed open through three deploys that
+      # all reported success. See lib/maintenance.ts.
       - name: Build the Worker
         if: steps.creds.outputs.ready == 'true'
         run: npm run cf:build
         env:
-          MAINTENANCE_MODE: ${{ inputs.maintenance && '1' || '0' }}
+          NEXT_PUBLIC_MAINTENANCE_MODE: ${{ inputs.maintenance && '1' || '0' }}
 
       - name: Say which way the site is going out
         if: steps.creds.outputs.ready == 'true'
