@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import LookupProvider from "@/components/Lookup";
 import AutoSync from "@/components/AutoSync";
 import Maintenance from "@/components/Maintenance";
+import AppMain from "@/components/AppMain";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { maintenanceSetting } from "@/lib/admin/settings";
@@ -117,12 +118,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             its own inner max-w-xl. Widening the container and letting a
             paragraph run 1500px would be worse than the empty space it fixed.
           */}
-          <main
-            data-lookupable
-            className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]"
-          >
-            {children}
-          </main>
+          <AppMain>{children}</AppMain>
         </LookupProvider>
         {/*
           The privacy policy lives here rather than in the menu: it is a page a

@@ -13,5 +13,5 @@
 */
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <div className="-mx-5 -my-10 min-h-[100dvh] bg-slate-100">{children}</div>;
+  return <div className="min-h-[100dvh] bg-slate-100">{children}</div>;
 }
