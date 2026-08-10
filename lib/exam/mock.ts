@@ -1,9 +1,17 @@
 import { isCorrect, rawToBand, roundToHalf } from "@/lib/band";
-import { flatQuestions } from "@/lib/questions";
+import { flatQuestions, toGroups } from "@/lib/questions";
 import { LISTENING_TESTS, READING_TESTS } from "@/lib/tests";
 import { readLearnerItem, removeLearnerItem, writeLearnerItem } from "@/lib/progress/storage";
 import writingData from "@/data/writing-tasks.json";
-import type { ListeningTest, ReadingTest, WritingTask, WritingTasksData } from "@/lib/types";
+import type {
+  ListeningTest,
+  QuestionGroup,
+  QuestionSet,
+  ReadingTest,
+  TestQuestion,
+  WritingTask,
+  WritingTasksData,
+} from "@/lib/types";
 
 /*
   A whole IELTS sitting, assembled from the papers this app already has.
@@ -143,8 +151,19 @@ export interface MockSession {
    * turns an accidental F5 into unlimited time.
    */
   deadline: number | null;
-  /** Listening and reading answers, by question id. */
-  answers: Record<string, string>;
+  /**
+   * Listening and reading answers, by question id.
+   *
+   * `string | number` rather than string, and that is not tidiness. A
+   * multiple-choice answer is the option's index, and `TestQuestions` renders
+   * its radios controlled on `given === idx` — a strict comparison. Storing
+   * "2" where the renderer expects 2 makes every multiple-choice question in
+   * the sitting unclickable: the click registers, the answer is recorded, and
+   * the radio never fills in. It marks correctly and looks broken, which is the
+   * worst combination. Caught by driving the paper in a browser; nothing in the
+   * type system or the tests would have said a word.
+   */
+  answers: Record<string, string | number>;
   /** Writing answers, by task id. */
   essays: Record<string, string>;
   /**
@@ -154,6 +173,20 @@ export interface MockSession {
    * reload — without it, refreshing the page is a replay button.
    */
   played: number[];
+  /**
+   * The speaking band, once the interview has been marked.
+   *
+   * Held here rather than in the results screen because the interview is over
+   * by the time the results are drawn, and a band that only existed in a
+   * component's state would be lost to the reload that a fourteen-minute
+   * recording session makes quite likely.
+   *
+   * `null` after speaking has finished means it happened and could not be
+   * marked. `undefined` means it has not happened yet, and the two must stay
+   * distinguishable — one is an honest gap in the report, the other is an exam
+   * that is not over.
+   */
+  speakingBand?: number | null;
   marks: MockMarks | null;
 }
 
@@ -208,19 +241,52 @@ export function writingTask(id: string): WritingTask | undefined {
   return WRITING_TASKS.find((t) => t.id === id);
 }
 
+/*
+  ---------------------------------------------------------------------------
+  Why every question in a sitting is renamed
+
+  Each paper in this app numbers its own questions from scratch: reading-1 asks
+  q1 to q13, and so does reading-7. On a practice page that is fine, because one
+  paper is on screen. A sitting puts three of them together, and every id
+  collides.
+
+  What that does is not subtle, but it is silent. Answers are keyed by id, so
+  answering question 1 of Passage 1 also answers question 1 of Passages 2 and 3.
+  The palette shows them all as answered. `data-question-id` matches three
+  elements, so the palette scrolls to whichever the browser found first. And
+  the marking is nonsense — a paper filled in perfectly scored 2 out of 40 the
+  first time this was run.
+
+  So the sitting works with renamed copies: `reading-7:q1` is unambiguous, and
+  every consumer downstream — the renderer, the navigation, the review, the
+  marking — keeps working unchanged because an id is all any of them wanted.
+  The originals are untouched; these are copies.
+*/
+function rename(testId: string, q: TestQuestion): TestQuestion {
+  return { ...q, id: `${testId}:${q.id}` };
+}
+
+/** One paper's blocks, with its questions renamed for use inside a sitting. */
+export function sittingGroups(testId: string, set: QuestionSet): QuestionGroup[] {
+  return toGroups(set).map((group) => ({
+    ...group,
+    questions: group.questions.map((q) => rename(testId, q)),
+  }));
+}
+
 /** Every listening question in the sitting, in the order they are numbered. */
-export function listeningQuestions(paper: MockPaper) {
+export function listeningQuestions(paper: MockPaper): TestQuestion[] {
   return paper.listening.flatMap((id) => {
     const test = listeningPaper(id);
-    return test ? flatQuestions(test.questions) : [];
+    return test ? flatQuestions(test.questions).map((q) => rename(id, q)) : [];
   });
 }
 
 /** Every reading question in the sitting, in the order they are numbered. */
-export function readingQuestions(paper: MockPaper) {
+export function readingQuestions(paper: MockPaper): TestQuestion[] {
   return paper.reading.flatMap((id) => {
     const test = readingPaper(id);
-    return test ? flatQuestions(test.questions) : [];
+    return test ? flatQuestions(test.questions).map((q) => rename(id, q)) : [];
   });
 }
 
@@ -234,9 +300,9 @@ export function readingQuestions(paper: MockPaper) {
  */
 export function markObjective(
   paper: MockPaper,
-  answers: Record<string, string>,
+  answers: Record<string, string | number>,
 ): { listening: ModuleMark; reading: ModuleMark } {
-  const score = (questions: ReturnType<typeof listeningQuestions>, module: "listening" | "reading") => {
+  const score = (questions: TestQuestion[], module: "listening" | "reading") => {
     let raw = 0;
     for (const q of questions) {
       if (isCorrect(q, answers[q.id])) raw++;
@@ -248,6 +314,19 @@ export function markObjective(
     listening: score(listeningQuestions(paper), "listening"),
     reading: score(readingQuestions(paper), "reading"),
   };
+}
+
+/**
+ * Task 1 and Task 2 into one writing band.
+ *
+ * Task 2 counts double, which is the official weighting and not a rounding
+ * detail: it is the difference between a candidate who wrote a strong essay and
+ * a weak chart description scoring 6.5 rather than 6. An answer that was never
+ * written scores nothing rather than being left out of the average, because a
+ * blank Task 1 in the real exam costs the same.
+ */
+export function writingBand(task1: number | null, task2: number | null): number {
+  return roundToHalf(((task1 ?? 0) + 2 * (task2 ?? 0)) / 3);
 }
 
 /**
@@ -288,6 +367,42 @@ export function overallFrom(marks: Omit<MockMarks, "overall" | "unmarked">): Moc
 
 const KEY = "bandup-mock-exam-v1";
 
+/*
+  Exposed as an external store, the same way lib/store.ts exposes the profile.
+
+  The alternative — read storage in an effect and setState — is what this was
+  first, and it is wrong twice over. It renders the start screen for one frame
+  before the sitting appears, which on a resumed exam is a heart-stopping
+  flash of "Start the exam" over the paper you are two hours into. And it makes
+  the stored session a copy that React owns rather than the thing itself, so a
+  write from anywhere else does not repaint.
+*/
+let cache: MockSession | null | undefined;
+const listeners = new Set<() => void>();
+
+export function subscribeSession(onChange: () => void): () => void {
+  listeners.add(onChange);
+  return () => {
+    listeners.delete(onChange);
+  };
+}
+
+/** Stable snapshot — the same object identity until something writes. */
+export function sessionSnapshot(): MockSession | null {
+  if (cache === undefined) cache = loadSession();
+  return cache;
+}
+
+/**
+ * There is no sitting on the server, and there cannot be — it lives in
+ * sessionStorage. Answering null keeps the server and the first client render
+ * identical, and `useMounted` is what defers the real answer to after
+ * hydration.
+ */
+export function serverSessionSnapshot(): MockSession | null {
+  return null;
+}
+
 export function loadSession(): MockSession | null {
   const raw = readLearnerItem(KEY);
   if (!raw) return null;
@@ -307,11 +422,15 @@ export function loadSession(): MockSession | null {
 }
 
 export function saveSession(session: MockSession): void {
+  cache = session;
   writeLearnerItem(KEY, JSON.stringify(session));
+  for (const l of listeners) l();
 }
 
 export function clearSession(): void {
+  cache = null;
   removeLearnerItem(KEY);
+  for (const l of listeners) l();
 }
 
 export function newSession(): MockSession {

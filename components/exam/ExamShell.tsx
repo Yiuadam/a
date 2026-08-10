@@ -78,6 +78,7 @@ export default function ExamShell({
   minutes,
   running,
   onExpire,
+  endsAt,
   palette,
   currentId,
   onJump,
@@ -97,6 +98,12 @@ export default function ExamShell({
   minutes: number;
   running: boolean;
   onExpire?: () => void;
+  /**
+   * An absolute deadline for a clock that must survive a reload — passed
+   * straight through to ExamTimer. A practice session omits it; a mock sitting
+   * stores one per module and hands it back on resume.
+   */
+  endsAt?: number | null;
   /**
    * The forty numbers, when there are forty numbers.
    *
@@ -182,7 +189,7 @@ export default function ExamShell({
           <div className="truncate text-[color:var(--exam-muted)]">{paper}</div>
         </div>
 
-        <ExamTimer minutes={minutes} running={running} onExpire={onExpire} />
+        <ExamTimer minutes={minutes} running={running} onExpire={onExpire} endsAt={endsAt} />
 
         <div className="flex items-center justify-end gap-2">
           {topRight}

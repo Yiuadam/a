@@ -35,10 +35,21 @@ export default function ExamTimer({
   minutes,
   running,
   onExpire,
+  endsAt: fixedEnd,
 }: {
   minutes: number;
   running: boolean;
   onExpire?: () => void;
+  /**
+   * An absolute deadline, epoch milliseconds, for a clock that has to survive
+   * a reload.
+   *
+   * A practice session computes its own from `minutes` the moment it starts,
+   * which is all it needs. A mock exam cannot: the sitting is stored and
+   * resumed, and a clock rebuilt from `minutes` would hand back the full hour
+   * on every refresh. So the sitting owns the deadline and passes it in.
+   */
+  endsAt?: number | null;
 }) {
   const [remaining, setRemaining] = useState(minutes * 60);
   const endsAt = useRef<number | null>(null);
@@ -55,7 +66,22 @@ export default function ExamTimer({
       effect and not in render, because Date.now() in render is a value that
       cannot be replayed.
     */
-    if (endsAt.current === null) endsAt.current = Date.now() + minutes * 60_000;
+    /*
+      A deadline handed in wins, and re-wins after a reload. Computing one is
+      the fallback for a session that has no memory of its own.
+    */
+    if (fixedEnd != null) {
+      /*
+        A new deadline is a new clock, so it is allowed to expire again. Without
+        this the ref stays latched from the first module that ran out and every
+        later one silently never fires — in a mock exam that is Reading with no
+        end, discovered an hour into a sitting.
+      */
+      if (endsAt.current !== fixedEnd) fired.current = false;
+      endsAt.current = fixedEnd;
+    } else if (endsAt.current === null) {
+      endsAt.current = Date.now() + minutes * 60_000;
+    }
     const end = endsAt.current;
 
     const tick = () => {
@@ -70,7 +96,7 @@ export default function ExamTimer({
     /* Twice a second, so a second never appears to be skipped or repeated. */
     const id = setInterval(tick, 500);
     return () => clearInterval(id);
-  }, [running, minutes, onExpire]);
+  }, [running, minutes, onExpire, fixedEnd]);
 
   const m = Math.floor(remaining / 60);
   const s = remaining % 60;

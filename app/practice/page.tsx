@@ -175,6 +175,27 @@ export default function PracticePage() {
       </div>
 
       {/*
+        The mock exam sits above the papers rather than among them, because it
+        is not another paper. Everything below is one skill with feedback as you
+        go; this is the whole exam with no feedback at all until the end. Listed
+        as a fifth card it would read as a longer reading test, and somebody
+        would start it at half past ten on a weeknight.
+      */}
+      <Link
+        href="/exam"
+        className="card !p-3 flex flex-wrap items-center justify-between gap-3 border-indigo-200 bg-indigo-50/40"
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-slate-900">Full mock exam</span>
+          <span className="block text-xs leading-5 text-slate-600">
+            All four modules in exam order, on the real clock — about three hours. Nothing is
+            marked or explained until the end.
+          </span>
+        </span>
+        <span className="btn-secondary shrink-0">Sit the exam</span>
+      </Link>
+
+      {/*
         Three columns on a laptop: the two auto-marked papers side by side, and
         the two things you do rather than sit — writing, and generating a fresh
         test — in the third. Below `lg` they stack in the same order.
