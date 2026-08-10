@@ -3,6 +3,7 @@ import {
   worstCaseMonthlyCost,
   type CostedRoute,
 } from "@/lib/ai/models";
+import { hkdPerUnit, minorPerUnit, toMajor } from "./currency";
 
 /*
   What the tiers are: what each one costs, what it unlocks, and exactly how much
@@ -408,10 +409,22 @@ export interface Plan {
   id: PlanId;
   tier: PaidTier;
   interval: BillingInterval;
-  /** Minor units, as Stripe stores them: 299 is $2.99. */
+  /** Minor units of the base currency, as Stripe stores them: 490 is HK$4.90. */
   amountMinor: number;
-  /** ISO 4217, lower case, as Stripe writes it. */
+  /** ISO 4217, lower case, as Stripe writes it. Always the base currency. */
   currency: string;
+  /**
+   * What this plan costs in each currency the app prices in, in that
+   * currency's minor units — so `jpy` is whole yen, because Stripe counts it
+   * that way (lib/billing/currency.ts).
+   *
+   * These become the Price's `currency_options` in Stripe, which is what lets
+   * one Price id charge a Londoner in pounds and a Tokyo candidate in yen with
+   * no second Price and no second environment variable. Checkout picks by the
+   * customer's address; anything not named here is converted by Stripe from
+   * the base amount.
+   */
+  prices: Record<string, number>;
 }
 
 /*
@@ -445,43 +458,49 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "standard-monthly",
     tier: "standard",
     interval: "month",
-    amountMinor: 49,
-    currency: "usd",
+    amountMinor: 490,
+    currency: "hkd",
+    prices: { hkd: 490, usd: 69, eur: 69, gbp: 49, aud: 99, cad: 99, sgd: 99, jpy: 100, inr: 5900 },
   },
   "standard-yearly": {
     id: "standard-yearly",
     tier: "standard",
     interval: "year",
-    amountMinor: 499,
-    currency: "usd",
+    amountMinor: 3900,
+    currency: "hkd",
+    prices: { hkd: 3900, usd: 499, eur: 499, gbp: 399, aud: 799, cad: 699, sgd: 699, jpy: 790, inr: 44900 },
   },
   "plus-monthly": {
     id: "plus-monthly",
     tier: "plus",
     interval: "month",
-    amountMinor: 169,
-    currency: "usd",
+    amountMinor: 1290,
+    currency: "hkd",
+    prices: { hkd: 1290, usd: 169, eur: 149, gbp: 129, aud: 259, cad: 229, sgd: 219, jpy: 250, inr: 15900 },
   },
   "plus-yearly": {
     id: "plus-yearly",
     tier: "plus",
     interval: "year",
-    amountMinor: 1799,
-    currency: "usd",
+    amountMinor: 12900,
+    currency: "hkd",
+    prices: { hkd: 12900, usd: 1699, eur: 1499, gbp: 1299, aud: 2599, cad: 2299, sgd: 2199, jpy: 2500, inr: 159900 },
   },
   "pro-monthly": {
     id: "pro-monthly",
     tier: "pro",
     interval: "month",
-    amountMinor: 329,
-    currency: "usd",
+    amountMinor: 2590,
+    currency: "hkd",
+    prices: { hkd: 2590, usd: 329, eur: 299, gbp: 249, aud: 529, cad: 459, sgd: 429, jpy: 520, inr: 31900 },
   },
   "pro-yearly": {
     id: "pro-yearly",
     tier: "pro",
     interval: "year",
-    amountMinor: 3599,
-    currency: "usd",
+    amountMinor: 27900,
+    currency: "hkd",
+    prices: { hkd: 27900, usd: 3599, eur: 3199, gbp: 2699, aud: 5699, cad: 4999, sgd: 4699, jpy: 5600, inr: 349900 },
   },
 };
 
@@ -518,13 +537,16 @@ export function plansForTier(tier: Tier): Plan[] {
 export const STRIPE_PERCENT_FEE = 0.039;
 
 /**
- * HK$2.35 per successful charge, in US cents — the prices are set in USD.
+ * HK$2.35 per successful charge, in Hong Kong cents.
  *
- * Expressed as the arithmetic rather than as 30, so that it stays the fee
- * Stripe actually charges if the peg is ever revisited, and so that nobody
- * reads a bare 30 and assumes it is the US thirty cents it happens to resemble.
+ * The prices are set in HKD now, so this is simply the fee as Stripe bills it
+ * — no conversion, and none of the rounding a converted constant carried.
+ * Selling in the currency the account settles in is also what removed Stripe's
+ * ~2% conversion charge from every sale, which was worth more than it sounds:
+ * it was taking about a fifth of the margin on Plus and pushing Pro below the
+ * floor entirely.
  */
-export const STRIPE_FIXED_FEE_MINOR = (2.35 / 7.8) * 100;
+export const STRIPE_FIXED_FEE_MINOR = 235;
 
 /**
  * The margin every plan must clear, per subscriber per month, in Hong Kong
@@ -542,13 +564,32 @@ export const MIN_MONTHLY_MARGIN_HKD = 1;
  */
 export const HKD_PER_USD = 7.8;
 
-/** The margin floor in US dollars, which is what the prices are set in. */
-export const MIN_MONTHLY_MARGIN_USD = MIN_MONTHLY_MARGIN_HKD / HKD_PER_USD;
+/**
+ * What actually lands, in Hong Kong dollars, after the processor takes its cut.
+ *
+ * `currency` names which of the plan's prices is being sold. The fee is the
+ * same rate everywhere, but the *amount* is not: a price chosen for India and
+ * a price chosen for Australia are different sums of money, and only one of
+ * them is what a given subscriber pays. Converting back to HKD is what lets
+ * the margin be compared against a cost that is incurred in one currency
+ * wherever the subscriber happens to live.
+ */
+export function netRevenue(plan: Plan, currency: string = plan.currency): number {
+  const amountMinor = amountIn(plan, currency);
+  const feeMinor = amountMinor * STRIPE_PERCENT_FEE + fixedFeeMinor(currency);
+  return toMajor(amountMinor - feeMinor, currency) * hkdPerUnit(currency);
+}
 
-/** What actually lands, in US dollars, after the processor takes its cut. */
-export function netRevenue(plan: Plan): number {
-  const fee = plan.amountMinor * STRIPE_PERCENT_FEE + STRIPE_FIXED_FEE_MINOR;
-  return (plan.amountMinor - fee) / 100;
+/**
+ * Stripe's flat fee, in the minor units of whatever is being charged.
+ *
+ * It is one fee — about US$0.30 — expressed locally, so it has to be converted
+ * like any other amount rather than assumed to be 235 everywhere. A ¥ price
+ * charged a fee of "235" would be charged ¥235 instead of the ¥46 it is.
+ */
+export function fixedFeeMinor(currency: string): number {
+  const hkd = 2.35;
+  return Math.round((hkd / hkdPerUnit(currency)) * minorPerUnit(currency));
 }
 
 /** How many months of allowance one payment has to cover. */
@@ -562,14 +603,45 @@ export function monthsCovered(plan: Plan): number {
  * "$7.99" keeps its pennies because dropping them would be a lie.
  */
 export function formatPrice(amountMinor: number, currency: string): string {
-  const major = amountMinor / 100;
+  /*
+    Through toMajor rather than a bare /100, because not every currency has
+    cents. Stripe stores ¥100 as 100, so dividing by a hundred would print ¥1
+    for a plan that charges a hundred — a hundredfold understatement on the
+    page and the right amount on the card, which is the one direction of error
+    that ends in a chargeback.
+  */
+  const major = toMajor(amountMinor, currency);
+  const decimals = minorPerUnit(currency) === 1 ? 0 : 2;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currency.toUpperCase(),
-    minimumFractionDigits: Number.isInteger(major) ? 0 : 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: Number.isInteger(major) ? 0 : decimals,
+    maximumFractionDigits: decimals,
   }).format(major);
 }
+
+/**
+ * What a plan costs in a given currency, in that currency's minor units.
+ *
+ * Falls back to the base amount for a currency the catalogue does not price.
+ * That is the honest answer for the page — Stripe converts from the base at
+ * checkout for exactly those currencies — and callers that care pair it with
+ * `pricesIn` to know whether the figure is a chosen price or a base one.
+ */
+export function amountIn(plan: Plan, currency: string): number {
+  return plan.prices[currency.toLowerCase()] ?? plan.amountMinor;
+}
+
+/** Whether this currency has a price somebody chose, rather than a fallback. */
+export function pricesIn(currency: string): boolean {
+  return Object.prototype.hasOwnProperty.call(
+    PLANS["plus-monthly"].prices,
+    currency.toLowerCase(),
+  );
+}
+
+/** Every currency the catalogue prices in, base first. */
+export const PRICED_CURRENCIES: string[] = Object.keys(PLANS["plus-monthly"].prices);
 
 /**
  * What a yearly plan works out to per month, rounded to the cent.
@@ -578,6 +650,7 @@ export function formatPrice(amountMinor: number, currency: string): string {
  * it; `Math.round` is the one that is neither. The page prints this next to the
  * total it was derived from, so the arithmetic is checkable.
  */
-export function perMonthEquivalent(plan: Plan): number {
-  return plan.interval === "year" ? Math.round(plan.amountMinor / 12) : plan.amountMinor;
+export function perMonthEquivalent(plan: Plan, currency?: string): number {
+  const amount = currency ? amountIn(plan, currency) : plan.amountMinor;
+  return plan.interval === "year" ? Math.round(amount / 12) : amount;
 }

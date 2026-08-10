@@ -7,6 +7,7 @@ import { apiUrl } from "@/lib/api";
 import { useTier } from "@/lib/billing/useTier";
 import {
   PLANS,
+  amountIn,
   SELLABLE_TIERS,
   TIERS,
   formatPrice,
@@ -54,6 +55,14 @@ import {
 interface BillingConfig {
   checkout: boolean;
   plans: PlanId[];
+  /**
+   * Which currency to print, resolved from the reader's address by the server.
+   *
+   * Optional because an older cached response may not carry it, and a page that
+   * threw on a missing field would be a worse failure than one that falls back
+   * to the base currency.
+   */
+  currency?: string;
 }
 
 type ConfigPhase = "loading" | "ready" | "unavailable";
@@ -120,7 +129,15 @@ function planFor(tier: Tier, interval: BillingInterval): PlanId | null {
   return plan ? plan.id : null;
 }
 
-function Price({ tier, interval }: { tier: Tier; interval: BillingInterval }) {
+function Price({
+  tier,
+  interval,
+  currency,
+}: {
+  tier: Tier;
+  interval: BillingInterval;
+  currency: string;
+}) {
   const id = planFor(tier, interval);
   if (id === null) {
     return (
@@ -132,12 +149,19 @@ function Price({ tier, interval }: { tier: Tier; interval: BillingInterval }) {
   }
 
   const plan = PLANS[id];
+  /*
+    The reader's own currency, from their address rather than their browser's
+    language: somebody in Hong Kong with an English keyboard is not paying in
+    dollars. Stripe Checkout resolves the same way, so what this prints is what
+    the card is charged.
+  */
+  const amount = amountIn(plan, currency);
 
   return (
     <div className="mt-4">
       <p>
         <span className="text-[28px] font-semibold text-slate-900">
-          {formatPrice(plan.amountMinor, plan.currency)}
+          {formatPrice(amount, currency)}
         </span>
         <span className="ml-2 text-sm text-slate-500">
           {plan.interval === "year" ? "a year" : "a month"}
@@ -145,7 +169,7 @@ function Price({ tier, interval }: { tier: Tier; interval: BillingInterval }) {
       </p>
       {plan.interval === "year" && (
         <p className="mt-1 text-sm text-slate-500">
-          That works out at {formatPrice(perMonthEquivalent(plan), plan.currency)} a month.
+          That works out at {formatPrice(perMonthEquivalent(plan, currency), currency)} a month.
         </p>
       )}
     </div>
@@ -219,6 +243,12 @@ export default function PricingPlans() {
 
   const currentTier = account.tier;
   const checkoutOpen = configPhase === "ready" && config?.checkout === true;
+  /*
+    The reader's currency, resolved server-side from their address. Falls back
+    to the base currency while the config is still loading, so the cards draw a
+    real price immediately rather than a dash that becomes a number.
+  */
+  const currency = config?.currency ?? PLANS["plus-monthly"].currency;
 
   return (
     <div className="space-y-6">
@@ -283,7 +313,7 @@ export default function PricingPlans() {
 
               <p className="mt-2 text-sm leading-6 text-slate-600">{tier.blurb}</p>
 
-              <Price tier={id} interval={interval} />
+              <Price tier={id} interval={interval} currency={currency} />
 
               <ul className="mt-5 flex-1 space-y-2.5">
                 {tier.includes.map((line) => (
