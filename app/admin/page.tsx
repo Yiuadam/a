@@ -75,10 +75,15 @@ export default function AdminPage() {
     title: n.title,
     detail: n.detail,
     value:
+      /* "Marked" rather than "Closed" when the switch says closed but the
+         deploy does not: the site is still open to learners, and a row that
+         says otherwise is the one lie a console must not tell. */
       n.href === "/admin/site"
-        ? state.closed
+        ? state.closedByDeploy
           ? "Closed"
-          : "Open"
+          : state.closed
+            ? "Marked"
+            : "Open"
         : n.href === "/admin/config"
           ? checks === null
             ? undefined
@@ -87,7 +92,8 @@ export default function AdminPage() {
               : `${failing} to fix`
           : undefined,
     tone:
-      (n.href === "/admin/site" && state.closed) || (n.href === "/admin/config" && failing > 0)
+      (n.href === "/admin/site" && (state.closed || state.closedByDeploy)) ||
+      (n.href === "/admin/config" && failing > 0)
         ? "warn"
         : "plain",
   }));

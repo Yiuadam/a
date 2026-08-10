@@ -27,7 +27,7 @@ export default function SiteScreen() {
   return (
     <ConsoleShell
       title="Site status"
-      lead="Close the site to show everyone the upgrade notice instead of the app."
+      lead="Whether learners see the app or the upgrade notice."
       back={{ href: "/admin", label: "Overview" }}
     >
       <SiteSwitch state={state} busy={busy} error={error} onToggle={() => void toggle()} />

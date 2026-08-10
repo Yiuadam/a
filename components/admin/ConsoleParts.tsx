@@ -60,6 +60,21 @@ export function Charts({ stats }: { stats: Stats | null }) {
 
 /* ------------------------------------------------------------ site switch */
 
+/*
+  What this switch does today, said on the switch.
+
+  It stores the decision and nothing reads it. app/layout.tsx closes the site
+  from `NEXT_PUBLIC_MAINTENANCE_MODE`, which is set at build time by the deploy
+  workflow; the runtime read that would have made this instant was withdrawn
+  after it answered 500 on every page of a preview and could not be reproduced
+  in five local configurations (see the commit "Withdraw the runtime
+  maintenance read until it can be reproduced").
+
+  So the panel says so. A control that looks live and is not is worse than no
+  control — the owner presses it, sees "Closed", and believes the site is shut
+  while learners carry on using it. Naming the working route in the same
+  breath is what keeps it useful rather than merely honest.
+*/
 export function SiteSwitch({
   state,
   busy,
@@ -80,12 +95,18 @@ export function SiteSwitch({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-slate-900">
-            {state.closed ? "The site is closed" : "The site is open"}
+            {state.closedByDeploy
+              ? "The site is closed"
+              : state.closed
+                ? "Marked to close"
+                : "The site is open"}
           </h2>
           <p className="mt-1 text-[13px] leading-5 text-slate-600">
-            {state.closed
+            {state.closedByDeploy
               ? "Everyone sees the upgrade notice instead of the app. Subscriptions and payments keep working underneath."
-              : "Learners can use everything as normal."}
+              : state.closed
+                ? "Recorded, but learners can still use everything — this switch is not connected to the site yet."
+                : "Learners can use everything as normal."}
           </p>
         </div>
         <button
@@ -115,9 +136,17 @@ export function SiteSwitch({
         </p>
       )}
 
+      {!state.closedByDeploy && (
+        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[12px] leading-5 text-amber-900">
+          <span className="font-semibold">This switch does not close the site yet.</span> It records
+          the decision only. To actually close it, run{" "}
+          <span className="font-medium">Deploy to Cloudflare</span> with the maintenance box ticked
+          — that is the route that works today, and the one the site was last closed with.
+        </p>
+      )}
+
       <p className="mt-2.5 text-[11px] leading-4 text-slate-500">
-        Takes up to {state.lagSeconds} seconds to reach everyone.
-        {state.changedAt && ` Last changed ${new Date(state.changedAt).toLocaleString()}.`}
+        {state.changedAt && `Last changed ${new Date(state.changedAt).toLocaleString()}.`}
       </p>
     </section>
   );
