@@ -475,18 +475,34 @@ export function plansForTier(tier: Tier): Plan[] {
 /*
   What the card processor keeps.
 
-  Stripe's standard rate is 2.9% plus 30 cents on a successful card charge. It
-  is written here rather than in the test because it is part of what a plan
-  earns, and the margin check is meaningless without it — on a $2.99 charge the
-  fixed 30 cents alone is a tenth of the price.
+  These were 2.9% + 30 cents, described here as "Stripe's standard rate". It is
+  standard in the United States. This account is registered in Hong Kong, where
+  Stripe's published rate is 3.4% + HK$2.35 on a domestic card and 3.9% +
+  HK$2.35 on an international one — and for an app selling IELTS preparation,
+  the international card is not the edge case, it is the typical customer.
 
-  Deliberately no allowance for the higher international-card rate, chargebacks,
-  refunds or currency conversion. Those exist and they make the real margin
-  thinner than this, so the headroom the economics test insists on is what
-  covers them.
+  So the worst of the published rates is the one the margin is proved against.
+  A profit guarantee computed at somebody else's fee is not a guarantee, and
+  this one is load-bearing: the owner's instruction was that every plan must
+  make money at full AI usage, with no deficits.
+
+  Still no allowance for chargebacks, refunds, or the currency conversion that
+  applies when USD prices settle into a HKD account. Those exist and make the
+  real margin thinner, and the headroom tests/ai-economics.test.mjs insists on
+  is what covers them.
+
+  https://stripe.com/en-hk/pricing
 */
-export const STRIPE_PERCENT_FEE = 0.029;
-export const STRIPE_FIXED_FEE_MINOR = 30;
+export const STRIPE_PERCENT_FEE = 0.039;
+
+/**
+ * HK$2.35 per successful charge, in US cents — the prices are set in USD.
+ *
+ * Expressed as the arithmetic rather than as 30, so that it stays the fee
+ * Stripe actually charges if the peg is ever revisited, and so that nobody
+ * reads a bare 30 and assumes it is the US thirty cents it happens to resemble.
+ */
+export const STRIPE_FIXED_FEE_MINOR = (2.35 / 7.8) * 100;
 
 /**
  * The margin every plan must clear, per subscriber per month, in Hong Kong
