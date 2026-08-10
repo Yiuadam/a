@@ -52,6 +52,13 @@ export default function SiteHeader() {
     account is known to be the owner's. Nothing is protected by that, and
     nothing needs to be — /admin answers 404 to everyone else either way.
   */
+  /*
+    Absent from the console, which draws its own. See components/SiteFooter.tsx
+    — the two halves of the site's chrome make the same decision for the same
+    reason, and they make it separately because they are separate components.
+  */
+  const onConsole = pathname.startsWith("/admin");
+
   const account = useTier();
   const isOwner = account.phase === "ready" && account.signedIn && account.tier === "admin";
   const groups = isOwner
@@ -111,6 +118,8 @@ export default function SiteHeader() {
   }, [open]);
 
   const current = currentHref(pathname);
+
+  if (onConsole) return null;
 
   return (
     /*
