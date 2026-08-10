@@ -49,7 +49,27 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     stay closed even if the database says otherwise, and an owner who pressed
     the button must be obeyed even though the last deploy went out open.
   */
-  const closed = MAINTENANCE_MODE || (await maintenanceSetting()).closed;
+  /*
+    Wrapped again, on top of the try/catch inside the read itself.
+
+    Belt and braces, and earned: this runs in the root layout, so anything it
+    throws takes down every page of the site at once rather than one route. The
+    inner catch covers the request failing, which is the expected way this goes
+    wrong; this one covers the unexpected ways — a module that throws on import,
+    a runtime that disagrees about an API, a shape nobody predicted.
+
+    A site that stays open because a settings read went wrong is behaving
+    correctly. A site that returns 500 everywhere because of a switch nobody
+    threw is not.
+  */
+  let closedByOwner = false;
+  try {
+    closedByOwner = (await maintenanceSetting()).closed;
+  } catch {
+    closedByOwner = false;
+  }
+
+  const closed = MAINTENANCE_MODE || closedByOwner;
 
   return (
     <html
