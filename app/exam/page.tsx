@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { SpeakingSession } from "@/app/speaking/page";
 import MockListening from "@/components/exam/MockListening";
@@ -12,6 +12,7 @@ import {
   MODULE_MINUTES,
   MODULE_NAMES,
   MOCK_MODULES,
+  abandonSession,
   clearSession,
   listeningPaper,
   newSession,
@@ -63,6 +64,34 @@ export default function ExamPage() {
 
   const update = useCallback((next: MockSession) => {
     saveSession(next);
+  }, []);
+
+  /*
+    Leaving this page ends the sitting.
+
+    The cleanup runs when this component unmounts, and the only thing that
+    unmounts it is a navigation inside the app — tapping the menu, the logo,
+    the account button. That is exactly the case the owner reported: leave the
+    exam, read something else, come back, and find the clock still running on a
+    paper you have had time to think about.
+
+    A reload does not reach here at all. The browser discards the whole
+    JavaScript context without asking React to unmount anything, so a refresh,
+    a locked phone and a reclaimed background tab all resume as they always
+    did — which is the behaviour a three-hour sitting has to have.
+
+    The pathname check is what makes it safe in development, where React's
+    StrictMode mounts every component, unmounts it and mounts it again to prove
+    effects can survive it. That teardown is not a navigation, and the address
+    bar says so: it still reads /exam. Without the check, starting a mock in
+    development ends it in the same frame.
+  */
+  useEffect(() => {
+    return () => {
+      if (typeof window === "undefined") return;
+      if (window.location.pathname.startsWith("/exam")) return;
+      abandonSession();
+    };
   }, []);
 
   const start = useCallback(() => {
@@ -242,7 +271,12 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           </p>
           <p>
             A reload will not lose your place — your answers and the clock are saved as you go.
-            Closing the tab ends the sitting, in the same way that walking out of one does.
+          </p>
+          <p>
+            {/* Said before it can cost anybody anything. */}
+            Leaving this page ends the sitting, in the same way that walking out of an exam hall
+            does: the paper is over and nothing is marked. Nothing is charged for it either, so you
+            can start a fresh one straight away.
           </p>
         </div>
 

@@ -73,7 +73,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full flex flex-col">
+      {/*
+        `min-h-dvh` rather than `min-h-full`, and it is load-bearing rather than
+        tidying. A percentage min-height resolves against the html element,
+        which has no height of its own, so the old value was a rule that did
+        nothing. With a real one the column is a real column and the footer sits
+        at the bottom of a short page instead of halfway up it.
+
+        Note what it does *not* buy, since the first version of this comment
+        claimed it: a page cannot fill the screen exactly by putting `flex-1` in
+        here, because `min-` height still lets the body grow to its content. See
+        components/TutorChat.tsx, which needed a real cap.
+      */}
+      <body className="flex min-h-dvh flex-col">
         {/*
           Closed for maintenance: the app is replaced rather than covered.
 

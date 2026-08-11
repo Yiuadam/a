@@ -11,6 +11,21 @@ import Link from "next/link";
   It sits in the menu rather than the header row: it is a page somebody reads
   once, and the header is already carrying the five things a learner opens
   every day.
+
+  ---------------------------------------------------------------------------
+  Written to fit a phone
+
+  It ran 1673 pixels on a 390-wide screen — three cards of full-width prose for
+  what is, in total, about a hundred and thirty words of fact. Read-once pages
+  are the easiest ones to leave long, because nobody complains about a page
+  they visit twice.
+
+  Nothing here is cut. The tools are a two-column list instead of a column,
+  because a name and four words do not need the width of a screen each; the
+  three paragraphs that said the same thing twice now say it once. What is
+  deliberately untouched is the disclaimer — every clause of "not affiliated,
+  not official, nothing copied" is load-bearing, and this is the page somebody
+  reads it on.
 */
 
 export const metadata: Metadata = {
@@ -21,52 +36,38 @@ export const metadata: Metadata = {
 const BUILT_WITH: { name: string; what: string }[] = [
   { name: "Next.js and React", what: "the app itself" },
   { name: "Cloudflare Workers", what: "where it runs" },
-  { name: "Supabase", what: "accounts and saved progress" },
-  { name: "Claude, by Anthropic", what: "the marking, the examiner and the tutor" },
-  { name: "Whisper", what: "turning speech into text on your own device" },
+  { name: "Supabase", what: "accounts and progress" },
+  { name: "Claude, by Anthropic", what: "marking and the tutor" },
+  { name: "Whisper", what: "speech, on your device" },
   { name: "Tailwind CSS", what: "the look of it" },
 ];
 
 export default function CreditsPage() {
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-[26px] font-semibold text-slate-900">Credits</h1>
-        <p className="text-[15px] leading-7 text-slate-600">
-          Who made BandUp, and what it is made of.
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-2xl space-y-2.5 sm:space-y-4">
+      <h1 className="text-[21px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
+        Credits
+      </h1>
 
-      <section className="card">
-        <h2 className="heading-rule mb-2 text-base font-semibold text-slate-900">
-          Made by Adam
-        </h2>
-        <p className="text-[15px] leading-7 text-slate-600">
-          BandUp is designed, built and written by <strong className="font-semibold text-slate-900">Adam</strong> —
-          one person, not a company. Every practice test, every explanation, every word of the
-          study material is written from scratch for this app.
-        </p>
-        <p className="mt-2 text-[15px] leading-7 text-slate-600">
-          If something is wrong, unclear or unfair, it is his to fix. There is no team to pass it
-          to, which is the point: the app can be changed the same week you complain about it.
+      <section className="card !p-4 sm:!p-6">
+        <h2 className="mb-1.5 text-[15px] font-semibold text-slate-900">Made by Adam</h2>
+        <p className="text-[14px] leading-[22px] text-slate-600">
+          Designed, built and written by{" "}
+          <strong className="font-semibold text-slate-900">Adam</strong> — one person, not a
+          company. Every test, explanation and word of it is written from scratch, so anything
+          wrong or unfair is his to fix, and can be fixed the week you say so.
         </p>
       </section>
 
-      <section className="card">
-        <h2 className="heading-rule mb-2 text-base font-semibold text-slate-900">
-          Built with
-        </h2>
-        <ul className="space-y-1.5">
+      <section className="card !p-4 sm:!p-6">
+        <h2 className="mb-1.5 text-[15px] font-semibold text-slate-900">Built with</h2>
+        {/* Two columns from the narrowest screen up: a tool name and four
+            words describing it do not each need the width of a phone. */}
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-0.5">
           {BUILT_WITH.map((tool) => (
-            <li key={tool.name} className="flex gap-2.5 text-[15px] leading-7 text-slate-700">
-              <span
-                aria-hidden="true"
-                className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"
-              />
-              <span>
-                <span className="font-medium text-slate-900">{tool.name}</span>
-                <span className="text-slate-600"> — {tool.what}</span>
-              </span>
+            <li key={tool.name} className="text-[13px] leading-5">
+              <span className="block font-medium text-slate-900">{tool.name}</span>
+              <span className="block text-slate-500">{tool.what}</span>
             </li>
           ))}
         </ul>
@@ -77,22 +78,17 @@ export default function CreditsPage() {
         opened a page called "Credits" is asking who stands behind this, and
         that question deserves the honest half of the answer as well.
       */}
-      <section className="card">
-        <h2 className="heading-rule mb-2 text-base font-semibold text-slate-900">
-          What BandUp is not
-        </h2>
-        <p className="text-[15px] leading-7 text-slate-600">
-          It is an independent study tool. It is not affiliated with, endorsed by or connected to
-          IELTS, the British Council, IDP or Cambridge English, and no band score it gives you is
-          an official one — they are practice estimates, made to help you decide what to work on
-          next.
-        </p>
-        <p className="mt-2 text-[15px] leading-7 text-slate-600">
-          The practice material here is original. Nothing is copied from published IELTS papers.
+      <section className="card !p-4 sm:!p-6">
+        <h2 className="mb-1.5 text-[15px] font-semibold text-slate-900">What BandUp is not</h2>
+        <p className="text-[14px] leading-[22px] text-slate-600">
+          An independent study tool — not affiliated with, endorsed by or connected to IELTS, the
+          British Council, IDP or Cambridge English. No band it gives you is official; they are
+          practice estimates, to help you decide what to work on next. Every word of the material
+          is original, copied from no published paper.
         </p>
       </section>
 
-      <p className="text-sm text-slate-500">
+      <p className="pt-0.5 text-[12px] text-slate-500">
         <Link href="/privacy" className="font-medium text-indigo-700 underline underline-offset-2">
           Privacy policy
         </Link>

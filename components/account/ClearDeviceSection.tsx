@@ -70,41 +70,53 @@ export default function ClearDeviceSection() {
   }
 
   return (
-    <section className="card">
+    <section className="card !p-4 sm:!p-6">
       <h2 className="heading-rule mb-2 text-base font-semibold text-slate-900">
         Everything saved on this device
       </h2>
-      <p className="text-[15px] leading-7 text-slate-600">
-        Your placement result, practice scores, study plan, saved words and drill progress are kept
-        in this tab while you use BandUp. This clears all of it, here, straight away. Your theme and
-        your sign-in are kept.
-      </p>
-      <p className="mt-2 text-sm leading-6 text-slate-500">
-        This is not your account. If you are signed in and your progress has synced, it will come
-        back from the server next time you open the app — to remove it everywhere, delete your
-        account below.
+      {/*
+        One line at rest, the whole explanation once the button is armed.
+
+        Not a cut — every word below is still on the screen, at the moment it
+        is worth reading. Four lines of consequence sitting above an unpressed
+        button are four lines somebody scrolls past; the same four lines
+        between "Clear this device" and "Yes, clear it" are the only thing on
+        the screen they are deciding about. The first tap destroys nothing,
+        which is what makes moving them legitimate.
+      */}
+      <p className="text-[14px] leading-6 text-slate-600">
+        Clears your placement result, practice scores, study plan, saved words and drill progress
+        from this browser, straight away.
       </p>
 
       {!armed ? (
-        <button type="button" onClick={() => setArmed(true)} className="btn-secondary mt-4">
+        <button type="button" onClick={() => setArmed(true)} className="btn-secondary mt-3">
           Clear this device
         </button>
       ) : (
-        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-rose-50 px-3 py-2">
-          <p className="min-w-0 flex-1 text-sm leading-6 text-rose-900">
-            Clear everything saved in this browser? This cannot be undone here.
+        <div className="mt-3 space-y-2 rounded-xl bg-rose-50 px-3 py-3">
+          <p className="text-[14px] leading-6 text-rose-900">
+            Clear everything saved in this browser? This cannot be undone here. Your theme and your
+            sign-in are kept.
           </p>
-          <button type="button" onClick={wipe} disabled={done} className="btn-primary shrink-0">
-            {done ? "Clearing…" : "Yes, clear it"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setArmed(false)}
-            disabled={done}
-            className="btn-secondary shrink-0"
-          >
-            Cancel
-          </button>
+          <p className="text-[13px] leading-5 text-rose-800/80">
+            This is not your account. If you are signed in and your progress has synced, it will
+            come back from the server next time you open the app — to remove it everywhere, delete
+            your account below.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-0.5">
+            <button type="button" onClick={wipe} disabled={done} className="btn-primary shrink-0">
+              {done ? "Clearing…" : "Yes, clear it"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setArmed(false)}
+              disabled={done}
+              className="btn-secondary shrink-0"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </section>

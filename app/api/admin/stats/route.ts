@@ -72,6 +72,20 @@ async function handleGET(req: Request) {
     usage,
     tiers,
     billing,
+    /*
+      Which kind of nothing the billing figures are.
+
+      "Stripe could not be reached" was printed for both causes, and they send
+      the owner to completely different places: one is a key that is not on the
+      Worker, the other is a key that is and a call that failed. The dashboard
+      was telling them to check the network when the answer was that Stripe had
+      never been configured on this deployment at all.
+
+      A boolean rather than the reason, because the reason is in the server log
+      and a stranger who somehow reached this route should not be handed a map
+      of which of our credentials are missing.
+    */
+    stripeConfigured: stripeConfigured(),
   });
 }
 

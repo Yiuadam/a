@@ -48,6 +48,20 @@ const PAGES = [
   "/", "/plan", "/history", "/practice", "/practice/listening", "/practice/reading",
   "/practice/writing", "/speaking", "/grammar", "/vocabulary", "/resources", "/chat",
   "/account", "/billing", "/pricing", "/placement", "/privacy", "/terms", "/credits",
+  /*
+    The screens behind the two menus. Signed out they draw their sign-in state
+    rather than their contents, which is still worth sweeping — an overlap in a
+    "sign in to see this" card is an overlap — but it does mean a clean run
+    here is not a clean run of the signed-in versions of these pages.
+  */
+  "/account/profile", "/account/sync", "/account/close",
+  "/billing/plan", "/billing/usage", "/billing/owner", "/billing/checks",
+  /*
+    The console answers 404 to anyone who is not the owner, so unauthenticated
+    these sweep its not-found screen. Listed anyway: that screen is a page too,
+    and it is the one every stranger who guesses the URL will see.
+  */
+  "/admin", "/admin/traffic", "/admin/site", "/admin/config",
 ];
 
 /*

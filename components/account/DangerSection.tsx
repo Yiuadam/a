@@ -5,28 +5,14 @@ import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 
 /*
-  Signing out, and closing the account for good.
+  Closing the account for good.
 
-  The two live together because they are the same question asked at two
-  strengths — "stop using this here" and "stop existing" — and putting them
-  side by side is what makes the difference between them obvious. Deletion is
-  last on the page, because it is the one action that cannot be undone.
+  Signing out used to live here too, on the reasoning that the two are the same
+  question at two strengths. They are — and giving them matching cards said
+  they were comparable decisions, which they are not: one ends a session and
+  one ends an account. Signing out is now a plain button on the screen itself
+  (app/account/close/page.tsx) and this file keeps the irreversible half.
 */
-
-export function SignOutSection({ onSignOut }: { onSignOut: () => void }) {
-  return (
-    <section className="card">
-      <h3 className="text-[17px] font-semibold text-slate-900">Sign out</h3>
-      <p className="mt-2 text-[15px] leading-7 text-slate-600">
-        Your practice stays on this device. Signing out ends the session — it doesn&rsquo;t delete
-        your placement result, your plan or your saved words.
-      </p>
-      <button type="button" className="btn-secondary mt-4" onClick={onSignOut}>
-        Sign out
-      </button>
-    </section>
-  );
-}
 
 /*
   Closing an account, which Apple requires to be possible from inside the app
@@ -67,23 +53,30 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
   }
 
   return (
-    <section className="card">
-      <h3 className="text-[17px] font-semibold text-slate-900">Delete your account</h3>
-      <p className="mt-2 text-[15px] leading-7 text-slate-600">
-        This removes your account and everything stored against it — your email address, your
-        details, your picture and any practice you have synced. It cannot be undone.
-      </p>
-      <p className="mt-3 text-[15px] leading-7 text-slate-600">
-        The practice saved in this browser stays. It was never on our side to delete, and you can
-        clear it yourself from your browser&rsquo;s settings whenever you like.
+    <section className="card !p-4 sm:!p-6">
+      <h3 className="text-[16px] font-semibold text-slate-900">Delete your account</h3>
+      {/*
+        The short version at rest and the full one behind the button, for the
+        same reason as ClearDeviceSection: the words about what survives are
+        worth reading while somebody types DELETE, and are scrolled past above
+        a button they have not pressed. Nothing is removed — the second
+        paragraph now sits inside the confirm step.
+      */}
+      <p className="mt-1.5 text-[14px] leading-6 text-slate-600">
+        Removes your account and everything stored against it. It cannot be undone.
       </p>
 
       {!open ? (
-        <button type="button" className="btn-secondary mt-4" onClick={() => setOpen(true)}>
+        <button type="button" className="btn-secondary mt-3" onClick={() => setOpen(true)}>
           Delete my account
         </button>
       ) : (
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="mt-3 flex flex-col gap-3">
+          <p className="text-[14px] leading-6 text-slate-600">
+            Your email address, your details, your picture and any practice you have synced all go.
+            The practice saved in this browser stays — it was never on our side to delete, and you
+            can clear it from your browser&rsquo;s settings whenever you like.
+          </p>
           <label htmlFor="confirm-delete" className="text-sm font-medium text-slate-700">
             Type DELETE to confirm
           </label>

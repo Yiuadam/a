@@ -447,3 +447,42 @@ export function newSession(): MockSession {
     marks: null,
   };
 }
+
+/**
+ * Ends a sitting because the candidate left the exam page.
+ *
+ * ---------------------------------------------------------------------------
+ * Why leaving ends it
+ *
+ * Until now it did not, and the owner found what that costs: start the mock,
+ * tap the menu, read a grammar page, come back — and the sitting is still
+ * there with the clock still running. Every one of the rules that make a mock
+ * exam worth sitting is defeated by that. The reading hour is an hour plus
+ * however long you spent elsewhere; a listening recording plays once but you
+ * can look up the word you missed between questions; and the band at the end
+ * describes a sitting nobody could repeat on the day.
+ *
+ * So the rule is the one the exam hall has: leave the room and the paper is
+ * over. It is not a punishment — nothing is recorded and nothing is spent, so
+ * a learner who leaves by accident has lost their answers and nothing else,
+ * and can start again immediately.
+ *
+ * ---------------------------------------------------------------------------
+ * What it deliberately does not end
+ *
+ * A reload, a phone locking, a background tab being reclaimed. Those are not
+ * leaving — they are the ordinary accidents of using a browser for three
+ * hours, and losing a sitting to one of them would be the worst thing this
+ * feature could do to somebody. They are distinguished from leaving in
+ * app/exam/page.tsx, and the distinction is a real one rather than a guess:
+ * navigating inside the app unmounts the exam screen, and neither a reload nor
+ * a lock does.
+ *
+ * The results screen is also not a sitting. Once the marks are in there is
+ * nothing left to protect, so leaving that keeps it.
+ */
+export function abandonSession(): void {
+  const current = sessionSnapshot();
+  if (!current || current.stage === "results") return;
+  clearSession();
+}
