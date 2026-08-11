@@ -67,7 +67,15 @@ secret:
 
 Make it at **github.com/settings/personal-access-tokens** → Generate new token
 → Only select repositories → this one → Repository permissions → Actions →
-Read and write. Then put it on the Worker, not in the repository:
+**Read and write**, and **Contents → Read-only** so it can resolve the branch
+to build. Nothing else.
+
+The permission is the part that goes wrong: Actions defaults to *Read*, which
+looks right in the list and is refused with a 403 that says nothing about which
+permission was missing. The console names this cause first when GitHub refuses
+the token, because it is the one it almost always is.
+
+Then put it on the Worker, not in the repository:
 
 ```bash
 npx wrangler secret put GITHUB_DEPLOY_TOKEN
