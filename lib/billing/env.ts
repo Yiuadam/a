@@ -103,9 +103,18 @@ export function stripeConfigured(): boolean {
   return PLAN_IDS.some((plan) => stripePriceId(plan) !== undefined);
 }
 
-/** One-time wallet checkout uses inline catalogue prices, so it needs no Price ids. */
+/**
+ * One-time wallet checkout uses inline catalogue prices, so it needs no Price
+ * ids. It does require an explicit launch switch: Stripe can leave Alipay and
+ * WeChat Pay in "Pending approval", and exposing a checkout button during that
+ * review would send every buyer into a provider error.
+ */
 export function stripeWalletConfigured(): boolean {
-  return stripeSecretKey() !== undefined;
+  assertServerOnly(MODULE);
+  return (
+    stripeSecretKey() !== undefined &&
+    process.env["STRIPE_WALLET_PAYMENTS_ENABLED"] === "1"
+  );
 }
 
 /** The plans that can actually be bought right now, in catalogue order. */

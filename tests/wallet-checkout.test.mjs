@@ -10,6 +10,26 @@ register("./alias-resolve.mjs", import.meta.url);
 const stripe = await import(
   pathToFileURL(join(process.cwd(), "lib", "billing", "stripe.ts")).href
 );
+const env = await import(
+  pathToFileURL(join(process.cwd(), "lib", "billing", "env.ts")).href
+);
+
+test("wallet checkout stays hidden until Stripe approval is explicitly confirmed", () => {
+  const savedKey = process.env.STRIPE_SECRET_KEY;
+  const savedSwitch = process.env.STRIPE_WALLET_PAYMENTS_ENABLED;
+  process.env.STRIPE_SECRET_KEY = "sk_test_wallet_checkout";
+  delete process.env.STRIPE_WALLET_PAYMENTS_ENABLED;
+  try {
+    assert.equal(env.stripeWalletConfigured(), false);
+    process.env.STRIPE_WALLET_PAYMENTS_ENABLED = "1";
+    assert.equal(env.stripeWalletConfigured(), true);
+  } finally {
+    if (savedKey === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = savedKey;
+    if (savedSwitch === undefined) delete process.env.STRIPE_WALLET_PAYMENTS_ENABLED;
+    else process.env.STRIPE_WALLET_PAYMENTS_ENABLED = savedSwitch;
+  }
+});
 
 test("wallet checkout sends an exact prepaid plan to each supported method", async () => {
   const savedFetch = globalThis.fetch;

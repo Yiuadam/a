@@ -306,8 +306,11 @@ asynchronous refund completion. Anything else is acknowledged and ignored.
 
 In Stripe → Settings → Payment methods, enable **Alipay** and **WeChat Pay** in
 the same live/test mode as the secret key. WeChat Pay availability can require
-Stripe approval. Wallet checkout is deliberately prepaid: monthly means one
-payment for one month and yearly means one payment for one year; neither
+Stripe approval. Wait until both say **Enabled**, then set
+`STRIPE_WALLET_PAYMENTS_ENABLED=1`. Leave it unset while Stripe says **Pending
+approval**; BandUp keeps the wallet buttons hidden instead of sending customers
+to a failed checkout. Wallet checkout is deliberately prepaid: monthly means
+one payment for one month and yearly means one payment for one year; neither
 renews automatically.
 
 Copy the signing secret into `STRIPE_WEBHOOK_SECRET`. If it is ever rotated,

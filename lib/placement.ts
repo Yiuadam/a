@@ -84,6 +84,13 @@ const PRIOR_SD = 4;
 /** Stop once the estimate is this precise — roughly ±0.55 of a band. */
 const TARGET_SE = 0.42;
 
+/**
+ * Never publish a band when the posterior is still this wide.  The question
+ * floor normally gets us well below this value; the guard exists for unusual
+ * runs (many skips, contradictory answers, or a test that expires very early).
+ */
+const MAX_REPORTABLE_SE = 0.85;
+
 export type TestLength = 5 | 10;
 
 /**
@@ -93,10 +100,26 @@ export type TestLength = 5 | 10;
  * from six answers can look precise by luck, and stopping there would report a
  * band the test has not really earned.
  */
-export const LENGTHS: Record<TestLength, { max: number; min: number }> = {
-  5: { max: 15, min: 9 },
-  10: { max: 25, min: 14 },
+export const LENGTHS: Record<
+  TestLength,
+  { max: number; min: number; minPerSkill: number }
+> = {
+  5: { max: 15, min: 9, minPerSkill: 2 },
+  10: { max: 25, min: 15, minPerSkill: 3 },
 };
+
+export interface PlacementEvidence {
+  /** Questions with an option selected. Skips do not create evidence. */
+  answered: number;
+  skipped: number;
+  minimum: number;
+  maximum: number;
+  bySkill: Record<PlacementQuestion["skill"], number>;
+  missingSkills: PlacementQuestion["skill"][];
+  standardError: number;
+  reportable: boolean;
+  confidence: "high" | "moderate" | "insufficient";
+}
 
 export interface AdaptiveState {
   /** Ability estimate in logits. */
@@ -112,8 +135,8 @@ const GRID: number[] = Array.from({ length: GRID_STEPS }, (_, i) =>
   THETA_MIN + ((THETA_MAX - THETA_MIN) * i) / (GRID_STEPS - 1),
 );
 
-const PRIOR: number[] = GRID.map((theta) =>
-  Math.exp(-((theta - PRIOR_MEAN) ** 2) / (2 * PRIOR_SD ** 2)),
+const LOG_PRIOR: number[] = GRID.map(
+  (theta) => -((theta - PRIOR_MEAN) ** 2) / (2 * PRIOR_SD ** 2),
 );
 
 /** Probability of a correct answer under the three-parameter logistic model. */
@@ -136,31 +159,50 @@ function information(theta: number, question: PlacementQuestion): number {
   return (a * a * (1 - p) * (p - GUESS) ** 2) / (p * (1 - GUESS) ** 2);
 }
 
+/**
+ * Normalised posterior weights for every point on the ability grid.
+ *
+ * Work in log space before normalising. A 25-question sitting is not long
+ * enough to underflow on most devices, but a scoring engine should not depend
+ * on that accident — especially after future question-bank expansion.
+ */
+function posteriorWeights(
+  asked: PlacementQuestion[],
+  answers: Record<string, number | undefined>,
+): number[] {
+  const logPosterior = GRID.map((theta, i) => {
+    let logLikelihood = LOG_PRIOR[i];
+    for (const q of asked) {
+      const p = pCorrect(theta, q);
+      logLikelihood += Math.log(answers[q.id] === q.answer ? p : 1 - p);
+    }
+    return logLikelihood;
+  });
+
+  const peak = Math.max(...logPosterior);
+  const posterior = logPosterior.map((value) => Math.exp(value - peak));
+
+  const total = posterior.reduce((sum, v) => sum + v, 0);
+  if (!(total > 0) || !Number.isFinite(total)) {
+    return GRID.map(() => 1 / GRID.length);
+  }
+
+  return posterior.map((value) => value / total);
+}
+
 /** Re-estimate ability and its standard error from every answer so far. */
 function estimate(
   asked: PlacementQuestion[],
   answers: Record<string, number | undefined>,
 ): { theta: number; se: number } {
-  const posterior = GRID.map((theta, i) => {
-    let likelihood = PRIOR[i];
-    for (const q of asked) {
-      const p = pCorrect(theta, q);
-      likelihood *= answers[q.id] === q.answer ? p : 1 - p;
-    }
-    return likelihood;
-  });
-
-  const total = posterior.reduce((sum, v) => sum + v, 0);
-  if (!(total > 0) || !Number.isFinite(total)) {
-    return { theta: PRIOR_MEAN, se: PRIOR_SD };
-  }
+  const posterior = posteriorWeights(asked, answers);
 
   let mean = 0;
-  for (let i = 0; i < GRID.length; i++) mean += GRID[i] * (posterior[i] / total);
+  for (let i = 0; i < GRID.length; i++) mean += GRID[i] * posterior[i];
 
   let variance = 0;
   for (let i = 0; i < GRID.length; i++) {
-    variance += (GRID[i] - mean) ** 2 * (posterior[i] / total);
+    variance += (GRID[i] - mean) ** 2 * posterior[i];
   }
 
   return { theta: mean, se: Math.sqrt(variance) };
@@ -168,6 +210,50 @@ function estimate(
 
 export function startAdaptive(length: TestLength = 5): AdaptiveState {
   return { theta: PRIOR_MEAN, se: PRIOR_SD, asked: [], answers: {}, length };
+}
+
+/** Count only deliberate option selections, never skipped/unseen questions. */
+export function answeredCount(state: AdaptiveState): number {
+  return state.asked.reduce(
+    (count, question) => count + (state.answers[question.id] === undefined ? 0 : 1),
+    0,
+  );
+}
+
+/**
+ * Decide whether the sitting contains enough independent evidence to publish
+ * a band. A raw question count is not enough: every tested skill needs coverage
+ * and the posterior itself must have narrowed to a defensible width.
+ */
+export function placementEvidence(state: AdaptiveState): PlacementEvidence {
+  const rules = LENGTHS[state.length];
+  const bySkill = Object.fromEntries(SKILLS.map((skill) => [skill, 0])) as Record<
+    PlacementQuestion["skill"],
+    number
+  >;
+  let answered = 0;
+
+  for (const question of state.asked) {
+    if (state.answers[question.id] === undefined) continue;
+    answered += 1;
+    bySkill[question.skill] += 1;
+  }
+
+  const missingSkills = SKILLS.filter((skill) => bySkill[skill] < rules.minPerSkill);
+  const reportable =
+    answered >= rules.min && missingSkills.length === 0 && state.se <= MAX_REPORTABLE_SE;
+
+  return {
+    answered,
+    skipped: state.asked.length - answered,
+    minimum: rules.min,
+    maximum: rules.max,
+    bySkill,
+    missingSkills,
+    standardError: state.se,
+    reportable,
+    confidence: !reportable ? "insufficient" : state.se <= TARGET_SE ? "high" : "moderate",
+  };
 }
 
 /**
@@ -201,23 +287,30 @@ export function nextQuestion(
 
   // Keep the skills roughly balanced so a sitting is never all grammar.
   const skillCounts = new Map<string, number>();
-  for (const q of state.asked) skillCounts.set(q.skill, (skillCounts.get(q.skill) ?? 0) + 1);
+  for (const q of state.asked) {
+    if (state.answers[q.id] === undefined) continue;
+    skillCounts.set(q.skill, (skillCounts.get(q.skill) ?? 0) + 1);
+  }
   const leastUsed = Math.min(...SKILLS.map((s) => skillCounts.get(s) ?? 0));
 
   for (const excluded of attempts) {
     const available = bank.filter((q) => !excluded.has(q.id));
     if (available.length === 0) continue;
 
-    // Prefer under-used skills, but only while that leaves a real choice.
+    // Prefer under-used skills. The bank has broad coverage within each skill,
+    // so falling back merely because fewer than three survived exclusions used
+    // to create avoidable one-skill gaps near the end of a sitting.
     const balanced = available.filter((q) => (skillCounts.get(q.skill) ?? 0) === leastUsed);
-    const pool = balanced.length >= 3 ? balanced : available;
+    const pool = balanced.length > 0 ? balanced : available;
 
     const ranked = pool
       .map((q) => ({ q, info: information(state.theta, q) }))
       .sort((a, b) => b.info - a.info);
 
-    const topN = Math.min(4, ranked.length);
-    return ranked[Math.floor(Math.random() * topN)].q;
+    // Accuracy wins over within-sitting variety: recent-sitting exclusions
+    // already rotate the bank, so choosing anything below the most informative
+    // available item only adds noise to a five-minute estimate.
+    return ranked[0].q;
   }
   return null;
 }
@@ -241,9 +334,9 @@ export function recordAnswer(
  * would only confirm what we know), or the sitting has used its full length.
  */
 export function shouldStop(state: AdaptiveState): boolean {
-  const { max, min } = LENGTHS[state.length];
-  if (state.asked.length >= max) return true;
-  return state.asked.length >= min && state.se <= TARGET_SE;
+  const evidence = placementEvidence(state);
+  if (evidence.answered >= evidence.maximum) return true;
+  return evidence.reportable && state.se <= TARGET_SE;
 }
 
 /**
@@ -259,10 +352,16 @@ export function thetaToBand(theta: number): number {
 
 /** The band range we are actually confident about, at roughly 95%. */
 export function bandRange(state: AdaptiveState): [number, number] {
-  return [
-    thetaToBand(state.theta - 1.96 * state.se),
-    thetaToBand(state.theta + 1.96 * state.se),
-  ];
+  const posterior = posteriorWeights(state.asked, state.answers);
+  const quantile = (target: number): number => {
+    let cumulative = 0;
+    for (let i = 0; i < posterior.length; i++) {
+      cumulative += posterior[i];
+      if (cumulative >= target) return GRID[i];
+    }
+    return GRID[GRID.length - 1];
+  };
+  return [thetaToBand(quantile(0.025)), thetaToBand(quantile(0.975))];
 }
 
 /**
@@ -275,6 +374,9 @@ export function bandRange(state: AdaptiveState): [number, number] {
  * by-skill and by-level tallies are kept for the breakdown.
  */
 export function finishAdaptive(state: AdaptiveState): PlacementResult {
+  if (!placementEvidence(state).reportable) {
+    throw new Error("The placement sitting does not contain enough evidence for a band.");
+  }
   const bySkill = {} as PlacementResult["bySkill"];
   const byLevel = {} as PlacementResult["byLevel"];
   for (const skill of SKILLS) bySkill[skill] = { correct: 0, total: 0 };
@@ -296,4 +398,3 @@ export function finishAdaptive(state: AdaptiveState): PlacementResult {
     byLevel,
   };
 }
-
