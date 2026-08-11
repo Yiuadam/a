@@ -63,6 +63,20 @@ export default function AdminPage() {
   }
 
   const servedTotal = stats?.usage?.reduce((n, d) => n + (d.admitted ?? 0), 0) ?? null;
+
+  /*
+    Two ways to have no billing figures, and they send the owner to different
+    places: no Stripe key on this Worker, or a key that is there and a call
+    that failed. One message for both had them checking the network when
+    Stripe had never been configured on the deployment at all.
+  */
+  const noBilling = stats && !stats.billing;
+  const stripeMissing = noBilling && stats.stripeConfigured === false;
+  const billingUnavailable = noBilling
+    ? stripeMissing
+      ? "No Stripe key on this Worker. See DEPLOY.md."
+      : "Stripe is configured but could not be reached."
+    : undefined;
   const failing = checks?.filter((c) => !c.ok).length ?? 0;
 
   /*
@@ -118,14 +132,14 @@ export default function AdminPage() {
           label="Paying subscribers"
           value={stats?.billing ? stats.billing.active.toLocaleString() : "—"}
           hint={stats?.billing ? "Active and trialing, from Stripe" : undefined}
-          unavailable={stats && !stats.billing ? "Stripe could not be reached." : undefined}
+          unavailable={billingUnavailable}
           icon={<Dot />}
         />
         <StatCard
           label="Monthly revenue"
           value={stats?.billing ? formatPrice(Math.round(stats.billing.mrrHkd * 100), "hkd") : "—"}
           hint={stats?.billing ? "Yearly plans divided over twelve months" : undefined}
-          unavailable={stats && !stats.billing ? "Stripe could not be reached." : undefined}
+          unavailable={billingUnavailable}
           icon={<Dot />}
         />
         <StatCard

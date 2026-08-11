@@ -58,6 +58,8 @@ export interface Stats {
   usage: DayRow[] | null;
   tiers: { tier: string; count: number }[] | null;
   billing: { byPlan: Record<string, number>; active: number; mrrHkd: number } | null;
+  /** Whether a Stripe key and at least one price id are on this Worker. */
+  stripeConfigured?: boolean;
 }
 
 export interface Console {
