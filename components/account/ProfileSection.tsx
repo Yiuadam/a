@@ -5,6 +5,7 @@ import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import AvatarEditor from "./AvatarEditor";
 import { MAX_SOURCE_BYTES } from "./condense";
+import { publishProfileUpdate } from "./profileEvents";
 import type { ProfileFields } from "./types";
 
 /*
@@ -83,6 +84,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
         return;
       }
       setProfile(body);
+      publishProfileUpdate(body);
       setSaved(true);
       setState("ready");
     } catch {
@@ -147,7 +149,9 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
         setState("ready");
         return;
       }
-      setProfile((p) => (p ? { ...p, avatarUrl: body.avatarUrl ?? null } : p));
+      const avatarUrl = body.avatarUrl ?? null;
+      setProfile((p) => (p ? { ...p, avatarUrl } : p));
+      publishProfileUpdate({ avatarUrl });
       setState("ready");
     } catch {
       setProblem("That picture didn't upload. Please check your connection and try again.");
@@ -159,8 +163,10 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
     setProblem(null);
     setState("saving");
     try {
-      await authedFetch(apiUrl("/api/account/avatar"), { method: "DELETE" });
+      const res = await authedFetch(apiUrl("/api/account/avatar"), { method: "DELETE" });
+      if (!res.ok) throw new Error("avatar removal failed");
       setProfile((p) => (p ? { ...p, avatarUrl: null } : p));
+      publishProfileUpdate({ avatarUrl: null });
     } catch {
       setProblem("That didn't work. Please try again.");
     }
@@ -192,13 +198,12 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
   const hasPicture = Boolean(profile?.avatarUrl);
 
   return (
-    <section className="card">
-      <p className="text-[15px] leading-7 text-slate-600">
-        All optional. None of it is shown to anyone else — BandUp has no profile pages and no way
-        for other learners to find you.
+    <section className="account-profile-card card">
+      <p className="account-profile-intro text-[14px] leading-6 text-slate-600">
+        Optional and private. Nothing here is shown to other learners.
       </p>
 
-      <div className="mt-5 flex items-center gap-4">
+      <div className="account-profile-photo mt-4 flex items-center gap-4">
         {/*
           The picture is the control. Tapping a photograph to change it is what
           people already expect, and it gives a finger a 64-pixel target
@@ -273,12 +278,11 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
           onChange={pickAvatar}
         />
       </div>
-      <p className="mt-2 text-sm text-slate-500">
-        Any photo up to 10 MB. BandUp shrinks it on this device before it is sent, so nothing
-        large ever leaves your phone.
+      <p className="account-profile-photo-note mt-2 text-xs leading-5 text-slate-500">
+        Any phone photo up to 10 MB; BandUp shrinks it before uploading.
       </p>
 
-      <form onSubmit={save} className="mt-6 flex flex-col gap-4">
+      <form onSubmit={save} className="account-profile-form mt-4 grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="p-name" className="text-sm font-medium text-slate-700">
             Display name
@@ -304,8 +308,8 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
           />
-          <p className="text-sm text-slate-500">
-            Only used to confirm you are 13 or over. Nothing else reads it.
+          <p className="account-profile-field-note text-xs leading-5 text-slate-500">
+            Only used to confirm you are 13 or over.
           </p>
         </div>
 
@@ -316,23 +320,29 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
           go to, so a text box would promise something this form cannot do.
         */}
         {email && (
-          <div className="flex flex-col gap-1.5">
+          <div className="account-profile-email flex min-w-0 flex-col gap-1.5 sm:col-span-2 sm:grid sm:grid-cols-[auto_minmax(0,1fr)] sm:items-baseline sm:gap-x-3">
             <span className="text-sm font-medium text-slate-700">Email</span>
             <p className="break-words text-[15px] leading-7 text-slate-600">{email}</p>
-            <p className="text-sm text-slate-500">
-              This comes from the account you signed in with, so it can&rsquo;t be changed here.
+            <p className="account-profile-field-note text-xs leading-5 text-slate-500 sm:col-start-2">
+              From your sign-in account; it can&rsquo;t be changed here.
             </p>
           </div>
         )}
 
         {problem && (
-          <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[15px] leading-7 text-rose-800">
+          <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[15px] leading-7 text-rose-800 sm:col-span-2">
             {problem}
           </p>
         )}
-        {saved && !problem && <p className="text-[15px] leading-7 text-emerald-800">Saved.</p>}
+        {saved && !problem && (
+          <p className="text-[15px] leading-7 text-emerald-800 sm:col-span-2">Saved.</p>
+        )}
 
-        <button type="submit" className="btn-primary" disabled={busy}>
+        <button
+          type="submit"
+          className="account-profile-save btn-primary w-full sm:col-span-2 sm:w-auto sm:justify-self-end"
+          disabled={busy}
+        >
           {busy ? "Saving…" : "Save details"}
         </button>
       </form>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { SpeakingSession } from "@/app/speaking/page";
+import SpeakingSession from "@/components/speaking/SpeakingSession";
 import MockListening from "@/components/exam/MockListening";
 import MockReading from "@/components/exam/MockReading";
 import MockResults from "@/components/exam/MockResults";
@@ -232,65 +232,63 @@ function StartScreen({ onStart }: { onStart: () => void }) {
   );
 
   const rows: { module: MockModule; detail: string }[] = [
-    { module: "listening", detail: `4 recordings, ${listeningQs} questions, each played once` },
-    { module: "reading", detail: `3 passages, ${readingQs} questions, one hour between them` },
-    { module: "writing", detail: "Task 1 and Task 2, one hour between them" },
-    { module: "speaking", detail: "3 parts with the examiner, out loud" },
+    { module: "listening", detail: `${listeningQs} questions · 4 recordings` },
+    { module: "reading", detail: `${readingQs} questions · 3 passages` },
+    { module: "writing", detail: "2 tasks" },
+    { module: "speaking", detail: "3 interview parts" },
   ];
 
   return (
-    <div className="mx-auto max-w-xl space-y-4">
-      <div className="card space-y-4 py-7">
-        <h1 className="text-[26px] font-semibold text-slate-900">Full mock exam</h1>
-        <p className="text-sm leading-6 text-slate-600">
-          The whole exam, in the order you will sit it, with the real timings. Nothing is marked
-          and nothing is explained until the end — that is what makes the band mean something.
-        </p>
+    <section className="exam-start mx-auto flex h-[calc(100dvh-3.75rem)] w-full max-w-5xl items-center overflow-hidden px-5">
+      <div className="exam-start-content mx-auto w-full space-y-[clamp(0.75rem,2.4vh,1.5rem)]">
+        <header className="max-w-2xl">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-700">
+            Full sitting
+          </p>
+          <h1 className="text-[clamp(1.9rem,5vw,3.5rem)] font-semibold leading-none tracking-tight text-slate-900">
+            Full mock exam
+          </h1>
+          <p className="exam-start-summary mt-2 text-[clamp(0.82rem,1.8vw,1rem)] leading-snug text-slate-600">
+            All four IELTS skills, real timings, results only at the end.
+          </p>
+        </header>
 
-        <ul className="space-y-2">
+        <ul className="grid grid-cols-2 gap-x-5 gap-y-3 border-y border-slate-300 py-[clamp(0.65rem,2vh,1rem)] sm:grid-cols-4 sm:gap-x-7">
           {rows.map(({ module, detail }) => (
-            <li
-              key={module}
-              className="flex items-baseline justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2"
-            >
-              <span className="text-sm font-medium text-slate-800">{MODULE_NAMES[module]}</span>
-              <span className="text-right text-xs text-slate-500">
-                {detail}
-                <span className="ml-2 tabular-nums text-slate-400">
-                  {MODULE_MINUTES[module]} min
-                </span>
+            <li key={module} className="min-w-0 border-l-2 border-indigo-400 pl-3">
+              <span className="block text-sm font-semibold text-slate-900">
+                {MODULE_NAMES[module]}
+              </span>
+              <span className="block truncate text-xs text-slate-500">{detail}</span>
+              <span className="mt-0.5 block text-xs font-medium tabular-nums text-slate-700">
+                {MODULE_MINUTES[module]} min
               </span>
             </li>
           ))}
         </ul>
 
-        <div className="space-y-2 rounded-lg bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-900">
+        <div className="exam-start-notes grid gap-1 text-xs leading-snug text-slate-600 sm:grid-cols-2 sm:gap-x-8">
           <p>
-            Set aside about three hours. Each module has its own clock, moves on by itself when
-            the time is up, and cannot be re-entered.
+            <strong className="font-semibold text-slate-800">Allow about three hours.</strong>{" "}
+            Modules advance automatically and cannot be reopened.
           </p>
           <p>
-            A reload will not lose your place — your answers and the clock are saved as you go.
-          </p>
-          <p>
-            {/* Said before it can cost anybody anything. */}
-            Leaving this page ends the sitting, in the same way that walking out of an exam hall
-            does: the paper is over and nothing is marked. Nothing is charged for it either, so you
-            can start a fresh one straight away.
+            Reloading keeps your place. Leaving this page ends the exam. Restarting is free.
           </p>
         </div>
 
-        <button className="btn-primary w-full" onClick={onStart}>
-          Start the exam
-        </button>
-        <p className="text-center text-xs text-slate-400">
-          Want to work on one skill instead?{" "}
-          <Link href="/practice" className="underline underline-offset-4">
-            Practice
-          </Link>{" "}
-          marks as you go and explains every answer.
-        </p>
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+          <button className="btn-primary min-w-44" onClick={onStart}>
+            Start exam
+          </button>
+          <p className="exam-start-alternative text-xs text-slate-500 sm:pl-2">
+            Not ready for a full sitting?{" "}
+            <Link href="/practice" className="font-medium underline underline-offset-4">
+              Practise one skill
+            </Link>
+          </p>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

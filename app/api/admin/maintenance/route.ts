@@ -4,7 +4,9 @@ import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
 import { supabaseConfigured } from "@/lib/auth/supabase";
 import {
   MAINTENANCE_LAG_SECONDS,
+  maintenanceDispatchSetting,
   maintenanceSetting,
+  recordMaintenanceDispatch,
   setMaintenance,
 } from "@/lib/admin/settings";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
@@ -51,7 +53,14 @@ async function handleGET(req: Request) {
   const user = await requireOwner(req);
   if (!user) return notFound();
 
-  const setting = await maintenanceSetting();
+  const [setting, dispatch] = await Promise.all([
+    maintenanceSetting(),
+    maintenanceDispatchSetting(),
+  ]);
+  const matchingDispatch =
+    dispatch && dispatch.closed === setting.closed && dispatch.decisionAt === setting.at
+      ? dispatch
+      : null;
   return NextResponse.json({
     closed: setting.closed,
     changedAt: setting.at ?? null,
@@ -71,6 +80,15 @@ async function handleGET(req: Request) {
       the only way it can be right — the token is server-side by definition.
     */
     deploys: deployHookConfigured(),
+    /* A failed dispatch must survive a reload/new tab. Only attach a result
+       that belongs to this exact decision; an older attempt is not evidence
+       about the current choice. */
+    ...(matchingDispatch
+      ? {
+          deployStarted: matchingDispatch.started,
+          deployProblem: matchingDispatch.problem,
+        }
+      : {}),
   });
 }
 
@@ -98,6 +116,21 @@ async function handlePOST(req: Request) {
     */
     const setting = await setMaintenance(body.closed, user.id);
     const deploy = await dispatchDeploy(body.closed);
+
+    /* Best effort: GitHub's answer is still returned even if this secondary
+       status write is unavailable. The owner's open/closed choice was already
+       saved, and a reporting failure must not turn a started deploy into 503. */
+    if (setting.at) {
+      await recordMaintenanceDispatch(
+        {
+          closed: setting.closed,
+          decisionAt: setting.at,
+          started: deploy.started,
+          problem: deploy.problem,
+        },
+        user.id,
+      ).catch((err) => logInternal("admin/maintenance-dispatch", err));
+    }
 
     return NextResponse.json({
       closed: setting.closed,

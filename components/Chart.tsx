@@ -458,7 +458,7 @@ function StackedBars({ spec, frame }: { spec: BarChartSpec; frame: Frame }) {
 
   return (
     <>
-      {spec.categories.map((category, i) => {
+      {spec.categories.map((_, i) => {
         const x = frame.xAt(i) - barWidth / 2;
         return (
           <g key={i}>

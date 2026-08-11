@@ -3,6 +3,12 @@ import { stripeSecretKey, stripePriceId } from "./env";
 import { PLANS, isPaidTier } from "./tiers";
 import type { Tier, PlanId } from "./tiers";
 import type { SubscriptionStatus } from "./providers";
+import type { FinancePeriod, StripeFinancialSnapshot } from "@/lib/admin/finance-types";
+import {
+  summariseStripeFinance,
+  type StripeFinanceTransaction,
+  type StripePaidPayout,
+} from "./finance";
 
 /*
   Stripe, over `fetch`, with the signature check done in Web Crypto.
@@ -548,9 +554,9 @@ async function assertPriceMatchesCatalogue(plan: PlanId, priceId: string): Promi
  * is wrong should not be reading the copy that goes stale when something is.
  * Stripe is where the money actually is.
  *
- * Counts only `active` and `trialing`. A subscription that is past due or
- * cancelled is not revenue, and rolling those in is how a dashboard reports
- * growth on the day it should be reporting churn.
+ * Counts only `active`. A trial has not paid yet; past-due and cancelled
+ * subscriptions are not current revenue either. Rolling any of those into a
+ * "paying subscribers" number would make the label false.
  */
 export interface BillingSnapshot {
   /** Live subscriptions, by plan id where we recognise the Price. */
@@ -600,6 +606,133 @@ export async function billingSnapshot(): Promise<BillingSnapshot> {
   }
 
   return { byPlan, active, mrrHkd: Math.round(mrrMinor) / 100 };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Financial reporting                                                         */
+/* -------------------------------------------------------------------------- */
+
+function requiredStripeInteger(value: unknown, field: string): number {
+  if (!Number.isSafeInteger(value)) {
+    throw new StripeError(`Stripe returned an invalid ${field}`);
+  }
+  return value as number;
+}
+
+async function listFinanceBalanceTransactions(
+  startingAt: string,
+  endingAt: string,
+): Promise<StripeFinanceTransaction[]> {
+  const transactions: StripeFinanceTransaction[] = [];
+  let startingAfter: string | undefined;
+
+  for (let page = 0; page < 10_000; page += 1) {
+    const query = new URLSearchParams({
+      limit: "100",
+      "created[gte]": String(Math.floor(Date.parse(startingAt) / 1000)),
+      "created[lt]": String(Math.ceil(Date.parse(endingAt) / 1000)),
+    });
+    if (startingAfter) query.set("starting_after", startingAfter);
+
+    const body = await stripeGet(`/balance_transactions?${query.toString()}`);
+    if (!Array.isArray(body.data)) throw new StripeError("Stripe returned invalid balance transactions");
+    const data = body.data as Array<Record<string, unknown>>;
+    for (const row of data) {
+      if (typeof row.id !== "string" || row.id.length === 0) {
+        throw new StripeError("Stripe returned a balance transaction without an id");
+      }
+      if (typeof row.currency !== "string" || row.currency.length === 0) {
+        throw new StripeError(`Stripe returned balance transaction ${row.id} without a currency`);
+      }
+      transactions.push({
+        created: requiredStripeInteger(row.created, "balance transaction timestamp"),
+        currency: row.currency,
+        reportingCategory:
+          typeof row.reporting_category === "string" && row.reporting_category.length > 0
+            ? row.reporting_category
+            : "unreported",
+        amountMinor: requiredStripeInteger(row.amount, "balance transaction amount"),
+        feeMinor: requiredStripeInteger(row.fee, "balance transaction fee"),
+        netMinor: requiredStripeInteger(row.net, "balance transaction net"),
+      });
+    }
+
+    if (body.has_more !== true) return transactions;
+    const cursor = data.at(-1)?.id;
+    if (typeof cursor !== "string" || cursor.length === 0 || cursor === startingAfter) {
+      throw new StripeError("Stripe balance transaction pagination did not advance");
+    }
+    startingAfter = cursor;
+  }
+
+  throw new StripeError("Stripe balance transaction report exceeded 10,000 pages");
+}
+
+async function listPaidPayouts(
+  startingAt: string,
+  endingAt: string,
+): Promise<StripePaidPayout[]> {
+  const payouts: StripePaidPayout[] = [];
+  let startingAfter: string | undefined;
+
+  for (let page = 0; page < 10_000; page += 1) {
+    const query = new URLSearchParams({
+      limit: "100",
+      status: "paid",
+      "arrival_date[gte]": String(Math.floor(Date.parse(startingAt) / 1000)),
+      "arrival_date[lt]": String(Math.ceil(Date.parse(endingAt) / 1000)),
+    });
+    if (startingAfter) query.set("starting_after", startingAfter);
+
+    const body = await stripeGet(`/payouts?${query.toString()}`);
+    if (!Array.isArray(body.data)) throw new StripeError("Stripe returned invalid payouts");
+    const data = body.data as Array<Record<string, unknown>>;
+    for (const row of data) {
+      if (typeof row.id !== "string" || row.id.length === 0) {
+        throw new StripeError("Stripe returned a payout without an id");
+      }
+      if (typeof row.currency !== "string" || row.currency.length === 0) {
+        throw new StripeError(`Stripe returned payout ${row.id} without a currency`);
+      }
+      payouts.push({
+        arrivalDate: requiredStripeInteger(row.arrival_date, "payout arrival date"),
+        currency: row.currency,
+        amountMinor: requiredStripeInteger(row.amount, "payout amount"),
+      });
+    }
+
+    if (body.has_more !== true) return payouts;
+    const cursor = data.at(-1)?.id;
+    if (typeof cursor !== "string" || cursor.length === 0 || cursor === startingAfter) {
+      throw new StripeError("Stripe payout pagination did not advance");
+    }
+    startingAfter = cursor;
+  }
+
+  throw new StripeError("Stripe payout report exceeded 10,000 pages");
+}
+
+/**
+ * Exact Stripe balance activity, grouped per currency and per UTC day.
+ *
+ * Balance transactions are Stripe's recommended accounting source. Their
+ * `reporting_category` determines whether a row is operating activity; bank
+ * payouts are deliberately fetched from the Payouts API instead of inferred
+ * from balance movements.
+ */
+export async function financialSnapshot(
+  period: FinancePeriod,
+  lifetimeStartingAt: string,
+): Promise<StripeFinancialSnapshot> {
+  assertServerOnly(MODULE);
+  if (!Number.isFinite(Date.parse(lifetimeStartingAt)) || !Number.isFinite(Date.parse(period.endingAt))) {
+    throw new StripeError("Invalid financial report period");
+  }
+  const [transactions, paidPayouts] = await Promise.all([
+    listFinanceBalanceTransactions(lifetimeStartingAt, period.endingAt),
+    listPaidPayouts(lifetimeStartingAt, period.endingAt),
+  ]);
+  return summariseStripeFinance(transactions, paidPayouts, period);
 }
 
 /** Which plan a Stripe Price id belongs to, or null if we do not sell it. */

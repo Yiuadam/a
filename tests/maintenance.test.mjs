@@ -87,3 +87,19 @@ test("the deploy workflow sets the variable the code reads", () => {
     "the workflow input must still drive it, or the checkbox does nothing",
   );
 });
+
+test("maintenance keeps the owner sign-in and admin recovery routes reachable", () => {
+  const gate = code("components/MaintenanceGate.tsx");
+  const layout = code("app/layout.tsx");
+
+  assert.match(layout, /<MaintenanceGate\s+closed=\{closed\}>/);
+  assert.match(gate, /pathname\s*===\s*["']\/account["']/);
+  assert.match(gate, /pathname\.startsWith\(["']\/account\/["']\)/);
+  assert.match(gate, /pathname\s*===\s*["']\/admin["']/);
+  assert.match(gate, /pathname\.startsWith\(["']\/admin\/["']\)/);
+  assert.match(
+    gate,
+    /closed\s*&&\s*!ownerRoute\s*\?\s*<Maintenance\s*\/>\s*:\s*children/,
+    "learner routes must show maintenance while the authenticated recovery routes stay usable",
+  );
+});

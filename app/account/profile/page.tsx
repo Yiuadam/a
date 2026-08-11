@@ -19,7 +19,12 @@ export default function ProfileScreen() {
   const session = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
-    <HubScreen back="/account" backLabel="Your account" title="Your profile">
+    <HubScreen
+      back="/account"
+      backLabel="Your account"
+      title="Your profile"
+      className="account-profile-screen"
+    >
       <ProfileSection sessionEmail={session?.email ?? null} />
     </HubScreen>
   );

@@ -1,8 +1,13 @@
 "use client";
 
-import Chart from "@/components/Chart";
-import { dayLabels, type Check, type MaintenanceState, type Stats } from "@/lib/admin/useConsole";
-import type { ChartSpec } from "@/lib/chart";
+import Link from "next/link";
+import AdminTrendChart from "@/components/admin/AdminTrendChart";
+import {
+  maintenanceActionLabel,
+  maintenanceDispatchFailed,
+  maintenanceNeedsRetry,
+} from "@/lib/admin/maintenance-toggle";
+import { type Check, type MaintenanceState, type Stats } from "@/lib/admin/useConsole";
 
 /*
   The three panels the console is made of, each usable on its own screen or
@@ -16,78 +21,28 @@ import type { ChartSpec } from "@/lib/chart";
 
 /* ------------------------------------------------------------------ charts */
 
-/**
- * How tall a plot may be drawn on the console.
- *
- * Chosen against the screen rather than by taste: at 1440×900 the overview has
- * to hold a title, four stat tiles, two charts, the site switch and the
- * configuration list, and this is what leaves the last two above the fold.
- */
-const CONSOLE_PLOT_HEIGHT = 130;
-
 export function Charts({ stats, full = false }: { stats: Stats | null; full?: boolean }) {
   /*
-    Both drawn through the app's own chart component rather than a library. It
-    already renders line and bar from a ChartSpec — it was built for Writing
-    Task 1 — and a second charting stack in the bundle to draw two pictures on
-    one page nobody but the owner sees would be a poor trade.
+    These use the console's small data-first renderer rather than the IELTS
+    Writing renderer. The underlying numbers are the same; the presentation is
+    not. Thirty permanent point markers and thirty bar totals help a candidate
+    read an exam figure, but turn a glanceable dashboard into a grey knot.
   */
-  const signupChart: ChartSpec | null =
-    stats?.signups && stats.signups.length > 0
-      ? {
-          kind: "line",
-          title: `New accounts, last ${stats.days} days`,
-          categories: dayLabels(stats.signups),
-          series: [{ name: "Signups", values: stats.signups.map((d) => d.count ?? 0) }],
-        }
-      : null;
+  const signups = stats?.signups ?? null;
+  const usage = stats?.usage ?? null;
 
-  const usageChart: ChartSpec | null =
-    stats?.usage && stats.usage.length > 0
-      ? {
-          kind: "bar",
-          layout: "stacked",
-          title: `AI requests, last ${stats.days} days`,
-          categories: dayLabels(stats.usage),
-          series: [
-            { name: "Served", values: stats.usage.map((d) => d.admitted ?? 0) },
-            /* Refusals beside them, because a run of these is either a cap set
-               too low or somebody having a bad time, and neither shows up in a
-               count of what was served. */
-            { name: "Refused", values: stats.usage.map((d) => d.denied ?? 0) },
-          ],
-        }
-      : null;
-
-  /*
-    A fixed height whether there is data or not.
-
-    The console drew empty axes at about eighty pixels and a real thirty-day
-    series at three hundred, so the first day anything was worth plotting the
-    page grew by half a screen and pushed the site switch and the checklist
-    under the fold. A dashboard whose layout depends on its numbers is one you
-    have to re-find your way around every time the numbers change, and the
-    controls are the part that must not move.
-
-    So the plot is capped and the panel is given a floor: full, it cannot grow
-    past the cap; empty, it does not collapse. Same box either way.
-  */
   return (
-    <div className="grid gap-3 xl:grid-cols-2">
-      <Panel>
-        {signupChart ? (
-          <Chart spec={signupChart} plotHeight={full ? undefined : CONSOLE_PLOT_HEIGHT} />
-        ) : (
-          <Empty title="New accounts" />
-        )}
-      </Panel>
-      <Panel>
-        {usageChart ? (
-          <Chart spec={usageChart} plotHeight={full ? undefined : CONSOLE_PLOT_HEIGHT} />
-        ) : (
-          <Empty title="AI requests" />
-        )}
-      </Panel>
+    <div className="grid gap-3 lg:grid-cols-2">
+      {signups && signups.length > 0 ? (
+        <AdminTrendChart kind="signups" rows={signups} days={stats?.days} compact={!full} />
+      ) : (
+        <Panel><Empty title="New accounts" /></Panel>
+      )}
+      {usage && usage.length > 0 ? (
+        <AdminTrendChart kind="usage" rows={usage} days={stats?.days} compact={!full} />
+      ) : (
+        <Panel><Empty title="AI requests" /></Panel>
+      )}
     </div>
   );
 }
@@ -132,44 +87,72 @@ export function SiteSwitch({
   busy,
   error,
   onToggle,
+  compact = false,
 }: {
   state: MaintenanceState;
   busy: boolean;
   error: string | null;
   onToggle: () => void;
+  /** Short overview copy; the dedicated status screen keeps every detail. */
+  compact?: boolean;
 }) {
   const deploys = state.deploys !== false;
   /* Decided one way, running the other — a deployment is in flight, or needs
      to be run by hand. */
   const inFlight = state.closed !== state.closedByDeploy;
   const live = state.closedByDeploy;
+  const dispatchFailed = maintenanceDispatchFailed(state);
+  const retryNeeded = maintenanceNeedsRetry(state);
+  const dispatchUnknown = retryNeeded && !dispatchFailed;
 
-  const heading = inFlight
+  const heading = dispatchFailed
     ? state.closed
-      ? "Closing the site…"
-      : "Reopening the site…"
-    : live
-      ? "The site is closed"
-      : "The site is open";
+      ? "Closing was not deployed"
+      : "Reopening was not deployed"
+    : dispatchUnknown
+      ? "Deployment status is unknown"
+    : inFlight
+      ? state.closed
+        ? "Closing the site…"
+        : "Reopening the site…"
+      : live
+        ? "The site is closed"
+        : "The site is open";
 
-  const detail = inFlight
-    ? deploys
-      ? `A deployment is running. Learners still see ${live ? "the upgrade notice" : "the app"} until it finishes — about two minutes.`
-      : `Recorded, but nothing has deployed. Learners still see ${live ? "the upgrade notice" : "the app"}.`
-    : live
-      ? "Everyone sees the upgrade notice instead of the app. Subscriptions and payments keep working underneath."
-      : "Learners can use everything as normal.";
+  const detail = dispatchFailed
+    ? `Learners still see ${live ? "the upgrade notice" : "the app"}. Fix the deployment problem, then retry the saved choice.`
+    : dispatchUnknown
+      ? `Learners still see ${live ? "the upgrade notice" : "the app"}. Retry the saved choice to confirm a deployment starts.`
+    : inFlight
+      ? deploys
+        ? `A deployment is running. Learners still see ${live ? "the upgrade notice" : "the app"} until it finishes — about two minutes.`
+        : `Recorded, but nothing has deployed. Learners still see ${live ? "the upgrade notice" : "the app"}.`
+      : live
+        ? "Everyone sees the upgrade notice instead of the app. Subscriptions and payments keep working underneath."
+        : "Learners can use everything as normal.";
+
+  const displayedDetail = compact
+    ? dispatchFailed
+      ? `Not deployed. Learners still see ${live ? "the upgrade notice" : "the app"}.`
+      : dispatchUnknown
+        ? `Status unknown. Learners still see ${live ? "the upgrade notice" : "the app"}.`
+      : inFlight
+        ? `Deploying now. Learners still see ${live ? "the upgrade notice" : "the app"}.`
+        : live
+          ? "Learners see the upgrade notice."
+          : "Learners can use everything normally."
+    : detail;
 
   return (
     <section
-      className={`rounded-2xl border p-4 sm:p-5 ${
+      className={`rounded-2xl border ${compact ? "p-3.5" : "p-4 sm:p-5"} ${
         live || inFlight ? "border-amber-300 bg-amber-50/60" : "border-slate-200 bg-surface"
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-slate-900">{heading}</h2>
-          <p className="mt-1 text-[13px] leading-5 text-slate-600">{detail}</p>
+          <p className="mt-1 text-[13px] leading-5 text-slate-600">{displayedDetail}</p>
         </div>
         <button
           type="button"
@@ -177,7 +160,7 @@ export function SiteSwitch({
           disabled={busy}
           className={state.closed ? "btn-primary shrink-0" : "btn-secondary shrink-0"}
         >
-          {busy ? "Deploying…" : state.closed ? "Reopen the site" : "Close the site"}
+          {busy ? (retryNeeded ? "Retrying…" : "Deploying…") : maintenanceActionLabel(state)}
         </button>
       </div>
 
@@ -213,12 +196,18 @@ export function SiteSwitch({
         between a helpful instruction and an actual leak. It should not have
         to: a variable name is developer-speak in a sentence a person reads.
       */}
-      {!deploys && (
+      {!deploys && !compact && (
         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[12px] leading-5 text-amber-900">
           <span className="font-semibold">This switch cannot deploy.</span> No deploy token is set
           on the Worker, so it can only record what you decide. Add one — DEPLOY.md says how — or
           run the <span className="font-medium">Deploy to Cloudflare</span> workflow yourself with
           the maintenance box ticked.
+        </p>
+      )}
+
+      {!deploys && compact && (
+        <p className="mt-2 text-[11px] leading-4 text-amber-900">
+          No deploy token is set, so this control can only record the decision.
         </p>
       )}
 
@@ -236,23 +225,52 @@ export function SiteSwitch({
         a commit, so there is no version of this that redeploys exactly what is
         already live.
       */}
-      {deploys && (
+      {deploys && !compact && (
         <p className="mt-2 text-[11px] leading-4 text-slate-500">
           Either way this deploys <span className="font-medium">main</span> as it stands now.
         </p>
       )}
 
-      <p className="mt-2.5 text-[11px] leading-4 text-slate-500">
-        {state.changedAt && `Last changed ${new Date(state.changedAt).toLocaleString()}.`}
-      </p>
+      <div className="mt-2 flex items-center justify-between gap-3 text-[11px] leading-4 text-slate-500">
+        <p>{state.changedAt && `Last changed ${new Date(state.changedAt).toLocaleString()}.`}</p>
+        {compact && (
+          <Link href="/admin/site" className="shrink-0 font-medium hover:text-slate-900">
+            Details ›
+          </Link>
+        )}
+      </div>
     </section>
   );
 }
 
 /* ------------------------------------------------------------ config list */
 
-export function ConfigList({ checks }: { checks: Check[] | null }) {
+export function ConfigList({ checks, compact = false }: { checks: Check[] | null; compact?: boolean }) {
   const failing = checks?.filter((c) => !c.ok) ?? [];
+
+  if (compact) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-surface p-3.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold text-slate-900">Configuration</h2>
+          <Link href="/admin/config" className="shrink-0 text-[11px] font-medium text-slate-500 hover:text-slate-900">
+            Details ›
+          </Link>
+        </div>
+        {checks === null ? (
+          <p className="mt-2 text-[13px] text-slate-500">Couldn&rsquo;t read the checks just now.</p>
+        ) : failing.length > 0 ? (
+          <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-[13px] leading-5 text-rose-800">
+            {failing.length} of {checks.length} checks need attention.
+          </p>
+        ) : (
+          <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[13px] leading-5 text-emerald-800">
+            All {checks.length} checks are passing.
+          </p>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-surface p-4 sm:p-5">

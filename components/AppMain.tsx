@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 /*
   The page area, and the one route that does not want it.
@@ -25,6 +25,19 @@ import type { ReactNode } from "react";
 export default function AppMain({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const console_ = pathname.startsWith("/admin");
+  const immersive =
+    pathname === "/" ||
+    pathname === "/chat" ||
+    pathname === "/practice/listening" ||
+    pathname === "/practice/reading" ||
+    pathname === "/practice/writing" ||
+    pathname === "/exam";
+
+  useEffect(() => {
+    if (!immersive) return;
+    document.body.setAttribute("data-viewport-locked", "");
+    return () => document.body.removeAttribute("data-viewport-locked");
+  }, [immersive]);
 
   return (
     <main
@@ -35,7 +48,7 @@ export default function AppMain({ children }: { children: ReactNode }) {
       */
       data-lookupable
       className={
-        console_
+        console_ || immersive
           ? "w-full min-h-0 flex-1"
           : /* Less air above and below on a phone. Forty pixels top and bottom
                is right on a laptop, where the page is a document in a window;

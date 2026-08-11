@@ -1,5 +1,5 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
-import { accountsEnabled, usageFailOpen } from "@/lib/auth/env";
+import { accountsEnabled, isAdminEmail, usageFailOpen } from "@/lib/auth/env";
 import { supabaseConfigured, rpc } from "@/lib/auth/supabase";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
@@ -57,6 +57,17 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
   let ipHash: string | null = null;
   try {
     const [user, hash] = await Promise.all([getSessionUser(req), hashIp(clientIp(req))]);
+
+    /*
+      ADMIN_EMAILS is an entitlement source in its own right. The feature gate
+      already recognises it, but the database meter can only see the profile
+      row. Without this server-side check, an owner configured through the
+      environment passes the tutor paywall and is then incorrectly metered as
+      a free account. The email is taken only from the verified bearer token;
+      no request field or client header can claim this exemption.
+    */
+    if (isAdminEmail(user?.email)) return null;
+
     userId = user?.id ?? null;
     ipHash = hash;
   } catch (err) {

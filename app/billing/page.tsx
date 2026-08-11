@@ -69,9 +69,9 @@ export default function BillingPage() {
 
   const items: HubItem[] = [
     {
-      href: "/billing/plan",
-      title: "Your plan",
-      detail: "What it costs, and when it renews",
+      href: "/pricing",
+      title: "Plans & pricing",
+      detail: "Compare, subscribe or manage",
       value: definition?.name,
     },
     {

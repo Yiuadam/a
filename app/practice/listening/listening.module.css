@@ -1,0 +1,51 @@
+.playbackControl {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--exam-line) 78%, transparent);
+  border-radius: var(--radius-lg);
+  padding: 0.25rem 0.625rem;
+  color: var(--exam-fg);
+  background: color-mix(in srgb, var(--exam-chrome) 72%, transparent);
+  box-shadow: inset 0 0.5px 0 color-mix(in srgb, white 42%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(112%);
+  backdrop-filter: blur(10px) saturate(112%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.playbackControl:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--exam-fg) 24%, var(--exam-line));
+  background: color-mix(in srgb, var(--exam-chrome) 86%, transparent);
+}
+
+.playbackControl:focus-visible {
+  outline: 2px solid var(--exam-accent);
+  outline-offset: 2px;
+}
+
+.playbackControl:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.playbackIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex: none;
+  fill: currentColor;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .playbackControl {
+    background: var(--exam-chrome);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

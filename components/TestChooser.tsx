@@ -5,6 +5,8 @@ import DeleteGenerated from "@/components/DeleteGenerated";
 import DoneBadge, { bestResultFor } from "@/components/DoneBadge";
 import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
+import NewBadge from "@/components/NewBadge";
+import { paperNeedsNewBadge } from "@/lib/completion-badges";
 import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { useProfile } from "@/lib/hooks";
@@ -51,7 +53,7 @@ export default function TestChooser({
   const label = kind === "reading" ? "Reading" : "Listening";
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-5 sm:px-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">{label} practice</h1>
         <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">
@@ -74,13 +76,9 @@ export default function TestChooser({
         </p>
       )}
 
-      {/*
-        min-w-0 on the children, not just here. `truncate` sets
-        white-space: nowrap, and a grid item's automatic minimum width is its
-        min-content — so an untruncatable title drags the whole column past the
-        screen. Caught at 360px by the layout audit, 243px over.
-      */}
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      {/* min-w-0 and break-words keep long titles inside the column without
+          replacing meaningful words with an ellipsis. */}
+      <div className="practice-paper-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {all.map((t, i) => {
           const isGenerated = i >= tests.length;
           /* Strictly by position — see app/practice/page.tsx for why. */
@@ -91,10 +89,14 @@ export default function TestChooser({
           const inner = (
             <>
               <div className="flex items-baseline justify-between gap-2">
-                <h2 className="min-w-0 truncate text-sm font-semibold text-slate-900">{t.title}</h2>
-                <DoneBadge result={best} />
+                <h2 className="min-w-0 break-words text-sm font-semibold text-slate-900">{t.title}</h2>
+                {paperNeedsNewBadge(profile.results, t.id) ? (
+                  <NewBadge />
+                ) : (
+                  <DoneBadge result={best} />
+                )}
               </div>
-              <p className="mt-0.5 truncate text-xs leading-5 text-slate-600">
+              <p className="mt-0.5 break-words text-xs leading-5 text-slate-600">
                 {"topic" in t ? t.topic : t.context}
               </p>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
@@ -113,7 +115,11 @@ export default function TestChooser({
           /* Not known yet — inert, not open. See app/practice/page.tsx. */
           if (access[kind].pending) {
             return (
-              <div key={t.id} className="card !p-3 min-w-0 cursor-wait opacity-60" aria-busy="true">
+              <div
+                key={t.id}
+                className="practice-paper-card card !p-3 min-w-0 cursor-wait opacity-60"
+                aria-busy="true"
+              >
                 {inner}
               </div>
             );
@@ -123,22 +129,25 @@ export default function TestChooser({
             const reason = access.tier === "anonymous" ? "sign-in" : "subscribe";
             return (
               <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`} fill>
-                <div className="card !p-3 h-full min-w-0">{inner}</div>
+                <div className="practice-paper-card card !p-3 h-full min-w-0">{inner}</div>
               </LockedCard>
             );
           }
 
           const link = (
-            <Link href={`/practice/${kind}?id=${t.id}`} className="card !p-3 block min-w-0">
+            <Link
+              href={`/practice/${kind}?id=${t.id}`}
+              className="practice-paper-card card !p-3 block min-w-0"
+            >
               {inner}
             </Link>
           );
 
           /* Only the generated ones can be thrown away, and the button is a
              sibling of the link rather than a child — see DeleteGenerated. */
-          if (!isGenerated) return <div key={t.id} className="min-w-0">{link}</div>;
+          if (!isGenerated) return <div key={t.id} className="h-full min-w-0">{link}</div>;
           return (
-            <div key={t.id} className="relative min-w-0">
+            <div key={t.id} className="relative h-full min-w-0">
               {link}
               <DeleteGenerated id={t.id} title={t.title} />
             </div>

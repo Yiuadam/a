@@ -29,7 +29,7 @@ export default function MoreComing({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col justify-center rounded-2xl border border-dashed border-slate-300 bg-surface/40 p-4 text-center">
+    <div className="practice-paper-card flex flex-col justify-center rounded-2xl border border-dashed border-slate-300 bg-surface/40 p-4 text-center">
       <span
         aria-hidden="true"
         className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500"

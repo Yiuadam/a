@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore, type CSSProperties, type PointerEvent } from "react";
 import { Icon } from "@/components/Icons";
 import {
   THEMES,
@@ -16,15 +16,62 @@ import {
  */
 export default function ThemeToggle() {
   const theme = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const dragging = useRef(false);
+  const dragIndex = useRef<number | null>(null);
+  const selectedIndex = Math.max(0, THEMES.findIndex((option) => option.id === theme));
+  const visibleIndex = previewIndex ?? selectedIndex;
+
+  const indexAtPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const index = Math.floor(((event.clientX - rect.left) / rect.width) * THEMES.length);
+    return Math.max(0, Math.min(THEMES.length - 1, index));
+  };
+
+  const previewAtPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const index = indexAtPointer(event);
+    dragIndex.current = index;
+    setPreviewIndex(index);
+  };
 
   return (
     <div
       role="radiogroup"
       aria-label="Colour theme"
-      className="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-surface p-0.5"
+      data-flowing={previewIndex !== null ? "" : undefined}
+      className="theme-toggle-base relative flex touch-none items-center gap-0.5 rounded-xl p-0.5"
+      style={{ "--theme-index": visibleIndex } as CSSProperties}
+      onPointerDown={(event) => {
+        dragging.current = true;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        previewAtPointer(event);
+      }}
+      onPointerMove={(event) => {
+        if (dragging.current) previewAtPointer(event);
+      }}
+      onPointerUp={(event) => {
+        if (!dragging.current) return;
+        previewAtPointer(event);
+        dragging.current = false;
+        const index = dragIndex.current;
+        if (index !== null) setTheme(THEMES[index].id);
+        dragIndex.current = null;
+        setPreviewIndex(null);
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }}
+      onPointerCancel={() => {
+        dragging.current = false;
+        dragIndex.current = null;
+        setPreviewIndex(null);
+      }}
+      onPointerLeave={() => {
+        if (!dragging.current) setPreviewIndex(null);
+      }}
     >
-      {THEMES.map((t) => {
+      <span className="theme-toggle-selector" aria-hidden="true" />
+      {THEMES.map((t, index) => {
         const active = theme === t.id;
+        const visible = visibleIndex === index;
         return (
           <button
             key={t.id}
@@ -33,14 +80,24 @@ export default function ThemeToggle() {
             aria-checked={active}
             aria-label={`${t.label} theme`}
             title={t.hint}
-            onClick={() => setTheme(t.id)}
-            className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all ${
-              active
-                ? "bg-indigo-600 text-accent-fg shadow-sm"
-                : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+            onPointerEnter={() => {
+              dragIndex.current = index;
+              setPreviewIndex(index);
+            }}
+            onFocus={() => setPreviewIndex(index)}
+            onBlur={() => setPreviewIndex(null)}
+            onClick={() => {
+              setTheme(t.id);
+              setPreviewIndex(null);
+            }}
+            className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-colors focus-visible:outline-none ${
+              visible ? "text-slate-900" : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            <Icon name={t.icon} className="h-4 w-4" />
+            <Icon
+              name={t.icon}
+              className={`h-4 w-4 ${t.id === "warm" ? "-translate-y-0.5" : ""}`}
+            />
           </button>
         );
       })}

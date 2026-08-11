@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ADMIN_OVERVIEW_STORAGE_KEY } from "@/lib/admin/overview";
 
 /*
   A server component, unlike almost every other page here, because
@@ -20,10 +21,9 @@ export const metadata: Metadata = {
     "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, there are no cookies or trackers, and card details never reach our servers.",
 };
 
-const LAST_UPDATED = "9 August 2026";
+const LAST_UPDATED = "12 August 2026";
 
-/* The four keys are the whole of what BandUp writes — see lib/store.ts,
-   lib/drills.ts, lib/lookups.ts and lib/theme.ts. */
+/* The learner keys plus the owner's one local dashboard preference. */
 const STORED = [
   {
     key: "ielts-prep-v1",
@@ -41,6 +41,10 @@ const STORED = [
   {
     key: "bandup.speech.v1",
     what: "Which speech recogniser you chose for the speaking test, and which model size.",
+  },
+  {
+    key: ADMIN_OVERVIEW_STORAGE_KEY,
+    what: "For a site administrator only: which two charts they chose for the admin overview. It contains no learner, account or financial data and stays in that browser.",
   },
 ];
 
@@ -122,8 +126,10 @@ export default function PrivacyPage() {
           Signed out, everything BandUp remembers about you lives in the tab you are using and
           nowhere else. Close the tab or the browser and it is gone; open BandUp again and you
           start fresh. Nothing is left behind on the machine, which matters most on a shared or
-          borrowed one. Signed in, the same five entries are kept on your account instead, so
-          they follow you between devices. Either way, this is the whole of it:
+          borrowed one. Signed in, the five learner entries are kept on your account instead,
+          so they follow you between devices. A sixth, clearly marked below, is only an admin
+          dashboard layout and always stays in that administrator&rsquo;s browser. This is the whole
+          of it:
         </p>
         <ul className="mt-4 space-y-3">
           {STORED.map((s) => (

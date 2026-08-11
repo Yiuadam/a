@@ -300,8 +300,8 @@ export default function TutorChat() {
       anything, when "what is this and what is it not" is the question they
       actually have.
     */
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <div className="flex h-[calc(100dvh-3.75rem)] min-h-0 w-full flex-col overflow-hidden bg-slate-50">
+      <div className="liquid-glass z-10 mx-2 mt-2 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border px-4 sm:mx-3 sm:px-6">
         <h1 className="text-[20px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
           Ask a tutor
         </h1>
@@ -323,7 +323,7 @@ export default function TutorChat() {
             screen, which is the one thing a chat must never do.
           */}
           <section
-            className="card min-h-0 max-h-[54vh] flex-1 overflow-y-auto !p-4 sm:max-h-[60vh] sm:!p-6"
+            className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5"
             aria-live="polite"
           >
             {messages.length === 0 ? (
@@ -343,7 +343,7 @@ export default function TutorChat() {
           </section>
 
           {problem && (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-[14px] leading-6 text-rose-800">
+            <p className="mx-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-[14px] leading-6 text-rose-800 sm:mx-6">
               {problem}
             </p>
           )}
@@ -354,7 +354,7 @@ export default function TutorChat() {
             app on the device does in one — and the second row was costing the
             conversation forty pixels of the screen.
           */}
-          <form onSubmit={submit} className="flex items-end gap-2">
+          <form onSubmit={submit} className="liquid-glass z-10 m-2 mt-0 flex shrink-0 items-end gap-2 rounded-2xl border px-4 py-3 sm:m-3 sm:mt-0 sm:px-6">
             <label htmlFor="tutor-question" className="sr-only">
               Your question
             </label>
@@ -385,7 +385,7 @@ export default function TutorChat() {
             key does, and what happens to what you type. The full privacy
             answer is one tap away and has been all along.
           */}
-          <p className="text-[11px] leading-4 text-slate-400">
+          <p className="shrink-0 bg-surface px-4 pb-2 text-[11px] leading-4 text-slate-400 sm:px-6">
             {overLength
               ? `That's ${draft.length} characters — the tutor takes ${MAX_CHARS} at a time.`
               : "Enter sends, Shift and Enter starts a new line. Nothing you ask is stored on our side."}{" "}
@@ -521,24 +521,19 @@ function Allowance({ status }: { status: AccountStatus | null }) {
 */
 function Empty({ onPick, disabled }: { onPick: (q: string) => void; disabled: boolean }) {
   return (
-    <div>
-      <p className="text-[14px] leading-6 text-slate-600">
-        Ask anything about the IELTS exam — what a task is really asking for, how to plan your
-        study, a grammar rule that will not stick, a word you are not sure how to use. Answers are
-        written for a learner, not for a textbook.
+    <div className="flex h-full min-h-[15rem] flex-col justify-center">
+      <p className="text-[15px] font-medium text-slate-700">
+        Ask about a question, grammar rule, vocabulary choice, or study strategy.
       </p>
-      <p className="mt-2 text-[12px] leading-5 text-slate-500">
-        This is a study assistant, not an IELTS examiner. It knows the exam well and it is not
-        certified by anyone — where it is unsure it will say so, and anything about your own test
-        day is worth checking on the official IELTS site.
+      <p className="mt-1 text-[12px] leading-5 text-slate-500">
+        Study help, not an official IELTS examiner.
       </p>
-      <p className="mt-4 text-[14px] font-medium text-slate-700">Start with one of these:</p>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="mt-4 flex snap-x gap-2 overflow-x-auto pb-2">
         {OPENERS.map((q) => (
           <button
             key={q}
             type="button"
-            className="btn-secondary text-left"
+            className="btn-secondary min-w-[15rem] shrink-0 snap-start text-left sm:min-w-0"
             disabled={disabled}
             onClick={() => onPick(q)}
           >

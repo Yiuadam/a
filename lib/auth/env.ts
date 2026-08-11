@@ -34,6 +34,8 @@ export const SERVER_ONLY_ENV_VARS = [
   "APPLE_IAP_KEY_ID",
   "APPLE_IAP_PRIVATE_KEY",
   "ANTHROPIC_API_KEY",
+  "ANTHROPIC_ADMIN_KEY",
+  "ANTHROPIC_WORKSPACE_ID",
   "ADMIN_EMAILS",
   "ADMIN_USERNAME",
 ] as const;
@@ -141,6 +143,16 @@ export function adminEmails(): string[] {
 export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;
   return adminEmails().includes(email.trim().toLowerCase());
+}
+
+/** Read-only organization billing key for Anthropic's Cost Report API. */
+export function anthropicAdminKey(): string | undefined {
+  return secret("ANTHROPIC_ADMIN_KEY");
+}
+
+/** Optional workspace filter when the organization key covers more than BandUp. */
+export function anthropicWorkspaceId(): string | undefined {
+  return secret("ANTHROPIC_WORKSPACE_ID");
 }
 
 /**

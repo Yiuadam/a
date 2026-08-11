@@ -1,11 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref } from "@/lib/nav";
 import { useTier } from "@/lib/billing/useTier";
+import { authedFetch } from "@/lib/account";
+import { apiUrl } from "@/lib/api";
+import {
+  PROFILE_UPDATED_EVENT,
+  type ProfileUpdate,
+} from "@/components/account/profileEvents";
+import type { ProfileFields } from "@/components/account/types";
 
 /*
   The whole header, in one client component.
@@ -58,8 +66,10 @@ export default function SiteHeader() {
     reason, and they make it separately because they are separate components.
   */
   const onConsole = pathname.startsWith("/admin");
+  const onHome = pathname === "/";
 
   const account = useTier();
+  const [profile, setProfile] = useState<ProfileFields | null>(null);
   const isOwner = account.phase === "ready" && account.signedIn && account.tier === "admin";
   const groups = isOwner
     ? NAV_GROUPS.map((group, i) =>
@@ -82,8 +92,52 @@ export default function SiteHeader() {
     react-hooks/set-state-in-effect exists to reject.
   */
   const [openPath, setOpenPath] = useState<string | null>(null);
+  const [menuPreview, setMenuPreview] = useState<{ group: number; item: number } | null>(null);
   const open = openPath !== null && openPath === pathname;
   const close = () => setOpenPath(null);
+
+  useEffect(() => {
+    if (account.phase !== "ready" || !account.signedIn) return;
+
+    let alive = true;
+    let revision = 0;
+    const requestRevision = ++revision;
+
+    const onProfileUpdated = (event: Event) => {
+      const update = (event as CustomEvent<ProfileUpdate>).detail;
+      if (!update || typeof update !== "object") return;
+
+      // Invalidate a slower initial request so it cannot repaint the old
+      // signed URL or display name over the just-saved value.
+      revision += 1;
+      setProfile((current) => ({
+        displayName: null,
+        birthDate: null,
+        avatarUrl: null,
+        email: null,
+        ...current,
+        ...update,
+      }));
+    };
+
+    window.addEventListener(PROFILE_UPDATED_EVENT, onProfileUpdated);
+
+    authedFetch(apiUrl("/api/account/profile"))
+      .then(async (res) => {
+        if (!res.ok) throw new Error("profile unavailable");
+        return (await res.json()) as ProfileFields;
+      })
+      .then((body) => {
+        if (alive && requestRevision === revision) setProfile(body);
+      })
+      .catch(() => {
+        if (alive && requestRevision === revision) setProfile(null);
+      });
+    return () => {
+      alive = false;
+      window.removeEventListener(PROFILE_UPDATED_EVENT, onProfileUpdated);
+    };
+  }, [account.phase, account.signedIn]);
 
   useEffect(() => {
     if (!open) return;
@@ -93,14 +147,7 @@ export default function SiteHeader() {
       close();
       buttonRef.current?.focus();
     };
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Node;
-      if (panelRef.current?.contains(target) || buttonRef.current?.contains(target)) return;
-      close();
-    };
-
     document.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onPointerDown);
 
     /*
       Stop the page behind scrolling. The previous value is restored rather
@@ -110,10 +157,35 @@ export default function SiteHeader() {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    /*
+      The menu is a real full-screen navigation state, not translucent scenery
+      over a still-interactive homepage. Remove the document beneath it from
+      both pointer and accessibility navigation until the menu closes.
+    */
+    const behind = Array.from(document.querySelectorAll<HTMLElement>("main, footer"));
+    const previousBehind = behind.map((node) => ({
+      node,
+      inert: node.inert,
+      ariaHidden: node.getAttribute("aria-hidden"),
+    }));
+    for (const node of behind) {
+      node.inert = true;
+      node.setAttribute("aria-hidden", "true");
+    }
+
+    const focusFrame = requestAnimationFrame(() => {
+      panelRef.current?.focus();
+    });
+
     return () => {
+      cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onPointerDown);
       document.body.style.overflow = previous;
+      for (const item of previousBehind) {
+        item.node.inert = item.inert;
+        if (item.ariaHidden === null) item.node.removeAttribute("aria-hidden");
+        else item.node.setAttribute("aria-hidden", item.ariaHidden);
+      }
     };
   }, [open]);
 
@@ -128,10 +200,13 @@ export default function SiteHeader() {
       number the other could change.
     */
     <header
-      className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/85 backdrop-blur"
-      style={{ "--header-h": "3.75rem" } as React.CSSProperties}
+      className={`site-header ${open ? "nav-open-header z-[1000]" : "liquid-glass z-40"} sticky top-0 border-b`}
+      style={{
+        "--header-row-h": "3.75rem",
+        "--header-h": "calc(var(--header-row-h) + env(safe-area-inset-top))",
+      } as React.CSSProperties}
     >
-      <div className="mx-auto flex h-[var(--header-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
+      <div className="mx-auto flex h-[var(--header-row-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
         <Link
           href="/"
           className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
@@ -142,20 +217,71 @@ export default function SiteHeader() {
             app icon has to be, so the corner has to be cut here rather than
             drawn into the file.
 
-            Plain <img> rather than next/image: it is a 2 kB SVG at a fixed
-            36px, so there is nothing to optimise, and next/image would need
-            dangerouslyAllowSVG turned on for the whole app to serve it at all
-            — widening what the image optimiser accepts, for one trusted logo.
-            width and height are set so the header never reflows while it loads.
+            The selected 3D PNG is kept crisp but delivered at header size by
+            next/image, rather than making every visit download the full master.
           */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icons/final/steps-five-mark.svg"
-            alt=""
-            width={36}
-            height={36}
-            className="h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm transition-transform group-hover:-rotate-6"
-          />
+          <span
+            data-pointer-attract
+            data-pointer-attract-strength="icon"
+            className="bandup-mark relative h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm"
+          >
+            <Image
+              src="/icons/final/steps-five-layer-rear.png"
+              alt=""
+              fill
+              sizes="36px"
+              className="bandup-mark-rear object-cover"
+              priority
+            />
+            <svg
+              viewBox="0 0 1254 1254"
+              className="bandup-mark-front absolute inset-0 h-full w-full"
+              fill="none"
+              aria-hidden="true"
+            >
+              <defs>
+                <linearGradient id="bandup-glass-rim" x1="260" y1="250" x2="1010" y2="1080">
+                  <stop stopColor="white" stopOpacity="0.96" />
+                  <stop offset="0.45" stopColor="#dce5e7" stopOpacity="0.58" />
+                  <stop offset="1" stopColor="white" stopOpacity="0.88" />
+                </linearGradient>
+                <filter id="bandup-glass-depth" x="-20%" y="-20%" width="140%" height="150%">
+                  <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#090603" floodOpacity="0.24" />
+                </filter>
+              </defs>
+              <path
+                d="M252 1010V774H398V650H548V526H708V405H866V300H990V1038Z"
+                fill="white"
+                fillOpacity="0.035"
+                stroke="url(#bandup-glass-rim)"
+                strokeWidth="10"
+                strokeLinejoin="round"
+                filter="url(#bandup-glass-depth)"
+              />
+              <rect
+                x="438"
+                y="760"
+                width="410"
+                height="42"
+                rx="21"
+                fill="#29150d"
+                fillOpacity="0.55"
+                stroke="url(#bandup-glass-rim)"
+                strokeWidth="8"
+              />
+              <rect
+                x="355"
+                y="850"
+                width="330"
+                height="42"
+                rx="21"
+                fill="#29150d"
+                fillOpacity="0.55"
+                stroke="url(#bandup-glass-rim)"
+                strokeWidth="8"
+              />
+            </svg>
+          </span>
           <span className="hidden xs:inline">BandUp</span>
         </Link>
 
@@ -164,33 +290,17 @@ export default function SiteHeader() {
 
           Hidden while the menu is open, because the panel below lists all five
           again and a word should not appear twice on one screen claiming to be
-          two different controls. Hidden below sm as well, where the logo and
-          three controls already fill the row.
+          two different controls. Hidden below lg as well, where the logo and
+          three controls already fill the row. `lg` is intentional: at `sm`
+          the links technically fit alone, but not beside the brand, menu,
+          account and theme controls.
         */}
-        {!open && (
-          <nav
-            aria-label="Main"
-            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-sm sm:flex"
-          >
-            {PRIMARY.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={item.href === current ? "page" : undefined}
-                className={`shrink-0 whitespace-nowrap rounded-xl px-2 py-2 transition-colors md:px-2.5 ${
-                  item.href === current
-                    ? "font-semibold text-slate-900"
-                    : "text-slate-600 hover:bg-surface hover:text-slate-900"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+        {!open && !onHome && (
+          <PrimaryNavigation current={current} />
         )}
         {/* Takes the space the row would have, so the controls stay pinned
             right whenever the row is not there. */}
-        <div className={open ? "flex-1" : "flex-1 sm:hidden"} />
+        <div className={open || onHome ? "flex-1" : "flex-1 lg:hidden"} />
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <button
@@ -234,55 +344,76 @@ export default function SiteHeader() {
           */}
           <Link
             href="/account"
+            prefetch={false}
             aria-label="Your account"
-            className="rounded-xl px-2.5 py-2 text-sm text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
+            data-pointer-attract
+            data-pointer-attract-strength="icon"
+            className="pointer-attract-glass flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border text-sm text-slate-600 transition-all hover:text-slate-900"
           >
-            <svg
-              viewBox="0 0 20 20"
-              width="20"
-              height="20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <circle cx="10" cy="6.5" r="3.2" />
-              <path d="M3.8 17c0-3.3 2.8-5.4 6.2-5.4s6.2 2.1 6.2 5.4" />
-            </svg>
+            {account.signedIn && profile?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : account.signedIn ? (
+              <span className="flex h-full w-full items-center justify-center bg-indigo-100 text-xs font-semibold uppercase text-indigo-700">
+                {(profile?.displayName ?? profile?.email ?? "A").trim().charAt(0) || "A"}
+              </span>
+            ) : (
+              <svg
+                viewBox="0 0 20 20"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <circle cx="10" cy="6.5" r="3.2" />
+                <path d="M3.8 17c0-3.3 2.8-5.4 6.2-5.4s6.2 2.1 6.2 5.4" />
+              </svg>
+            )}
           </Link>
           <ThemeToggle />
         </div>
       </div>
 
       {open && (
-        <>
-          {/*
-            A dimmed backdrop under the panel. Purely visual — the outside tap
-            is handled on the document, so this still works if a tap lands on
-            something else entirely.
-          */}
-          <div
-            aria-hidden="true"
-            className="fixed inset-x-0 bottom-0 top-[var(--header-h)] z-30 bg-slate-900/20 backdrop-blur-[2px]"
-          />
-          <div
-            ref={panelRef}
-            id="nav-menu"
-            className="fixed inset-x-0 top-[var(--header-h)] z-40 max-h-[calc(100dvh-var(--header-h))] overflow-y-auto border-b border-slate-200 bg-slate-50 shadow-lg"
-          >
-            <nav aria-label="All pages" className="mx-auto max-w-5xl px-4 py-5 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
+        <div
+          ref={panelRef}
+          id="nav-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Site navigation"
+          tabIndex={-1}
+          className="nav-paper fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 overflow-y-auto outline-none"
+        >
+            <nav aria-label="All pages" className="mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-7 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
               <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-                {groups.map((group) => (
-                  <div key={group.title}>
+                {groups.map((group, groupIndex) => {
+                  const selectedIndex = group.items.findIndex((item) => item.href === current);
+                  const visibleIndex =
+                    menuPreview?.group === groupIndex ? menuPreview.item : selectedIndex;
+                  return (
+                  <div key={group.title} className="liquid-glass rounded-[1.75rem] border p-3 sm:p-4">
                     <h2 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
                       {group.title}
                     </h2>
-                    <ul className="flex flex-col">
-                      {group.items.map((item) => (
+                    <ul
+                      className="relative flex flex-col"
+                      onPointerLeave={() => setMenuPreview(null)}
+                      style={{ "--nav-row-index": visibleIndex } as React.CSSProperties}
+                    >
+                      {visibleIndex >= 0 && <span className="nav-menu-selector" aria-hidden="true" />}
+                      {group.items.map((item, itemIndex) => (
                         <li key={item.href}>
                           <Link
                             href={item.href}
+                            prefetch={false}
                             aria-current={item.href === current ? "page" : undefined}
                             /*
                               Closing here rather than only on a route change: a
@@ -290,30 +421,97 @@ export default function SiteHeader() {
                               route, and the menu would sit there looking broken.
                             */
                             onClick={close}
-                            className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[16px] transition-colors ${
+                            onPointerEnter={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
+                            onFocus={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
+                            onBlur={() => setMenuPreview(null)}
+                            className={`relative z-10 flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[16px] transition-colors ${
                               item.href === current
-                                ? "bg-surface font-semibold text-slate-900"
-                                : "text-slate-700 hover:bg-surface hover:text-slate-900"
+                                ? "font-semibold text-slate-900"
+                                : "text-slate-700 hover:text-slate-900"
                             }`}
                           >
                             <span>{item.label}</span>
-                            {item.href === current && (
-                              <span
-                                aria-hidden="true"
-                                className="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"
-                              />
-                            )}
                           </Link>
                         </li>
                       ))}
                     </ul>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </nav>
-          </div>
-        </>
+        </div>
       )}
     </header>
+  );
+}
+
+function PrimaryNavigation({ current }: { current: string | null }) {
+  const links = useRef<Array<HTMLAnchorElement | null>>([]);
+  const nav = useRef<HTMLElement | null>(null);
+  const selected = PRIMARY.findIndex((item) => item.href === current);
+  const [preview, setPreview] = useState<number | null>(null);
+  const visible = preview ?? selected;
+  const [selector, setSelector] = useState<{ left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    const measure = () => {
+      const item = links.current[visible];
+      const parent = nav.current;
+      if (!item || !parent || visible < 0) {
+        setSelector(null);
+        return;
+      }
+      const itemRect = item.getBoundingClientRect();
+      const parentRect = parent.getBoundingClientRect();
+      setSelector({ left: itemRect.left - parentRect.left, width: itemRect.width });
+    };
+
+    const frame = requestAnimationFrame(measure);
+    const observer = new ResizeObserver(measure);
+    if (nav.current) observer.observe(nav.current);
+    for (const item of links.current) if (item) observer.observe(item);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [visible]);
+
+  return (
+    <nav
+      ref={nav}
+      aria-label="Main"
+      onPointerLeave={() => setPreview(null)}
+      className="relative hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-sm lg:flex"
+    >
+      {selector && (
+        <span
+          className="nav-primary-selector"
+          style={{ left: selector.left, width: selector.width }}
+          aria-hidden="true"
+        />
+      )}
+      {PRIMARY.map((item, index) => (
+        <Link
+          ref={(node) => {
+            links.current[index] = node;
+          }}
+          key={item.href}
+          href={item.href}
+          prefetch={false}
+          aria-current={item.href === current ? "page" : undefined}
+          onPointerEnter={() => setPreview(index)}
+          onFocus={() => setPreview(index)}
+          onBlur={() => setPreview(null)}
+          className={`relative z-10 shrink-0 whitespace-nowrap rounded-xl px-2 py-2 transition-colors md:px-2.5 ${
+            item.href === current
+              ? "font-semibold text-slate-900"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
   );
 }

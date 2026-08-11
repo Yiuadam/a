@@ -64,14 +64,38 @@ export interface DispatchResult {
   problem: string | null;
 }
 
+/**
+ * Injectable edges for deterministic tests. Production callers omit this and
+ * use the Worker's environment and fetch implementation.
+ */
+export interface DispatchDependencies {
+  env?: Readonly<Record<string, string | undefined>>;
+  fetch?: typeof globalThis.fetch;
+}
+
 export function deployHookConfigured(): boolean {
   assertServerOnly(MODULE);
   return (process.env.GITHUB_DEPLOY_TOKEN ?? "").trim().length > 0;
 }
 
-function repo(): string {
-  const configured = (process.env.GITHUB_REPOSITORY ?? "").trim();
+function repo(env: Readonly<Record<string, string | undefined>>): string {
+  const configured = (env.GITHUB_REPOSITORY ?? "").trim();
   return /^[\w.-]+\/[\w.-]+$/.test(configured) ? configured : DEFAULT_REPO;
+}
+
+function dispatchProblem(status: number): string {
+  switch (status) {
+    case 401:
+      return "GitHub could not authenticate the deploy token. It may be expired, revoked or malformed. Replace it using DEPLOY.md.";
+    case 403:
+      return "GitHub authenticated the deploy token but blocked workflow dispatch. Confirm Actions is set to Read and write for this repository, and check organisation or SSO restrictions. See DEPLOY.md.";
+    case 404:
+      return `GitHub could not find the ${DEPLOY_WORKFLOW} workflow, or the token cannot see this repository.`;
+    case 422:
+      return "GitHub rejected the deployment request. The workflow may no longer take a maintenance input.";
+    default:
+      return `GitHub answered ${status} when asked to deploy.`;
+  }
 }
 
 /**
@@ -81,10 +105,15 @@ function repo(): string {
  * database and must be able to report both halves — what was recorded, and
  * whether the deployment that carries it out was started.
  */
-export async function dispatchDeploy(closed: boolean): Promise<DispatchResult> {
+export async function dispatchDeploy(
+  closed: boolean,
+  dependencies: DispatchDependencies = {},
+): Promise<DispatchResult> {
   assertServerOnly(MODULE);
 
-  const token = (process.env.GITHUB_DEPLOY_TOKEN ?? "").trim();
+  const env = dependencies.env ?? process.env;
+  const fetcher = dependencies.fetch ?? globalThis.fetch;
+  const token = (env.GITHUB_DEPLOY_TOKEN ?? "").trim();
   if (!token) {
     return {
       started: false,
@@ -98,8 +127,8 @@ export async function dispatchDeploy(closed: boolean): Promise<DispatchResult> {
 
   let res: Response;
   try {
-    res = await fetch(
-      `https://api.github.com/repos/${repo()}/actions/workflows/${DEPLOY_WORKFLOW}/dispatches`,
+    res = await fetcher(
+      `https://api.github.com/repos/${repo(env)}/actions/workflows/${DEPLOY_WORKFLOW}/dispatches`,
       {
         method: "POST",
         headers: {
@@ -129,23 +158,22 @@ export async function dispatchDeploy(closed: boolean): Promise<DispatchResult> {
     };
   }
 
-  /* 204 No Content is success here — GitHub returns nothing on a dispatch. */
-  if (res.status === 204) return { started: true, problem: null };
+  /*
+    GitHub documents 204 No Content for workflow dispatches. Some compatible
+    gateways return 200 after accepting the same request, so both are success.
+  */
+  if (res.status === 200 || res.status === 204) {
+    return { started: true, problem: null };
+  }
 
   /*
-    The three that mean something specific to the person reading. Everything
+    The statuses that mean something specific to the person reading. Everything
     else is reported by number rather than guessed at: a wrong guess about why
     a deployment failed is worse than a status code, because it sends the owner
     to fix something that was never broken.
   */
-  const problem =
-    res.status === 401 || res.status === 403
-      ? "GitHub refused the deploy token. The usual cause is a fine-grained token with Actions set to Read rather than Read and write; it can also have expired, or not list this repository. See DEPLOY.md."
-      : res.status === 404
-        ? `GitHub could not find the ${DEPLOY_WORKFLOW} workflow, or the token cannot see this repository.`
-        : res.status === 422
-          ? "GitHub rejected the deployment request. The workflow may no longer take a maintenance input."
-          : `GitHub answered ${res.status} when asked to deploy.`;
-
-  return { started: false, problem: `${problem} Your choice was saved.` };
+  return {
+    started: false,
+    problem: `${dispatchProblem(res.status)} Your choice was saved.`,
+  };
 }

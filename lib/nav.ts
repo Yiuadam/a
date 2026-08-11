@@ -83,32 +83,17 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/chat", label: "Ask a tutor" },
       { href: "/resources", label: "Guides" },
       { href: "/account", label: "Your account" },
-      /*
-        One row, not two.
-
-        It was "Usage and plan" and "Plans and pricing" sitting next to each
-        other, and they read as the same destination twice — the owner's word
-        was "confusing", and it is hard to argue: both contain "plan", and
-        nothing in either label says which one has your bill in it.
-
-        So the menu offers the page a learner has a reason to open — what they
-        have spent and what they are paying — and /pricing is reached from
-        inside it, where "Compare plans" sits next to the plan you are already
-        on. That is the right order anyway: you look at your bill often and at
-        the price list once.
-
-        /pricing is still a real page with its own URL. It is simply not a
-        thing to go browsing for from a menu.
-      */
-      /*
-        Absent from the iOS build, where /billing is not in the bundle at all —
-        see lib/platform.ts. A menu entry pointing at a route that was moved
-        aside is a broken link, and a bill is the one thing an iOS app must not
-        offer to settle.
-      */
-      ...(IS_MOBILE_BUILD ? [] : [{ href: "/billing", label: "Bill and usage" } as const]),
+      /* Buying and checking usage are two different intentions, so each gets a
+         direct, plainly named destination. Both are absent from the iOS build,
+         where Apple requires subscriptions to use In-App Purchase. */
+      ...(IS_MOBILE_BUILD
+        ? []
+        : [
+            { href: "/pricing", label: "Plans & pricing" } as const,
+            { href: "/billing", label: "Usage & billing" } as const,
+          ]),
       /* Read once, if ever — so it lives in the menu and not the header row. */
-      { href: "/credits", label: "Credits" },
+      { href: "/about", label: "About BandUp" },
 
     ],
   },

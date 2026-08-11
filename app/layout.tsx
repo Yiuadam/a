@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import LookupProvider from "@/components/Lookup";
 import AutoSync from "@/components/AutoSync";
-import Maintenance from "@/components/Maintenance";
+import MaintenanceGate from "@/components/MaintenanceGate";
 import AppMain from "@/components/AppMain";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import PointerAttraction from "@/components/PointerAttraction";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -30,7 +31,14 @@ export const metadata: Metadata = {
     visitor sees it. Replaces app/favicon.ico, which was still the Next.js
     logo from the starter template.
   */
-  icons: { icon: "/icons/final/steps-five-mark.svg" },
+  icons: { icon: "/icons/bandup-favicon.png" },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#e7e0d8",
 };
 
 
@@ -104,11 +112,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           arriving, so renewals and cancellations for existing subscribers are
           still recorded while the shop is shut.
         */}
-        {closed ? (
-          <Maintenance />
-        ) : (
+        <MaintenanceGate closed={closed}>
         <>
         <SiteHeader />
+        <PointerAttraction />
         {/*
           `data-lookupable` on <main> means any word a learner selects anywhere
           in the app — a passage, a transcript, a question, an explanation — can
@@ -143,7 +150,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         <SiteFooter />
         </>
-        )}
+        </MaintenanceGate>
       </body>
     </html>
   );

@@ -53,7 +53,7 @@ export default function Maintenance() {
         */}
         <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-surface shadow-sm">
           <Image
-            src="/icons/final/steps-five-mark.svg"
+            src="/icons/final/steps-five-liquid-glass-final.png"
             alt=""
             width={40}
             height={40}

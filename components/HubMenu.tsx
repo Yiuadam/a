@@ -66,6 +66,7 @@ export function HubMenu({ items }: { items: HubItem[] }) {
         <li key={item.href}>
           <Link
             href={item.href}
+            prefetch={false}
             className="card flex h-full items-center gap-3 !px-4 !py-3.5 active:translate-y-px"
           >
             <span className="min-w-0 flex-1">
@@ -114,16 +115,18 @@ export function HubScreen({
   backLabel,
   title,
   lead,
+  className = "",
   children,
 }: {
   back: Route;
   backLabel: string;
   title: string;
   lead?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-5">
+    <div className={`mx-auto w-full max-w-2xl space-y-5 ${className}`}>
       <div className="space-y-2">
         <Link
           href={back}

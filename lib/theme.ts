@@ -8,6 +8,12 @@ export const THEMES: { id: Theme; label: string; icon: string; hint: string }[] 
 
 export const THEME_KEY = "bandup.theme";
 
+const BROWSER_THEME_COLORS: Record<Theme, string> = {
+  warm: "#e7e0d8",
+  light: "#e8ebef",
+  dark: "#151517",
+};
+
 /**
  * Runs before first paint, inlined into the document head.
  *
@@ -17,7 +23,18 @@ export const THEME_KEY = "bandup.theme";
  */
 export const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(
   THEME_KEY,
-)});document.documentElement.dataset.theme=(t==="light"||t==="dark"||t==="warm")?t:"warm"}catch(e){}`;
+)});t=(t==="light"||t==="dark"||t==="warm")?t:"warm";document.documentElement.dataset.theme=t;var m=document.querySelector('meta[name="theme-color"]');if(!m){m=document.createElement("meta");m.name="theme-color";document.head.appendChild(m)}m.content=({warm:"#e7e0d8",light:"#e8ebef",dark:"#151517"})[t]}catch(e){}`;
+
+function setBrowserThemeColor(theme: Theme): void {
+  if (typeof document === "undefined") return;
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "theme-color";
+    document.head.appendChild(meta);
+  }
+  meta.content = BROWSER_THEME_COLORS[theme];
+}
 
 function isTheme(value: unknown): value is Theme {
   return value === "warm" || value === "light" || value === "dark";
@@ -52,7 +69,10 @@ export function getServerTheme(): Theme {
 
 export function setTheme(theme: Theme): void {
   cached = theme;
-  if (typeof document !== "undefined") document.documentElement.dataset.theme = theme;
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.theme = theme;
+    setBrowserThemeColor(theme);
+  }
   try {
     window.localStorage.setItem(THEME_KEY, theme);
   } catch {
