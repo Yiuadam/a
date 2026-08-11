@@ -37,11 +37,21 @@ const MODULE = "lib/admin/settings.ts";
 const CACHE_MS = 10_000;
 
 export const MAINTENANCE_KEY = "maintenance";
+export const MAINTENANCE_DISPATCH_KEY = "maintenance_dispatch";
 
 export interface MaintenanceSetting {
   closed: boolean;
   /** When it was last changed, for the admin screen to report. */
   at?: string;
+}
+
+/** The last GitHub dispatch result, stored separately from the owner's choice. */
+export interface MaintenanceDispatchSetting {
+  closed: boolean;
+  decisionAt: string;
+  started: boolean;
+  problem: string | null;
+  attemptedAt: string;
 }
 
 let cached: { value: MaintenanceSetting; until: number } | null = null;
@@ -53,6 +63,27 @@ function parse(value: unknown): MaintenanceSetting {
   const closed = (value as { closed?: unknown }).closed === true;
   const at = (value as { at?: unknown }).at;
   return { closed, at: typeof at === "string" ? at : undefined };
+}
+
+function parseDispatch(value: unknown): MaintenanceDispatchSetting | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.closed !== "boolean" ||
+    typeof row.decisionAt !== "string" ||
+    typeof row.started !== "boolean" ||
+    (row.problem !== null && typeof row.problem !== "string") ||
+    typeof row.attemptedAt !== "string"
+  ) {
+    return null;
+  }
+  return {
+    closed: row.closed,
+    decisionAt: row.decisionAt,
+    started: row.started,
+    problem: row.problem,
+    attemptedAt: row.attemptedAt,
+  };
 }
 
 /**
@@ -88,6 +119,25 @@ export async function maintenanceSetting(): Promise<MaintenanceSetting> {
 }
 
 /**
+ * The outcome of the dispatch for the current choice, if one was recorded.
+ *
+ * This lives under its own JSON setting key so recording an API outcome can
+ * never overwrite a newer open/closed choice. The existing jsonb settings
+ * shelf needs no schema change for the extra key.
+ */
+export async function maintenanceDispatchSetting(): Promise<MaintenanceDispatchSetting | null> {
+  assertServerOnly(MODULE);
+  if (!supabaseConfigured()) return null;
+
+  try {
+    const value = await rpc<unknown>("get_app_setting", { p_key: MAINTENANCE_DISPATCH_KEY });
+    return parseDispatch(value);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Opens or closes the site. Returns what is now stored.
  *
  * Throws if the write fails, and the caller reports that — this one must not
@@ -111,6 +161,28 @@ export async function setMaintenance(
   /* The cache is this isolate's; other isolates catch up within the window. */
   cached = { value: setting, until: Date.now() + CACHE_MS };
   return setting;
+}
+
+/** Persist whether GitHub accepted the deploy request, for reloads/new tabs. */
+export async function recordMaintenanceDispatch(
+  result: Omit<MaintenanceDispatchSetting, "attemptedAt">,
+  actorId: string | null,
+): Promise<MaintenanceDispatchSetting> {
+  assertServerOnly(MODULE);
+
+  const value: MaintenanceDispatchSetting = {
+    ...result,
+    attemptedAt: new Date().toISOString(),
+  };
+  const stored = await rpc<unknown>("set_app_setting", {
+    p_key: MAINTENANCE_DISPATCH_KEY,
+    p_value: value,
+    p_actor: actorId,
+  });
+
+  const parsed = parseDispatch(stored);
+  if (!parsed) throw new Error("The maintenance dispatch result was not stored correctly.");
+  return parsed;
 }
 
 /** How long a change can take to reach every visitor, for the admin screen. */

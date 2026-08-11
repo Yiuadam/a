@@ -21,7 +21,7 @@ import { IS_MOBILE_BUILD } from "@/lib/platform";
   It went on every page to answer Google's OAuth review, which asked twice —
   once for a missing statement of purpose, once for a product name it could not
   find. Those are questions a *visitor* has, and a visitor arrives on one of
-  these: the front page, the plans, the credits, or a legal page they followed
+  these: the front page, the plans, About BandUp, or a legal page they followed
   a link to.
 
   On the screens inside the app it is answering a question nobody has. Somebody
@@ -45,13 +45,13 @@ const INTRODUCES_ITSELF = IS_MOBILE_BUILD
 /*
   Pages that already say all of it themselves.
 
-  /credits and the two legal pages carry the same two statements in full, in
+  /about and the two legal pages carry the same two statements in full, in
   their own words, as the substance of the page. Repeating them in the footer
   is the same sentence twice on one screen — which reads as boilerplate and
   makes the copy above it look like boilerplate too. So these keep the links
   and nothing else.
 */
-const SAYS_IT_ITSELF = ["/credits", "/privacy", "/terms"];
+const SAYS_IT_ITSELF = ["/about", "/credits", "/privacy", "/terms"];
 
 export default function SiteFooter() {
   const pathname = usePathname();
@@ -60,6 +60,8 @@ export default function SiteFooter() {
     pathname === "/chat" ||
     pathname === "/practice/listening" ||
     pathname === "/practice/reading" ||
+    pathname === "/practice/writing" ||
+    pathname === "/account/profile" ||
     pathname === "/exam";
   if (immersive) return null;
   const introduce = INTRODUCES_ITSELF.includes(pathname);

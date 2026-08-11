@@ -47,9 +47,9 @@ import type { AccountStatus } from "@/components/account/types";
   for; what it buys is that you can see all four options at once and know which
   tap it is.
 
-  The plan row goes to /billing rather than to a screen of its own, because the
-  plan already has a page and two pages describing one subscription is how they
-  come to disagree.
+    The plan row goes straight to /pricing. That screen shows the current plan,
+    every alternative and the subscribe/manage control together, so upgrading
+    never requires stepping through the billing menu first.
 */
 
 type Phase = "loading" | "ready" | "unavailable";
@@ -228,8 +228,8 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
   ];
 
   /*
-    The plan row is a link to /billing, and /billing does not exist in the iOS
-    bundle — scripts/build-mobile.mjs removes it, because Apple requires
+    The plan row is a link to /pricing. Pricing and billing do not exist in the
+    iOS bundle — scripts/build-mobile.mjs removes them, because Apple requires
     digital content used inside an app to be sold through In-App Purchase and
     BandUp's answer is to sell nothing in the app at all. So on iOS the row is
     replaced by a sentence naming where subscriptions live, which is prose
@@ -241,9 +241,9 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
   */
   if (!IS_MOBILE_BUILD) {
     items.splice(1, 0, {
-      href: "/billing",
-      title: "Plan and usage",
-      detail: "What you pay, and what AI you have left",
+      href: "/pricing",
+      title: "Plans & pricing",
+      detail: "Compare, subscribe or manage your plan",
       value: planName(status.tier),
     });
   }

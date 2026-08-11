@@ -106,10 +106,10 @@ export default function PracticePage() {
     const inner = (
       <>
         <div className="flex items-baseline justify-between gap-2">
-          <h3 className="min-w-0 truncate text-sm font-semibold text-slate-900">{t.title}</h3>
+          <h3 className="min-w-0 break-words text-sm font-semibold text-slate-900">{t.title}</h3>
           <DoneBadge result={bestResultFor(profile.results, t.id)} />
         </div>
-        <p className="mt-0.5 truncate text-xs leading-5 text-slate-600">
+        <p className="mt-0.5 break-words text-xs leading-5 text-slate-600">
           {"topic" in t ? t.topic : t.context}
         </p>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
@@ -173,6 +173,31 @@ export default function PracticePage() {
           examiner.
         </p>
       </div>
+
+      {/*
+        The four primary destinations stay above the fold even though the
+        paper library below is necessarily long. A learner can enter any skill
+        immediately; the detailed paper rows remain available for browsing.
+      */}
+      <nav
+        aria-label="Choose a practice skill"
+        className="grid grid-cols-4 gap-1.5 sm:gap-2"
+      >
+        {[
+          ["Listening", "/practice/listening"],
+          ["Reading", "/practice/reading"],
+          ["Writing", "/practice/writing"],
+          ["Speaking", "/speaking"],
+        ].map(([label, href]) => (
+          <Link
+            key={href}
+            href={href}
+            className="btn-secondary min-w-0 !px-1.5 text-center text-xs sm:!px-3 sm:text-sm"
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
 
       {/*
         The mock exam sits above the papers rather than among them, because it

@@ -5,6 +5,8 @@ import Drill from "@/components/Drill";
 import ExplainText from "@/components/ExplainText";
 import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
+import NewBadge from "@/components/NewBadge";
+import { drillNeedsNewBadge } from "@/lib/completion-badges";
 import {
   drillLimit,
   drillLockReason,
@@ -124,9 +126,12 @@ export default function DrillSection({
             <>
               <div className="flex items-start justify-between gap-3">
                 <h2 className="min-w-0 font-semibold text-slate-900">{t.title}</h2>
-                <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
-                  {t.level}
-                </span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <NewBadge show={drillNeedsNewBadge(scores, t.id)} />
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+                    {t.level}
+                  </span>
+                </div>
               </div>
               {/*
                 One sentence on the index, the whole note on the topic page.

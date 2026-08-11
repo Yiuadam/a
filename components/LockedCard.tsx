@@ -179,13 +179,11 @@ export default function LockedCard({
   const PLATE = "flex flex-col items-center gap-1.5 rounded-2xl border border-slate-300/70 bg-surface/90 px-4 py-3 shadow-sm";
 
   /*
-    Centred within the top 24rem rather than within the panel. On a card the two
-    are the same thing. On a tall panel — a whole writing page drawn behind its
-    lock — dead-centre puts the padlock hundreds of pixels down, below the fold,
-    marking something the reader has to scroll to find. The cap keeps it over
-    the part of the panel they are actually looking at.
+    Page-level locks belong in the top-right corner of the glass instead of on
+    top of its content. This keeps the page visible, gives Writing and Speaking
+    the same placement, and leaves the lock inside the panel at every width.
   */
-  const OVER = "pointer-events-none absolute inset-x-0 top-0 flex h-full max-h-96 items-center justify-center";
+  const OVER = "pointer-events-none absolute right-5 top-5 flex items-start justify-end sm:right-6 sm:top-6";
 
   /*
     A page-level lock is a plain element with one link inside it; a card is one
@@ -253,7 +251,7 @@ export default function LockedCard({
         Small, upper-case and muted, because it is a state label and not a call
         to action — the whole card is already the link.
       */}
-      <span className="pointer-events-none absolute bottom-2 right-2 inline-flex sm:bottom-auto sm:top-2 items-center gap-1 rounded-full border border-slate-300/70 bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm transition-colors group-hover:text-slate-700">
+      <span className="pointer-events-none absolute bottom-2 right-4 inline-flex sm:bottom-auto sm:top-2 sm:right-4 items-center gap-1 rounded-full border border-slate-300/70 bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm transition-colors group-hover:text-slate-700">
         <svg
           viewBox="0 0 24 24"
           width="12"

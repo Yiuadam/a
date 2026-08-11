@@ -1,16 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import BandBadge from "@/components/BandBadge";
 import { useProfile } from "@/lib/hooks";
-import { latestFor, newestFirst } from "@/lib/results";
+import { newestFirst } from "@/lib/results";
 import LockedCard from "@/components/LockedCard";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
-import { markVisited } from "@/lib/store";
 import type { ModuleName } from "@/lib/types";
 import { Icon } from "@/components/Icons";
+import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
+import NewBadge from "@/components/NewBadge";
+import {
+  drillSectionNeedsNewBadge,
+  moduleNeedsNewBadge,
+  type DrillBadgeKind,
+} from "@/lib/completion-badges";
+import {
+  drillScores,
+  getServerDrillScores,
+  subscribeDrills,
+} from "@/lib/drills";
 
-const MODULES: { key: ModuleName; label: string; href: string; blurb: string; icon: string }[] = [
+const MODULES: { key: ModuleName; label: string; href: string; shortBlurb: string; blurb: string; icon: string }[] = [
   {
     key: "listening",
     label: "Listening",
@@ -18,6 +30,7 @@ const MODULES: { key: ModuleName; label: string; href: string; blurb: string; ic
        page listing reading and writing too is answering a wider question than
        the one that was asked. */
     href: "/practice/listening",
+    shortBlurb: "Audio and questions",
     blurb: "Audio played once, then questions",
     icon: "listening",
   },
@@ -25,6 +38,7 @@ const MODULES: { key: ModuleName; label: string; href: string; blurb: string; ic
     key: "reading",
     label: "Reading",
     href: "/practice/reading",
+    shortBlurb: "Passages and questions",
     blurb: "Real passages, real question types",
     icon: "reading",
   },
@@ -32,6 +46,7 @@ const MODULES: { key: ModuleName; label: string; href: string; blurb: string; ic
     key: "writing",
     label: "Writing",
     href: "/practice/writing",
+    shortBlurb: "Timed essay practice",
     blurb: "An essay, marked like the exam",
     icon: "writing",
   },
@@ -39,6 +54,7 @@ const MODULES: { key: ModuleName; label: string; href: string; blurb: string; ic
     key: "speaking",
     label: "Speaking",
     href: "/speaking",
+    shortBlurb: "AI speaking interview",
     blurb: "Talk to an AI examiner, get a band",
     icon: "speaking",
   },
@@ -47,34 +63,49 @@ const MODULES: { key: ModuleName; label: string; href: string; blurb: string; ic
 /* Study sections rather than exam papers: no clock, no band, just the rule. */
 const STUDY = [
   {
+    key: "grammar" as DrillBadgeKind,
     href: "/grammar",
     label: "Grammar",
+    shortBlurb: "Rules and drills",
     blurb: "Ten topics, rule then drill",
     icon: "grammar",
   },
   {
+    key: "vocabulary" as DrillBadgeKind,
     href: "/vocabulary",
     label: "Vocabulary",
+    shortBlurb: "Words and collocations",
     blurb: "Collocations and word families",
     icon: "vocabulary",
   },
 ];
 
+function CardBlurb({ short, full }: { short: string; full: string }) {
+  return (
+    <p className="dashboard-card-blurb mt-0.5 text-sm leading-5 text-slate-600 sm:text-xs">
+      <span className="dashboard-card-blurb-short">{short}</span>
+      <span className="dashboard-card-blurb-full">{full}</span>
+    </p>
+  );
+}
+
 export default function Dashboard() {
   const profile = useProfile();
+  const scores = useSyncExternalStore(subscribeDrills, drillScores, getServerDrillScores);
   const access = useSessionAccess();
   const placement = profile.placement;
   const recent = newestFirst(profile.results).slice(0, 6);
 
   return (
-    <div className="space-y-4">
+    <div className="dashboard-screen h-full overflow-hidden px-4 py-3 sm:px-5 sm:py-5">
       {/*
         One card, one obvious next step — and now one row of it. The welcome
         used to be a paragraph and a 96px band badge stacked above everything
         else, which cost a third of a laptop screen before the first link.
       */}
-      <section className="card !p-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-3 sm:!p-5">
-        <div className="min-w-0 flex-1 basis-64">
+      <section className="card premade-glass p-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-3 sm:p-5">
+        <RefractiveGlassLayer />
+        <div className="premade-glass-content min-w-0 flex-1 basis-64">
           {/*
             A first-time visitor is told what this is before being told what to
             do, and the product is named rather than assumed.
@@ -94,14 +125,14 @@ export default function Dashboard() {
           <h1 className="text-xl font-semibold leading-snug text-slate-900 sm:text-[22px]">
             {placement ? "Welcome back." : "BandUp — free IELTS practice"}
           </h1>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
+          <p className="dashboard-summary mt-1 text-sm leading-6 text-slate-600">
             {placement
               ? `Around band ${placement.band}. Your plan says what to do next.`
               : "Find your band score in five minutes, get a study plan built around it, and " +
                 "practise listening, reading, writing and speaking with an AI examiner."}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="premade-glass-content flex flex-wrap items-center gap-2">
           {placement && (
             <span className="mr-1 flex items-center gap-2">
               <BandBadge band={placement.band} size="sm" />
@@ -114,17 +145,20 @@ export default function Dashboard() {
           )}
           {placement ? (
             <>
-              <Link href="/plan" className="btn-primary">
-                See what to do next
+              <Link href="/plan" className="btn-primary premade-glass">
+                <RefractiveGlassLayer radius={999} />
+                <span className="premade-glass-content">See what to do next</span>
               </Link>
-              <Link href="/placement" className="btn-secondary">
-                Re-test
+              <Link href="/placement" className="btn-secondary premade-glass">
+                <RefractiveGlassLayer radius={999} />
+                <span className="premade-glass-content">Re-test</span>
               </Link>
             </>
           ) : (
-            <Link href="/placement" className="btn-primary">
-              Start the 5-minute test
-            </Link>
+              <Link href="/placement" className="dashboard-placement-button btn-primary premade-glass">
+                <RefractiveGlassLayer radius={16} />
+                <span className="premade-glass-content">Start the 5-minute test</span>
+              </Link>
           )}
         </div>
       </section>
@@ -163,7 +197,7 @@ export default function Dashboard() {
           for a section that had decided not to appear.
         */}
         <div
-          className={`min-w-0 space-y-4 ${recent.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}
+          className={`dashboard-sections min-w-0 space-y-4 ${recent.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}
         >
           <section>
             <h2 className="heading-rule mb-2.5 text-sm font-semibold text-slate-900">
@@ -175,10 +209,9 @@ export default function Dashboard() {
               600px makes an icon with a lot of whitespace after it, not a
               better tile.
             */}
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <div className="dashboard-card-grid dashboard-practice-grid grid grid-cols-2 gap-3 md:grid-cols-4">
               {MODULES.map((m) => {
-                const latest = latestFor(profile.results, m.key);
-                const isNew = !latest && !(profile.visited ?? []).includes(m.key);
+                const isNew = moduleNeedsNewBadge(profile, m.key);
                 const skill = access[m.key];
 
                 /*
@@ -190,12 +223,16 @@ export default function Dashboard() {
                 */
                 if (skill.pending) {
                   return (
-                    <div key={m.key} className="card !p-3.5 cursor-wait opacity-60" aria-busy="true">
-                      <div className="flex items-start gap-2.5">
-                        <Icon name={m.icon} className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                    <div key={m.key} className="dashboard-skill-card card premade-glass p-3.5 cursor-wait opacity-60" aria-busy="true">
+                      <RefractiveGlassLayer />
+                      <div className="premade-glass-content flex items-start gap-2.5">
+                        <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
                         <div className="min-w-0">
-                          <h3 className="text-sm font-semibold text-slate-900">{m.label}</h3>
-                          <p className="mt-0.5 text-xs leading-5 text-slate-600">{m.blurb}</p>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="text-base font-semibold text-slate-900 sm:text-sm">{m.label}</h3>
+                            <NewBadge show={isNew} />
+                          </div>
+                          <CardBlurb short={m.shortBlurb} full={m.blurb} />
                         </div>
                       </div>
                     </div>
@@ -205,12 +242,16 @@ export default function Dashboard() {
                 if (skill.locked && skill.reason) {
                   return (
                     <LockedCard key={m.key} reason={skill.reason} label={`${m.label} practice`} fill>
-                      <div className="card !p-3.5 h-full">
-                        <div className="flex items-start gap-2.5">
-                          <Icon name={m.icon} className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                      <div className="dashboard-skill-card card premade-glass p-3.5 h-full">
+                        <RefractiveGlassLayer />
+                        <div className="premade-glass-content flex items-start gap-2.5">
+                          <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
                           <div className="min-w-0">
-                            <h3 className="text-sm font-semibold text-slate-900">{m.label}</h3>
-                            <p className="mt-0.5 text-xs leading-5 text-slate-600">{m.blurb}</p>
+                            <div className="flex items-center gap-1.5">
+                              <h3 className="text-base font-semibold text-slate-900 sm:text-sm">{m.label}</h3>
+                              <NewBadge show={isNew} />
+                            </div>
+                            <CardBlurb short={m.shortBlurb} full={m.blurb} />
                           </div>
                         </div>
                       </div>
@@ -222,22 +263,15 @@ export default function Dashboard() {
                   <Link
                     key={m.key}
                     href={m.href}
-                    /*
-                      "New" means "you have not looked at this", so opening it is
-                      what retires the badge — not finishing a test. Recorded on
-                      the click rather than on the destination page, because the
-                      four cards lead to three pages and two of them serve more
-                      than one module.
-                    */
-                    onClick={() => markVisited(m.key)}
-                    className="card !p-3.5 block"
+                    className="dashboard-skill-card card premade-glass p-3.5 block"
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <RefractiveGlassLayer />
+                    <div className="premade-glass-content flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-start gap-2.5">
-                        <Icon name={m.icon} className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                        <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
                         <div className="min-w-0">
-                          <h3 className="text-sm font-semibold text-slate-900">{m.label}</h3>
-                          <p className="mt-0.5 text-xs leading-5 text-slate-600">{m.blurb}</p>
+                          <h3 className="text-base font-semibold text-slate-900 sm:text-sm">{m.label}</h3>
+                          <CardBlurb short={m.shortBlurb} full={m.blurb} />
                         </div>
                       </div>
                       {/*
@@ -254,11 +288,7 @@ export default function Dashboard() {
                         History and the dashboard hero are where scores belong,
                         and both say what they mean.
                       */}
-                      {isNew && (
-                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                          New
-                        </span>
-                      )}
+                      <NewBadge show={isNew} />
                     </div>
                   </Link>
                 );
@@ -270,24 +300,31 @@ export default function Dashboard() {
             <h2 className="heading-rule mb-2.5 text-sm font-semibold text-slate-900">
               Study the language itself
             </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {STUDY.map((s) => (
-                <Link key={s.href} href={s.href} className="card !p-3.5 block">
-                  <div className="flex items-start gap-2.5">
-                    <Icon name={s.icon} className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-slate-900">{s.label}</h3>
-                      <p className="mt-0.5 text-xs leading-5 text-slate-600">{s.blurb}</p>
+            <div className="dashboard-card-grid dashboard-study-grid grid grid-cols-2 gap-3">
+              {STUDY.map((s) => {
+                const isNew = drillSectionNeedsNewBadge(scores, s.key);
+                return (
+                  <Link key={s.href} href={s.href} className="dashboard-skill-card card premade-glass p-3.5 block">
+                    <RefractiveGlassLayer />
+                    <div className="premade-glass-content flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-start gap-2.5">
+                        <Icon name={s.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                        <div className="min-w-0">
+                          <h3 className="text-base font-semibold text-slate-900 sm:text-sm">{s.label}</h3>
+                          <CardBlurb short={s.shortBlurb} full={s.blurb} />
+                        </div>
+                      </div>
+                      <NewBadge show={isNew} />
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           </section>
         </div>
 
         {recent.length > 0 && (
-          <section className="min-w-0 lg:col-span-1">
+          <section className="dashboard-recent min-w-0 lg:col-span-1">
             <div className="mb-2.5 flex items-baseline justify-between gap-3">
               <h2 className="heading-rule flex-1 text-sm font-semibold text-slate-900">
                 Your recent practice
@@ -304,7 +341,7 @@ export default function Dashboard() {
               away in History, and the list scrolls inside itself rather than
               pushing the rest of the page down the screen.
             */}
-            <ul className="max-h-[13rem] space-y-1.5 overflow-y-auto sm:max-h-[20rem]">
+            <ul className="max-h-[13rem] space-y-1.5 overflow-hidden sm:max-h-[20rem]">
               {recent.map((r, i) => (
                 <li
                   key={i}

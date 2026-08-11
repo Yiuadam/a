@@ -128,20 +128,6 @@ export function setPlanDays(days: number): Profile {
   return commit({ ...getSnapshot(), planDays: days });
 }
 
-/**
- * Records that a learner has opened a module, which retires its "New" badge.
- *
- * Returns without writing when it is already recorded. Every write now
- * schedules a sync, so a no-op write would mean a network round trip each
- * time the dashboard link is followed.
- */
-export function markVisited(key: string): Profile {
-  const p = getSnapshot();
-  const seen = p.visited ?? [];
-  if (seen.includes(key)) return p;
-  return commit({ ...p, visited: [...seen, key] });
-}
-
 export function addResult(result: ModuleResult): Profile {
   const p = getSnapshot();
   return commit({ ...p, results: [result, ...p.results].slice(0, 100) });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 /*
   Passage on the left, questions on the right, a bar between them you can drag.
@@ -69,7 +69,8 @@ export default function SplitPanes({
 }) {
   const [split, setSplit] = useState(initial);
   const frame = useRef<HTMLDivElement | null>(null);
-  const dragging = useRef(false);
+  const draggingPointer = useRef<number | null>(null);
+  const previousUserSelect = useRef("");
 
   const moveTo = useCallback((clientX: number) => {
     const box = frame.current?.getBoundingClientRect();
@@ -78,36 +79,58 @@ export default function SplitPanes({
     setSplit(Math.min(MAX, Math.max(MIN, pct)));
   }, []);
 
-  /*
-    Listeners go on the window rather than on the divider, because a pointer
-    that leaves the four-pixel bar mid-drag must not drop the drag — which is
-    what happens with onMouseMove on the element itself, and is the single most
-    common way a hand-rolled splitter feels broken.
-  */
-  const startDrag = useCallback(
-    (event: React.PointerEvent) => {
-      event.preventDefault();
-      dragging.current = true;
-      const onMove = (e: PointerEvent) => {
-        if (dragging.current) moveTo(e.clientX);
-      };
-      const onUp = () => {
-        dragging.current = false;
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-        document.body.style.userSelect = "";
-      };
-      /* Otherwise dragging selects the passage text under the pointer. */
-      document.body.style.userSelect = "none";
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-    },
-    [moveTo],
-  );
+  const stopDrag = useCallback(() => {
+    if (draggingPointer.current === null) return;
+    draggingPointer.current = null;
+    document.body.style.userSelect = previousUserSelect.current;
+  }, []);
+
+  /* Pointer capture keeps the drag alive outside the narrow divider without
+     leaving window listeners behind if the component unmounts mid-gesture. */
+  const startDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    draggingPointer.current = event.pointerId;
+    previousUserSelect.current = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+    moveTo(event.clientX);
+  }, [moveTo]);
+
+  const continueDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (draggingPointer.current === event.pointerId) moveTo(event.clientX);
+  }, [moveTo]);
+
+  const finishDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (draggingPointer.current !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    stopDrag();
+  }, [stopDrag]);
+
+  useEffect(() => {
+    /* Pointer capture is the primary path, but a browser can cancel capture
+       while a tab loses focus or while native drag handling takes over. These
+       listeners are installed once with the component and always removed, so
+       every release path restores text selection without creating the zombie
+       listeners the old per-drag implementation could leave behind. */
+    const finish = () => stopDrag();
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+    window.addEventListener("mouseup", finish);
+    window.addEventListener("blur", finish);
+    return () => {
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+      window.removeEventListener("mouseup", finish);
+      window.removeEventListener("blur", finish);
+      stopDrag();
+    };
+  }, [stopDrag]);
 
   return (
     <div ref={frame} className={`flex min-h-0 items-stretch ${className}`}>
-      <div className="min-w-0 overflow-y-auto pr-3" style={{ width: `${split}%` }}>
+      <div className="exam-pane min-w-0 overflow-y-auto rounded-2xl p-3" style={{ width: `${split}%` }}>
         {left}
       </div>
 
@@ -126,6 +149,10 @@ export default function SplitPanes({
         aria-valuemax={MAX}
         tabIndex={0}
         onPointerDown={startDrag}
+        onPointerMove={continueDrag}
+        onPointerUp={finishDrag}
+        onPointerCancel={finishDrag}
+        onLostPointerCapture={stopDrag}
         onKeyDown={(e) => {
           if (e.key === "ArrowLeft") setSplit((v) => Math.max(MIN, v - 5));
           if (e.key === "ArrowRight") setSplit((v) => Math.min(MAX, v + 5));
@@ -137,7 +164,7 @@ export default function SplitPanes({
         <div className="absolute left-1/2 top-1/2 h-8 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color:var(--exam-line)] transition-colors group-hover:bg-[color:var(--exam-fg)]" />
       </div>
 
-      <div className="min-w-0 flex-1 overflow-y-auto pl-3">{right}</div>
+      <div className="exam-pane min-w-0 flex-1 overflow-y-auto rounded-2xl p-3">{right}</div>
     </div>
   );
 }

@@ -1,0 +1,188 @@
+.root {
+  --admin-chart-primary: color-mix(
+    in srgb,
+    var(--color-amber-500) 62%,
+    var(--color-slate-500)
+  );
+  --admin-chart-refused: color-mix(
+    in srgb,
+    var(--color-rose-500) 62%,
+    var(--color-slate-500)
+  );
+  --admin-chart-grid: color-mix(in srgb, var(--color-slate-400) 20%, transparent);
+  --admin-chart-axis: color-mix(in srgb, var(--color-slate-400) 38%, transparent);
+  --admin-chart-crosshair: color-mix(in srgb, var(--color-slate-500) 52%, transparent);
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--color-slate-300) 55%, transparent);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  padding: 0.7rem 0.8rem 0.45rem;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-slate-900) 5%, transparent);
+}
+
+.header {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.heading {
+  min-width: 0;
+}
+
+.title {
+  color: var(--color-slate-900);
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.15rem;
+  letter-spacing: -0.012em;
+}
+
+.summary {
+  margin-top: 0.1rem;
+  overflow: hidden;
+  color: var(--color-slate-500);
+  font-size: 0.7rem;
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.3rem 0.6rem;
+  padding-top: 0.05rem;
+  color: var(--color-slate-500);
+  font-size: 0.67rem;
+  line-height: 1rem;
+  white-space: nowrap;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.legendMark {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--admin-chart-primary);
+}
+
+.legendMarkRefused {
+  background: var(--admin-chart-refused);
+}
+
+.chartFrame {
+  min-width: 0;
+  margin-top: 0.2rem;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  max-width: 920px;
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  outline: none;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chart:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--admin-chart-primary) 72%, transparent);
+  outline-offset: 2px;
+}
+
+.empty {
+  display: grid;
+  min-height: 8rem;
+  place-items: center;
+  color: var(--color-slate-400);
+  font-size: 0.75rem;
+}
+
+.details {
+  margin-top: 0.05rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-slate-300) 36%, transparent);
+  color: var(--color-slate-500);
+}
+
+.details summary {
+  width: fit-content;
+  cursor: pointer;
+  padding: 0.35rem 0.1rem 0.05rem;
+  font-size: 0.68rem;
+  line-height: 1rem;
+  list-style-position: inside;
+}
+
+.details summary:hover,
+.details summary:focus-visible {
+  color: var(--color-slate-900);
+}
+
+.tableWrap {
+  max-height: 12rem;
+  margin-top: 0.35rem;
+  overflow: auto;
+  border: 1px solid var(--color-slate-200);
+  border-radius: var(--radius-sm);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--color-slate-700);
+  font-size: 0.72rem;
+  line-height: 1rem;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 0.32rem 0.5rem;
+  border-bottom: 1px solid var(--color-slate-200);
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface);
+  color: var(--color-slate-500);
+  font-weight: 600;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.numeric {
+  text-align: right;
+}
+
+@media (max-width: 26rem) {
+  .root {
+    padding-inline: 0.68rem;
+  }
+
+  .header {
+    gap: 0.45rem;
+  }
+
+  .legend {
+    column-gap: 0.4rem;
+  }
+}

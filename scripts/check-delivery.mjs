@@ -135,7 +135,8 @@ function reuseWithoutAsking(value) {
 function referencedAssets(html) {
   const out = new Set();
   for (const m of html.matchAll(/(?:href|src)="(\/[^"]+)"/g)) {
-    const url = m[1];
+    /* HTML escapes query separators; fetch the decoded URL a browser uses. */
+    const url = m[1].replaceAll("&amp;", "&");
     if (url.startsWith("/_next/") || /\.(css|js|woff2?|png|svg|jpe?g|webp|json)$/.test(url)) {
       out.add(url);
     }

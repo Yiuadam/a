@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import CheckoutNotice from "@/components/billing/CheckoutNotice";
-import CostBreakdown from "@/components/billing/CostBreakdown";
 import PricingPlans from "./PricingPlans";
 
 /*
@@ -38,36 +37,27 @@ const ALWAYS_FREE = [
 
 export default function PricingPage() {
   return (
-    <div className="space-y-6">
-      <div className="max-w-2xl">
-        <h1 className="text-[26px] font-semibold text-slate-900">Plans</h1>
-        {/* One line. The two cards below say the rest, and say it better. */}
-        <p className="mt-1 text-[15px] leading-6 text-slate-600">
-          Most of BandUp is free. Standard unlocks every practice paper; Plus and Pro add the
-          part that costs money to run — the AI examiner, the tutor and word lookup.
-        </p>
-      </div>
-
+    <div className="pricing-page space-y-3 sm:space-y-6">
       {/*
-        Suspense so that the plans below stay in the prerendered HTML: reading
+        Suspense so that the plans stay in the prerendered HTML: reading
         the query string makes everything up to the nearest boundary render on
         the client, and there is no reason for that to be the whole page. The
         fallback is nothing, because for almost every visit there is nothing to
         say here.
-      */}
-      <Suspense fallback={null}>
-        <CheckoutNotice />
-      </Suspense>
 
-      <PricingPlans />
-
-      {/*
-        The arithmetic behind one plan, before the small print rather than
-        inside it. Plus monthly because it is the plan most people are choosing
-        between, and because it is the one where the split is most worth seeing:
-        two thirds of it is gone before it arrives.
+        The notice is passed through the client component so its position stays
+        between the shared Plans/interval row and the plan cards.
       */}
-      <CostBreakdown plan="plus-monthly" />
+      <PricingPlans>
+        <Suspense fallback={null}>
+          <CheckoutNotice />
+        </Suspense>
+      </PricingPlans>
+
+      <p className="pricing-page-description max-w-2xl text-[15px] leading-6 text-slate-600">
+        Most of BandUp is free. Standard unlocks every practice paper; Plus and Pro add the
+        part that costs money to run — the AI examiner, the tutor and word lookup.
+      </p>
 
       <details className="card [&[open]_.chev]:rotate-90">
         <summary className="flex cursor-pointer list-none items-center gap-2 text-base font-semibold text-slate-900">

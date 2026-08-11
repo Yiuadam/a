@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
@@ -102,19 +108,19 @@ function IntervalToggle({
     <div
       role="group"
       aria-label="Billing period"
-      className="inline-flex rounded-xl border border-slate-200 bg-surface p-1"
+      className="interval-toggle-base relative inline-grid grid-cols-2 rounded-xl p-1"
+      style={{ "--interval-index": value === "month" ? 0 : 1 } as CSSProperties}
     >
+      <span className="interval-toggle-selector" aria-hidden="true" />
       {options.map((option) => (
         <button
           key={option.id}
           type="button"
           onClick={() => onChange(option.id)}
           aria-pressed={value === option.id}
-          className={
-            value === option.id
-              ? "rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-accent-fg"
-              : "rounded-lg px-4 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
-          }
+          className={`relative z-10 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-4 ${
+            value === option.id ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
+          }`}
         >
           {option.label}
         </button>
@@ -141,7 +147,7 @@ function Price({
   const id = planFor(tier, interval);
   if (id === null) {
     return (
-      <p className="mt-4">
+      <p className="pricing-plan-price mt-4">
         <span className="text-[28px] font-semibold text-slate-900">Free</span>
         <span className="ml-2 text-sm text-slate-500">no card, no trial that expires</span>
       </p>
@@ -158,7 +164,7 @@ function Price({
   const amount = amountIn(plan, currency);
 
   return (
-    <div className="mt-4">
+    <div className="pricing-plan-price mt-4">
       <p>
         <span className="text-[28px] font-semibold text-slate-900">
           {formatPrice(amount, currency)}
@@ -176,7 +182,7 @@ function Price({
   );
 }
 
-export default function PricingPlans() {
+export default function PricingPlans({ children }: { children?: ReactNode }) {
   const account = useTier();
   const [interval, setInterval] = useState<BillingInterval>("month");
   const [config, setConfig] = useState<BillingConfig | null>(null);
@@ -251,7 +257,16 @@ export default function PricingPlans() {
   const currency = config?.currency ?? PLANS["plus-monthly"].currency;
 
   return (
-    <div className="space-y-6">
+    <div className="pricing-plans space-y-2 sm:space-y-6">
+      <div className="pricing-heading-row flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold leading-10 text-slate-900 sm:text-[26px]">
+          Plans
+        </h1>
+        <IntervalToggle value={interval} onChange={setInterval} />
+      </div>
+
+      {children}
+
       {error && (
         <p
           role="alert"
@@ -261,24 +276,21 @@ export default function PricingPlans() {
         </p>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <IntervalToggle value={interval} onChange={setInterval} />
-        {account.phase === "ready" && account.accountsEnabled && account.signedIn && (
-          <p className="text-sm text-slate-500">
-            {currentTier === "admin"
-              ? "This account has no limits."
-              : `You're on ${TIERS[currentTier ?? "free"].name}.`}
-          </p>
-        )}
-      </div>
+      {account.phase === "ready" && account.accountsEnabled && account.signedIn && (
+        <p className="pricing-account-status text-right text-sm text-slate-500">
+          {currentTier === "admin"
+            ? "This account has no limits."
+            : `You're on ${TIERS[currentTier ?? "free"].name}.`}
+        </p>
+      )}
 
-      {/*
-        Four across on a wide screen, two on a tablet, stacked on a phone. Four
-        in a row on a 13-inch laptop is about 240px a card, which is narrow but
-        readable, and it is the only arrangement in which the ladder — free,
-        then three steps — is visible as a ladder rather than as a list.
-      */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <p className="pricing-swipe-hint text-xs font-medium text-slate-500 sm:hidden">
+        Swipe to compare all four plans →
+      </p>
+
+      {/* One snap-scrolling deck on phones; two or four columns once the
+          screen is wide enough to compare plans without squeezing them. */}
+      <div className="pricing-plan-track" aria-label="Subscription plans">
         {SELLABLE_TIERS.map((id) => {
           const tier = TIERS[id];
           const planId = planFor(id, interval);
@@ -298,8 +310,8 @@ export default function PricingPlans() {
               key={id}
               className={
                 isCurrent
-                  ? "card flex flex-col border-indigo-300 ring-1 ring-indigo-300"
-                  : "card flex flex-col"
+                  ? "pricing-plan-card card flex flex-col border-indigo-300 ring-1 ring-indigo-300"
+                  : "pricing-plan-card card flex flex-col"
               }
             >
               <div className="flex items-start justify-between gap-3">
@@ -311,11 +323,13 @@ export default function PricingPlans() {
                 )}
               </div>
 
-              <p className="mt-2 text-sm leading-6 text-slate-600">{tier.blurb}</p>
+              <p className="pricing-plan-blurb mt-2 text-sm leading-6 text-slate-600">
+                {tier.blurb}
+              </p>
 
               <Price tier={id} interval={interval} currency={currency} />
 
-              <ul className="mt-5 flex-1 space-y-2.5">
+              <ul className="pricing-plan-includes mt-5 flex-1 space-y-2.5">
                 {tier.includes.map((line) => (
                   <li key={line} className="flex gap-2 text-sm leading-6 text-slate-700">
                     <Check />
@@ -324,7 +338,7 @@ export default function PricingPlans() {
                 ))}
               </ul>
 
-              <div className="mt-6">
+              <div className="pricing-plan-action mt-6">
                 {!isPaidTier(id) || planId === null ? (
                   <FreeAction isCurrent={isCurrent} account={account} />
                 ) : (
@@ -513,7 +527,7 @@ function PaidAction({
         type="button"
         disabled={busy}
         onClick={() => onStart("/api/billing/checkout", { plan: planId })}
-        className="btn-primary w-full"
+        className="pricing-subscribe-button btn-primary w-full"
       >
         {busy ? "Opening checkout…" : "Subscribe"}
       </button>

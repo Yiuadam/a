@@ -141,6 +141,8 @@ because Secrets are encrypted at rest and hidden from the dashboard once saved.
 | Variable | Needed for |
 |---|---|
 | `ANTHROPIC_API_KEY` | writing feedback, the speaking examiner, word definitions, test generation |
+| `ANTHROPIC_ADMIN_KEY` | exact historical Anthropic costs in the owner finance dashboard. Separate read-only Admin API key; optional |
+| `ANTHROPIC_WORKSPACE_ID` | limits owner finance costs to BandUp's Anthropic workspace; optional |
 | `ACCOUNTS_ENABLED` | set to `1` to switch accounts on at all |
 | `SUPABASE_URL` | accounts |
 | `SUPABASE_ANON_KEY` | accounts |

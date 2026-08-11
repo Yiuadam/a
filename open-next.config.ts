@@ -5,4 +5,11 @@ import { defineCloudflareConfig } from "@opennextjs/cloudflare";
   this app: the AI routes are plain request/response handlers with no
   incremental cache to configure.
 */
-export default defineCloudflareConfig();
+const cloudflareConfig = {
+  ...defineCloudflareConfig(),
+  /* Turbopack cannot create its CSS helper port inside the desktop sandbox.
+     Webpack produces the same standalone Next output without that local IPC. */
+  buildCommand: "npx next build --webpack",
+};
+
+export default cloudflareConfig;

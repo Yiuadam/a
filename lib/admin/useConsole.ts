@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import { nextMaintenanceClosed } from "@/lib/admin/maintenance-toggle";
 
 /*
   Everything the console knows, in one place, because four screens now need it.
@@ -13,11 +14,10 @@ import { apiUrl } from "@/lib/api";
   the same request sequence, drifting apart the first time one of them was
   fixed.
 
-  The order is deliberate and is kept from the original. The maintenance state
-  comes first because it is both the fastest and the control the owner most
-  often came for; the checklist second because it probes the database and is
-  the slowest; the figures last because a dashboard with no numbers is still a
-  dashboard, and a switch that has not loaded is not a switch.
+  The maintenance state comes first because it is the authorization check and
+  the control the owner most often came for. Once it succeeds, diagnostics and
+  figures are independent and load together: a slow or unavailable checklist
+  must not hold the charts back, and a stats failure must not hide the switch.
 
   It is a hook rather than a context provider because each screen mounts one
   of these and nothing shares a tree with anything else. A provider would be a
@@ -99,15 +99,21 @@ export function useConsole(): Console {
         setState((await res.json()) as MaintenanceState);
         setPhase("ready");
 
-        const diag = await authedFetch(apiUrl("/api/account/diagnostics")).catch(() => null);
-        if (!alive || !diag || !diag.ok) return;
-        const body = (await diag.json()) as { checks?: Check[] };
-        if (alive) setChecks(body.checks ?? []);
+        const [diag, s] = await Promise.all([
+          authedFetch(apiUrl("/api/account/diagnostics")).catch(() => null),
+          authedFetch(apiUrl("/api/admin/stats")).catch(() => null),
+        ]);
+        if (!alive) return;
 
-        const s = await authedFetch(apiUrl("/api/admin/stats")).catch(() => null);
-        if (!alive || !s || !s.ok) return;
-        const parsed = (await s.json()) as Stats;
-        if (alive) setStats(parsed);
+        if (diag?.ok) {
+          const body = (await diag.json().catch(() => null)) as { checks?: Check[] } | null;
+          if (alive && body) setChecks(body.checks ?? []);
+        }
+
+        if (s?.ok) {
+          const parsed = (await s.json().catch(() => null)) as Stats | null;
+          if (alive && parsed) setStats(parsed);
+        }
       })
       .catch(() => {
         if (alive) setPhase("denied");
@@ -126,7 +132,9 @@ export function useConsole(): Console {
       const res = await authedFetch(apiUrl("/api/admin/maintenance"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ closed: !state.closed }),
+        /* A failed dispatch saved the desired state already. Retry that same
+           state instead of silently turning a failed close into an open. */
+        body: JSON.stringify({ closed: nextMaintenanceClosed(state) }),
       });
       const body = (await res.json()) as MaintenanceState & { error?: string };
       if (!res.ok) {

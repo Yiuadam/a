@@ -19,7 +19,7 @@
 */
 
 export type ExamTextSize = "s" | "m" | "l" | "xl";
-export type ExamScheme = "standard" | "reverse" | "amber";
+export type ExamScheme = "standard" | "reverse";
 
 export interface ExamDisplay {
   size: ExamTextSize;
@@ -33,14 +33,10 @@ export const TEXT_SIZES: { id: ExamTextSize; label: string; px: number }[] = [
   { id: "xl", label: "Extra large", px: 24 },
 ];
 
-/*
-  The three the exam offers, named for what they are rather than for a colour
-  word, because "white" means the text in one and the background in another.
-*/
+/* Keep the useful accessibility alternative without the yellow-on-black mode. */
 export const SCHEMES: { id: ExamScheme; label: string; hint: string }[] = [
   { id: "standard", label: "Follow BandUp", hint: "Warm, light or dark with the site" },
   { id: "reverse", label: "White on black", hint: "For low light or glare" },
-  { id: "amber", label: "Yellow on black", hint: "Highest contrast" },
 ];
 
 export const DISPLAY_KEY = "bandup.exam.display";
@@ -52,7 +48,7 @@ function isSize(v: unknown): v is ExamTextSize {
 }
 
 function isScheme(v: unknown): v is ExamScheme {
-  return v === "standard" || v === "reverse" || v === "amber";
+  return v === "standard" || v === "reverse";
 }
 
 /* Same external-store shape as lib/theme.ts: read once, cache, notify. */

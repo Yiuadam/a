@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import ScoreFooter from "@/components/ScoreFooter";
+import PracticeLoading from "@/components/PracticeLoading";
 import Review from "@/components/Review";
 import TestQuestions, {
   type AnswerMap,
@@ -12,6 +13,7 @@ import TestQuestions, {
 } from "@/components/TestQuestions";
 import ExamShell from "@/components/exam/ExamShell";
 import SplitPanes, { useIsWide } from "@/components/exam/SplitPanes";
+import SwipePanels from "@/components/exam/SwipePanels";
 import { useExamNavigation } from "@/lib/exam/navigation";
 import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
@@ -219,7 +221,7 @@ function ReadingTestPageRunner() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${submitted ? "practice-result-page" : ""}`}>
       {submitted && band !== null && (
         <div className="card flex flex-col items-center gap-4 py-6 sm:flex-row sm:justify-center sm:gap-10">
           <BandBadge band={band} caption={`${raw}/${questionCount(test.questions)} correct`} />
@@ -296,17 +298,12 @@ function ReadingTestPageRunner() {
             right={questions}
           />
         ) : (
-          <>
-            <p className="shrink-0 pb-1 text-center text-[11px] text-[color:var(--exam-muted)]">
-              Swipe sideways to move between the passage and the questions
-            </p>
-            <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto">
-              <div className="prose-reading w-[86vw] shrink-0 snap-start overflow-y-auto">
-                {passage}
-              </div>
-              <div className="w-[86vw] shrink-0 snap-start overflow-y-auto">{questions}</div>
-            </div>
-          </>
+          <SwipePanels
+            panels={[
+              { label: "Passage", content: <div className="prose-reading">{passage}</div> },
+              { label: "Questions", content: questions },
+            ]}
+          />
         )}
       </ExamShell>
 
@@ -329,7 +326,7 @@ function ReadingTestPageRunner() {
 
 export default function ReadingTestPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PracticeLoading kind="Reading" />}>
       <ReadingTestPageRunner />
     </Suspense>
   );

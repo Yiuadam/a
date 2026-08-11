@@ -137,6 +137,28 @@ export function clearSession(): void {
   emit();
 }
 
+/**
+ * Signs out after first confirming that the persisted token can be removed.
+ *
+ * The ordinary `clearSession` remains deliberately best-effort for expired
+ * credentials: even when storage is unavailable, an expired token must stop
+ * being used in the current tab. A user-initiated sign-out is different. The
+ * UI must not claim success and navigate away if a stored token could survive
+ * the action and sign the person back in after a reload.
+ */
+export function signOutSession(): boolean {
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(KEY);
+    } catch {
+      return false;
+    }
+  }
+  cache = SIGNED_OUT;
+  emit();
+  return true;
+}
+
 /** True when the token is past, or within a minute of, its stated expiry. */
 export function isExpired(session: Session | null, now = Date.now()): boolean {
   if (!session) return true;

@@ -3,6 +3,7 @@
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { mergeProfiles, mergeDrillScores, mergeLookups } from "./merge";
+import { readLearnerItem, writeLearnerItem } from "./storage";
 
 /*
   Carrying a learner's progress between their devices.
@@ -19,10 +20,11 @@ import { mergeProfiles, mergeDrillScores, mergeLookups } from "./merge";
   wrote its own state first would replace the other device's work with its own
   and there would be nothing left to merge with.
 
-  Step 4 last is what makes failure safe. localStorage is never cleared and
-  never narrowed; if any of this fails, the browser still holds everything it
-  held before, and the learner has lost nothing. That is ACCOUNTS.md threat 5,
-  and it is the reason this file returns a result instead of throwing.
+  Step 4 last is what makes failure safe. The tab's working copy is never
+  cleared or narrowed before the account accepts the merge; if any of this
+  fails, the browser still holds everything it held before, and the learner
+  has lost nothing. That is ACCOUNTS.md threat 5, and it is the reason this
+  file returns a result instead of throwing.
 */
 
 /** The keys that sync. Mirrors the CHECK constraint in the schema. */
@@ -39,7 +41,16 @@ export type SyncOutcome =
 
 function readLocal(key: StoreKey): unknown {
   try {
-    const raw = window.localStorage.getItem(key);
+    /*
+      Learner work lives in sessionStorage, behind this helper. Reading
+      localStorage directly here meant autosync always uploaded an empty
+      profile after the storage privacy change, so `visited` never reached the
+      account and every new browser showed the "New" badges again.
+
+      The helper also performs the one-time migration from old localStorage
+      builds, so sync and the UI now read the exact same working copy.
+    */
+    const raw = readLearnerItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     // Unreadable local data is treated as absent rather than as a reason to
@@ -51,10 +62,10 @@ function readLocal(key: StoreKey): unknown {
 
 function writeLocal(key: StoreKey, value: unknown): void {
   try {
-    window.localStorage.setItem(key, JSON.stringify(value));
+    writeLearnerItem(key, JSON.stringify(value));
   } catch {
     // Storage full, or private mode. The account holds the merged copy, so the
-    // work is safe even though this device will not show it until it can write.
+    // work is safe even though this tab will not show it until it can write.
   }
 }
 
@@ -151,6 +162,8 @@ export async function syncProgress(): Promise<SyncOutcome> {
   */
   for (const key of KEYS) writeLocal(key, merged[key]);
   try {
+    // This timestamp is a device preference/status line, not learner work, so
+    // it deliberately remains durable across tabs.
     window.localStorage.setItem(SYNCED_AT, at);
   } catch {
     // Cosmetic only — it drives the "last synced" line on the account page.

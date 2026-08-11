@@ -15,7 +15,7 @@ import { pathToFileURL } from "node:url";
 
 register("../scripts/ts-resolve.mjs", import.meta.url);
 
-const { sessionFromFragment, errorFromFragment, isExpired } = await import(
+const { sessionFromFragment, errorFromFragment, isExpired, saveSession, getSnapshot, signOutSession } = await import(
   pathToFileURL(join(process.cwd(), "lib", "account.ts")).href
 );
 
@@ -94,4 +94,60 @@ test("error text arriving from the URL bar cannot smuggle markup", () => {
 test("over-long error text is cut rather than rendered whole", () => {
   const message = errorFromFragment(`#error_description=${"a".repeat(500)}`);
   assert.ok(message.length <= 200);
+});
+
+test("an explicit sign-out clears the persisted and in-memory session", () => {
+  const previousWindow = globalThis.window;
+  let removed = false;
+  globalThis.window = {
+    localStorage: {
+      setItem() {},
+      removeItem() {
+        removed = true;
+      },
+    },
+  };
+
+  try {
+    saveSession({
+      accessToken: "signed-in",
+      refreshToken: null,
+      expiresAt: null,
+      email: "learner@example.com",
+    });
+    assert.equal(signOutSession(), true);
+    assert.equal(removed, true);
+    assert.equal(getSnapshot(), null);
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
+});
+
+test("an explicit sign-out reports storage failure and keeps the live session", () => {
+  const previousWindow = globalThis.window;
+  globalThis.window = {
+    localStorage: {
+      setItem() {},
+      removeItem() {
+        throw new Error("storage unavailable");
+      },
+    },
+  };
+
+  const session = {
+    accessToken: "still-signed-in",
+    refreshToken: null,
+    expiresAt: null,
+    email: "learner@example.com",
+  };
+
+  try {
+    saveSession(session);
+    assert.equal(signOutSession(), false);
+    assert.deepEqual(getSnapshot(), session);
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
 });

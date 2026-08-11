@@ -86,3 +86,12 @@ test("no destination is listed twice within one group", () => {
     assert.equal(new Set(hrefs).size, hrefs.length, `${group.title} repeats a destination`);
   }
 });
+
+test("the founder and product page uses the clear About BandUp name", () => {
+  const items = NAV_GROUPS.flatMap((group) => group.items);
+  assert.deepEqual(
+    items.find((item) => item.href === "/about"),
+    { href: "/about", label: "About BandUp" },
+  );
+  assert.equal(items.some((item) => item.href === "/credits"), false);
+});

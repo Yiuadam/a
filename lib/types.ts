@@ -304,9 +304,9 @@ export interface GeneratedTest {
 export interface Profile {
   placement?: PlacementResult;
   /*
-    Modules the learner has opened at least once. Drives nothing but the "New"
-    badge on the dashboard: a card stops being new the moment it is visited,
-    which is what "new" means to the person reading it — not "never finished".
+    Legacy data from builds where opening a module retired its "New" badge.
+    Kept while old account snapshots are merged so a sync remains lossless,
+    but current badges deliberately ignore it: only a submitted result counts.
   */
   visited?: string[];
   /** Question ids from the last two placement sittings, newest first. */

@@ -10,7 +10,7 @@ import { logInternal, safeJsonError } from "@/lib/auth/errors";
 export const maxDuration = 60;
 
 /** See the note where this is enforced, and lib/ai/models.ts. */
-export const MAX_ESSAY_CHARS = 12000;
+const MAX_ESSAY_CHARS = 12000;
 
 const CRITERION = {
   type: "object",

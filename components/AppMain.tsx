@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 /*
   The page area, and the one route that does not want it.
@@ -26,10 +26,18 @@ export default function AppMain({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const console_ = pathname.startsWith("/admin");
   const immersive =
+    pathname === "/" ||
     pathname === "/chat" ||
     pathname === "/practice/listening" ||
     pathname === "/practice/reading" ||
+    pathname === "/practice/writing" ||
     pathname === "/exam";
+
+  useEffect(() => {
+    if (!immersive) return;
+    document.body.setAttribute("data-viewport-locked", "");
+    return () => document.body.removeAttribute("data-viewport-locked");
+  }, [immersive]);
 
   return (
     <main

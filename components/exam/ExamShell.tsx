@@ -26,17 +26,12 @@ import { sizeInPx } from "@/lib/exam/display";
   ---------------------------------------------------------------------------
   The colour schemes, and why they are variables rather than classes
 
-  The exam's three schemes are not a light/dark toggle — yellow-on-black is not
-  a dark theme, it is a high-contrast accessibility mode with a specific
-  yellow. So the shell sets four custom properties and everything inside reads
-  them. A component written against --exam-fg is correct in all three without
-  knowing any of them exist, and adding a fourth scheme later touches this file
-  and nothing else.
+  The exam display scheme is separate from BandUp's site theme. The shell sets
+  custom properties and everything inside reads them, so standard follows the
+  site while the optional reverse mode stays consistently white on black.
 
-  BandUp's own accent survives as --exam-accent, used only for "where you are"
-  — the ring on the current question. Everything that is part of the exam
-  illusion is monochrome, and the one thing that is the app helping you is not.
-  That is the self-redesign: the same furniture, in this app's voice.
+  BandUp's accent marks the current question. A separate calm blue marks hard
+  questions, so learners can scan the bottom strip and return to them quickly.
 */
 
 const SCHEME_VARS: Record<string, Record<string, string>> = {
@@ -48,6 +43,7 @@ const SCHEME_VARS: Record<string, Record<string, string>> = {
     "--exam-chrome": "var(--color-slate-100)",
     "--exam-hover": "var(--color-slate-200)",
     "--exam-accent": "var(--color-indigo-600)",
+    "--exam-hard": "#2563eb",
     "--exam-mark": "var(--color-amber-200)",
   },
   reverse: {
@@ -58,17 +54,8 @@ const SCHEME_VARS: Record<string, Record<string, string>> = {
     "--exam-chrome": "#161616",
     "--exam-hover": "#2a2a2a",
     "--exam-accent": "#e08a55",
+    "--exam-hard": "#2563eb",
     "--exam-mark": "#4a4000",
-  },
-  amber: {
-    "--exam-bg": "#000000",
-    "--exam-fg": "#ffd400",
-    "--exam-muted": "#b39400",
-    "--exam-line": "#5a4c00",
-    "--exam-chrome": "#141200",
-    "--exam-hover": "#2a2400",
-    "--exam-accent": "#ffffff",
-    "--exam-mark": "#4a3e00",
   },
 };
 
@@ -89,6 +76,7 @@ export default function ExamShell({
   topRight,
   bottomLeft,
   bottomRight,
+  comfortableGutter = false,
   children,
 }: {
   /** "Reading", "Listening" — what the exam calls this part. */
@@ -124,10 +112,20 @@ export default function ExamShell({
   bottomRight?: ReactNode;
   /** Anything the section adds beside Settings — Listening puts volume here. */
   topRight?: ReactNode;
+  /**
+   * Give a page a calmer outer margin without changing the shared exam chrome.
+   * Writing opts in because its larger text-entry surfaces otherwise read as
+   * touching the browser edge; timed Reading and Listening keep the tighter
+   * computer-exam frame.
+   */
+  comfortableGutter?: boolean;
   children: ReactNode;
 }) {
   const display = useExamDisplay();
   const vars = SCHEME_VARS[display.scheme] ?? SCHEME_VARS.standard;
+  const frameSize = comfortableGutter
+    ? "m-3 h-[calc(100dvh-5.25rem)] w-[calc(100%-1.5rem)] sm:m-4 sm:h-[calc(100dvh-5.75rem)] sm:w-[calc(100%-2rem)]"
+    : "m-1 h-[calc(100dvh-4.25rem)] w-[calc(100%-0.5rem)] sm:m-2 sm:h-[calc(100dvh-4.75rem)] sm:w-[calc(100%-1rem)]";
 
   return (
     <div
@@ -174,19 +172,21 @@ export default function ExamShell({
         is still taller than the window — the site footer is below all of
         this — but the exam does not depend on scrolling to it.
       */
-      className="m-1 flex h-[calc(100dvh-4.25rem)] min-h-[26rem] w-[calc(100%-0.5rem)] flex-col overflow-hidden rounded-xl border border-[color:var(--exam-line)] bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)] shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)] sm:m-2 sm:h-[calc(100dvh-4.75rem)] sm:w-[calc(100%-1rem)] sm:rounded-2xl"
+      className={`${frameSize} flex min-h-[26rem] flex-col overflow-hidden rounded-xl border border-[color:var(--exam-line)] bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)] shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)] sm:rounded-2xl`}
     >
-      <header className="exam-glass z-10 m-2 mb-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-b-2 border-b-[color:var(--exam-accent)] px-3 py-1.5 sm:rounded-2xl">
+      <header className="exam-shell-header exam-glass z-50 m-2 mb-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-b-2 border-b-[color:var(--exam-accent)] px-3 py-1.5 sm:rounded-2xl">
         {/*
           Where the exam prints the candidate's name and number. There is no
           candidate here, so it says which paper you are on — the same corner,
           doing the same job of telling you where you are.
         */}
-        <div className="min-w-0 text-[11px] leading-tight">
-          <div className="truncate font-semibold uppercase tracking-wide text-[color:var(--exam-fg)]">
+        <div className="exam-section-block min-w-0 self-stretch text-[11px] leading-tight">
+          <div className="whitespace-nowrap font-semibold uppercase tracking-wide text-[color:var(--exam-fg)]">
             {section}
           </div>
-          <div className="truncate text-[color:var(--exam-muted)]">{paper}</div>
+          <div className="exam-paper-title whitespace-nowrap text-[color:var(--exam-muted)]">
+            {paper}
+          </div>
         </div>
 
         <ExamTimer minutes={minutes} running={running} onExpire={onExpire} endsAt={endsAt} />

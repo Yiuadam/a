@@ -21,12 +21,15 @@ export default function ConsoleShell({
   title,
   lead,
   back,
+  compact = false,
   children,
 }: {
   title: string;
   lead?: string;
   /** Where the ‹ goes. Absent on the overview, which is the top of the console. */
   back?: { href: Route; label: string };
+  /** Tighter wide-screen chrome for the glanceable all-in-one overview. */
+  compact?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -74,7 +77,11 @@ export default function ConsoleShell({
         </div>
       </aside>
 
-      <div className="min-w-0 flex-1 px-4 py-5 sm:px-7 sm:py-6">
+      <div
+        className={`min-w-0 flex-1 px-4 py-5 sm:px-7 sm:py-6 ${
+          compact ? "lg:px-5 lg:py-4" : ""
+        }`}
+      >
         <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <div className="min-w-0">
             {back && (
@@ -97,7 +104,7 @@ export default function ConsoleShell({
           )}
         </header>
 
-        <div className="mt-4">{children}</div>
+        <div className={compact ? "mt-3" : "mt-4"}>{children}</div>
       </div>
     </div>
   );
@@ -106,6 +113,7 @@ export default function ConsoleShell({
 export const CONSOLE_NAV: { href: Route; title: string; detail: string }[] = [
   { href: "/admin", title: "Overview", detail: "The four numbers, at a glance" },
   { href: "/admin/traffic", title: "Signups and usage", detail: "Thirty days, as charts" },
+  { href: "/admin/finance", title: "Revenue & profit", detail: "Receipts, AI cost and contribution" },
   { href: "/admin/site", title: "Site status", detail: "Open the site, or close it" },
   { href: "/admin/config", title: "Configuration", detail: "What is wired up, and what isn't" },
 ];

@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import ScoreFooter from "@/components/ScoreFooter";
+import PracticeLoading from "@/components/PracticeLoading";
 import Review from "@/components/Review";
 import TestQuestions, {
   type AnswerMap,
@@ -23,6 +23,7 @@ import type { ListeningTest } from "@/lib/types";
 import TestChooser from "@/components/TestChooser";
 import ExamShell from "@/components/exam/ExamShell";
 import { useExamNavigation } from "@/lib/exam/navigation";
+import styles from "./listening.module.css";
 
 const bundled = LISTENING_TESTS;
 
@@ -277,14 +278,21 @@ function ListeningTestPageRunner() {
           {ttsSupported && !playing ? (
             <button
               type="button"
-              className="btn-primary !min-h-8 !px-2 !py-1 text-xs"
+              className={styles.playbackControl}
               onClick={() => startAudio(0)}
               disabled={mode === "timed" && !submitted && (finishedAudio || turnIndex >= 0)}
             >
-              {finishedAudio ? "Replay" : "▶ Play"}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 12 12"
+                className={styles.playbackIcon}
+              >
+                <path d="M2.5 1.5v9l7-4.5-7-4.5Z" />
+              </svg>
+              {finishedAudio ? "Replay" : "Play"}
             </button>
           ) : ttsSupported ? (
-            <button type="button" className="btn-secondary !min-h-8 !px-2 !py-1 text-xs" onClick={stopAudio}>
+            <button type="button" className={styles.playbackControl} onClick={stopAudio}>
               Stop
             </button>
           ) : null}
@@ -358,12 +366,8 @@ function ListeningTestPageRunner() {
         )}
 
         {submitted && band !== null && (
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-5">
             <ScoreFooter module="listening" band={band} raw={raw} total={flat.length} />
-            <div className="flex gap-2">
-              <Link href="/practice/listening" className="btn-secondary">More tests</Link>
-              <Link href="/plan" className="btn-primary">Study plan</Link>
-            </div>
           </div>
         )}
       </div>
@@ -373,7 +377,7 @@ function ListeningTestPageRunner() {
 
 export default function ListeningTestPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PracticeLoading kind="Listening" />}>
       <ListeningTestPageRunner />
     </Suspense>
   );
