@@ -76,6 +76,21 @@ npx wrangler secret put GITHUB_DEPLOY_TOKEN
 Set an expiry you will notice — when it lapses the switch says so rather than
 failing quietly, and the workflow still runs by hand.
 
+**If that command fails with "the latest version of your Worker isn't currently
+deployed"** (Cloudflare error 10215), nothing is wrong with the token or the
+account. Every pull request preview runs `wrangler versions upload`, which
+leaves an uploaded-but-undeployed version as the latest one, and wrangler
+refuses a plain `secret put` in case you were about to deploy it by accident.
+Use the command made for that case instead:
+
+```bash
+npx wrangler versions secret put GITHUB_DEPLOY_TOKEN
+```
+
+It stores the secret without deploying anything. This will happen every time
+there is an open preview, which is most of the time, so reach for
+`versions secret put` first and keep `secret put` for a quiet repository.
+
 One thing to know before you use it: the workflow builds from `main`, so
 throwing the switch ships whatever is on `main` at that moment — closing the
 site also deploys anything merged since the last deploy. GitHub's dispatch API
