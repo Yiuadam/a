@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { SESSION_KEY } from "@/lib/account";
+import { getSnapshot as accountSnapshot, SESSION_KEY } from "@/lib/account";
+import { syncProgress } from "@/lib/progress/sync";
+import { clearHistory } from "@/lib/store";
 
 /*
   Delete everything this browser is keeping.
@@ -50,8 +52,26 @@ const KEEP_ACROSS_WIPE = [
 export default function ClearDeviceSection() {
   const [armed, setArmed] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function wipe() {
+  async function wipe() {
+    setDone(true);
+    setError(null);
+
+    /*
+      A local wipe used to be followed by the account restoring every sitting.
+      Write the history tombstone to the account first. If a signed-in account
+      cannot accept it, stop rather than claiming a permanent clear that was
+      not permanent.
+    */
+    clearHistory();
+    const sync = await syncProgress();
+    if (accountSnapshot() && sync.status === "unavailable") {
+      setDone(false);
+      setError("Your account could not be reached. Nothing else was cleared; please try again.");
+      return;
+    }
+
     try {
       const kept = KEEP_ACROSS_WIPE.map((k) => [k, window.localStorage.getItem(k)] as const);
       window.localStorage.clear();
@@ -60,13 +80,12 @@ export default function ClearDeviceSection() {
     } catch {
       /* Storage disabled or full. Reloading is still the honest next step. */
     }
-    setDone(true);
     /*
       A full reload rather than a re-render. Half a dozen stores are holding
       this data in memory; asking each to notice it has gone is more moving
       parts than reloading a page that now has nothing to load.
     */
-    window.location.href = "/";
+    window.location.replace(new URL("/", window.location.href));
   }
 
   return (
@@ -100,12 +119,21 @@ export default function ClearDeviceSection() {
             sign-in are kept.
           </p>
           <p className="text-[13px] leading-5 text-rose-800/80">
-            This is not your account. If you are signed in and your progress has synced, it will
-            come back from the server next time you open the app — to remove it everywhere, delete
-            your account below.
+            This is not your account. Your saved practice history is also cleared from the synced
+            account, so old sittings will not return. Your sign-in and account profile remain.
           </p>
+          {error ? (
+            <p className="text-[13px] leading-5 text-rose-900" role="alert">
+              {error}
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2 pt-0.5">
-            <button type="button" onClick={wipe} disabled={done} className="btn-primary shrink-0">
+            <button
+              type="button"
+              onClick={() => void wipe()}
+              disabled={done}
+              className="btn-primary shrink-0"
+            >
               {done ? "Clearing…" : "Yes, clear it"}
             </button>
             <button

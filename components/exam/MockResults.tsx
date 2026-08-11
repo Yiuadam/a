@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import BandBadge from "@/components/BandBadge";
 import Review from "@/components/Review";
@@ -8,9 +8,11 @@ import { postJSON } from "@/lib/api";
 import { bandLabel } from "@/lib/band";
 import {
   MODULE_NAMES,
+  listeningPaper,
   listeningQuestions,
   markObjective,
   overallFrom,
+  readingPaper,
   readingQuestions,
   writingBand,
   writingTask,
@@ -19,8 +21,9 @@ import {
 } from "@/lib/exam/mock";
 import { testAdvice } from "@/lib/advice";
 import { buildReview } from "@/lib/review";
-import { addResult } from "@/lib/store";
-import type { WritingGrade } from "@/lib/types";
+import { addMockReport, addResult } from "@/lib/store";
+import { savedAnswers } from "@/lib/results";
+import type { ModuleResultReview, WritingGrade } from "@/lib/types";
 
 /*
   The report at the end of a sitting: four bands, an overall, and everything
@@ -51,6 +54,8 @@ export default function MockResults({
   const [grading, setGrading] = useState(session.marks === null);
   const [writingGrades, setWritingGrades] = useState<(WritingGrade | null)[]>([]);
   const started = useRef(false);
+  const listeningSet = useMemo(() => listeningQuestions(session.paper), [session.paper]);
+  const readingSet = useMemo(() => readingQuestions(session.paper), [session.paper]);
 
   const mark = useCallback(async () => {
     const objective = markObjective(session.paper, session.answers);
@@ -123,6 +128,45 @@ export default function MockResults({
     ];
     for (const { module, mark } of entries) {
       if (!mark) continue;
+      let review: ModuleResultReview | undefined;
+      if (module === "listening") {
+        const items = buildReview(listeningSet, session.answers);
+        review = {
+          kind: "objective",
+          questions: listeningSet,
+          answers: savedAnswers(session.answers),
+          advice: testAdvice("listening", listeningSet, items.map((item) => item.id), mark.band),
+          source: {
+            kind: "listening",
+            script: session.paper.listening.flatMap((id) => listeningPaper(id)?.script ?? []),
+          },
+        };
+      } else if (module === "reading") {
+        const items = buildReview(readingSet, session.answers);
+        review = {
+          kind: "objective",
+          questions: readingSet,
+          answers: savedAnswers(session.answers),
+          advice: testAdvice("reading", readingSet, items.map((item) => item.id), mark.band),
+          source: {
+            kind: "reading",
+            passage: session.paper.reading
+              .map((id) => readingPaper(id)?.passage ?? "")
+              .filter(Boolean)
+              .join("\n\n"),
+          },
+        };
+      } else if (module === "writing") {
+        review = {
+          kind: "writing",
+          attempts: tasks.flatMap((task, index) => {
+            const grade = grades[index];
+            return grade
+              ? [{ task, response: session.essays[task.id] ?? "", grade }]
+              : [];
+          }),
+        };
+      }
       addResult({
         module,
         testId: `${session.id}-${module}`,
@@ -131,9 +175,17 @@ export default function MockResults({
         raw: mark.raw,
         total: mark.total,
         date,
+        review,
       });
     }
-  }, [session, onMarks]);
+
+    addMockReport({
+      id: session.id,
+      startedAt: session.startedAt,
+      completedAt: date,
+      marks,
+    });
+  }, [session, onMarks, listeningSet, readingSet]);
 
   useEffect(() => {
     if (session.marks !== null || started.current) return;
@@ -173,8 +225,6 @@ export default function MockResults({
     the report told a candidate they had got every question wrong, including the
     ones it had just counted as right.
   */
-  const listeningSet = listeningQuestions(session.paper);
-  const readingSet = readingQuestions(session.paper);
   const listeningReview = buildReview(listeningSet, session.answers);
   const readingReview = buildReview(readingSet, session.answers);
 
@@ -204,10 +254,13 @@ export default function MockResults({
             </p>
           )}
           <div className="flex flex-wrap gap-2 pt-1">
+            <Link href={`/exam/report?id=${encodeURIComponent(session.id)}`} className="btn-primary">
+              Certificate and report
+            </Link>
             <button type="button" className="btn-secondary" onClick={onRestart}>
               Sit another
             </button>
-            <Link href="/plan" className="btn-primary">
+            <Link href="/plan" className="btn-secondary">
               Study plan
             </Link>
           </div>

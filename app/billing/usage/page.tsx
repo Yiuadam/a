@@ -22,7 +22,7 @@ export default function UsageScreen() {
       back="/billing"
       backLabel="Bill and usage"
       title="Your usage"
-      lead="Counted over a rolling thirty days, so there is no reset day — each request drops off thirty days after you made it."
+      lead="Usage rolls over thirty days. The exact next return and plan-renewal dates are shown below."
     >
       {blocked ?? (
         /* No card around it. UsageMeter draws its own bordered panel, and a
@@ -32,6 +32,7 @@ export default function UsageScreen() {
           routes={state.routes}
           windowSeconds={state.windowSeconds}
           oldestAt={state.oldestAt}
+          planRenewsAt={state.expiresAt}
         />
       )}
     </HubScreen>

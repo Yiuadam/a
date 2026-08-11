@@ -68,6 +68,10 @@ function WritingSession() {
         testTitle: task.title,
         band: data.overallBand,
         date: new Date().toISOString(),
+        review: {
+          kind: "writing",
+          attempts: [{ task, response: essay, grade: data }],
+        },
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Grading failed.");

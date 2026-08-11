@@ -17,6 +17,7 @@ import { playScript } from "@/lib/exam/playback";
 import { useMounted, useProfile } from "@/lib/hooks";
 import { flatQuestions, questionCount } from "@/lib/questions";
 import { buildReview } from "@/lib/review";
+import { savedAnswers } from "@/lib/results";
 import { addResult } from "@/lib/store";
 import { LISTENING_TESTS } from "@/lib/tests";
 import type { ListeningTest } from "@/lib/types";
@@ -131,6 +132,13 @@ function ListeningTestPageRunner() {
       if (isCorrect(q, answers[q.id])) correct++;
     }
     const b = rawToBand(correct, asked.length, "listening");
+    const reviewItems = buildReview(test.questions, answers);
+    const advice = testAdvice(
+      "listening",
+      test.questions,
+      reviewItems.map((item) => item.id),
+      b,
+    );
     setRaw(correct);
     setBand(b);
     setSubmitted(true);
@@ -143,6 +151,13 @@ function ListeningTestPageRunner() {
       raw: correct,
       total: asked.length,
       date: new Date().toISOString(),
+      review: {
+        kind: "objective",
+        questions: test.questions,
+        answers: savedAnswers(answers),
+        advice,
+        source: { kind: "listening", script: test.script },
+      },
     });
   }, [test, answers, submitted, stopAudio]);
 

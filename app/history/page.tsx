@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import ClearHistoryButton from "@/components/history/ClearHistoryButton";
 import { useProfile } from "@/lib/hooks";
 import { newestFirst, seriesFor } from "@/lib/results";
 import type { ModuleName, ModuleResult } from "@/lib/types";
@@ -254,6 +255,9 @@ export default function HistoryPage() {
             : `${results.length} recorded sitting${results.length === 1 ? "" : "s"}. Bands are practice estimates, and the trend matters more than any single one.`}
           {line ? <span className="text-slate-700"> {line}</span> : null}
         </p>
+        {(results.length > 0 || (profile.mockReports?.length ?? 0) > 0) && (
+          <ClearHistoryButton />
+        )}
       </header>
 
       {results.length === 0 ? (
@@ -281,6 +285,35 @@ export default function HistoryPage() {
             ))}
           </section>
 
+          {(profile.mockReports?.length ?? 0) > 0 && (
+            <section>
+              <h2 className="heading-rule mb-2 text-sm font-semibold text-slate-900">
+                Mock exam reports
+              </h2>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {profile.mockReports?.map((report) => (
+                  <Link
+                    key={report.id}
+                    href={`/exam/report?id=${encodeURIComponent(report.id)}`}
+                    className="card premade-glass flex items-center justify-between gap-3 !p-3"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-slate-900">
+                        Full mock exam
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        {fmtDate(report.completedAt)} · Certificate and score report
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-lg font-semibold tabular-nums text-slate-900">
+                      {report.marks.overall ?? "—"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section>
             <h2 className="heading-rule mb-2 text-sm font-semibold text-slate-900">Every sitting</h2>
             {/*
@@ -298,6 +331,7 @@ export default function HistoryPage() {
                     <th className="hidden px-3 py-2 font-medium sm:table-cell">Test</th>
                     <th className="px-3 py-2 text-right font-medium">Score</th>
                     <th className="px-3 py-2 text-right font-medium">Band</th>
+                    <th className="px-3 py-2 text-right font-medium">Feedback</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-surface">
@@ -313,6 +347,18 @@ export default function HistoryPage() {
                       </td>
                       <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900">
                         {r.band}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {r.review ? (
+                          <Link
+                            href={`/history/result?module=${encodeURIComponent(r.module)}&test=${encodeURIComponent(r.testId)}&date=${encodeURIComponent(r.date)}`}
+                            className="font-medium text-indigo-700 underline underline-offset-2"
+                          >
+                            View
+                          </Link>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

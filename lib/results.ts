@@ -1,5 +1,16 @@
 import type { ModuleName, ModuleResult } from "./types";
 
+/** JSON-safe answers for a completed sitting; unanswered questions are absent. */
+export function savedAnswers(
+  answers: Record<string, string | number | undefined>,
+): Record<string, string | number> {
+  return Object.fromEntries(
+    Object.entries(answers).filter(
+      (entry): entry is [string, string | number] => entry[1] !== undefined,
+    ),
+  );
+}
+
 /*
   Reading a learner's results, without depending on the order they arrive in.
 
