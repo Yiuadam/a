@@ -113,7 +113,7 @@ export default function ConsoleShell({
 export const CONSOLE_NAV: { href: Route; title: string; detail: string }[] = [
   { href: "/admin", title: "Overview", detail: "The four numbers, at a glance" },
   { href: "/admin/traffic", title: "Signups and usage", detail: "Thirty days, as charts" },
-  { href: "/admin/finance", title: "Revenue & profit", detail: "Receipts, AI cost and contribution" },
+  { href: "/admin/finance", title: "Money & AI cost", detail: "Payments, fees, money received and after AI" },
   { href: "/admin/site", title: "Site status", detail: "Open the site, or close it" },
   { href: "/admin/config", title: "Configuration", detail: "What is wired up, and what isn't" },
 ];

@@ -27,6 +27,7 @@ being recreated.
 | `0004_admin.sql` | `set_account_role`, for promoting an account to admin. |
 | `0005_profile_fields.sql` | Display name, avatar path and date of birth on `profiles`, and a private `avatars` bucket. |
 | `0006_drop_gender_add_age_check.sql` | Drops `gender`, and makes the under-13 claim on `/privacy` a constraint rather than a sentence. |
+| `0015_ai_cost_tracking.sql` | Service-role-only AI cost ledger: per-response token-cost rows, private provider backfill and explicit history-coverage markers, and an owner-dashboard aggregate with no user data or content. |
 
 `0005` is the one file that may not do everything it says, and it is written
 so that this cannot hurt. Its two storage steps — creating the private
@@ -102,4 +103,3 @@ curl "$SUPABASE_URL/rest/v1/profiles?select=*" \
 
 The correct result is an array containing exactly one object — the caller's own
 profile — however many accounts exist.
-

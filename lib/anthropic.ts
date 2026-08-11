@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { after } from "next/server";
 import { maxOutputTokens, modelFor, type CostedRoute } from "@/lib/ai/models";
+import { recordAnthropicMessageCost } from "@/lib/ai/cost-tracking";
 
 /*
   The one place this app talks to the model.
@@ -89,6 +91,40 @@ function readResult(message: Anthropic.Message | Anthropic.Beta.BetaMessage): st
 }
 
 /**
+ * The SDK attaches the HTTP request id as a non-enumerable `_request_id`.
+ * `message.id` is a provider-issued unique fallback for the unlikely case that
+ * an intermediary strips that response header.
+ */
+function recordCost(
+  route: CostedRoute,
+  message: Anthropic.Message | Anthropic.Beta.BetaMessage,
+): void {
+  const requestId =
+    (message as typeof message & { _request_id?: string | null })._request_id ??
+    `message:${message.id}`;
+  const event = {
+    providerRequestId: requestId,
+    route,
+    model: message.model,
+    usage: message.usage,
+    occurredAt: new Date(),
+  };
+
+  /*
+    Register the durable work before inspecting stop_reason or parsing JSON.
+    Next keeps this callback alive after the route responds (and even when the
+    route later throws), without adding a Supabase round trip to learner latency.
+  */
+  try {
+    after(() => recordAnthropicMessageCost(event));
+  } catch {
+    // A non-Next caller has no request lifecycle. Best-effort recording still
+    // must not turn a valid model response into an error.
+    void recordAnthropicMessageCost(event);
+  }
+}
+
+/**
  * One call to Claude that returns schema-validated JSON.
  *
  * Structured outputs guarantee the reply parses. We also opt into server-side
@@ -107,6 +143,8 @@ export async function callClaudeJSON<T>(opts: CallOptions): Promise<T> {
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
     } as never)) as Anthropic.Beta.BetaMessage;
+    // Persist successful usage before refusal/max-token handling or JSON parsing.
+    recordCost(opts.route, message);
     text = readResult(message);
   } catch (err) {
     const isBetaRejection =
@@ -114,6 +152,7 @@ export async function callClaudeJSON<T>(opts: CallOptions): Promise<T> {
       (err instanceof Anthropic.NotFoundError && true);
     if (!isBetaRejection) throw err;
     const message = (await client.messages.create(params as never)) as Anthropic.Message;
+    recordCost(opts.route, message);
     text = readResult(message);
   }
 

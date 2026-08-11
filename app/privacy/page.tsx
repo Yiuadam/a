@@ -107,6 +107,7 @@ export default function PrivacyPage() {
             "Signed out, your progress lives only in the tab you have open and is gone when you close it. Signed in, it is kept on your account so it follows you between devices.",
             "No cookies, no analytics, no advertising and no third-party trackers.",
             "Your writing and your speaking transcript are sent for marking when you ask for it, and are not stored afterwards.",
+            "BandUp keeps technical AI-cost records — the feature, model, token counts, calculated cost, request ID and time — but never the words sent or received, your name, email or account ID.",
             "BandUp never uploads audio from your microphone and never saves it as a file.",
             "On the web you can choose to have your speech transcribed on your own device, so the audio never leaves it at all. The recogniser built into your browser or phone is still the default.",
           ].map((line) => (
@@ -161,7 +162,14 @@ export default function PrivacyPage() {
           Four features need a model to think about your English, and those are the only times
           anything you write is sent anywhere. Each one goes to BandUp&rsquo;s server, which
           passes it to Anthropic&rsquo;s API for the answer and sends that answer back to you.
-          BandUp writes none of it to a database or a log.
+          BandUp writes none of the words sent or received to a database or a log.
+        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          To measure what the AI actually costs, BandUp keeps a separate technical receipt for
+          each completed request: the feature used, Claude model, provider request ID, input,
+          output and cache token counts, calculated cost and time. It contains no prompt,
+          answer, transcript, name, email or account ID and cannot recreate what anybody wrote
+          or said.
         </p>
         <ul className="mt-4 space-y-4">
           {SENT.map((s) => (

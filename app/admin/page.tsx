@@ -10,7 +10,6 @@ import ConsoleShell, { CONSOLE_NAV, NotFound } from "@/components/admin/ConsoleS
 import { ConfigList, SiteSwitch } from "@/components/admin/ConsoleParts";
 import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { exactMoneyMajor, formatExactMoney } from "@/lib/admin/finance-format";
-import { estimatedHkdContribution } from "@/lib/admin/finance-view";
 import { useFinance } from "@/lib/admin/useFinance";
 import { useTier } from "@/lib/billing/useTier";
 import { useConsole } from "@/lib/admin/useConsole";
@@ -86,15 +85,24 @@ export default function AdminPage() {
   const failing = checks?.filter((c) => !c.ok).length ?? 0;
   const financeCurrencies = finance?.stripe?.currencies ?? [];
   const financePrimary = financeCurrencies.length === 1 ? financeCurrencies[0] : null;
+  const financeEstimate = finance?.hkdEstimate ?? null;
   const exactContribution = finance?.contribution?.period ?? null;
-  const estimatedContribution = !exactContribution && financePrimary && finance?.anthropic
-    ? estimatedHkdContribution(financePrimary, finance.anthropic, "period")
-    : null;
-  const contributionMoney = exactContribution?.contribution ?? estimatedContribution?.total ?? null;
+  const contributionMoney = exactContribution?.contribution ?? financeEstimate?.period.afterAi ?? null;
   const contributionPoints = finance?.contribution?.daily.map((row) => ({
     day: row.day,
     value: exactMoneyMajor(row.contribution),
-  })) ?? estimatedContribution?.daily ?? [];
+  })) ?? financeEstimate?.daily.map((row) => ({
+    day: row.day,
+    value: exactMoneyMajor(row.afterAi),
+  })) ?? [];
+  const receivedMoney = financeEstimate?.period.received ?? financePrimary?.period.net ?? null;
+  const receivedPoints = financeEstimate?.daily.map((row) => ({
+    day: row.day,
+    value: exactMoneyMajor(row.received),
+  })) ?? financePrimary?.daily.map((row) => ({
+    day: row.day,
+    value: exactMoneyMajor(row.operatingNet),
+  })) ?? [];
   const overviewCharts: AdminOverviewChartOption[] = [
     {
       id: "signups",
@@ -116,28 +124,28 @@ export default function AdminPage() {
     },
     {
       id: "net-receipts",
-      label: "Net receipts",
-      description: "Customer receipts after Stripe deductions.",
-      content: financePrimary ? (
+      label: "You received",
+      description: "Customer payments after Stripe deductions.",
+      content: receivedMoney && receivedPoints.length > 0 ? (
         <FinanceTrendChart
-          title="Net customer receipts"
-          summary={`${formatExactMoney(financePrimary.period.net)} · ${finance?.period.days ?? 30} days`}
-          label="Net receipts"
-          currency={financePrimary.currency}
-          points={financePrimary.daily.map((row) => ({ day: row.day, value: exactMoneyMajor(row.operatingNet) }))}
+          title="You received"
+          summary={`${formatExactMoney(receivedMoney)} in the last ${finance?.period.days ?? 30} days`}
+          label="You received"
+          currency={receivedMoney.currency}
+          points={receivedPoints}
           compact
         />
       ) : null,
     },
     {
       id: "contribution",
-      label: "Contribution after AI",
-      description: "Net receipts minus billed Anthropic cost.",
+      label: "After AI",
+      description: "You received minus AI cost.",
       content: contributionMoney && contributionPoints.length > 0 ? (
         <FinanceTrendChart
-          title={exactContribution ? "Contribution after AI" : "Estimated contribution after AI"}
-          summary={`${formatExactMoney(contributionMoney)} · ${finance?.period.days ?? 30} days`}
-          label="Contribution"
+          title={exactContribution ? "After AI" : "Estimated after AI"}
+          summary={`${formatExactMoney(contributionMoney)} in the last ${finance?.period.days ?? 30} days`}
+          label="After AI"
           currency={contributionMoney.currency}
           points={contributionPoints}
           compact
@@ -178,8 +186,8 @@ export default function AdminPage() {
               ? "All passing"
               : `${failing} to fix`
           : n.href === "/admin/finance"
-            ? financePrimary
-              ? formatExactMoney(financePrimary.period.net)
+            ? receivedMoney
+              ? formatExactMoney(receivedMoney)
               : undefined
           : undefined,
     tone:
@@ -208,16 +216,16 @@ export default function AdminPage() {
           icon={<Dot />}
         />
         <StatCard
-          label={`Net receipts, ${finance?.period.days ?? 30} days`}
-          value={financeCurrencies.length > 0 ? financeCurrencies.map((row) => formatExactMoney(row.period.net)).join(" · ") : "—"}
-          hint={financeCurrencies.length > 0 ? "After Stripe fees, refunds and disputes" : undefined}
+          label={`You received, ${finance?.period.days ?? 30} days`}
+          value={receivedMoney ? formatExactMoney(receivedMoney) : "—"}
+          hint={receivedMoney ? financeEstimate ? `Estimated in HKD using HKMA ${financeEstimate.fx.asOf}` : "After Stripe fees, refunds and disputes" : undefined}
           unavailable={financePhase === "ready" && financeCurrencies.length === 0 ? "Stripe receipt data is unavailable." : undefined}
           icon={<Dot />}
         />
         <StatCard
-          label={`AI token cost, ${finance?.period.days ?? 30} days`}
-          value={finance?.anthropic ? formatExactMoney(finance.anthropic.period.tokenCost) : "—"}
-          unavailable={financePhase === "ready" && !finance?.anthropic ? "Add an Anthropic Admin API key to read billed token cost." : undefined}
+          label={`AI cost, ${finance?.period.days ?? 30} days`}
+          value={finance?.anthropic ? formatExactMoney(finance.anthropic.period.cost) : "—"}
+          unavailable={financePhase === "ready" && !finance?.anthropic ? finance?.providers.anthropic.reason?.message ?? "AI cost is unavailable." : undefined}
           icon={<Dot />}
         />
       </div>

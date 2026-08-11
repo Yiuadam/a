@@ -123,8 +123,11 @@ export default function Dashboard() {
             mistake.
           */}
           <h1 className="text-xl font-semibold leading-snug text-slate-900 sm:text-[22px]">
-            {placement ? "Welcome back." : "BandUp — free IELTS practice"}
+            BandUp
           </h1>
+          <p className="mt-1 text-sm leading-5 text-slate-600">
+            An IELTS learning and practice app with a placement test and personal study plan.
+          </p>
           <p className="dashboard-summary mt-1 text-sm leading-6 text-slate-600">
             {placement
               ? `Around band ${placement.band}. Your plan says what to do next.`
