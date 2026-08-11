@@ -89,7 +89,10 @@ export async function dispatchDeploy(closed: boolean): Promise<DispatchResult> {
     return {
       started: false,
       problem:
-        "No deploy token is configured, so nothing was deployed. Run the Deploy to Cloudflare workflow yourself, or set GITHUB_DEPLOY_TOKEN.",
+        /* Named in DEPLOY.md rather than here: this string is rendered by a
+           client component, and tests/no-secret-leak forbids a server-only
+           secret's *name* from reaching the browser bundle at all. */
+        "No deploy token is set on the Worker, so nothing was deployed. Add one (see DEPLOY.md) or run the Deploy to Cloudflare workflow yourself.",
     };
   }
 

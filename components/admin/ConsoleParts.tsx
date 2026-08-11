@@ -171,12 +171,20 @@ export function SiteSwitch({
         </p>
       )}
 
+      {/*
+        The variable is named in DEPLOY.md, not here. tests/no-secret-leak
+        forbids the name of a server-only secret from appearing anywhere the
+        browser can reach — this panel is a client component, so a name in its
+        copy is a name in the bundle, and the test cannot tell the difference
+        between a helpful instruction and an actual leak. It should not have
+        to: a variable name is developer-speak in a sentence a person reads.
+      */}
       {!deploys && (
         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[12px] leading-5 text-amber-900">
-          <span className="font-semibold">This switch cannot deploy.</span> Set{" "}
-          <span className="font-medium">GITHUB_DEPLOY_TOKEN</span> as a Worker secret, or run the{" "}
-          <span className="font-medium">Deploy to Cloudflare</span> workflow yourself with the
-          maintenance box ticked. See DEPLOY.md.
+          <span className="font-semibold">This switch cannot deploy.</span> No deploy token is set
+          on the Worker, so it can only record what you decide. Add one — DEPLOY.md says how — or
+          run the <span className="font-medium">Deploy to Cloudflare</span> workflow yourself with
+          the maintenance box ticked.
         </p>
       )}
 
