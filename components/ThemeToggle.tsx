@@ -21,7 +21,7 @@ export default function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="Colour theme"
-      className="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-surface p-0.5"
+      className="liquid-glass flex items-center gap-0.5 rounded-xl border p-0.5"
     >
       {THEMES.map((t) => {
         const active = theme === t.id;

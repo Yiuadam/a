@@ -301,7 +301,7 @@ export default function TutorChat() {
       actually have.
     */
     <div className="flex h-[calc(100dvh-3.75rem)] min-h-0 w-full flex-col overflow-hidden bg-slate-50">
-      <div className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-slate-200 bg-surface px-4 sm:px-6">
+      <div className="liquid-glass z-10 mx-2 mt-2 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border px-4 sm:mx-3 sm:px-6">
         <h1 className="text-[20px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
           Ask a tutor
         </h1>
@@ -354,7 +354,7 @@ export default function TutorChat() {
             app on the device does in one — and the second row was costing the
             conversation forty pixels of the screen.
           */}
-          <form onSubmit={submit} className="flex shrink-0 items-end gap-2 border-t border-slate-200 bg-surface px-4 py-3 sm:px-6">
+          <form onSubmit={submit} className="liquid-glass z-10 m-2 mt-0 flex shrink-0 items-end gap-2 rounded-2xl border px-4 py-3 sm:m-3 sm:mt-0 sm:px-6">
             <label htmlFor="tutor-question" className="sr-only">
               Your question
             </label>

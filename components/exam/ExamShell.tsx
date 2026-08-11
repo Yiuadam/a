@@ -176,7 +176,7 @@ export default function ExamShell({
       */
       className="m-1 flex h-[calc(100dvh-4.25rem)] min-h-[26rem] w-[calc(100%-0.5rem)] flex-col overflow-hidden rounded-xl border border-[color:var(--exam-line)] bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)] shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)] sm:m-2 sm:h-[calc(100dvh-4.75rem)] sm:w-[calc(100%-1rem)] sm:rounded-2xl"
     >
-      <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b-2 border-[color:var(--exam-accent)] bg-[color:var(--exam-chrome)] px-3 py-1.5">
+      <header className="exam-glass z-10 m-2 mb-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-b-2 border-b-[color:var(--exam-accent)] px-3 py-1.5 sm:rounded-2xl">
         {/*
           Where the exam prints the candidate's name and number. There is no
           candidate here, so it says which paper you are on — the same corner,

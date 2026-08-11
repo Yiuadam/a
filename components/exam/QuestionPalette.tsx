@@ -69,7 +69,7 @@ export default function QuestionPalette({
   const flaggedCount = items.filter((i) => i.flagged).length;
 
   return (
-    <div className="mx-2 mb-2 flex items-center gap-3 rounded-xl border border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-2.5 py-2 shadow-[0_10px_28px_-24px_color-mix(in_srgb,var(--exam-fg)_55%,transparent)] sm:px-3">
+    <div className="exam-glass mx-2 mb-2 flex items-center gap-3 rounded-xl border px-2.5 py-2 sm:rounded-2xl sm:px-3">
       {/*
         Review sits bottom-left, where the exam puts it. It flags the question
         you are on, which is why it says which one — a button labelled only

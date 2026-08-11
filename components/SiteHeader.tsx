@@ -152,7 +152,7 @@ export default function SiteHeader() {
       number the other could change.
     */
     <header
-      className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/85 backdrop-blur"
+      className="liquid-glass sticky top-0 z-40 border-b"
       style={{ "--header-h": "3.75rem" } as React.CSSProperties}
     >
       <div className="mx-auto flex h-[var(--header-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
@@ -307,7 +307,7 @@ export default function SiteHeader() {
           <div
             ref={panelRef}
             id="nav-menu"
-            className="fixed inset-x-0 top-[var(--header-h)] z-40 max-h-[calc(100dvh-var(--header-h))] overflow-y-auto border-b border-slate-200 bg-slate-50 shadow-lg"
+            className="liquid-glass fixed inset-x-2 top-[calc(var(--header-h)+0.5rem)] z-40 max-h-[calc(100dvh-var(--header-h)-1rem)] overflow-y-auto rounded-3xl border shadow-lg sm:inset-x-4"
           >
             <nav aria-label="All pages" className="mx-auto max-w-5xl px-4 py-5 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
               <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
