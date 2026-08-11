@@ -539,6 +539,59 @@ export async function signInWithPassword(
   };
 }
 
+/**
+ * Exchanges a Google Identity Services credential for the ordinary Supabase
+ * session the rest of BandUp already understands.
+ *
+ * Google talks directly to bandup.life in the browser; only the signed Google
+ * ID token and the one-use nonce reach this endpoint. This removes the visible
+ * Supabase project domain from the account chooser without moving identity or
+ * profiles out of Supabase Auth.
+ */
+export async function signInWithGoogleIdToken(
+  idToken: string,
+  nonce: string,
+): Promise<RefreshedSession | null> {
+  if (!idToken || idToken.length > 16_384) return null;
+  if (!nonce || nonce.length > 256) return null;
+
+  let res: Response;
+  try {
+    res = await request("/auth/v1/token?grant_type=id_token", {
+      method: "POST",
+      body: JSON.stringify({
+        provider: "google",
+        id_token: idToken,
+        nonce,
+      }),
+    });
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    return null;
+  }
+  const session = body as {
+    access_token?: unknown;
+    refresh_token?: unknown;
+    expires_in?: unknown;
+    user?: { email?: unknown };
+  };
+  if (typeof session.access_token !== "string" || session.access_token.length === 0) return null;
+
+  return {
+    accessToken: session.access_token,
+    refreshToken: typeof session.refresh_token === "string" ? session.refresh_token : null,
+    expiresIn: typeof session.expires_in === "number" ? session.expires_in : null,
+    email: typeof session.user?.email === "string" ? session.user.email : null,
+  };
+}
+
 export type SignUpOutcome = "session" | "confirm" | "taken" | "weak" | "failed";
 
 export interface SignUpResult {

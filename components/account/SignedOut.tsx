@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { apiUrl } from "@/lib/api";
 import { saveSession } from "@/lib/account";
+import GoogleSignIn from "./GoogleSignIn";
 
 /*
   Signing in, and the second door for people who cannot.
@@ -111,22 +112,25 @@ export default function SignedOut({
 
             <div className="mt-4 flex flex-col gap-3">
               {/*
-                Plain links, not fetch. The whole point of /api/auth/start is
-                that it answers with a 302 to the provider, and a full
-                navigation is what carries the user there and back. An XHR
-                would follow the redirect and hand us HTML from Google that we
-                could do nothing with.
+                Google Identity Services talks directly to this page so Google
+                names BandUp rather than the Supabase project. Apple retains
+                the full-navigation OAuth route because its 302 is what carries
+                the learner to Apple and back.
               */}
-              {available.map(({ id, label, Mark }) => (
-                <a
-                  key={id}
-                  href={apiUrl(`/api/auth/start?provider=${id}`)}
-                  className="btn-secondary"
-                >
-                  <Mark />
-                  {label}
-                </a>
-              ))}
+              {available.map(({ id, label, Mark }) =>
+                id === "google" ? (
+                  <GoogleSignIn key={id} />
+                ) : (
+                  <a
+                    key={id}
+                    href={apiUrl(`/api/auth/start?provider=${id}`)}
+                    className="btn-secondary"
+                  >
+                    <Mark />
+                    {label}
+                  </a>
+                ),
+              )}
             </div>
             <p className="mt-3 text-xs leading-5 text-slate-500">
               BandUp never sees the password on your {who} account — {who} confirms it&rsquo;s you

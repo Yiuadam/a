@@ -47,6 +47,20 @@ function secret(name: (typeof SERVER_ONLY_ENV_VARS)[number]): string | undefined
 }
 
 /**
+ * Google OAuth client id used by Google Identity Services in the browser.
+ *
+ * A client id is public (Google embeds it in every authorization request), but
+ * it still comes through the server so there is one runtime configuration for
+ * local, preview and production builds. Keeping it out of NEXT_PUBLIC_* also
+ * avoids baking a production identity into the iOS bundle.
+ */
+export function googleClientId(): string | undefined {
+  assertServerOnly(MODULE);
+  const value = process.env["GOOGLE_CLIENT_ID"];
+  return value && value.length > 0 ? value : undefined;
+}
+
+/**
  * The accounts system as a whole. Off by default, and off is the state in
  * which the app behaves exactly as it did before any of this existed.
  *
