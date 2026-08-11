@@ -193,6 +193,23 @@ export default function PricingPlans({ children }: { children?: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    /*
+      Stripe replaces this tab. When somebody presses the browser's Back
+      button, Safari and Chrome commonly restore the pricing page from the
+      back-forward cache instead of mounting it again. React state therefore
+      still contained `busy = true`, leaving every payment button disabled and
+      saying "Opening checkout…" even though Checkout had been left.
+
+      `pageshow` runs for both a normal history return and a BFCache restore.
+      Resetting here is safe on the initial visit (the state is already false)
+      and makes a returned page immediately usable without a hard reload.
+    */
+    const onPageShow = () => setBusy(false);
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  useEffect(() => {
     let alive = true;
     fetch(apiUrl("/api/billing/config"))
       .then(async (res) => {
