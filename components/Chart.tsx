@@ -138,7 +138,7 @@ const SLANT = 35;
 const SLANT_X = Math.cos((SLANT * Math.PI) / 180);
 const SLANT_Y = Math.sin((SLANT * Math.PI) / 180);
 
-function buildFrame(spec: Cartesian, width: number): Frame {
+function buildFrame(spec: Cartesian, width: number, plotCap = 260): Frame {
   const font = width < 340 ? 11 : 12;
   const count = Math.max(1, spec.categories.length);
   const scale = valueScale(spec, width < 340 ? 4 : 5);
@@ -191,7 +191,20 @@ function buildFrame(spec: Cartesian, width: number): Frame {
   const axisDepth = rotate ? 10 + rotatedWidth * SLANT_Y : font + 8;
   const bottom = axisDepth + (spec.xLabel ? font + 8 : 0) + 4;
   const top = 16;
-  const plotH = Math.round(Math.min(260, Math.max(150, width * 0.5)));
+  /*
+    Bounded by `plotCap`, which the owner's console lowers.
+
+    Left to itself a wide panel draws a 260-pixel plot, and two of those turned
+    the dashboard into a page that had to be scrolled the moment there was
+    anything to plot — the switch and the checklist were pushed under the fold
+    by data arriving, which is the one thing a glanceable screen must not do.
+
+    A cap rather than scaling the finished drawing down: shrinking the SVG
+    shrinks its type with it, and a seven-pixel axis label is not a smaller
+    chart, it is an unreadable one. This makes the plot shorter and leaves
+    every label the size it was.
+  */
+  const plotH = Math.round(Math.min(plotCap, Math.max(90, width * 0.5)));
   const height = Math.ceil(top + plotH + bottom);
 
   const slot = slotOf(plotW);
@@ -687,7 +700,24 @@ function FigureTable({ spec }: { spec: ChartSpec }) {
 
 // ------------------------------------------------------------------- entry ---
 
-export default function Chart({ spec, className = "" }: { spec: ChartSpec; className?: string }) {
+export default function Chart({
+  spec,
+  className = "",
+  plotHeight,
+}: {
+  spec: ChartSpec;
+  className?: string;
+  /**
+   * The tallest the plot area may be drawn, in pixels.
+   *
+   * For a chart in a document — a Writing Task 1 figure — the default is
+   * right: it is the thing on the page, and it should have room. A dashboard
+   * is the other case, where a chart is one tile among several and its job is
+   * to be glanced at, so the console asks for a shorter one and keeps the rest
+   * of the screen.
+   */
+  plotHeight?: number;
+}) {
   const [width, wrapper] = useMeasuredWidth();
   const id = useId();
   const titleId = `${id}-title`;
@@ -711,7 +741,13 @@ export default function Chart({ spec, className = "" }: { spec: ChartSpec; class
           ) : spec.kind === "pie" ? (
             <PiePlot spec={spec} width={drawn} titleId={titleId} descId={descId} />
           ) : (
-            <CartesianPlot spec={spec} width={drawn} titleId={titleId} descId={descId} />
+            <CartesianPlot
+              spec={spec}
+              width={drawn}
+              plotHeight={plotHeight}
+              titleId={titleId}
+              descId={descId}
+            />
           )}
         </div>
       </div>
@@ -724,15 +760,17 @@ export default function Chart({ spec, className = "" }: { spec: ChartSpec; class
 function CartesianPlot({
   spec,
   width,
+  plotHeight,
   titleId,
   descId,
 }: {
   spec: Cartesian;
   width: number;
+  plotHeight?: number;
   titleId: string;
   descId: string;
 }) {
-  const frame = buildFrame(spec, width);
+  const frame = buildFrame(spec, width, plotHeight);
   return (
     <svg
       role="img"

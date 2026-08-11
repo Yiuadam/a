@@ -1,7 +1,7 @@
 "use client";
 
 import ConsoleShell, { NotFound } from "@/components/admin/ConsoleShell";
-import { Charts } from "@/components/admin/ConsoleParts";
+import { FullCharts } from "@/components/admin/ConsoleParts";
 import { useTier } from "@/lib/billing/useTier";
 import { useConsole } from "@/lib/admin/useConsole";
 
@@ -31,7 +31,7 @@ export default function TrafficScreen() {
       lead="The last thirty days."
       back={{ href: "/admin", label: "Overview" }}
     >
-      <Charts stats={stats} />
+      <FullCharts stats={stats} />
     </ConsoleShell>
   );
 }

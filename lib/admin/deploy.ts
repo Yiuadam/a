@@ -140,7 +140,7 @@ export async function dispatchDeploy(closed: boolean): Promise<DispatchResult> {
   */
   const problem =
     res.status === 401 || res.status === 403
-      ? "GitHub refused the deploy token. It may have expired, or it may not have Actions write access to the repository."
+      ? "GitHub refused the deploy token. The usual cause is a fine-grained token with Actions set to Read rather than Read and write; it can also have expired, or not list this repository. See DEPLOY.md."
       : res.status === 404
         ? `GitHub could not find the ${DEPLOY_WORKFLOW} workflow, or the token cannot see this repository.`
         : res.status === 422

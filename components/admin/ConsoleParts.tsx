@@ -16,7 +16,16 @@ import type { ChartSpec } from "@/lib/chart";
 
 /* ------------------------------------------------------------------ charts */
 
-export function Charts({ stats }: { stats: Stats | null }) {
+/**
+ * How tall a plot may be drawn on the console.
+ *
+ * Chosen against the screen rather than by taste: at 1440×900 the overview has
+ * to hold a title, four stat tiles, two charts, the site switch and the
+ * configuration list, and this is what leaves the last two above the fold.
+ */
+const CONSOLE_PLOT_HEIGHT = 130;
+
+export function Charts({ stats, full = false }: { stats: Stats | null; full?: boolean }) {
   /*
     Both drawn through the app's own chart component rather than a library. It
     already renders line and bar from a ChartSpec — it was built for Writing
@@ -50,10 +59,35 @@ export function Charts({ stats }: { stats: Stats | null }) {
         }
       : null;
 
+  /*
+    A fixed height whether there is data or not.
+
+    The console drew empty axes at about eighty pixels and a real thirty-day
+    series at three hundred, so the first day anything was worth plotting the
+    page grew by half a screen and pushed the site switch and the checklist
+    under the fold. A dashboard whose layout depends on its numbers is one you
+    have to re-find your way around every time the numbers change, and the
+    controls are the part that must not move.
+
+    So the plot is capped and the panel is given a floor: full, it cannot grow
+    past the cap; empty, it does not collapse. Same box either way.
+  */
   return (
     <div className="grid gap-3 xl:grid-cols-2">
-      <Panel>{signupChart ? <Chart spec={signupChart} /> : <Empty title="New accounts" />}</Panel>
-      <Panel>{usageChart ? <Chart spec={usageChart} /> : <Empty title="AI requests" />}</Panel>
+      <Panel>
+        {signupChart ? (
+          <Chart spec={signupChart} plotHeight={full ? undefined : CONSOLE_PLOT_HEIGHT} />
+        ) : (
+          <Empty title="New accounts" />
+        )}
+      </Panel>
+      <Panel>
+        {usageChart ? (
+          <Chart spec={usageChart} plotHeight={full ? undefined : CONSOLE_PLOT_HEIGHT} />
+        ) : (
+          <Empty title="AI requests" />
+        )}
+      </Panel>
     </div>
   );
 }
@@ -265,6 +299,15 @@ function Panel({ children }: { children: React.ReactNode }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-surface p-4 sm:p-5">{children}</section>
   );
+}
+
+/*
+  The traffic screen wants the room the overview cannot spare, so it draws the
+  same two charts at their natural size. Exported so /admin/traffic reads as
+  "the big versions of these" rather than repeating the composition.
+*/
+export function FullCharts({ stats }: { stats: Stats | null }) {
+  return <Charts stats={stats} full />;
 }
 
 /*

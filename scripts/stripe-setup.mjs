@@ -138,7 +138,16 @@ async function productFor(tier) {
  */
 async function priceFor(planId, productId) {
   const plan = PLANS[planId];
-  const existing = await stripe("GET", `/prices?lookup_keys[]=${encodeURIComponent(planId)}&active=true`);
+  /*
+    `expand[]=data.currency_options` for the same reason lib/billing/stripe.ts
+    expands it: Stripe does not return regional prices on a Price unless asked,
+    so without this every existing Price looks like it has none and the script
+    offers to recreate one that is already correct.
+  */
+  const existing = await stripe(
+    "GET",
+    `/prices?lookup_keys[]=${encodeURIComponent(planId)}&active=true&expand[]=data.currency_options`,
+  );
   const match = existing.data?.[0];
 
   /*
