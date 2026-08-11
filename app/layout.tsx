@@ -22,7 +22,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BandUp — IELTS practice",
+  applicationName: "BandUp",
+  title: "BandUp",
   description:
     "Find your IELTS band, follow a plan made for you, and practise all four skills with an AI examiner.",
   /*

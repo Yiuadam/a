@@ -11,7 +11,24 @@ import type {
 const MODULE = "lib/admin/anthropic-cost.ts";
 const COST_REPORT_URL = "https://api.anthropic.com/v1/organizations/cost_report";
 
-export class AnthropicCostError extends Error {}
+export type AnthropicCostErrorCode =
+  | "not_configured"
+  | "authentication_failed"
+  | "permission_denied"
+  | "workspace_rejected"
+  | "provider_unavailable"
+  | "invalid_response"
+  | "request_rejected";
+
+export class AnthropicCostError extends Error {
+  readonly code: AnthropicCostErrorCode;
+
+  constructor(code: AnthropicCostErrorCode, message: string) {
+    super(message);
+    this.name = "AnthropicCostError";
+    this.code = code;
+  }
+}
 
 interface CostRow {
   amount: string;
@@ -52,7 +69,10 @@ export function summariseAnthropicCost(
     const day = new Date(bucket.startingAt).toISOString().slice(0, 10);
     for (const row of bucket.results) {
       if (row.currency.toUpperCase() !== "USD") {
-        throw new AnthropicCostError(`Anthropic returned cost in ${row.currency}, expected USD`);
+        throw new AnthropicCostError(
+          "invalid_response",
+          `Anthropic returned cost in ${row.currency}, expected USD`,
+        );
       }
       const amount = normaliseDecimal(row.amount);
       const costType = row.costType || "unknown";
@@ -76,6 +96,14 @@ export function summariseAnthropicCost(
   }
 
   return {
+    source: "anthropic_cost_api",
+    asOf: period.endingAt,
+    coverage: {
+      source: "anthropic_cost_api",
+      startsAt: null,
+      historicalComplete: true,
+      includesProviderBackfill: false,
+    },
     lifetime: { cost: money(lifetimeCost), tokenCost: money(lifetimeTokenCost) },
     period: { cost: money(periodCost), tokenCost: money(periodTokenCost) },
     daily: [...daily.entries()].map(([day, value]) => ({
@@ -96,12 +124,12 @@ export function summariseAnthropicCost(
 
 function readCostBuckets(payload: unknown): AnthropicCostBucket[] {
   if (!payload || typeof payload !== "object" || !Array.isArray((payload as { data?: unknown }).data)) {
-    throw new AnthropicCostError("Anthropic returned an invalid Cost Report");
+    throw new AnthropicCostError("invalid_response", "Anthropic returned an invalid Cost Report");
   }
 
   return (payload as { data: unknown[] }).data.map((rawBucket) => {
     if (!rawBucket || typeof rawBucket !== "object") {
-      throw new AnthropicCostError("Anthropic returned an invalid cost bucket");
+      throw new AnthropicCostError("invalid_response", "Anthropic returned an invalid cost bucket");
     }
     const bucket = rawBucket as Record<string, unknown>;
     if (
@@ -109,18 +137,18 @@ function readCostBuckets(payload: unknown): AnthropicCostBucket[] {
       typeof bucket.ending_at !== "string" ||
       !Array.isArray(bucket.results)
     ) {
-      throw new AnthropicCostError("Anthropic returned an incomplete cost bucket");
+      throw new AnthropicCostError("invalid_response", "Anthropic returned an incomplete cost bucket");
     }
     return {
       startingAt: bucket.starting_at,
       endingAt: bucket.ending_at,
       results: bucket.results.map((rawRow) => {
         if (!rawRow || typeof rawRow !== "object") {
-          throw new AnthropicCostError("Anthropic returned an invalid cost row");
+          throw new AnthropicCostError("invalid_response", "Anthropic returned an invalid cost row");
         }
         const row = rawRow as Record<string, unknown>;
         if (typeof row.amount !== "string" || typeof row.currency !== "string") {
-          throw new AnthropicCostError("Anthropic returned an incomplete cost row");
+          throw new AnthropicCostError("invalid_response", "Anthropic returned an incomplete cost row");
         }
         return {
           amount: row.amount,
@@ -147,7 +175,9 @@ export async function anthropicCostSnapshot(
 ): Promise<AnthropicCostSnapshot> {
   assertServerOnly(MODULE);
   const key = anthropicAdminKey();
-  if (!key) throw new AnthropicCostError("Anthropic Cost Report is not configured");
+  if (!key) {
+    throw new AnthropicCostError("not_configured", "Anthropic Cost Report is not configured");
+  }
   const workspaceId = anthropicWorkspaceId();
   const buckets: AnthropicCostBucket[] = [];
   let pageToken: string | undefined;
@@ -177,6 +207,7 @@ export async function anthropicCostSnapshot(
       });
     } catch (error) {
       throw new AnthropicCostError(
+        "provider_unavailable",
         `Anthropic Cost Report request failed: ${error instanceof Error ? error.name : "unknown"}`,
       );
     }
@@ -185,12 +216,29 @@ export async function anthropicCostSnapshot(
     try {
       payload = await response.json();
     } catch {
-      throw new AnthropicCostError(`Anthropic Cost Report was not JSON (${response.status})`);
+      throw new AnthropicCostError(
+        "invalid_response",
+        `Anthropic Cost Report was not JSON (${response.status})`,
+      );
     }
     if (!response.ok) {
       const error = (payload as { error?: { type?: unknown } } | null)?.error;
       const detail = typeof error?.type === "string" ? error.type : String(response.status);
-      throw new AnthropicCostError(`Anthropic Cost Report refused: ${detail}`);
+      const code: AnthropicCostErrorCode =
+        response.status === 401 || detail === "authentication_error"
+          ? "authentication_failed"
+          : response.status === 403 || detail === "permission_error"
+            ? "permission_denied"
+            : workspaceId &&
+                (response.status === 400 ||
+                  response.status === 404 ||
+                  detail === "invalid_request_error" ||
+                  detail === "not_found_error")
+              ? "workspace_rejected"
+              : response.status === 429 || response.status >= 500
+                ? "provider_unavailable"
+                : "request_rejected";
+      throw new AnthropicCostError(code, `Anthropic Cost Report refused: ${detail}`);
     }
 
     buckets.push(...readCostBuckets(payload));
@@ -203,10 +251,16 @@ export async function anthropicCostSnapshot(
       report.next_page.length === 0 ||
       report.next_page === pageToken
     ) {
-      throw new AnthropicCostError("Anthropic Cost Report pagination did not advance");
+      throw new AnthropicCostError(
+        "invalid_response",
+        "Anthropic Cost Report pagination did not advance",
+      );
     }
     pageToken = report.next_page;
   }
 
-  throw new AnthropicCostError("Anthropic Cost Report exceeded 1,000 pages");
+  throw new AnthropicCostError(
+    "invalid_response",
+    "Anthropic Cost Report exceeded 1,000 pages",
+  );
 }

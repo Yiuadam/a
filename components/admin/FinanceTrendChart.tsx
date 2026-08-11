@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import styles from "./FinanceTrendChart.module.css";
 
 export interface FinancePoint {
@@ -28,7 +28,8 @@ export default function FinanceTrendChart({
 }) {
   const id = useId().replaceAll(":", "");
   const [active, setActive] = useState<number | null>(null);
-  const width = 600;
+  const chartRef = useRef<SVGSVGElement>(null);
+  const [width, setWidth] = useState(600);
   const height = compact ? 132 : 184;
   const left = 10;
   const right = 10;
@@ -56,7 +57,21 @@ export default function FinanceTrendChart({
   const selectedPoint = selected == null ? null : points[selected] ?? null;
   const total = values.reduce((sum, value) => sum + value, 0);
   const formattedTotal = money(total, currency);
-  const labels = labelIndices(points.length);
+  const labels = labelIndices(points.length, width);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const measured = entry?.contentRect.width ?? 0;
+      if (measured <= 0) return;
+      const next = Math.max(240, Math.round(measured));
+      setWidth((current) => current === next ? current : next);
+    });
+    observer.observe(chart);
+    return () => observer.disconnect();
+  }, []);
 
   const selectPointer = (event: PointerEvent<SVGSVGElement>) => {
     if (points.length === 0) return;
@@ -96,8 +111,10 @@ export default function FinanceTrendChart({
         <p className="grid min-h-32 place-items-center text-xs text-slate-400">No data yet</p>
       ) : (
         <svg
+          ref={chartRef}
           className={styles.chart}
           viewBox={`0 0 ${width} ${height}`}
+          style={{ height }}
           role="img"
           tabIndex={0}
           aria-labelledby={`${id}-title ${id}-description ${id}-instructions`}
@@ -144,7 +161,7 @@ export default function FinanceTrendChart({
           <summary>View chart data</summary>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
-              <caption className="sr-only">{title}: exact daily figures</caption>
+              <caption className="sr-only">{title}: daily figures for {label}</caption>
               <thead><tr><th scope="col">Date</th><th scope="col">{label}</th></tr></thead>
               <tbody>{points.map((point) => <tr key={point.day}><td>{dateLabel(point.day)}</td><td>{money(point.value, currency)}</td></tr>)}</tbody>
             </table>
@@ -182,9 +199,10 @@ function smoothPath(points: readonly { x: number; y: number }[]): string {
   return path;
 }
 
-function labelIndices(count: number): number[] {
+function labelIndices(count: number, width: number): number[] {
   if (count <= 0) return [];
-  const wanted = Math.min(count, 6);
+  const capacity = width < 360 ? 3 : width < 520 ? 4 : 6;
+  const wanted = Math.min(count, capacity);
   if (wanted === 1) return [0];
   return Array.from(new Set(Array.from({ length: wanted }, (_, index) => Math.round((index * (count - 1)) / (wanted - 1)))));
 }

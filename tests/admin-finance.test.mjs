@@ -10,6 +10,8 @@ const load = (...parts) => import(pathToFileURL(join(process.cwd(), ...parts)).h
 const decimal = await load("lib", "admin", "finance-decimal.ts");
 const periodModule = await load("lib", "admin", "finance-period.ts");
 const finance = await load("lib", "admin", "finance.ts");
+const financeFx = await load("lib", "admin", "finance-fx.ts");
+const localCost = await load("lib", "admin", "finance-local-cost.ts");
 const financeFormat = await load("lib", "admin", "finance-format.ts");
 const financeView = await load("lib", "admin", "finance-view.ts");
 const anthropic = await load("lib", "admin", "anthropic-cost.ts");
@@ -24,6 +26,37 @@ test("provider decimals add and subtract without rounding fractional cents", () 
   assert.equal(decimal.addDecimal("123.45", "0.55"), "124");
   assert.equal(decimal.subtractDecimal("95", "10.55"), "84.45");
   assert.equal(decimal.normaliseDecimal("-000.1200"), "-0.12");
+  assert.equal(decimal.multiplyDecimal("10.55", "7.842"), "82.7331");
+});
+
+test("HKMA floating JSON is normalised into a dated official rate snapshot", () => {
+  const fx = financeFx.parseHkmaFx(
+    {
+      result: {
+        records: [
+          { end_of_day: "2026-07-31", usd: 7.8420000000000005, eur: 9.03, neeri_2020_trade_wgt: 101.1 },
+        ],
+      },
+    },
+    NOW,
+  );
+  assert.equal(fx.source, "Hong Kong Monetary Authority");
+  assert.equal(fx.asOf, "2026-07-31");
+  assert.equal(fx.rates.HKD, "1");
+  assert.equal(fx.rates.USD, "7.842");
+  assert.equal(fx.rates.EUR, "9.03");
+  assert.equal(fx.rates.NEERI_2020_TRADE_WGT, undefined);
+});
+
+test("stale HKMA data is refused rather than used silently", () => {
+  assert.throws(
+    () =>
+      financeFx.parseHkmaFx(
+        { result: { records: [{ end_of_day: "2026-01-01", usd: 7.8 }] } },
+        NOW,
+      ),
+    (error) => error instanceof financeFx.FinanceFxError && error.code === "stale_data",
+  );
 });
 
 test("provider-reported fractional cents stay visible above one dollar", () => {
@@ -124,6 +157,132 @@ test("Anthropic aggregates fractional cents, all costs, and token-only costs", (
   assert.equal(snapshot.workspaceFiltered, true);
 });
 
+test("Anthropic Cost API failures have safe, actionable availability codes", async () => {
+  const previousKey = process.env.ANTHROPIC_ADMIN_KEY;
+  const previousWorkspace = process.env.ANTHROPIC_WORKSPACE_ID;
+  try {
+    delete process.env.ANTHROPIC_ADMIN_KEY;
+    await assert.rejects(
+      () => anthropic.anthropicCostSnapshot(PERIOD, periodModule.FINANCE_LIFETIME_START),
+      (error) => error instanceof anthropic.AnthropicCostError && error.code === "not_configured",
+    );
+
+    process.env.ANTHROPIC_ADMIN_KEY = "admin-test-key";
+    delete process.env.ANTHROPIC_WORKSPACE_ID;
+    await assert.rejects(
+      () => anthropic.anthropicCostSnapshot(
+        PERIOD,
+        periodModule.FINANCE_LIFETIME_START,
+        async () => Response.json({ error: { type: "permission_error" } }, { status: 403 }),
+      ),
+      (error) => error instanceof anthropic.AnthropicCostError && error.code === "permission_denied",
+    );
+
+    process.env.ANTHROPIC_WORKSPACE_ID = "workspace-test";
+    await assert.rejects(
+      () => anthropic.anthropicCostSnapshot(
+        PERIOD,
+        periodModule.FINANCE_LIFETIME_START,
+        async () => Response.json({ error: { type: "not_found_error" } }, { status: 404 }),
+      ),
+      (error) => error instanceof anthropic.AnthropicCostError && error.code === "workspace_rejected",
+    );
+  } finally {
+    if (previousKey === undefined) delete process.env.ANTHROPIC_ADMIN_KEY;
+    else process.env.ANTHROPIC_ADMIN_KEY = previousKey;
+    if (previousWorkspace === undefined) delete process.env.ANTHROPIC_WORKSPACE_ID;
+    else process.env.ANTHROPIC_WORKSPACE_ID = previousWorkspace;
+  }
+});
+
+test("local actual-token and provider-backfill costs retain their provenance", () => {
+  const totals = (cost, calculated, backfill) => ({
+    costMinorUnits: cost,
+    calculatedCostMinorUnits: calculated,
+    providerBackfillCostMinorUnits: backfill,
+    inputTokens: "1200",
+    outputTokens: "300",
+    cacheCreationInputTokens: "0",
+    cacheReadInputTokens: "25",
+    requestCount: "2",
+    backfillRowCount: backfill === "0" ? "0" : "1",
+  });
+  const snapshot = localCost.parseLocalAiCost(
+    {
+      source: "local_cost_ledger",
+      currency: "USD",
+      asOf: "2026-08-12T12:35:00.000Z",
+      periodDays: 30,
+      coverage: {
+        source: "provider_console",
+        startsAt: "2026-07-01T00:00:00.000Z",
+        historicalComplete: true,
+        includesProviderBackfill: true,
+      },
+      lifetime: totals("12.345", "2.345", "10"),
+      period: totals("2.345", "2.345", "0"),
+      daily: [
+        {
+          date: "2026-08-12",
+          ...totals("2.345", "2.345", "0"),
+        },
+      ],
+    },
+    PERIOD,
+  );
+
+  assert.equal(snapshot.source, "local_cost_ledger");
+  assert.deepEqual(snapshot.coverage, {
+    source: "provider_console",
+    startsAt: "2026-07-01T00:00:00.000Z",
+    historicalComplete: true,
+    includesProviderBackfill: true,
+  });
+  assert.equal(snapshot.lifetime.cost.minorUnits, "12.345");
+  assert.equal(snapshot.lifetime.tokenCost.minorUnits, "2.345");
+  assert.equal(snapshot.daily.length, 30);
+  assert.equal(snapshot.daily.at(-1).cost.minorUnits, "2.345");
+  assert.equal(
+    snapshot.byCostType.find((row) => row.costType === "provider_backfill").lifetimeCost.minorUnits,
+    "10",
+  );
+});
+
+test("local AI cost is refused when its provenance totals do not reconcile", () => {
+  const invalidTotals = {
+    costMinorUnits: "3",
+    calculatedCostMinorUnits: "1",
+    providerBackfillCostMinorUnits: "1",
+    inputTokens: "1",
+    outputTokens: "1",
+    cacheCreationInputTokens: "0",
+    cacheReadInputTokens: "0",
+    requestCount: "1",
+    backfillRowCount: "1",
+  };
+  assert.throws(
+    () => localCost.parseLocalAiCost(
+      {
+        source: "local_cost_ledger",
+        currency: "USD",
+        asOf: "2026-08-12T12:35:00.000Z",
+        periodDays: 30,
+        coverage: {
+          source: null,
+          startsAt: null,
+          historicalComplete: false,
+          includesProviderBackfill: false,
+        },
+        lifetime: invalidTotals,
+        period: invalidTotals,
+        daily: [],
+      },
+      PERIOD,
+    ),
+    (error) => error instanceof localCost.LocalAiCostError && error.code === "invalid_response",
+  );
+});
+
 test("contribution is exact only for one USD Stripe currency", () => {
   const stripe = stripeFinance.summariseStripeFinance(
     [{ created: utc("2026-08-06T00:00:00Z"), currency: "usd", reportingCategory: "charge", amountMinor: 100, feeMinor: 5, netMinor: 95 }],
@@ -140,7 +299,20 @@ test("contribution is exact only for one USD Stripe currency", () => {
     false,
   );
   const contribution = finance.financeContribution(stripe, ai);
+  assert.equal(contribution.basis, "exact");
   assert.equal(contribution.period.contribution.minorUnits, "84.45");
+
+  const locallyCalculated = {
+    ...ai,
+    source: "local_cost_ledger",
+    coverage: {
+      source: "local_tracking",
+      startsAt: "2026-08-01T00:00:00.000Z",
+      historicalComplete: false,
+      includesProviderBackfill: false,
+    },
+  };
+  assert.equal(finance.financeContribution(stripe, locallyCalculated), null);
 
   const hkd = stripeFinance.summariseStripeFinance(
     [{ created: utc("2026-08-06T00:00:00Z"), currency: "hkd", reportingCategory: "charge", amountMinor: 100, feeMinor: 5, netMinor: 95 }],
@@ -148,6 +320,71 @@ test("contribution is exact only for one USD Stripe currency", () => {
     PERIOD,
   );
   assert.equal(finance.financeContribution(hkd, ai), null);
+});
+
+test("HKD receipts and USD AI cost produce an explicitly estimated HKMA view", () => {
+  const stripe = stripeFinance.summariseStripeFinance(
+    [{ created: utc("2026-08-06T00:00:00Z"), currency: "hkd", reportingCategory: "charge", amountMinor: 100, feeMinor: 5, netMinor: 95 }],
+    [],
+    PERIOD,
+  );
+  const ai = anthropic.summariseAnthropicCost(
+    [{
+      startingAt: "2026-08-06T00:00:00Z",
+      endingAt: "2026-08-07T00:00:00Z",
+      results: [{ amount: "10.55", currency: "USD", costType: "tokens" }],
+    }],
+    PERIOD,
+    false,
+  );
+  const fx = financeFx.parseHkmaFx(
+    { result: { records: [{ end_of_day: "2026-07-31", usd: 7.842 }] } },
+    NOW,
+  );
+  const estimate = finance.estimatedHkdFinance(stripe, ai, fx);
+
+  assert.equal(estimate.basis, "estimated");
+  assert.equal(estimate.fx.asOf, "2026-07-31");
+  assert.equal(estimate.lifetime.customerPaid.minorUnits, "100");
+  assert.equal(estimate.lifetime.stripeFees.minorUnits, "5");
+  assert.equal(estimate.lifetime.received.minorUnits, "95");
+  assert.equal(estimate.lifetime.aiCost.minorUnits, "82.7331");
+  assert.equal(estimate.lifetime.afterAi.minorUnits, "12.2669");
+});
+
+test("an HKMA estimate refuses any settlement currency whose rate is absent", () => {
+  const stripe = stripeFinance.summariseStripeFinance(
+    [{ created: utc("2026-08-06T00:00:00Z"), currency: "nzd", reportingCategory: "charge", amountMinor: 100, feeMinor: 5, netMinor: 95 }],
+    [],
+    PERIOD,
+  );
+  const ai = anthropic.summariseAnthropicCost([], PERIOD, false);
+  const fx = financeFx.parseHkmaFx(
+    { result: { records: [{ end_of_day: "2026-07-31", usd: 7.842 }] } },
+    NOW,
+  );
+  assert.equal(finance.estimatedHkdFinance(stripe, ai, fx), null);
+});
+
+test("AI cost remains visible as a loss before the first Stripe receipt", () => {
+  const stripe = stripeFinance.summariseStripeFinance([], [], PERIOD);
+  const ai = anthropic.summariseAnthropicCost(
+    [{
+      startingAt: "2026-08-06T00:00:00Z",
+      endingAt: "2026-08-07T00:00:00Z",
+      results: [{ amount: "1.25", currency: "USD", costType: "tokens" }],
+    }],
+    PERIOD,
+    false,
+  );
+  const fx = financeFx.parseHkmaFx(
+    { result: { records: [{ end_of_day: "2026-07-31", usd: 7.842 }] } },
+    NOW,
+  );
+  const estimate = finance.estimatedHkdFinance(stripe, ai, fx);
+  assert.equal(estimate.period.received.minorUnits, "0");
+  assert.equal(estimate.period.aiCost.minorUnits, "9.8025");
+  assert.equal(estimate.period.afterAi.minorUnits, "-9.8025");
 });
 
 test("Stripe finance pagination uses created activity and paid arrival dates", async () => {

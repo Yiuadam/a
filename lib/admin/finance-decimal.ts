@@ -55,6 +55,15 @@ export function subtractDecimal(left: string, right: string): string {
   return addDecimal(left, format({ coefficient: -value.coefficient, scale: value.scale }));
 }
 
+export function multiplyDecimal(left: string, right: string): string {
+  const lhs = parse(left);
+  const rhs = parse(right);
+  return format({
+    coefficient: lhs.coefficient * rhs.coefficient,
+    scale: lhs.scale + rhs.scale,
+  });
+}
+
 export function normaliseDecimal(value: string): string {
   return format(parse(value));
 }

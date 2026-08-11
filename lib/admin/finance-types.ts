@@ -89,7 +89,22 @@ export interface AnthropicCostTypeTotal {
   periodCost: ExactMoney;
 }
 
+export interface AnthropicCostCoverage {
+  /** Evidence used to establish the included date range. */
+  source: "anthropic_cost_api" | "provider_console" | "local_tracking" | null;
+  /** Earliest cost included by this source, when it cannot cover all history. */
+  startsAt: string | null;
+  /** True only when the source covers the full requested lifetime window. */
+  historicalComplete: boolean;
+  /** Whether provider-billed historical cost has been imported into the ledger. */
+  includesProviderBackfill: boolean;
+}
+
 export interface AnthropicCostSnapshot {
+  source: "anthropic_cost_api" | "local_cost_ledger";
+  /** When this cost view was calculated or read. */
+  asOf: string;
+  coverage: AnthropicCostCoverage;
   lifetime: AnthropicCostTotals;
   period: AnthropicCostTotals;
   daily: AnthropicCostDay[];
@@ -108,10 +123,100 @@ export interface ContributionDay extends ContributionAmounts {
 }
 
 export interface ContributionSnapshot {
-  currency: "USD";
+  currency: string;
+  basis: "exact";
   lifetime: ContributionAmounts;
   period: ContributionAmounts;
   daily: ContributionDay[];
+}
+
+export interface HkdFxSnapshot {
+  source: "Hong Kong Monetary Authority";
+  sourceUrl: string;
+  asOf: string;
+  /** HKD major units per one major unit of each ISO currency. */
+  rates: Record<string, string>;
+}
+
+export interface HkdFinanceTotals {
+  /** Successful customer charge amounts before refunds and provider fees. */
+  customerPaid: ExactMoney;
+  stripeFees: ExactMoney;
+  /** Operating net after fees, refunds, disputes and other classified activity. */
+  received: ExactMoney;
+  aiCost: ExactMoney;
+  /** `received` less all Anthropic costs; hosting and taxes are not deducted. */
+  afterAi: ExactMoney;
+}
+
+export interface HkdFinanceDay {
+  day: string;
+  received: ExactMoney;
+  aiCost: ExactMoney;
+  afterAi: ExactMoney;
+}
+
+/**
+ * A current-rate planning view, never provider-exact accounting. Original
+ * provider currencies remain available in `stripe` and `anthropic`.
+ */
+export interface HkdFinanceEstimate {
+  currency: "HKD";
+  basis: "estimated";
+  fx: HkdFxSnapshot;
+  lifetime: HkdFinanceTotals;
+  period: HkdFinanceTotals;
+  daily: HkdFinanceDay[];
+}
+
+export type FinanceAvailabilityCode =
+  | "not_configured"
+  | "authentication_failed"
+  | "permission_denied"
+  | "workspace_rejected"
+  | "provider_unavailable"
+  | "invalid_response"
+  | "request_rejected"
+  | "stale_data";
+
+export interface FinanceAvailabilityReason {
+  code: FinanceAvailabilityCode;
+  /** Owner-safe copy; never includes a provider response body or secret. */
+  message: string;
+}
+
+export interface FinanceProviderAvailability {
+  configured: boolean;
+  available: boolean;
+  source:
+    | "stripe_balance"
+    | "anthropic_cost_api"
+    | "local_cost_ledger"
+    | "hkma"
+    | null;
+  reason: FinanceAvailabilityReason | null;
+}
+
+export interface FinanceProviderAvailabilityMap {
+  stripe: FinanceProviderAvailability;
+  anthropic: FinanceProviderAvailability;
+  fx: FinanceProviderAvailability;
+}
+
+export type ContributionAvailabilityCode =
+  | "stripe_unavailable"
+  | "anthropic_unavailable"
+  | "fx_unavailable"
+  | "no_receipts"
+  | "unsupported_currency";
+
+export interface ContributionAvailability {
+  available: boolean;
+  basis: "exact" | "estimated" | null;
+  reason: {
+    code: ContributionAvailabilityCode;
+    message: string;
+  } | null;
 }
 
 export interface AdminFinanceResponse {
@@ -120,11 +225,15 @@ export interface AdminFinanceResponse {
   lifetimeStartingAt: string;
   stripeConfigured: boolean;
   anthropicConfigured: boolean;
+  providers: FinanceProviderAvailabilityMap;
   stripe: StripeFinancialSnapshot | null;
   anthropic: AnthropicCostSnapshot | null;
   /**
-   * Only present when Stripe has exactly one currency and it is USD, matching
-   * Anthropic's billing currency. No exchange rate is guessed.
+   * Only present when Stripe has exactly one currency matching an authoritative
+   * Anthropic Cost Report. No exchange rate or locally calculated bill is used.
    */
   contribution: ContributionSnapshot | null;
+  /** Latest official HKMA rate converted planning totals, when available. */
+  hkdEstimate: HkdFinanceEstimate | null;
+  contributionStatus: ContributionAvailability;
 }
