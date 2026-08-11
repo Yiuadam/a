@@ -30,7 +30,10 @@ import { withCors } from "@/lib/http/cors";
 
 export const dynamic = "force-dynamic";
 
-const MAX_BYTES = 512 * 1024;
+/* Detailed sitting reviews include essays, transcripts and question wording.
+   Two megabytes holds the complete 100-result archive while still putting a
+   firm ceiling on the only endpoint that accepts arbitrary account JSON. */
+const MAX_BYTES = 2 * 1024 * 1024;
 
 async function requireUser(req: Request) {
   if (!accountsEnabled() || !supabaseConfigured()) return { error: "off" as const };

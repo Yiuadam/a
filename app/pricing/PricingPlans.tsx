@@ -60,6 +60,8 @@ import {
 /** What /api/billing/config answers. */
 interface BillingConfig {
   checkout: boolean;
+  /** One-time Alipay and WeChat Pay checkout for prepaid monthly/yearly access. */
+  walletCheckout?: boolean;
   plans: PlanId[];
   /**
    * Which currency to print, resolved from the reader's address by the server.
@@ -296,6 +298,7 @@ export default function PricingPlans({ children }: { children?: ReactNode }) {
           const planId = planFor(id, interval);
           const planOffered =
             planId !== null && checkoutOpen && config?.plans.includes(planId) === true;
+          const walletOffered = planId !== null && config?.walletCheckout === true;
           /*
             An admin is marked as being on Pro rather than on a fifth plan
             nobody can buy. The account screen is where "no limits" is
@@ -346,6 +349,7 @@ export default function PricingPlans({ children }: { children?: ReactNode }) {
                     isCurrent={isCurrent}
                     planId={planId}
                     planOffered={planOffered}
+                    walletOffered={walletOffered}
                     configPhase={configPhase}
                     account={account}
                     busy={busy}
@@ -393,6 +397,7 @@ function PaidAction({
   isCurrent,
   planId,
   planOffered,
+  walletOffered,
   configPhase,
   account,
   busy,
@@ -401,6 +406,7 @@ function PaidAction({
   isCurrent: boolean;
   planId: PlanId;
   planOffered: boolean;
+  walletOffered: boolean;
   configPhase: ConfigPhase;
   account: ReturnType<typeof useTier>;
   busy: boolean;
@@ -416,7 +422,7 @@ function PaidAction({
       <div className="flex flex-col gap-2">
         {account.expiresAt && (
           <p className="text-xs leading-5 text-slate-500">
-            Renews {new Date(account.expiresAt).toLocaleDateString()}.
+            Access through {new Date(account.expiresAt).toLocaleDateString()}.
           </p>
         )}
         <button
@@ -425,7 +431,7 @@ function PaidAction({
           onClick={() => onStart("/api/billing/portal")}
           className="btn-secondary w-full"
         >
-          {busy ? "Opening…" : "Manage or cancel"}
+          {busy ? "Opening…" : "Manage billing"}
         </button>
       </div>
     );
@@ -464,11 +470,11 @@ function PaidAction({
     creates the Stripe prices. A button that looked live and failed on the
     first click would be worse than a sentence.
   */
-  if (!planOffered) {
+  if (!planOffered && !walletOffered) {
     return (
       <p className="text-sm leading-6 text-slate-500">
-        Subscriptions aren&rsquo;t open yet. The placement test, your study plan and every drill
-        are free either way, and a free account syncs your progress between devices.
+        Payments aren&rsquo;t open yet. The placement test, your study plan and every drill are free
+        either way, and a free account syncs your progress between devices.
       </p>
     );
   }
@@ -477,10 +483,10 @@ function PaidAction({
     return (
       <div className="flex flex-col gap-2">
         <p className="text-xs leading-5 text-slate-500">
-          A subscription attaches to an account, so the account comes first. It is free.
+          Paid access attaches to an account, so the account comes first. It is free.
         </p>
         <Link href="/account" className="btn-primary w-full">
-          Sign in to subscribe
+          Sign in to continue
         </Link>
       </div>
     );
@@ -511,26 +517,66 @@ function PaidAction({
   */
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs leading-5 text-slate-500">
-        {formatPrice(PLANS[planId].amountMinor, PLANS[planId].currency)} every{" "}
-        {PLANS[planId].interval === "year" ? "year" : "month"}, renewing automatically until you
-        cancel.
-        Cancel any time from your billing page — it takes one button. Refunds: fourteen days and
-        no reason needed if the law where you live says so, as it does in the EU and the UK; two
-        days by request everywhere else. See the{" "}
-        <Link href="/terms" className="underline underline-offset-2 hover:text-slate-700">
-          terms
-        </Link>
-        .
-      </p>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => onStart("/api/billing/checkout", { plan: planId })}
-        className="pricing-subscribe-button btn-primary w-full"
-      >
-        {busy ? "Opening checkout…" : "Subscribe"}
-      </button>
+      {planOffered && (
+        <>
+          <p className="text-xs leading-5 text-slate-500">
+            {formatPrice(PLANS[planId].amountMinor, PLANS[planId].currency)} every{" "}
+            {PLANS[planId].interval === "year" ? "year" : "month"}, renewing automatically until
+            you cancel. Cancel any time from your billing page. See the{" "}
+            <Link href="/terms" className="underline underline-offset-2 hover:text-slate-700">
+              terms
+            </Link>
+            .
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onStart("/api/billing/checkout", { plan: planId })}
+            className="pricing-subscribe-button btn-primary w-full"
+          >
+            {busy ? "Opening checkout…" : "Subscribe by card"}
+          </button>
+        </>
+      )}
+
+      {walletOffered && (
+        <div className={planOffered ? "mt-2 border-t border-slate-300/70 pt-3" : ""}>
+          <p className="mb-2 text-xs leading-5 text-slate-500">
+            Alipay or WeChat Pay charges{" "}
+            {formatPrice(PLANS[planId].amountMinor, PLANS[planId].currency)} once for{" "}
+            {PLANS[planId].interval === "year" ? "one year" : "one month"} of prepaid access. It
+            does not renew automatically.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                onStart("/api/billing/wallet-checkout", {
+                  plan: planId,
+                  method: "wechat_pay",
+                })
+              }
+              className="btn-secondary min-w-0 px-2"
+            >
+              WeChat Pay
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                onStart("/api/billing/wallet-checkout", {
+                  plan: planId,
+                  method: "alipay",
+                })
+              }
+              className="btn-secondary min-w-0 px-2"
+            >
+              Alipay
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

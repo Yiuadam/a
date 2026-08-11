@@ -4,10 +4,16 @@ import { logInternal } from "@/lib/auth/errors";
 import { stripeWebhookSecret, tierForStripePrice } from "@/lib/billing/env";
 import {
   parseStripeEvent,
+  prepaidPurchaseFromStripeEvent,
+  prepaidRefundFromStripeEvent,
   subscriptionFromStripeEvent,
   verifyStripeSignature,
 } from "@/lib/billing/stripe";
-import { applyStripeSubscription } from "@/lib/billing/subscriptions";
+import {
+  applyStripePrepaidPurchase,
+  applyStripePrepaidRefund,
+  applyStripeSubscription,
+} from "@/lib/billing/subscriptions";
 import { withCors } from "@/lib/http/cors";
 
 /*
@@ -32,14 +38,11 @@ import { withCors } from "@/lib/http/cors";
   ---------------------------------------------------------------------------
   Which events this endpoint needs
 
-  Three: customer.subscription.created, .updated and .deleted. Stripe fires the
-  first the instant checkout completes and the second on every renewal, plan
-  change, payment failure and cancellation, so between them they carry the
-  whole lifecycle. checkout.session.completed is deliberately not used to write
-  anything — it arrives without a period end, and its only unique field is
-  client_reference_id, which is redundant because checkout also stamps the
-  account id into the subscription's own metadata where every later event
-  carries it. Anything else that is delivered is acknowledged and ignored.
+  Subscription lifecycle events update renewable card plans. Paid Checkout
+  completion events grant one-time Alipay/WeChat passes. Full charge refunds
+  and succeeded refund updates revoke the matching prepaid purchase; the
+  latter is required because WeChat Pay refunds complete asynchronously.
+  Anything else that is delivered is acknowledged and ignored.
 
   ---------------------------------------------------------------------------
   What is answered, and why almost everything is a 200
@@ -137,8 +140,11 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ error: "Unrecognised payload." }, { status: 400 });
   }
 
+  const payload = JSON.parse(raw) as unknown;
   const subscription = subscriptionFromStripeEvent(event, tierForStripePrice);
-  if (!subscription) {
+  const prepaidPurchase = prepaidPurchaseFromStripeEvent(event);
+  const prepaidRefund = prepaidRefundFromStripeEvent(event);
+  if (!subscription && !prepaidPurchase && !prepaidRefund) {
     // An event type this endpoint does not act on. Acknowledged so Stripe stops
     // retrying it, and named in the log so an endpoint subscribed to more than
     // it needs is visible rather than silent.
@@ -146,7 +152,11 @@ async function handlePOST(req: Request) {
   }
 
   try {
-    const outcome = await applyStripeSubscription(subscription, JSON.parse(raw));
+    const outcome = subscription
+      ? await applyStripeSubscription(subscription, payload)
+      : prepaidPurchase
+        ? await applyStripePrepaidPurchase(prepaidPurchase, payload)
+        : await applyStripePrepaidRefund(prepaidRefund!, payload);
     if (outcome !== "applied") {
       /*
         Worth a line each. `duplicate` is Stripe working as designed, `stale` is

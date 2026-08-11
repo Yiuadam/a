@@ -285,6 +285,49 @@ export interface PlacementResult {
 
 export type ModuleName = "reading" | "listening" | "writing" | "speaking";
 
+export interface SavedAdviceReport {
+  good: string[];
+  improve: string[];
+}
+
+export interface ObjectiveResultReview {
+  kind: "objective";
+  questions: QuestionSet;
+  answers: Record<string, string | number>;
+  advice: SavedAdviceReport;
+  source:
+    | { kind: "reading"; passage: string }
+    | { kind: "listening"; script: ScriptTurn[] };
+}
+
+export interface WritingResultAttempt {
+  task: WritingTask;
+  response: string;
+  grade: WritingGrade;
+}
+
+export interface WritingResultReview {
+  kind: "writing";
+  attempts: WritingResultAttempt[];
+}
+
+export interface SpeakingTranscriptTurn {
+  role: "examiner" | "candidate";
+  part: 1 | 2 | 3;
+  text: string;
+}
+
+export interface SpeakingResultReview {
+  kind: "speaking";
+  transcript: SpeakingTranscriptTurn[];
+  grade: SpeakingGrade;
+}
+
+export type ModuleResultReview =
+  | ObjectiveResultReview
+  | WritingResultReview
+  | SpeakingResultReview;
+
 export interface ModuleResult {
   module: ModuleName;
   testId: string;
@@ -293,6 +336,34 @@ export interface ModuleResult {
   raw?: number;
   total?: number;
   date: string;
+  /**
+   * The exact material shown after this sitting. Older results have no review
+   * because earlier builds saved only their score.
+   */
+  review?: ModuleResultReview;
+}
+
+/**
+ * One completed full mock sitting.
+ *
+ * The module-level results remain the source for study plans and detailed
+ * feedback. This compact sitting record is what lets History rebuild a single
+ * score report and certificate after the learner leaves the results screen.
+ * It deliberately stores no name, email or date of birth: those already live
+ * in the account profile and should not be copied into the progress archive.
+ */
+export interface MockExamReport {
+  id: string;
+  startedAt: string;
+  completedAt: string;
+  marks: {
+    listening: { band: number; raw?: number; total?: number };
+    reading: { band: number; raw?: number; total?: number };
+    writing: { band: number; raw?: number; total?: number } | null;
+    speaking: { band: number; raw?: number; total?: number } | null;
+    overall: number | null;
+    unmarked: ModuleName[];
+  };
 }
 
 export interface GeneratedTest {
@@ -322,5 +393,12 @@ export interface Profile {
   */
   planDays?: number;
   results: ModuleResult[];
+  /** Full-mock score reports, newest first. */
+  mockReports?: MockExamReport[];
+  /**
+   * A deletion tombstone shared between devices. Results at or before this
+   * instant stay deleted when an older tab syncs again.
+   */
+  historyClearedAt?: string;
   genTests: GeneratedTest[];
 }

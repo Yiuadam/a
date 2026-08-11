@@ -20,6 +20,7 @@ import { isCorrect, rawToBand } from "@/lib/band";
 import { useMounted, useProfile } from "@/lib/hooks";
 import { flatQuestions, questionCount } from "@/lib/questions";
 import { buildReview, joinWithAnd, questionTypeNames } from "@/lib/review";
+import { savedAnswers } from "@/lib/results";
 import { addResult } from "@/lib/store";
 import { READING_TESTS } from "@/lib/tests";
 import type { ReadingTest } from "@/lib/types";
@@ -81,6 +82,13 @@ function ReadingTestPageRunner() {
       if (isCorrect(q, answers[q.id])) correct++;
     }
     const b = rawToBand(correct, asked.length, "reading");
+    const reviewItems = buildReview(test.questions, answers);
+    const advice = testAdvice(
+      "reading",
+      test.questions,
+      reviewItems.map((item) => item.id),
+      b,
+    );
     setRaw(correct);
     setBand(b);
     setSubmitted(true);
@@ -92,6 +100,13 @@ function ReadingTestPageRunner() {
       raw: correct,
       total: asked.length,
       date: new Date().toISOString(),
+      review: {
+        kind: "objective",
+        questions: test.questions,
+        answers: savedAnswers(answers),
+        advice,
+        source: { kind: "reading", passage: test.passage },
+      },
     });
   }, [test, answers, submitted]);
 

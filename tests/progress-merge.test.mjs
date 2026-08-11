@@ -146,6 +146,48 @@ test("two null profiles produce an empty one, not a crash", () => {
   assert.deepEqual(merged.genTests, []);
 });
 
+test("a history clear tombstone stops an older device restoring deleted sittings", () => {
+  const clearedAt = "2026-04-01T12:00:00.000Z";
+  const stale = {
+    results: [result("reading-old", "2026-03-01T12:00:00.000Z", 6)],
+    mockReports: [
+      {
+        id: "mock-old",
+        startedAt: "2026-03-01T08:00:00.000Z",
+        completedAt: "2026-03-01T11:00:00.000Z",
+        marks: { overall: 6 },
+      },
+    ],
+  };
+  const cleared = { results: [], mockReports: [], historyClearedAt: clearedAt };
+  const merged = mergeProfiles(stale, cleared, NEW, OLD);
+  assert.deepEqual(merged.results, []);
+  assert.deepEqual(merged.mockReports, []);
+  assert.equal(merged.historyClearedAt, clearedAt);
+});
+
+test("only sittings completed after a history clear survive", () => {
+  const clearedAt = "2026-04-01T12:00:00.000Z";
+  const local = {
+    historyClearedAt: clearedAt,
+    results: [result("reading-new", "2026-04-02T12:00:00.000Z", 7)],
+    mockReports: [
+      {
+        id: "mock-new",
+        startedAt: "2026-04-02T08:00:00.000Z",
+        completedAt: "2026-04-02T11:00:00.000Z",
+        marks: { overall: 7 },
+      },
+    ],
+  };
+  const remote = {
+    results: [result("reading-old", "2026-03-01T12:00:00.000Z", 5)],
+  };
+  const merged = mergeProfiles(local, remote, OLD, NEW);
+  assert.deepEqual(merged.results.map((item) => item.testId), ["reading-new"]);
+  assert.deepEqual(merged.mockReports.map((item) => item.id), ["mock-new"]);
+});
+
 /* ------------------------------------------------------------------ drills */
 
 test("drill scores from both devices are kept", () => {

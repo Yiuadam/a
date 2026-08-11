@@ -6,6 +6,7 @@ import CheckoutNotice from "@/components/billing/CheckoutNotice";
 import billingBlocker from "./state";
 import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { useDrawnTier, useTier } from "@/lib/billing/useTier";
+import { formatUsageDateShort, nextUsageReturnAt } from "@/lib/billing/usage-dates";
 import { TIERS } from "@/lib/billing/tiers";
 
 /*
@@ -66,6 +67,7 @@ export default function BillingPage() {
     0,
   );
   const usageValue = capped.length > 0 ? `${Math.min(100, Math.round(tightest * 100))}% used` : undefined;
+  const nextReturnAt = nextUsageReturnAt(state.oldestAt, state.windowSeconds);
 
   const items: HubItem[] = [
     {
@@ -77,7 +79,10 @@ export default function BillingPage() {
     {
       href: "/billing/usage",
       title: "Your usage",
-      detail: "Marking, tutoring and lookups left",
+      detail:
+        nextReturnAt === null
+          ? "Marking, tutoring and lookups left"
+          : `Next allowance returns ${formatUsageDateShort(nextReturnAt)}`,
       value: usageValue,
       /* Amber past four fifths, which is where "plenty" stops being true. */
       tone: tightest >= 0.8 ? "warn" : "plain",

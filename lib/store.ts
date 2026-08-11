@@ -1,6 +1,12 @@
 "use client";
 
-import type { GeneratedTest, ModuleResult, PlacementResult, Profile } from "./types";
+import type {
+  GeneratedTest,
+  MockExamReport,
+  ModuleResult,
+  PlacementResult,
+  Profile,
+} from "./types";
 import { PROGRESS_WRITE_EVENT } from "./progress/events";
 import { readLearnerItem, writeLearnerItem } from "./progress/storage";
 
@@ -37,6 +43,8 @@ function read(): Profile {
       */
       visited: parsed.visited ?? [],
       results: parsed.results ?? [],
+      mockReports: parsed.mockReports ?? [],
+      historyClearedAt: parsed.historyClearedAt,
       genTests: parsed.genTests ?? [],
     };
   } catch {
@@ -131,6 +139,33 @@ export function setPlanDays(days: number): Profile {
 export function addResult(result: ModuleResult): Profile {
   const p = getSnapshot();
   return commit({ ...p, results: [result, ...p.results].slice(0, 100) });
+}
+
+/** Keeps one durable, sitting-level report for every completed full mock. */
+export function addMockReport(report: MockExamReport): Profile {
+  const p = getSnapshot();
+  const previous = p.mockReports ?? [];
+  const reports = [report, ...previous.filter((item) => item.id !== report.id)]
+    .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+    .slice(0, 30);
+  return commit({ ...p, mockReports: reports });
+}
+
+/**
+ * Clears the score archive without letting another device restore it.
+ *
+ * Empty arrays alone are not enough because account sync unions both copies.
+ * The timestamp is a tombstone: mergeProfiles discards any sitting completed
+ * before it, whichever device submits that sitting later.
+ */
+export function clearHistory(at = new Date().toISOString()): Profile {
+  const p = getSnapshot();
+  return commit({
+    ...p,
+    results: [],
+    mockReports: [],
+    historyClearedAt: at,
+  });
 }
 
 export function addGeneratedTest(test: GeneratedTest): Profile {

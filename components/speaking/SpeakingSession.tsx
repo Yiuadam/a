@@ -48,16 +48,17 @@ import {
   type LocalSession,
   type LocalStatus,
 } from "@/lib/transcribe";
-import type { SpeakingCueCard, SpeakingGrade, SpeakingTopicsData } from "@/lib/types";
+import type {
+  SpeakingCueCard,
+  SpeakingGrade,
+  SpeakingTopicsData,
+  SpeakingTranscriptTurn,
+} from "@/lib/types";
 import { SpeakingIcon } from "@/components/Icons";
 
 const data = speakingData as SpeakingTopicsData;
 
-interface Turn {
-  role: "examiner" | "candidate";
-  part: 1 | 2 | 3;
-  text: string;
-}
+type Turn = SpeakingTranscriptTurn;
 
 interface Step {
   part: 1 | 2 | 3;
@@ -516,8 +517,24 @@ export default function SpeakingSession({
           testTitle: "Mock speaking interview",
           band: payload.overallBand,
           date: new Date().toISOString(),
+          review: {
+            kind: "speaking",
+            transcript: finalTranscript,
+            grade: payload,
+          },
         });
       } catch (err) {
+        if (exam) {
+          /*
+            A provider outage must not trap a three-hour mock on its final
+            button. The results page is explicitly able to report an unmarked
+            module and withhold the overall band, which is the honest recovery.
+            Standalone speaking keeps its retryable error below.
+          */
+          setStage("unmarked");
+          exam.onFinish(null);
+          return;
+        }
         setError(err instanceof Error ? err.message : "Grading failed.");
         setStage("interview");
       }

@@ -40,3 +40,10 @@ test("native builds retain the established OAuth compatibility path", () => {
   assert.match(component, /IS_MOBILE_BUILD/);
   assert.match(component, /\/api\/auth\/start\?provider=google/);
 });
+
+test("Google sign-in uses its supported pill inside BandUp glass", () => {
+  assert.match(component, /shape:\s*"pill"/);
+  assert.match(component, /google-signin-glass premade-glass/);
+  assert.match(component, /RefractiveGlassLayer/);
+  assert.match(component, /theme === "dark" \? "filled_black" : "outline"/);
+});

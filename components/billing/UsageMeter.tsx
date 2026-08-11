@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { formatUsageDate, nextUsageReturnAt } from "@/lib/billing/usage-dates";
 
 /*
   How much of each month's AI allowance is gone, and when some of it comes back.
@@ -190,10 +191,12 @@ export default function UsageMeter({
   routes,
   windowSeconds,
   oldestAt,
+  planRenewsAt,
 }: {
   routes: RouteUsage[];
   windowSeconds: number;
   oldestAt: string | null;
+  planRenewsAt: string | null;
 }) {
   const now = useMinuteClock();
 
@@ -207,20 +210,38 @@ export default function UsageMeter({
 
   const uncapped = routes.every((r) => r.quota === null);
   const nothingIncluded = routes.every((r) => r.quota === 0);
-  const expiresAt = oldestAt ? Date.parse(oldestAt) + windowSeconds * 1000 : null;
+  const returnsAt = nextUsageReturnAt(oldestAt, windowSeconds);
+  const renewalAt = planRenewsAt ? Date.parse(planRenewsAt) : null;
+  const validRenewalAt = renewalAt !== null && Number.isFinite(renewalAt) ? renewalAt : null;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-surface p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-sm font-semibold text-slate-900">AI this month</h3>
-        {expiresAt !== null && now !== null && !uncapped && !nothingIncluded && (
-          <p className="text-xs text-slate-500">
-            {/*
-              "one request comes back", not "resets". The window rolls; see the
-              note at the top of this file.
-            */}
-            one request comes back {formatGap(expiresAt - now)}
-          </p>
+      <div className="flex flex-wrap items-start justify-between gap-x-5 gap-y-2">
+        <h3 className="text-sm font-semibold text-slate-900">AI allowance</h3>
+        {now !== null && (
+          <dl className="grid gap-1 text-xs leading-5 text-slate-500">
+            {returnsAt !== null && !uncapped && !nothingIncluded && (
+              <div className="flex flex-wrap justify-between gap-x-3">
+                <dt>Next usage returns</dt>
+                <dd className="font-medium tabular-nums text-slate-700">
+                  <time dateTime={new Date(returnsAt).toISOString()}>
+                    {formatUsageDate(returnsAt)}
+                  </time>
+                  <span className="font-normal text-slate-500"> ({formatGap(returnsAt - now)})</span>
+                </dd>
+              </div>
+            )}
+            {validRenewalAt !== null && (
+              <div className="flex flex-wrap justify-between gap-x-3">
+                <dt>Plan renews</dt>
+                <dd className="font-medium tabular-nums text-slate-700">
+                  <time dateTime={new Date(validRenewalAt).toISOString()}>
+                    {formatUsageDate(validRenewalAt)}
+                  </time>
+                </dd>
+              </div>
+            )}
+          </dl>
         )}
       </div>
 
@@ -236,7 +257,7 @@ export default function UsageMeter({
           ? "No limits on this account."
           : nothingIncluded
             ? "Practice tests, drills and your study plan are unlimited on every plan, and never count towards this."
-            : "Each allowance runs over a rolling 30 days — a request frees itself up 30 days after you make it. Practice tests, drills and your study plan never count towards these."}
+            : "There is no single reset date. Each request returns 30 days after you use it; the next exact return is shown above. Practice tests, drills and your study plan never count towards these."}
       </p>
     </div>
   );

@@ -153,11 +153,11 @@ export default function TermsPage() {
         a price the checkout does not charge is worse than one quoting no price
         at all.
       */}
-      <Section title="Subscriptions, and how the money works">
+      <Section title="Paid access, and how the money works">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           BandUp is free to use, and most of it stays free whatever you do: the placement test,
           your study plan, the practice papers that ship with the app, and every grammar and
-          vocabulary drill. What a subscription buys is the part that costs money to run each
+          vocabulary drill. What paid access buys is the part that costs money to run each
           time you press the button — the AI examiner, the tutor and word lookup — and, on every
           paid plan, the whole library of practice papers with no weekly limit.
         </p>
@@ -181,9 +181,11 @@ export default function TermsPage() {
           })}
         </dl>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          <strong>Every plan renews automatically</strong>, at the same price, on the same date
-          each period, until you cancel it. We say this here and again beside the button, because
-          a subscription that renews quietly is a subscription somebody did not agree to.
+          <strong>Card subscriptions renew automatically</strong>, at the same price, on the same
+          date each period, until you cancel. <strong>Alipay and WeChat Pay passes do not
+          renew</strong>: one payment gives the monthly or yearly access shown at checkout, then
+          the account returns to Free unless you buy another pass. We repeat the applicable terms
+          beside each payment button before you choose it.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           The AI allowances are counted per feature — so many essays marked, so many tutor
@@ -203,8 +205,9 @@ export default function TermsPage() {
           cancel and subscribe again; each request simply expires thirty days after you made it.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Payment is taken by <strong>Stripe</strong>, not by us. Your card details go to Stripe
-          and never reach BandUp&rsquo;s servers — we could not see them if we wanted to.
+          Payment is taken by <strong>Stripe</strong>, not by us. Your card or wallet details go
+          to Stripe and the payment provider and never reach BandUp&rsquo;s servers — we could not see
+          them if we wanted to.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           If we ever change a price, we will tell you by email before it takes effect, and the new
@@ -215,9 +218,9 @@ export default function TermsPage() {
 
       <Section title="Cancelling, and getting your money back">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          <strong>Cancel whenever you like</strong>, from the billing page in the app. It is one
-          button and it takes effect immediately — no email, no form, and nobody trying to talk
-          you out of it.
+          <strong>Cancel a card subscription whenever you like</strong>, from the billing page in
+          the app. It is one button — no email, no form, and nobody trying to talk you out of it.
+          A prepaid Alipay or WeChat Pay pass has no future payment to cancel.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Cancelling stops the next charge. You keep the plan you are on until the end of the

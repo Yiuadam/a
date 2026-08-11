@@ -2,10 +2,12 @@
 
 import Script from "next/script";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { saveSession } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
+import { getServerTheme, getTheme, subscribeTheme } from "@/lib/theme";
+import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -22,10 +24,10 @@ interface GoogleIdentityServices {
     parent: HTMLElement,
     options: {
       type: "standard";
-      theme: "outline";
+      theme: "outline" | "filled_black";
       size: "large";
       text: "continue_with";
-      shape: "rectangular";
+      shape: "pill";
       logo_alignment: "left";
       width: number;
     },
@@ -74,6 +76,7 @@ async function googleNonce(): Promise<{ raw: string; hashed: string }> {
  */
 export default function GoogleSignIn() {
   const router = useRouter();
+  const theme = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
   const hostRef = useRef<HTMLDivElement>(null);
   const rawNonceRef = useRef<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
@@ -126,10 +129,10 @@ export default function GoogleSignIn() {
         host.replaceChildren();
         identity.renderButton(host, {
           type: "standard",
-          theme: "outline",
+          theme: theme === "dark" ? "filled_black" : "outline",
           size: "large",
           text: "continue_with",
-          shape: "rectangular",
+          shape: "pill",
           logo_alignment: "left",
           width: Math.max(240, Math.min(400, Math.floor(host.getBoundingClientRect().width))),
         });
@@ -179,7 +182,7 @@ export default function GoogleSignIn() {
         setBusy(false);
       }
     }
-  }, [clientId, router, scriptReady]);
+  }, [clientId, router, scriptReady, theme]);
 
   if (IS_MOBILE_BUILD) {
     return (
@@ -197,16 +200,28 @@ export default function GoogleSignIn() {
         onReady={() => setScriptReady(true)}
         onError={() => setError("Google sign-in could not be loaded. Please try again.")}
       />
-      <div
-        ref={hostRef}
-        className={busy ? "flex min-h-10 justify-center opacity-50 pointer-events-none" : "flex min-h-10 justify-center"}
-        aria-label="Continue with Google"
-      />
-      {(!scriptReady || !configReady) && !error && (
-        <div className="btn-secondary min-h-10" aria-live="polite">
-          Loading Google sign-in…
+      <div className="google-signin-glass premade-glass relative mx-auto w-full max-w-[406px] rounded-[22px] p-[3px]">
+        <RefractiveGlassLayer radius={22} />
+        <div className="premade-glass-content relative overflow-hidden rounded-[19px]">
+          <div
+            ref={hostRef}
+            className={
+              busy
+                ? "google-signin-host flex min-h-10 justify-center opacity-50 pointer-events-none"
+                : "google-signin-host flex min-h-10 justify-center"
+            }
+            aria-label="Continue with Google"
+          />
+          {(!scriptReady || !configReady) && !error && (
+            <div
+              className="btn-secondary absolute inset-0 min-h-10 rounded-[19px]"
+              aria-live="polite"
+            >
+              Loading Google sign-in…
+            </div>
+          )}
         </div>
-      )}
+      </div>
       {busy && <p className="mt-2 text-center text-xs text-slate-500">Signing in…</p>}
       {error && (
         <p className="mt-2 text-center text-xs leading-5 text-rose-700" role="alert">

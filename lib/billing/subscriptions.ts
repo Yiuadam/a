@@ -1,7 +1,11 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { rpc } from "@/lib/auth/supabase";
 import type { Provider } from "./providers";
-import type { StripeSubscriptionEvent } from "./stripe";
+import type {
+  StripePrepaidPurchaseEvent,
+  StripePrepaidRefundEvent,
+  StripeSubscriptionEvent,
+} from "./stripe";
 
 /*
   The one place a subscription comes into existence.
@@ -31,11 +35,16 @@ const MODULE = "lib/billing/subscriptions.ts";
  * which is worth a log line and is not worth a retry.
  */
 export type ApplyOutcome = "applied" | "duplicate" | "stale" | "unknown_user";
+export type PrepaidApplyOutcome = ApplyOutcome | "unknown_purchase" | "partial_refund";
 
 function isOutcome(value: unknown): value is ApplyOutcome {
   return (
     value === "applied" || value === "duplicate" || value === "stale" || value === "unknown_user"
   );
+}
+
+function isPrepaidOutcome(value: unknown): value is PrepaidApplyOutcome {
+  return isOutcome(value) || value === "unknown_purchase" || value === "partial_refund";
 }
 
 /**
@@ -78,6 +87,47 @@ export async function applyStripeSubscription(
   // a failure rather than quietly read as success.
   if (!isOutcome(outcome)) {
     throw new Error(`unrecognised outcome from apply_provider_subscription_event`);
+  }
+  return outcome;
+}
+
+export async function applyStripePrepaidPurchase(
+  event: StripePrepaidPurchaseEvent,
+  payload: unknown,
+): Promise<PrepaidApplyOutcome> {
+  assertServerOnly(MODULE);
+  const outcome = await rpc<unknown>("apply_stripe_prepaid_purchase_event", {
+    p_event_id: event.eventId,
+    p_event_at: event.eventAt,
+    p_payload: payload,
+    p_user_id: event.userId,
+    p_tier: event.tier,
+    p_plan_id: event.planId,
+    p_customer_id: event.customerId,
+    p_payment_intent_id: event.paymentIntentId,
+    p_interval: event.interval,
+  });
+  if (!isPrepaidOutcome(outcome)) {
+    throw new Error("unrecognised outcome from apply_stripe_prepaid_purchase_event");
+  }
+  return outcome;
+}
+
+export async function applyStripePrepaidRefund(
+  event: StripePrepaidRefundEvent,
+  payload: unknown,
+): Promise<PrepaidApplyOutcome> {
+  assertServerOnly(MODULE);
+  const outcome = await rpc<unknown>("apply_stripe_prepaid_refund_event", {
+    p_event_id: event.eventId,
+    p_event_at: event.eventAt,
+    p_payload: payload,
+    p_payment_intent_id: event.paymentIntentId,
+    p_refund_amount: event.amountMinor,
+    p_full_refund_confirmed: event.fullRefundConfirmed,
+  });
+  if (!isPrepaidOutcome(outcome)) {
+    throw new Error("unrecognised outcome from apply_stripe_prepaid_refund_event");
   }
   return outcome;
 }

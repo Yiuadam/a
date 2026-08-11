@@ -12,9 +12,11 @@ import {
   type AdaptiveState,
   LENGTHS,
   type TestLength,
+  answeredCount,
   bandRange,
   finishAdaptive,
   nextQuestion,
+  placementEvidence,
   recordAnswer,
   shouldStop,
   startAdaptive,
@@ -51,12 +53,23 @@ export default function PlacementPage() {
   const [current, setCurrent] = useState<PlacementQuestion | null>(null);
   const [choice, setChoice] = useState<number | undefined>(undefined);
   const [result, setResult] = useState<PlacementResult | null>(null);
+  const [evidenceGap, setEvidenceGap] = useState<AdaptiveState | null>(null);
+  const [accuracyMode, setAccuracyMode] = useState(false);
   const [target, setTarget] = useState(6.5);
   // Captured once at the start: saving the result rewrites the history, and the
   // sitting must keep excluding the questions it began by excluding.
   const excluded = useRef<string[][]>([]);
 
   const finish = useCallback((final: AdaptiveState) => {
+    const evidence = placementEvidence(final);
+    setState(final);
+    setChoice(undefined);
+    if (!evidence.reportable) {
+      setCurrent(null);
+      setEvidenceGap(final);
+      return;
+    }
+
     const r = finishAdaptive(final);
     setPlacement(
       r,
@@ -64,6 +77,7 @@ export default function PlacementPage() {
     );
     setState(final);
     setCurrent(null);
+    setEvidenceGap(null);
     setResult(r);
   }, []);
 
@@ -73,8 +87,36 @@ export default function PlacementPage() {
     setState(fresh);
     setCurrent(nextQuestion(bank, fresh, excluded.current));
     setChoice(undefined);
+    setEvidenceGap(null);
+    setAccuracyMode(false);
+    setResult(null);
     setStarted(true);
   }, [length]);
+
+  const restart = useCallback(() => {
+    setStarted(false);
+    setState(startAdaptive(length));
+    setCurrent(null);
+    setChoice(undefined);
+    setEvidenceGap(null);
+    setAccuracyMode(false);
+    setResult(null);
+  }, [length]);
+
+  const continueForAccuracy = useCallback(() => {
+    if (!evidenceGap) return;
+    const q = nextQuestion(bank, evidenceGap, excluded.current);
+    if (!q) {
+      restart();
+      return;
+    }
+    setState(evidenceGap);
+    setCurrent(q);
+    setChoice(undefined);
+    setEvidenceGap(null);
+    setAccuracyMode(true);
+    setStarted(true);
+  }, [evidenceGap, restart]);
 
   /** Fold the current answer in, then either serve the next question or stop. */
   const advance = useCallback(
@@ -98,9 +140,63 @@ export default function PlacementPage() {
   );
 
   const onExpire = useCallback(() => {
-    // Time is up: bank whatever is on screen, then score what was answered.
-    finish(current ? recordAnswer(state, current, choice) : state);
+    // A visible but unanswered item is not an incorrect answer. More
+    // importantly, one answered item can never turn into a plausible-looking
+    // band merely because the timer expired.
+    const final = current && choice !== undefined ? recordAnswer(state, current, choice) : state;
+    finish(final);
   }, [current, state, choice, finish]);
+
+  if (evidenceGap) {
+    const evidence = placementEvidence(evidenceGap);
+    const remaining = Math.max(0, evidence.minimum - evidence.answered);
+    const skillGap = evidence.missingSkills.map((skill) => skill).join(", ");
+
+    return (
+      <div className="mx-auto flex min-h-[40vh] max-w-xl items-center">
+        <section className="card !p-5 w-full space-y-4 text-center" aria-live="polite">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+              No reliable score yet
+            </p>
+            <h1 className="mt-1 text-xl font-semibold text-slate-900">
+              More answers are needed
+            </h1>
+          </div>
+          <p className="text-sm leading-6 text-slate-600">
+            You answered {evidence.answered} question{evidence.answered === 1 ? "" : "s"}. A band
+            based on that would be misleading, so BandUp has not saved one.
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-left">
+            <div className="rounded-xl border border-slate-200 bg-surface px-3 py-2.5">
+              <span className="block text-xs text-slate-500">Still needed</span>
+              <span className="text-sm font-semibold text-slate-900">
+                {remaining > 0 ? `${remaining} answers` : "More consistency"}
+              </span>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-surface px-3 py-2.5">
+              <span className="block text-xs text-slate-500">Skill coverage</span>
+              <span className="text-sm font-semibold capitalize text-slate-900">
+                {skillGap || "All covered"}
+              </span>
+            </div>
+          </div>
+          <p className="text-xs leading-5 text-slate-500">
+            Continue without the countdown. The test will stop automatically as soon as the
+            evidence is strong enough.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button className="btn-primary" onClick={continueForAccuracy}>
+              Continue for an accurate result
+            </button>
+            <button className="btn-secondary" onClick={restart}>
+              Start again
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   if (result) {
     const [low, high] = bandRange(state);
@@ -136,9 +232,9 @@ export default function PlacementPage() {
                 </p>
               )}
               <p className="mt-0.5 text-xs leading-5 text-slate-600">
-                The test adapted over {state.asked.length} questions, choosing each one to tell it
-                the most about you. Full practice tests in each module will narrow the estimate
-                further.
+                {placementEvidence(state).confidence === "high" ? "High" : "Moderate"} confidence
+                from {answeredCount(state)} answered questions. Each item was chosen to narrow the
+                estimate; full module tests can narrow it further.
               </p>
             </div>
           </div>
@@ -216,9 +312,9 @@ export default function PlacementPage() {
         <div className="card !p-5 w-full space-y-3 text-center">
           <h1 className="text-xl font-semibold text-slate-900">Placement test</h1>
           <p className="text-sm leading-6 text-slate-600">
-            This test finds your level. Answer a question right and the next one is harder.
-            Answer it wrong and the next one is easier. It stops as soon as your level is
-            clear, so it may end early.
+            This test estimates your level by choosing the most useful next question. A band is
+            shown only after enough answers across grammar, vocabulary and reading — never from
+            one lucky answer or an expired timer.
           </p>
 
           <div>
@@ -244,8 +340,8 @@ export default function PlacementPage() {
                       {value} minutes
                     </span>
                     <span className="block text-xs text-slate-500">
-                      up to {LENGTHS[value].max} questions
-                      {value === 10 ? " · a better result" : ""}
+                      at least {LENGTHS[value].min} answers · up to {LENGTHS[value].max}
+                      {value === 10 ? " · more precise" : ""}
                     </span>
                   </button>
                 );
@@ -254,8 +350,8 @@ export default function PlacementPage() {
           </div>
 
           <p className="text-xs text-slate-500">
-            There are {bank.length} questions in total, and you will not see the same one
-            again for three tries. So you can take this test again and it still means something.
+            If time ends before the evidence is sufficient, BandUp shows no guessed band and lets
+            you continue. Skipped questions do not count towards the minimum.
           </p>
           <button className="btn-primary" onClick={start}>
             Start the test
@@ -266,22 +362,30 @@ export default function PlacementPage() {
   }
 
   const number = state.asked.length + 1;
-  const max = LENGTHS[state.length].max;
+  const evidence = placementEvidence(state);
+  const max = evidence.maximum;
+  const nextAnswered = evidence.answered + (choice === undefined ? 0 : 1);
 
   return (
     <div className="mx-auto max-w-xl space-y-3">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-2 text-sm text-slate-500">
-          Question {number} of {max}
+          Question {number} · {evidence.answered}/{evidence.minimum} minimum answered
           <DifficultyMeter level={current.level} />
         </span>
-        <Timer minutes={state.length} running onExpire={onExpire} />
+        {accuracyMode ? (
+          <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
+            Accuracy mode
+          </span>
+        ) : (
+          <Timer minutes={state.length} running onExpire={onExpire} />
+        )}
       </div>
 
       <div className="h-1.5 rounded-full bg-slate-100">
         <div
           className="h-1.5 rounded-full bg-indigo-500 transition-all"
-          style={{ width: `${(state.asked.length / max) * 100}%` }}
+          style={{ width: `${Math.min(100, (evidence.answered / max) * 100)}%` }}
         />
       </div>
 
@@ -323,7 +427,7 @@ export default function PlacementPage() {
           disabled={choice === undefined}
           onClick={() => advance(choice)}
         >
-          {number === max ? "Finish and see my band" : "Next question"}
+          {nextAnswered >= max ? "Finish and see my band" : "Next question"}
         </button>
       </div>
 

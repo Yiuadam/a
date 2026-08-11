@@ -1,4 +1,4 @@
-import type { Profile, ModuleResult, GeneratedTest } from "@/lib/types";
+import type { Profile, ModuleResult, GeneratedTest, MockExamReport } from "@/lib/types";
 
 /*
   Merging a learner's progress from two devices.
@@ -62,6 +62,19 @@ function byDate(a: { date: string }, b: { date: string }): number {
   return a.date > b.date ? -1 : a.date < b.date ? 1 : 0;
 }
 
+function validIso(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return Number.isFinite(Date.parse(value)) ? value : undefined;
+}
+
+function latestIso(a: unknown, b: unknown): string | undefined {
+  const left = validIso(a);
+  const right = validIso(b);
+  if (!left) return right;
+  if (!right) return left;
+  return left >= right ? left : right;
+}
+
 /** Union two lists on a key, keeping the first occurrence of each. */
 function unionBy<T>(first: T[], second: T[], key: (item: T) => string): T[] {
   const out: T[] = [];
@@ -73,6 +86,21 @@ function unionBy<T>(first: T[], second: T[], key: (item: T) => string): T[] {
     out.push(item);
   }
   return out;
+}
+
+/**
+ * A sitting may exist in an old snapshot as a score-only row and in a newer
+ * snapshot with its saved review. They are the same sitting, but discarding
+ * the richer copy would recreate the history bug during the next sync.
+ */
+function unionResults(first: ModuleResult[], second: ModuleResult[]): ModuleResult[] {
+  const out = new Map<string, ModuleResult>();
+  for (const result of [...first, ...second]) {
+    const key = resultKey(result);
+    const current = out.get(key);
+    if (!current || (!current.review && result.review)) out.set(key, result);
+  }
+  return [...out.values()];
 }
 
 function asArray<T>(value: unknown): T[] {
@@ -95,17 +123,28 @@ export function mergeProfiles(
   const a = local ?? {};
   const b = remote ?? {};
   const remoteIsNewer = newer(remoteAt, localAt);
+  const historyClearedAt = latestIso(a.historyClearedAt, b.historyClearedAt);
 
   /*
     Every attempt from both devices, newest first. Sorting matters beyond
     tidiness: the dashboard and the study plan both read this list positionally,
     so arrival order would show a learner a band they got months ago.
   */
-  const results = unionBy(
+  const results = unionResults(
     asArray<ModuleResult>(a.results),
     asArray<ModuleResult>(b.results),
-    resultKey,
-  ).sort(byDate);
+  )
+    .filter((result) => !historyClearedAt || result.date > historyClearedAt)
+    .sort(byDate);
+
+  const mockReports = unionBy(
+    asArray<MockExamReport>(a.mockReports),
+    asArray<MockExamReport>(b.mockReports),
+    (report) => report.id,
+  )
+    .filter((report) => !historyClearedAt || report.completedAt > historyClearedAt)
+    .sort((left, right) => right.completedAt.localeCompare(left.completedAt))
+    .slice(0, 30);
 
   const genTests = unionBy(
     asArray<GeneratedTest>(a.genTests),
@@ -144,7 +183,17 @@ export function mergeProfiles(
   /* Opened on either device means opened. Nothing here is ever un-set. */
   const visited = [...new Set([...asArray<string>(a.visited), ...asArray<string>(b.visited)])];
 
-  return { placement, targetBand, planDays, placementHistory, visited, results, genTests };
+  return {
+    placement,
+    targetBand,
+    planDays,
+    placementHistory,
+    visited,
+    results,
+    mockReports,
+    historyClearedAt,
+    genTests,
+  };
 }
 
 export interface DrillScore {
