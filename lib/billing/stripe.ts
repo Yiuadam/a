@@ -472,7 +472,23 @@ async function stripeGet(path: string): Promise<Record<string, unknown>> {
  */
 async function assertPriceMatchesCatalogue(plan: PlanId, priceId: string): Promise<void> {
   const expected = PLANS[plan];
-  const price = await stripeGet(`/prices/${encodeURIComponent(priceId)}`);
+  /*
+    `expand[]=currency_options` is load-bearing and looks like noise.
+
+    Stripe marks currency_options as an expandable field on a Price: ask for
+    the Price and you get its base amount, its currency and its interval, and
+    no regional prices at all — not an empty object, absent. The loop below
+    then reads `undefined` for every currency the catalogue advertises,
+    compares it against a real number, and refuses the sale.
+
+    Which is exactly what it did. Every checkout on the live site failed with
+    "we couldn't start the checkout just now", and Stripe's own logs showed no
+    failed request, because there wasn't one: the GET succeeded and the refusal
+    happened here, on data Stripe had never been asked to send.
+  */
+  const price = await stripeGet(
+    `/prices/${encodeURIComponent(priceId)}?expand[]=currency_options`,
+  );
 
   const amount = price.unit_amount;
   const currency = price.currency;
