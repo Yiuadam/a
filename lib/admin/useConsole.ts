@@ -25,10 +25,17 @@ import { apiUrl } from "@/lib/api";
 */
 
 export interface MaintenanceState {
+  /** What the owner last decided. */
   closed: boolean;
   changedAt: string | null;
+  /** What the running build was compiled with — the one learners can see. */
   closedByDeploy: boolean;
   lagSeconds: number;
+  /** Whether throwing the switch starts a deployment, or only records a wish. */
+  deploys?: boolean;
+  /** Set on the response to a POST: whether a deployment was actually started. */
+  deployStarted?: boolean;
+  deployProblem?: string | null;
 }
 
 export interface Check {

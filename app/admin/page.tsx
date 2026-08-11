@@ -75,14 +75,19 @@ export default function AdminPage() {
     title: n.title,
     detail: n.detail,
     value:
-      /* "Marked" rather than "Closed" when the switch says closed but the
-         deploy does not: the site is still open to learners, and a row that
-         says otherwise is the one lie a console must not tell. */
+      /*
+         What learners can see, not what the owner decided — and "Closing…"
+         while the two disagree, because a deployment takes about two minutes
+         and a row that read "Closed" during them would be the one lie a
+         console must not tell.
+      */
       n.href === "/admin/site"
-        ? state.closedByDeploy
-          ? "Closed"
-          : state.closed
-            ? "Marked"
+        ? state.closed !== state.closedByDeploy
+          ? state.closed
+            ? "Closing…"
+            : "Opening…"
+          : state.closedByDeploy
+            ? "Closed"
             : "Open"
         : n.href === "/admin/config"
           ? checks === null

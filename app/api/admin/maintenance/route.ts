@@ -8,6 +8,7 @@ import {
   setMaintenance,
 } from "@/lib/admin/settings";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
+import { deployHookConfigured, dispatchDeploy } from "@/lib/admin/deploy";
 import { withCors } from "@/lib/http/cors";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 
@@ -55,13 +56,21 @@ async function handleGET(req: Request) {
     closed: setting.closed,
     changedAt: setting.at ?? null,
     /*
-      Reported separately, because the two switches fail differently and an
-      owner staring at a closed site needs to know which one is holding it.
-      A build-time close cannot be undone from this screen — it takes a deploy
-      — and saying so is kinder than a button that appears to do nothing.
+      Reported separately, because the two are different facts and an owner
+      staring at a closed site needs to know which one is holding it.
+      `closedByDeploy` is what the currently-running build was compiled with
+      and is the only one learners can see; `closed` is what the owner last
+      decided. They agree a couple of minutes after the switch is thrown and
+      disagree in between.
     */
     closedByDeploy: MAINTENANCE_MODE,
     lagSeconds: MAINTENANCE_LAG_SECONDS,
+    /*
+      Whether throwing the switch will actually deploy. The console tells two
+      different stories depending on this, and getting it from the server is
+      the only way it can be right — the token is server-side by definition.
+    */
+    deploys: deployHookConfigured(),
   });
 }
 
@@ -80,12 +89,30 @@ async function handlePOST(req: Request) {
   }
 
   try {
+    /*
+      Recorded first, deployed second, and the order matters. The write is the
+      owner's decision and it is worth keeping whether or not the deployment
+      that carries it out succeeds — if GitHub is unreachable, the console can
+      still say "you asked for this and it has not happened yet" rather than
+      losing the ask entirely.
+    */
     const setting = await setMaintenance(body.closed, user.id);
+    const deploy = await dispatchDeploy(body.closed);
+
     return NextResponse.json({
       closed: setting.closed,
       changedAt: setting.at ?? null,
       closedByDeploy: MAINTENANCE_MODE,
       lagSeconds: MAINTENANCE_LAG_SECONDS,
+      deploys: deployHookConfigured(),
+      /*
+        Not an error field. A deployment that started is the normal case and
+        the console needs to say "it is on its way, give it two minutes"; one
+        that did not is a problem the owner has to act on. Both are the truth
+        about a request that otherwise succeeded, so both are 200.
+      */
+      deployStarted: deploy.started,
+      deployProblem: deploy.problem,
     });
   } catch (err) {
     /*

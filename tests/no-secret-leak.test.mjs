@@ -26,6 +26,12 @@ const FORBIDDEN_NAMES = [
   "APPLE_IAP_PRIVATE_KEY",
   "APPLE_IAP_KEY_ID",
   "USAGE_IP_HASH_SALT",
+  /*
+    A token that can start a deployment of this repository. Held server-side so
+    the admin console's site switch can close the site; behind a NEXT_PUBLIC_
+    name it would be a deploy button for anyone who opened dev tools.
+  */
+  "GITHUB_DEPLOY_TOKEN",
 ];
 
 /**

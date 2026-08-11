@@ -61,19 +61,37 @@ export function Charts({ stats }: { stats: Stats | null }) {
 /* ------------------------------------------------------------ site switch */
 
 /*
-  What this switch does today, said on the switch.
+  The switch that closes the site, and what actually happens when it is thrown.
 
-  It stores the decision and nothing reads it. app/layout.tsx closes the site
-  from `NEXT_PUBLIC_MAINTENANCE_MODE`, which is set at build time by the deploy
-  workflow; the runtime read that would have made this instant was withdrawn
-  after it answered 500 on every page of a preview and could not be reproduced
-  in five local configurations (see the commit "Withdraw the runtime
-  maintenance read until it can be reproduced").
+  ---------------------------------------------------------------------------
+  It deploys
 
-  So the panel says so. A control that looks live and is not is worse than no
-  control — the owner presses it, sees "Closed", and believes the site is shut
-  while learners carry on using it. Naming the working route in the same
-  breath is what keeps it useful rather than merely honest.
+  The site closes on `NEXT_PUBLIC_MAINTENANCE_MODE`, which Next substitutes
+  into the compiled code at build time. Nothing read at runtime has ever worked
+  — a plain `process.env` lookup found nothing on the Worker and the site
+  stayed open through three deploys that reported success, and a database read
+  from the root layout answered 500 on every page of a preview. So the switch
+  asks for the thing that does work: it starts the deploy workflow with the
+  maintenance box ticked, and the site changes when that finishes.
+
+  That is about two minutes rather than instant, and the panel says two minutes
+  rather than implying instant.
+
+  ---------------------------------------------------------------------------
+  Three states, because there are three
+
+  What the owner decided and what learners can currently see are different
+  facts, and between throwing the switch and the deploy landing they disagree.
+  A panel that collapsed them into one word would be wrong for exactly the two
+  minutes somebody is standing there watching it.
+
+    open              decided open, deployed open
+    closing / opening decided one way, the running build still the other
+    closed            decided closed, deployed closed
+
+  With no deploy token configured the middle state never resolves on its own,
+  and the panel says so and names the workflow to run by hand. A control that
+  looks live and is not is worse than no control.
 */
 export function SiteSwitch({
   state,
@@ -86,36 +104,46 @@ export function SiteSwitch({
   error: string | null;
   onToggle: () => void;
 }) {
+  const deploys = state.deploys !== false;
+  /* Decided one way, running the other — a deployment is in flight, or needs
+     to be run by hand. */
+  const inFlight = state.closed !== state.closedByDeploy;
+  const live = state.closedByDeploy;
+
+  const heading = inFlight
+    ? state.closed
+      ? "Closing the site…"
+      : "Reopening the site…"
+    : live
+      ? "The site is closed"
+      : "The site is open";
+
+  const detail = inFlight
+    ? deploys
+      ? `A deployment is running. Learners still see ${live ? "the upgrade notice" : "the app"} until it finishes — about two minutes.`
+      : `Recorded, but nothing has deployed. Learners still see ${live ? "the upgrade notice" : "the app"}.`
+    : live
+      ? "Everyone sees the upgrade notice instead of the app. Subscriptions and payments keep working underneath."
+      : "Learners can use everything as normal.";
+
   return (
     <section
       className={`rounded-2xl border p-4 sm:p-5 ${
-        state.closed ? "border-amber-300 bg-amber-50/60" : "border-slate-200 bg-surface"
+        live || inFlight ? "border-amber-300 bg-amber-50/60" : "border-slate-200 bg-surface"
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-slate-900">
-            {state.closedByDeploy
-              ? "The site is closed"
-              : state.closed
-                ? "Marked to close"
-                : "The site is open"}
-          </h2>
-          <p className="mt-1 text-[13px] leading-5 text-slate-600">
-            {state.closedByDeploy
-              ? "Everyone sees the upgrade notice instead of the app. Subscriptions and payments keep working underneath."
-              : state.closed
-                ? "Recorded, but learners can still use everything — this switch is not connected to the site yet."
-                : "Learners can use everything as normal."}
-          </p>
+          <h2 className="text-sm font-semibold text-slate-900">{heading}</h2>
+          <p className="mt-1 text-[13px] leading-5 text-slate-600">{detail}</p>
         </div>
         <button
           type="button"
           onClick={onToggle}
-          disabled={busy || state.closedByDeploy}
+          disabled={busy}
           className={state.closed ? "btn-primary shrink-0" : "btn-secondary shrink-0"}
         >
-          {busy ? "Saving…" : state.closed ? "Reopen the site" : "Close the site"}
+          {busy ? "Deploying…" : state.closed ? "Reopen the site" : "Close the site"}
         </button>
       </div>
 
@@ -128,20 +156,47 @@ export function SiteSwitch({
         </p>
       )}
 
-      {state.closedByDeploy && (
-        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[13px] leading-5 text-slate-600">
-          This site was closed by its last deployment, so this switch cannot reopen it. Run{" "}
-          <span className="font-medium text-slate-800">Deploy to Cloudflare</span> with the
-          maintenance box unticked.
+      {/*
+        What GitHub said, when it said no. Shown rather than swallowed: the
+        decision was saved and the deployment was not, and an owner who thinks
+        they have closed a site that is still open is the failure this whole
+        panel exists to prevent.
+      */}
+      {state.deployProblem && (
+        <p
+          role="alert"
+          className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[13px] leading-5 text-rose-800"
+        >
+          {state.deployProblem}
         </p>
       )}
 
-      {!state.closedByDeploy && (
+      {!deploys && (
         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[12px] leading-5 text-amber-900">
-          <span className="font-semibold">This switch does not close the site yet.</span> It records
-          the decision only. To actually close it, run{" "}
-          <span className="font-medium">Deploy to Cloudflare</span> with the maintenance box ticked
-          — that is the route that works today, and the one the site was last closed with.
+          <span className="font-semibold">This switch cannot deploy.</span> Set{" "}
+          <span className="font-medium">GITHUB_DEPLOY_TOKEN</span> as a Worker secret, or run the{" "}
+          <span className="font-medium">Deploy to Cloudflare</span> workflow yourself with the
+          maintenance box ticked. See DEPLOY.md.
+        </p>
+      )}
+
+      {state.deployStarted && (
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[12px] leading-5 text-slate-600">
+          Deployment started. Reload this page in a couple of minutes to confirm it landed.
+        </p>
+      )}
+
+      {/*
+        Said on the control, not only in the docs. The workflow builds from
+        `main`, so throwing this switch ships whatever is on main right now —
+        which is the correct behaviour and a genuine surprise if anything has
+        merged since the last deploy. GitHub's dispatch API takes a branch, not
+        a commit, so there is no version of this that redeploys exactly what is
+        already live.
+      */}
+      {deploys && (
+        <p className="mt-2 text-[11px] leading-4 text-slate-500">
+          Either way this deploys <span className="font-medium">main</span> as it stands now.
         </p>
       )}
 

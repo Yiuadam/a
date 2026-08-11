@@ -25,8 +25,13 @@ alongside it.
 
 ## What makes it deploy
 
-`.github/workflows/deploy-cloudflare.yml`, on every push to `main`. It needs
-two repository secrets under **Settings → Secrets and variables → Actions**:
+`.github/workflows/deploy-cloudflare.yml`, when a human asks for it —
+**Actions → Deploy to Cloudflare → Run workflow**. Pushing to `main` no longer
+deploys on its own: there are real users, so a change goes live when the owner
+has looked at its preview and said so.
+
+It needs two repository secrets under **Settings → Secrets and variables →
+Actions**:
 
 | Secret | Where to get it |
 |---|---|
@@ -39,6 +44,50 @@ turns the build red for a fork or a clone that has no credentials.
 If you add the secrets *after* a push, that run has already skipped its deploy
 step and there is nothing to re-run. Trigger one from **Actions → Deploy to
 Cloudflare → Run workflow**, which is what `workflow_dispatch` is there for.
+
+### Closing the site from the admin console
+
+The **Run workflow** button takes a *Close the site* checkbox, and that is the
+only mechanism that has ever actually closed the site. It sets
+`NEXT_PUBLIC_MAINTENANCE_MODE` for the build, which is the one prefix Next
+substitutes into the compiled code; anything read at runtime is read on the
+Cloudflare Worker, where it is not there. That has now been learned twice —
+once from a plain `process.env` lookup that left the site open through three
+deploys reporting success, and once from a database read in the root layout
+that answered 500 on every page of a preview.
+
+So the console's site switch (**/admin → Site status**) does not try to close
+the site itself. It records the decision and then starts this workflow with the
+box ticked, which takes about two minutes. To let it, give the Worker one more
+secret:
+
+| Secret | What it is |
+|---|---|
+| `GITHUB_DEPLOY_TOKEN` | A **fine-grained** personal access token, this repository only, with **Actions: Read and write**. Nothing else. |
+
+Make it at **github.com/settings/personal-access-tokens** → Generate new token
+→ Only select repositories → this one → Repository permissions → Actions →
+Read and write. Then put it on the Worker, not in the repository:
+
+```bash
+npx wrangler secret put GITHUB_DEPLOY_TOKEN
+```
+
+Set an expiry you will notice — when it lapses the switch says so rather than
+failing quietly, and the workflow still runs by hand.
+
+One thing to know before you use it: the workflow builds from `main`, so
+throwing the switch ships whatever is on `main` at that moment — closing the
+site also deploys anything merged since the last deploy. GitHub's dispatch API
+takes a branch rather than a commit, so there is no way to redeploy exactly
+what is already live. The console says this on the switch.
+
+Without the token the switch still records what you asked for and the console
+says plainly that nothing was deployed, naming the workflow to run yourself.
+That is the honest degradation: no button that appears to work and does not.
+
+A fork does not need any of this. Nothing about a token being absent breaks a
+build, a test or a page.
 
 ## What the Worker needs set on it
 
