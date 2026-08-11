@@ -523,6 +523,12 @@ ship yet at all.
   resolve_entitlement() answers 'pro'
 ```
 
+Alipay and WeChat Pay use the same verified endpoint but a different, prepaid
+lane: `/api/billing/wallet-checkout` creates a one-time Checkout Session,
+`checkout.session.completed` or `checkout.session.async_payment_succeeded`
+grants the chosen month/year, and a verified completed full refund revokes only
+that purchase. Wallet passes never create an automatic renewal.
+
 The request chooses a **plan id** — a name this app defined — and never a Price
 id, an amount or a customer. A request that could name a Price could name the
 one-cent Price somebody made while testing, and Stripe would honour it, because

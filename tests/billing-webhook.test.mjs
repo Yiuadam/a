@@ -36,6 +36,8 @@ const {
   timingSafeEqualHex,
   verifyStripeSignature,
   parseStripeEvent,
+  prepaidPurchaseFromStripeEvent,
+  prepaidRefundFromStripeEvent,
   subscriptionFromStripeEvent,
 } = stripe;
 
@@ -293,6 +295,118 @@ test("an event with no account on it is not guessed at", () => {
   const raw = subscriptionEvent({ metadata: {} });
   // Null, so the database resolves it from a row it already holds, or refuses.
   assert.equal(subscriptionFromStripeEvent(parseStripeEvent(raw)).userId, null);
+});
+
+test("a paid wallet checkout grants the catalogue plan and duration", () => {
+  for (const type of ["checkout.session.completed", "checkout.session.async_payment_succeeded"]) {
+    const event = parseStripeEvent(
+      JSON.stringify({
+        id: `evt_${type}`,
+        type,
+        created: NOW,
+        data: {
+          object: {
+            mode: "payment",
+            payment_status: "paid",
+            customer: "cus_wallet",
+            payment_intent: "pi_wallet",
+            metadata: {
+              bandup_user_id: "11111111-1111-4111-8111-111111111111",
+              bandup_plan_id: "plus-monthly",
+              // This is deliberately wrong: the parser must derive the tier
+              // from the server catalogue rather than trusting metadata.
+              bandup_tier: "admin",
+            },
+          },
+        },
+      }),
+    );
+    const purchase = prepaidPurchaseFromStripeEvent(event);
+    assert.equal(purchase.userId, "11111111-1111-4111-8111-111111111111");
+    assert.equal(purchase.planId, "plus-monthly");
+    assert.equal(purchase.tier, "plus");
+    assert.equal(purchase.interval, "month");
+    assert.equal(purchase.paymentIntentId, "pi_wallet");
+  }
+});
+
+test("an unpaid or invented wallet plan grants nothing", () => {
+  for (const [paymentStatus, planId] of [
+    ["unpaid", "plus-monthly"],
+    ["paid", "admin-monthly"],
+  ]) {
+    const event = parseStripeEvent(
+      JSON.stringify({
+        id: `evt_${paymentStatus}_${planId}`,
+        type: "checkout.session.completed",
+        created: NOW,
+        data: {
+          object: {
+            mode: "payment",
+            payment_status: paymentStatus,
+            payment_intent: "pi_wallet",
+            metadata: {
+              bandup_user_id: "11111111-1111-4111-8111-111111111111",
+              bandup_plan_id: planId,
+            },
+          },
+        },
+      }),
+    );
+    assert.equal(prepaidPurchaseFromStripeEvent(event), null);
+  }
+});
+
+test("wallet access is revoked only after a completed full refund", () => {
+  const fullCharge = parseStripeEvent(
+    JSON.stringify({
+      id: "evt_full_charge_refund",
+      type: "charge.refunded",
+      created: NOW,
+      data: { object: { refunded: true, payment_intent: "pi_wallet" } },
+    }),
+  );
+  assert.deepEqual(prepaidRefundFromStripeEvent(fullCharge), {
+    eventId: "evt_full_charge_refund",
+    eventAt: new Date(NOW * 1000).toISOString(),
+    paymentIntentId: "pi_wallet",
+    amountMinor: null,
+    fullRefundConfirmed: true,
+  });
+
+  const succeededRefund = parseStripeEvent(
+    JSON.stringify({
+      id: "evt_refund_updated",
+      type: "refund.updated",
+      created: NOW,
+      data: {
+        object: { status: "succeeded", amount: 1290, payment_intent: "pi_wallet" },
+      },
+    }),
+  );
+  assert.deepEqual(prepaidRefundFromStripeEvent(succeededRefund), {
+    eventId: "evt_refund_updated",
+    eventAt: new Date(NOW * 1000).toISOString(),
+    paymentIntentId: "pi_wallet",
+    amountMinor: 1290,
+    fullRefundConfirmed: false,
+  });
+
+  for (const object of [
+    { status: "pending", amount: 1290, payment_intent: "pi_wallet" },
+    { status: "failed", amount: 1290, payment_intent: "pi_wallet" },
+    { status: "succeeded", amount: 0, payment_intent: "pi_wallet" },
+  ]) {
+    const event = parseStripeEvent(
+      JSON.stringify({
+        id: `evt_${object.status}_${object.amount}`,
+        type: "refund.updated",
+        created: NOW,
+        data: { object },
+      }),
+    );
+    assert.equal(prepaidRefundFromStripeEvent(event), null);
+  }
 });
 
 /* ------------------------------------------------------------ idempotency -- */

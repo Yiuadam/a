@@ -405,6 +405,17 @@ export const PLAN_IDS = [
 ] as const;
 export type PlanId = (typeof PLAN_IDS)[number];
 
+/** Wallet methods sold as prepaid passes rather than renewable subscriptions. */
+export const WALLET_PAYMENT_METHODS = ["alipay", "wechat_pay"] as const;
+export type WalletPaymentMethod = (typeof WALLET_PAYMENT_METHODS)[number];
+
+export function isWalletPaymentMethod(value: unknown): value is WalletPaymentMethod {
+  return (
+    typeof value === "string" &&
+    (WALLET_PAYMENT_METHODS as readonly string[]).includes(value)
+  );
+}
+
 export interface Plan {
   id: PlanId;
   tier: PaidTier;

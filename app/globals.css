@@ -418,6 +418,37 @@ html[data-theme="dark"] .premade-glass {
   z-index: 1;
 }
 
+/*
+  Google owns the sign-in button inside its cross-origin iframe, so its fill,
+  logo and type remain untouched. BandUp owns the surrounding material: the
+  same transparent refraction layer as every other glass control, clipped to
+  Google's supported pill shape with only a thin glass rim showing.
+*/
+.google-signin-glass {
+  border: 1px solid var(--glass-edge);
+  background: color-mix(in srgb, var(--glass-fill) 22%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(105%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(105%);
+}
+
+.google-signin-glass:focus-within {
+  border-color: var(--glass-specular);
+  background: color-mix(in srgb, var(--glass-fill-strong) 28%, transparent);
+}
+
+.google-signin-host > div,
+.google-signin-host iframe {
+  max-width: 100% !important;
+  border-radius: 19px !important;
+}
+
+html[data-theme="dark"] .google-signin-glass {
+  background: rgba(255, 255, 255, 0.018);
+}
+
 .nav-paper {
   background:
     radial-gradient(50rem 32rem at 14% 0%, var(--wash-one), transparent 62%),

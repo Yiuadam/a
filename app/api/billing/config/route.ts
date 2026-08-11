@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { accountsEnabled } from "@/lib/auth/env";
 import { supabaseConfigured } from "@/lib/auth/supabase";
 import { countryFromRequest, currencyForCountry } from "@/lib/billing/currency";
-import { purchasablePlans } from "@/lib/billing/env";
+import { purchasablePlans, stripeWalletConfigured } from "@/lib/billing/env";
 import { withCors } from "@/lib/http/cors";
 
 /*
@@ -48,6 +48,8 @@ async function handleGET(req: Request) {
   return NextResponse.json({
     checkout: plans.length > 0,
     plans,
+    walletCheckout:
+      accountsEnabled() && supabaseConfigured() && stripeWalletConfigured(),
     /*
       Always sent, whether or not anything can be bought. The page prints
       prices even when checkout is closed — that is the point of the honest

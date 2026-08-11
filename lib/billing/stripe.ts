@@ -1,7 +1,7 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { stripeSecretKey, stripePriceId } from "./env";
-import { PLANS, isPaidTier } from "./tiers";
-import type { Tier, PlanId } from "./tiers";
+import { PLANS, TIERS, isPaidTier, isPlanId } from "./tiers";
+import type { Tier, PlanId, WalletPaymentMethod } from "./tiers";
 import type { SubscriptionStatus } from "./providers";
 import type { FinancePeriod, StripeFinancialSnapshot } from "@/lib/admin/finance-types";
 import {
@@ -256,6 +256,8 @@ export interface StripeSubscriptionEvent {
 export const USER_METADATA_KEY = "bandup_user_id";
 /** The metadata key carrying which tier was bought. */
 export const TIER_METADATA_KEY = "bandup_tier";
+/** The metadata key carrying the server-side BandUp plan id. */
+export const PLAN_METADATA_KEY = "bandup_plan_id";
 
 function readString(source: Record<string, unknown>, key: string): string | null {
   const value = source[key];
@@ -355,6 +357,98 @@ export function subscriptionFromStripeEvent(
     priceId,
     currentPeriodEnd,
     cancelAtPeriodEnd: object.cancel_at_period_end === true,
+  };
+}
+
+export interface StripePrepaidPurchaseEvent {
+  eventId: string;
+  eventAt: string;
+  userId: string;
+  tier: Tier;
+  planId: PlanId;
+  interval: "month" | "year";
+  customerId: string | null;
+  paymentIntentId: string;
+}
+
+/**
+ * Reads a paid one-time Checkout Session into a prepaid BandUp pass.
+ *
+ * The plan id is validated against this build's catalogue and the tier and
+ * duration are then derived from that catalogue. Metadata is never allowed to
+ * choose its own tier or amount.
+ */
+export function prepaidPurchaseFromStripeEvent(
+  event: StripeEvent,
+): StripePrepaidPurchaseEvent | null {
+  if (
+    event.type !== "checkout.session.completed" &&
+    event.type !== "checkout.session.async_payment_succeeded"
+  ) {
+    return null;
+  }
+
+  const object = event.data.object;
+  if (object.mode !== "payment" || object.payment_status !== "paid") return null;
+
+  const metadata = (object.metadata ?? {}) as Record<string, unknown>;
+  const userId = readString(metadata, USER_METADATA_KEY);
+  const planId = readString(metadata, PLAN_METADATA_KEY);
+  const paymentIntentId = readString(object, "payment_intent");
+  if (!userId || !isPlanId(planId) || !paymentIntentId) return null;
+
+  const plan = PLANS[planId];
+  return {
+    eventId: event.id,
+    eventAt: new Date(
+      (event.created > 0 ? event.created : Math.floor(Date.now() / 1000)) * 1000,
+    ).toISOString(),
+    userId,
+    tier: plan.tier,
+    planId,
+    interval: plan.interval,
+    customerId: readString(object, "customer"),
+    paymentIntentId,
+  };
+}
+
+export interface StripePrepaidRefundEvent {
+  eventId: string;
+  eventAt: string;
+  paymentIntentId: string;
+  /** Present for Refund events; the database compares it with the purchase total. */
+  amountMinor: number | null;
+  /** Charge.refunded only sets `refunded` after the whole charge is returned. */
+  fullRefundConfirmed: boolean;
+}
+
+/** A completed full refund revokes only the prepaid pass bought by that PaymentIntent. */
+export function prepaidRefundFromStripeEvent(
+  event: StripeEvent,
+): StripePrepaidRefundEvent | null {
+  const object = event.data.object;
+  const isFullyRefundedCharge = event.type === "charge.refunded" && object.refunded === true;
+  const isSucceededRefund =
+    (event.type === "refund.updated" || event.type === "charge.refund.updated") &&
+    object.status === "succeeded";
+  if (!isFullyRefundedCharge && !isSucceededRefund) return null;
+
+  const paymentIntentId = readString(object, "payment_intent");
+  if (!paymentIntentId) return null;
+  const amountMinor =
+    isSucceededRefund && Number.isSafeInteger(object.amount) && (object.amount as number) > 0
+      ? (object.amount as number)
+      : null;
+  if (isSucceededRefund && amountMinor === null) return null;
+
+  return {
+    eventId: event.id,
+    eventAt: new Date(
+      (event.created > 0 ? event.created : Math.floor(Date.now() / 1000)) * 1000,
+    ).toISOString(),
+    paymentIntentId,
+    amountMinor,
+    fullRefundConfirmed: isFullyRefundedCharge,
   };
 }
 
@@ -812,6 +906,58 @@ export async function createCheckoutSession(args: {
       [`metadata[${USER_METADATA_KEY}]`]: args.userId,
       [`subscription_data[metadata][${USER_METADATA_KEY}]`]: args.userId,
       [`subscription_data[metadata][${TIER_METADATA_KEY}]`]: args.tier,
+    }),
+  );
+
+  const url = session.url;
+  return typeof url === "string" && url.length > 0 ? url : null;
+}
+
+/**
+ * Creates a one-time Alipay or WeChat Pay Checkout Session.
+ *
+ * Wallet purchases are prepaid access, not subscriptions: monthly checkout
+ * grants one month and yearly checkout grants one year. The signed Checkout
+ * webhook is what starts that access; returning to the success URL grants
+ * nothing by itself.
+ */
+export async function createWalletCheckoutSession(args: {
+  plan: PlanId;
+  method: WalletPaymentMethod;
+  userId: string;
+  email: string | null;
+  customerId: string | null;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<string | null> {
+  const plan = PLANS[args.plan];
+  const methodName = args.method === "alipay" ? "Alipay" : "WeChat Pay";
+  const duration = plan.interval === "year" ? "1 year" : "1 month";
+
+  const session = await stripePost(
+    "/checkout/sessions",
+    form({
+      mode: "payment",
+      "managed_payments[enabled]": "false",
+      "payment_method_types[0]": args.method,
+      "line_items[0][price_data][currency]": plan.currency,
+      "line_items[0][price_data][unit_amount]": plan.amountMinor,
+      "line_items[0][price_data][product_data][name]":
+        `${TIERS[plan.tier].name} — ${duration} prepaid access`,
+      "line_items[0][quantity]": 1,
+      success_url: args.successUrl,
+      cancel_url: args.cancelUrl,
+      client_reference_id: args.userId,
+      customer: args.customerId ?? undefined,
+      customer_creation: args.customerId ? undefined : "always",
+      customer_email: args.customerId ? undefined : (args.email ?? undefined),
+      [`metadata[${USER_METADATA_KEY}]`]: args.userId,
+      [`metadata[${TIER_METADATA_KEY}]`]: plan.tier,
+      [`metadata[${PLAN_METADATA_KEY}]`]: args.plan,
+      [`metadata[bandup_payment_method]`]: methodName,
+      [`payment_intent_data[metadata][${USER_METADATA_KEY}]`]: args.userId,
+      [`payment_intent_data[metadata][${TIER_METADATA_KEY}]`]: plan.tier,
+      [`payment_intent_data[metadata][${PLAN_METADATA_KEY}]`]: args.plan,
     }),
   );
 

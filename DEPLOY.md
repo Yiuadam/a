@@ -289,26 +289,33 @@ at:
 https://bandup.siksafe-realtime-ai-vision.workers.dev/api/billing/webhook/stripe
 ```
 
-Subscribe it to exactly three events, and no others:
+Subscribe it to these events:
 
 - `customer.subscription.created`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
+- `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
+- `charge.refunded`
+- `refund.updated`
 
-Between them they carry the whole lifecycle — the first fires the moment
-checkout completes, the second on every renewal, plan change, failed payment
-and cancellation. `checkout.session.completed` is deliberately not needed:
-it arrives with no period end, and the account id it carries is also stamped
-onto the subscription itself, where every later event carries it too. Anything
-else that is subscribed is acknowledged and ignored, which shows up in the
-Worker log as noise.
+The subscription events carry renewable card billing. Checkout completion
+grants a one-time Alipay or WeChat Pay pass only after Stripe reports it paid.
+The two refund events cover both ordinary full refunds and WeChat Pay's
+asynchronous refund completion. Anything else is acknowledged and ignored.
+
+In Stripe → Settings → Payment methods, enable **Alipay** and **WeChat Pay** in
+the same live/test mode as the secret key. WeChat Pay availability can require
+Stripe approval. Wallet checkout is deliberately prepaid: monthly means one
+payment for one month and yearly means one payment for one year; neither
+renews automatically.
 
 Copy the signing secret into `STRIPE_WEBHOOK_SECRET`. If it is ever rotated,
 update it here in the same minute: in between, every delivery fails its
 signature check and no payment is recorded, and nothing about the app looks
 broken while that is happening.
 
-**3. Set the four variables on the Worker**, as **Secret**, and deploy.
+**3. Set the Stripe variables on the Worker**, as **Secret**, and deploy.
 
 **4. Check it with a real payment.** Stripe's test mode is the right place to
 start — a test-mode key and a test-mode endpoint work exactly the same way —

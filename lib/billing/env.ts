@@ -103,6 +103,11 @@ export function stripeConfigured(): boolean {
   return PLAN_IDS.some((plan) => stripePriceId(plan) !== undefined);
 }
 
+/** One-time wallet checkout uses inline catalogue prices, so it needs no Price ids. */
+export function stripeWalletConfigured(): boolean {
+  return stripeSecretKey() !== undefined;
+}
+
 /** The plans that can actually be bought right now, in catalogue order. */
 export function purchasablePlans(): PlanId[] {
   if (!stripeSecretKey()) return [];
