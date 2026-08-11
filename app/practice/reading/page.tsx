@@ -120,7 +120,7 @@ function ReadingTestPageRunner() {
 
   if (!started) {
     return (
-      <div className="mx-auto flex min-h-[55vh] max-w-xl items-center">
+      <div className="mx-auto flex min-h-[calc(100dvh-3.75rem)] max-w-xl items-center px-4">
         <div className="card w-full space-y-4 py-8 text-center">
           <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>
           <p className="text-sm text-slate-600">{test.topic}</p>

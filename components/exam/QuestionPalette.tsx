@@ -69,7 +69,7 @@ export default function QuestionPalette({
   const flaggedCount = items.filter((i) => i.flagged).length;
 
   return (
-    <div className="flex items-center gap-3 border-t border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-3 py-2">
+    <div className="mx-2 mb-2 flex items-center gap-3 rounded-xl border border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-2.5 py-2 shadow-[0_10px_28px_-24px_color-mix(in_srgb,var(--exam-fg)_55%,transparent)] sm:px-3">
       {/*
         Review sits bottom-left, where the exam puts it. It flags the question
         you are on, which is why it says which one — a button labelled only
@@ -85,7 +85,7 @@ export default function QuestionPalette({
           onClick={onToggleReview}
           disabled={!current}
           title="Mark this question to come back to it"
-          className={`rounded border px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${
+          className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${
             current?.flagged
               ? "border-[color:var(--exam-fg)] bg-[color:var(--exam-fg)] text-[color:var(--exam-bg)]"
               : "border-[color:var(--exam-line)] text-[color:var(--exam-fg)] hover:bg-[color:var(--exam-hover)]"
@@ -104,7 +104,7 @@ export default function QuestionPalette({
             type="button"
             onClick={onNextFlagged}
             title="Go to the next flagged question"
-            className="rounded border border-[color:var(--exam-line)] px-2 py-1.5 text-xs font-semibold text-[color:var(--exam-fg)] transition-colors hover:bg-[color:var(--exam-hover)]"
+            className="rounded-lg border border-[color:var(--exam-line)] px-2 py-1.5 text-xs font-semibold text-[color:var(--exam-fg)] transition-colors hover:bg-[color:var(--exam-hover)]"
           >
             {flaggedCount} flagged ›
           </button>
@@ -133,7 +133,7 @@ export default function QuestionPalette({
                 className={[
                   "flex h-7 w-7 items-center justify-center text-xs font-semibold tabular-nums transition-colors",
                   /* Shape carries the flag — see the note at the top. */
-                  item.flagged ? "rounded-full" : "rounded-[3px]",
+                  item.flagged ? "rounded-full" : "rounded-lg",
                   item.answered
                     ? "border-[color:var(--exam-fg)] bg-[color:var(--exam-fg)] text-[color:var(--exam-bg)]"
                     : "border-[color:var(--exam-line)] text-[color:var(--exam-fg)] hover:bg-[color:var(--exam-hover)]",
@@ -153,7 +153,7 @@ export default function QuestionPalette({
           type="button"
           onClick={onPrev}
           aria-label="Previous question"
-          className="rounded border border-[color:var(--exam-line)] px-2.5 py-1.5 text-sm text-[color:var(--exam-fg)] transition-colors hover:bg-[color:var(--exam-hover)]"
+          className="rounded-lg border border-[color:var(--exam-line)] px-2.5 py-1.5 text-sm text-[color:var(--exam-fg)] transition-colors hover:bg-[color:var(--exam-hover)]"
         >
           ‹
         </button>
@@ -161,7 +161,7 @@ export default function QuestionPalette({
           type="button"
           onClick={onNext}
           aria-label="Next question"
-          className="rounded border border-[color:var(--exam-line)] px-2.5 py-1.5 text-sm text-[color:var(--exam-fg)] transition-colors hover:bg-[color:var(--exam-hover)]"
+          className="rounded-lg border border-[color:var(--exam-line)] px-2.5 py-1.5 text-sm text-[color:var(--exam-fg)] transition-colors hover:bg-[color:var(--exam-hover)]"
         >
           ›
         </button>

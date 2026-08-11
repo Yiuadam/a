@@ -6,6 +6,9 @@ import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref } from "@/lib/nav";
 import { useTier } from "@/lib/billing/useTier";
+import { authedFetch } from "@/lib/account";
+import { apiUrl } from "@/lib/api";
+import type { ProfileFields } from "@/components/account/types";
 
 /*
   The whole header, in one client component.
@@ -60,6 +63,7 @@ export default function SiteHeader() {
   const onConsole = pathname.startsWith("/admin");
 
   const account = useTier();
+  const [profile, setProfile] = useState<ProfileFields | null>(null);
   const isOwner = account.phase === "ready" && account.signedIn && account.tier === "admin";
   const groups = isOwner
     ? NAV_GROUPS.map((group, i) =>
@@ -84,6 +88,26 @@ export default function SiteHeader() {
   const [openPath, setOpenPath] = useState<string | null>(null);
   const open = openPath !== null && openPath === pathname;
   const close = () => setOpenPath(null);
+
+  useEffect(() => {
+    if (account.phase !== "ready" || !account.signedIn) return;
+
+    let alive = true;
+    authedFetch(apiUrl("/api/account/profile"))
+      .then(async (res) => {
+        if (!res.ok) throw new Error("profile unavailable");
+        return (await res.json()) as ProfileFields;
+      })
+      .then((body) => {
+        if (alive) setProfile(body);
+      })
+      .catch(() => {
+        if (alive) setProfile(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [account.phase, account.signedIn]);
 
   useEffect(() => {
     if (!open) return;
@@ -235,21 +259,35 @@ export default function SiteHeader() {
           <Link
             href="/account"
             aria-label="Your account"
-            className="rounded-xl px-2.5 py-2 text-sm text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
+            className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-transparent text-sm text-slate-600 transition-all hover:border-slate-300 hover:bg-surface hover:text-slate-900"
           >
-            <svg
-              viewBox="0 0 20 20"
-              width="20"
-              height="20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <circle cx="10" cy="6.5" r="3.2" />
-              <path d="M3.8 17c0-3.3 2.8-5.4 6.2-5.4s6.2 2.1 6.2 5.4" />
-            </svg>
+            {account.signedIn && profile?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : account.signedIn ? (
+              <span className="flex h-full w-full items-center justify-center bg-indigo-100 text-xs font-semibold uppercase text-indigo-700">
+                {(profile?.displayName ?? profile?.email ?? "A").trim().charAt(0) || "A"}
+              </span>
+            ) : (
+              <svg
+                viewBox="0 0 20 20"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <circle cx="10" cy="6.5" r="3.2" />
+                <path d="M3.8 17c0-3.3 2.8-5.4 6.2-5.4s6.2 2.1 6.2 5.4" />
+              </svg>
+            )}
           </Link>
           <ThemeToggle />
         </div>

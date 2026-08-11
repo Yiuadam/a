@@ -25,6 +25,11 @@ import type { ReactNode } from "react";
 export default function AppMain({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const console_ = pathname.startsWith("/admin");
+  const immersive =
+    pathname === "/chat" ||
+    pathname === "/practice/listening" ||
+    pathname === "/practice/reading" ||
+    pathname === "/exam";
 
   return (
     <main
@@ -35,7 +40,7 @@ export default function AppMain({ children }: { children: ReactNode }) {
       */
       data-lookupable
       className={
-        console_
+        console_ || immersive
           ? "w-full min-h-0 flex-1"
           : /* Less air above and below on a phone. Forty pixels top and bottom
                is right on a laptop, where the page is a document in a window;

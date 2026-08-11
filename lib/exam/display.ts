@@ -38,7 +38,7 @@ export const TEXT_SIZES: { id: ExamTextSize; label: string; px: number }[] = [
   word, because "white" means the text in one and the background in another.
 */
 export const SCHEMES: { id: ExamScheme; label: string; hint: string }[] = [
-  { id: "standard", label: "Black on white", hint: "The default" },
+  { id: "standard", label: "Follow BandUp", hint: "Warm, light or dark with the site" },
   { id: "reverse", label: "White on black", hint: "For low light or glare" },
   { id: "amber", label: "Yellow on black", hint: "Highest contrast" },
 ];

@@ -109,7 +109,10 @@ export default function ExamSettings() {
                       className="flex h-5 w-8 shrink-0 items-center justify-center rounded-[2px] border border-[color:var(--exam-line)] text-[10px] font-bold"
                       style={
                         scheme.id === "standard"
-                          ? { background: "#ffffff", color: "#111111" }
+                          ? {
+                              background: "var(--color-background)",
+                              color: "var(--color-foreground)",
+                            }
                           : scheme.id === "reverse"
                             ? { background: "#000000", color: "#ffffff" }
                             : { background: "#000000", color: "#ffd400" }

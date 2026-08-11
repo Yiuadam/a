@@ -21,6 +21,8 @@ import { addResult } from "@/lib/store";
 import { LISTENING_TESTS } from "@/lib/tests";
 import type { ListeningTest } from "@/lib/types";
 import TestChooser from "@/components/TestChooser";
+import ExamShell from "@/components/exam/ExamShell";
+import { useExamNavigation } from "@/lib/exam/navigation";
 
 const bundled = LISTENING_TESTS;
 
@@ -60,6 +62,14 @@ function ListeningTestPageRunner() {
       null
     );
   }, [params, profile.genTests]);
+
+  const flat = useMemo(() => (test ? flatQuestions(test.questions) : []), [test]);
+  const nav = useExamNavigation(
+    useMemo(
+      () => flat.map((q) => ({ id: q.id, answered: answers[q.id] !== undefined })),
+      [flat, answers],
+    ),
+  );
 
   const ttsSupported = mounted && typeof window !== "undefined" && "speechSynthesis" in window;
 
@@ -162,7 +172,7 @@ function ListeningTestPageRunner() {
 
   if (!started) {
     return (
-      <div className="mx-auto flex min-h-[55vh] max-w-xl items-center">
+      <div className="mx-auto flex min-h-[calc(100dvh-3.75rem)] max-w-xl items-center px-4">
         <div className="card w-full space-y-4 py-8 text-center">
           <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>
           <p className="text-sm text-slate-600">{test.context}</p>
@@ -234,20 +244,29 @@ function ListeningTestPageRunner() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-slate-900">{test.title}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-lg border border-slate-200 bg-surface px-3 py-1.5 text-sm text-slate-500">
-            {mode === "timed" ? "Exam conditions · plays once" : "No time limit · replay freely"}
-          </span>
+    <ExamShell
+      section="Listening"
+      paper={test.title}
+      minutes={test.timeMinutes}
+      running={mode === "timed" && !submitted}
+      onExpire={submit}
+      palette={submitted ? [] : nav.items}
+      currentId={nav.currentId}
+      onJump={nav.jump}
+      onPrev={nav.prev}
+      onNext={nav.next}
+      onToggleReview={nav.toggleReview}
+      onNextFlagged={nav.nextFlagged}
+      bottomLeft={submitted && band !== null ? `Band ${band} · ${raw}/${flat.length}` : "Practice complete"}
+      topRight={
+        <div className="flex items-center gap-1.5">
           <select
-            className="input"
+            className="input !h-8 !w-auto !px-1.5 !py-0 text-xs"
             value={rate}
             onChange={(e) => {
-              const r = Number(e.target.value);
-              setRate(r);
-              rateRef.current = r;
+              const nextRate = Number(e.target.value);
+              setRate(nextRate);
+              rateRef.current = nextRate;
             }}
             title="Playback speed"
           >
@@ -255,140 +274,100 @@ function ListeningTestPageRunner() {
             <option value={1}>1×</option>
             <option value={1.15}>1.15×</option>
           </select>
-          {ttsSupported && !playing && (
+          {ttsSupported && !playing ? (
             <button
-              className="btn-primary"
+              type="button"
+              className="btn-primary !min-h-8 !px-2 !py-1 text-xs"
               onClick={() => startAudio(0)}
-              /* Under exam conditions the recording plays once, as in the real
-                 test. Free practice may replay as often as it likes. */
               disabled={mode === "timed" && !submitted && (finishedAudio || turnIndex >= 0)}
             >
-              {finishedAudio || turnIndex >= 0 ? "▶ Play again" : "▶ Play recording"}
+              {finishedAudio ? "Replay" : "▶ Play"}
             </button>
-          )}
-          {ttsSupported && playing && (
-            <button className="btn-secondary" onClick={stopAudio}>
-              ⏸ Stop
+          ) : ttsSupported ? (
+            <button type="button" className="btn-secondary !min-h-8 !px-2 !py-1 text-xs" onClick={stopAudio}>
+              Stop
             </button>
-          )}
+          ) : null}
         </div>
-      </div>
+      }
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto" data-listening-paper>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--exam-line)] pb-2 text-xs text-[color:var(--exam-muted)]">
+          <span>
+            {playing
+              ? `Playing ${turnIndex + 1} of ${test.script.length} · ${test.script[Math.max(0, turnIndex)]?.speaker}`
+              : finishedAudio
+                ? "Recording finished"
+                : mode === "timed"
+                  ? "The recording plays once"
+                  : "Replay and pause while practising"}
+          </span>
+          <button
+            type="button"
+            className="underline underline-offset-4"
+            onClick={() => setShowTranscript((shown) => !shown)}
+          >
+            {showTranscript ? "Hide transcript" : submitted || mode === "free" ? "Show transcript" : "Show transcript (spoiler)"}
+          </button>
+        </div>
 
-      {playing && (
-        <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-800">
-          Playing turn {turnIndex + 1} of {test.script.length} —{" "}
-          {test.script[Math.max(0, turnIndex)]?.speaker}
-        </div>
-      )}
-      {finishedAudio && !submitted && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
-          Recording finished. Check your answers, then submit.
-        </div>
-      )}
-
-      {submitted && band !== null && (
-        <div className="card flex flex-col items-center gap-4 py-6 sm:flex-row sm:justify-center sm:gap-10">
-          <BandBadge band={band} caption={`${raw}/${questionCount(test.questions)} correct`} />
-          <div className="max-w-md text-sm text-slate-600">
-            <p>
-              Estimated listening band <span className="font-semibold">{band}</span>. Go through
-              the review below with the transcript open — every answer you missed was audible,
-              and finding where is what fixes it.
-            </p>
-            <div className="mt-3 flex gap-2">
-              <Link href="/practice" className="btn-secondary">
-                More tests
-              </Link>
-              <Link href="/plan" className="btn-primary">
-                Study plan
-              </Link>
-            </div>
+        {submitted && band !== null && (
+          <div className="mb-4 grid gap-4 lg:grid-cols-[auto_1fr]">
+            <BandBadge band={band} caption={`${raw}/${questionCount(test.questions)} correct`} />
+            <Review
+              items={buildReview(test.questions, answers)}
+              advice={testAdvice(
+                "listening",
+                test.questions,
+                buildReview(test.questions, answers).map((item) => item.id),
+                band,
+              )}
+              total={questionCount(test.questions)}
+            />
           </div>
-        </div>
-      )}
+        )}
 
-      {submitted && band !== null && (
-        <Review
-          items={buildReview(test.questions, answers)}
-          advice={testAdvice(
-            "listening",
-            test.questions,
-            buildReview(test.questions, answers).map((i) => i.id),
-            band,
-          )}
-          total={questionCount(test.questions)}
+        <TestQuestions
+          questions={test.questions}
+          answers={answers}
+          onAnswer={(id, value) => setAnswers((current) => ({ ...current, [id]: value }))}
+          submitted={submitted}
+          checked={checked}
+          onCheck={(id) => setChecked((current) => ({ ...current, [id]: true }))}
+          mode={mode === "timed" ? "exam" : "practice"}
         />
-      )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div>
-          <TestQuestions
-            questions={test.questions}
-            answers={answers}
-            onAnswer={(id, v) => setAnswers((a) => ({ ...a, [id]: v }))}
-            submitted={submitted}
-            checked={checked}
-            onCheck={(id) => setChecked((c) => ({ ...c, [id]: true }))}
-            mode={mode === "timed" ? "exam" : "practice"}
-          />
-          {!submitted && (
-            <button className="btn-primary mt-5 w-full" onClick={submit}>
-              Submit answers
-            </button>
-          )}
-        </div>
-        <div className="card max-h-[75vh] overflow-y-auto lg:sticky lg:top-20">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-              Transcript
-            </h2>
-            {!submitted && (
-              <button
-                className="text-xs text-indigo-600 hover:underline"
-                onClick={() => setShowTranscript((s) => !s)}
-              >
-                {showTranscript
-                  ? "Hide"
-                  : mode === "free" || !ttsSupported
-                    ? "Show transcript"
-                    : "Show (spoiler!)"}
-              </button>
-            )}
-          </div>
-          {showTranscript ? (
+        {!submitted && (
+          <button className="btn-primary my-5 w-full" onClick={submit}>
+            Submit answers
+          </button>
+        )}
+
+        {showTranscript && (
+          <section className="mb-5 border-t border-[color:var(--exam-line)] pt-4">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide">Transcript</h2>
             <div className="space-y-3">
-              <p className="text-xs text-slate-400">Select any word to look it up</p>
-              {test.script.map((turn, i) => (
-                <p key={i} className="text-sm leading-6 text-slate-700">
-                  <span className="mr-1 font-semibold text-slate-500">{turn.speaker}:</span>
+              {test.script.map((turn, index) => (
+                <p key={index} className="text-sm leading-6">
+                  <span className="mr-1 font-semibold">{turn.speaker}:</span>
                   {turn.text}
                 </p>
               ))}
             </div>
-          ) : (
-            <p className="text-sm text-slate-400">
-              {mode === "timed"
-                ? "Hidden during the test — just like the real exam. It unlocks automatically after you submit."
-                : "You are practising without a clock, so open it whenever it helps. It unlocks automatically after you submit."}
-            </p>
-          )}
-        </div>
-      </div>
+          </section>
+        )}
 
-      {/*
-        The score again, where the learner actually is when the paper is
-        marked. The card at the top of the page heads the review; this closes
-        the paper. See components/ScoreFooter.tsx.
-      */}
-      {submitted && band !== null && (
-        <ScoreFooter
-          module="listening"
-          band={band}
-          raw={raw}
-          total={questionCount(test.questions)}
-        />
-      )}
-    </div>
+        {submitted && band !== null && (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <ScoreFooter module="listening" band={band} raw={raw} total={flat.length} />
+            <div className="flex gap-2">
+              <Link href="/practice/listening" className="btn-secondary">More tests</Link>
+              <Link href="/plan" className="btn-primary">Study plan</Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </ExamShell>
   );
 }
 

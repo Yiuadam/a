@@ -525,10 +525,14 @@ textarea {
 --------------------------------------------------------------------------- */
 
 [data-exam] .card {
-  border-radius: 4px;
+  border-radius: 14px;
   border-color: var(--exam-line);
   background: var(--exam-bg);
-  box-shadow: none;
+  box-shadow: 0 8px 24px -22px color-mix(in srgb, var(--exam-fg) 45%, transparent);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 /* The hairline reads as a physical card; an exam paper is not one. */
@@ -564,10 +568,27 @@ textarea {
 [data-exam] input,
 [data-exam] textarea,
 [data-exam] select {
-  border-radius: 3px;
+  border-radius: 9px;
   border-color: var(--exam-line);
   background: var(--exam-bg);
   color: var(--exam-fg);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+[data-exam] .input:focus,
+[data-exam] input:focus,
+[data-exam] textarea:focus,
+[data-exam] select:focus {
+  border-color: var(--exam-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--exam-accent) 18%, transparent);
+}
+
+[data-exam] * {
+  scrollbar-color: var(--exam-line) transparent;
+  scrollbar-width: thin;
 }
 
 /*

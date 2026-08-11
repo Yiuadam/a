@@ -41,14 +41,14 @@ import { sizeInPx } from "@/lib/exam/display";
 
 const SCHEME_VARS: Record<string, Record<string, string>> = {
   standard: {
-    "--exam-bg": "#ffffff",
-    "--exam-fg": "#111111",
-    "--exam-muted": "#5b5b5b",
-    "--exam-line": "#c9c9c9",
-    "--exam-chrome": "#f1f1f1",
-    "--exam-hover": "#e4e4e4",
-    "--exam-accent": "#8a4b2a",
-    "--exam-mark": "#ffe680",
+    "--exam-bg": "var(--color-background)",
+    "--exam-fg": "var(--color-foreground)",
+    "--exam-muted": "var(--color-slate-500)",
+    "--exam-line": "var(--color-slate-300)",
+    "--exam-chrome": "var(--color-slate-100)",
+    "--exam-hover": "var(--color-slate-200)",
+    "--exam-accent": "var(--color-indigo-600)",
+    "--exam-mark": "var(--color-amber-200)",
   },
   reverse: {
     "--exam-bg": "#000000",
@@ -174,9 +174,9 @@ export default function ExamShell({
         is still taller than the window — the site footer is below all of
         this — but the exam does not depend on scrolling to it.
       */
-      className="-mx-4 flex h-[calc(100dvh-8.5rem)] min-h-[26rem] flex-col overflow-hidden border-y border-[color:var(--exam-line)] bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)] sm:mx-0 sm:rounded-lg sm:border"
+      className="m-1 flex h-[calc(100dvh-4.25rem)] min-h-[26rem] w-[calc(100%-0.5rem)] flex-col overflow-hidden rounded-xl border border-[color:var(--exam-line)] bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)] shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)] sm:m-2 sm:h-[calc(100dvh-4.75rem)] sm:w-[calc(100%-1rem)] sm:rounded-2xl"
     >
-      <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-3 py-1.5">
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b-2 border-[color:var(--exam-accent)] bg-[color:var(--exam-chrome)] px-3 py-1.5">
         {/*
           Where the exam prints the candidate's name and number. There is no
           candidate here, so it says which paper you are on — the same corner,
@@ -208,7 +208,7 @@ export default function ExamShell({
         independent. A page that wants one scrolling column puts its own
         overflow-y-auto in here.
       */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-2">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-2 sm:px-4">{children}</div>
 
       {palette && palette.length > 0 ? (
         <QuestionPalette

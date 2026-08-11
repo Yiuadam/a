@@ -51,7 +51,7 @@ export default function TestChooser({
   const label = kind === "reading" ? "Reading" : "Listening";
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-5 sm:px-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">{label} practice</h1>
         <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">

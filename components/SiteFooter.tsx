@@ -55,7 +55,13 @@ const SAYS_IT_ITSELF = ["/credits", "/privacy", "/terms"];
 
 export default function SiteFooter() {
   const pathname = usePathname();
-  if (pathname.startsWith("/admin")) return null;
+  const immersive =
+    pathname.startsWith("/admin") ||
+    pathname === "/chat" ||
+    pathname === "/practice/listening" ||
+    pathname === "/practice/reading" ||
+    pathname === "/exam";
+  if (immersive) return null;
   const introduce = INTRODUCES_ITSELF.includes(pathname);
   const disclaim = !SAYS_IT_ITSELF.includes(pathname);
 
