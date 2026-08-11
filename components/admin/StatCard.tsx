@@ -30,42 +30,44 @@ export default function StatCard({
 }) {
   return (
     /*
-      Tighter on a phone, and the icon goes with it. Four of these stacked in a
-      column cost 600 pixels of an 844-pixel screen to say four numbers; two
-      across at this size cost 220. The glyph was never carrying meaning — the
-      comment above says as much — so it is the first thing to go when the room
-      runs out.
+      A row, not a column.
+
+      The tall version — a 44-pixel glyph, then the figure, then the label —
+      cost about 180 pixels each, and four of them took a fifth of a laptop
+      screen to say four numbers. On a console the numbers are the thing you
+      glance at on the way to the controls, and the controls were the part
+      being pushed off the bottom.
+
+      Laid out sideways it is 72. The glyph shrinks and moves beside the
+      figure, where it still separates one tile from the next at a glance and
+      no longer claims a line of its own.
     */
-    <div className="rounded-2xl border border-slate-200 bg-surface p-3.5 sm:p-5">
-      <span className="hidden h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-500 sm:flex">
+    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-3 sm:gap-3.5 sm:p-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
         {icon}
       </span>
 
-      {unavailable ? (
-        <>
-          {/*
-            Not a zero. "No subscribers" and "we could not ask Stripe" are very
-            different mornings, and a dashboard that renders the second as the
-            first is one somebody acts on.
-          */}
-          <p className="text-[14px] font-medium text-slate-400 sm:mt-4 sm:text-[15px]">
-            Unavailable
-          </p>
-          <p className="mt-0.5 text-[11px] leading-4 text-slate-400 sm:text-xs sm:leading-5">
-            {unavailable}
-          </p>
-        </>
-      ) : (
-        <>
-          <p className="text-[24px] font-semibold leading-none tracking-tight text-slate-900 tabular-nums sm:mt-4 sm:text-[28px]">
-            {value}
-          </p>
-          <p className="mt-1 text-[12px] leading-4 text-slate-500 sm:mt-1.5 sm:text-sm">{label}</p>
-          {hint && (
-            <p className="mt-0.5 hidden text-xs leading-5 text-slate-400 sm:block">{hint}</p>
-          )}
-        </>
-      )}
+      <div className="min-w-0">
+        {unavailable ? (
+          <>
+            {/*
+              Not a zero. "No subscribers" and "we could not ask Stripe" are
+              very different mornings, and a dashboard that renders the second
+              as the first is one somebody acts on.
+            */}
+            <p className="text-[14px] font-medium text-slate-400">Unavailable</p>
+            <p className="mt-0.5 text-[11px] leading-4 text-slate-400">{unavailable}</p>
+          </>
+        ) : (
+          <>
+            <p className="text-[22px] font-semibold leading-none tracking-tight text-slate-900 tabular-nums">
+              {value}
+            </p>
+            <p className="mt-1 truncate text-[12px] leading-4 text-slate-500">{label}</p>
+            {hint && <p className="hidden text-[11px] leading-4 text-slate-400 xl:block">{hint}</p>}
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { rpcDiagnostic, supabaseConfigured } from "@/lib/auth/supabase";
 import { withCors } from "@/lib/http/cors";
 import { LIMITS_SCHEMA_VERSION, USAGE_WINDOW_SECONDS, limitsForDatabase } from "@/lib/usage/limits";
 import { hasApiKey } from "@/lib/anthropic";
+import { stripeDiagnostic } from "@/lib/billing/stripe";
+import { stripeConfigured } from "@/lib/billing/env";
 
 /*
   What is actually wrong, for the one person entitled to know.
@@ -225,6 +227,27 @@ async function handleGET(req: Request) {
           ? " — apply supabase/migrations/0007_chat_route.sql"
           : ""),
   );
+
+  /*
+    Stripe last, because it is the slowest and because everything above it is
+    what the app needs to serve a page at all.
+
+    It is here rather than left to the dashboard because the dashboard can only
+    say "unavailable". An expired key, a restricted key that cannot read
+    subscriptions, a test key against live prices and a network failure all
+    look the same from a tile, and they are four different afternoons. This
+    prints what Stripe said.
+  */
+  if (stripeConfigured()) {
+    const stripe = await stripeDiagnostic();
+    add("Stripe reachable", stripe.ok, stripe.detail);
+  } else {
+    add(
+      "Stripe configured",
+      false,
+      "STRIPE_SECRET_KEY or every price id is missing — checkout is closed and the dashboard has no billing figures",
+    );
+  }
 
   return NextResponse.json({
     ok: checks.every((c) => c.ok),

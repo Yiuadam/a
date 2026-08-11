@@ -690,3 +690,37 @@ export async function createPortalSession(args: {
   const url = session.url;
   return typeof url === "string" && url.length > 0 ? url : null;
 }
+
+/**
+ * Asks Stripe one cheap question and reports what it said, verbatim.
+ *
+ * The sibling of `rpcDiagnostic` in lib/auth/supabase.ts, and it exists for
+ * the same reason. `billingSnapshot` throws a StripeError that the dashboard
+ * turns into the word "unavailable", which is the right thing to show on a
+ * screen and useless to the person who has to fix it: an expired key, a
+ * restricted key without permission to read subscriptions, a test key against
+ * live prices and a network failure all look identical from there.
+ *
+ * `limit=1` because the answer is not wanted — only whether the question was
+ * allowed. It reads nothing and changes nothing.
+ *
+ * The detail it returns is Stripe's own error code, never the key. It is shown
+ * only through the owner-only diagnostics route.
+ */
+export async function stripeDiagnostic(): Promise<{ ok: boolean; detail: string }> {
+  assertServerOnly(MODULE);
+  if (!stripeSecretKey()) {
+    return { ok: false, detail: "STRIPE_SECRET_KEY is not set on this Worker" };
+  }
+  try {
+    const body = await stripeGet("/subscriptions?limit=1");
+    const data = (body.data ?? []) as unknown[];
+    const live = body.livemode === true;
+    return {
+      ok: true,
+      detail: `answers — ${live ? "live" : "test"} mode, ${data.length === 0 ? "no active subscriptions yet" : "subscriptions readable"}`,
+    };
+  } catch (err) {
+    return { ok: false, detail: err instanceof Error ? err.message : "unknown failure" };
+  }
+}
