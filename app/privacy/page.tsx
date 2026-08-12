@@ -141,11 +141,12 @@ export default function PrivacyPage() {
           ))}
         </ul>
         <p className="mt-4 text-sm leading-6 text-slate-600">
-          One further thing can be stored, and only if you ask for it: if you turn on on-device
-          transcription in the speaking test, the speech model it needs (about 75 or 145 MB,
-          depending on which you pick) is downloaded once and kept in your browser&rsquo;s cache
-          so it works offline afterwards. It holds no data about you — it is the same file
-          every user downloads — and the speaking test offers a button to delete it.
+          Two standard model files can also be stored on your device. If you turn on on-device
+          transcription in the speaking test, its speech model (about 75 or 145 MB, depending
+          on which you pick) is downloaded once and kept in your browser&rsquo;s cache. On the web,
+          the natural British examiner voice uses a separate model of about 92 MB, downloaded
+          when you first start an interview. Both run on your device, hold no data about you and
+          are the same files every learner downloads.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Because this lives on the device and nowhere else, your progress does not follow you
@@ -188,9 +189,11 @@ export default function PrivacyPage() {
           email and no identifier alongside it, because it holds none.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          One other request leaves your device, and it carries nothing of yours: if you turn on
-          on-device transcription, the speech model is downloaded once from Hugging Face. It is
-          described in full under the microphone below.
+          Model downloads also leave your device, and carry none of your work: if you turn on
+          on-device transcription, its speech model is downloaded once from Hugging Face; when
+          you first start a web speaking interview, the natural examiner model and British voice
+          are downloaded there too. The words spoken by the examiner are generated locally and
+          are not sent to a voice service.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Placement, the study plan, the bundled practice tests, the grammar and vocabulary

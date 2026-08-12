@@ -20,11 +20,13 @@ import speakingData from "@/data/speaking-topics.json";
 import { useMounted } from "@/lib/hooks";
 import {
   cancelSpeech,
+  disposeNaturalExaminerVoice,
   getSpeechRecognition,
   serverSpeechPrefs,
   speechPrefs,
   speechRecognitionSupported,
   speak,
+  prepareNaturalExaminerVoice,
   subscribeSpeechPrefs,
   writeSpeechPrefs,
   type SpeechPrefs,
@@ -166,6 +168,9 @@ export default function SpeakingSession({
   const [modelCached, setModelCached] = useState(false);
   const [localStatus, setLocalStatus] = useState<LocalStatus | null>(null);
   const [transcribing, setTranscribing] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<"idle" | "loading" | "ready" | "fallback">(
+    "idle",
+  );
   const mounted = useMounted();
 
   const usingLocal = prefs.engine === "local" && localBlock === null;
@@ -221,6 +226,7 @@ export default function SpeakingSession({
     // Stop any speech or recognition still running when the user navigates away.
     return () => {
       cancelSpeech();
+      disposeNaturalExaminerVoice();
       wantRecordingRef.current = false;
       recRef.current?.abort();
       sessionRef.current?.abort();
@@ -510,10 +516,13 @@ export default function SpeakingSession({
       something the candidate meets on the start screen — where switching
       recogniser is one tap away — rather than one question into the exam.
     */
-    if (usingLocal) {
-      const ready = await warmUpLocal();
-      if (!ready) return;
-    }
+    setVoiceStatus("loading");
+    const [naturalVoice, transcriptionReady] = await Promise.all([
+      prepareNaturalExaminerVoice(),
+      usingLocal ? warmUpLocal() : Promise.resolve(true),
+    ]);
+    setVoiceStatus(naturalVoice ? "ready" : "fallback");
+    if (!transcriptionReady) return;
     setStage("interview");
     await askCurrent(0, list);
   }, [askCurrent, usingLocal, warmUpLocal]);
@@ -705,10 +714,30 @@ export default function SpeakingSession({
             <button
               className="btn-primary mt-3 w-full"
               onClick={begin}
-              disabled={localStatus !== null}
+              disabled={localStatus !== null || voiceStatus === "loading"}
             >
-              {localStatus !== null ? "Getting ready\u2026" : "Start the interview"}
+              {localStatus !== null || voiceStatus === "loading"
+                ? "Getting ready\u2026"
+                : "Start the interview"}
             </button>
+            {voiceStatus === "loading" && (
+              <div
+                className="mt-3 rounded-2xl bg-indigo-50 px-4 py-3 text-left"
+                aria-live="polite"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-indigo-800">
+                  <span>Preparing the natural British examiner voice</span>
+                  <span className="text-xs text-indigo-700">about 92 MB · once only</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-indigo-100">
+                  <div className="h-full w-full animate-pulse rounded-full bg-indigo-500" />
+                </div>
+                <p className="mt-2 text-xs leading-5 text-indigo-700">
+                  The voice runs on this device. No question or answer is sent to a voice
+                  service.
+                </p>
+              </div>
+            )}
             {localStatus && (
               <div className="mt-3 rounded-2xl bg-indigo-50 px-4 py-3 text-left" aria-live="polite">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-indigo-800">
@@ -736,6 +765,8 @@ export default function SpeakingSession({
               </p>
             )}
             <p className="mt-2 text-xs leading-5 text-slate-400">
+              On the web, the natural British examiner voice downloads once (about 92 MB) and
+              then runs on this device. If it cannot load, BandUp uses your device voice. {" "}
               {usingLocal
                 ? "Your voice is transcribed on this device and never uploaded. Only the text transcript is sent for marking."
                 : "Your voice is transcribed by your device's own recogniser, which may send the audio to its maker. Only the text transcript is sent for marking."}{" "}
