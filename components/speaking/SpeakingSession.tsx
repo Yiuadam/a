@@ -55,6 +55,12 @@ import type {
   SpeakingTranscriptTurn,
 } from "@/lib/types";
 import { SpeakingIcon } from "@/components/Icons";
+import {
+  countSpokenWords,
+  decideTurnEnd,
+  examinerTransition,
+  type TurnEndReason,
+} from "@/lib/speaking/turn-control";
 
 const data = speakingData as SpeakingTopicsData;
 
@@ -169,7 +175,12 @@ export default function SpeakingSession({
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const wantRecordingRef = useRef(false);
   const answerRef = useRef("");
+  const interimRef = useRef("");
   const sessionRef = useRef<LocalSession | null>(null);
+  const answerStartedAtRef = useRef<number | null>(null);
+  const lastVoiceAtRef = useRef<number | null>(null);
+  const speechDetectedRef = useRef(false);
+  const advancingRef = useRef(false);
 
   // Whether the local recogniser can actually run here.
   useEffect(() => {
@@ -262,6 +273,14 @@ export default function SpeakingSession({
     recRef.current?.stop();
     setRecording(false);
     setInterim("");
+    interimRef.current = "";
+  }, []);
+
+  const beginAnswerClock = useCallback(() => {
+    const now = performance.now();
+    answerStartedAtRef.current = now;
+    lastVoiceAtRef.current = now;
+    speechDetectedRef.current = false;
   }, []);
 
   const startRecording = useCallback(() => {
@@ -274,6 +293,7 @@ export default function SpeakingSession({
     wantRecordingRef.current = true;
     setRecording(true);
     setElapsed(0);
+    beginAnswerClock();
 
     rec.onresult = (e: SpeechRecognitionEvent) => {
       let finalChunk = "";
@@ -287,7 +307,12 @@ export default function SpeakingSession({
         answerRef.current = (answerRef.current + " " + finalChunk).trim();
         setAnswer(answerRef.current);
       }
+      interimRef.current = pending;
       setInterim(pending);
+      if (finalChunk || pending) {
+        speechDetectedRef.current = true;
+        lastVoiceAtRef.current = performance.now();
+      }
     };
     rec.onerror = (e) => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
@@ -314,7 +339,7 @@ export default function SpeakingSession({
     } catch {
       setRecording(false);
     }
-  }, []);
+  }, [beginAnswerClock]);
 
   /*
     The local path is a different shape from the streaming one: it records the
@@ -330,6 +355,7 @@ export default function SpeakingSession({
       await session.start();
       setRecording(true);
       setElapsed(0);
+      beginAnswerClock();
     } catch {
       sessionRef.current = null;
       setLocalStatus(null);
@@ -337,7 +363,7 @@ export default function SpeakingSession({
       setMicBlocked(true);
       setError("Microphone access was blocked. Allow it in your settings, or type your answer.");
     }
-  }, [prefs.model]);
+  }, [prefs.model, beginAnswerClock]);
 
   /** Stop the local recorder, transcribe, and fold the text into the answer. */
   const finishLocal = useCallback(async (): Promise<string> => {
@@ -365,8 +391,8 @@ export default function SpeakingSession({
   const stopAnswer = useCallback(async (): Promise<string> => {
     if (usingLocal) return await finishLocal();
     stopRecording();
-    return (answerRef.current + " " + interim).trim();
-  }, [usingLocal, finishLocal, stopRecording, interim]);
+    return (answerRef.current + " " + interimRef.current).trim();
+  }, [usingLocal, finishLocal, stopRecording]);
 
   /*
     Get the model before the test, not during it.
@@ -464,6 +490,7 @@ export default function SpeakingSession({
     setExaminerSpeaking(false);
     setPrepSeconds(0);
     setInterim("");
+    interimRef.current = "";
     setAnswer("");
     answerRef.current = "";
     setStage("intro");
@@ -542,48 +569,95 @@ export default function SpeakingSession({
     [exam],
   );
 
-  const nextQuestion = useCallback(async () => {
-    if (!step) return;
-    // With the local recogniser this waits for the transcription to land, so
-    // the answer is never carried forward half-written.
-    const spoken = await stopAnswer();
-    const updated: Turn[] = [
-      ...transcript,
-      { role: "examiner", part: step.part, text: step.question },
-      { role: "candidate", part: step.part, text: spoken || "(no answer given)" },
-    ];
-    setTranscript(updated);
-    answerRef.current = "";
-    setAnswer("");
-    setInterim("");
-    setPrepSeconds(0);
-    setElapsed(0);
-
+  const nextQuestion = useCallback(async (reason: TurnEndReason = "natural-pause") => {
+    if (!step || advancingRef.current) return;
+    advancingRef.current = true;
     const nextIndex = stepIndex + 1;
-    if (nextIndex >= steps.length) {
-      /*
-        No marking on this plan, so no request. Calling the route anyway would
-        spend fourteen minutes of somebody's afternoon and answer 402, and the
-        transcript — which is the part that costs nothing and is genuinely
-        useful — would be behind an error message.
-      */
-      if (!marked) {
-        setStage("unmarked");
+    const finalQuestion = nextIndex >= steps.length;
+
+    try {
+      /* Stop capture before the examiner speaks so its voice never lands in the
+         candidate's answer. Local transcription and the short transition can
+         then run together, avoiding a long robotic silence. */
+      const spokenPromise = stopAnswer();
+      setExaminerSpeaking(true);
+      const transitionPromise = speak(examinerTransition(finalQuestion, reason), 0.96);
+      const [spoken] = await Promise.all([spokenPromise, transitionPromise]);
+      setExaminerSpeaking(false);
+
+      const updated: Turn[] = [
+        ...transcript,
+        { role: "examiner", part: step.part, text: step.question },
+        { role: "candidate", part: step.part, text: spoken || "(no answer given)" },
+      ];
+      setTranscript(updated);
+      answerRef.current = "";
+      interimRef.current = "";
+      setAnswer("");
+      setInterim("");
+      setPrepSeconds(0);
+      setElapsed(0);
+      answerStartedAtRef.current = null;
+
+      if (finalQuestion) {
         /*
-          The sitting still has to end. Reporting no band is the honest answer
-          and the results screen names Speaking as unmarked; stopping here
-          instead would strand a candidate on a transcript with the exam
-          apparently still running.
+          No marking on this plan, so no request. Calling the route anyway would
+          spend fourteen minutes of somebody's afternoon and answer 402, and the
+          transcript — which is the part that costs nothing and is genuinely
+          useful — would be behind an error message.
         */
-        exam?.onFinish(null);
+        if (!marked) {
+          setStage("unmarked");
+          exam?.onFinish(null);
+          return;
+        }
+        await gradeInterview(updated);
         return;
       }
-      await gradeInterview(updated);
-      return;
+      setStepIndex(nextIndex);
+      await askCurrent(nextIndex, steps);
+    } finally {
+      setExaminerSpeaking(false);
+      advancingRef.current = false;
     }
-    setStepIndex(nextIndex);
-    await askCurrent(nextIndex, steps);
   }, [step, stepIndex, steps, transcript, stopAnswer, askCurrent, gradeInterview, marked, exam]);
+
+  const readMicrophoneLevel = useCallback(
+    (rms: number) => {
+      if (!recording || examinerSpeaking || prepSeconds > 0 || rms < 0.009) return;
+      speechDetectedRef.current = true;
+      lastVoiceAtRef.current = performance.now();
+    },
+    [recording, examinerSpeaking, prepSeconds],
+  );
+
+  /*
+    A quarter-second control loop makes the examiner responsive without asking
+    React to re-render for every microphone sample. It never ends a normal turn
+    in active speech: sufficient language must be followed by a natural pause.
+    The hard limit is the deliberate IELTS-style interruption.
+  */
+  useEffect(() => {
+    if (!recording || !step || examinerSpeaking || prepSeconds > 0) return;
+
+    const timer = window.setInterval(() => {
+      const startedAt = answerStartedAtRef.current;
+      const lastVoiceAt = lastVoiceAtRef.current;
+      if (startedAt === null || lastVoiceAt === null || advancingRef.current) return;
+      const now = performance.now();
+      const decision = decideTurnEnd({
+        part: step.part,
+        elapsedSeconds: (now - startedAt) / 1_000,
+        wordCount: countSpokenWords(`${answerRef.current} ${interimRef.current}`),
+        speechDetected: speechDetectedRef.current,
+        silenceMilliseconds: now - lastVoiceAt,
+        liveTranscript: !usingLocal,
+      });
+      if (decision) void nextQuestion(decision);
+    }, 250);
+
+    return () => window.clearInterval(timer);
+  }, [recording, step, examinerSpeaking, prepSeconds, usingLocal, nextQuestion]);
 
   // ---------- Screens ----------
 
@@ -991,7 +1065,11 @@ export default function SpeakingSession({
       <div className="card !p-4 flex flex-col items-center gap-2 text-center">
         {micSupported ? (
           <>
-            <VolumeMeter stream={micStream} muted={examinerSpeaking || preparing} />
+            <VolumeMeter
+              stream={micStream}
+              muted={examinerSpeaking || preparing}
+              onLevel={readMicrophoneLevel}
+            />
             <p className="text-sm text-slate-600">
               {examinerSpeaking
                 ? "Listen to the question\u2026"
@@ -1002,7 +1080,7 @@ export default function SpeakingSession({
                     : recording
                       ? `Answering \u2014 ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}${
                           step?.part === 2 ? " (aim for 1\u20132 minutes)" : ""
-                        }`
+                        } · the examiner will move on at a natural pause`
                       : "Speak your answer out loud"}
             </p>
           </>
@@ -1047,6 +1125,7 @@ export default function SpeakingSession({
           value={answer + (interim ? " " + interim : "")}
           onChange={(e) => {
             answerRef.current = e.target.value;
+            interimRef.current = "";
             setAnswer(e.target.value);
             setInterim("");
           }}
@@ -1054,14 +1133,14 @@ export default function SpeakingSession({
 
         <button
           className="btn-primary w-full sm:w-auto"
-          onClick={nextQuestion}
+          onClick={() => void nextQuestion()}
           disabled={examinerSpeaking || transcribing}
         >
           {transcribing
             ? "Transcribing…"
             : stepIndex + 1 >= totalSteps
               ? "Finish and get my band score"
-              : "Next question"}
+              : "Move on now"}
         </button>
         {error && <p className="text-sm leading-6 text-rose-600">{error}</p>}
       </div>

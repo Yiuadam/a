@@ -50,14 +50,24 @@ export default function VolumeMeter({
   stream,
   /** Drawn dim while the examiner is talking: it is not your turn. */
   muted = false,
+  /** Raw microphone activity for the real-time examiner; never causes a render. */
+  onLevel,
 }: {
   stream: MediaStream | null;
   muted?: boolean;
+  onLevel?: (rms: number) => void;
 }) {
   const [level, setLevel] = useState(0);
   const [silent, setSilent] = useState(false);
   const levelRef = useRef(0);
   const quietSince = useRef<number | null>(null);
+  const mutedRef = useRef(muted);
+  const onLevelRef = useRef(onLevel);
+
+  useEffect(() => {
+    mutedRef.current = muted;
+    onLevelRef.current = onLevel;
+  }, [muted, onLevel]);
 
   useEffect(() => {
     if (!stream) return;
@@ -84,6 +94,7 @@ export default function VolumeMeter({
     const samples = new Uint8Array(analyser.fftSize);
     let frame = 0;
     let stopped = false;
+    let lastLevelReport = 0;
 
     const tick = () => {
       if (stopped) return;
@@ -97,6 +108,14 @@ export default function VolumeMeter({
       }
       const rms = Math.sqrt(sum / samples.length);
       const shown = Math.min(1, Math.cbrt(rms) * 1.35);
+
+      /* About ten samples a second is plenty for pause detection and avoids
+         sending 60 callbacks a second through the interview component. */
+      const now = performance.now();
+      if (now - lastLevelReport >= 100) {
+        onLevelRef.current?.(mutedRef.current ? 0 : rms);
+        lastLevelReport = now;
+      }
 
       /* Instant attack, slow release — see the header. */
       levelRef.current = shown > levelRef.current ? shown : levelRef.current * 0.88 + shown * 0.12;

@@ -297,35 +297,94 @@ export function toSentences(text: string): string[] {
     .filter(Boolean);
 }
 
-/** Speak a line of text; resolves when finished (or immediately if unsupported). */
-export async function speak(text: string, rate = 1): Promise<void> {
-  const tts = await nativeTTS();
-  if (tts) {
-    try {
-      await tts.speak({ text, lang: "en-GB", rate, pitch: 1 });
-    } catch {
-      // A failed line should never strand the interview.
-    }
-    return;
+let speechSequence = 0;
+let finishBrowserUtterance: (() => void) | null = null;
+
+function pause(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+async function browserVoices(): Promise<SpeechSynthesisVoice[]> {
+  const immediate = rankedEnglishVoices();
+  if (immediate.length > 0 || typeof window === "undefined" || !("speechSynthesis" in window)) {
+    return immediate;
   }
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+
+  /* Safari and Chrome often populate the voice list after the first render.
+     Waiting briefly prevents the browser's low-quality default voice from
+     winning that race. */
+  await new Promise<void>((resolve) => {
+    const timer = window.setTimeout(done, 400);
+    function done() {
+      window.clearTimeout(timer);
+      window.speechSynthesis.removeEventListener("voiceschanged", done);
       resolve();
-      return;
     }
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = rate;
-    utter.lang = "en-GB";
-    const [best] = rankedEnglishVoices();
-    if (best) utter.voice = best;
-    utter.onend = () => resolve();
-    utter.onerror = () => resolve();
-    window.speechSynthesis.speak(utter);
+    window.speechSynthesis.addEventListener("voiceschanged", done, { once: true });
+  });
+  return rankedEnglishVoices();
+}
+
+function speakBrowserLine(
+  text: string,
+  voice: SpeechSynthesisVoice | undefined,
+  rate: number,
+): Promise<void> {
+  return new Promise((resolve) => {
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      if (finishBrowserUtterance === done) finishBrowserUtterance = null;
+      resolve();
+    };
+    finishBrowserUtterance = done;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = rate;
+    utterance.pitch = 0.98;
+    utterance.lang = "en-GB";
+    if (voice) utterance.voice = voice;
+    utterance.onend = done;
+    utterance.onerror = done;
+    window.speechSynthesis.speak(utterance);
   });
 }
 
+/** Speak a line of text; resolves when finished (or immediately if unsupported). */
+export async function speak(text: string, rate = 1): Promise<void> {
+  const sequence = ++speechSequence;
+  const lines = toSentences(text);
+  if (lines.length === 0) return;
+  const tts = await nativeTTS();
+  if (tts) {
+    for (let i = 0; i < lines.length && sequence === speechSequence; i += 1) {
+      try {
+        await tts.speak({
+          text: lines[i],
+          lang: "en-GB",
+          rate: rate * (i % 2 === 0 ? 0.97 : 0.94),
+          pitch: 0.98,
+        });
+      } catch {
+        // A failed line should never strand the interview.
+      }
+    }
+    return;
+  }
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+  window.speechSynthesis.cancel();
+  finishBrowserUtterance?.();
+  const [voice] = await browserVoices();
+  for (let i = 0; i < lines.length && sequence === speechSequence; i += 1) {
+    await speakBrowserLine(lines[i], voice, rate * (i % 2 === 0 ? 0.97 : 0.94));
+    if (i + 1 < lines.length && sequence === speechSequence) await pause(140);
+  }
+}
+
 export function cancelSpeech(): void {
+  speechSequence += 1;
+  finishBrowserUtterance?.();
   void nativeTTS().then((tts) => tts?.stop().catch(() => {}));
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
     window.speechSynthesis.cancel();
