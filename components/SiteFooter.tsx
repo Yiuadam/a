@@ -93,6 +93,7 @@ export default function SiteFooter() {
         )}
         <Link
           href="/privacy"
+          prefetch={false}
           className="inline-block rounded text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-900"
         >
           Privacy policy
@@ -102,6 +103,7 @@ export default function SiteFooter() {
         </span>
         <Link
           href="/terms"
+          prefetch={false}
           className="inline-block rounded text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-900"
         >
           Terms of use

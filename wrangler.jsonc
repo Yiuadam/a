@@ -12,6 +12,11 @@
   "observability": {
     "enabled": true
   },
+  "limits": {
+    // Paid Workers allow this explicit 30-second ceiling. It replaces the
+    // Free plan's 10 ms ceiling that terminated ordinary Next.js renders.
+    "cpu_ms": 30000
+  },
 
   /*
     Do not delete the Worker's variables on the way past.

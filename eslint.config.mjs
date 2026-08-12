@@ -38,6 +38,10 @@ const eslintConfig = defineConfig([
     // Emscripten output, vendored by scripts/vendor-shout.mjs rather than
     // written here. Linting generated wasm glue says nothing useful.
     "public/whisper/**",
+    // Minified Kokoro/Transformers browser runtime. This is pinned, reviewed
+    // third-party output; lint the BandUp adapter, not two megabytes of its
+    // generated distribution bundle.
+    "public/vendor/kokoro/**",
   ]),
 ]);
 

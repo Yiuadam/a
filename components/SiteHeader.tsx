@@ -209,6 +209,7 @@ export default function SiteHeader() {
       <div className="mx-auto flex h-[var(--header-row-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
         <Link
           href="/"
+          prefetch={false}
           className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
         >
           {/*

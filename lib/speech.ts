@@ -1,6 +1,12 @@
 "use client";
 
 import { isNative, nativeSTT, nativeTTS } from "./native";
+import {
+  cancelNaturalExaminerVoice,
+  disposeNaturalExaminerVoice,
+  prepareNaturalExaminerVoice,
+  speakNaturalExaminer,
+} from "./neural-speech";
 import { DEFAULT_LOCAL_MODEL, LOCAL_MODELS, type LocalModelId } from "./transcribe";
 
 /*
@@ -137,16 +143,16 @@ export interface SpeechRecognitionLike extends EventTarget {
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 
-interface SpeechWindow extends Window {
+type SpeechWindow = {
   SpeechRecognition?: SpeechRecognitionCtor;
   webkitSpeechRecognition?: SpeechRecognitionCtor;
-}
+};
 
 export function speechRecognitionSupported(): boolean {
   if (typeof window === "undefined") return false;
   // On iOS the Web Speech API has no recognition half; the native plugin does.
   if (isNative()) return true;
-  const w = window as SpeechWindow;
+  const w = window as unknown as SpeechWindow;
   return Boolean(w.SpeechRecognition ?? w.webkitSpeechRecognition);
 }
 
@@ -232,7 +238,7 @@ function nativeRecognition(): SpeechRecognitionLike {
 export function getSpeechRecognition(): SpeechRecognitionLike | null {
   if (typeof window === "undefined") return null;
   if (isNative()) return nativeRecognition();
-  const w = window as SpeechWindow;
+  const w = window as unknown as SpeechWindow;
   const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   if (!Ctor) return null;
   const rec = new Ctor();
@@ -371,6 +377,10 @@ export async function speak(text: string, rate = 1): Promise<void> {
     }
     return;
   }
+  // The speaking page prepares Kokoro from its Start button. If it is ready,
+  // prefer that consistent British neural voice over whichever system voice
+  // this particular browser happens to expose.
+  if (await speakNaturalExaminer(text, rate)) return;
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
   window.speechSynthesis.cancel();
@@ -384,9 +394,12 @@ export async function speak(text: string, rate = 1): Promise<void> {
 
 export function cancelSpeech(): void {
   speechSequence += 1;
+  cancelNaturalExaminerVoice();
   finishBrowserUtterance?.();
   void nativeTTS().then((tts) => tts?.stop().catch(() => {}));
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
     window.speechSynthesis.cancel();
   }
 }
+
+export { disposeNaturalExaminerVoice, prepareNaturalExaminerVoice };
