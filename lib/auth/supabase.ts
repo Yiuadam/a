@@ -253,6 +253,10 @@ export async function uploadAvatar(
         apikey: config.serviceRoleKey,
         Authorization: `Bearer ${config.serviceRoleKey}`,
         "Content-Type": contentType,
+        // Every upload gets a new random path, so this object is immutable.
+        // Let the browser/CDN reuse it instead of downloading the avatar again
+        // on every page while its signed URL remains valid.
+        "Cache-Control": "max-age=31536000, immutable",
         "x-upsert": "true",
       },
       body,

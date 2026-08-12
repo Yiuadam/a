@@ -140,7 +140,8 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
       authority: the route names the stored object itself, from the session
       user's id, and decides the type from the file's first bytes.
     */
-    form.append("avatar", picture, "avatar.jpg");
+    const extension = picture.type === "image/webp" ? "webp" : "jpg";
+    form.append("avatar", picture, `avatar.${extension}`);
     try {
       const res = await authedFetch(apiUrl("/api/account/avatar"), { method: "POST", body: form });
       const body = (await res.json()) as { avatarUrl?: string | null; error?: string };
@@ -225,6 +226,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
               alt=""
               width={64}
               height={64}
+              decoding="async"
               className="h-16 w-16 rounded-full border border-slate-200 object-cover transition-opacity group-hover:opacity-80"
             />
           ) : (

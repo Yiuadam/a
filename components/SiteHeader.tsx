@@ -356,6 +356,7 @@ export default function SiteHeader() {
               <img
                 src={profile.avatarUrl}
                 alt=""
+                decoding="async"
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"
               />

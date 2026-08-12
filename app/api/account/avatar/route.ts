@@ -31,32 +31,31 @@ import { withCors } from "@/lib/http/cors";
   learner's folder.
 
   ---------------------------------------------------------------------------
-  Why the size limit did not move when the app started accepting 10 MB photos
+  Why the server limit is much smaller than the selectable-photo limit
 
   The account screen now lets a learner pick a picture of any resolution up to
-  ten megabytes. Nothing here changed to allow that, and nothing here should
+  ten megabytes. This route does not accept that original, and it should not:
   have: components/account/condense.ts crops and re-encodes the picture in the
-  browser first, so what arrives is a 512-pixel JPEG of perhaps sixty
+  browser first, so what arrives is a 256-pixel WebP of perhaps ten to twenty
   kilobytes. The learner's ceiling and this route's ceiling are answers to
   different questions — theirs is "what may I choose", which should be
   generous, and this one is "how much may an authenticated caller push into
-  storage per request", which should not be.
+  storage per request", which should stay close to the encoder's real output.
 
-  Raising this to ten would multiply the cost of the cheapest abuse there is by
-  five and buy nobody anything, since no legitimate upload from this app comes
-  close to two. It would also put the route above the bucket, whose
-  file_size_limit is two megabytes (0005_profile_fields.sql) — and a request
-  accepted here and refused by storage fails later, less clearly, and after the
-  bytes have already crossed the network.
+  Raising this to ten would multiply the cost of the cheapest abuse and buy
+  nobody anything, since no legitimate upload from this app comes close to the
+  limit. The bucket remains a second, broader guard; this route is intentionally
+  stricter because it knows the exact file BandUp itself creates.
 */
 
 export const dynamic = "force-dynamic";
 
 /*
-  Two megabytes, matching the bucket. Every real upload is a small fraction of
-  it; anything near it did not come from this app's own screen.
+  128 KB, above the browser encoder's 96 KB target. Keeping the server ceiling
+  close to the real output guarantees that even a caller bypassing the account
+  screen cannot turn an avatar into a multi-megabyte download.
 */
-const MAX_BYTES = 2 * 1024 * 1024;
+const MAX_BYTES = 128 * 1024;
 
 /*
   Magic numbers for the three types the bucket accepts. A file is what its
