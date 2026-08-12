@@ -57,3 +57,11 @@ test("no half-migrated vars block", () => {
     "an empty vars block says nothing and reads like configuration that went missing",
   );
 });
+
+test("production has enough CPU for server-rendered Next.js routes", () => {
+  assert.equal(
+    config.limits?.cpu_ms,
+    30_000,
+    "removing this restores the account default; on Workers Free that is 10 ms and causes Error 1102",
+  );
+});

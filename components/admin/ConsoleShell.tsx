@@ -35,7 +35,7 @@ export default function ConsoleShell({
   return (
     <div className="flex min-h-[100dvh]">
       <aside className="hidden w-60 shrink-0 flex-col bg-slate-900 px-4 py-6 lg:flex">
-        <Link href="/" className="flex items-center gap-2 px-2 text-white">
+        <Link href="/" prefetch={false} className="flex items-center gap-2 px-2 text-white">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-sm font-semibold">
             B
           </span>
@@ -56,6 +56,7 @@ export default function ConsoleShell({
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`rounded-lg px-3 py-2 text-sm transition-colors ${
                 item.title === title
                   ? "bg-white/10 font-medium text-white"
@@ -70,6 +71,7 @@ export default function ConsoleShell({
         <div className="mt-auto px-2">
           <Link
             href="/"
+            prefetch={false}
             className="text-xs text-slate-400 underline underline-offset-4 hover:text-white"
           >
             Back to the app
@@ -87,6 +89,7 @@ export default function ConsoleShell({
             {back && (
               <Link
                 href={back.href}
+                prefetch={false}
                 className="inline-flex items-center gap-1 text-[13px] font-medium text-slate-500 transition-colors hover:text-slate-900 lg:hidden"
               >
                 <span aria-hidden="true">‹</span> {back.label}
@@ -98,7 +101,7 @@ export default function ConsoleShell({
             {lead && <p className="mt-0.5 text-[13px] text-slate-500">{lead}</p>}
           </div>
           {!back && (
-            <Link href="/" className="text-[13px] text-slate-500 underline underline-offset-4 lg:hidden">
+            <Link href="/" prefetch={false} className="text-[13px] text-slate-500 underline underline-offset-4 lg:hidden">
               Back to the app
             </Link>
           )}
@@ -130,7 +133,7 @@ export function NotFound({ mayNeedSignIn }: { mayNeedSignIn: boolean }) {
       <p className="mt-2 text-sm leading-6 text-slate-600">
         {mayNeedSignIn ? "You may need to sign in." : "There's nothing at this address."}
       </p>
-      <Link href="/" className="btn-secondary mt-5 inline-block">
+      <Link href="/" prefetch={false} className="btn-secondary mt-5 inline-block">
         Back to BandUp
       </Link>
     </div>

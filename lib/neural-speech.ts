@@ -1,7 +1,6 @@
 "use client";
 
 import { isNative } from "./native";
-import type { TTSBackend } from "@omote/core";
 
 /*
   Natural examiner speech
@@ -9,21 +8,45 @@ import type { TTSBackend } from "@omote/core";
   Browser SpeechSynthesis is only a switchboard for whatever voices happen to
   be installed on a device. On many Windows and Android machines that means an
   old, distinctly synthetic voice. The speaking test therefore uses Kokoro
-  (https://github.com/omoteai/omote, MIT) as its web examiner: the model and a
+  (https://github.com/hexgrad/kokoro, Apache 2.0) as its web examiner: the model and a
   British voice are downloaded once, cached by the engine, and inference runs
   in a worker on the learner's device.
 
-  This file deliberately contains the dynamic import. The 92 MB model is not
-  fetched — and the inference runtime is not added to the initial page chunk —
-  until the learner presses Start. Native iOS keeps AVSpeechSynthesizer, whose
-  system voices are already neural and do not need a second model in the app.
+  The pinned browser build is served as a static file rather than imported into
+  Next's module graph. That is load-bearing: a client-only inference library in
+  the graph was copied into OpenNext's Worker bundle and broke Cloudflare's
+  3 MB upload limit. Nothing is fetched until the learner presses Start. Native
+  iOS keeps AVSpeechSynthesizer, whose system voices are already neural and do
+  not need a second model in the app.
 */
 
 const EXAMINER_VOICE = "bf_emma";
 const SAMPLE_RATE = 24_000;
 const LOAD_TIMEOUT_MS = 45_000;
 
-let backend: TTSBackend | null = null;
+interface RawAudio {
+  audio: Float32Array;
+}
+
+interface KokoroEngine {
+  stream(
+    text: string,
+    options: { voice: string; speed: number; split_pattern: RegExp },
+  ): AsyncGenerator<{ audio: RawAudio }>;
+}
+
+interface KokoroModule {
+  KokoroTTS: {
+    from_pretrained(
+      model: string,
+      options: { dtype: "q8"; device: "wasm" },
+    ): Promise<KokoroEngine>;
+  };
+}
+
+const KOKORO_RUNTIME_URL = "/vendor/kokoro/kokoro.web.js";
+
+let backend: KokoroEngine | null = null;
 let loading: Promise<boolean> | null = null;
 let audioContext: AudioContext | null = null;
 let activeAbort: AbortController | null = null;
@@ -49,20 +72,23 @@ function wakeAudio(): AudioContext | null {
 export async function prepareNaturalExaminerVoice(): Promise<boolean> {
   if (typeof window === "undefined" || isNative() || unavailable) return false;
   if (!wakeAudio()) return false;
-  if (backend?.isLoaded) return true;
+  if (backend) return true;
   if (loading) return loading;
 
   loading = (async () => {
     let timedOut = false;
     let timer = 0;
     try {
-      const { createKokoroTTS } = await import("@omote/core");
-      const next = createKokoroTTS({
-        defaultVoice: EXAMINER_VOICE,
-        backend: "wasm",
-        eagerLoad: true,
+      // webpackIgnore keeps this URL out of the server/Worker graph. The file
+      // is pinned in public/vendor/kokoro and is reviewed with the repository.
+      const { KokoroTTS: Kokoro } = (await import(
+        /* webpackIgnore: true */ KOKORO_RUNTIME_URL
+      )) as KokoroModule;
+      const loadedModel = Kokoro.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
+        dtype: "q8",
+        device: "wasm",
       });
-      const loaded = next.load().then(() => true);
+      const loaded = loadedModel.then(() => true);
       const withinLimit = await Promise.race([
         loaded,
         new Promise<false>((resolve) => {
@@ -77,11 +103,10 @@ export async function prepareNaturalExaminerVoice(): Promise<boolean> {
         // The model fetch itself cannot be aborted by this version of the
         // engine. Dispose it if it eventually completes, but let the interview
         // start with the device voice now rather than stranding the learner.
-        void loaded.then(() => next.dispose()).catch(() => {});
         unavailable = true;
         return false;
       }
-      backend = next;
+      backend = await loadedModel;
       return true;
     } catch {
       unavailable = true;
@@ -129,7 +154,7 @@ function play(samples: Float32Array, sequence: number): Promise<void> {
  * sentence through a fallback voice after the learner has left the page.
  */
 export async function speakNaturalExaminer(text: string, rate = 1): Promise<boolean> {
-  if (!backend?.isLoaded || unavailable) return false;
+  if (!backend || unavailable) return false;
   const sequence = ++generation;
   cancelActiveAudio(false);
   const abort = new AbortController();
@@ -137,24 +162,20 @@ export async function speakNaturalExaminer(text: string, rate = 1): Promise<bool
 
   try {
     for await (const chunk of backend.stream(text, {
-      signal: abort.signal,
       voice: EXAMINER_VOICE,
-      language: "en-gb",
       speed: Math.max(0.85, Math.min(1.1, rate)),
-      // Examiner prompts are short. One inference avoids an artificial pause
-      // while the next sentence is generated.
-      singleShot: true,
+      // Examiner prompts are short. One chunk avoids an artificial pause while
+      // the next sentence is generated.
+      split_pattern: /$^/,
     })) {
       if (abort.signal.aborted || sequence !== generation) return true;
-      await play(chunk.audio, sequence);
+      await play(chunk.audio.audio, sequence);
     }
     return true;
   } catch {
     if (abort.signal.aborted || sequence !== generation) return true;
     unavailable = true;
-    const failed = backend;
     backend = null;
-    void failed.dispose().catch(() => {});
     return false;
   } finally {
     if (activeAbort === abort) activeAbort = null;
@@ -182,12 +203,10 @@ export function cancelNaturalExaminerVoice(): void {
 /** Release the worker and audio graph when the speaking page is left. */
 export function disposeNaturalExaminerVoice(): void {
   cancelActiveAudio();
-  const currentBackend = backend;
   const currentContext = audioContext;
   backend = null;
   audioContext = null;
   loading = null;
   unavailable = false;
-  void currentBackend?.dispose().catch(() => {});
   void currentContext?.close().catch(() => {});
 }

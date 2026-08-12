@@ -1,0 +1,11 @@
+Kokoro browser runtime
+
+This directory contains the browser build distributed by kokoro-js 1.2.1 and
+the bf_emma voice used by BandUp's speaking examiner.
+
+Project: https://github.com/hexgrad/kokoro
+License: Apache License 2.0
+Copyright 2025 hexgrad
+
+The Apache License 2.0 is available at:
+https://www.apache.org/licenses/LICENSE-2.0
