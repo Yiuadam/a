@@ -53,7 +53,17 @@ export default function TestChooser({
   const label = kind === "reading" ? "Reading" : "Listening";
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-5 sm:px-6">
+    /*
+      Reading and Listening deliberately lock the outer viewport while an exam
+      is running, but this component is the paper library, not an exam. The
+      body therefore cannot be its scroll container. Give the library its own
+      full-height scroller so every paper remains reachable on a phone while
+      the sticky site header stays fixed.
+    */
+    <div
+      className="mx-auto h-full w-full max-w-7xl space-y-4 overflow-y-auto overscroll-y-contain px-4 py-5 sm:px-6"
+      data-paper-chooser
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">{label} practice</h1>
         <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">
