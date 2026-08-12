@@ -11,6 +11,7 @@ import type { ModuleName } from "@/lib/types";
 import { Icon } from "@/components/Icons";
 import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import NewBadge from "@/components/NewBadge";
+import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import {
   drillSectionNeedsNewBadge,
   moduleNeedsNewBadge,
@@ -148,20 +149,20 @@ export default function Dashboard() {
           )}
           {placement ? (
             <>
-              <Link href="/plan" prefetch={false} className="btn-primary premade-glass">
+              <IntentPrefetchLink href="/plan" className="btn-primary premade-glass">
                 <RefractiveGlassLayer radius={999} />
                 <span className="premade-glass-content">See what to do next</span>
-              </Link>
-              <Link href="/placement" prefetch={false} className="btn-secondary premade-glass">
+              </IntentPrefetchLink>
+              <IntentPrefetchLink href="/placement" className="btn-secondary premade-glass">
                 <RefractiveGlassLayer radius={999} />
                 <span className="premade-glass-content">Re-test</span>
-              </Link>
+              </IntentPrefetchLink>
             </>
           ) : (
-              <Link href="/placement" prefetch={false} className="dashboard-placement-button btn-primary premade-glass">
+              <IntentPrefetchLink href="/placement" className="dashboard-placement-button btn-primary premade-glass">
                 <RefractiveGlassLayer radius={16} />
                 <span className="premade-glass-content">Start the 5-minute test</span>
-              </Link>
+              </IntentPrefetchLink>
           )}
         </div>
       </section>
@@ -263,10 +264,9 @@ export default function Dashboard() {
                 }
 
                 return (
-                  <Link
+                  <IntentPrefetchLink
                     key={m.key}
                     href={m.href}
-                    prefetch={false}
                     className="dashboard-skill-card card premade-glass p-3.5 block"
                   >
                     <RefractiveGlassLayer />
@@ -294,7 +294,7 @@ export default function Dashboard() {
                       */}
                       <NewBadge show={isNew} />
                     </div>
-                  </Link>
+                  </IntentPrefetchLink>
                 );
               })}
             </div>
@@ -308,7 +308,7 @@ export default function Dashboard() {
               {STUDY.map((s) => {
                 const isNew = drillSectionNeedsNewBadge(scores, s.key);
                 return (
-                  <Link key={s.href} href={s.href} prefetch={false} className="dashboard-skill-card card premade-glass p-3.5 block">
+                  <IntentPrefetchLink key={s.href} href={s.href} className="dashboard-skill-card card premade-glass p-3.5 block">
                     <RefractiveGlassLayer />
                     <div className="premade-glass-content flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-start gap-2.5">
@@ -320,7 +320,7 @@ export default function Dashboard() {
                       </div>
                       <NewBadge show={isNew} />
                     </div>
-                  </Link>
+                  </IntentPrefetchLink>
                 );
               })}
             </div>
