@@ -388,7 +388,7 @@ export async function speak(text: string, rate = 1): Promise<void> {
   const [voice] = await browserVoices();
   for (let i = 0; i < lines.length && sequence === speechSequence; i += 1) {
     await speakBrowserLine(lines[i], voice, rate * (i % 2 === 0 ? 0.97 : 0.94));
-    if (i + 1 < lines.length && sequence === speechSequence) await pause(140);
+    if (i + 1 < lines.length && sequence === speechSequence) await pause(60);
   }
 }
 

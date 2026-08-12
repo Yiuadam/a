@@ -60,7 +60,9 @@ import { SpeakingIcon } from "@/components/Icons";
 import {
   countSpokenWords,
   decideTurnEnd,
-  examinerTransition,
+  examinerFollowUp,
+  examinerQuestion,
+  SPEAKING_PART_INTRO,
   type TurnEndReason,
 } from "@/lib/speaking/turn-control";
 
@@ -91,12 +93,6 @@ function buildInterview(): Step[] {
   for (const q of part3.questions.slice(0, 4)) steps.push({ part: 3, question: q });
   return steps;
 }
-
-const PART_INTRO: Record<1 | 2 | 3, string> = {
-  1: "Part 1. I'd like to ask you some questions about yourself.",
-  2: "Part 2. I'm going to give you a topic card. You have one minute to prepare, then talk for one to two minutes.",
-  3: "Part 3. We'll discuss some more general questions related to that topic.",
-};
 
 /**
  * The interview, on its own page or as the last module of a mock sitting.
@@ -467,9 +463,8 @@ export default function SpeakingSession({
     async (index: number, list: Step[]) => {
       const s = list[index];
       if (!s) return;
-      const intro = index === 0 || list[index - 1].part !== s.part ? PART_INTRO[s.part] + " " : "";
       setExaminerSpeaking(true);
-      await speak(intro + s.question, 0.95);
+      await speak(examinerQuestion(list, index), 0.95);
       setExaminerSpeaking(false);
       if (s.part === 2) {
         /* The minute of preparation comes first; the window opens when it
@@ -589,9 +584,10 @@ export default function SpeakingSession({
          candidate's answer. Local transcription and the short transition can
          then run together, avoiding a long robotic silence. */
       const spokenPromise = stopAnswer();
+      if (!finalQuestion) setStepIndex(nextIndex);
       setExaminerSpeaking(true);
-      const transitionPromise = speak(examinerTransition(finalQuestion, reason), 0.96);
-      const [spoken] = await Promise.all([spokenPromise, transitionPromise]);
+      const promptPromise = speak(examinerFollowUp(steps, stepIndex, reason), 0.96);
+      const [spoken] = await Promise.all([spokenPromise, promptPromise]);
       setExaminerSpeaking(false);
 
       const updated: Turn[] = [
@@ -623,13 +619,26 @@ export default function SpeakingSession({
         await gradeInterview(updated);
         return;
       }
-      setStepIndex(nextIndex);
-      await askCurrent(nextIndex, steps);
+      if (steps[nextIndex]?.part === 2) {
+        setPrepSeconds(60);
+      } else {
+        openAnswerWindow();
+      }
     } finally {
       setExaminerSpeaking(false);
       advancingRef.current = false;
     }
-  }, [step, stepIndex, steps, transcript, stopAnswer, askCurrent, gradeInterview, marked, exam]);
+  }, [
+    step,
+    stepIndex,
+    steps,
+    transcript,
+    stopAnswer,
+    gradeInterview,
+    marked,
+    exam,
+    openAnswerWindow,
+  ]);
 
   const readMicrophoneLevel = useCallback(
     (rms: number) => {
@@ -1054,7 +1063,7 @@ export default function SpeakingSession({
 
       {isNewPart && (
         <p className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm leading-6 text-indigo-800">
-          {PART_INTRO[step.part]}
+          {SPEAKING_PART_INTRO[step.part]}
         </p>
       )}
 

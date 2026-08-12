@@ -1,6 +1,11 @@
 "use client";
 
 import { isNative } from "./native";
+import {
+  playWithLookahead,
+  speechPhrases,
+  trimSpeechSilence,
+} from "./speaking/audio-pipeline";
 
 /*
   Natural examiner speech
@@ -122,7 +127,7 @@ export async function prepareNaturalExaminerVoice(): Promise<boolean> {
 
 function play(samples: Float32Array, sequence: number): Promise<void> {
   const context = wakeAudio();
-  if (!context || sequence !== generation) return Promise.resolve();
+  if (!context || samples.length === 0 || sequence !== generation) return Promise.resolve();
 
   return new Promise((resolve) => {
     let finished = false;
@@ -161,16 +166,17 @@ export async function speakNaturalExaminer(text: string, rate = 1): Promise<bool
   activeAbort = abort;
 
   try {
-    for await (const chunk of backend.stream(text, {
+    const phrases = speechPhrases(text);
+    const stream = backend.stream(phrases.join("\n"), {
       voice: EXAMINER_VOICE,
       speed: Math.max(0.85, Math.min(1.1, rate)),
-      // Examiner prompts are short. One chunk avoids an artificial pause while
-      // the next sentence is generated.
-      split_pattern: /$^/,
-    })) {
-      if (abort.signal.aborted || sequence !== generation) return true;
-      await play(chunk.audio.audio, sequence);
-    }
+      split_pattern: /\n+/,
+    });
+    await playWithLookahead(
+      stream,
+      (chunk) => play(trimSpeechSilence(chunk.audio.audio, SAMPLE_RATE), sequence),
+      () => !abort.signal.aborted && sequence === generation,
+    );
     return true;
   } catch {
     if (abort.signal.aborted || sequence !== generation) return true;

@@ -82,9 +82,33 @@ test("on-device transcription can use time and microphone activity without live 
 });
 
 test("the examiner uses a clear closing phrase", () => {
-  assert.equal(control.examinerTransition(false, "time-limit"), "Thank you. Let's move on.");
+  assert.equal(control.examinerTransition(false, "time-limit"), "Thank you, let's move on.");
   assert.equal(
     control.examinerTransition(true, "natural-pause"),
+    "Thank you. That is the end of the speaking test.",
+  );
+});
+
+test("the acknowledgement and next question are one continuous prompt", () => {
+  const questions = [
+    { part: 1, question: "Where do you live?" },
+    { part: 1, question: "What do you like about it?" },
+    { part: 2, question: "Describe a memorable journey." },
+  ];
+  assert.equal(
+    control.examinerFollowUp(questions, 0, "natural-pause"),
+    "All right, thank you. What do you like about it?",
+  );
+  assert.equal(
+    control.examinerFollowUp(questions, 1, "time-limit"),
+    "Thank you, let's move on. In Part 2, I'm going to give you a topic card. You have one minute to prepare, then talk for one to two minutes. Describe a memorable journey.",
+  );
+});
+
+test("the last answer closes the interview without inventing another question", () => {
+  const questions = [{ part: 1, question: "Where do you live?" }];
+  assert.equal(
+    control.examinerFollowUp(questions, 0, "natural-pause"),
     "Thank you. That is the end of the speaking test.",
   );
 });
