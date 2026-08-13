@@ -89,9 +89,11 @@ export default function OrganizationPortal({
 }) {
   const [phase, setPhase] = useState<Phase>(preview ? "ready" : "loading");
   const [portal, setPortal] = useState<Portal | null>(preview);
+  const portalRef = useRef<Portal | null>(preview);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [switchingOrganization, setSwitchingOrganization] = useState(false);
   const [managerView, setManagerView] = useState<ManagerView>(() => (
     routeSection && MANAGER_VIEWS.has(routeSection as ManagerView)
       ? routeSection as ManagerView
@@ -134,6 +136,7 @@ export default function OrganizationPortal({
       if (!response.ok) throw new Error("Organisations are unavailable right now.");
       const body = (await response.json()) as Portal;
       if (!body.actor || !Array.isArray(body.memberships)) throw new Error("Unexpected response.");
+      portalRef.current = body;
       setPortal(body);
       setPhase(body.actor.signedIn ? "ready" : "signed-out");
     } catch (cause) {
@@ -184,27 +187,62 @@ export default function OrganizationPortal({
     return () => window.removeEventListener("popstate", syncView);
   }, []);
 
-  const selectOrganization = useCallback((organizationId: string) => {
+  const selectOrganization = useCallback(async (organizationId: string) => {
+    if (!TARGET_ID.test(organizationId) || organizationId === portalRef.current?.activeOrganizationId) return;
     if (preview) {
       /* Local fixtures deliberately carry no second roster. Keep the preview
          selector truthful by clearing organization-scoped lists on selection
          rather than displaying the first fixture's learners as another
          school's data. */
-      setPortal((current) => current ? {
-        ...current,
-        activeOrganizationId: organizationId,
-        members: [],
-        requests: [],
-        students: [],
-        assignments: [],
-      } : current);
+      setPortal((current) => {
+        const selectedMembership = current?.memberships.find((item) => (
+          item.organization.id === organizationId
+          && (item.status === "active" || item.status === "leave_requested")
+          && item.organization.status === "active"
+        ));
+        if (!current || !selectedMembership) return current;
+        const selectedPortal = {
+          ...current,
+          activeOrganizationId: organizationId,
+          members: selectedMembership.role === "manager" || selectedMembership.role === "owner" ? [] : null,
+          requests: selectedMembership.role === "student" ? null : [],
+          students: selectedMembership.role === "student" ? null : [],
+          assignments: selectedMembership.role === "manager" || selectedMembership.role === "owner" ? [] : null,
+          practiceAssignments: [],
+          recentFeedback: [],
+        };
+        portalRef.current = selectedPortal;
+        return selectedPortal;
+      });
+      setManagerView("overview");
+      setAssignmentStudentId(null);
+      setNotificationFocus({ kind: null, id: null });
       return;
     }
+    setSwitchingOrganization(true);
+    setManagerView("overview");
+    setAssignmentStudentId(null);
+    setNotificationFocus({ kind: null, id: null });
+    setError(null);
+    setNotice(null);
     const url = new URL(window.location.href);
     url.searchParams.set("organization", organizationId);
-    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-    setPhase("loading");
-    void load();
+    // A section can expose organization-scoped records and role-specific UI.
+    // Always land in the new workspace's overview and discard exact-record
+    // focus parameters before asking the server to authorize that workspace.
+    for (const parameter of ["section", "student", "focus", "attempt", "request", "requestKind"]) {
+      url.searchParams.delete(parameter);
+    }
+    window.history.pushState(
+      { ...window.history.state, bandupOrganizationId: organizationId },
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+    try {
+      await load();
+    } finally {
+      setSwitchingOrganization(false);
+    }
   }, [load, preview]);
 
   const act = useCallback(
@@ -303,17 +341,10 @@ export default function OrganizationPortal({
   // as their dashboard rather than leaving the student workspace blank.
   const studentView = managerView === "settings" ? "settings" : "overview";
   const studentSettingsFocused = role === "student" && studentView === "settings";
+  const focusedOrganizationView = managerFocused || teacherDirectoryFocused || studentSettingsFocused;
 
   return (
-    <PortalFrame dashboard={Boolean(membership)} preview={Boolean(preview || previewRole)} focused={managerFocused || teacherDirectoryFocused || studentSettingsFocused}>
-      <div className={managerFocused || teacherDirectoryFocused || studentSettingsFocused ? "hidden sm:block" : ""}>
-        <OrganizationSwitcher
-          memberships={portal.memberships}
-          activeOrganizationId={portal.activeOrganizationId}
-          busy={acting}
-          onSelect={selectOrganization}
-        />
-      </div>
+    <PortalFrame dashboard={Boolean(membership)} preview={Boolean(preview || previewRole)} focused={focusedOrganizationView}>
       {(error || notice) && (
         <div
           role={error ? "alert" : "status"}
@@ -331,6 +362,8 @@ export default function OrganizationPortal({
           portal={portal}
           compact={(managerView !== "overview" && (role === "manager" || role === "owner")) || teacherDirectoryFocused || studentSettingsFocused}
           onOpenSettings={() => openManagerView("settings")}
+          onSelectOrganization={selectOrganization}
+          switchingOrganization={switchingOrganization}
           managerView={role === "student" ? studentView : role === "manager" || role === "owner" ? managerView : null}
           onOpenManagerView={openManagerView}
         />
@@ -468,16 +501,16 @@ function OrganizationSwitcher({
 }) {
   const workspaces = memberships.filter((membership) =>
     (membership.status === "active" || membership.status === "leave_requested")
-    && membership.organization.status === "active",
+      && membership.organization.status === "active",
   );
   if (workspaces.length < 2) return null;
   const current = workspaces.some((membership) => membership.organization.id === activeOrganizationId)
     ? activeOrganizationId!
     : workspaces[0].organization.id;
   return (
-    <div className="flex justify-end px-0.5">
+    <div className="organization-workspace-switcher min-w-0" data-organization-switcher>
       <GlassSelect
-        label="Current organisation"
+        label="Switch organisation"
         value={current}
         options={workspaces.map((membership) => ({
           value: membership.organization.id,
@@ -486,8 +519,9 @@ function OrganizationSwitcher({
         onValueChange={onSelect}
         disabled={busy}
         compact
-        className="w-full max-w-xs"
-        minMenuWidth={224}
+        className="w-full"
+        minMenuWidth={256}
+        fullPageThreshold={8}
       />
     </div>
   );
@@ -605,6 +639,8 @@ function MembershipSummary({
   portal,
   compact = false,
   onOpenSettings,
+  onSelectOrganization,
+  switchingOrganization = false,
   managerView,
   onOpenManagerView,
 }: {
@@ -612,6 +648,8 @@ function MembershipSummary({
   portal: Portal;
   compact?: boolean;
   onOpenSettings?: () => void;
+  onSelectOrganization?: (organizationId: string) => void;
+  switchingOrganization?: boolean;
   managerView?: ManagerView | null;
   onOpenManagerView?: (view: ManagerView) => void;
 }) {
@@ -619,6 +657,10 @@ function MembershipSummary({
   const managerWorkspace = membership.role === "manager" || membership.role === "owner";
   const pending = (portal.requests ?? []).filter((request) => request.status === "pending" && request.kind !== "invitation").length;
   const assigned = new Set((portal.assignments ?? []).map((assignment) => assignment.studentUserId)).size;
+  const canSwitchOrganization = portal.memberships.filter((item) => (
+    (item.status === "active" || item.status === "leave_requested")
+      && item.organization.status === "active"
+  )).length > 1;
   return (
     <section
       className={`organization-membership-summary card !rounded-[var(--radius-xl)] !p-2.5 sm:!px-4 sm:!py-3 ${compact ? "max-sm:hidden" : ""} ${managerWorkspace && compact ? "hidden" : ""}`}
@@ -647,18 +689,28 @@ function MembershipSummary({
           </div>
         )}
 
-        {(managerWorkspace || (membership.role === "student" && membership.status === "active")) && onOpenSettings && (
-          <button
-            type="button"
-            className="liquid-glass premade-glass relative col-start-2 row-start-1 grid size-9 shrink-0 place-items-center overflow-hidden rounded-[var(--radius-lg)] border border-slate-200/75 bg-surface/45 shadow-sm transition-colors hover:bg-surface/70 lg:col-start-3"
-            aria-label="Open organisation settings"
-            title="Organisation settings"
-            onClick={onOpenSettings}
-          >
-            <RefractiveGlassLayer radius={16} interactive />
-            <CardIcon name="gear" size={18} className="relative z-10" />
-          </button>
-        )}
+        <div className="organization-membership-actions col-start-2 row-start-1 grid justify-items-end gap-1.5 lg:col-start-3">
+          {(managerWorkspace || (membership.role === "student" && membership.status === "active")) && onOpenSettings && (
+            <button
+              type="button"
+              className="liquid-glass premade-glass relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-slate-200/75 bg-surface/45 shadow-sm transition-colors hover:bg-surface/70"
+              aria-label="Open organisation settings"
+              title="Organisation settings"
+              onClick={onOpenSettings}
+            >
+              <RefractiveGlassLayer radius={18} interactive />
+              <CardIcon name="gear" size={18} className="relative z-10" />
+            </button>
+          )}
+          {canSwitchOrganization && onSelectOrganization && (
+            <OrganizationSwitcher
+              memberships={portal.memberships}
+              activeOrganizationId={portal.activeOrganizationId}
+              busy={switchingOrganization}
+              onSelect={onSelectOrganization}
+            />
+          )}
+        </div>
 
         {!(managerWorkspace && managerView === "overview" && onOpenManagerView) && (
         <div className={`${compact ? "hidden" : managerWorkspace ? "hidden sm:flex" : "grid"} w-full min-w-0 grid-cols-4 gap-1 sm:w-auto sm:items-center`} aria-label="Organisation summary">
@@ -1944,10 +1996,11 @@ function ManagerArea({
               onBack={() => onOpenView("members", true)}
               desktopBackLabel="Team"
               backAriaLabel="Back to team"
+              searchPlaceholder="Search team"
             />
           )}
           headerClassName="max-sm:!flex-nowrap max-sm:!justify-start"
-          className="max-sm:!p-2.5 md:max-h-[calc(100dvh-8rem)] md:overflow-y-auto"
+          className="organization-team-pairings-page md:max-h-[calc(100dvh-8rem)] md:overflow-y-auto"
         >
           {filteredMembers.length === 0 ? <EmptyState>{members.length ? "No team members match that search." : "No members are visible."}</EmptyState> : (
             <TeamGroups
@@ -2055,35 +2108,38 @@ function ManagerPeopleActions({
   onBack,
   desktopBackLabel = "Dashboard",
   backAriaLabel = "Back to organisation dashboard",
+  searchPlaceholder = "Search students or teachers",
 }: {
   query: string;
   onQuery: (value: string) => void;
   onBack: () => void;
   desktopBackLabel?: string;
   backAriaLabel?: string;
+  searchPlaceholder?: string;
 }) {
   return (
     <div className="order-first flex w-full min-w-0 items-center gap-2 sm:order-none sm:w-auto sm:flex-wrap sm:justify-end">
       <MobileDashboardBack onBack={onBack} desktopLabel={desktopBackLabel} ariaLabel={backAriaLabel} />
       <label className="relative min-w-0 flex-1 sm:order-first sm:w-64 sm:flex-none">
         <span className="sr-only">Search students and teachers</span>
-        <input value={query} onChange={(event) => onQuery(event.target.value)} className="input min-h-10 w-full rounded-[var(--radius-lg)] border border-slate-300 bg-surface/60 px-3 text-sm text-slate-900" placeholder="Search students or teachers" />
+        <input value={query} onChange={(event) => onQuery(event.target.value)} className="input min-h-10 w-full rounded-[var(--radius-lg)] border border-slate-300 bg-surface/60 px-3 text-sm text-slate-900" placeholder={searchPlaceholder} />
       </label>
     </div>
   );
 }
 
-function MemberManagement({ member, organizationId, actorRole, platformAdmin, act, busy }: {
+function MemberManagement({ member, organizationId, actorRole, platformAdmin, act, busy, compact = false }: {
   member: NonNullable<Portal["members"]>[number];
   organizationId: string | null;
   actorRole: "manager" | "owner";
   platformAdmin: boolean;
   act: Act;
   busy: boolean;
+  compact?: boolean;
 }) {
   if (member.role === "owner") return null;
   return (
-    <details className="mt-2 rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/20 px-2.5 py-2">
+    <details className={`${compact ? "organization-team-pairing-manage mt-1 px-2 py-1" : "mt-2 px-2.5 py-2"} rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/20`}>
       <summary className="cursor-pointer text-xs font-semibold text-slate-600">Manage member</summary>
       <div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
         <MemberRolePicker member={member} organizationId={organizationId} allowManager={actorRole === "owner" || platformAdmin} disabled={busy || (actorRole === "manager" && member.role === "manager")} act={act} />
@@ -2142,6 +2198,7 @@ function TeamGroups({ members, assignments, organizationId, actorRole, platformA
   act: Act;
   busy: boolean;
 }) {
+  const [pendingUnassign, setPendingUnassign] = useState<string | null>(null);
   const teachers = members.filter((member) => member.role === "teacher");
   const students = members.filter((member) => member.role === "student");
   const assignedIds = new Set(assignments.map((assignment) => assignment.studentUserId));
@@ -2150,49 +2207,80 @@ function TeamGroups({ members, assignments, organizationId, actorRole, platformA
     students: students.filter((student) => assignments.some((assignment) => assignment.teacherUserId === teacher.userId && assignment.studentUserId === student.userId)),
   }));
   const unassigned = students.filter((student) => !assignedIds.has(student.userId));
+  useEffect(() => {
+    if (!pendingUnassign) return;
+    const timeout = window.setTimeout(() => setPendingUnassign(null), 6_000);
+    return () => window.clearTimeout(timeout);
+  }, [pendingUnassign]);
   if (groups.length === 0 && unassigned.length === 0) return <EmptyState>No teachers or students are visible.</EmptyState>;
   return (
-    <div className="mt-2 grid gap-2 lg:grid-cols-2">
+    <div className="organization-team-pairing-grid mt-1.5 grid gap-2 lg:grid-cols-2">
       {groups.map(({ teacher, students: groupStudents }) => (
-        <section key={teacher.userId} className="card min-w-0 !rounded-[var(--radius-xl)] !p-2.5 sm:!p-3">
+        <section key={teacher.userId} className="organization-team-pairing-group card min-w-0 !rounded-[var(--radius-xl)]">
           <div className="flex items-center justify-between gap-2">
-            <Person name={teacher.displayName} email={teacher.email} avatarUrl={teacher.avatarUrl} />
+            <span className="organization-team-pairing-identity min-w-0 flex-1"><Person name={teacher.displayName} email={teacher.email} avatarUrl={teacher.avatarUrl} /></span>
             <StatusPill>Teacher</StatusPill>
           </div>
-          <MemberManagement member={teacher} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} />
-          <div className="mt-2 max-h-60 space-y-2 overflow-y-auto border-t border-slate-200/60 pt-2">
+          <MemberManagement member={teacher} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} compact />
+          <div className="organization-team-pairing-members mt-1.5 space-y-1.5 border-t border-slate-200/60 pt-1.5 sm:max-h-80 sm:overflow-y-auto sm:overscroll-contain sm:pr-0.5">
             {groupStudents.length ? groupStudents.map((student) => (
-              <div key={student.userId} className="rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 p-2.5">
+              <div key={student.userId} className="organization-team-pairing-member rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
                 <div className="flex min-w-0 items-center justify-between gap-2">
-                  <span className="min-w-0 flex-1"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></span>
-                  <span className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="organization-team-pairing-identity min-w-0 flex-1"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></span>
+                  <span className="flex shrink-0 items-center gap-1.5">
                     <StatusPill tone={student.status === "active" ? "good" : "warn"}>{titleCase(student.status)}</StatusPill>
+                    {pendingUnassign === `${teacher.userId}:${student.userId}` && (
+                      <>
+                        <span role="status" className="text-[10px] font-semibold text-rose-700">Confirm?</span>
+                        <button
+                          type="button"
+                          className="btn-secondary grid !size-8 !min-h-8 shrink-0 place-items-center !rounded-full !p-0 text-slate-600"
+                          aria-label="Cancel unassign"
+                          title="Cancel"
+                          onClick={() => setPendingUnassign(null)}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 7 4 12l5 5M5 12h9a5 5 0 0 1 5 5" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
                     <button
                       type="button"
-                      className="btn-secondary !min-h-8 !rounded-[var(--radius-lg)] !px-2.5 !py-1 text-[11px]"
+                      className={`organization-team-unassign btn-secondary grid !size-9 !min-h-9 shrink-0 place-items-center !rounded-full !p-0 text-rose-700 ${pendingUnassign === `${teacher.userId}:${student.userId}` ? "!border-rose-400 !bg-rose-50/75 ring-2 ring-rose-300/50" : ""}`}
                       disabled={busy || !organizationId}
+                      aria-label={`${pendingUnassign === `${teacher.userId}:${student.userId}` ? "Confirm unassign" : "Unassign"} ${student.displayName ?? student.email ?? "student"} from ${teacher.displayName ?? teacher.email ?? "teacher"}`}
+                      title={pendingUnassign === `${teacher.userId}:${student.userId}` ? "Confirm unassign" : "Unassign student"}
                       onClick={() => {
                         if (!organizationId) return;
+                        const pairingKey = `${teacher.userId}:${student.userId}`;
+                        if (pendingUnassign !== pairingKey) {
+                          setPendingUnassign(pairingKey);
+                          return;
+                        }
+                        setPendingUnassign(null);
                         void act("unassign_teacher", teacherAssignmentPayload(organizationId, teacher.userId, student.userId));
                       }}
                     >
-                      Unassign
+                      <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4.5 fill-none stroke-current" strokeWidth="2" strokeLinecap="round">
+                        <path d="m7 7 10 10M17 7 7 17" />
+                      </svg>
                     </button>
                   </span>
                 </div>
-                <MemberManagement member={student} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} />
+                <MemberManagement member={student} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} compact />
               </div>
             )) : <p className="text-xs text-slate-500">No students assigned.</p>}
           </div>
         </section>
       ))}
       {unassigned.length > 0 && (
-        <section className="card min-w-0 !rounded-[var(--radius-xl)] !p-2.5 sm:!p-3">
+        <section className="organization-team-pairing-group card min-w-0 !rounded-[var(--radius-xl)]">
           <h3 className="text-sm font-semibold text-slate-900">Unassigned students</h3>
-          <div className="mt-2 max-h-60 space-y-2 overflow-y-auto">{unassigned.map((student) => (
-            <div key={student.userId} className="rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 p-2.5">
-              <Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} />
-              <MemberManagement member={student} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} />
+          <div className="organization-team-pairing-members mt-1.5 space-y-1.5 sm:max-h-80 sm:overflow-y-auto sm:overscroll-contain sm:pr-0.5">{unassigned.map((student) => (
+            <div key={student.userId} className="organization-team-pairing-member rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
+              <span className="organization-team-pairing-identity block min-w-0"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></span>
+              <MemberManagement member={student} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} compact />
             </div>
           ))}</div>
         </section>

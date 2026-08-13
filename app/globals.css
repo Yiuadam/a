@@ -911,6 +911,71 @@ html[data-theme="dark"] .google-signin-glass {
   opacity: 0;
 }
 
+/* Team pairing is a full-page working view, so the section itself must not
+   spend a second rounded window around the actual teacher groups. The inner
+   group cards keep the glass hierarchy and use a deliberately tighter inset. */
+.organization-team-pairings-page.card.card {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.organization-team-pairings-page.card.card:focus-within {
+  border-color: transparent;
+}
+
+.organization-team-pairing-group.card.card {
+  padding: 0.75rem !important;
+}
+
+@media (max-width: 39.999rem) {
+  .organization-team-pairings-page > div:first-child > div:first-child > p {
+    display: none;
+  }
+
+  .organization-team-pairing-grid {
+    gap: 0.5rem;
+  }
+
+  .organization-team-pairing-group.card.card {
+    padding: 0.625rem !important;
+  }
+
+  .organization-team-pairing-identity > div {
+    gap: 0.5rem;
+  }
+
+  .organization-team-pairing-identity > div > img,
+  .organization-team-pairing-identity > div > span:first-child {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.75rem;
+  }
+
+  .organization-team-pairing-identity > div > span:last-child > span:first-child {
+    font-size: 0.8125rem;
+    line-height: 1rem;
+  }
+
+  .organization-team-pairing-identity > div > span:last-child > span:last-child {
+    font-size: 0.6875rem;
+    line-height: 0.875rem;
+  }
+
+  .organization-team-pairing-member .organization-status-pill {
+    padding: 0.1875rem 0.5rem;
+    font-size: 0.625rem;
+  }
+
+  .organization-team-pairing-manage > summary {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+  }
+}
+
 /* The workspace summary becomes a compact breadcrumb once a dashboard card
    opens. Collapsing a real grid row lets the glass reform without measuring a
    magic pixel height, so long organization names remain safe and fully shown. */
@@ -947,6 +1012,38 @@ html[data-theme="dark"] .google-signin-glass {
   opacity: 0;
   translate: 0 -0.25rem;
   pointer-events: none;
+}
+
+/* The workspace picker belongs to the organisation-name card, directly below
+   its settings control. The compact trigger avoids turning the right action
+   rail into a second card, while the shared GlassSelect popover keeps every
+   organisation name readable on phones and fully keyboard operable. */
+.organization-membership-actions {
+  width: min(15rem, 44vw);
+}
+
+.organization-membership-actions > button {
+  justify-self: end;
+}
+
+.organization-workspace-switcher {
+  width: 100%;
+}
+
+.organization-workspace-switcher > div > button {
+  border-radius: 9999px;
+  min-height: 2rem;
+}
+
+@media (max-width: 639px) {
+  .organization-membership-actions {
+    width: min(10.5rem, 46vw);
+  }
+
+  .organization-workspace-switcher > div > button {
+    padding-inline: 0.65rem;
+    font-size: 0.6875rem;
+  }
 }
 
 /* A restrained magnetic response shared by cards and buttons. The page keeps
@@ -1884,6 +1981,20 @@ body::before {
   .card {
     padding-left: var(--window-text-inset) !important;
     padding-right: var(--window-text-inset) !important;
+  }
+
+  .organization-team-pairings-page.card.card {
+    padding: 0 !important;
+  }
+
+  .organization-team-pairing-group.card.card {
+    padding: 0.75rem !important;
+  }
+
+  @media (max-width: 39.999rem) {
+    .organization-team-pairing-group.card.card {
+      padding: 0.625rem !important;
+    }
   }
 }
 

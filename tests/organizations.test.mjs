@@ -191,7 +191,7 @@ test("student history selection remains scoped to the organization from a notifi
   assert.match(cloudflare, /historyAuthorization\(bindings\.db, user\.id, studentId, platformAdmin, organizationId\)/);
 });
 
-test("members switch only between active organizations and manage student leave from settings", () => {
+test("members switch only between eligible organisations and manage student leave from settings", () => {
   const portal = readFileSync(
     join(process.cwd(), "components", "organization", "OrganizationPortal.tsx"),
     "utf8",
@@ -200,13 +200,37 @@ test("members switch only between active organizations and manage student leave 
     join(process.cwd(), "lib", "cloudflare", "organizations.ts"),
     "utf8",
   );
+  const bridge = readFileSync(
+    join(process.cwd(), "lib", "organizations", "server.ts"),
+    "utf8",
+  );
+  const selectedPortal = readFileSync(
+    join(process.cwd(), "supabase", "migrations", "0031_member_organization_workspace_selection.sql"),
+    "utf8",
+  );
+  const preview = readFileSync(
+    join(process.cwd(), "lib", "organizations", "preview.ts"),
+    "utf8",
+  );
   assert.match(portal, /function OrganizationSwitcher/);
-  assert.match(portal, /label="Current organisation"/);
+  assert.match(portal, /label="Switch organisation"/);
+  assert.match(portal, /data-organization-switcher/);
+  assert.match(portal, /item\.status === "active" \|\| item\.status === "leave_requested"/);
+  assert.match(portal, /window\.history\.pushState/);
+  for (const parameter of ["section", "student", "focus", "attempt", "request", "requestKind"]) {
+    assert.match(portal, new RegExp(`\\[.*"${parameter}"`));
+  }
   assert.match(portal, /Request to leave/);
   assert.match(portal, /act\("request_to_leave", \{ organizationId: membership\.organization\.id \}\)/);
   const managerSettings = portal.slice(portal.indexOf('{view === "settings"'), portal.indexOf("function invitationToken"));
   assert.doesNotMatch(managerSettings, /Join another organisation|JoinOrganizationForm/);
   assert.match(cloudflare, /eligibleMemberships\.find\(\(membership\) => membership\.organization\.id === selectedOrganizationId\)/);
+  assert.match(bridge, /if \(selectedOrganizationId\)[\s\S]*organization_portal_selected[\s\S]*p_platform_admin: platformAdmin/);
+  assert.match(selectedPortal, /membership\.user_id = p_actor[\s\S]*membership\.organization_id = p_organization[\s\S]*membership\.status in \('active', 'leave_requested'\)/);
+  assert.match(selectedPortal, /organization_actor_is_platform_admin\(p_actor\)/);
+  assert.match(selectedPortal, /revoke all on function public\.organization_portal_selected[\s\S]*from public, anon, authenticated/);
+  assert.match(preview, /role === "teacher"[\s\S]*Bright Path College[\s\S]*role: "teacher"/);
+  assert.match(preview, /role === "student"|const student/);
 });
 
 test("organization sittings reuse the learner result record without changing feedback", () => {
@@ -354,7 +378,7 @@ test("the organization workspace uses a compact dashboard shell", () => {
 
 test("phone organization sections become full-page views with a compact list dashboard", () => {
   const portal = readFileSync(join(process.cwd(), "components", "organization", "OrganizationPortal.tsx"), "utf8");
-  assert.match(portal, /managerFocused \|\| teacherDirectoryFocused \|\| studentSettingsFocused \? "hidden sm:block"/);
+  assert.match(portal, /focusedOrganizationView/);
   assert.match(portal, /managerWorkspace && compact \? "hidden"/);
   assert.match(portal, /ariaLabel = "Back to organisation dashboard"/);
   assert.match(portal, /m7\.5 12 9-6\.5v13Z/);
@@ -522,7 +546,37 @@ test("team assignment composer and pairing review keep atomic actions in respons
   assert.match(card, /className="liquid-glass[^"]+sm:max-w-lg"/);
   assert.match(card, /Team pairings/);
   assert.match(groups, /"unassign_teacher", teacherAssignmentPayload\(organizationId, teacher\.userId, student\.userId\)/);
+  assert.match(groups, /const \[pendingUnassign, setPendingUnassign\] = useState<string \| null>\(null\)/);
+  assert.match(groups, /window\.setTimeout\(\(\) => setPendingUnassign\(null\), 6_000\)/);
+  assert.match(groups, /pendingUnassign !== pairingKey/);
+  assert.match(groups, /aria-label="Cancel unassign"/);
+  assert.match(groups, /"Confirm unassign" : "Unassign"/);
+  assert.match(groups, /<span role="status"[^>]*>Confirm\?<\/span>/);
+  assert.match(groups, /organization-team-unassign/);
+  assert.doesNotMatch(groups, />\s*Unassign\s*</);
+  assert.doesNotMatch(groups, /window\.confirm/);
   assert.match(groups, /<MemberManagement member=\{student\}/);
+});
+
+test("team pairing review removes the redundant outer glass and compacts phone rows", () => {
+  const ui = readFileSync(
+    join(process.cwd(), "components/organization/OrganizationPortal.tsx"),
+    "utf8",
+  );
+  const css = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
+  const pairingsStart = ui.indexOf('{view === "team-pairings"');
+  const settingsStart = ui.indexOf('{view === "settings"', pairingsStart);
+  const pairings = ui.slice(pairingsStart, settingsStart);
+
+  assert.match(pairings, /className="organization-team-pairings-page/);
+  assert.match(pairings, /searchPlaceholder="Search team"/);
+  assert.match(ui, /organization-team-pairing-group card/);
+  assert.match(ui, /organization-team-pairing-member/);
+  assert.match(ui, /organization-team-pairing-manage/);
+  assert.match(ui, /sm:max-h-80 sm:overflow-y-auto/);
+  assert.match(css, /\.organization-team-pairings-page\.card\.card \{[\s\S]*border-color: transparent;[\s\S]*padding: 0 !important;[\s\S]*backdrop-filter: none;/);
+  assert.match(css, /\.organization-team-pairing-group\.card\.card \{[\s\S]*padding: 0\.75rem !important;/);
+  assert.match(css, /@media \(max-width: 39\.999rem\)[\s\S]*\.organization-team-pairing-identity > div > img/);
 });
 
 test("dark organization warning pills use a neutral high-contrast capsule", () => {

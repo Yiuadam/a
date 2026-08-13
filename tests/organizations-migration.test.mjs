@@ -19,6 +19,10 @@ const formerConsentSql = readFileSync(
   join(process.cwd(), "supabase", "migrations", "0020_organization_former_member_consent.sql"),
   "utf8",
 );
+const memberWorkspaceSql = readFileSync(
+  join(process.cwd(), "supabase", "migrations", "0031_member_organization_workspace_selection.sql"),
+  "utf8",
+);
 const invitationSafetySql = readFileSync(
   join(process.cwd(), "supabase", "migrations", "0024_account_bound_organization_invitations.sql"),
   "utf8",
@@ -58,6 +62,19 @@ test("database enforces organization roles, states, student entitlement and teac
   assert.match(sql, /create trigger organization_memberships_entitlement/);
   assert.match(sql, /public\.organization_is_assigned\(p_actor, [^)]+, [^)]+\)/);
   assert.match(sql, /v_role = 'teacher' and public\.organization_is_assigned/);
+});
+
+test("selected organisation workspaces remain membership and role scoped", () => {
+  assert.match(memberWorkspaceSql, /organization_portal_selected\(/);
+  assert.match(memberWorkspaceSql, /organization_actor_is_platform_admin\(p_actor\)/);
+  assert.match(memberWorkspaceSql, /membership\.user_id = p_actor/);
+  assert.match(memberWorkspaceSql, /membership\.organization_id = p_organization/);
+  assert.match(memberWorkspaceSql, /membership\.status in \('active', 'leave_requested'\)/);
+  assert.match(memberWorkspaceSql, /organization\.status = 'active'/);
+  assert.match(memberWorkspaceSql, /v_role in \('manager', 'owner'\)/);
+  assert.match(memberWorkspaceSql, /v_role = 'teacher'[\s\S]*organization_is_assigned/);
+  assert.match(memberWorkspaceSql, /revoke all on function public\.organization_portal_selected[\s\S]*from public, anon, authenticated/);
+  assert.match(memberWorkspaceSql, /grant execute on function public\.organization_portal_selected[\s\S]*to service_role/);
 });
 
 test("practice history keeps exact results and organization deletion cannot delete learner source", () => {

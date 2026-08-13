@@ -36,10 +36,10 @@ export async function organizationPortal(
   if (organizationDataMode() === "cloudflare") {
     return cloudflareOrganizationPortal(user, platformAdmin, selectedOrganizationId);
   }
-  if (selectedOrganizationId && isAdminEmail(user.email)) {
+  if (selectedOrganizationId) {
     return rpc("organization_portal_selected", {
       p_actor: user.id,
-      p_platform_admin: true,
+      p_platform_admin: platformAdmin,
       p_organization: selectedOrganizationId,
     });
   }
