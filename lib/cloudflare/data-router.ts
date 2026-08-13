@@ -1,0 +1,341 @@
+import type { SessionUser } from "@/lib/auth/session";
+import {
+  getProfile as getSupabaseLearnerProfile,
+  getAccountKind as getSupabaseLearnerAccountKind,
+  getProgressSnapshots as getSupabaseProgressSnapshots,
+  updateProfile as updateSupabaseLearnerProfile,
+  setAccountIdentity as setSupabaseAccountIdentity,
+  claimUsername as claimSupabaseUsername,
+  emailForUsername as emailForSupabaseUsername,
+  compareAndSwapProgressSnapshots,
+  type Profile,
+  type ProgressSnapshot,
+} from "@/lib/auth/supabase";
+import { cloudflareDataMode, organizationDataMode } from "./bindings";
+import {
+  getCloudflareLearnerProfile,
+  getCloudflareLearnerAccountKind,
+  getCloudflareProgressSnapshots,
+  updateCloudflareLearnerProfile,
+  setCloudflareAccountIdentity,
+  claimCloudflareUsername,
+  emailForCloudflareUsername,
+  cloudflareUsernameMatches,
+  compareAndSwapCloudflareProgressSnapshots,
+} from "./learner-data";
+import {
+  replicateAccountIdentityDurably,
+  replicateLearnerProfileDurably,
+  replicateProgressDurably,
+  replicateUsernameDurably,
+} from "./replica-replay";
+import type {
+  ProgressSnapshotExpectation,
+  ProgressSnapshotMutation,
+} from "@/lib/progress/server-snapshots";
+
+export interface ReplicatedWrite {
+  primary: boolean;
+  cloudflareReplica: boolean | null;
+}
+
+/**
+ * Organization views join D1 profiles even while learner data remains
+ * Supabase-authoritative. Keep those small shared records fresh whenever
+ * either cutover domain is actively using Cloudflare.
+ */
+function cloudflareProfileReplicaEnabled(): boolean {
+  return cloudflareDataMode() !== "supabase" || organizationDataMode() !== "supabase";
+}
+
+/**
+ * Route learner-owned profile reads to the selected authority. Identity still
+ * comes from the already-verified Supabase Auth user passed by the caller.
+ */
+export async function getLearnerProfile(user: SessionUser): Promise<Profile | null> {
+  if (cloudflareDataMode() === "cloudflare") {
+    return getCloudflareLearnerProfile(user.id);
+  }
+  // An authoritative read is also a reconciliation opportunity. The durable
+  // task and target write both carry Supabase's source clock, so a delayed
+  // login can repair a missed mirror without rolling newer D1 data backwards.
+  const profile = await getSupabaseLearnerProfile(user.id);
+  if (profile && cloudflareProfileReplicaEnabled()) {
+    try {
+      if (!(await replicateLearnerProfileDurably(user, profile))) {
+        console.error("[accounts] profile Cloudflare reconciliation: replica verification failed");
+      }
+    } catch (error) {
+      const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      console.error(`[accounts] profile Cloudflare reconciliation: ${detail}`);
+    }
+  }
+  return profile;
+}
+
+/** A strict, focused read used only to preserve retired profile metadata. */
+export async function getLearnerAccountKind(
+  user: SessionUser,
+): Promise<import("@/lib/auth/account-identity").AccountKind | null> {
+  return cloudflareDataMode() === "cloudflare"
+    ? getCloudflareLearnerAccountKind(user.id)
+    : getSupabaseLearnerAccountKind(user.id);
+}
+
+/** Resolve a sign-in alias from the same authority that owns usernames. */
+export async function emailForLearnerUsername(username: string): Promise<string | null> {
+  if (cloudflareDataMode() === "cloudflare") {
+    try {
+      return await emailForCloudflareUsername(username);
+    } catch {
+      return null;
+    }
+  }
+  return emailForSupabaseUsername(username);
+}
+
+/**
+ * `false` means the organization replica is definitely missing or divergent;
+ * `null` means it could not be checked, which must not make the whole learning
+ * app unavailable merely because organization search is temporarily offline.
+ */
+export async function learnerUsernameReplicaReady(
+  userId: string,
+  username: string | null,
+): Promise<boolean | null> {
+  if (!username) return false;
+  if (!cloudflareProfileReplicaEnabled()) return true;
+  try {
+    return await cloudflareUsernameMatches(userId, username);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Profile details are primary in D1 only after learner cutover. While
+ * Supabase is primary, the complete stored row is mirrored when either the
+ * learner cutover is dual or the organization domain uses Cloudflare.
+ */
+export async function updateLearnerProfile(
+  user: SessionUser,
+  fields: Partial<Pick<Profile, "displayName" | "birthDate">>,
+): Promise<ReplicatedWrite> {
+  const mode = cloudflareDataMode();
+  if (mode === "cloudflare") {
+    try {
+      return {
+        primary: await updateCloudflareLearnerProfile(user, fields),
+        cloudflareReplica: null,
+      };
+    } catch {
+      return { primary: false, cloudflareReplica: null };
+    }
+  }
+
+  const primary = await updateSupabaseLearnerProfile(user.id, fields);
+  if (!primary || !cloudflareProfileReplicaEnabled()) {
+    return { primary, cloudflareReplica: null };
+  }
+  const stored = await getSupabaseLearnerProfile(user.id);
+  if (!stored) return { primary, cloudflareReplica: false };
+  return {
+    primary,
+    cloudflareReplica: await replicateLearnerProfile(user, stored),
+  };
+}
+
+export type LearnerAccountIdentityStatus =
+  | "ok"
+  | "invalid_display_name"
+  | "invalid_account_kind"
+  | "invalid_username"
+  | "reserved_username"
+  | "taken_username"
+  | "missing_profile"
+  | "unavailable";
+
+export async function setLearnerAccountIdentity(
+  user: SessionUser,
+  identity: {
+    displayName: string;
+    username: string;
+    accountKind: import("@/lib/auth/account-identity").AccountKind;
+    birthDate: string | null;
+  },
+): Promise<{ status: LearnerAccountIdentityStatus; cloudflareReplica: boolean | null }> {
+  const mode = cloudflareDataMode();
+  if (mode === "cloudflare") {
+    try {
+      return { status: await setCloudflareAccountIdentity(user, identity), cloudflareReplica: null };
+    } catch {
+      return { status: "unavailable", cloudflareReplica: null };
+    }
+  }
+
+  let status: LearnerAccountIdentityStatus;
+  try {
+    status = await setSupabaseAccountIdentity(
+      user.id,
+      identity.displayName,
+      identity.username,
+      identity.accountKind,
+      identity.birthDate,
+    );
+  } catch {
+    return { status: "unavailable", cloudflareReplica: null };
+  }
+  if (status !== "ok" || !cloudflareProfileReplicaEnabled()) {
+    return { status, cloudflareReplica: null };
+  }
+  const stored = await getSupabaseLearnerProfile(user.id).catch(() => null);
+  if (!stored?.updatedAt) return { status, cloudflareReplica: false };
+  try {
+    return {
+      status,
+      cloudflareReplica: await replicateAccountIdentityDurably(
+        user,
+        identity,
+        stored.updatedAt,
+      ),
+    };
+  } catch {
+    return { status, cloudflareReplica: false };
+  }
+}
+
+export async function claimLearnerUsername(
+  user: SessionUser,
+  username: string,
+): Promise<{ status: LearnerAccountIdentityStatus; cloudflareReplica: boolean | null }> {
+  const mode = cloudflareDataMode();
+  if (mode === "cloudflare") {
+    try {
+      return {
+        status: await claimCloudflareUsername(user, username),
+        cloudflareReplica: null,
+      };
+    } catch {
+      return { status: "unavailable", cloudflareReplica: null };
+    }
+  }
+
+  let claimed: Awaited<ReturnType<typeof claimSupabaseUsername>>;
+  try {
+    claimed = await claimSupabaseUsername(user.id, username);
+  } catch {
+    return { status: "unavailable", cloudflareReplica: null };
+  }
+  const status: LearnerAccountIdentityStatus = claimed === "taken"
+    ? "taken_username"
+    : claimed === "invalid"
+      ? "invalid_username"
+      : claimed === "reserved"
+        ? "reserved_username"
+        : "ok";
+  if (status !== "ok" || !cloudflareProfileReplicaEnabled()) {
+    return { status, cloudflareReplica: null };
+  }
+  const stored = await getSupabaseLearnerProfile(user.id).catch(() => null);
+  if (!stored?.updatedAt) return { status, cloudflareReplica: false };
+  try {
+    return {
+      status,
+      cloudflareReplica: await replicateUsernameDurably(user, username, stored.updatedAt),
+    };
+  } catch {
+    return { status, cloudflareReplica: false };
+  }
+}
+
+/**
+ * Keep organization-facing profile fields current during and after cutover.
+ * A Cloudflare organization mode requests this replica independently of the
+ * learner-data mode. A failure is reported separately so a durable Supabase
+ * save remains successful and a later save/copy can repair the replica.
+ */
+export async function replicateLearnerProfile(
+  user: SessionUser,
+  profile: Profile,
+): Promise<boolean | null> {
+  if (!cloudflareProfileReplicaEnabled()) return null;
+  try {
+    return await replicateLearnerProfileDurably(user, profile);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Supabase remains the read authority while copies are being compared. This
+ * intentionally does not merge an unverified D1 copy into a learner's live
+ * account: migration correctness is proven by the verifier, not guessed on a
+ * request path.
+ */
+export async function getLearnerProgressSnapshots(
+  user: SessionUser,
+): Promise<ProgressSnapshot[] | null> {
+  const mode = cloudflareDataMode();
+  if (mode === "cloudflare") {
+    try {
+      return await getCloudflareProgressSnapshots(user);
+    } catch {
+      return null;
+    }
+  }
+  return getSupabaseProgressSnapshots(user.id);
+}
+
+/**
+ * In dual mode Supabase is written first. A Cloudflare replication failure is
+ * reported separately and never turns a successful learner save into a false
+ * failure. The migration monitor can replay it idempotently before cutover.
+ */
+export type LearnerProgressCasResult =
+  | { status: "committed"; at: string; cloudflareReplica: boolean | null }
+  | { status: "conflict" }
+  | { status: "unavailable" };
+
+/** Commit an all-or-nothing progress batch against the rows the route read. */
+export async function compareAndSwapLearnerProgressSnapshots(
+  user: SessionUser,
+  expected: ProgressSnapshotExpectation[],
+  snapshots: ProgressSnapshotMutation[],
+): Promise<LearnerProgressCasResult> {
+  const mode = cloudflareDataMode();
+  if (mode === "cloudflare") {
+    try {
+      const result = await compareAndSwapCloudflareProgressSnapshots(
+        user,
+        expected,
+        snapshots,
+      );
+      return result.status === "committed"
+        ? { ...result, cloudflareReplica: null }
+        : result;
+    } catch {
+      return { status: "unavailable" };
+    }
+  }
+
+  const primary = await compareAndSwapProgressSnapshots(
+    user.id,
+    expected,
+    snapshots,
+  );
+  if (primary.status !== "committed") return primary;
+  if (mode !== "dual") return { ...primary, cloudflareReplica: null };
+
+  try {
+    return {
+      ...primary,
+      cloudflareReplica: await replicateProgressDurably(
+        user,
+        snapshots,
+        primary.at,
+      ),
+    };
+  } catch {
+    return { ...primary, cloudflareReplica: false };
+  }
+}

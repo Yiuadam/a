@@ -400,5 +400,14 @@ export interface Profile {
    * instant stay deleted when an older tab syncs again.
    */
   historyClearedAt?: string;
+  /**
+   * Generated-paper deletion tombstones, keyed by the paper id.
+   *
+   * Removing an item from `genTests` is ambiguous during a two-device merge:
+   * it can mean "the learner deleted it" or "this tab has not downloaded it
+   * yet". The deletion time makes that intent durable, so an older account or
+   * browser snapshot cannot silently restore the paper.
+   */
+  deletedGenTests?: Record<string, string>;
   genTests: GeneratedTest[];
 }

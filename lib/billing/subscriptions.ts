@@ -1,5 +1,10 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
-import { rpc } from "@/lib/auth/supabase";
+import { rpc, stripeSubscriptionReplica } from "@/lib/auth/supabase";
+import { cloudflareDataMode, organizationDataMode } from "@/lib/cloudflare/bindings";
+import {
+  cloudflareStripeCustomerFor,
+} from "@/lib/cloudflare/billing-replica";
+import { replicateStripeBillingDurably } from "@/lib/cloudflare/replica-replay";
 import type { Provider } from "./providers";
 import type {
   StripePrepaidPurchaseEvent,
@@ -25,6 +30,31 @@ import type {
 */
 
 const MODULE = "lib/billing/subscriptions.ts";
+
+/** Organization D1 joins need a fresh billing copy before learner cutover. */
+function cloudflareBillingReplicaEnabled(): boolean {
+  return cloudflareDataMode() !== "supabase" || organizationDataMode() !== "supabase";
+}
+
+/**
+ * Supabase has already committed when this runs. Await the replica attempt for
+ * deterministic ordering and observability, but never turn that authoritative
+ * success into a webhook failure. The replica receives a fresh authoritative
+ * row, so duplicate/stale deliveries repair a previous miss without replaying
+ * their older payload as current subscription state.
+ */
+async function replicateBillingBestEffort(
+  kind: "subscription" | "prepaid purchase" | "prepaid refund",
+  replicate: () => Promise<boolean>,
+): Promise<void> {
+  try {
+    if (await replicate()) return;
+    console.error(`[accounts] billing/${kind} Cloudflare replica: replica write returned false`);
+  } catch (error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    console.error(`[accounts] billing/${kind} Cloudflare replica: ${detail}`);
+  }
+}
 
 /**
  * What became of an event.
@@ -88,6 +118,20 @@ export async function applyStripeSubscription(
   if (!isOutcome(outcome)) {
     throw new Error(`unrecognised outcome from apply_provider_subscription_event`);
   }
+  if (
+    (outcome === "applied" || outcome === "duplicate" || outcome === "stale")
+    && cloudflareBillingReplicaEnabled()
+  ) {
+    await replicateBillingBestEffort(
+      "subscription",
+      async () => {
+        const authoritative = await stripeSubscriptionReplica(event.subscriptionId);
+        return authoritative
+          ? replicateStripeBillingDurably(event, payload, authoritative)
+          : false;
+      },
+    );
+  }
   return outcome;
 }
 
@@ -110,6 +154,17 @@ export async function applyStripePrepaidPurchase(
   if (!isPrepaidOutcome(outcome)) {
     throw new Error("unrecognised outcome from apply_stripe_prepaid_purchase_event");
   }
+  if ((outcome === "applied" || outcome === "duplicate") && cloudflareBillingReplicaEnabled()) {
+    await replicateBillingBestEffort(
+      "prepaid purchase",
+      async () => {
+        const authoritative = await stripeSubscriptionReplica(event.paymentIntentId);
+        return authoritative
+          ? replicateStripeBillingDurably(event, payload, authoritative)
+          : false;
+      },
+    );
+  }
   return outcome;
 }
 
@@ -129,6 +184,21 @@ export async function applyStripePrepaidRefund(
   if (!isPrepaidOutcome(outcome)) {
     throw new Error("unrecognised outcome from apply_stripe_prepaid_refund_event");
   }
+  if (
+    (outcome === "applied" || outcome === "duplicate" || outcome === "stale"
+      || outcome === "partial_refund")
+    && cloudflareBillingReplicaEnabled()
+  ) {
+    await replicateBillingBestEffort(
+      "prepaid refund",
+      async () => {
+        const authoritative = await stripeSubscriptionReplica(event.paymentIntentId);
+        return authoritative
+          ? replicateStripeBillingDurably(event, payload, authoritative)
+          : false;
+      },
+    );
+  }
   return outcome;
 }
 
@@ -141,6 +211,7 @@ export async function applyStripePrepaidRefund(
  */
 export async function stripeCustomerFor(userId: string): Promise<string | null> {
   assertServerOnly(MODULE);
+  if (cloudflareDataMode() === "cloudflare") return cloudflareStripeCustomerFor(userId);
   const value = await rpc<unknown>("provider_customer_for_user", {
     p_user_id: userId,
     p_provider: "stripe" satisfies Provider,

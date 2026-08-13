@@ -15,6 +15,7 @@ import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { TIERS, type Tier } from "@/lib/billing/tiers";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { AccountStatus } from "@/components/account/types";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 /*
   The account screen, and the only place in the app where signing in happens.
@@ -34,18 +35,17 @@ import type { AccountStatus } from "@/components/account/types";
   ---------------------------------------------------------------------------
   Signed in, this is a menu
 
-  It was four groups of cards in a column: profile, plan, sync, and the two
-  buttons that delete things — 3049 pixels on a 390-wide phone. Every one of
+  It was four groups of cards in a column: profile, plan, sync controls, and
+  the two buttons that delete things — 3049 pixels on a 390-wide phone. Every one of
   them was a true thing about the account, and stacking them is how the page
   got made, one true thing under the last.
 
-  Nobody arrives here wanting all four. They arrive to change a picture, or to
-  sign out, or to find out why a phone and a laptop disagree — and the page
-  answered whichever it was somewhere in the middle of three answers to
-  questions they had not asked. So each is its own screen now, and this page is
-  the choice between them. What that costs is one tap for the thing you came
-  for; what it buys is that you can see all four options at once and know which
-  tap it is.
+  Nobody arrives here wanting every control at once. They arrive to change a
+  picture, manage a plan or sign out, and the page answered whichever it was
+  somewhere in the middle of several answers to questions they had not asked.
+  So each remaining action is its own screen and this page is the choice between
+  them. Progress sync is deliberately absent: it runs automatically whenever an
+  account session is active and is not something a learner should have to manage.
 
     The plan row goes straight to /pricing. That screen shows the current plan,
     every alternative and the subscribe/manage control together, so upgrading
@@ -54,7 +54,14 @@ import type { AccountStatus } from "@/components/account/types";
 
 type Phase = "loading" | "ready" | "unavailable";
 
-export default function AccountPanel() {
+const LOCAL_MENU_PREVIEW: AccountStatus = {
+  enabled: true,
+  signedIn: true,
+  tier: "plus",
+  usage: { windowSeconds: 0, oldestAt: null, routes: [] },
+};
+
+export default function AccountPanel({ localMenuPreview = false }: { localMenuPreview?: boolean }) {
   const session = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [phase, setPhase] = useState<Phase>("loading");
   const [status, setStatus] = useState<AccountStatus | null>(null);
@@ -66,6 +73,10 @@ export default function AccountPanel() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    if (localMenuPreview) {
+      return;
+    }
+
     /*
       `alive` is not ceremony. Signing out re-runs this effect while the
       previous request is still in flight, and without the guard the older
@@ -91,18 +102,21 @@ export default function AccountPanel() {
     return () => {
       alive = false;
     };
-  }, [session, reloadKey]);
+  }, [session, reloadKey, localMenuPreview]);
 
   const reload = useCallback(() => setReloadKey((n) => n + 1), []);
 
-  const accountsOff = phase === "ready" && status?.enabled === false;
+  const resolvedPhase = localMenuPreview ? "ready" : phase;
+  const resolvedStatus = localMenuPreview ? LOCAL_MENU_PREVIEW : status;
+  const accountsOff = resolvedPhase === "ready" && resolvedStatus?.enabled === false;
 
   /*
     Signed out, this page is one thing: a sign-in form, and it gets a narrow
     column so the card ends where the form ends rather than stretching to
     1400px with its right half empty.
   */
-  const signingIn = phase === "ready" && status?.enabled === true && !status.signedIn;
+  const signingIn =
+    resolvedPhase === "ready" && resolvedStatus?.enabled === true && !resolvedStatus.signedIn;
 
   return (
     <div className={`mx-auto w-full space-y-6 ${signingIn ? "max-w-lg" : "max-w-2xl"}`}>
@@ -122,13 +136,13 @@ export default function AccountPanel() {
         </p>
       </div>
 
-      {phase === "loading" && (
+      {resolvedPhase === "loading" && (
         <section className="card">
-          <p className="text-sm text-slate-500">Checking…</p>
+          <p className="text-sm text-slate-500"><LoadingIndicator label="Checking…" /></p>
         </section>
       )}
 
-      {phase === "unavailable" && (
+      {resolvedPhase === "unavailable" && (
         <section className="card">
           <h2 className="text-[17px] font-semibold text-slate-900">
             Accounts aren&rsquo;t reachable right now
@@ -148,9 +162,9 @@ export default function AccountPanel() {
         show an account screen to someone holding a revoked token, and every
         figure on it would be a guess.
       */}
-      {phase === "ready" && status?.enabled === true && !status.signedIn && (
+      {resolvedPhase === "ready" && resolvedStatus?.enabled === true && !resolvedStatus.signedIn && (
         <>
-          <SignedOut providers={status.providers ?? []} onRecovered={reload} />
+          <SignedOut providers={resolvedStatus.providers ?? []} onRecovered={reload} />
           {/*
             Shown signed out as well, and that is the case it matters most in:
             a visitor has every one of their scores in this browser and no
@@ -162,8 +176,11 @@ export default function AccountPanel() {
         </>
       )}
 
-      {phase === "ready" && status?.enabled === true && status.signedIn === true && (
-        <SignedIn status={status} email={session?.email ?? null} />
+      {resolvedPhase === "ready" && resolvedStatus?.enabled === true && resolvedStatus.signedIn === true && (
+        <SignedIn
+          status={resolvedStatus}
+          email={localMenuPreview ? "member@bandup.local" : session?.email ?? null}
+        />
       )}
     </div>
   );
@@ -205,8 +222,9 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
   const items: HubItem[] = [
     {
       href: "/account/profile",
+      icon: "profile",
       title: "Your profile",
-      detail: "Name, date of birth and picture",
+      detail: "Name, birth date and photo",
       /*
         The address on the menu, because "which account am I in" is the single
         commonest reason to open this page and it should not cost a tap. Long
@@ -214,16 +232,13 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
         the middle of a domain reads as a different address.
       */
       value: email ?? undefined,
-    },
-    {
-      href: "/account/sync",
-      title: "Practice on other devices",
-      detail: "Move your work between phone and laptop",
+      valuePlacement: "below",
     },
     {
       href: "/account/close",
+      icon: "exit",
       title: "Sign out, or close the account",
-      detail: "Leave this device, or leave BandUp",
+      detail: "Sign out here, or leave BandUp",
     },
   ];
 
@@ -242,8 +257,9 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
   if (!IS_MOBILE_BUILD) {
     items.splice(1, 0, {
       href: "/pricing",
+      icon: "plans",
       title: "Plans & pricing",
-      detail: "Compare, subscribe or manage your plan",
+      detail: "Compare or manage your plan",
       value: planName(status.tier),
     });
   }

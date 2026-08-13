@@ -25,6 +25,8 @@ import TestChooser from "@/components/TestChooser";
 import ExamShell from "@/components/exam/ExamShell";
 import { useExamNavigation } from "@/lib/exam/navigation";
 import styles from "./listening.module.css";
+import GlassSelect from "@/components/GlassSelect";
+import AssignedPracticeNotice from "@/components/organization/AssignedPracticeNotice";
 
 const bundled = LISTENING_TESTS;
 
@@ -190,6 +192,7 @@ function ListeningTestPageRunner() {
     return (
       <div className="mx-auto flex min-h-[calc(100dvh-3.75rem)] max-w-xl items-center px-4">
         <div className="card w-full space-y-4 py-8 text-center">
+          <AssignedPracticeNotice />
           <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>
           <p className="text-sm text-slate-600">{test.context}</p>
           <p className="text-sm text-slate-600">
@@ -218,7 +221,7 @@ function ListeningTestPageRunner() {
                 },
                 {
                   id: "free" as const,
-                  title: "Practice slowly",
+                  title: "Practise slowly",
                   blurb: "No clock. Replay, pause and check answers",
                 },
               ]).map((option) => (
@@ -245,7 +248,7 @@ function ListeningTestPageRunner() {
               though it applied to both — next to a button labelled "Exam
               conditions", which is where the contradiction came from.
             */}
-            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm leading-6 text-amber-800">
+            <p className="mt-2 rounded-lg bg-indigo-50 px-3 py-2 text-left text-sm leading-6 text-indigo-800">
               {mode === "timed"
                 ? "Like the real exam: you cannot see any answers until you finish. When you finish, you get your band and every explanation."
                 : "You can check one answer at a time and read why it is right. Once you check a question you cannot change it, so your band still means something."}
@@ -276,20 +279,19 @@ function ListeningTestPageRunner() {
       bottomLeft={submitted && band !== null ? `Band ${band} · ${raw}/${flat.length}` : "Practice complete"}
       topRight={
         <div className="flex items-center gap-1.5">
-          <select
-            className="input !h-8 !w-auto !px-1.5 !py-0 text-xs"
-            value={rate}
-            onChange={(e) => {
-              const nextRate = Number(e.target.value);
+          <GlassSelect
+            label="Playback speed"
+            value={String(rate)}
+            options={[{ value: "0.85", label: "0.85×" }, { value: "1", label: "1×" }, { value: "1.15", label: "1.15×" }]}
+            onValueChange={(value) => {
+              const nextRate = Number(value);
               setRate(nextRate);
               rateRef.current = nextRate;
             }}
-            title="Playback speed"
-          >
-            <option value={0.85}>0.85×</option>
-            <option value={1}>1×</option>
-            <option value={1.15}>1.15×</option>
-          </select>
+            compact
+            className="w-[5.5rem]"
+            minMenuWidth={96}
+          />
           {ttsSupported && !playing ? (
             <button
               type="button"

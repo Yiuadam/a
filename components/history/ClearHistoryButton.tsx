@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { clearHistory } from "@/lib/store";
 import { syncProgress } from "@/lib/progress/sync";
+import { useHistoryClearPolicy } from "@/lib/organizations/useHistoryClearPolicy";
 
 export default function ClearHistoryButton() {
+  const access = useHistoryClearPolicy();
   const [armed, setArmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -22,6 +25,10 @@ export default function ClearHistoryButton() {
         : "History cleared. Only new sittings will be saved.",
     );
   }
+
+  // A button that appears before permission arrives can still be clicked.
+  // Draw nothing until the server has positively allowed this account.
+  if (access !== "allowed") return null;
 
   if (!armed) {
     return (
@@ -53,7 +60,7 @@ export default function ClearHistoryButton() {
         onClick={() => void clear()}
         disabled={busy}
       >
-        {busy ? "Clearing…" : "Yes, clear all"}
+        {busy ? <LoadingIndicator label="Clearing…" announce={false} /> : "Yes, clear all"}
       </button>
       <button
         type="button"

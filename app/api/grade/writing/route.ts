@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
+import { requireFeature } from "@/lib/billing/gate";
 import { checkAiUsage } from "@/lib/usage/guard";
 import { clampBand } from "@/lib/band";
 import { WRITING_TASK1_CRITERIA, WRITING_TASK2_CRITERIA } from "@/lib/descriptors";
@@ -41,9 +42,6 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
 
-  const denied = await checkAiUsage(req, "grade/writing");
-  if (denied) return denied;
-
   let body: { task: 1 | 2; prompt: string; essay: string; minWords: number };
   try {
     body = await req.json();
@@ -69,6 +67,11 @@ async function handlePOST(req: Request) {
     );
   }
   const minimumWords = typeof minWords === "number" ? minWords : task === 1 ? 150 : 250;
+
+  const unentitled = await requireFeature(req, "grade-writing");
+  if (unentitled) return unentitled;
+  const denied = await checkAiUsage(req, "grade/writing");
+  if (denied) return denied;
 
   const criteria = task === 1 ? WRITING_TASK1_CRITERIA : WRITING_TASK2_CRITERIA;
   const wordCount = essay.trim().split(/\s+/).filter(Boolean).length;

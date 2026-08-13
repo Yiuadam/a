@@ -36,7 +36,7 @@ const BOX = {
 
 function Glyph({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <svg {...BOX} className={className} aria-hidden="true" focusable="false">
+    <svg {...BOX} className={`app-icon-color ${className}`} aria-hidden="true" focusable="false">
       {children}
     </svg>
   );

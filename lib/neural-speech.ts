@@ -28,6 +28,7 @@ import {
 const EXAMINER_VOICE = "bf_emma";
 const SAMPLE_RATE = 24_000;
 const LOAD_TIMEOUT_MS = 45_000;
+const FIRST_AUDIO_TIMEOUT_MS = 8_000;
 
 interface RawAudio {
   audio: Float32Array;
@@ -125,29 +126,55 @@ export async function prepareNaturalExaminerVoice(): Promise<boolean> {
   return loading;
 }
 
-function play(samples: Float32Array, sequence: number): Promise<void> {
+async function play(
+  samples: Float32Array,
+  sequence: number,
+  onStart: () => void,
+): Promise<boolean> {
   const context = wakeAudio();
-  if (!context || samples.length === 0 || sequence !== generation) return Promise.resolve();
+  if (!context || samples.length === 0 || sequence !== generation) return false;
+
+  try {
+    if (context.state === "suspended") await context.resume();
+  } catch {
+    return false;
+  }
+  if (context.state !== "running" || sequence !== generation) return false;
 
   return new Promise((resolve) => {
     let finished = false;
-    const done = () => {
+    let timer = 0;
+    const done = (played: boolean) => {
       if (finished) return;
       finished = true;
-      if (finishPlayback === done) finishPlayback = null;
+      window.clearTimeout(timer);
+      if (finishPlayback === cancel) finishPlayback = null;
       if (activeSource === source) activeSource = null;
-      resolve();
+      resolve(played);
     };
+    const cancel = () => done(false);
 
     const buffer = context.createBuffer(1, samples.length, SAMPLE_RATE);
     buffer.getChannelData(0).set(samples);
     const source = context.createBufferSource();
     source.buffer = buffer;
     source.connect(context.destination);
-    source.onended = done;
+    source.onended = () => done(true);
     activeSource = source;
-    finishPlayback = done;
+    finishPlayback = cancel;
     source.start();
+    onStart();
+    /* A suspended or buggy audio graph must not strand the interview forever.
+       The buffer duration is known, so three seconds beyond it is a generous
+       completion deadline rather than an arbitrary speech cutoff. */
+    timer = window.setTimeout(() => {
+      done(false);
+      try {
+        source.stop();
+      } catch {
+        // Already stopped between the timeout and cleanup.
+      }
+    }, Math.max(5_000, (samples.length / SAMPLE_RATE) * 1_000 + 3_000));
   });
 }
 
@@ -160,23 +187,56 @@ function play(samples: Float32Array, sequence: number): Promise<void> {
  */
 export async function speakNaturalExaminer(text: string, rate = 1): Promise<boolean> {
   if (!backend || unavailable) return false;
+  const phrases = speechPhrases(text);
+  if (phrases.length === 0) return false;
   const sequence = ++generation;
   cancelActiveAudio(false);
   const abort = new AbortController();
   activeAbort = abort;
 
   try {
-    const phrases = speechPhrases(text);
     const stream = backend.stream(phrases.join("\n"), {
       voice: EXAMINER_VOICE,
       speed: Math.max(0.85, Math.min(1.1, rate)),
       split_pattern: /\n+/,
     });
-    await playWithLookahead(
+    let firstAudioStarted = false;
+    let playbackCompleted = true;
+    let resolveFirstAudio!: (started: boolean) => void;
+    const firstAudio = new Promise<boolean>((resolve) => {
+      resolveFirstAudio = resolve;
+    });
+    const playback = playWithLookahead(
       stream,
-      (chunk) => play(trimSpeechSilence(chunk.audio.audio, SAMPLE_RATE), sequence),
+      async (chunk) => {
+        const played = await play(trimSpeechSilence(chunk.audio.audio, SAMPLE_RATE), sequence, () => {
+          if (firstAudioStarted) return;
+          firstAudioStarted = true;
+          resolveFirstAudio(true);
+        });
+        playbackCompleted = playbackCompleted && played;
+      },
       () => !abort.signal.aborted && sequence === generation,
-    );
+    ).then(() => {
+      if (!firstAudioStarted) resolveFirstAudio(false);
+    });
+    const started = await Promise.race([
+      firstAudio,
+      new Promise<false>((resolve) => window.setTimeout(() => resolve(false), FIRST_AUDIO_TIMEOUT_MS)),
+    ]);
+    if (!started) {
+      unavailable = true;
+      backend = null;
+      cancelActiveAudio();
+      void playback.catch(() => {});
+      return false;
+    }
+    await playback;
+    if (!playbackCompleted) {
+      unavailable = true;
+      backend = null;
+      return false;
+    }
     return true;
   } catch {
     if (abort.signal.aborted || sequence !== generation) return true;

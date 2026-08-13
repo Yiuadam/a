@@ -1,8 +1,13 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { accountsEnabled, isAdminEmail, usageFailOpen } from "@/lib/auth/env";
 import { supabaseConfigured, rpc } from "@/lib/auth/supabase";
-import { getSessionUser } from "@/lib/auth/session";
+import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
+import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import {
+  type UsageEventOutcome,
+} from "@/lib/cloudflare/usage-cost-replica";
+import { replicateUsageEventDurably } from "@/lib/cloudflare/replica-replay";
 import { clientIp, hashIp } from "./ip";
 import { limitsForDatabase, USAGE_WINDOW_SECONDS, type AiRoute } from "./limits";
 
@@ -30,6 +35,50 @@ interface UsageDecision {
   reason?: unknown;
   used?: unknown;
   quota?: unknown;
+  eventId?: unknown;
+  eventCreatedAt?: unknown;
+  eventOutcome?: unknown;
+}
+
+function usageEventOutcome(decision: UsageDecision): UsageEventOutcome | null {
+  const expected = decision.allowed
+    ? "admitted"
+    : decision.reason === "rate_limited"
+      ? "denied_rate"
+      : decision.reason === "quota_exceeded"
+        ? "denied_quota"
+        : null;
+  return decision.eventOutcome === expected ? expected : null;
+}
+
+async function mirrorUsageDecision(
+  decision: UsageDecision,
+  user: SessionUser | null,
+  userId: string | null,
+  route: AiRoute,
+  ipHash: string | null,
+): Promise<void> {
+  const id = decision.eventId;
+  const rawCreatedAt = decision.eventCreatedAt;
+  const outcome = usageEventOutcome(decision);
+  if (
+    typeof id !== "string"
+    || !/^[1-9]\d*$/.test(id)
+    || typeof rawCreatedAt !== "string"
+    || !Number.isFinite(Date.parse(rawCreatedAt))
+    || outcome === null
+  ) {
+    throw new Error("Supabase usage decision omitted its committed event identity");
+  }
+  const mirrored = await replicateUsageEventDurably({
+    id,
+    userId,
+    route,
+    ipHash,
+    outcome,
+    createdAt: new Date(rawCreatedAt).toISOString(),
+  }, user);
+  if (!mirrored) throw new Error("D1 did not accept the usage event replica");
 }
 
 /**
@@ -53,10 +102,12 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
     return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
   }
 
+  let user: SessionUser | null = null;
   let userId: string | null = null;
   let ipHash: string | null = null;
   try {
-    const [user, hash] = await Promise.all([getSessionUser(req), hashIp(clientIp(req))]);
+    const [resolvedUser, hash] = await Promise.all([getSessionUser(req), hashIp(clientIp(req))]);
+    user = resolvedUser;
 
     /*
       ADMIN_EMAILS is an entitlement source in its own right. The feature gate
@@ -77,14 +128,18 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
   }
 
   let decision: UsageDecision | null;
+  const dualWrite = cloudflareDataMode() === "dual";
   try {
-    decision = await rpc<UsageDecision | null>("check_and_record_usage", {
+    const args = {
       p_user_id: userId,
       p_ip_hash: ipHash,
       p_route: route,
       p_window_seconds: USAGE_WINDOW_SECONDS,
       p_limits: limitsForDatabase(),
-    });
+    };
+    decision = dualWrite
+      ? await rpc<UsageDecision | null>("check_and_record_usage_with_event", args)
+      : await rpc<UsageDecision | null>("check_and_record_usage", args);
   } catch (err) {
     logInternal("checkAiUsage/rpc", err);
     // Failing closed is the default. An attacker who can make the database
@@ -98,6 +153,17 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
     // unreachable database rather than waved through.
     logInternal("checkAiUsage/rpc", new Error("unrecognised usage decision"));
     return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
+  }
+
+  if (dualWrite) {
+    try {
+      await mirrorUsageDecision(decision, user, userId, route, ipHash);
+    } catch (err) {
+      // Supabase has already committed the authoritative decision. A replica
+      // outage is observable and repairable, but it must not turn that valid
+      // decision into a false failure returned to the learner.
+      logInternal("checkAiUsage/cloudflare-replica", err);
+    }
   }
 
   if (decision.allowed) return null;

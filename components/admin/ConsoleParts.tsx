@@ -1,13 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import AdminTrendChart from "@/components/admin/AdminTrendChart";
 import {
   maintenanceActionLabel,
   maintenanceDispatchFailed,
   maintenanceNeedsRetry,
 } from "@/lib/admin/maintenance-toggle";
-import { type Check, type MaintenanceState, type Stats } from "@/lib/admin/useConsole";
+import {
+  type Check,
+  type MaintenanceState,
+  type Stats,
+  type UsageBreakdownRow,
+} from "@/lib/admin/useConsole";
 
 /*
   The three panels the console is made of, each usable on its own screen or
@@ -32,19 +38,94 @@ export function Charts({ stats, full = false }: { stats: Stats | null; full?: bo
   const usage = stats?.usage ?? null;
 
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
-      {signups && signups.length > 0 ? (
-        <AdminTrendChart kind="signups" rows={signups} days={stats?.days} compact={!full} />
-      ) : (
-        <Panel><Empty title="New accounts" /></Panel>
-      )}
-      {usage && usage.length > 0 ? (
-        <AdminTrendChart kind="usage" rows={usage} days={stats?.days} compact={!full} />
-      ) : (
-        <Panel><Empty title="AI requests" /></Panel>
+    <div className="space-y-3">
+      <div className="grid gap-3 lg:grid-cols-2">
+        {signups && signups.length > 0 ? (
+          <AdminTrendChart kind="signups" rows={signups} days={stats?.days} compact={!full} />
+        ) : (
+          <Panel><Empty title="New accounts" /></Panel>
+        )}
+        {usage && usage.length > 0 ? (
+          <AdminTrendChart kind="usage" rows={usage} days={stats?.days} compact={!full} />
+        ) : (
+          <Panel><Empty title="Learner AI request attempts" /></Panel>
+        )}
+      </div>
+      {full && stats?.usageBreakdown && stats.usageBreakdown.length > 0 && (
+        <UsageBreakdown rows={stats.usageBreakdown} />
       )}
     </div>
   );
+}
+
+function UsageBreakdown({ rows }: { rows: UsageBreakdownRow[] }) {
+  const grouped = new Map<
+    string,
+    { route: string; caller: UsageBreakdownRow["caller"]; allowed: number; quota: number; rate: number }
+  >();
+  for (const row of rows) {
+    const key = `${row.route}\u0000${row.caller}`;
+    const current = grouped.get(key) ?? {
+      route: row.route,
+      caller: row.caller,
+      allowed: 0,
+      quota: 0,
+      rate: 0,
+    };
+    const count = Number(row.count) || 0;
+    if (row.decision === "allowed") current.allowed += count;
+    else if (row.decision === "blocked_quota") current.quota += count;
+    else current.rate += count;
+    grouped.set(key, current);
+  }
+
+  return (
+    <section className="card rounded-2xl border border-slate-200 bg-surface p-3.5">
+      <h2 className="text-sm font-semibold text-slate-900">Learner AI request gate breakdown</h2>
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        These are BandUp decisions made before AI was called. Quota blocks mean the plan had no
+        remaining allowance; rate blocks mean a rolling safety ceiling was reached. Owner activity
+        is excluded.
+      </p>
+      <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200/80">
+        <table className="w-full min-w-[620px] text-left text-xs">
+          <thead className="border-b border-slate-200 text-[10px] uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="px-3 py-2">Feature</th>
+              <th className="px-3 py-2">Caller</th>
+              <th className="px-3 py-2 text-right">Allowed</th>
+              <th className="px-3 py-2 text-right">Blocked · quota</th>
+              <th className="px-3 py-2 text-right">Blocked · rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...grouped.values()].map((row) => (
+              <tr key={`${row.route}-${row.caller}`} className="border-b border-slate-200/70 last:border-b-0">
+                <td className="px-3 py-2.5 font-medium text-slate-800">{usageRouteLabel(row.route)}</td>
+                <td className="px-3 py-2.5 text-slate-500">
+                  {row.caller === "signed_in" ? "Signed in" : "Anonymous"}
+                </td>
+                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{row.allowed.toLocaleString()}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{row.quota.toLocaleString()}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{row.rate.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function usageRouteLabel(route: string): string {
+  const labels: Record<string, string> = {
+    chat: "Tutor chat",
+    define: "Word lookup",
+    generate: "Generated practice",
+    "grade/writing": "Writing marking",
+    "grade/speaking": "Speaking marking",
+  };
+  return labels[route] ?? route.replaceAll("/", " · ");
 }
 
 /* ------------------------------------------------------------ site switch */
@@ -145,7 +226,7 @@ export function SiteSwitch({
 
   return (
     <section
-      className={`rounded-2xl border ${compact ? "p-3.5" : "p-4 sm:p-5"} ${
+      className={`card rounded-2xl border ${compact ? "p-3.5" : "p-4 sm:p-5"} ${
         live || inFlight ? "border-amber-300 bg-amber-50/60" : "border-slate-200 bg-surface"
       }`}
     >
@@ -160,7 +241,7 @@ export function SiteSwitch({
           disabled={busy}
           className={state.closed ? "btn-primary shrink-0" : "btn-secondary shrink-0"}
         >
-          {busy ? (retryNeeded ? "Retrying…" : "Deploying…") : maintenanceActionLabel(state)}
+          {busy ? <LoadingIndicator label={retryNeeded ? "Retrying…" : "Deploying…"} announce={false} /> : maintenanceActionLabel(state)}
         </button>
       </div>
 
@@ -250,7 +331,7 @@ export function ConfigList({ checks, compact = false }: { checks: Check[] | null
 
   if (compact) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-surface p-3.5">
+      <section className="card rounded-2xl border border-slate-200 bg-surface p-3.5">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-900">Configuration</h2>
           <Link href="/admin/config" className="shrink-0 text-[11px] font-medium text-slate-500 hover:text-slate-900">
@@ -273,7 +354,7 @@ export function ConfigList({ checks, compact = false }: { checks: Check[] | null
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface p-4 sm:p-5">
+    <section className="card rounded-2xl border border-slate-200 bg-surface p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-semibold text-slate-900">Configuration</h2>
         {checks && (
@@ -315,7 +396,7 @@ export function ConfigList({ checks, compact = false }: { checks: Check[] | null
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface p-4 sm:p-5">{children}</section>
+    <section className="card rounded-2xl border border-slate-200 bg-surface p-4 sm:p-5">{children}</section>
   );
 }
 

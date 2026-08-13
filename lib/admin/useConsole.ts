@@ -51,11 +51,19 @@ export interface DayRow {
   denied?: number;
 }
 
+export interface UsageBreakdownRow {
+  route: string;
+  decision: "allowed" | "blocked_quota" | "blocked_rate";
+  caller: "signed_in" | "anonymous";
+  count: number;
+}
+
 export interface Stats {
   days: number;
   users: number | null;
   signups: DayRow[] | null;
   usage: DayRow[] | null;
+  usageBreakdown: UsageBreakdownRow[] | null;
   tiers: { tier: string; count: number }[] | null;
   billing: { byPlan: Record<string, number>; active: number; mrrHkd: number } | null;
   /** Whether a Stripe key and at least one price id are on this Worker. */

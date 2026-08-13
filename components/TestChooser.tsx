@@ -6,6 +6,7 @@ import DoneBadge, { bestResultFor } from "@/components/DoneBadge";
 import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
 import NewBadge from "@/components/NewBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { paperNeedsNewBadge } from "@/lib/completion-badges";
 import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
@@ -127,9 +128,10 @@ export default function TestChooser({
             return (
               <div
                 key={t.id}
-                className="practice-paper-card card !p-3 min-w-0 cursor-wait opacity-60"
+                className="practice-paper-card card relative !p-3 min-w-0 cursor-wait opacity-60"
                 aria-busy="true"
               >
+                <LoadingIndicator label="Checking access…" className="absolute right-3 top-3 text-sm text-indigo-600" textClassName="sr-only" />
                 {inner}
               </div>
             );

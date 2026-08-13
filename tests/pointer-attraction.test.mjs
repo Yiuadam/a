@@ -3,6 +3,7 @@ import { register } from "node:module";
 import { test } from "node:test";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
 
 register("../scripts/ts-resolve.mjs", import.meta.url);
 
@@ -35,4 +36,36 @@ test("touch attraction clamps fingers dragged beyond the card", () => {
     boundedTouchCardTransform(4, -3, 320, 84),
     boundedTouchCardTransform(1, -1, 320, 84),
   );
+});
+
+test("only bounded interactive controls keep pointer attraction", () => {
+  const source = readFileSync(
+    join(process.cwd(), "components", "PointerAttraction.tsx"),
+    "utf8",
+  );
+  assert.match(source, /MAX_CARD_WIDTH = 560/);
+  assert.match(source, /MAX_CARD_HEIGHT = 190/);
+  assert.match(source, /\[data-pointer-attract\], button, a\[href\], summary/);
+  assert.doesNotMatch(source, /const TARGET = .*\.card/);
+  assert.match(source, /it is an actual control/);
+});
+
+test("all glass reflection is delegated to one visible, power-aware surface", () => {
+  const source = readFileSync(
+    join(process.cwd(), "components", "PointerAttraction.tsx"),
+    "utf8",
+  );
+  assert.match(source, /GLASS_SURFACE = "\.card, \.liquid-glass, \.premade-glass/);
+  assert.match(source, /REFLECTION_FRAME_MS = 32/);
+  assert.match(source, /MAX_REFLECTION_DEVICE_PIXELS = 1_250_000/);
+  assert.equal((source.match(/document\.addEventListener\("pointermove"/g) ?? []).length, 1);
+  assert.match(source, /connection\?\.saveData/);
+  assert.match(source, /document\.visibilityState === "visible"/);
+  assert.match(source, /document\.addEventListener\("visibilitychange"/);
+  assert.match(source, /prefers-reduced-transparency: reduce/);
+  assert.match(source, /rect\.width \* rect\.height \* dpr \* dpr <= MAX_REFLECTION_DEVICE_PIXELS/);
+  assert.match(source, /rect\.bottom > 0[\s\S]*rect\.top < window\.innerHeight/);
+  assert.match(source, /Math\.round\(Math\.max\(0, Math\.min\(100/);
+  assert.match(source, /target === current/);
+  assert.ok(source.indexOf("timestamp - lastReflectionPaint") < source.indexOf("const rect = glassSurface.getBoundingClientRect()"));
 });

@@ -11,6 +11,20 @@ import {
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
+import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { replicateLearnerProfile } from "@/lib/cloudflare/data-router";
+import {
+  cloudflareAvatarDeliveryConfigured,
+  cloudflareAvatarUrl,
+} from "@/lib/cloudflare/avatar-delivery";
+import {
+  deleteCloudflareAvatar,
+  putCloudflareAvatar,
+} from "@/lib/cloudflare/learner-data";
+import {
+  replicateAvatarDeleteDurably,
+  replicateAvatarPutDurably,
+} from "@/lib/cloudflare/replica-replay";
 
 /*
   Uploading and removing a profile picture.
@@ -131,6 +145,38 @@ async function handlePOST(req: Request) {
     return safeJsonError("That doesn't look like a JPEG, PNG or WebP image.", 415);
   }
 
+  if (cloudflareDataMode() === "cloudflare") {
+    // Check configuration before storing anything: a private object without a
+    // browser-loadable delivery grant would look like a failed save and invite
+    // repeated uploads.
+    if (!cloudflareAvatarDeliveryConfigured()) {
+      logInternal("account/avatar POST", new Error("avatar delivery key is unavailable"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    let write;
+    try {
+      write = await putCloudflareAvatar(auth.user, buffer, kind);
+    } catch {
+      write = { success: false, objectKey: null };
+    }
+    if (!write.success || !write.objectKey) {
+      logInternal("account/avatar POST", new Error("Cloudflare avatar write failed"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    let avatarUrl = null;
+    try {
+      avatarUrl = await cloudflareAvatarUrl(req.url, auth.user.id, write.objectKey);
+    } catch {
+      // The pointer is already durable; report an actionable failure without
+      // exposing signing details. A retry replaces this object safely.
+    }
+    if (!avatarUrl) {
+      logInternal("account/avatar POST", new Error("avatar delivery grant failed"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    return NextResponse.json({ avatarUrl });
+  }
+
   /*
     A random segment in the path, even though the folder is already the user's
     id. Without it the URL of a picture is derivable from an account id, and
@@ -151,13 +197,35 @@ async function handlePOST(req: Request) {
     return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
 
+  const current = await getProfile(auth.user.id);
+  if (current) {
+    const replicated = await replicateLearnerProfile(auth.user, current);
+    if (replicated === false) {
+      logInternal("account/avatar POST", new Error("Cloudflare profile replication failed"));
+    }
+  }
+  if (cloudflareDataMode() === "dual") {
+    try {
+      const mirrored = current?.updatedAt
+        ? await replicateAvatarPutDurably(auth.user, buffer, kind, current.updatedAt)
+        : false;
+      if (!mirrored) {
+        logInternal("account/avatar POST", new Error("Cloudflare avatar replica write failed"));
+      }
+    } catch (error) {
+      // Supabase has already committed. Keep that authoritative success while
+      // making the missed R2/D1 copy visible to operations.
+      logInternal("account/avatar POST Cloudflare replica", error);
+    }
+  }
+
   /*
     The old file goes only after the new one is stored and pointed at. The
     other order risks deleting a picture and then failing to replace it, which
     loses something the learner cannot get back from us.
   */
   if (previous?.avatarPath && previous.avatarPath !== path) {
-    void deleteAvatar(previous.avatarPath);
+    await deleteAvatar(previous.avatarPath);
   }
 
   return NextResponse.json({ avatarUrl: await signedAvatarUrl(path) });
@@ -168,12 +236,42 @@ async function handleDELETE(req: Request) {
   if (auth.error === "off") return NextResponse.json({ error: "Not found." }, { status: 404 });
   if (auth.error === "anon") return safeJsonError(MESSAGES.signInRequired, 401);
 
+  if (cloudflareDataMode() === "cloudflare") {
+    let removed = false;
+    try {
+      removed = await deleteCloudflareAvatar(auth.user);
+    } catch {
+      removed = false;
+    }
+    if (!removed) {
+      logInternal("account/avatar DELETE", new Error("Cloudflare avatar delete failed"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    return NextResponse.json({ avatarUrl: null });
+  }
+
   const profile = await getProfile(auth.user.id);
   if (!(await updateProfile(auth.user.id, { avatarPath: null }))) {
     logInternal("account/avatar DELETE", new Error("profile not cleared"));
     return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
-  if (profile?.avatarPath) void deleteAvatar(profile.avatarPath);
+  const current = await getProfile(auth.user.id);
+  if (current) {
+    const replicated = await replicateLearnerProfile(auth.user, current);
+    if (replicated === false) {
+      logInternal("account/avatar DELETE", new Error("Cloudflare profile replication failed"));
+    }
+  }
+  if (cloudflareDataMode() === "dual") {
+    try {
+      if (!current?.updatedAt || !(await replicateAvatarDeleteDurably(auth.user, current.updatedAt))) {
+        logInternal("account/avatar DELETE", new Error("Cloudflare avatar replica delete failed"));
+      }
+    } catch (error) {
+      logInternal("account/avatar DELETE Cloudflare replica", error);
+    }
+  }
+  if (profile?.avatarPath) await deleteAvatar(profile.avatarPath);
 
   return NextResponse.json({ avatarUrl: null });
 }

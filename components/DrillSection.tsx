@@ -6,6 +6,7 @@ import ExplainText from "@/components/ExplainText";
 import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
 import NewBadge from "@/components/NewBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { drillNeedsNewBadge } from "@/lib/completion-badges";
 import {
   drillLimit,
@@ -89,7 +90,7 @@ export default function DrillSection({
           <ul className="mt-3 space-y-1.5">
             {topic.points.map((point, i) => (
               <li key={i} className="flex gap-2 text-sm leading-6 text-slate-700">
-                <span aria-hidden className="mt-[3px] shrink-0 text-amber-500">
+                <span aria-hidden className="mt-[3px] shrink-0 text-indigo-500">
                   →
                 </span>
                 <ExplainText text={point} />
@@ -180,7 +181,8 @@ export default function DrillSection({
           */
           if (access.pending) {
             return (
-              <div key={t.id} className="card cursor-wait opacity-60" aria-busy="true">
+              <div key={t.id} className="card relative cursor-wait opacity-60" aria-busy="true">
+                <LoadingIndicator label="Checking access…" className="absolute right-3 top-3 text-sm text-indigo-600" textClassName="sr-only" />
                 {inner}
               </div>
             );

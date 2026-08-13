@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import LookupProvider from "@/components/Lookup";
 import AutoSync from "@/components/AutoSync";
 import MaintenanceGate from "@/components/MaintenanceGate";
@@ -7,6 +8,8 @@ import AppMain from "@/components/AppMain";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import PointerAttraction from "@/components/PointerAttraction";
+import AccountProfileProvider from "@/components/account/AccountProfileProvider";
+import RequiredAccountGate from "@/components/account/RequiredAccountGate";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -80,7 +83,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <Script id="bandup-theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       {/*
         `min-h-dvh` rather than `min-h-full`, and it is load-bearing rather than
@@ -114,8 +117,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           still recorded while the shop is shut.
         */}
         <MaintenanceGate closed={closed}>
+        <AccountProfileProvider>
         <>
-        <SiteHeader />
+        <SiteHeader
+          isolatedOrganizationPreview={process.env.ORGANIZATION_UI_PREVIEW === "1"}
+        />
         <PointerAttraction />
         {/*
           `data-lookupable` on <main> means any word a learner selects anywhere
@@ -124,6 +130,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         {/* Renders nothing; keeps a signed-in account's progress current. */}
         <AutoSync />
+        <RequiredAccountGate>
         <LookupProvider>
           {/*
             The shell grows with the screen instead of stopping at 1024px.
@@ -144,6 +151,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           */}
           <AppMain>{children}</AppMain>
         </LookupProvider>
+        </RequiredAccountGate>
         {/*
           The privacy policy lives here rather than in the menu: it is a page a
           learner visits once, if ever, while Apple needs it publicly reachable
@@ -151,6 +159,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         <SiteFooter />
         </>
+        </AccountProfileProvider>
         </MaintenanceGate>
       </body>
     </html>

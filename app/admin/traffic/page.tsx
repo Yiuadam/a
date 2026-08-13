@@ -1,6 +1,7 @@
 "use client";
 
 import ConsoleShell, { NotFound } from "@/components/admin/ConsoleShell";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { FullCharts } from "@/components/admin/ConsoleParts";
 import { useTier } from "@/lib/billing/useTier";
 import { useConsole } from "@/lib/admin/useConsole";
@@ -19,7 +20,7 @@ export default function TrafficScreen() {
   const { phase, stats } = useConsole();
 
   if (phase === "loading") {
-    return <p className="px-5 py-6 text-sm text-slate-500">Checking…</p>;
+    return <p className="px-5 py-6 text-sm text-slate-500"><LoadingIndicator label="Checking…" /></p>;
   }
   if (phase === "denied") {
     return <NotFound mayNeedSignIn={account.phase === "ready" && !account.signedIn} />;
@@ -28,7 +29,7 @@ export default function TrafficScreen() {
   return (
     <ConsoleShell
       title="Signups and usage"
-      lead="The last thirty days."
+      lead="The last thirty days. Blocked means BandUp stopped the request before calling an AI provider. Owner activity is excluded."
       back={{ href: "/admin", label: "Overview" }}
     >
       <FullCharts stats={stats} />

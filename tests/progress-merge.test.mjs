@@ -188,6 +188,54 @@ test("only sittings completed after a history clear survive", () => {
   assert.deepEqual(merged.mockReports.map((item) => item.id), ["mock-new"]);
 });
 
+test("a generated-test deletion tombstone stops the account restoring it", () => {
+  const generated = {
+    kind: "reading",
+    createdAt: "2026-04-01T10:00:00.000Z",
+    test: { id: "generated-reading-1", title: "Restored paper" },
+  };
+  const local = {
+    genTests: [],
+    deletedGenTests: { "generated-reading-1": "2026-04-02T10:00:00.000Z" },
+  };
+  const remote = { genTests: [generated] };
+
+  const merged = mergeProfiles(local, remote, NEW, OLD);
+
+  assert.deepEqual(merged.genTests, []);
+  assert.equal(
+    merged.deletedGenTests["generated-reading-1"],
+    "2026-04-02T10:00:00.000Z",
+  );
+});
+
+test("the newest deletion wins across devices", () => {
+  const merged = mergeProfiles(
+    { deletedGenTests: { paper: "2026-04-01T10:00:00.000Z" } },
+    { deletedGenTests: { paper: "2026-04-03T10:00:00.000Z" } },
+    NEW,
+    OLD,
+  );
+
+  assert.equal(merged.deletedGenTests.paper, "2026-04-03T10:00:00.000Z");
+});
+
+test("a generated paper created after an old deletion survives", () => {
+  const generated = {
+    kind: "listening",
+    createdAt: "2026-04-04T10:00:00.000Z",
+    test: { id: "paper", title: "Generated again" },
+  };
+  const merged = mergeProfiles(
+    { deletedGenTests: { paper: "2026-04-03T10:00:00.000Z" }, genTests: [] },
+    { genTests: [generated] },
+    NEW,
+    OLD,
+  );
+
+  assert.deepEqual(merged.genTests, [generated]);
+});
+
 /* ------------------------------------------------------------------ drills */
 
 test("drill scores from both devices are kept", () => {

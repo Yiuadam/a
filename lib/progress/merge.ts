@@ -107,6 +107,16 @@ function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
+function deletionMap(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, string> = {};
+  for (const [id, deletedAt] of Object.entries(value)) {
+    const valid = validIso(deletedAt);
+    if (id && valid) out[id] = valid;
+  }
+  return out;
+}
+
 /**
  * Combines two profiles without discarding anything countable.
  *
@@ -146,11 +156,27 @@ export function mergeProfiles(
     .sort((left, right) => right.completedAt.localeCompare(left.completedAt))
     .slice(0, 30);
 
+  const localDeletedGenTests = deletionMap(a.deletedGenTests);
+  const remoteDeletedGenTests = deletionMap(b.deletedGenTests);
+  const deletedGenTests: Record<string, string> = { ...localDeletedGenTests };
+  for (const [id, deletedAt] of Object.entries(remoteDeletedGenTests)) {
+    if (!deletedGenTests[id] || deletedAt > deletedGenTests[id]) {
+      deletedGenTests[id] = deletedAt;
+    }
+  }
+
   const genTests = unionBy(
     asArray<GeneratedTest>(a.genTests),
     asArray<GeneratedTest>(b.genTests),
-    (t) => String((t as { id?: unknown }).id ?? JSON.stringify(t)),
-  );
+    (t) => String(t?.test?.id ?? JSON.stringify(t)),
+  ).filter((generated) => {
+    const id = generated?.test?.id;
+    if (typeof id !== "string" || !id) return false;
+    const deletedAt = deletedGenTests[id];
+    /* A generated paper created after an old tombstone is a deliberate newer
+       action and survives. This also makes a repeated provider id recoverable. */
+    return !deletedAt || generated.createdAt > deletedAt;
+  });
 
   /*
     A single value cannot be merged, so the newer snapshot wins — but only if
@@ -192,6 +218,7 @@ export function mergeProfiles(
     results,
     mockReports,
     historyClearedAt,
+    deletedGenTests,
     genTests,
   };
 }

@@ -11,6 +11,7 @@ import {
   type CSSProperties,
 } from "react";
 import BandBadge from "@/components/BandBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import ExplainText from "@/components/ExplainText";
 import UpgradePanel from "@/components/billing/UpgradePanel";
 import { tierShows, useTier } from "@/lib/billing/useTier";
@@ -27,6 +28,7 @@ import {
   speechRecognitionSupported,
   speak,
   prepareNaturalExaminerVoice,
+  primeSpeechPlayback,
   subscribeSpeechPrefs,
   writeSpeechPrefs,
   type SpeechPrefs,
@@ -57,6 +59,7 @@ import type {
   SpeakingTranscriptTurn,
 } from "@/lib/types";
 import { SpeakingIcon } from "@/components/Icons";
+import AssignedPracticeNotice from "@/components/organization/AssignedPracticeNotice";
 import {
   countSpokenWords,
   decideTurnEnd,
@@ -167,6 +170,7 @@ export default function SpeakingSession({
   const [voiceStatus, setVoiceStatus] = useState<"idle" | "loading" | "ready" | "fallback">(
     "idle",
   );
+  const [voiceProblem, setVoiceProblem] = useState(false);
   const mounted = useMounted();
 
   const usingLocal = prefs.engine === "local" && localBlock === null;
@@ -443,6 +447,14 @@ export default function SpeakingSession({
     else startRecording();
   }, [micSupported, micBlocked, usingLocal, startLocal, startRecording]);
 
+  const continueAfterQuestion = useCallback((current: Step) => {
+    if (current.part === 2) {
+      setPrepSeconds(60);
+      return;
+    }
+    openAnswerWindow();
+  }, [openAnswerWindow]);
+
   /*
     One-minute preparation countdown for Part 2. The moment it ends is the
     moment the candidate should start talking, so the last tick opens the
@@ -463,19 +475,35 @@ export default function SpeakingSession({
     async (index: number, list: Step[]) => {
       const s = list[index];
       if (!s) return;
+      setVoiceProblem(false);
       setExaminerSpeaking(true);
-      await speak(examinerQuestion(list, index), 0.95);
+      const spoken = await speak(examinerQuestion(list, index), 0.95);
       setExaminerSpeaking(false);
-      if (s.part === 2) {
-        /* The minute of preparation comes first; the window opens when it
-           runs out, in the countdown below. */
-        setPrepSeconds(60);
+      if (!spoken) {
+        setVoiceProblem(true);
+        setError("The examiner audio did not start. Tap Play question again; the written question is still here.");
         return;
       }
-      openAnswerWindow();
+      continueAfterQuestion(s);
     },
-    [openAnswerWindow],
+    [continueAfterQuestion],
   );
+
+  const repeatQuestion = useCallback(async () => {
+    if (!step || examinerSpeaking) return;
+    cancelSpeech();
+    setError(null);
+    setVoiceProblem(false);
+    setExaminerSpeaking(true);
+    const spoken = await speak(examinerQuestion(steps, stepIndex), 0.95);
+    setExaminerSpeaking(false);
+    if (!spoken) {
+      setVoiceProblem(true);
+      setError("Audio is still blocked. Check this tab's sound permission and volume, then try again.");
+      return;
+    }
+    continueAfterQuestion(step);
+  }, [continueAfterQuestion, examinerSpeaking, step, stepIndex, steps]);
 
   /** Leave the interview: silence the examiner and release the microphone. */
   const endTest = useCallback(() => {
@@ -505,6 +533,8 @@ export default function SpeakingSession({
     setPrepSeconds(0);
     setAnswer("");
     setInterim("");
+    setError(null);
+    setVoiceProblem(false);
     answerRef.current = "";
     /*
       Downloaded and loaded before the interview begins, so a failure is
@@ -512,14 +542,19 @@ export default function SpeakingSession({
       recogniser is one tap away — rather than one question into the exam.
     */
     setVoiceStatus("loading");
-    const [naturalVoice, transcriptionReady] = await Promise.all([
-      prepareNaturalExaminerVoice(),
-      usingLocal ? warmUpLocal() : Promise.resolve(true),
-    ]);
-    setVoiceStatus(naturalVoice ? "ready" : "fallback");
+    /* Keep the click's audio permission alive, then ask immediately through
+       the device voice. The larger neural voice finishes in the background
+       and takes over later questions without holding the first one hostage. */
+    primeSpeechPlayback();
+    const naturalVoice = prepareNaturalExaminerVoice().then((ready) => {
+      setVoiceStatus(ready ? "ready" : "fallback");
+      return ready;
+    });
+    const transcriptionReady = usingLocal ? await warmUpLocal() : true;
     if (!transcriptionReady) return;
     setStage("interview");
     await askCurrent(0, list);
+    void naturalVoice;
   }, [askCurrent, usingLocal, warmUpLocal]);
 
   const gradeInterview = useCallback(
@@ -585,10 +620,15 @@ export default function SpeakingSession({
          then run together, avoiding a long robotic silence. */
       const spokenPromise = stopAnswer();
       if (!finalQuestion) setStepIndex(nextIndex);
+      setVoiceProblem(false);
       setExaminerSpeaking(true);
       const promptPromise = speak(examinerFollowUp(steps, stepIndex, reason), 0.96);
-      const [spoken] = await Promise.all([spokenPromise, promptPromise]);
+      const [spoken, promptPlayed] = await Promise.all([spokenPromise, promptPromise]);
       setExaminerSpeaking(false);
+      if (!promptPlayed) {
+        setVoiceProblem(true);
+        setError("The examiner audio did not start. Tap Play question again; the written question is still here.");
+      }
 
       const updated: Turn[] = [
         ...transcript,
@@ -619,6 +659,7 @@ export default function SpeakingSession({
         await gradeInterview(updated);
         return;
       }
+      if (!promptPlayed) return;
       if (steps[nextIndex]?.part === 2) {
         setPrepSeconds(60);
       } else {
@@ -689,6 +730,7 @@ export default function SpeakingSession({
       <div className="mx-auto max-w-3xl">
         <div className="card !p-4 grid gap-4 sm:grid-cols-2">
           <div className="min-w-0">
+            {!exam && <AssignedPracticeNotice className="mb-3" />}
             <div className="flex items-center gap-2.5">
               <SpeakingIcon className="h-7 w-7 shrink-0 text-indigo-600" />
               <h1 className="text-xl font-semibold text-slate-900">Mock speaking test</h1>
@@ -726,7 +768,7 @@ export default function SpeakingSession({
               disabled={localStatus !== null || voiceStatus === "loading"}
             >
               {localStatus !== null || voiceStatus === "loading"
-                ? "Getting ready\u2026"
+                ? <LoadingIndicator label="Getting ready…" announce={false} />
                 : "Start the interview"}
             </button>
             {voiceStatus === "loading" && (
@@ -735,7 +777,7 @@ export default function SpeakingSession({
                 aria-live="polite"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-indigo-800">
-                  <span>Preparing the natural British examiner voice</span>
+                  <LoadingIndicator label="Preparing the natural British examiner voice" announce={false} />
                   <span className="text-xs text-indigo-700">about 92 MB · once only</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-indigo-100">
@@ -750,7 +792,7 @@ export default function SpeakingSession({
             {localStatus && (
               <div className="mt-3 rounded-2xl bg-indigo-50 px-4 py-3 text-left" aria-live="polite">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-indigo-800">
-                  <span>{describeStatus(localStatus)}</span>
+                  <LoadingIndicator label={describeStatus(localStatus)} announce={false} />
                   {localStatus.phase === "downloading" && (
                     <span className="text-xs text-indigo-700">once only</span>
                   )}
@@ -923,8 +965,7 @@ export default function SpeakingSession({
     return (
       <div className="mx-auto flex min-h-[55vh] max-w-xl items-center">
         <div className="card w-full space-y-3 py-12 text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
-          <p className="text-[15px] text-slate-700">The examiner is marking your interview…</p>
+          <p className="text-[15px] text-slate-700"><LoadingIndicator label="The examiner is marking your interview…" iconClassName="text-2xl text-indigo-600" /></p>
           <p className="text-sm text-slate-500">This usually takes under a minute.</p>
         </div>
       </div>
@@ -1068,10 +1109,42 @@ export default function SpeakingSession({
       )}
 
       <div className="card !p-4">
-        <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-          Examiner {examinerSpeaking && <span className="animate-pulse">speaking…</span>}
+        <div className="mb-1 flex items-center justify-between gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+          <span>Examiner {examinerSpeaking && <LoadingIndicator label="speaking…" announce={false} />}</span>
+          <button
+            type="button"
+            className="normal-case tracking-normal text-indigo-700 underline decoration-indigo-300 underline-offset-2 disabled:cursor-wait disabled:text-slate-400 disabled:no-underline"
+            onClick={() => void repeatQuestion()}
+            disabled={examinerSpeaking}
+          >
+            {examinerSpeaking ? <LoadingIndicator label="Playing…" announce={false} /> : "Replay question"}
+          </button>
         </div>
         <p className="text-[17px] leading-7 text-slate-900">{step?.question}</p>
+
+        {voiceProblem && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => void repeatQuestion()}
+              disabled={examinerSpeaking}
+            >
+              {examinerSpeaking ? <LoadingIndicator label="Playing…" announce={false} /> : "Play question again"}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                setVoiceProblem(false);
+                setError(null);
+                if (step) continueAfterQuestion(step);
+              }}
+            >
+              Use written question
+            </button>
+          </div>
+        )}
 
         {step?.cueCard && (
           <div className="mt-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -1088,7 +1161,7 @@ export default function SpeakingSession({
         )}
 
         {preparing && (
-          <div className="mt-2.5 flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          <div className="mt-2.5 flex items-center justify-between rounded-2xl bg-indigo-50 px-4 py-2 text-sm text-indigo-800">
             <span>Preparation time — make notes, don&apos;t speak yet.</span>
             <span className="font-mono text-base font-semibold">{prepSeconds}s</span>
           </div>
@@ -1116,7 +1189,7 @@ export default function SpeakingSession({
                 : preparing
                   ? "Make notes \u2014 you will start speaking when the minute is up"
                   : transcribing
-                    ? "Working out what you said\u2026"
+                    ? <LoadingIndicator label="Working out what you said…" />
                     : recording
                       ? `Answering \u2014 ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}${
                           step?.part === 2 ? " (aim for 1\u20132 minutes)" : ""
@@ -1134,7 +1207,7 @@ export default function SpeakingSession({
             aria-live="polite"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-indigo-800">
-              <span>{describeStatus(localStatus)}</span>
+              <LoadingIndicator label={describeStatus(localStatus)} announce={false} />
               {localStatus.phase === "downloading" && (
                 <span className="text-xs text-indigo-700">once only</span>
               )}
@@ -1177,7 +1250,7 @@ export default function SpeakingSession({
           disabled={examinerSpeaking || transcribing}
         >
           {transcribing
-            ? "Transcribing…"
+            ? <LoadingIndicator label="Transcribing…" announce={false} />
             : stepIndex + 1 >= totalSteps
               ? "Finish and get my band score"
               : "Move on now"}

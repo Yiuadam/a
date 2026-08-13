@@ -13,6 +13,7 @@
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare deploy",
+    "migration:production": "bash scripts/run-production-cloudflare-migration.sh",
     "test": "node --test 'tests/*.test.mjs'"
   },
   "dependencies": {

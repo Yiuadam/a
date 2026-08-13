@@ -1,6 +1,7 @@
 "use client";
 
 import StatCard from "@/components/admin/StatCard";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import AdminOverviewCharts, {
   type AdminOverviewChartOption,
 } from "@/components/admin/AdminOverviewCharts";
@@ -62,7 +63,7 @@ export default function AdminPage() {
   const { phase: financePhase, finance } = useFinance();
 
   if (phase === "loading") {
-    return <p className="px-5 py-6 text-sm text-slate-500">Checking…</p>;
+    return <p className="px-5 py-6 text-sm text-slate-500"><LoadingIndicator label="Checking…" /></p>;
   }
 
   if (phase === "denied" || !state) {
@@ -115,8 +116,8 @@ export default function AdminPage() {
     },
     {
       id: "usage",
-      label: "AI requests",
-      description: "Daily served and refused requests.",
+      label: "Learner AI request attempts",
+      description: "Learner requests allowed through or blocked before AI; owner activity is excluded.",
       content:
         stats?.usage && stats.usage.length > 0 ? (
           <AdminTrendChart kind="usage" rows={stats.usage} days={stats.days} compact />
@@ -190,6 +191,7 @@ export default function AdminPage() {
               ? formatExactMoney(receivedMoney)
               : undefined
           : undefined,
+    valueLoading: n.href === "/admin/site" && state.closed !== state.closedByDeploy,
     tone:
       (n.href === "/admin/site" && (state.closed || state.closedByDeploy)) ||
       (n.href === "/admin/config" && failing > 0)
@@ -209,9 +211,9 @@ export default function AdminPage() {
           icon={<Dot />}
         />
         <StatCard
-          label="Paying subscribers"
+          label="Active Stripe subscriptions"
           value={stats?.billing ? stats.billing.active.toLocaleString() : "—"}
-          hint={stats?.billing ? "Active subscriptions, from Stripe" : undefined}
+          hint={stats?.billing ? "Active subscription objects, from Stripe" : undefined}
           unavailable={billingUnavailable}
           icon={<Dot />}
         />

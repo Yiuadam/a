@@ -27,6 +27,9 @@ register("./alias-resolve.mjs", import.meta.url);
 const { RESERVED_USERNAMES, claimable, isReservedUsername, normaliseUsername } = await import(
   pathToFileURL(join(process.cwd(), "lib", "auth", "usernames.ts")).href
 );
+const { generateUsername } = await import(
+  pathToFileURL(join(process.cwd(), "lib", "auth", "generated-username.ts")).href
+);
 
 test("a username is lower-cased and trimmed to one canonical form", () => {
   for (const typed of ["Adam", "adam", "  ADAM  ", "aDaM"]) {
@@ -93,4 +96,16 @@ test("the migration enforces the same shape, and enforces uniqueness", () => {
   const shape = /\^\[a-z0-9\]\[a-z0-9\._-\]\{2,29\}\$/g;
   assert.ok((sql.match(shape) ?? []).length >= 2, "the CHECK and the function must share the shape");
   assert.doesNotMatch(sql, /grant execute[^;]*to (anon|authenticated)/i, "no client may call these");
+});
+
+test("generated usernames are friendly, legal and repeatable without personal data", () => {
+  const values = [0, 0, 0, 1, 1, 1];
+  const random = () => values.shift() ?? 2;
+  const first = generateUsername(null, random);
+  const second = generateUsername(first, random);
+  assert.equal(claimable(first, null).ok, true);
+  assert.equal(claimable(second, null).ok, true);
+  assert.notEqual(second, first);
+  assert.match(first, /^[a-z]+-[a-z]+-[0-9]{3}$/);
+  assert.doesNotMatch(first, /@|example|user[_-]?id/i);
 });

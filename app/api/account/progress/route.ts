@@ -1,14 +1,30 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { accountsEnabled } from "@/lib/auth/env";
 import {
   supabaseConfigured,
-  getProgressSnapshots,
-  putProgressSnapshot,
   isProgressKey,
+  organizationHistoryClearPolicy,
 } from "@/lib/auth/supabase";
+import { organizationDataMode } from "@/lib/cloudflare/bindings";
+import { cloudflareHistoryClearAllowed } from "@/lib/cloudflare/organizations";
+import {
+  getLearnerProgressSnapshots,
+  compareAndSwapLearnerProgressSnapshots,
+} from "@/lib/cloudflare/data-router";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
+import {
+  organizationAttempts,
+  organizationHistoryClearWatermark,
+  syncOrganizationAttempts,
+} from "@/lib/organizations/server";
+import {
+  drainCloudflareOrganizationAttemptOutbox,
+  enqueueCloudflareOrganizationAttemptSync,
+} from "@/lib/cloudflare/organization-attempt-outbox";
+import { reconcileOrganizationAttemptObjects } from "@/lib/cloudflare/organization-attempt-objects";
+import { mergeProgressSnapshotPayload } from "@/lib/progress/server-snapshots";
 
 /*
   Reading and writing a signed-in learner's synced progress.
@@ -20,12 +36,11 @@ import { withCors } from "@/lib/http/cors";
   nothing to read and nowhere to write, and pretending otherwise would mean
   inventing an identity for someone who has not got one.
 
-  And the merge happens on the client, not here. That looks like the wrong
-  place for it — the server is the trustworthy party — but the client is the
-  only party that can see the browser's localStorage, and the merge is between
-  that and the account. What the server does is store what it is given, which
-  is why lib/progress/sync.ts must read before it writes and never the other
-  way round.
+  The client performs the first merge because only it can see this browser's
+  storage. The server performs the merge again against the latest committed
+  account rows and uses compare-and-swap. That second merge closes the window
+  where two devices both read the same old account and then overwrite each
+  other in arrival order.
 */
 
 export const dynamic = "force-dynamic";
@@ -34,6 +49,44 @@ export const dynamic = "force-dynamic";
    Two megabytes holds the complete 100-result archive while still putting a
    firm ceiling on the only endpoint that accepts arbitrary account JSON. */
 const MAX_BYTES = 2 * 1024 * 1024;
+const MAX_COMMIT_ATTEMPTS = 4;
+
+interface SubmittedProgressSnapshot {
+  storeKey: string;
+  payload: unknown;
+  clientUpdatedAt: string | null;
+}
+
+function submittedProgressSnapshots(value: unknown): SubmittedProgressSnapshot[] | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 3) return null;
+  const parsed: SubmittedProgressSnapshot[] = [];
+  const keys = new Set<string>();
+  for (const entry of value) {
+    const row = (entry ?? {}) as {
+      storeKey?: unknown;
+      payload?: unknown;
+      clientUpdatedAt?: unknown;
+    };
+    if (!isProgressKey(row.storeKey) || row.payload === undefined || keys.has(row.storeKey)) {
+      return null;
+    }
+    let clientUpdatedAt: string | null = null;
+    if (row.clientUpdatedAt !== undefined && row.clientUpdatedAt !== null) {
+      if (typeof row.clientUpdatedAt !== "string"
+        || !Number.isFinite(Date.parse(row.clientUpdatedAt))) {
+        return null;
+      }
+      clientUpdatedAt = new Date(row.clientUpdatedAt).toISOString();
+    }
+    keys.add(row.storeKey);
+    parsed.push({
+      storeKey: row.storeKey,
+      payload: row.payload,
+      clientUpdatedAt,
+    });
+  }
+  return parsed;
+}
 
 async function requireUser(req: Request) {
   if (!accountsEnabled() || !supabaseConfigured()) return { error: "off" as const };
@@ -47,10 +100,35 @@ async function handleGET(req: Request) {
   if (auth.error === "off") return NextResponse.json({ error: "Not found." }, { status: 404 });
   if (auth.error === "anon") return safeJsonError(MESSAGES.signInRequired, 401);
 
-  const rows = await getProgressSnapshots(auth.user.id);
+  const rows = await getLearnerProgressSnapshots(auth.user);
   if (rows === null) {
     logInternal("account/progress GET", new Error("snapshot read failed"));
     return safeJsonError(MESSAGES.accountUnavailable, 503);
+  }
+
+  if (organizationDataMode() !== "supabase") {
+    after(async () => {
+      // The primary snapshot is the durable repair source. Re-enqueue it on
+      // every signed-in read so a D1 outage during the original PUT heals even
+      // when the learner only comes back to review their work.
+      const profile = rows.find((row) => row.storeKey === "ielts-prep-v1");
+      const attempts = organizationAttempts(
+        (profile?.payload as { results?: unknown } | undefined)?.results,
+      );
+      const historyClearedAt = organizationHistoryClearWatermark(profile?.payload);
+      if (attempts.length > 0 || historyClearedAt !== null) {
+        await enqueueCloudflareOrganizationAttemptSync(
+          auth.user,
+          attempts,
+          `progress-read-repair:${auth.user.id}:${crypto.randomUUID()}`,
+          historyClearedAt,
+        ).catch((error) => logInternal("account/progress organization read repair", error));
+      }
+      await drainCloudflareOrganizationAttemptOutbox({ userId: auth.user.id, limit: 2 })
+        .catch((error) => logInternal("account/progress organization read drain", error));
+      await reconcileOrganizationAttemptObjects(undefined, { limit: 8 })
+        .catch((error) => logInternal("account/progress organization read cleanup", error));
+    });
   }
 
   return NextResponse.json({
@@ -70,8 +148,9 @@ async function handlePUT(req: Request) {
   const raw = await req.text();
   /*
     A cap, because this is the one route a client can post arbitrary JSON to.
-    Half a megabyte is far more than three localStorage keys will ever hold and
-    far less than enough to be worth using as storage for something else.
+    Two megabytes holds all three browser progress keys, including saved
+    reviews, while remaining far less than enough to be useful as unrelated
+    storage.
   */
   if (raw.length > MAX_BYTES) {
     return safeJsonError("That's more progress than we can store. Please contact support.", 413);
@@ -84,28 +163,230 @@ async function handlePUT(req: Request) {
     return safeJsonError(MESSAGES.accountUnavailable, 400);
   }
 
-  const snapshots = (body as { snapshots?: unknown })?.snapshots;
-  if (!Array.isArray(snapshots) || snapshots.length === 0) {
+  const submittedSnapshots = submittedProgressSnapshots(
+    (body as { snapshots?: unknown })?.snapshots,
+  );
+  if (!submittedSnapshots) {
     return safeJsonError(MESSAGES.accountUnavailable, 400);
   }
 
-  const stamp = new Date().toISOString();
-  let written = 0;
+  const receivedAt = new Date().toISOString();
+  const clearPolicy = organizationDataMode() === "cloudflare"
+    ? await cloudflareHistoryClearAllowed(auth.user)
+        .then((allowed) => allowed ? "allowed" as const : "restricted" as const)
+        .catch(() => "unavailable" as const)
+    : await organizationHistoryClearPolicy(auth.user.id);
+  if (clearPolicy === "unavailable") {
+    return safeJsonError("History permissions could not be checked. Nothing was changed.", 503);
+  }
+  const restrictedHistory = clearPolicy === "restricted";
+  let acceptedSnapshots: {
+    storeKey: string;
+    payload: unknown;
+    clientUpdatedAt: string;
+  }[] | null = null;
+  let stamp = receivedAt;
 
-  for (const entry of snapshots) {
-    const { storeKey, payload } = (entry ?? {}) as { storeKey?: unknown; payload?: unknown };
-    // An unknown key is skipped rather than failing the request: one bad entry
-    // must not cost the learner the other two.
-    if (!isProgressKey(storeKey) || payload === undefined) continue;
-    if (await putProgressSnapshot(auth.user.id, storeKey, payload, stamp)) written += 1;
+  for (let attempt = 0; attempt < MAX_COMMIT_ATTEMPTS; attempt += 1) {
+    const existing = await getLearnerProgressSnapshots(auth.user);
+    if (existing === null) {
+      logInternal("account/progress PUT", new Error("snapshot read failed before atomic write"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    const existingByKey = new Map(existing.map((row) => [row.storeKey, row]));
+    const expected = submittedSnapshots.map((entry) => {
+      const previous = existingByKey.get(entry.storeKey);
+      return {
+        storeKey: entry.storeKey,
+        exists: previous !== undefined,
+        payload: previous?.payload ?? null,
+        clientUpdatedAt: previous?.clientUpdatedAt ?? null,
+      };
+    });
+    const merged = submittedSnapshots.map((entry) => {
+      const previous = existingByKey.get(entry.storeKey);
+      const submittedAt = entry.clientUpdatedAt
+        ? Date.parse(entry.clientUpdatedAt)
+        : Date.parse(receivedAt);
+      const storedAt = previous?.clientUpdatedAt
+        ? Date.parse(previous.clientUpdatedAt)
+        : null;
+      return {
+        storeKey: entry.storeKey,
+        payload: mergeProgressSnapshotPayload(
+          entry.storeKey,
+          entry.payload,
+          previous?.payload,
+          submittedAt,
+          storedAt,
+          restrictedHistory,
+        ),
+      };
+    });
+    const write = await compareAndSwapLearnerProgressSnapshots(
+      auth.user,
+      expected,
+      merged,
+    );
+    if (write.status === "conflict") continue;
+    if (write.status === "unavailable") {
+      logInternal("account/progress PUT", new Error("atomic snapshot write failed"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    if (write.cloudflareReplica === false) {
+      logInternal(
+        "account/progress Cloudflare replica",
+        new Error("Cloudflare progress batch replication failed"),
+      );
+    }
+    stamp = write.at;
+    acceptedSnapshots = merged.map((entry) => ({
+      ...entry,
+      clientUpdatedAt: write.at,
+    }));
+    break;
   }
 
-  if (written === 0) {
-    logInternal("account/progress PUT", new Error("no snapshot written"));
+  if (!acceptedSnapshots) {
+    logInternal("account/progress PUT", new Error("progress remained busy after atomic retries"));
     return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
 
-  return NextResponse.json({ written, at: stamp });
+  const written = acceptedSnapshots.length;
+
+  /*
+    The learner snapshot is the primary write and remains completely usable if
+    the organization ledger is unavailable. Once that write has succeeded,
+    copy only normalized completed attempts into the durable ledger after the
+    response. This makes organization reporting additive rather than a new
+    failure mode for ordinary progress sync.
+
+    The database RPC is idempotent and owns the transaction/permissions. A
+    retry can therefore repeat this whole batch without duplicating a sitting.
+  */
+  let profileEntry = acceptedSnapshots.find(
+    (entry) => (entry as { storeKey?: unknown })?.storeKey === "ielts-prep-v1",
+  ) as { payload?: { results?: unknown } } | undefined;
+  let organizationSourceReadFailed = false;
+  if (!profileEntry) {
+    // Re-read the durable primary on every non-profile PUT. Besides handling
+    // this request, that makes any earlier best-effort organization enqueue
+    // outage self-healing the next time this account saves anything.
+    const primarySnapshots = await getLearnerProgressSnapshots(auth.user);
+    if (primarySnapshots === null) {
+      organizationSourceReadFailed = true;
+      logInternal(
+        "account/progress organization source read",
+        new Error("primary progress could not be read for organization repair"),
+      );
+    } else {
+      profileEntry = primarySnapshots.find((entry) => entry.storeKey === "ielts-prep-v1") as
+        | { payload?: { results?: unknown } }
+        | undefined;
+    }
+  }
+  const attempts = organizationAttempts(profileEntry?.payload?.results);
+  const historyClearedAt = organizationHistoryClearWatermark(profileEntry?.payload);
+  let organizationSync: "not-needed" | "queued" | "retry-scheduled" =
+    organizationSourceReadFailed ? "retry-scheduled" : "not-needed";
+  if (attempts.length > 0 || historyClearedAt !== null) {
+    const idempotencyKey = `progress:${auth.user.id}:${crypto.randomUUID()}`;
+    let queued = organizationDataMode() === "supabase";
+    if (organizationDataMode() !== "supabase") {
+      try {
+        await enqueueCloudflareOrganizationAttemptSync(
+          auth.user,
+          attempts,
+          idempotencyKey,
+          historyClearedAt,
+        );
+        queued = true;
+        organizationSync = "queued";
+      } catch (error) {
+        organizationSync = "retry-scheduled";
+        logInternal("account/progress organization outbox", error);
+      }
+    }
+    after(async () => {
+      const copied = await syncOrganizationAttempts(
+        auth.user,
+        attempts,
+        idempotencyKey,
+        historyClearedAt,
+      );
+      if (!copied) {
+        logInternal(
+          "account/progress organization attempt copy",
+          new Error("organization attempt sync failed after primary snapshot write"),
+        );
+      }
+      // A true cross-provider transaction is impossible while Supabase is the
+      // learner primary. If both the immediate queue write and direct copy
+      // missed, re-read the accepted primary and make one more idempotent
+      // attempt. A later PUT repeats this repair again if the outage persists.
+      if (!copied && !queued) {
+        const latest = await getLearnerProgressSnapshots(auth.user).catch(() => null);
+        const latestProfile = latest?.find((entry) => entry.storeKey === "ielts-prep-v1");
+        const retryAttempts = organizationAttempts(
+          (latestProfile?.payload as { results?: unknown } | undefined)?.results,
+        );
+        const retryWatermark = organizationHistoryClearWatermark(latestProfile?.payload);
+        if (retryAttempts.length > 0 || retryWatermark !== null) {
+          const retryKey = `progress-repair:${auth.user.id}:${crypto.randomUUID()}`;
+          await enqueueCloudflareOrganizationAttemptSync(
+            auth.user,
+            retryAttempts,
+            retryKey,
+            retryWatermark,
+          ).catch((error) => {
+            logInternal("account/progress organization outbox repair", error);
+          });
+        }
+      }
+      if (organizationDataMode() !== "supabase") {
+        await drainCloudflareOrganizationAttemptOutbox({ userId: auth.user.id, limit: 2 })
+          .catch((error) => logInternal("account/progress organization outbox drain", error));
+        await reconcileOrganizationAttemptObjects(undefined, { limit: 8 })
+          .catch((error) => logInternal("account/progress organization object cleanup", error));
+      }
+    });
+  } else if (organizationSourceReadFailed) {
+    // The source read itself can be transient even though the submitted
+    // snapshot was accepted. Retry in the response lifecycle, then rely on
+    // the same read-through repair on the next PUT if the provider stays down.
+    after(async () => {
+      const latest = await getLearnerProgressSnapshots(auth.user).catch(() => null);
+      const latestProfile = latest?.find((entry) => entry.storeKey === "ielts-prep-v1");
+      const retryAttempts = organizationAttempts(
+        (latestProfile?.payload as { results?: unknown } | undefined)?.results,
+      );
+      const retryWatermark = organizationHistoryClearWatermark(latestProfile?.payload);
+      if (retryAttempts.length === 0 && retryWatermark === null) return;
+      const retryKey = `progress-repair:${auth.user.id}:${crypto.randomUUID()}`;
+      if (organizationDataMode() !== "supabase") {
+        await enqueueCloudflareOrganizationAttemptSync(
+          auth.user,
+          retryAttempts,
+          retryKey,
+          retryWatermark,
+        ).catch((error) => logInternal("account/progress organization source repair", error));
+      }
+      await syncOrganizationAttempts(
+        auth.user,
+        retryAttempts,
+        retryKey,
+        retryWatermark,
+      ).catch((error) => logInternal("account/progress organization source copy", error));
+    });
+  }
+
+  return NextResponse.json({
+    written,
+    at: stamp,
+    snapshots: acceptedSnapshots,
+    historyProtected: restrictedHistory,
+    organizationSync,
+  });
 }
 
 /*

@@ -35,6 +35,13 @@ interface DayRow {
   denied?: number;
 }
 
+interface UsageBreakdownRow {
+  route: string;
+  decision: "allowed" | "blocked_quota" | "blocked_rate";
+  caller: "signed_in" | "anonymous";
+  count: number;
+}
+
 async function safe<T>(what: string, run: () => Promise<T>): Promise<T | null> {
   try {
     return await run();
@@ -57,11 +64,26 @@ async function handleGET(req: Request) {
     In parallel, because they are independent and the slowest of them decides
     how long the owner stares at a spinner. Stripe is usually the slow one.
   */
-  const [users, signups, usage, tiers, billing] = await Promise.all([
+  const [users, signups, usage, usageBreakdown, tiers, billing] = await Promise.all([
     safe("users", () => rpc<number>("admin_user_count", {})),
     safe("signups", () => rpc<DayRow[]>("admin_signups_daily", { p_days: DAYS })),
-    safe("usage", () => rpc<DayRow[]>("admin_usage_daily", { p_days: DAYS })),
-    safe("tiers", () => rpc<{ tier: string; count: number }[]>("admin_tier_counts", {})),
+    safe("usage", () =>
+      rpc<DayRow[]>("admin_usage_daily", {
+        p_days: DAYS,
+        p_admin_user_id: user.id,
+      }),
+    ),
+    safe("usage-breakdown", () =>
+      rpc<UsageBreakdownRow[]>("admin_usage_breakdown", {
+        p_days: DAYS,
+        p_admin_user_id: user.id,
+      }),
+    ),
+    safe("tiers", () =>
+      rpc<{ tier: string; count: number }[]>("admin_tier_counts", {
+        p_admin_user_id: user.id,
+      }),
+    ),
     stripeConfigured() ? safe("billing", () => billingSnapshot()) : Promise.resolve(null),
   ]);
 
@@ -70,6 +92,7 @@ async function handleGET(req: Request) {
     users,
     signups,
     usage,
+    usageBreakdown,
     tiers,
     billing,
     /*

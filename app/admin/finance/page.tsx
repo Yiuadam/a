@@ -1,6 +1,7 @@
 "use client";
 
 import ConsoleShell, { NotFound } from "@/components/admin/ConsoleShell";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import FinanceTrendChart from "@/components/admin/FinanceTrendChart";
 import { exactMoneyMajor, formatExactMoney } from "@/lib/admin/finance-format";
 import type {
@@ -21,7 +22,7 @@ export default function FinancePage() {
   const account = useTier();
   const { phase, finance } = useFinance();
 
-  if (phase === "loading") return <p className="px-5 py-6 text-sm text-slate-500">Reading money and AI cost data…</p>;
+  if (phase === "loading") return <p className="px-5 py-6 text-sm text-slate-500"><LoadingIndicator label="Reading money and AI cost data…" /></p>;
   if (phase === "denied") return <NotFound mayNeedSignIn={account.phase === "ready" && !account.signedIn} />;
 
   return (
@@ -61,7 +62,7 @@ function FinanceReport({ finance }: { finance: FinanceData }) {
 
   return (
     <div className="space-y-3">
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-surface p-3">
+      <section className="card flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-surface p-3">
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Time range</h2>
           <p className="mt-0.5 text-xs text-slate-500" aria-live="polite">{rangeDescription}</p>
@@ -69,7 +70,7 @@ function FinanceReport({ finance }: { finance: FinanceData }) {
         <div
           role="group"
           aria-label="Financial report time range"
-          className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1"
+          className="liquid-glass inline-flex rounded-full border border-slate-200 bg-slate-100 p-1"
         >
           <RangeButton active={range === "lifetime"} onClick={() => setRange("lifetime")}>Lifetime</RangeButton>
           <RangeButton active={range === "period"} onClick={() => setRange("period")}>Last {finance.period.days} days</RangeButton>
@@ -82,7 +83,7 @@ function FinanceReport({ finance }: { finance: FinanceData }) {
           fx={hkdEstimate.fx}
         />
       ) : (
-        <section className="rounded-2xl border border-slate-200 bg-surface p-3.5">
+        <section className="card rounded-2xl border border-slate-200 bg-surface p-3.5">
           <h2 className="text-sm font-semibold text-slate-900">Estimated in HKD</h2>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             {hkdUnavailableMessage(finance)}
@@ -97,7 +98,7 @@ function FinanceReport({ finance }: { finance: FinanceData }) {
           <h2 id="exact-currencies-heading" className="text-sm font-semibold text-slate-900">Original currencies</h2>
           <p className="mt-0.5 text-xs text-slate-500">Amounts stay in the currencies reported or recorded.</p>
         </div>
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 xl:grid-cols-5">
           <MoneyCard label="Customer paid" values={gross} hint="Completed payments before refunds and fees." />
           <MoneyCard label="Stripe fees" values={fees} hint="Processing fees reported by Stripe." />
           <MoneyCard label="You received" values={received} hint="After Stripe fees, refunds and disputes." />
@@ -161,7 +162,7 @@ function FinanceReport({ finance }: { finance: FinanceData }) {
         </section>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-surface p-3.5">
+      <section className="card rounded-2xl border border-slate-200 bg-surface p-3.5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-slate-900">Paid to your bank</h2>
@@ -200,7 +201,7 @@ function FinanceReport({ finance }: { finance: FinanceData }) {
 
 function MoneyCard({ label, values, hint }: { label: string; values: ExactMoney[]; hint: string }) {
   return (
-    <section className="min-w-0 rounded-2xl border border-slate-200 bg-surface p-3.5">
+    <section className="card min-w-0 rounded-2xl border border-slate-200 bg-surface p-3.5">
       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
       <MoneyValues label={label} values={values} />
       <p className="mt-1 text-[11px] leading-4 text-slate-500">{hint}</p>
@@ -218,7 +219,7 @@ function HkdEstimate({ totals, fx }: { totals: HkdFinanceTotals; fx: HkdFxSnapsh
   ] as const;
 
   return (
-    <section aria-labelledby="hkd-estimate-heading" className="rounded-2xl border border-slate-200 bg-surface p-3.5">
+    <section aria-labelledby="hkd-estimate-heading" className="card rounded-2xl border border-slate-200 bg-surface p-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 id="hkd-estimate-heading" className="text-sm font-semibold text-slate-900">Estimated in HKD</h2>
@@ -228,13 +229,13 @@ function HkdEstimate({ totals, fx }: { totals: HkdFinanceTotals; fx: HkdFxSnapsh
           href={fx.sourceUrl}
           target="_blank"
           rel="noreferrer"
-          className="text-xs text-slate-500 underline underline-offset-4 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+          className="text-xs text-slate-500 underline underline-offset-4 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
         >
           {fx.source}, as of {date(fx.asOf)}
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-200 pt-3 xl:grid-cols-5">
+      <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-3 border-t border-slate-200 pt-3 xs:grid-cols-2 xl:grid-cols-5">
         {values.map(([label, value]) => (
           <div key={label} className="min-w-0">
             <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</dt>
@@ -256,7 +257,7 @@ function AiCostCoverage({ cost }: { cost: AnthropicCostSnapshot }) {
       : "Earlier costs are excluded.";
 
   return (
-    <p className="rounded-xl border border-slate-200 bg-surface px-3 py-2 text-xs leading-5 text-slate-500">
+    <p className="liquid-glass rounded-xl border border-slate-200 bg-surface px-3 py-2 text-xs leading-5 text-slate-500">
       <span className="font-medium text-slate-700">AI cost source:</span> {aiCostSource(cost)} {coverage} Updated {date(cost.asOf)}.
     </p>
   );
@@ -306,8 +307,8 @@ function RangeButton({ active, onClick, children }: { active: boolean; onClick: 
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
-        active ? "bg-slate-900 text-slate-50 shadow-sm" : "text-slate-600 hover:bg-surface hover:text-slate-900"
+      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+        active ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-surface hover:text-indigo-700"
       }`}
     >
       {children}
@@ -329,5 +330,5 @@ function date(value: string): string {
 }
 
 function Unavailable({ text }: { text: string }) {
-  return <section className="grid min-h-36 place-items-center rounded-2xl border border-slate-200 bg-surface p-5 text-center text-sm text-slate-500">{text}</section>;
+  return <section className="card grid min-h-36 place-items-center rounded-2xl border border-slate-200 bg-surface p-5 text-center text-sm text-slate-500">{text}</section>;
 }

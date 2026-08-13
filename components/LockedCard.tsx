@@ -159,8 +159,8 @@ export default function LockedCard({
     <>
       <svg
         viewBox="0 0 24 24"
-        width="26"
-        height="26"
+        width="15"
+        height="15"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.6"
@@ -172,18 +172,18 @@ export default function LockedCard({
         <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
         <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
       </svg>
-      <span className="text-xs font-semibold text-slate-700">{line}</span>
+      <span className="whitespace-nowrap text-[11px] font-semibold text-slate-700">{line}</span>
     </>
   );
 
-  const PLATE = "flex flex-col items-center gap-1.5 rounded-2xl border border-slate-300/70 bg-surface/90 px-4 py-3 shadow-sm";
+  const PLATE = "inline-flex items-center gap-1.5 rounded-xl border border-slate-300/70 bg-surface/90 px-2.5 py-1.5 shadow-sm";
 
   /*
     Page-level locks belong in the top-right corner of the glass instead of on
     top of its content. This keeps the page visible, gives Writing and Speaking
     the same placement, and leaves the lock inside the panel at every width.
   */
-  const OVER = "pointer-events-none absolute right-5 top-5 flex items-start justify-end sm:right-6 sm:top-6";
+  const OVER = "pointer-events-none absolute right-3 top-3 flex items-start justify-end sm:right-4 sm:top-4";
 
   /*
     A page-level lock is a plain element with one link inside it; a card is one
@@ -194,7 +194,7 @@ export default function LockedCard({
   */
   if (standoff) {
     return (
-      <div className="group relative block min-w-0 rounded-2xl p-2.5 sm:p-3.5">
+      <div className="group relative block min-w-0 max-w-full overflow-hidden rounded-2xl p-2.5 sm:p-3.5">
         {dimmed}
         {tint}
         <div className={OVER}>

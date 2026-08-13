@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import ExplainText from "@/components/ExplainText";
 import ExamShell from "@/components/exam/ExamShell";
 import SplitPanes, { useIsWide } from "@/components/exam/SplitPanes";
@@ -15,6 +16,7 @@ import Chart from "@/components/Chart";
 import SkillGate from "@/components/SkillGate";
 import WritingTaskPicker from "@/components/WritingTaskPicker";
 import { tierShows, useTier } from "@/lib/billing/useTier";
+import AssignedPracticeNotice from "@/components/organization/AssignedPracticeNotice";
 
 const tasks = (writingData as WritingTasksData).tasks;
 
@@ -164,6 +166,7 @@ function WritingSession() {
 
   const source = (
     <div className="space-y-5">
+      <AssignedPracticeNotice />
       {prompt}
       {visual && <div className="border-t border-slate-200 pt-4">{visual}</div>}
     </div>
@@ -252,7 +255,7 @@ function WritingSession() {
             onClick={submit}
             disabled={grading || wordCount < 40}
           >
-            {grading ? "Marking…" : "Submit for marking"}
+            {grading ? <LoadingIndicator label="Marking…" announce={false} /> : "Submit for marking"}
           </button>
         ) : (
           <span className="text-[11px] text-slate-500">Saved on device</span>
@@ -276,7 +279,12 @@ function WritingSession() {
 */
 export default function WritingPage() {
   return (
-    <SkillGate module="writing" className="pt-3 sm:pt-4">
+    /* The page-level lock paints its own translucent window around the exam.
+       Give that outermost window the same viewport gutter as the exam shell,
+       otherwise the locked preview touches the browser edge even though the
+       writing panes inside it do not. The class only applies while the gate is
+       pending or locked; an unlocked session keeps ExamShell's own gutter. */
+    <SkillGate module="writing" className="px-3 pt-3 sm:px-4 sm:pt-4">
       <WritingSession />
     </SkillGate>
   );

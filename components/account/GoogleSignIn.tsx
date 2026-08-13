@@ -8,6 +8,8 @@ import { apiUrl } from "@/lib/api";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import { getServerTheme, getTheme, subscribeTheme } from "@/lib/theme";
 import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { consumeAuthReturnPath } from "@/lib/auth/return-path";
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -174,7 +176,7 @@ export default function GoogleSignIn() {
           expiresAt: data.expiresAt ?? null,
           email: data.email ?? null,
         });
-        router.replace("/account/");
+        router.replace(consumeAuthReturnPath("/"));
         router.refresh();
       } catch {
         setError("Couldn't reach the server. Please check your connection and try again.");
@@ -200,29 +202,29 @@ export default function GoogleSignIn() {
         onReady={() => setScriptReady(true)}
         onError={() => setError("Google sign-in could not be loaded. Please try again.")}
       />
-      <div className="google-signin-glass premade-glass relative mx-auto w-full max-w-[406px] rounded-[22px] p-[3px]">
-        <RefractiveGlassLayer radius={22} />
-        <div className="premade-glass-content relative overflow-hidden rounded-[19px]">
+      <div className="google-signin-glass premade-glass relative mx-auto w-full max-w-[406px] rounded-full p-[3px]">
+        <RefractiveGlassLayer radius={999} interactive />
+        <div className="google-signin-viewport premade-glass-content relative overflow-hidden rounded-full">
           <div
             ref={hostRef}
             className={
               busy
-                ? "google-signin-host flex min-h-10 justify-center opacity-50 pointer-events-none"
-                : "google-signin-host flex min-h-10 justify-center"
+                ? "google-signin-host flex min-h-10 w-full justify-center overflow-hidden rounded-full opacity-50 pointer-events-none"
+                : "google-signin-host flex min-h-10 w-full justify-center overflow-hidden rounded-full"
             }
             aria-label="Continue with Google"
           />
           {(!scriptReady || !configReady) && !error && (
             <div
-              className="btn-secondary absolute inset-0 min-h-10 rounded-[19px]"
+              className="btn-secondary absolute inset-0 min-h-10 rounded-full"
               aria-live="polite"
             >
-              Loading Google sign-in…
+              <LoadingIndicator label="Loading Google sign-in…" />
             </div>
           )}
         </div>
       </div>
-      {busy && <p className="mt-2 text-center text-xs text-slate-500">Signing in…</p>}
+      {busy && <p className="mt-2 text-center text-xs text-slate-500"><LoadingIndicator label="Signing in…" /></p>}
       {error && (
         <p className="mt-2 text-center text-xs leading-5 text-rose-700" role="alert">
           {error}

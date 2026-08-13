@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { useRouter } from "next/navigation";
 import { clearSession, signOutSession } from "@/lib/account";
 import ClearDeviceSection from "@/components/account/ClearDeviceSection";
@@ -48,6 +49,14 @@ export default function CloseScreen() {
     router.replace("/account");
   }
 
+  function accountDeleted() {
+    clearSession();
+    // The Auth identity is gone. Replace this protected action page instead
+    // of leaving its button mounted in a permanent "Deleting…" state.
+    router.replace("/account");
+    router.refresh();
+  }
+
   return (
     <HubScreen back="/account" backLabel="Your account" title="Sign out, or close the account">
       <div className="space-y-4">
@@ -58,7 +67,7 @@ export default function CloseScreen() {
             disabled={signingOut}
             onClick={signOut}
           >
-            {signingOut ? "Signing out…" : "Sign out"}
+            {signingOut ? <LoadingIndicator label="Signing out…" announce={false} /> : "Sign out"}
           </button>
           {signOutProblem && (
             <p
@@ -75,7 +84,7 @@ export default function CloseScreen() {
         </div>
 
         <ClearDeviceSection />
-        <DeleteAccountSection onDeleted={clearSession} />
+        <DeleteAccountSection onDeleted={accountDeleted} />
       </div>
     </HubScreen>
   );

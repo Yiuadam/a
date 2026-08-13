@@ -1,5 +1,14 @@
 import { rpc } from "@/lib/auth/supabase";
-import type { CostedRoute } from "@/lib/ai/models";
+import { COSTED_ROUTES, type CostedRoute } from "@/lib/ai/models";
+import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import {
+  type CloudflareAiCostCoverageReplica,
+  type CloudflareAiCostEventReplica,
+} from "@/lib/cloudflare/usage-cost-replica";
+import {
+  replicateAiCostCoverageDurably,
+  replicateAiCostEventDurably,
+} from "@/lib/cloudflare/replica-replay";
 
 /*
   Local Anthropic cost accounting.
@@ -57,6 +66,12 @@ export interface RecordAnthropicMessageCostInput {
   occurredAt?: Date;
 }
 
+export interface SetAiCostCoverageInput {
+  source: "provider_console" | "local_tracking";
+  startsAt: Date;
+  historicalComplete: boolean;
+}
+
 export interface AiCostAggregate {
   /** Exact decimal US cents, including any meaningful sub-cent digits. */
   costMinorUnits: string;
@@ -96,6 +111,120 @@ interface PublishedRate {
   pricingTier: CalculatedAnthropicCost["pricingTier"];
   inputPerMillionUsd: bigint;
   outputPerMillionUsd: bigint;
+}
+
+interface StoredAiCostResponse {
+  inserted?: unknown;
+  event?: unknown;
+  coverage?: unknown;
+}
+
+function record(value: unknown, field: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Supabase returned an invalid ${field}`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function nonempty(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Supabase returned an invalid ${field}`);
+  }
+  return value;
+}
+
+function timestamp(value: unknown, field: string): string {
+  const raw = nonempty(value, field);
+  if (!Number.isFinite(Date.parse(raw))) throw new Error(`Supabase returned an invalid ${field}`);
+  return raw;
+}
+
+function wholeNumber(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`Supabase returned an invalid ${field}`);
+  }
+  return value;
+}
+
+function storedCostEvent(value: unknown): CloudflareAiCostEventReplica {
+  const event = record(value, "AI cost event");
+  const id = nonempty(event.id, "AI cost event id");
+  if (!/^[1-9]\d*$/.test(id)) throw new Error("Supabase returned an invalid AI cost event id");
+  if (event.source !== "calculated_tokens") {
+    throw new Error("Supabase returned the wrong AI cost event source");
+  }
+  const route = nonempty(event.route, "AI cost route");
+  if (!(COSTED_ROUTES as readonly string[]).includes(route)) {
+    throw new Error("Supabase returned an invalid AI cost route");
+  }
+  const costUsd = nonempty(event.costUsd, "AI cost amount");
+  if (!/^\d+(?:\.\d+)?$/.test(costUsd)) {
+    throw new Error("Supabase returned an invalid AI cost amount");
+  }
+  return {
+    id,
+    source: "calculated_tokens",
+    providerRequestId: nonempty(event.providerRequestId, "provider request id"),
+    route: route as CostedRoute,
+    model: nonempty(event.model, "AI model"),
+    inputTokens: wholeNumber(event.inputTokens, "input token count"),
+    outputTokens: wholeNumber(event.outputTokens, "output token count"),
+    cacheCreationInputTokens: wholeNumber(
+      event.cacheCreationInputTokens,
+      "cache creation token count",
+    ),
+    cacheCreation5mInputTokens: wholeNumber(
+      event.cacheCreation5mInputTokens,
+      "5-minute cache creation token count",
+    ),
+    cacheCreation1hInputTokens: wholeNumber(
+      event.cacheCreation1hInputTokens,
+      "1-hour cache creation token count",
+    ),
+    cacheReadInputTokens: wholeNumber(event.cacheReadInputTokens, "cache read token count"),
+    costUsd,
+    occurredAt: timestamp(event.occurredAt, "AI cost occurrence timestamp"),
+    recordedAt: timestamp(event.recordedAt, "AI cost record timestamp"),
+  };
+}
+
+function storedCoverage(value: unknown): CloudflareAiCostCoverageReplica {
+  const coverage = record(value, "AI cost coverage");
+  if (coverage.source !== "provider_console" && coverage.source !== "local_tracking") {
+    throw new Error("Supabase returned an invalid AI cost coverage source");
+  }
+  if (typeof coverage.historicalComplete !== "boolean") {
+    throw new Error("Supabase returned an invalid AI cost coverage state");
+  }
+  return {
+    source: coverage.source,
+    startsAt: timestamp(coverage.startsAt, "AI cost coverage start"),
+    historicalComplete: coverage.historicalComplete,
+    recordedAt: timestamp(coverage.recordedAt, "AI cost coverage record timestamp"),
+  };
+}
+
+async function mirrorStoredCostResponse(response: StoredAiCostResponse): Promise<void> {
+  const event = storedCostEvent(response.event);
+  try {
+    if (!await replicateAiCostEventDurably(event)) {
+      throw new Error("D1 did not accept the AI cost event replica");
+    }
+  } catch (err) {
+    const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    console.error(`[ai-cost] Cloudflare event replica: ${detail}`);
+  }
+
+  if (response.coverage !== null && response.coverage !== undefined) {
+    try {
+      if (!await replicateAiCostCoverageDurably(storedCoverage(response.coverage))) {
+        throw new Error("D1 did not accept the AI cost coverage replica");
+      }
+    } catch (err) {
+      const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      console.error(`[ai-cost] Cloudflare coverage replica: ${detail}`);
+    }
+  }
 }
 
 function tokens(value: number | null | undefined, field: string): number {
@@ -224,7 +353,7 @@ export async function recordAnthropicMessageCost(
 
     const occurredAt = input.occurredAt ?? new Date();
     const calculated = calculateAnthropicTokenCost(input.model, input.usage, occurredAt);
-    return await rpc<boolean>("record_ai_cost_event", {
+    const args = {
       p_provider_request_id: providerRequestId,
       p_route: input.route,
       p_model: calculated.model,
@@ -236,10 +365,61 @@ export async function recordAnthropicMessageCost(
       p_cache_read_input_tokens: calculated.cacheReadInputTokens,
       p_cost_usd: calculated.costUsd,
       p_occurred_at: occurredAt.toISOString(),
-    });
+    };
+    if (cloudflareDataMode() !== "dual") {
+      return await rpc<boolean>("record_ai_cost_event", args);
+    }
+
+    const response = await rpc<StoredAiCostResponse>(
+      "record_ai_cost_event_with_identity",
+      args,
+    );
+    if (typeof response?.inserted !== "boolean") {
+      throw new Error("Supabase returned an invalid AI cost write result");
+    }
+    const event = storedCostEvent(response.event);
+    if (event.providerRequestId !== providerRequestId) {
+      throw new Error("Supabase returned a different provider request id");
+    }
+    await mirrorStoredCostResponse({ ...response, event });
+    return response.inserted;
   } catch (err) {
     const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     console.error(`[ai-cost] recordAnthropicMessageCost: ${detail}`);
+    return false;
+  }
+}
+
+/**
+ * Private operator write for the ledger's evidence window. Supabase remains
+ * authoritative in dual mode; the exact stored singleton is then mirrored.
+ */
+export async function setAiCostCoverage(input: SetAiCostCoverageInput): Promise<boolean> {
+  try {
+    if (!Number.isFinite(input.startsAt.getTime())) throw new Error("Invalid coverage timestamp");
+    const args = {
+      p_source: input.source,
+      p_starts_at: input.startsAt.toISOString(),
+      p_historical_complete: input.historicalComplete,
+    };
+    if (cloudflareDataMode() !== "dual") {
+      return await rpc<boolean>("set_ai_cost_coverage", args);
+    }
+
+    const response = await rpc<unknown>("set_ai_cost_coverage_with_identity", args);
+    const coverage = storedCoverage(response);
+    try {
+      if (!await replicateAiCostCoverageDurably(coverage)) {
+        throw new Error("D1 did not accept the AI cost coverage replica");
+      }
+    } catch (err) {
+      const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      console.error(`[ai-cost] Cloudflare coverage replica: ${detail}`);
+    }
+    return true;
+  } catch (err) {
+    const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    console.error(`[ai-cost] setAiCostCoverage: ${detail}`);
     return false;
   }
 }

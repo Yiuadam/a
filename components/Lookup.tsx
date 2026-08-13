@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { postJSON } from "@/lib/api";
 import { findTerm } from "@/lib/glossary";
 import { type Definition, cachedLookup, saveLookup } from "@/lib/lookups";
@@ -228,7 +229,7 @@ export default function LookupProvider({ children }: { children: React.ReactNode
             </div>
 
             {panel.status === "loading" && (
-              <p className="mt-4 text-sm text-slate-500">Looking it up…</p>
+              <p className="mt-4 text-sm text-slate-500"><LoadingIndicator label="Looking it up…" /></p>
             )}
 
             {panel.status === "error" && (

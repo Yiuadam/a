@@ -1,6 +1,17 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
-import { supabaseConfigured } from "@/lib/auth/supabase";
-import { rpc } from "@/lib/auth/supabase";
+import type { SessionUser } from "@/lib/auth/session";
+import {
+  getAppSettingRecord,
+  rpc,
+  supabaseConfigured,
+} from "@/lib/auth/supabase";
+import { logInternal } from "@/lib/auth/errors";
+import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import {
+  getCloudflareAppSetting,
+  putCloudflareAppSetting,
+  setCloudflareAppSetting,
+} from "@/lib/cloudflare/app-settings";
 
 const MODULE = "lib/admin/settings.ts";
 
@@ -58,6 +69,60 @@ let cached: { value: MaintenanceSetting; until: number } | null = null;
 
 const OPEN: MaintenanceSetting = { closed: false };
 
+async function readSetting(key: string): Promise<unknown> {
+  const mode = cloudflareDataMode();
+  if (mode === "cloudflare") {
+    return (await getCloudflareAppSetting(key))?.value ?? null;
+  }
+  if (!supabaseConfigured()) return null;
+
+  const record = await getAppSettingRecord(key);
+  if (mode === "dual" && record) {
+    try {
+      if (!(await putCloudflareAppSetting(record))) {
+        throw new Error("Cloudflare app setting replica was not stored");
+      }
+    } catch (error) {
+      // Supabase remains the read authority in dual mode. Report drift, but a
+      // replica outage must not change the running site's current setting.
+      logInternal(`admin/settings:${key}:cloudflare-read-repair`, error);
+    }
+  }
+  return record?.value ?? null;
+}
+
+async function writeSetting(
+  key: string,
+  value: unknown,
+  actor: SessionUser | null,
+): Promise<unknown> {
+  const mode = cloudflareDataMode();
+  if (mode === "cloudflare") {
+    return (await setCloudflareAppSetting(key, value, actor)).value;
+  }
+
+  const stored = await rpc<unknown>("set_app_setting", {
+    p_key: key,
+    p_value: value,
+    p_actor: actor?.id ?? null,
+  });
+  if (mode !== "dual") return stored;
+
+  try {
+    // Re-read the committed row so D1 receives Postgres's exact timestamp and
+    // the winning value if two owner actions raced one another.
+    const record = await getAppSettingRecord(key);
+    if (!record || !(await putCloudflareAppSetting(record, undefined, actor))) {
+      throw new Error("Cloudflare app setting replica was not stored");
+    }
+  } catch (error) {
+    // The source write already committed. Preserve that success and surface
+    // the independently repairable replica drift in server logs/readiness.
+    logInternal(`admin/settings:${key}:cloudflare-write`, error);
+  }
+  return stored;
+}
+
 function parse(value: unknown): MaintenanceSetting {
   if (!value || typeof value !== "object") return OPEN;
   const closed = (value as { closed?: unknown }).closed === true;
@@ -97,10 +162,8 @@ export async function maintenanceSetting(): Promise<MaintenanceSetting> {
   const now = Date.now();
   if (cached && cached.until > now) return cached.value;
 
-  if (!supabaseConfigured()) return OPEN;
-
   try {
-    const value = await rpc<unknown>("get_app_setting", { p_key: MAINTENANCE_KEY });
+    const value = await readSetting(MAINTENANCE_KEY);
     const setting = parse(value);
     cached = { value: setting, until: now + CACHE_MS };
     return setting;
@@ -127,10 +190,9 @@ export async function maintenanceSetting(): Promise<MaintenanceSetting> {
  */
 export async function maintenanceDispatchSetting(): Promise<MaintenanceDispatchSetting | null> {
   assertServerOnly(MODULE);
-  if (!supabaseConfigured()) return null;
 
   try {
-    const value = await rpc<unknown>("get_app_setting", { p_key: MAINTENANCE_DISPATCH_KEY });
+    const value = await readSetting(MAINTENANCE_DISPATCH_KEY);
     return parseDispatch(value);
   } catch {
     return null;
@@ -146,16 +208,12 @@ export async function maintenanceDispatchSetting(): Promise<MaintenanceDispatchS
  */
 export async function setMaintenance(
   closed: boolean,
-  actorId: string | null,
+  actor: SessionUser | null,
 ): Promise<MaintenanceSetting> {
   assertServerOnly(MODULE);
 
   const value: MaintenanceSetting = { closed, at: new Date().toISOString() };
-  const stored = await rpc<unknown>("set_app_setting", {
-    p_key: MAINTENANCE_KEY,
-    p_value: value,
-    p_actor: actorId,
-  });
+  const stored = await writeSetting(MAINTENANCE_KEY, value, actor);
 
   const setting = parse(stored);
   /* The cache is this isolate's; other isolates catch up within the window. */
@@ -166,7 +224,7 @@ export async function setMaintenance(
 /** Persist whether GitHub accepted the deploy request, for reloads/new tabs. */
 export async function recordMaintenanceDispatch(
   result: Omit<MaintenanceDispatchSetting, "attemptedAt">,
-  actorId: string | null,
+  actor: SessionUser | null,
 ): Promise<MaintenanceDispatchSetting> {
   assertServerOnly(MODULE);
 
@@ -174,11 +232,7 @@ export async function recordMaintenanceDispatch(
     ...result,
     attemptedAt: new Date().toISOString(),
   };
-  const stored = await rpc<unknown>("set_app_setting", {
-    p_key: MAINTENANCE_DISPATCH_KEY,
-    p_value: value,
-    p_actor: actorId,
-  });
+  const stored = await writeSetting(MAINTENANCE_DISPATCH_KEY, value, actor);
 
   const parsed = parseDispatch(stored);
   if (!parsed) throw new Error("The maintenance dispatch result was not stored correctly.");

@@ -14,7 +14,7 @@
     slate  = surfaces and text, lightest to darkest
     indigo = the accent
     emerald / rose = correct / incorrect
-    amber  = highlights and hints
+    amber  = warnings and caution
   In the dark theme the slate ramp is inverted, which is why `text-slate-900`
   still means "the strongest text colour" everywhere.
 
@@ -114,16 +114,17 @@
 html[data-theme="light"] {
   color-scheme: light;
 
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-600: #475569;
-  --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #0f172a;
+  /* Neutral daylight paper: white first, with grey used only for hierarchy. */
+  --color-slate-50: #ffffff;
+  --color-slate-100: #f7f7f8;
+  --color-slate-200: #e9eaec;
+  --color-slate-300: #d5d7da;
+  --color-slate-400: #70737a;
+  --color-slate-500: #60646b;
+  --color-slate-600: #53575e;
+  --color-slate-700: #3a3d43;
+  --color-slate-800: #26282d;
+  --color-slate-900: #16171a;
 
   --color-indigo-50: #eef2ff;
   --color-indigo-100: #e0e7ff;
@@ -163,13 +164,13 @@ html[data-theme="light"] {
   --color-purple-100: #f3e8ff;
   --color-purple-700: #7e22ce;
 
-  --color-surface: #f5f6f8;
+  --color-surface: #ffffff;
   --color-accent-fg: #ffffff;
-  --color-background: #e8ebef;
-  --color-foreground: #0f172a;
+  --color-background: #fafafa;
+  --color-foreground: #16171a;
 
-  --wash-one: rgba(92, 101, 121, 0.1);
-  --wash-two: rgba(112, 126, 139, 0.08);
+  --wash-one: rgba(255, 255, 255, 0);
+  --wash-two: rgba(148, 151, 158, 0.025);
 }
 
 /* ---------------------------------------------------------------- Dark --- */
@@ -258,6 +259,10 @@ body {
   --glass-specular: rgba(255, 255, 255, 0.48);
   --glass-shadow: rgba(42, 31, 24, 0.1);
   --glass-blur: 24px;
+  /* One decorative/navigation icon ink across every control. The token, not
+     each component, changes with the active colour theme. Semantic success,
+     warning and error marks intentionally keep their own status colours. */
+  --app-icon-color: var(--color-indigo-600);
   background:
     radial-gradient(58rem 38rem at 8% -8%, var(--wash-one), transparent 62%),
     radial-gradient(50rem 34rem at 92% 2%, var(--wash-two), transparent 64%),
@@ -301,10 +306,13 @@ body[data-viewport-locked] {
 }
 
 html[data-theme="light"] body {
-  --glass-fill: rgba(255, 255, 255, 0.14);
-  --glass-fill-strong: rgba(255, 255, 255, 0.23);
-  --glass-edge-dark: rgba(30, 41, 59, 0.09);
-  --glass-shadow: rgba(30, 41, 59, 0.09);
+  --glass-fill: rgba(255, 255, 255, 0.66);
+  --glass-fill-strong: rgba(255, 255, 255, 0.86);
+  --glass-edge: rgba(22, 23, 26, 0.075);
+  --glass-highlight: rgba(255, 255, 255, 0.98);
+  --glass-edge-dark: rgba(22, 23, 26, 0.055);
+  --glass-specular: rgba(255, 255, 255, 0.96);
+  --glass-shadow: rgba(22, 23, 26, 0.065);
 }
 
 html[data-theme="dark"] body {
@@ -315,6 +323,7 @@ html[data-theme="dark"] body {
   --glass-edge-dark: rgba(0, 0, 0, 0.2);
   --glass-specular: rgba(255, 255, 255, 0.18);
   --glass-shadow: rgba(0, 0, 0, 0.18);
+  --app-icon-color: var(--color-indigo-700);
   background: #111113;
   background-attachment: fixed;
 }
@@ -354,6 +363,20 @@ html[data-theme="dark"] body {
 }
 
 /*
+  Compact organization pickers sit over dense dashboard data. Keep the page's
+  colour visible, but blur it far enough that names and controls underneath
+  cannot compete with the active choice list.
+*/
+.liquid-glass.organization-picker-popover {
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(48px) saturate(76%) brightness(101%);
+  backdrop-filter: blur(48px) saturate(76%) brightness(101%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 10px 28px color-mix(in srgb, var(--glass-shadow) 72%, transparent);
+}
+
+/*
   The homepage prototype uses the refraction engine from liquid-glass-react,
   not its visual decoration. The package's two tint layers, moving highlight
   rims, text shadow and heavy drop shadow are hidden here; only its SVG
@@ -389,8 +412,34 @@ html[data-theme="dark"] .premade-glass {
 }
 
 .refractive-glass-layer > div:not(.refractive-glass-core),
-.refractive-glass-layer > span {
+.refractive-glass-layer:not([data-interactive]) > span {
   display: none !important;
+}
+
+/* The installed liquid-glass-react package computes its edge refraction from
+   the actual pixels behind the control. Only opt-in, fine-pointer surfaces
+   expose its live directional rim; touch/mobile and reduced-motion users keep
+   the cheaper CSS backdrop glass below. Safari and Firefox retain that CSS
+   fallback when SVG displacement is only partially supported. */
+.refractive-glass-layer[data-interactive] {
+  opacity: 0.94;
+}
+
+.refractive-glass-layer[data-interactive] > span {
+  display: block !important;
+  opacity: 0.42 !important;
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .refractive-glass-layer[data-interactive] > span {
+    display: none !important;
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .refractive-glass-layer {
+    display: none;
+  }
 }
 
 .refractive-glass-core {
@@ -418,6 +467,113 @@ html[data-theme="dark"] .premade-glass {
   z-index: 1;
 }
 
+.app-icon-color,
+.app-icon-control {
+  color: var(--app-icon-color);
+}
+
+.app-icon-control:hover {
+  color: var(--app-icon-color);
+}
+
+/* A floating inbox needs more optical separation than an ordinary card: its
+   labels must not visually merge with the page it overlaps. It remains
+   translucent and refractive, but the stronger blur removes readable shapes
+   from the background before the notification text is painted. */
+.notification-popover {
+  isolation: isolate;
+  overflow: hidden;
+  contain: paint;
+  clip-path: inset(0 round var(--radius-xl));
+  /* Keep one glass boundary, but give the reading surface enough density that
+     page dividers and labels underneath cannot draw a second, false line
+     through the popover. The background is still translucent; the stronger
+     blur supplies the optical depth instead of another nested window. */
+  background-color: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  background-image:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-surface) 6%, transparent),
+      transparent
+    );
+  -webkit-backdrop-filter: blur(52px) saturate(92%) brightness(102%);
+  backdrop-filter: blur(52px) saturate(92%) brightness(102%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 14px 36px color-mix(in srgb, var(--glass-shadow) 82%, transparent);
+}
+
+html[data-theme="dark"] .liquid-glass.notification-popover {
+  background-color: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  background-image:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-surface) 5%, transparent),
+      transparent
+    );
+  -webkit-backdrop-filter: blur(52px) saturate(88%) brightness(105%);
+  backdrop-filter: blur(52px) saturate(88%) brightness(105%);
+}
+
+/* Notification actions are tiny, information-dense text. General glass/accent
+   colours can become optically similar after dark-theme translucency is
+   composited, so these roles use deliberately high-contrast pairings. The
+   attention capsule stays neutral and clearly bounded, while metadata and the
+   CTA remain visibly separate from the dark card without becoming pure white. */
+html[data-theme="dark"] .notification-row-copy {
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] .notification-row-meta {
+  color: #d1d5db;
+}
+
+html[data-theme="dark"] .notification-attention {
+  border: 1px solid #e5e7eb;
+  background: #d1d5db;
+  color: #111113;
+}
+
+html[data-theme="dark"] .notification-action {
+  color: #e0e7ff;
+}
+
+/* On phones the bell is not the rightmost header control: the account and
+   theme controls follow it. A popover right-aligned to that bell therefore
+   runs off the left side of a narrow viewport. NotificationBell publishes the
+   visible viewport geometry before paint; use it only below the `sm`
+   breakpoint to keep equal safe-area-aware gutters without changing the
+   desktop anchor. */
+@media (max-width: 39.999rem) {
+  [data-notification-bell-root] > .notification-popover {
+    right: auto;
+    left: calc(var(--notification-mobile-left, 0px) + max(8px, env(safe-area-inset-left)));
+    width: calc(
+      var(--notification-mobile-width, 100vw)
+      - max(8px, env(safe-area-inset-left))
+      - max(8px, env(safe-area-inset-right))
+    );
+    max-width: none;
+  }
+}
+
+/* Fingers need a 44px target even though the visible controls are otherwise
+   as compact as the theme switcher. Touch and reduced-motion devices also use
+   an immediate selector move and skip the compositor reservation. */
+@media (hover: none), (pointer: coarse) {
+  .notification-filter-option,
+  .notification-compact-action {
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-filter-selector {
+    transition: none;
+    will-change: auto;
+  }
+}
+
 /*
   Google owns the sign-in button inside its cross-origin iframe, so its fill,
   logo and type remain untouched. BandUp owns the surrounding material: the
@@ -439,10 +595,33 @@ html[data-theme="dark"] .premade-glass {
   background: color-mix(in srgb, var(--glass-fill-strong) 28%, transparent);
 }
 
+.google-signin-viewport {
+  width: 100%;
+  min-width: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  clip-path: inset(0 round 999px);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
 .google-signin-host > div,
 .google-signin-host iframe {
-  max-width: 100% !important;
-  border-radius: 19px !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: 40px !important;
+  border-radius: 999px !important;
+}
+
+.google-signin-host,
+.google-signin-host > div,
+.google-signin-host iframe {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden !important;
+  clip-path: inset(0.5px round 999px);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 html[data-theme="dark"] .google-signin-glass {
@@ -450,11 +629,48 @@ html[data-theme="dark"] .google-signin-glass {
 }
 
 .nav-paper {
+  isolation: isolate;
+  overflow-x: hidden;
+  overflow-y: auto;
   background:
+    linear-gradient(color-mix(in srgb, var(--color-background) 72%, transparent), color-mix(in srgb, var(--color-background) 72%, transparent)),
     radial-gradient(50rem 32rem at 14% 0%, var(--wash-one), transparent 62%),
-    radial-gradient(44rem 30rem at 88% 8%, var(--wash-two), transparent 64%),
-    var(--color-background);
+    radial-gradient(44rem 30rem at 88% 8%, var(--wash-two), transparent 64%);
+  -webkit-backdrop-filter: blur(42px) saturate(112%) brightness(102%);
+  backdrop-filter: blur(42px) saturate(112%) brightness(102%);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
   animation: glass-menu-open 340ms cubic-bezier(0.2, 0.82, 0.2, 1);
+}
+
+.nav-paper > .refractive-glass-layer {
+  /* The panel already starts below the header. A second fixed header inset
+     moved this layer down by another row, so the package's full-surface rim
+     appeared as a horizontal line through the navigation cards (and as a
+     vertical line at the viewport edge). Fill the panel itself instead. */
+  position: absolute;
+  inset: -1px;
+  border-radius: 0;
+  opacity: 0.55;
+}
+
+/* LiquidGlass adds two decorative edge spans around each interactive lens.
+   They are useful on buttons, but a viewport-sized lens turns them into page
+   dividers behind the menu cards. The warp layer remains active, so the menu
+   keeps its live background refraction without the false outer window. */
+.nav-paper > .refractive-glass-layer[data-interactive] > span {
+  display: none !important;
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .nav-paper > .refractive-glass-layer {
+    display: none;
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .nav-paper {
+    background: var(--color-background);
+  }
 }
 
 /*
@@ -487,13 +703,86 @@ html[data-theme="dark"] .google-signin-glass {
 }
 
 /*
+  Opening navigation is a short material transition: the three destination
+  groups appear to leave the menu control at the top-right, stretch into their
+  final cards, then settle. Only transform and opacity animate, so the browser
+  can composite the effect without repainting the glass or running a listener
+  for every card. The groups are mounted only while the menu is open, which
+  naturally restarts the stagger on the next open.
+*/
+.nav-menu-group {
+  --nav-group-flow-x: clamp(6rem, 32vw, 22rem);
+  transform-origin: 100% 0;
+  animation: nav-group-materialise 520ms cubic-bezier(0.16, 0.9, 0.24, 1.08) both;
+  animation-delay: calc(48ms + var(--nav-group-delay, 0ms));
+}
+
+@keyframes nav-group-materialise {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--nav-group-flow-x), -3.25rem, 0) scale3d(0.24, 0.12, 1);
+  }
+  72% {
+    opacity: 1;
+    transform: translate3d(-0.18rem, 0.1rem, 0) scale3d(1.016, 0.986, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
+}
+
+@media (min-width: 640px) {
+  .nav-menu-group:nth-child(2n) {
+    --nav-group-flow-x: clamp(2.5rem, 14vw, 10rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .nav-menu-group:nth-child(1) {
+    --nav-group-flow-x: clamp(16rem, 38vw, 34rem);
+  }
+
+  .nav-menu-group:nth-child(2) {
+    --nav-group-flow-x: clamp(7rem, 18vw, 16rem);
+  }
+
+  .nav-menu-group:nth-child(3) {
+    --nav-group-flow-x: 1.5rem;
+  }
+}
+
+/* Touch devices do not need the desktop's elastic shape change. A shorter
+   compositor-only reveal keeps the relationship to the menu button while
+   reducing simultaneous layers and battery work. */
+@keyframes nav-group-touch-open {
+  from {
+    opacity: 0;
+    transform: translate3d(0.75rem, -0.5rem, 0) scale3d(0.985, 0.94, 1);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-transparency: reduce) {
+  .nav-menu-group {
+    animation-name: nav-group-touch-open;
+    animation-duration: 180ms;
+    animation-timing-function: ease-out;
+    animation-delay: calc(20ms + var(--nav-group-touch-delay, 0ms));
+  }
+}
+
+/*
   The theme control is a solid dock with one colourless glass lens. The lens
   moves rather than repainting three buttons, so it reads as one piece of
   material flowing between fixed destinations.
 */
 .theme-toggle-base {
   border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
-  background: color-mix(in srgb, var(--color-slate-200) 82%, var(--color-background));
+  background: color-mix(in srgb, var(--color-surface) 48%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 1px 2px rgba(0, 0, 0, 0.08);
@@ -505,6 +794,43 @@ html[data-theme="dark"] .google-signin-glass {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* The inbox filter is the compact two-stop version of the theme control. One
+   physical lens moves between All and Unread; the buttons themselves remain
+   transparent, so switching does not mount or repaint two glass surfaces. */
+.notification-filter-base {
+  flex: 0 1 15rem;
+  width: min(100%, 15rem);
+  border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 48%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.notification-filter-selector {
+  position: absolute;
+  inset-block: 0.25rem;
+  left: 0.25rem;
+  width: calc((100% - 0.5rem) / 2);
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  pointer-events: none;
+  background: var(--glass-fill-strong);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  transform: translate3d(calc(var(--notification-filter-index) * 100%), 0, 0);
+  transition: transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
+  will-change: transform;
+}
+
+.notification-filter-option,
+.notification-compact-action {
+  min-height: 2.25rem;
 }
 
 .interval-toggle-selector {
@@ -549,6 +875,78 @@ html[data-theme="dark"] .google-signin-glass {
 
 .theme-toggle-base[data-flowing] .theme-toggle-selector {
   transform: translate3d(calc(var(--theme-index) * 1.875rem), 0, 0);
+}
+
+/* The organization sections use the same single flowing lens as the theme
+   control. Hover, keyboard focus and a touch drag preview the destination;
+   release or click commits it. */
+.organization-view-tabs {
+  border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
+  background: color-mix(in srgb, var(--color-slate-200) 82%, var(--color-background));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.organization-view-selector {
+  position: absolute;
+  inset-block: 0.25rem;
+  left: 0.25rem;
+  width: calc((100% - 0.5rem) / var(--organization-view-count, 3));
+  border: 1px solid var(--glass-edge);
+  border-radius: calc(var(--radius-xl) - 0.25rem);
+  pointer-events: none;
+  background: var(--glass-fill-strong);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  transform: translate3d(calc(var(--organization-view-index) * 100%), 0, 0);
+  transition: transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
+  will-change: transform;
+}
+
+.organization-view-tabs[data-unselected] .organization-view-selector {
+  opacity: 0;
+}
+
+/* The workspace summary becomes a compact breadcrumb once a dashboard card
+   opens. Collapsing a real grid row lets the glass reform without measuring a
+   magic pixel height, so long organization names remain safe and fully shown. */
+.organization-membership-summary {
+  transition:
+    padding-block 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 220ms ease,
+    box-shadow 280ms ease;
+}
+
+.organization-membership-details {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    grid-template-rows 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 180ms ease,
+    translate 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.organization-membership-details > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.organization-membership-summary[data-compact] {
+  padding-block: 0.55rem !important;
+}
+
+.organization-membership-summary[data-compact] .organization-membership-details {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  translate: 0 -0.25rem;
+  pointer-events: none;
 }
 
 /* A restrained magnetic response shared by cards and buttons. The page keeps
@@ -699,7 +1097,10 @@ html[data-theme="dark"] .google-signin-glass {
 .dashboard-screen > .grid {
   min-height: 0;
   flex: 1;
-  overflow: hidden;
+  /* The homepage now follows normal document flow. Keep this flex child's
+     overflow visible so its final Grammar/Vocabulary row contributes to the
+     page height instead of being clipped at the old one-screen boundary. */
+  overflow: visible;
 }
 
 .dashboard-card-blurb-short {
@@ -722,8 +1123,7 @@ html[data-theme="dark"] .google-signin-glass {
   .dashboard-card-blurb-short {
     display: inline;
   }
-  .dashboard-screen > section:first-child {
-    flex-wrap: nowrap;
+  .dashboard-hero {
     padding: 0.7rem !important;
   }
   .dashboard-placement-button {
@@ -733,6 +1133,16 @@ html[data-theme="dark"] .google-signin-glass {
   }
   .dashboard-screen .space-y-4 > :not(:last-child) {
     margin-block-end: 0.55rem;
+  }
+}
+
+/* Immediately above the phone breakpoint the cards remain two-up, but should
+   not jump back to the roomy desktop inset. Keeping their contents compact
+   avoids a 480/481px height cliff without hiding a destination. */
+@media (min-width: 481px) and (max-width: 639px) {
+  .dashboard-screen .dashboard-skill-card.card {
+    padding-block: 0.6rem !important;
+    padding-inline: 1rem !important;
   }
 }
 
@@ -751,12 +1161,10 @@ html[data-theme="dark"] .google-signin-glass {
     gap: 0.45rem;
   }
   /*
-    The dashboard's second row is the remaining viewport, not a document.
-    Let its two sections divide that exact space 2:1 (four practice rows, two
-    study rows). Previously their content height won, the parent clipped its
-    overflow, and Chrome drew only the top half of Vocabulary above the
-    footer. These nested grids shrink together instead of sacrificing the last
-    destination.
+    Four practice rows and two study rows share one compact grid contract on a
+    phone. The page itself owns vertical scrolling; these nested grids keep
+    every row in flow so Vocabulary adds to the document height instead of
+    disappearing behind the footer.
   */
   .dashboard-screen > .grid {
     overflow: visible;
@@ -789,16 +1197,16 @@ html[data-theme="dark"] .google-signin-glass {
     text-align: center;
     white-space: nowrap;
   }
-  .dashboard-screen > section:first-child {
+  .dashboard-hero {
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
   }
-  .dashboard-screen > section:first-child > .premade-glass-content:first-of-type {
+  .dashboard-hero > .premade-glass-content:first-of-type {
     flex-basis: auto;
     text-align: center;
   }
-  .dashboard-screen > section:first-child > .premade-glass-content:last-child {
+  .dashboard-hero-actions {
     width: 100%;
     justify-content: center;
   }
@@ -873,14 +1281,14 @@ html[data-theme="dark"] .google-signin-glass {
   }
 }
 
-/* The original iPhone SE height has far less vertical room. Keep the cards
-   larger than before, but contract them enough that the final row is never
-   clipped by the one-screen dashboard. */
+/* The original iPhone SE height has far less room. Tighten empty space, but
+   keep the normal card-height floor: the document can scroll and no longer
+   needs to sacrifice a destination to fit one screen. */
 @media (max-width: 480px) and (max-height: 620px) {
   .dashboard-screen {
     gap: 0.25rem;
   }
-  .dashboard-screen > section:first-child {
+  .dashboard-hero {
     gap: 0.25rem;
     padding: 0.35rem !important;
   }
@@ -893,9 +1301,6 @@ html[data-theme="dark"] .google-signin-glass {
   }
   .dashboard-screen .space-y-4 > :not(:last-child) {
     margin-block-end: 0.35rem;
-  }
-  .dashboard-skill-card {
-    min-height: 2.4rem;
   }
   .dashboard-screen .dashboard-skill-card.card {
     padding-block: 0.2rem !important;
@@ -1544,10 +1949,10 @@ a.card.card:hover {
   background: color-mix(in srgb, var(--glass-fill-strong) 88%, white 12%);
 }
 
-/* Checkout is the only warm-filled action: a soft yellow-orange, light enough
-   to feel inviting but muted enough to stay within BandUp's calm palette. */
-.btn-primary.pricing-subscribe-button,
-html[data-theme="dark"] .btn-primary.pricing-subscribe-button {
+/* Warm keeps its softer checkout accent. Light and Dark override it below so
+   checkout remains part of the same indigo/glass interaction system as the
+   rest of the site instead of introducing an isolated orange action. */
+.btn-primary.pricing-subscribe-button {
   color: #2a2118;
   border-color: #a9763d;
   background: #c28f52;
@@ -1556,10 +1961,25 @@ html[data-theme="dark"] .btn-primary.pricing-subscribe-button {
     0 1px 2px var(--glass-shadow);
 }
 
-.btn-primary.pricing-subscribe-button:hover:not(:disabled),
-html[data-theme="dark"] .btn-primary.pricing-subscribe-button:hover:not(:disabled) {
+.btn-primary.pricing-subscribe-button:hover:not(:disabled) {
   border-color: #b08047;
   background: #ca995d;
+}
+
+html[data-theme="light"] .btn-primary.pricing-subscribe-button,
+html[data-theme="dark"] .btn-primary.pricing-subscribe-button {
+  color: var(--color-indigo-800);
+  border-color: color-mix(in srgb, var(--color-indigo-500) 58%, var(--glass-edge));
+  background: color-mix(in srgb, var(--color-indigo-100) 62%, var(--glass-fill-strong));
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+}
+
+html[data-theme="light"] .btn-primary.pricing-subscribe-button:hover:not(:disabled),
+html[data-theme="dark"] .btn-primary.pricing-subscribe-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-indigo-500) 76%, var(--glass-specular));
+  background: color-mix(in srgb, var(--color-indigo-200) 66%, var(--glass-fill-strong));
 }
 
 .btn-secondary {
@@ -1663,7 +2083,7 @@ textarea {
   width: 2.25rem;
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-indigo-500), var(--color-amber-400));
+  background: linear-gradient(90deg, var(--color-indigo-400), var(--color-indigo-600));
 }
 
 /*
@@ -1774,6 +2194,11 @@ textarea {
   }
   .nav-paper {
     animation: none;
+  }
+  .nav-menu-group {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
   .liquid-glass,
   .card,
@@ -1898,7 +2323,9 @@ textarea {
   .input,
   .theme-toggle-selector,
   .interval-toggle-selector,
+  .notification-filter-selector,
   .panel-toggle-selector,
+  .organization-view-selector,
   .speaking-engine-selector,
   .nav-primary-selector,
   .nav-menu-selector,
@@ -2106,7 +2533,9 @@ html[data-theme="dark"] .card:focus-within {
 }
 
 html[data-theme="dark"] .nav-paper {
-  background: var(--color-background);
+  background: color-mix(in srgb, var(--color-background) 86%, transparent);
+  -webkit-backdrop-filter: blur(42px) saturate(106%) brightness(105%);
+  backdrop-filter: blur(42px) saturate(106%) brightness(105%);
 }
 
 html[data-theme="dark"] .nav-open-header {
@@ -2117,15 +2546,24 @@ html[data-theme="dark"] .nav-open-header {
 
 html[data-theme="dark"] .theme-toggle-base,
 html[data-theme="dark"] .interval-toggle-base,
-html[data-theme="dark"] .panel-toggle-base {
+html[data-theme="dark"] .notification-filter-base,
+html[data-theme="dark"] .panel-toggle-base,
+html[data-theme="dark"] .organization-view-tabs {
   border-color: rgba(255, 255, 255, 0.1);
   background: #1b1b1e;
   box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
 }
 
+html[data-theme="dark"] .theme-toggle-base,
+html[data-theme="dark"] .notification-filter-base {
+  background: color-mix(in srgb, var(--color-surface) 46%, transparent);
+}
+
 html[data-theme="dark"] .theme-toggle-selector,
 html[data-theme="dark"] .interval-toggle-selector,
+html[data-theme="dark"] .notification-filter-selector,
 html[data-theme="dark"] .panel-toggle-selector,
+html[data-theme="dark"] .organization-view-selector,
 html[data-theme="dark"] .speaking-engine-selector,
 html[data-theme="dark"] .nav-primary-selector,
 html[data-theme="dark"] .nav-menu-selector {
@@ -2134,6 +2572,14 @@ html[data-theme="dark"] .nav-menu-selector {
   box-shadow: inset 0 1px 0 var(--glass-highlight);
   -webkit-backdrop-filter: blur(18px) saturate(105%) brightness(106%);
   backdrop-filter: blur(18px) saturate(105%) brightness(106%);
+}
+
+/* Yellow warning ink loses definition through a dark, refractive card. Keep
+   the meaning in the label while using a neutral high-contrast capsule. */
+html[data-theme="dark"] .organization-status-pill[data-tone="warn"] {
+  border-color: #e5e7eb;
+  background: #d1d5db;
+  color: #111113;
 }
 
 html[data-theme="dark"] a.card:hover {
@@ -2186,4 +2632,51 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
   -webkit-backdrop-filter: blur(24px) saturate(105%) brightness(106%);
   backdrop-filter: blur(24px) saturate(105%) brightness(106%);
+}
+
+/* ---------------------------------------------------------------------------
+   Adaptive background reflection
+
+   Every card/window already samples the real page pixels with backdrop-filter.
+   The delegated PointerAttraction engine adds this directional specular wash
+   to only the one visible surface beneath a fine pointer. It changes two CSS
+   variables at most ~30 times per second; all other and off-screen cards stay
+   compositor-only and receive no JavaScript work. This is a background layer,
+   not another element, so popovers may extend beyond their parent cards and no
+   extra outline/window can appear around them.
+--------------------------------------------------------------------------- */
+.card[data-glass-reflecting],
+.liquid-glass[data-glass-reflecting],
+.premade-glass[data-glass-reflecting] {
+  background-image:
+    radial-gradient(
+      ellipse 72% 62% at var(--glass-reflection-x, 50%) var(--glass-reflection-y, 0%),
+      color-mix(in srgb, var(--glass-specular) 38%, transparent) 0%,
+      color-mix(in srgb, var(--glass-highlight) 13%, transparent) 34%,
+      transparent 72%
+    ),
+    linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--glass-highlight) 8%, transparent),
+      transparent 42%,
+      color-mix(in srgb, var(--glass-edge-dark) 5%, transparent)
+    );
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+/* Coarse pointers do not have a persistent cursor to drive a reflection.
+   Phones keep real backdrop sampling at a lower blur radius, while the SVG
+   displacement and JS highlight remain off. This materially lowers fill-rate
+   and battery use without replacing glass with an opaque card. */
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  body {
+    --glass-blur: 16px;
+  }
+
+  .card[data-glass-reflecting],
+  .liquid-glass[data-glass-reflecting],
+  .premade-glass[data-glass-reflecting] {
+    background-image: none;
+  }
 }

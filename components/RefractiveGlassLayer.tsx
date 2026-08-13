@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import GlassPerformanceGate from "@/components/GlassPerformanceGate";
 
 /*
   The upstream component reads `navigator` while rendering, so it cannot be
@@ -12,15 +13,33 @@ const LiquidGlass = dynamic(() => import("liquid-glass-react"), { ssr: false });
 
 const STILL_POINTER = { x: 0, y: 0 };
 
-export default function RefractiveGlassLayer({ radius = 32 }: { radius?: number }) {
+/**
+ * A visual-only displacement layer. It deliberately owns no pointer listener
+ * or React state: PointerAttraction delegates one listener for the entire app
+ * and paints the one surface currently under a fine pointer. That avoids one
+ * render loop per glass control while keeping these opt-in SVG lenses as the
+ * higher-detail layer over the shared CSS backdrop glass.
+ */
+export default function RefractiveGlassLayer({
+  radius = 32,
+  interactive = false,
+}: {
+  radius?: number;
+  interactive?: boolean;
+}) {
   return (
-    <span className="refractive-glass-layer" aria-hidden="true">
+    <GlassPerformanceGate>
+    <span
+      className="refractive-glass-layer"
+      data-interactive={interactive ? "" : undefined}
+      aria-hidden="true"
+    >
       <LiquidGlass
         className="refractive-glass-core"
-        displacementScale={20}
+        displacementScale={interactive ? 27 : 20}
         blurAmount={0.08}
-        saturation={105}
-        aberrationIntensity={0}
+        saturation={interactive ? 112 : 105}
+        aberrationIntensity={interactive ? 0.35 : 0}
         elasticity={0}
         cornerRadius={radius}
         padding="0"
@@ -37,5 +56,6 @@ export default function RefractiveGlassLayer({ radius = 32 }: { radius?: number 
         <span />
       </LiquidGlass>
     </span>
+    </GlassPerformanceGate>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { TierState } from "@/lib/billing/useTier";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 /*
   The four ways a billing screen can have nothing to show, said once.
@@ -53,7 +54,7 @@ export default function billingBlocker(state: TierState): ReactNode | null {
   if (state.phase === "loading") {
     return (
       <div className="card">
-        <p className="text-[15px] text-slate-500">Checking your account…</p>
+        <p className="text-[15px] text-slate-500"><LoadingIndicator label="Checking your account…" /></p>
       </div>
     );
   }

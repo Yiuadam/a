@@ -335,34 +335,68 @@ function speakBrowserLine(
   text: string,
   voice: SpeechSynthesisVoice | undefined,
   rate: number,
-): Promise<void> {
+): Promise<boolean> {
   return new Promise((resolve) => {
     let finished = false;
-    const done = () => {
+    let startTimer = 0;
+    let completionTimer = 0;
+    const done = (spoken: boolean) => {
       if (finished) return;
       finished = true;
-      if (finishBrowserUtterance === done) finishBrowserUtterance = null;
-      resolve();
+      window.clearTimeout(startTimer);
+      window.clearTimeout(completionTimer);
+      if (finishBrowserUtterance === cancel) finishBrowserUtterance = null;
+      resolve(spoken);
     };
-    finishBrowserUtterance = done;
+    const cancel = () => done(false);
+    finishBrowserUtterance = cancel;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = rate;
     utterance.pitch = 0.98;
     utterance.lang = "en-GB";
     if (voice) utterance.voice = voice;
-    utterance.onend = done;
-    utterance.onerror = done;
+    utterance.onstart = () => {
+      window.clearTimeout(startTimer);
+      completionTimer = window.setTimeout(() => {
+        window.speechSynthesis.cancel();
+        done(false);
+      }, Math.min(25_000, Math.max(6_000, 3_000 + text.length * 120)));
+    };
+    utterance.onend = () => done(true);
+    utterance.onerror = () => done(false);
+    window.speechSynthesis.resume();
     window.speechSynthesis.speak(utterance);
+    /* Chrome can accept an utterance but emit neither start, end nor error.
+       Resolve that dead state so the speaking UI can offer an explicit retry. */
+    startTimer = window.setTimeout(() => {
+      window.speechSynthesis.cancel();
+      done(false);
+    }, 2_500);
   });
 }
 
-/** Speak a line of text; resolves when finished (or immediately if unsupported). */
-export async function speak(text: string, rate = 1): Promise<void> {
+/** Preserve the Start button's audio permission across asynchronous setup. */
+export function primeSpeechPlayback(): void {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  try {
+    window.speechSynthesis.resume();
+    const primer = new SpeechSynthesisUtterance(".");
+    primer.volume = 0;
+    primer.rate = 10;
+    window.speechSynthesis.speak(primer);
+  } catch {
+    // Neural/native speech may still work; the caller handles final failure.
+  }
+}
+
+/** Speak a line of text and report whether any playback actually started. */
+export async function speak(text: string, rate = 1): Promise<boolean> {
   const sequence = ++speechSequence;
   const lines = toSentences(text);
-  if (lines.length === 0) return;
+  if (lines.length === 0) return false;
   const tts = await nativeTTS();
   if (tts) {
+    let spoken = false;
     for (let i = 0; i < lines.length && sequence === speechSequence; i += 1) {
       try {
         await tts.speak({
@@ -371,25 +405,28 @@ export async function speak(text: string, rate = 1): Promise<void> {
           rate: rate * (i % 2 === 0 ? 0.97 : 0.94),
           pitch: 0.98,
         });
+        spoken = true;
       } catch {
         // A failed line should never strand the interview.
       }
     }
-    return;
+    return spoken;
   }
   // The speaking page prepares Kokoro from its Start button. If it is ready,
   // prefer that consistent British neural voice over whichever system voice
   // this particular browser happens to expose.
-  if (await speakNaturalExaminer(text, rate)) return;
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (await speakNaturalExaminer(text, rate)) return true;
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
 
   window.speechSynthesis.cancel();
   finishBrowserUtterance?.();
   const [voice] = await browserVoices();
+  let spoken = false;
   for (let i = 0; i < lines.length && sequence === speechSequence; i += 1) {
-    await speakBrowserLine(lines[i], voice, rate * (i % 2 === 0 ? 0.97 : 0.94));
+    spoken = await speakBrowserLine(lines[i], voice, rate * (i % 2 === 0 ? 0.97 : 0.94)) || spoken;
     if (i + 1 < lines.length && sequence === speechSequence) await pause(60);
   }
+  return spoken;
 }
 
 export function cancelSpeech(): void {

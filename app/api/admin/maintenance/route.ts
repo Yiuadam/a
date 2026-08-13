@@ -114,7 +114,7 @@ async function handlePOST(req: Request) {
       still say "you asked for this and it has not happened yet" rather than
       losing the ask entirely.
     */
-    const setting = await setMaintenance(body.closed, user.id);
+    const setting = await setMaintenance(body.closed, user);
     const deploy = await dispatchDeploy(body.closed);
 
     /* Best effort: GitHub's answer is still returned even if this secondary
@@ -128,7 +128,7 @@ async function handlePOST(req: Request) {
           started: deploy.started,
           problem: deploy.problem,
         },
-        user.id,
+        user,
       ).catch((err) => logInternal("admin/maintenance-dispatch", err));
     }
 

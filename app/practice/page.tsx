@@ -6,6 +6,7 @@ import DeleteGenerated from "@/components/DeleteGenerated";
 import DoneBadge, { bestResultFor } from "@/components/DoneBadge";
 import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
+import GlassSelect from "@/components/GlassSelect";
 import { LISTENING_TESTS, READING_TESTS } from "@/lib/tests";
 import SessionCount from "@/components/SessionCount";
 import { allowanceFor } from "@/lib/entitlements/sessions";
@@ -15,6 +16,7 @@ import { questionCount } from "@/lib/questions";
 import { postJSON } from "@/lib/api";
 import { addGeneratedTest } from "@/lib/store";
 import type { GeneratedTest, ListeningTest, ReadingTest } from "@/lib/types";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 const readingTests = READING_TESTS;
 const listeningTests = LISTENING_TESTS;
@@ -132,7 +134,8 @@ export default function PracticePage() {
     */
     if (access[kind].pending) {
       return (
-        <div key={t.id} className="card !p-3 min-w-0 cursor-wait opacity-60" aria-busy="true">
+        <div key={t.id} className="card relative !p-3 min-w-0 cursor-wait opacity-60" aria-busy="true">
+          <LoadingIndicator label="Checking access…" className="absolute right-3 top-3 text-sm text-indigo-600" textClassName="sr-only" />
           {inner}
         </div>
       );
@@ -168,9 +171,7 @@ export default function PracticePage() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">Practice tests</h1>
         <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">
-          Tests in the same format as the real exam, marked on the 9-band scale. Reading and
-          listening are marked straight away. Writing and speaking are marked by the AI
-          examiner.
+          Real exam format, with band scores.
         </p>
       </div>
 
@@ -181,7 +182,7 @@ export default function PracticePage() {
       */}
       <nav
         aria-label="Choose a practice skill"
-        className="grid grid-cols-4 gap-1.5 sm:gap-2"
+        className="grid grid-cols-2 gap-2 sm:grid-cols-4"
       >
         {[
           ["Listening", "/practice/listening"],
@@ -192,7 +193,7 @@ export default function PracticePage() {
           <Link
             key={href}
             href={href}
-            className="btn-secondary min-w-0 !px-1.5 text-center text-xs sm:!px-3 sm:text-sm"
+            className="btn-secondary min-w-0 !min-h-12 !px-4 text-center !text-xs sm:!px-5"
           >
             {label}
           </Link>
@@ -310,28 +311,25 @@ export default function PracticePage() {
               saved on this device.
             </p>
             <div className="mt-2 flex flex-wrap items-end gap-2">
-              <label className="min-w-0 flex-1 basis-28 text-xs text-slate-700">
+              <div className="min-w-0 flex-1 basis-28 text-xs text-slate-700">
                 <span className="mb-0.5 block text-slate-500">Module</span>
-                <select
-                  className="input !py-2 w-full"
+                <GlassSelect
+                  label="Generated test module"
                   value={genKind}
-                  onChange={(e) => setGenKind(e.target.value as "reading" | "listening")}
-                >
-                  <option value="reading">Reading</option>
-                  <option value="listening">Listening</option>
-                </select>
-              </label>
-              <label className="min-w-0 flex-1 basis-36 text-xs text-slate-700">
+                  options={[{ value: "reading", label: "Reading" }, { value: "listening", label: "Listening" }]}
+                  onValueChange={(value) => setGenKind(value as "reading" | "listening")}
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-36 text-xs text-slate-700">
                 <span className="mb-0.5 block text-slate-500">Difficulty</span>
-                <select
-                  className="input !py-2 w-full"
+                <GlassSelect
+                  label="Generated test difficulty"
                   value={genDifficulty}
-                  onChange={(e) => setGenDifficulty(e.target.value as "medium" | "hard")}
-                >
-                  <option value="medium">Medium (5–6.5)</option>
-                  <option value="hard">Hard (6.5–8)</option>
-                </select>
-              </label>
+                  options={[{ value: "medium", label: "Medium (5–6.5)" }, { value: "hard", label: "Hard (6.5–8)" }]}
+                  onValueChange={(value) => setGenDifficulty(value as "medium" | "hard")}
+                  minMenuWidth={164}
+                />
+              </div>
               <label className="min-w-0 flex-1 basis-40 text-xs text-slate-700">
                 <span className="mb-0.5 block text-slate-500">Topic (optional)</span>
                 <input
@@ -342,7 +340,7 @@ export default function PracticePage() {
                 />
               </label>
               <button className="btn-primary w-full" onClick={generate} disabled={generating}>
-                {generating ? "Generating (about a minute)…" : "Generate test"}
+                {generating ? <LoadingIndicator label="Generating (about a minute)…" announce={false} /> : "Generate test"}
               </button>
             </div>
             {genError && <p className="mt-2 text-sm text-rose-600">{genError}</p>}
@@ -356,28 +354,25 @@ export default function PracticePage() {
               saved on this device.
             </p>
             <div className="mt-2 flex flex-wrap items-end gap-2">
-              <label className="min-w-0 flex-1 basis-28 text-xs text-slate-700">
+              <div className="min-w-0 flex-1 basis-28 text-xs text-slate-700">
                 <span className="mb-0.5 block text-slate-500">Module</span>
-                <select
-                  className="input !py-2 w-full"
+                <GlassSelect
+                  label="Generated test module"
                   value={genKind}
-                  onChange={(e) => setGenKind(e.target.value as "reading" | "listening")}
-                >
-                  <option value="reading">Reading</option>
-                  <option value="listening">Listening</option>
-                </select>
-              </label>
-              <label className="min-w-0 flex-1 basis-36 text-xs text-slate-700">
+                  options={[{ value: "reading", label: "Reading" }, { value: "listening", label: "Listening" }]}
+                  onValueChange={(value) => setGenKind(value as "reading" | "listening")}
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-36 text-xs text-slate-700">
                 <span className="mb-0.5 block text-slate-500">Difficulty</span>
-                <select
-                  className="input !py-2 w-full"
+                <GlassSelect
+                  label="Generated test difficulty"
                   value={genDifficulty}
-                  onChange={(e) => setGenDifficulty(e.target.value as "medium" | "hard")}
-                >
-                  <option value="medium">Medium (5–6.5)</option>
-                  <option value="hard">Hard (6.5–8)</option>
-                </select>
-              </label>
+                  options={[{ value: "medium", label: "Medium (5–6.5)" }, { value: "hard", label: "Hard (6.5–8)" }]}
+                  onValueChange={(value) => setGenDifficulty(value as "medium" | "hard")}
+                  minMenuWidth={164}
+                />
+              </div>
               <label className="min-w-0 flex-1 basis-40 text-xs text-slate-700">
                 <span className="mb-0.5 block text-slate-500">Topic (optional)</span>
                 <input
@@ -388,7 +383,7 @@ export default function PracticePage() {
                 />
               </label>
               <button className="btn-primary w-full" onClick={generate} disabled={generating}>
-                {generating ? "Generating (about a minute)…" : "Generate test"}
+                {generating ? <LoadingIndicator label="Generating (about a minute)…" announce={false} /> : "Generate test"}
               </button>
             </div>
             {genError && <p className="mt-2 text-sm text-rose-600">{genError}</p>}

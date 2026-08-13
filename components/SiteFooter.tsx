@@ -57,6 +57,7 @@ export default function SiteFooter() {
   const pathname = usePathname();
   const immersive =
     pathname.startsWith("/admin") ||
+    pathname.startsWith("/organization") ||
     pathname === "/chat" ||
     pathname === "/practice/listening" ||
     pathname === "/practice/reading" ||

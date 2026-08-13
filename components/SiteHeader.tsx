@@ -1,19 +1,45 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref } from "@/lib/nav";
 import { useTier } from "@/lib/billing/useTier";
-import { authedFetch } from "@/lib/account";
-import { apiUrl } from "@/lib/api";
-import {
-  PROFILE_UPDATED_EVENT,
-  type ProfileUpdate,
-} from "@/components/account/profileEvents";
-import type { ProfileFields } from "@/components/account/types";
+import CardIcon, { type CardIconName } from "@/components/CardIcon";
+import { Icon } from "@/components/Icons";
+import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
+import HeaderNotificationBell from "@/components/account/HeaderNotificationBell";
+import { useAccountProfile } from "@/components/account/AccountProfileProvider";
+import bandupMarkRear from "@/components/assets/steps-five-layer-rear-108.png";
+
+const HOMEPAGE_MENU_ICONS: Partial<Record<string, string>> = {
+  "/practice/listening": "listening",
+  "/practice/reading": "reading",
+  "/practice/writing": "writing",
+  "/speaking": "speaking",
+  "/grammar": "grammar",
+  "/vocabulary": "vocabulary",
+};
+
+const MENU_ICONS: Partial<Record<string, CardIconName>> = {
+  "/": "home",
+  "/plan": "plan",
+  "/history": "history",
+  "/organization": "organization",
+  "/practice": "practice",
+  "/exam": "mock",
+  "/chat": "tutor",
+  "/resources": "guides",
+  "/about": "about",
+  "/account": "profile",
+  ...(!IS_MOBILE_BUILD
+    ? { "/pricing": "plans" as const, "/billing": "usage" as const }
+    : {}),
+  "/admin": "settings",
+};
 
 /*
   The whole header, in one client component.
@@ -46,7 +72,11 @@ import type { ProfileFields } from "@/components/account/types";
   order, competing with the row.
 */
 
-export default function SiteHeader() {
+export default function SiteHeader({
+  isolatedOrganizationPreview = false,
+}: {
+  isolatedOrganizationPreview?: boolean;
+}) {
   const pathname = usePathname();
 
   /*
@@ -69,7 +99,7 @@ export default function SiteHeader() {
   const onHome = pathname === "/";
 
   const account = useTier();
-  const [profile, setProfile] = useState<ProfileFields | null>(null);
+  const { profile } = useAccountProfile();
   const isOwner = account.phase === "ready" && account.signedIn && account.tier === "admin";
   const groups = isOwner
     ? NAV_GROUPS.map((group, i) =>
@@ -95,49 +125,6 @@ export default function SiteHeader() {
   const [menuPreview, setMenuPreview] = useState<{ group: number; item: number } | null>(null);
   const open = openPath !== null && openPath === pathname;
   const close = () => setOpenPath(null);
-
-  useEffect(() => {
-    if (account.phase !== "ready" || !account.signedIn) return;
-
-    let alive = true;
-    let revision = 0;
-    const requestRevision = ++revision;
-
-    const onProfileUpdated = (event: Event) => {
-      const update = (event as CustomEvent<ProfileUpdate>).detail;
-      if (!update || typeof update !== "object") return;
-
-      // Invalidate a slower initial request so it cannot repaint the old
-      // signed URL or display name over the just-saved value.
-      revision += 1;
-      setProfile((current) => ({
-        displayName: null,
-        birthDate: null,
-        avatarUrl: null,
-        email: null,
-        ...current,
-        ...update,
-      }));
-    };
-
-    window.addEventListener(PROFILE_UPDATED_EVENT, onProfileUpdated);
-
-    authedFetch(apiUrl("/api/account/profile"))
-      .then(async (res) => {
-        if (!res.ok) throw new Error("profile unavailable");
-        return (await res.json()) as ProfileFields;
-      })
-      .then((body) => {
-        if (alive && requestRevision === revision) setProfile(body);
-      })
-      .catch(() => {
-        if (alive && requestRevision === revision) setProfile(null);
-      });
-    return () => {
-      alive = false;
-      window.removeEventListener(PROFILE_UPDATED_EVENT, onProfileUpdated);
-    };
-  }, [account.phase, account.signedIn]);
 
   useEffect(() => {
     if (!open) return;
@@ -218,8 +205,9 @@ export default function SiteHeader() {
             app icon has to be, so the corner has to be cut here rather than
             drawn into the file.
 
-            The selected 3D PNG is kept crisp but delivered at header size by
-            next/image, rather than making every visit download the full master.
+            The selected 3D PNG is kept crisp in a header-sized, content-hashed
+            derivative, rather than sending the 1.6 MB artwork master through
+            an image optimiser on every uncached visit.
           */}
           <span
             data-pointer-attract
@@ -227,11 +215,12 @@ export default function SiteHeader() {
             className="bandup-mark relative h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm"
           >
             <Image
-              src="/icons/final/steps-five-layer-rear.png"
+              src={bandupMarkRear}
               alt=""
               fill
               sizes="36px"
               className="bandup-mark-rear object-cover"
+              unoptimized
               priority
             />
             <svg
@@ -311,7 +300,7 @@ export default function SiteHeader() {
             aria-expanded={open}
             aria-controls="nav-menu"
             aria-label={open ? "Close menu" : "Open menu"}
-            className="rounded-xl px-2.5 py-2 text-slate-600 transition-colors hover:bg-surface hover:text-slate-900"
+            className="app-icon-control rounded-xl px-2.5 py-2 transition-colors hover:bg-surface"
           >
             <svg
               viewBox="0 0 20 20"
@@ -337,6 +326,12 @@ export default function SiteHeader() {
               )}
             </svg>
           </button>
+          <Suspense fallback={null}>
+            <HeaderNotificationBell
+              signedIn={account.signedIn}
+              isolatedOrganizationPreview={isolatedOrganizationPreview}
+            />
+          </Suspense>
           {/*
             Account sits beside the theme toggle rather than in the row: it is
             not a destination in the way "Reading" is — most visits never need
@@ -349,23 +344,25 @@ export default function SiteHeader() {
             aria-label="Your account"
             data-pointer-attract
             data-pointer-attract-strength="icon"
-            className="pointer-attract-glass flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border text-sm text-slate-600 transition-all hover:text-slate-900"
+            className="pointer-attract-glass premade-glass app-icon-control relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border text-sm transition-all"
           >
+            <RefractiveGlassLayer radius={999} interactive />
             {account.signedIn && profile?.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={profile.avatarUrl}
                 alt=""
                 decoding="async"
-                className="h-full w-full object-cover"
+                className="relative z-10 h-full w-full object-cover"
                 referrerPolicy="no-referrer"
               />
             ) : account.signedIn ? (
-              <span className="flex h-full w-full items-center justify-center bg-indigo-100 text-xs font-semibold uppercase text-indigo-700">
+              <span className="relative z-10 flex h-full w-full items-center justify-center bg-indigo-100 text-xs font-semibold uppercase text-indigo-700">
                 {(profile?.displayName ?? profile?.email ?? "A").trim().charAt(0) || "A"}
               </span>
             ) : (
               <svg
+                className="app-icon-color relative z-10"
                 viewBox="0 0 20 20"
                 width="20"
                 height="20"
@@ -392,16 +389,24 @@ export default function SiteHeader() {
           aria-modal="true"
           aria-label="Site navigation"
           tabIndex={-1}
-          className="nav-paper fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 overflow-y-auto outline-none"
+          className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 overflow-y-auto outline-none"
         >
-            <nav aria-label="All pages" className="mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-7 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
+            <RefractiveGlassLayer radius={0} interactive />
+            <nav aria-label="All pages" className="premade-glass-content mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-7 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
               <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
                 {groups.map((group, groupIndex) => {
                   const selectedIndex = group.items.findIndex((item) => item.href === current);
                   const visibleIndex =
                     menuPreview?.group === groupIndex ? menuPreview.item : selectedIndex;
                   return (
-                  <div key={group.title} className="liquid-glass rounded-[1.75rem] border p-3 sm:p-4">
+                  <div
+                    key={group.title}
+                    className="nav-menu-group liquid-glass rounded-[1.75rem] border p-3 sm:p-4"
+                    style={{
+                      "--nav-group-delay": `${groupIndex * 64}ms`,
+                      "--nav-group-touch-delay": `${groupIndex * 20}ms`,
+                    } as React.CSSProperties}
+                  >
                     <h2 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
                       {group.title}
                     </h2>
@@ -411,7 +416,10 @@ export default function SiteHeader() {
                       style={{ "--nav-row-index": visibleIndex } as React.CSSProperties}
                     >
                       {visibleIndex >= 0 && <span className="nav-menu-selector" aria-hidden="true" />}
-                      {group.items.map((item, itemIndex) => (
+                      {group.items.map((item, itemIndex) => {
+                        const icon = MENU_ICONS[item.href];
+                        const homepageIcon = HOMEPAGE_MENU_ICONS[item.href];
+                        return (
                         <li key={item.href}>
                           <Link
                             href={item.href}
@@ -432,10 +440,21 @@ export default function SiteHeader() {
                                 : "text-slate-700 hover:text-slate-900"
                             }`}
                           >
-                            <span>{item.label}</span>
+                            <span className="flex min-w-0 items-center gap-2.5">
+                              {homepageIcon ? (
+                                <Icon
+                                  name={homepageIcon}
+                                  className="h-[21px] w-[21px] shrink-0 text-indigo-600"
+                                />
+                              ) : icon ? (
+                                <CardIcon name={icon} size={21} />
+                              ) : null}
+                              <span>{item.label}</span>
+                            </span>
                           </Link>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   </div>
                   );

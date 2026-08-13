@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ProfileFields } from "@/components/account/types";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { bandLabel } from "@/lib/band";
@@ -12,6 +13,8 @@ import type { MockExamReport } from "@/lib/types";
 
 const EMPTY_IDENTITY: ProfileFields = {
   displayName: null,
+  username: null,
+  accountKind: null,
   birthDate: null,
   avatarUrl: null,
   email: null,
@@ -220,7 +223,7 @@ function MockExamReportContent() {
             onClick={() => window.print()}
             disabled={!identityReady}
           >
-            {identityReady ? "Print or save PDF" : "Loading your details…"}
+            {identityReady ? "Print or save PDF" : <LoadingIndicator label="Loading your details…" announce={false} />}
           </button>
           <Link href="/history" className="btn-secondary">
             Back to history

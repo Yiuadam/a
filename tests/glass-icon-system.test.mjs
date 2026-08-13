@@ -1,0 +1,129 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { test } from "node:test";
+
+const read = (path) => readFileSync(join(process.cwd(), path), "utf8");
+
+test("adaptive glass has one delegated frame budget and preserves low-cost fallbacks", () => {
+  const component = read("components/RefractiveGlassLayer.tsx");
+  const gate = read("components/GlassPerformanceGate.tsx");
+  const engine = read("components/PointerAttraction.tsx");
+  const css = read("app/globals.css");
+
+  assert.match(component, /interactive = false/);
+  assert.match(component, /<GlassPerformanceGate>/);
+  assert.match(gate, /return enabled \? children : null/);
+  assert.doesNotMatch(component, /addEventListener|requestAnimationFrame|useState|useEffect/);
+  assert.match(component, /globalMousePos=\{STILL_POINTER\}/);
+  assert.match(component, /mouseOffset=\{STILL_POINTER\}/);
+  assert.match(engine, /GLASS_SURFACE = "\.card, \.liquid-glass, \.premade-glass/);
+  assert.match(engine, /REFLECTION_FRAME_MS = 32/);
+  assert.match(engine, /requestAnimationFrame\(draw\)/);
+  assert.match(engine, /connection\?\.saveData/);
+  assert.match(engine, /document\.visibilityState === "visible"/);
+  assert.match(engine, /rect\.bottom > 0[\s\S]*rect\.top < window\.innerHeight/);
+  assert.match(css, /\.card\[data-glass-reflecting\][\s\S]*radial-gradient/);
+  assert.doesNotMatch(css, /\.card\[data-glass-reflecting\][^{]*\{[^}]*position:\s*relative/);
+  assert.doesNotMatch(css, /\.card\[data-glass-reflecting\][^{]*\{[^}]*overflow:\s*hidden/);
+  assert.match(css, /@supports not \(\(-webkit-backdrop-filter:/);
+  assert.match(css, /@media \(hover: none\), \(pointer: coarse\), \(prefers-reduced-motion: reduce\)/);
+});
+
+test("high-detail SVG refraction remains opt-in on selected controls", () => {
+  const home = read("app/page.tsx");
+  const bell = read("components/account/NotificationBell.tsx");
+  const inbox = read("components/account/NotificationInbox.tsx");
+  const theme = read("components/ThemeToggle.tsx");
+
+  assert.match(home, /dashboard-hero[\s\S]*?<RefractiveGlassLayer \/>/);
+  assert.match(home, /btn-primary premade-glass[\s\S]*?<RefractiveGlassLayer radius=\{999\} interactive \/>/);
+  assert.match(bell, /<RefractiveGlassLayer radius=\{999\} interactive \/>/);
+  assert.match(inbox, /notification-popover liquid-glass/);
+  assert.doesNotMatch(inbox, /notification-popover[^\n]*premade-glass/);
+  assert.match(theme, /<RefractiveGlassLayer radius=\{14\} interactive \/>/);
+});
+
+test("decorative navigation icons inherit one theme-aware token", () => {
+  const css = read("app/globals.css");
+  const cardIcons = read("components/CardIcon.tsx");
+  const skillIcons = read("components/Icons.tsx");
+  const bell = read("components/account/NotificationBell.tsx");
+  const header = read("components/SiteHeader.tsx");
+
+  assert.match(css, /--app-icon-color: var\(--color-indigo-600\)/);
+  assert.match(css, /html\[data-theme="dark"\] body[\s\S]*--app-icon-color: var\(--color-indigo-700\)/);
+  assert.match(css, /\.app-icon-color,[\s\S]*color: var\(--app-icon-color\)/);
+  assert.match(cardIcons, /className=\{`app-icon-color shrink-0/);
+  assert.match(skillIcons, /className=\{`app-icon-color \$\{className\}`\}/);
+  assert.match(bell, /className="app-icon-color relative z-10"/);
+  assert.match(header, /className="app-icon-control rounded-xl/);
+});
+
+test("the full navigation menu is one strongly blurred refractive surface", () => {
+  const css = read("app/globals.css");
+  const header = read("components/SiteHeader.tsx");
+
+  assert.match(header, /className="nav-paper premade-glass/);
+  assert.match(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
+  assert.match(css, /\.nav-paper \{[\s\S]*backdrop-filter: blur\(42px\)/);
+  assert.match(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: absolute;[^}]*inset: -1px/);
+  assert.match(css, /\.nav-paper > \.refractive-glass-layer\[data-interactive\] > span \{[^}]*display: none !important/);
+  assert.doesNotMatch(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: fixed/);
+  assert.match(css, /@supports not[\s\S]*\.nav-paper \{[\s\S]*background: var\(--color-background\)/);
+});
+
+test("navigation groups reform from the menu with compositor-only fallbacks", () => {
+  const css = read("app/globals.css");
+  const header = read("components/SiteHeader.tsx");
+  const frames = css.slice(
+    css.indexOf("@keyframes nav-group-materialise"),
+    css.indexOf("@media (min-width: 640px)", css.indexOf("@keyframes nav-group-materialise")),
+  );
+
+  assert.match(header, /className="nav-menu-group liquid-glass/);
+  assert.match(header, /"--nav-group-delay": `\$\{groupIndex \* 64\}ms`/);
+  assert.doesNotMatch(header, /onAnimation(?:Start|End|Iteration)=/);
+  assert.match(css, /\.nav-menu-group \{[\s\S]*animation: nav-group-materialise/);
+  assert.match(frames, /opacity:[\s\S]*transform:/);
+  assert.doesNotMatch(frames, /(?:filter|backdrop-filter|border-radius):/);
+  assert.match(css, /@media \(hover: none\), \(pointer: coarse\), \(prefers-reduced-transparency: reduce\)[\s\S]*animation-name: nav-group-touch-open/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.nav-menu-group \{[\s\S]*animation: none/);
+});
+
+test("the header icon ships a right-sized immutable static asset without image optimisation", () => {
+  const header = read("components/SiteHeader.tsx");
+  const asset = readFileSync(
+    join(process.cwd(), "components", "assets", "steps-five-layer-rear-108.png"),
+  );
+
+  assert.match(header, /import bandupMarkRear from "@\/components\/assets\/steps-five-layer-rear-108\.png"/);
+  assert.match(header, /src=\{bandupMarkRear\}[\s\S]*sizes="36px"[\s\S]*unoptimized/);
+  assert.doesNotMatch(header, /src="\/icons\/final\/steps-five-layer-rear\.png"/);
+  assert.equal(asset.readUInt32BE(16), 108);
+  assert.equal(asset.readUInt32BE(20), 108);
+  assert.ok(asset.byteLength < 20_000, `header icon is ${asset.byteLength} bytes`);
+});
+
+test("Google's owned iframe is hard-clipped at every wrapper boundary", () => {
+  const css = read("app/globals.css");
+  const component = read("components/account/GoogleSignIn.tsx");
+
+  assert.match(component, /google-signin-viewport[^"]*overflow-hidden rounded-full/);
+  assert.match(component, /google-signin-host[^"]*w-full[^"]*overflow-hidden rounded-full/);
+  assert.match(css, /\.google-signin-viewport \{[\s\S]*clip-path: inset\(0 round 999px\)/);
+  assert.match(css, /\.google-signin-host iframe \{[\s\S]*width: 100% !important/);
+  assert.match(css, /\.google-signin-host,[\s\S]*clip-path: inset\(0\.5px round 999px\)/);
+  assert.match(css, /-webkit-mask-image: -webkit-radial-gradient\(white, black\)/);
+});
+
+test("the notification popover paints exactly one clipped outer glass boundary", () => {
+  const css = read("app/globals.css");
+  const inbox = read("components/account/NotificationInbox.tsx");
+  const popover = inbox.slice(inbox.indexOf('<div role="dialog" aria-label="Notifications"'), inbox.indexOf("export default function NotificationInbox"));
+
+  assert.match(popover, /className="notification-popover liquid-glass/);
+  assert.doesNotMatch(popover, /RefractiveGlassLayer/);
+  assert.doesNotMatch(popover, /premade-glass-content/);
+  assert.match(css, /\.notification-popover \{[\s\S]*contain: paint;[\s\S]*clip-path: inset\(0 round var\(--radius-xl\)\)/);
+});

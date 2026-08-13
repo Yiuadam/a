@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import {
   CENTRED,
   MAX_ZOOM,
@@ -340,7 +341,7 @@ export default function AvatarEditor({
 
           {!loaded && !problem && (
             <p className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
-              Opening your picture…
+              <LoadingIndicator label="Opening your picture…" />
             </p>
           )}
         </div>
@@ -389,7 +390,7 @@ export default function AvatarEditor({
             disabled={!loaded || working}
             onClick={use}
           >
-            {working ? "Preparing…" : "Use this picture"}
+            {working ? <LoadingIndicator label="Preparing…" announce={false} /> : "Use this picture"}
           </button>
           <button type="button" className="btn-secondary" onClick={onCancel}>
             Cancel

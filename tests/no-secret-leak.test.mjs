@@ -21,6 +21,7 @@ import { join } from "node:path";
 /** Names that must never appear anywhere the browser can reach. */
 const FORBIDDEN_NAMES = [
   "SUPABASE_SERVICE_ROLE_KEY",
+  "AVATAR_URL_SIGNING_KEY",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
   "ANTHROPIC_ADMIN_KEY",

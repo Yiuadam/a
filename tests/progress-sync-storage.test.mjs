@@ -7,6 +7,7 @@
   a new tab, browser, or sign-in showed every "New" badge again.
 */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { register } from "node:module";
 import { test } from "node:test";
 import { join } from "node:path";
@@ -16,6 +17,7 @@ register("./alias-resolve.mjs", import.meta.url);
 
 const PROFILE_KEY = "ielts-prep-v1";
 const SESSION_KEY = "bandup.session.v1";
+const PROFILE_UPDATED_KEY = `bandup.progress-updated.v1:${PROFILE_KEY}`;
 
 const durable = new Map([
   [
@@ -30,6 +32,7 @@ const durable = new Map([
 ]);
 const perTab = new Map([
   [PROFILE_KEY, JSON.stringify({ visited: ["reading"], results: [], genTests: [] })],
+  [PROFILE_UPDATED_KEY, "2026-08-11T07:45:00.000Z"],
 ]);
 
 const shelf = (map) => ({
@@ -61,21 +64,41 @@ let remoteSnapshots = [
   },
 ];
 let uploadedSnapshots = null;
+let duringPut = null;
+let fetchFailure = null;
+let historyProtected = false;
 
 globalThis.fetch = async (input, init = {}) => {
   assert.equal(new Headers(init.headers).get("Authorization"), "Bearer test-access-token");
+  if (fetchFailure === "unauthorised") {
+    return Response.json({ error: "Sign in required." }, { status: 401 });
+  }
   if ((init.method ?? "GET") === "GET") {
+    if (fetchFailure === "get") {
+      return Response.json({ error: "Account unavailable." }, { status: 503 });
+    }
     return Response.json({ snapshots: remoteSnapshots });
+  }
+  if (fetchFailure === "put") {
+    return Response.json({ error: "Account unavailable." }, { status: 503 });
   }
   uploadedSnapshots = JSON.parse(String(init.body)).snapshots;
   remoteSnapshots = uploadedSnapshots.map((snapshot) => ({
     ...snapshot,
     clientUpdatedAt: "2026-08-11T08:00:00.000Z",
   }));
-  return Response.json({ at: "2026-08-11T08:00:00.000Z" });
+  if (duringPut) {
+    const mutate = duringPut;
+    duringPut = null;
+    mutate();
+  }
+  return Response.json({
+    at: "2026-08-11T08:00:00.000Z",
+    historyProtected,
+  });
 };
 
-const { syncProgress } = await import(
+const { clearSyncedProgress, syncProgress } = await import(
   pathToFileURL(join(process.cwd(), "lib", "progress", "sync.ts")).href
 );
 
@@ -96,4 +119,216 @@ test("a fresh tab restores visited cards from the account", async () => {
 
   const restored = JSON.parse(perTab.get(PROFILE_KEY));
   assert.deepEqual([...restored.visited].sort(), ["listening", "reading"]);
+});
+
+test("a deletion made while sync is in flight is not rolled back", async () => {
+  const id = "generated-reading-1";
+  const generated = {
+    kind: "reading",
+    createdAt: "2026-08-11T07:00:00.000Z",
+    test: { id, title: "A generated paper" },
+  };
+  const beforeDelete = { results: [], genTests: [generated] };
+  perTab.set(PROFILE_KEY, JSON.stringify(beforeDelete));
+  remoteSnapshots = [
+    {
+      storeKey: PROFILE_KEY,
+      payload: beforeDelete,
+      clientUpdatedAt: "2026-08-11T07:30:00.000Z",
+    },
+  ];
+
+  duringPut = () => {
+    perTab.set(
+      PROFILE_KEY,
+      JSON.stringify({
+        results: [],
+        genTests: [],
+        deletedGenTests: { [id]: "2026-08-11T08:00:00.000Z" },
+      }),
+    );
+  };
+
+  const outcome = await syncProgress();
+  assert.equal(outcome.status, "done");
+
+  const afterSync = JSON.parse(perTab.get(PROFILE_KEY));
+  assert.deepEqual(afterSync.genTests, []);
+  assert.equal(afterSync.deletedGenTests[id], "2026-08-11T08:00:00.000Z");
+});
+
+test("a history-clear tombstone is uploaded and stale sittings stay deleted", async () => {
+  const clearedAt = "2026-08-12T12:00:00.000Z";
+  const staleResult = {
+    module: "reading",
+    testId: "reading-before-clear",
+    testTitle: "Old reading sitting",
+    band: 6,
+    date: "2026-08-10T12:00:00.000Z",
+  };
+
+  perTab.set(
+    PROFILE_KEY,
+    JSON.stringify({
+      results: [],
+      mockReports: [],
+      genTests: [],
+      historyClearedAt: clearedAt,
+    }),
+  );
+  remoteSnapshots = [
+    {
+      storeKey: PROFILE_KEY,
+      payload: { results: [staleResult], genTests: [] },
+      clientUpdatedAt: "2026-08-10T13:00:00.000Z",
+    },
+  ];
+
+  const outcome = await syncProgress();
+  assert.equal(outcome.status, "done");
+
+  const uploadedProfile = uploadedSnapshots.find((snapshot) => snapshot.storeKey === PROFILE_KEY)
+    .payload;
+  assert.equal(uploadedProfile.historyClearedAt, clearedAt);
+  assert.deepEqual(uploadedProfile.results, []);
+
+  const afterSync = JSON.parse(perTab.get(PROFILE_KEY));
+  assert.equal(afterSync.historyClearedAt, clearedAt);
+  assert.deepEqual(afterSync.results, []);
+});
+
+test("an older local scalar does not overwrite a newer account choice", async () => {
+  perTab.set(PROFILE_KEY, JSON.stringify({
+    targetBand: 6.5,
+    results: [],
+    genTests: [],
+  }));
+  perTab.set(PROFILE_UPDATED_KEY, "2026-08-11T06:00:00.000Z");
+  remoteSnapshots = [{
+    storeKey: PROFILE_KEY,
+    payload: { targetBand: 8, results: [], genTests: [] },
+    clientUpdatedAt: "2026-08-11T07:00:00.000Z",
+  }];
+
+  const outcome = await syncProgress();
+  assert.equal(outcome.status, "done");
+  const uploadedProfile = uploadedSnapshots.find((snapshot) => snapshot.storeKey === PROFILE_KEY)
+    .payload;
+  assert.equal(uploadedProfile.targetBand, 8);
+  assert.equal(
+    uploadedSnapshots.find((snapshot) => snapshot.storeKey === PROFILE_KEY).clientUpdatedAt,
+    "2026-08-11T07:00:00.000Z",
+  );
+  assert.equal(JSON.parse(perTab.get(PROFILE_KEY)).targetBand, 8);
+});
+
+test("a failed account clear leaves the browser's working copy byte-for-byte intact", async () => {
+  const before = JSON.stringify({
+    targetBand: 7.5,
+    results: [{
+      module: "reading",
+      testId: "reading-kept-after-outage",
+      testTitle: "A sitting that must remain",
+      band: 7,
+      date: "2026-08-13T12:00:00.000Z",
+    }],
+    genTests: [],
+  });
+  perTab.set(PROFILE_KEY, before);
+  perTab.set(PROFILE_UPDATED_KEY, "2026-08-13T12:01:00.000Z");
+  fetchFailure = "get";
+
+  const outcome = await clearSyncedProgress("2026-08-13T12:02:00.000Z");
+
+  fetchFailure = null;
+  assert.equal(outcome.status, "unavailable");
+  assert.equal(perTab.get(PROFILE_KEY), before);
+  assert.equal(perTab.get(PROFILE_UPDATED_KEY), "2026-08-13T12:01:00.000Z");
+});
+
+test("an expired account session cannot turn a device clear into a temporary clear", async () => {
+  const before = JSON.stringify({
+    results: [{
+      module: "listening",
+      testId: "listening-kept-after-401",
+      testTitle: "Another sitting that must remain",
+      band: 6.5,
+      date: "2026-08-13T12:00:00.000Z",
+    }],
+    genTests: [],
+  });
+  perTab.set(PROFILE_KEY, before);
+  fetchFailure = "unauthorised";
+
+  const outcome = await clearSyncedProgress("2026-08-13T12:03:00.000Z");
+
+  fetchFailure = null;
+  assert.equal(outcome.status, "signed-out");
+  assert.equal(perTab.get(PROFILE_KEY), before);
+});
+
+test("a newly restricted organisation policy leaves the browser history in place", async () => {
+  const before = JSON.stringify({
+    results: [{
+      module: "writing",
+      testId: "writing-protected-by-organisation",
+      testTitle: "Protected sitting",
+      band: 7,
+      date: "2026-08-13T12:00:00.000Z",
+    }],
+    genTests: [],
+  });
+  perTab.set(PROFILE_KEY, before);
+  remoteSnapshots = [{
+    storeKey: PROFILE_KEY,
+    payload: JSON.parse(before),
+    clientUpdatedAt: "2026-08-13T12:00:00.000Z",
+  }];
+  historyProtected = true;
+
+  const outcome = await clearSyncedProgress("2026-08-13T12:04:00.000Z");
+
+  historyProtected = false;
+  assert.equal(outcome.status, "restricted");
+  assert.equal(perTab.get(PROFILE_KEY), before);
+});
+
+test("an accepted account clear writes the tombstone locally only after the PUT", async () => {
+  const result = {
+    module: "speaking",
+    testId: "speaking-cleared",
+    testTitle: "Cleared sitting",
+    band: 7.5,
+    date: "2026-08-13T12:00:00.000Z",
+  };
+  perTab.set(PROFILE_KEY, JSON.stringify({ results: [result], genTests: [] }));
+  remoteSnapshots = [{
+    storeKey: PROFILE_KEY,
+    payload: { results: [result], genTests: [] },
+    clientUpdatedAt: "2026-08-13T12:00:00.000Z",
+  }];
+  const clearedAt = "2026-08-13T12:05:00.000Z";
+
+  const outcome = await clearSyncedProgress(clearedAt);
+
+  assert.equal(outcome.status, "done");
+  const uploadedProfile = uploadedSnapshots.find((snapshot) => snapshot.storeKey === PROFILE_KEY)
+    .payload;
+  assert.equal(uploadedProfile.historyClearedAt, clearedAt);
+  assert.deepEqual(uploadedProfile.results, []);
+  const localProfile = JSON.parse(perTab.get(PROFILE_KEY));
+  assert.equal(localProfile.historyClearedAt, clearedAt);
+  assert.deepEqual(localProfile.results, []);
+});
+
+test("the device-clear UI never clears history before account confirmation", () => {
+  const source = readFileSync(
+    join(process.cwd(), "components", "account", "ClearDeviceSection.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(source, /import[^\n]*clearHistory/);
+  assert.ok(source.indexOf("await clearSyncedProgress()") < source.indexOf("window.localStorage.clear()"));
+  assert.match(source, /sync\.status === "signed-out"/);
+  assert.match(source, /sync\.status === "restricted"/);
+  assert.match(source, /This browser has kept its copy for now/);
 });

@@ -72,12 +72,14 @@ export default function BillingPage() {
   const items: HubItem[] = [
     {
       href: "/pricing",
+      icon: "plans",
       title: "Plans & pricing",
       detail: "Compare, subscribe or manage",
       value: definition?.name,
     },
     {
       href: "/billing/usage",
+      icon: "usage",
       title: "Your usage",
       detail:
         nextReturnAt === null

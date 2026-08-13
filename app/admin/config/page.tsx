@@ -1,9 +1,12 @@
 "use client";
 
 import ConsoleShell, { NotFound } from "@/components/admin/ConsoleShell";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { ConfigList } from "@/components/admin/ConsoleParts";
 import { useTier } from "@/lib/billing/useTier";
 import { useConsole } from "@/lib/admin/useConsole";
+import CloudflareSettingsParity from "@/components/admin/CloudflareSettingsParity";
+import CloudflareMigrationReadiness from "@/components/admin/CloudflareMigrationReadiness";
 
 /*
   What is wired up, and what isn't.
@@ -18,7 +21,7 @@ export default function ConfigScreen() {
   const { phase, checks } = useConsole();
 
   if (phase === "loading") {
-    return <p className="px-5 py-6 text-sm text-slate-500">Checking…</p>;
+    return <p className="px-5 py-6 text-sm text-slate-500"><LoadingIndicator label="Checking…" /></p>;
   }
   if (phase === "denied") {
     return <NotFound mayNeedSignIn={account.phase === "ready" && !account.signedIn} />;
@@ -30,7 +33,11 @@ export default function ConfigScreen() {
       lead="The variables and database functions the app depends on."
       back={{ href: "/admin", label: "Overview" }}
     >
-      <ConfigList checks={checks} />
+      <div className="space-y-3">
+        <ConfigList checks={checks} />
+        <CloudflareMigrationReadiness />
+        <CloudflareSettingsParity />
+      </div>
     </ConsoleShell>
   );
 }

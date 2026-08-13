@@ -93,6 +93,77 @@ timezone the day belongs to.
 | `lib/http/trust.ts` | The forgeable-header list the tests enforce. |
 | `app/api/account/status/` | What the UI is allowed to know. |
 
+### Private avatars after learner-data cutover
+
+Supabase Auth remains the identity issuer in every learner data mode. In
+`supabase` and `dual`, profile rows and avatar objects therefore keep using the
+existing Supabase profile/storage path. Only `cloudflare` changes the
+application-data authority: profile fields and the live avatar pointer come
+from D1, while the validated condensed image is stored through the private
+`BANDUP_FILES` R2 binding.
+
+R2 is not public. A profile response contains a one-hour HMAC grant whose
+payload binds the Supabase user id, the exact current object key and an expiry.
+`/api/account/avatar/file` verifies that grant, checks that the same user's D1
+profile still points at the exact key, and only then streams the R2 body. This
+is why a normal `<img>` works even though BandUp sessions use an Authorization
+header rather than cookies; the short-lived URL is the image request's bearer
+credential. A replaced, cleared, tampered, expired or cross-user grant fails.
+
+Replacement order is storage, then the D1 pointer, then deletion of the old R2
+object. Clearing is pointer first, object deletion second. A failed pointer
+write can leave only an unreferenced new object; it cannot delete the avatar
+that the learner's profile still names.
+
+### Account deletion during Cloudflare cutover
+
+Supabase Auth remains the identity authority. When either the learner-data or
+organization-data domain uses `dual`/`cloudflare`, account deletion follows a
+recoverable four-step order with five durable states:
+
+1. D1 creates a `prepared` tombstone, freezes new learner writes, captures all
+   referenced R2 keys, and lists the learner-owned avatar/progress/attempt
+   prefixes to catch superseded objects. D1 ownership triggers close the race
+   with a write whose application preflight already ran; a large JSON upload
+   crossing that boundary atomically joins the deletion manifest instead.
+2. D1 first records `auth_delete_started`, the point after which the tombstone
+   cannot be cancelled. Only then does the fixed Supabase service operation
+   delete the Auth user (and therefore the Supabase rows that cascade from it).
+3. A confirmed success or not-found response records `auth_deleted`, then D1
+   transactionally removes profile, progress,
+   usage, subscription, membership, request and attempt rows, scrubs the
+   retained `app_users` identity row, and moves to `data_deleted`.
+4. R2 keys are deleted in bounded batches. Manifest rows disappear only after
+   R2 confirms deletion; an empty manifest advances the minimal tombstone to
+   immutable `complete`.
+
+The temporary cleanup email is cleared in stage 3. A completed tombstone keeps
+only the opaque user id, operation/timestamps and counts; it prevents a delayed
+webhook or replica from resurrecting the account. Subject-tagged migration
+copies are removed with the runtime data. Aggregate migration checkpoints,
+provider event ids, organizations, and immutable organization audit/permanent-
+removal tombstones remain for reconciliation and governance, without retaining
+the learner's profile, essay, transcript, progress payload or avatar.
+
+Failure before `auth_delete_started` removes the `prepared` tombstone and leaves
+the account untouched. An ambiguous Auth response leaves
+`auth_delete_started` frozen; it is never cancelled or treated as proof of
+deletion. A confirmed Auth deletion records `auth_deleted`, returns HTTP 202
+so the client signs out honestly, and schedules D1/R2 cleanup with Next's
+post-response `after` hook. D1 retains the exact stage and undeleted object
+manifest if that bounded callback does not finish, so the owner recovery route
+can safely repeat it.
+`completeCloudflareAccountDeletion` is idempotent: operational recovery may
+retry rows in `auth_deleted` or `data_deleted`; `prepared` and
+`auth_delete_started` must first be reconciled against Supabase Auth and must
+never be guessed to mean deleted. The owner-only
+`/api/admin/account-deletions` route lists non-complete jobs and reconciles one
+`userId`: it cancels only a still-`prepared` job whose Auth user definitely
+exists, completes only when Auth definitely does not exist, and changes nothing
+when Supabase cannot answer.
+Alert on any non-`complete` row older than ten minutes. Never delete a pending
+tombstone or its object manifest by hand.
+
 ### Why the entitlement lives in one function
 
 `resolveEntitlement(userId)` takes a user id and reads the database. It has no

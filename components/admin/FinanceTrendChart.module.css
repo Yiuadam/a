@@ -1,13 +1,17 @@
 .root {
-  --finance-line: color-mix(in srgb, var(--color-amber-500) 62%, var(--color-slate-500));
+  --finance-line: color-mix(in srgb, var(--color-indigo-500) 82%, var(--color-slate-500));
   --finance-grid: color-mix(in srgb, var(--color-slate-400) 20%, transparent);
   --finance-axis: color-mix(in srgb, var(--color-slate-400) 42%, transparent);
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--color-slate-300) 55%, transparent);
-  border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-2xl);
+  background: color-mix(in srgb, var(--glass-fill-strong) 68%, transparent);
   padding: 0.7rem 0.8rem 0.45rem;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-slate-900) 5%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 7px 22px color-mix(in srgb, var(--glass-shadow) 56%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(108%);
+  backdrop-filter: blur(24px) saturate(108%);
 }
 
 .positive { --finance-line: color-mix(in srgb, #3f8768 72%, var(--color-slate-500)); }
@@ -120,4 +124,12 @@
 
 @media (max-width: 26rem) {
   .root { padding-inline: 0.68rem; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .root {
+    background: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }

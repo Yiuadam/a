@@ -59,14 +59,14 @@ test("stale HKMA data is refused rather than used silently", () => {
   );
 });
 
-test("provider-reported fractional cents stay visible above one dollar", () => {
+test("money displays are consistently rounded to two decimal places", () => {
   assert.equal(
     financeFormat.formatExactMoney({ currency: "USD", minorUnits: "123.45" }),
-    "$1.2345",
+    "$1.23",
   );
   assert.equal(
     financeFormat.formatExactMoney({ currency: "USD", minorUnits: "0.0001" }),
-    "$0.000001",
+    "$0.00",
   );
 });
 

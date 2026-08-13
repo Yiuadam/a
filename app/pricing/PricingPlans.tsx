@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { useTier } from "@/lib/billing/useTier";
@@ -448,14 +449,14 @@ function PaidAction({
           onClick={() => onStart("/api/billing/portal")}
           className="btn-secondary w-full"
         >
-          {busy ? "Opening…" : "Manage billing"}
+          {busy ? <LoadingIndicator label="Opening…" announce={false} /> : "Manage billing"}
         </button>
       </div>
     );
   }
 
   if (configPhase === "loading" || account.phase === "loading") {
-    return <p className="text-sm text-slate-500">Checking…</p>;
+    return <p className="text-sm text-slate-500"><LoadingIndicator label="Checking…" /></p>;
   }
 
   /*
@@ -551,7 +552,7 @@ function PaidAction({
             onClick={() => onStart("/api/billing/checkout", { plan: planId })}
             className="pricing-subscribe-button btn-primary w-full"
           >
-            {busy ? "Opening checkout…" : "Subscribe by card"}
+            {busy ? <LoadingIndicator label="Opening checkout…" announce={false} /> : "Subscribe by card"}
           </button>
         </>
       )}

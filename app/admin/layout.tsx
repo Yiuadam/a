@@ -1,3 +1,5 @@
+import styles from "@/components/admin/AdminConsole.module.css";
+
 /*
   The console's own chrome: a sidebar, and a page area beside it.
 
@@ -13,5 +15,5 @@
 */
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-[100dvh] bg-slate-100">{children}</div>;
+  return <div className={styles.canvas}>{children}</div>;
 }

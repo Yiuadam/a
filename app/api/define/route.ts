@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey } from "@/lib/anthropic";
+import { requireFeature } from "@/lib/billing/gate";
 import { checkAiUsage } from "@/lib/usage/guard";
 import { withCors } from "@/lib/http/cors";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
@@ -41,9 +42,6 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ error: UNAVAILABLE }, { status: 503 });
   }
 
-  const denied = await checkAiUsage(req, "define");
-  if (denied) return denied;
-
   let body: unknown;
   try {
     body = await req.json();
@@ -61,6 +59,15 @@ async function handlePOST(req: Request) {
     );
   }
   const context = typeof raw?.context === "string" ? raw.context.slice(0, 400) : "";
+
+  /* Validate first, then ask whether this account owns the feature, and only
+     then spend from its allowance. A malformed request or a plan without AI
+     never reaches the model and must not appear in the owner's dashboard as
+     an AI attempt. */
+  const unentitled = await requireFeature(req, "define");
+  if (unentitled) return unentitled;
+  const denied = await checkAiUsage(req, "define");
+  if (denied) return denied;
 
   try {
     const definition = await callClaudeJSON<{
