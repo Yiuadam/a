@@ -188,18 +188,39 @@ export async function setLearnerAccountIdentity(
   if (status !== "ok" || !cloudflareProfileReplicaEnabled()) {
     return { status, cloudflareReplica: null };
   }
-  const stored = await getSupabaseLearnerProfile(user.id).catch(() => null);
-  if (!stored?.updatedAt) return { status, cloudflareReplica: false };
+  /*
+    Five paths set cloudflareReplica false and three of them used to say
+    nothing at all, so a caller saw one indistinguishable failure and an hour
+    went into narrowing it by hand. Each now names itself. The identifiers are
+    fixed strings chosen here, never an upstream message, so nothing about the
+    database reaches a log that a person reads.
+  */
+  const stored = await getSupabaseLearnerProfile(user.id).catch((error) => {
+    console.error(JSON.stringify({
+      message: "identity replica: profile read-back threw",
+      error: error instanceof Error ? error.message : String(error),
+    }));
+    return null;
+  });
+  if (!stored) {
+    console.error(JSON.stringify({ message: "identity replica: profile read-back returned nothing" }));
+    return { status, cloudflareReplica: false };
+  }
+  if (!stored.updatedAt) {
+    console.error(JSON.stringify({ message: "identity replica: profile has no source clock" }));
+    return { status, cloudflareReplica: false };
+  }
   try {
-    return {
-      status,
-      cloudflareReplica: await replicateAccountIdentityDurably(
-        user,
-        identity,
-        stored.updatedAt,
-      ),
-    };
-  } catch {
+    const mirrored = await replicateAccountIdentityDurably(user, identity, stored.updatedAt);
+    if (!mirrored) {
+      console.error(JSON.stringify({ message: "identity replica: mirror reported failure" }));
+    }
+    return { status, cloudflareReplica: mirrored };
+  } catch (error) {
+    console.error(JSON.stringify({
+      message: "identity replica: mirror threw",
+      error: error instanceof Error ? error.message : String(error),
+    }));
     return { status, cloudflareReplica: false };
   }
 }
