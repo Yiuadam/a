@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:glass": "node scripts/dev-glass-lab.mjs",
+    "dev:live": "node scripts/dev-live.mjs",
     "types": "wrangler types",
     "prebuild": "npm run types",
     "build": "next build",
