@@ -81,6 +81,7 @@ function FinanceReport({ finance }: { finance: FinanceData }) {
         <HkdEstimate
           totals={hkdEstimate[range]}
           fx={hkdEstimate.fx}
+          fxFailureReason={finance.providers.fx.reason?.message}
         />
       ) : (
         <section className="card rounded-2xl border border-slate-200 bg-surface p-3.5">
@@ -209,7 +210,16 @@ function MoneyCard({ label, values, hint }: { label: string; values: ExactMoney[
   );
 }
 
-function HkdEstimate({ totals, fx }: { totals: HkdFinanceTotals; fx: HkdFxSnapshot }) {
+function HkdEstimate({
+  totals,
+  fx,
+  fxFailureReason,
+}: {
+  totals: HkdFinanceTotals;
+  fx: HkdFxSnapshot;
+  /** Why the live HKMA feed failed, shown alongside the reference-rate note below when `fx.approximate` is true. */
+  fxFailureReason?: string;
+}) {
   const values = [
     ["Customer paid", totals.customerPaid],
     ["Stripe fees", totals.stripeFees],
@@ -223,13 +233,30 @@ function HkdEstimate({ totals, fx }: { totals: HkdFinanceTotals; fx: HkdFxSnapsh
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 id="hkd-estimate-heading" className="text-sm font-semibold text-slate-900">Estimated in HKD</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Planning estimate only. Hosting and tax are not included.</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Planning estimate only. Hosting and tax are not included.
+            {/*
+              The at-a-glance label the owner asked for: colour alone is
+              never the only signal (the wording says it plainly too), but on
+              a page full of neutral grey text an amber sentence is the part
+              that stops a scanning eye, the same way the unrecognised-Stripe-
+              category notice further down this page already does.
+            */}
+            {fx.approximate && (
+              <span className="font-medium text-amber-700">
+                {" "}
+                {`${fxFailureReason ?? "The live HKMA rate could not be loaded."} A fixed reference rate was used instead, so these figures are indicative only.`}
+              </span>
+            )}
+          </p>
         </div>
         <a
           href={fx.sourceUrl}
           target="_blank"
           rel="noreferrer"
-          className="text-xs text-slate-500 underline underline-offset-4 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          className={`text-xs underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+            fx.approximate ? "text-amber-700 hover:text-amber-900" : "text-slate-500 hover:text-slate-900"
+          }`}
         >
           {fx.source}, as of {date(fx.asOf)}
           <span className="sr-only"> (opens in a new tab)</span>
