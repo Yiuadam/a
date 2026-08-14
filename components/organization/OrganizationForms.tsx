@@ -148,8 +148,12 @@ export function OrganizationApplicationForm({ act, busy }: { act: Act; busy: boo
   const set = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
   return (
+    // This card sits beside JoinOrganizationForm in a two-up grid that the
+    // parent now stretches to equal height, and h-full is what lets this
+    // card take up that stretched cell instead of shrink-wrapping its own,
+    // shorter content.
     <details
-      className="card group min-w-0 max-w-full self-start !rounded-[var(--radius-xl)] !p-0"
+      className="card group min-w-0 max-w-full h-full !rounded-[var(--radius-xl)] !p-0"
       data-organization-application
     >
       <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 sm:px-4 [&::-webkit-details-marker]:hidden">

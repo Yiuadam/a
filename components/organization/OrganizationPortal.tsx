@@ -466,6 +466,7 @@ export default function OrganizationPortal({
         studentView === "settings" ? (
           <StudentOrganizationSettings
             membership={membership}
+            portal={portal}
             act={act}
             busy={acting}
             onBack={() => openManagerView("overview", true)}
@@ -935,7 +936,11 @@ function NoMembership({ portal, act, busy, previewRole }: { portal: Portal; act:
       || application.status === "under_review"
   ) ?? false;
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-2">
+    // Stretch (the grid default) rather than items-start: the create card
+    // holds less than the join card, and starting both at the same height
+    // instead of shrink-wrapping each to its own content is what stops the
+    // create card looking stunted beside its sibling.
+    <div className="grid gap-4 lg:grid-cols-2">
       {portal.eligibility.canJoin ? (
         <JoinOrganizationForm act={act} busy={busy} previewRole={previewRole} />
       ) : (
@@ -950,6 +955,41 @@ function NoMembership({ portal, act, busy, previewRole }: { portal: Portal; act:
         </GlassSection>
       )}
     </div>
+  );
+}
+
+// The server has always allowed a member to apply to create a second
+// organisation (see canApplyToCreate), but OrganizationApplicationForm used
+// to render only inside NoMembership, the screen for people with no
+// organisation at all. That meant belonging to one organisation was the one
+// thing that stopped you creating a second, and OrganizationSwitcher only
+// appears once a second membership exists — so the escape from either gate
+// was hidden behind the other. Settings is reachable by everyone who already
+// has a workspace (managers, owners and active students), which makes it the
+// right home for the same form and application list NoMembership already
+// uses.
+function CreateAnotherOrganizationSection({ portal, act, busy }: { portal: Portal; act: Act; busy: boolean }) {
+  const hasOpenApplication = portal.applications?.some((application) =>
+    application.status === "draft"
+      || application.status === "submitted"
+      || application.status === "under_review"
+  ) ?? false;
+  return (
+    <>
+      {portal.eligibility.canApplyToCreate && !hasOpenApplication && (
+        <GlassSection
+          title="Create another organisation"
+          lead="This will not affect the organisation you are already in. Once you belong to more than one, a switcher for moving between them appears in the header."
+        >
+          <OrganizationApplicationForm act={act} busy={busy} />
+        </GlassSection>
+      )}
+      {portal.applications && portal.applications.length > 0 && (
+        <GlassSection title="Your applications">
+          <ApplicationList applications={portal.applications} act={act} busy={busy} />
+        </GlassSection>
+      )}
+    </>
   );
 }
 
@@ -1029,11 +1069,13 @@ function StudentArea({
 
 function StudentOrganizationSettings({
   membership,
+  portal,
   act,
   busy,
   onBack,
 }: {
   membership: OrganizationMembership;
+  portal: Portal;
   act: Act;
   busy: boolean;
   onBack: () => void;
@@ -1041,6 +1083,7 @@ function StudentOrganizationSettings({
   const priorPending = membership.preJoinHistoryRequestStatus === "pending";
   const futurePending = membership.futureHistoryRequestStatus === "pending";
   return (
+    <>
     <GlassSection
       title="Organisation settings"
       lead={`Privacy and membership controls for ${membership.organization.name}.`}
@@ -1102,6 +1145,8 @@ function StudentOrganizationSettings({
         </section>
       </div>
     </GlassSection>
+    <CreateAnotherOrganizationSection portal={portal} act={act} busy={busy} />
+    </>
   );
 }
 
@@ -2309,6 +2354,7 @@ function ManagerArea({
       )}
 
       {view === "settings" && (
+        <>
         <GlassSection
           title="Organisation settings"
           lead="Workspace access, privacy and membership controls."
@@ -2350,6 +2396,8 @@ function ManagerArea({
             />
           )}
         </GlassSection>
+        <CreateAnotherOrganizationSection portal={portal} act={act} busy={busy} />
+        </>
       )}
     </div>
   );
@@ -2618,11 +2666,13 @@ function InvitationForm({
       <div className="grid min-w-0 gap-2.5 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-end">
         <div className="min-w-0">
           <span className="mb-1 block text-xs font-semibold text-slate-600">Invite as</span>
+          {/* The role chooser and the username field beside it are one control
+              pair and must line up at the same height, so the compact variant
+              is deliberately not used here. */}
           <GlassSelect
             label="Invitation role"
             value={role}
             options={roleOptions}
-            compact
             className="w-full"
             onValueChange={(value) => {
               setRole(value as typeof role);
@@ -2755,13 +2805,13 @@ function UsernameInvitationForm({
           <input
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            className="input min-h-10 w-full rounded-xl border border-slate-300 bg-surface/60 px-3 py-2 text-sm text-slate-900"
+            className="input min-h-11 w-full rounded-xl border border-slate-300 bg-surface/60 px-3 py-2 text-sm text-slate-900"
             autoComplete="off"
             placeholder="@student.username"
             maxLength={31}
           />
         </label>
-        <button type="submit" className="btn-secondary min-h-10 !px-4" disabled={searching || !username.trim()}>
+        <button type="submit" className="btn-secondary min-h-11 !px-4" disabled={searching || !username.trim()}>
           {searching ? <LoadingIndicator label="Searching…" announce={false} /> : "Find account"}
         </button>
       </form>

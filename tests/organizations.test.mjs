@@ -808,7 +808,10 @@ test("creating an organization stays behind a compact optional card", () => {
   assert.match(forms, /<details[\s\S]*data-organization-application/);
   assert.match(forms, /<summary[\s\S]*Create an organisation[\s\S]*For people who run a school or teaching team\./);
   assert.match(forms, /group-open:rotate-90/);
-  assert.match(portal, /grid items-start gap-4 lg:grid-cols-2/);
+  // The grid now stretches (the CSS grid default) instead of items-start, so
+  // the create card can match the join card's height; this still asserts
+  // the same two-up grid layout, just without the alignment override.
+  assert.match(portal, /grid gap-4 lg:grid-cols-2/);
   assert.match(portal, /const hasOpenApplication = portal\.applications\?\.some/);
   assert.match(portal, /portal\.eligibility\.canApplyToCreate && !hasOpenApplication && \([\s\S]*<OrganizationApplicationForm/);
   assert.doesNotMatch(portal, /Applications are not available for this account\./);
