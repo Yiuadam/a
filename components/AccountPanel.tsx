@@ -16,6 +16,7 @@ import { TIERS, type Tier } from "@/lib/billing/tiers";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { AccountStatus } from "@/components/account/types";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import { lastSyncedAt, lastSyncFailed, subscribeSyncStatus } from "@/lib/progress/sync";
 
 /*
   The account screen, and the only place in the app where signing in happens.
@@ -273,6 +274,49 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
           app — anything you buy there works here straight away.
         </p>
       )}
+      <SyncStatusLine />
     </>
   );
+}
+
+/*
+  Progress sync itself has no control on this page — see the file header, it
+  runs automatically and a learner should not have to manage it. But a sync
+  that has been silently failing on every attempt is worse than one with no
+  control at all, which is how cross-device sync going quietly wrong in
+  production stayed undiagnosed. This reads the state autosync already leaves
+  behind (lib/progress/sync.ts) rather than triggering anything of its own.
+
+  A device that has never even attempted a sync renders nothing: that is the
+  ordinary first moment after a brand-new sign-in, not a fault worth a line
+  about. `useSyncExternalStore`'s server snapshot is a fixed `null`/`false`
+  rather than `lastSyncedAt`/`lastSyncFailed` themselves, so the very first
+  client render matches the server-rendered markup exactly and only repaints
+  with the real, browser-only answer once mounted.
+*/
+function SyncStatusLine() {
+  const at = useSyncExternalStore(subscribeSyncStatus, lastSyncedAt, () => null);
+  const failed = useSyncExternalStore(subscribeSyncStatus, lastSyncFailed, () => false);
+
+  if (at === null && !failed) return null;
+
+  return (
+    <p className="mt-3 text-[13px] leading-5 text-slate-500">
+      {at ? `This device last synced ${friendlyWhen(at)}.` : "This device has not synced yet."}
+      {failed
+        ? " It could not sync just now — nothing here is lost, and it will try again automatically."
+        : ""}
+    </p>
+  );
+}
+
+/** A short, human moment for a sync timestamp — plain enough for a status line. */
+function friendlyWhen(value: string): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "recently";
+  const elapsed = Date.now() - date.getTime();
+  if (elapsed >= 0 && elapsed < 60_000) return "just now";
+  if (elapsed >= 0 && elapsed < 3_600_000) return `${Math.max(1, Math.floor(elapsed / 60_000))}m ago`;
+  if (elapsed >= 0 && elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)}h ago`;
+  return `on ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(date)}`;
 }

@@ -38,6 +38,13 @@ type StoreKey = (typeof KEYS)[number];
 
 /** Where the last successful sync is remembered, so it can be shown. */
 const SYNCED_AT = "bandup.sync.v1";
+/*
+  Whether this device's most recent sync attempt failed to reach the account,
+  so a sync that has been silently failing on every attempt is visible on the
+  account page instead of merely looking like it has not run in a while.
+  Cleared the moment an attempt next succeeds.
+*/
+const SYNC_FAILED = "bandup.sync-failed.v1";
 
 export type SyncOutcome =
   | { status: "done"; at: string }
@@ -199,7 +206,10 @@ async function syncProgressWithOptions(
   };
 
   // --- 3. write it to the account ------------------------------------------
-  let at: string;
+  // `at` is only ever set once the account has actually confirmed the write.
+  // Its presence is what step 4 below uses to tell a confirmed sync from a
+  // merge that only made it as far as this device.
+  let at: string | null = null;
   const accepted: Record<StoreKey, Snapshot> = Object.fromEntries(
     KEYS.map((storeKey) => [storeKey, {
       storeKey,
@@ -221,34 +231,55 @@ async function syncProgressWithOptions(
       }),
     });
     if (res.status === 401) return { status: "signed-out" };
-    if (!res.ok) return { status: "unavailable" };
-    const response = (await res.json()) as {
-      at?: string;
-      snapshots?: { storeKey?: unknown; payload?: unknown; clientUpdatedAt?: unknown }[];
-      historyProtected?: unknown;
-    };
-    at = response.at ?? new Date().toISOString();
-    historyProtected = response.historyProtected === true;
-    if (Array.isArray(response.snapshots)) {
-      const serverAccepted = new Map<StoreKey, Snapshot>(
-        response.snapshots.flatMap((snapshot) =>
-          typeof snapshot.storeKey === "string" && KEYS.includes(snapshot.storeKey as StoreKey)
-            ? [[snapshot.storeKey as StoreKey, {
-                storeKey: snapshot.storeKey,
-                payload: snapshot.payload,
-                clientUpdatedAt: typeof snapshot.clientUpdatedAt === "string"
-                  ? snapshot.clientUpdatedAt
-                  : at,
-              }] as const]
-            : [],
-        ),
-      );
-      for (const key of KEYS) {
-        accepted[key] = serverAccepted.get(key) ?? {
-          storeKey: key,
-          payload: merged[key],
-          clientUpdatedAt: at,
-        };
+    if (!res.ok) {
+      /*
+        This used to return { status: "unavailable" } here, which discarded
+        the merge above along with everything step 1 had just fetched from the
+        account — so a device that could download fine but not upload showed
+        nothing at all rather than merely lagging. `merged` is local unioned
+        with the account, a superset of what this device already had, so
+        falling through to step 4 and writing it locally can only add to this
+        device's copy, never remove from it.
+
+        A history clear is the one case that must keep returning immediately.
+        `accepted` still holds the *hypothetical* cleared profile built in step
+        2, and this device's real history must not be replaced by that unless
+        the account actually accepted the clear — see the guard below step 4.
+      */
+      if (options.clearHistoryAt) return { status: "unavailable" };
+    } else {
+      const response = (await res.json()) as {
+        at?: string;
+        snapshots?: { storeKey?: unknown; payload?: unknown; clientUpdatedAt?: unknown }[];
+        historyProtected?: unknown;
+      };
+      // Bound to its own const, rather than read back off `at` below: `at` is
+      // now `string | null` for the failure path above, and a closure is not
+      // guaranteed to see the narrowing from the assignment that follows.
+      const confirmedAt = response.at ?? new Date().toISOString();
+      at = confirmedAt;
+      historyProtected = response.historyProtected === true;
+      if (Array.isArray(response.snapshots)) {
+        const serverAccepted = new Map<StoreKey, Snapshot>(
+          response.snapshots.flatMap((snapshot) =>
+            typeof snapshot.storeKey === "string" && KEYS.includes(snapshot.storeKey as StoreKey)
+              ? [[snapshot.storeKey as StoreKey, {
+                  storeKey: snapshot.storeKey,
+                  payload: snapshot.payload,
+                  clientUpdatedAt: typeof snapshot.clientUpdatedAt === "string"
+                    ? snapshot.clientUpdatedAt
+                    : confirmedAt,
+                }] as const]
+              : [],
+          ),
+        );
+        for (const key of KEYS) {
+          accepted[key] = serverAccepted.get(key) ?? {
+            storeKey: key,
+            payload: merged[key],
+            clientUpdatedAt: confirmedAt,
+          };
+        }
       }
     }
   } catch {
@@ -309,12 +340,18 @@ async function syncProgressWithOptions(
       newestStamp(learnerItemUpdatedAt(key), accepted[key].clientUpdatedAt),
     );
   }
-  try {
-    // This timestamp is a device preference/status line, not learner work, so
-    // it deliberately remains durable across tabs.
-    window.localStorage.setItem(SYNCED_AT, at);
-  } catch {
-    // Cosmetic only — it drives the "last synced" line on the account page.
+  // Only a confirmed write earns a "last synced" time. A PUT that failed
+  // reaches this point too now (see step 3), and must not claim a sync that
+  // did not happen — that is what the account page reads to say a device is
+  // up to date, and a merge sitting only in this browser is not that.
+  if (at) {
+    try {
+      // This timestamp is a device preference/status line, not learner work, so
+      // it deliberately remains durable across tabs.
+      window.localStorage.setItem(SYNCED_AT, at);
+    } catch {
+      // Cosmetic only — it drives the "last synced" line on the account page.
+    }
   }
 
   /*
@@ -327,12 +364,17 @@ async function syncProgressWithOptions(
   for (const key of KEYS) {
     window.dispatchEvent(new StorageEvent("storage", { key }));
   }
+  if (at) window.dispatchEvent(new StorageEvent("storage", { key: SYNCED_AT }));
 
-  return { status: "done", at };
+  // A failed PUT falls all the way through to here now, with `at` left null —
+  // see the WHY comment in step 3. The merge has been written locally either
+  // way; only the reported status differs.
+  return at ? { status: "done", at } : { status: "unavailable" };
 }
 
 export async function syncProgress(): Promise<SyncOutcome> {
   const outcome = await syncProgressWithOptions();
+  rememberSyncHealth(outcome);
   // `restricted` is only produced when clearHistoryAt is supplied. Keep the
   // public autosync result narrow, with a defensive fallback if that invariant
   // is ever changed.
@@ -350,7 +392,31 @@ export async function syncProgress(): Promise<SyncOutcome> {
 export async function clearSyncedProgress(
   at = new Date().toISOString(),
 ): Promise<ClearSyncedProgressOutcome> {
-  return syncProgressWithOptions({ clearHistoryAt: at });
+  const outcome = await syncProgressWithOptions({ clearHistoryAt: at });
+  rememberSyncHealth(outcome);
+  return outcome;
+}
+
+/*
+  Recorded once, here, so both public entry points above leave the same
+  trail behind: a device that cannot sync should say so on the account page
+  whether the failing attempt was an ordinary autosync pass or a history
+  clear. `restricted` counts as reaching the account — the server gave a real
+  answer, it just declined the clear on policy grounds, which is not an
+  outage. `signed-out` touches neither flag: an expired token is neither new
+  evidence the write pipeline is broken nor evidence that a previous failure
+  is now fixed, so whatever was last recorded is left standing until an
+  attempt actually resolves it one way or the other.
+*/
+function rememberSyncHealth(outcome: ClearSyncedProgressOutcome): void {
+  if (typeof window === "undefined" || outcome.status === "signed-out") return;
+  try {
+    if (outcome.status === "unavailable") window.localStorage.setItem(SYNC_FAILED, "1");
+    else window.localStorage.removeItem(SYNC_FAILED);
+  } catch {
+    // Cosmetic only, exactly like the SYNCED_AT write in step 4 above.
+  }
+  window.dispatchEvent(new StorageEvent("storage", { key: SYNC_FAILED }));
 }
 
 /** When this browser last completed a sync, or null. */
@@ -361,4 +427,32 @@ export function lastSyncedAt(): string | null {
   } catch {
     return null;
   }
+}
+
+/** Whether this browser's most recent sync attempt failed to reach the account. */
+export function lastSyncFailed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(SYNC_FAILED) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Subscribes to changes in this device's sync status, for `useSyncExternalStore`.
+ *
+ * The same trick lib/store.ts and lib/account.ts use: a real `storage` event
+ * only reaches *other* tabs, so the writes above dispatch a synthetic one on
+ * this tab too. Without this, the account page would only ever show the sync
+ * status as it stood at the moment the page was loaded, not the moment a
+ * background autosync actually succeeded or started failing.
+ */
+export function subscribeSyncStatus(onChange: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === SYNCED_AT || e.key === SYNC_FAILED || e.key === null) onChange();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
 }

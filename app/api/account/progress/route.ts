@@ -88,6 +88,35 @@ function submittedProgressSnapshots(value: unknown): SubmittedProgressSnapshot[]
   return parsed;
 }
 
+/*
+  A stable, machine-readable partner to the human message below. Without this
+  a client sees a bare 413 or 503 and cannot tell a request that was simply
+  too big apart from a policy check that could not run or an atomic write
+  that failed — three different situations, one indistinguishable response.
+  `reason` is always one of the fixed strings in the type below, chosen here
+  by the route itself; it must never carry an upstream error's own text, or
+  this would defeat the whole point of safeJsonError's messages in the first
+  place (see lib/auth/errors.ts) by leaking database detail through a
+  different field instead.
+*/
+type ProgressFailureReason = "too-large" | "history-policy-unavailable" | "write-unavailable";
+
+function progressFailure(
+  message: string,
+  status: number,
+  reason: ProgressFailureReason,
+): NextResponse {
+  return NextResponse.json(
+    { error: message, reason },
+    {
+      status,
+      // Matches safeJsonError's header exactly — this response carries the
+      // same identity-specific state and needs the same protection.
+      headers: { "Cache-Control": "private, no-store, max-age=0" },
+    },
+  );
+}
+
 async function requireUser(req: Request) {
   if (!accountsEnabled() || !supabaseConfigured()) return { error: "off" as const };
   const user = await getSessionUser(req);
@@ -153,7 +182,11 @@ async function handlePUT(req: Request) {
     storage.
   */
   if (raw.length > MAX_BYTES) {
-    return safeJsonError("That's more progress than we can store. Please contact support.", 413);
+    return progressFailure(
+      "That's more progress than we can store. Please contact support.",
+      413,
+      "too-large",
+    );
   }
 
   let body: unknown;
@@ -177,7 +210,11 @@ async function handlePUT(req: Request) {
         .catch(() => "unavailable" as const)
     : await organizationHistoryClearPolicy(auth.user.id);
   if (clearPolicy === "unavailable") {
-    return safeJsonError("History permissions could not be checked. Nothing was changed.", 503);
+    return progressFailure(
+      "History permissions could not be checked. Nothing was changed.",
+      503,
+      "history-policy-unavailable",
+    );
   }
   const restrictedHistory = clearPolicy === "restricted";
   let acceptedSnapshots: {
@@ -231,7 +268,7 @@ async function handlePUT(req: Request) {
     if (write.status === "conflict") continue;
     if (write.status === "unavailable") {
       logInternal("account/progress PUT", new Error("atomic snapshot write failed"));
-      return safeJsonError(MESSAGES.accountUnavailable, 503);
+      return progressFailure(MESSAGES.accountUnavailable, 503, "write-unavailable");
     }
     if (write.cloudflareReplica === false) {
       logInternal(
