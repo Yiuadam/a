@@ -78,8 +78,9 @@ export default function CloseScreen() {
             </p>
           )}
           <p className="mt-2 text-[13px] leading-5 text-slate-500">
-            Ends the session on this device. Nothing is deleted — your placement result, plan and
-            saved words stay where they are.
+            Ends the session on this device and clears what is stored here, so the next person to
+            sign in on it cannot see your practice. Nothing is deleted from your account — sign
+            back in and your placement result, plan and saved words return.
           </p>
         </div>
 

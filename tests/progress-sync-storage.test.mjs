@@ -5,6 +5,14 @@
   sync originally kept reading localStorage. The UI therefore remembered a
   card visit for the current tab while the account uploaded an empty profile;
   a new tab, browser, or sign-in showed every "New" badge again.
+
+  The tests near the bottom of this file are a second, later bug in the same
+  neighbourhood: sessionStorage recorded no owner, so signing out of one
+  account and into another in the same tab silently merged the first
+  account's practice into the second. Those tests exercise the owner marker
+  (lib/progress/storage.ts) and the refusal it enables in syncProgress below
+  — adoption of genuinely signed-out work, refusal of a different account's
+  leftovers, and that refusal never costing the new account its own data.
 */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -82,9 +90,28 @@ let uploadedSnapshots = null;
 let duringPut = null;
 let fetchFailure = null;
 let historyProtected = false;
+// Which bearer token this stub expects to see. Every existing test above
+// signs in as "test-access-token" and never touches this, so the default
+// keeps their behaviour unchanged; the owner-marker tests further down move
+// it to a real-shaped fake token per account so currentAccountId() (which
+// decodes the token itself, see lib/account.ts) has something to decode.
+let expectedToken = "test-access-token";
+
+/*
+  A JWT this codebase's account.ts can read a "sub" claim out of, without
+  needing a real signature — currentAccountId() never checks one, for exactly
+  the reason explained on that function. Two segments would already make it
+  fail the shape check there; this keeps the header/payload/signature shape a
+  real Supabase token has.
+*/
+function fakeJwt(sub) {
+  const header = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({ sub })).toString("base64url");
+  return `${header}.${payload}.test-signature`;
+}
 
 globalThis.fetch = async (input, init = {}) => {
-  assert.equal(new Headers(init.headers).get("Authorization"), "Bearer test-access-token");
+  assert.equal(new Headers(init.headers).get("Authorization"), `Bearer ${expectedToken}`);
   if (fetchFailure === "unauthorised") {
     return Response.json({ error: "Sign in required." }, { status: 401 });
   }
@@ -118,6 +145,19 @@ const { clearSyncedProgress, syncProgress } = await import(
 );
 const profileStore = await import(
   pathToFileURL(join(process.cwd(), "lib", "store.ts")).href
+);
+/*
+  Imported directly, rather than reaching into `durable`/`perTab` by hand, so
+  the owner-marker tests below exercise the real read/write/sign-in paths —
+  the same modules lib/progress/sync.ts and lib/account.ts themselves use —
+  instead of a parallel implementation of "what the key is called" that could
+  drift from them and pass for the wrong reason.
+*/
+const { saveSession } = await import(
+  pathToFileURL(join(process.cwd(), "lib", "account.ts")).href
+);
+const { progressOwner, setProgressOwner } = await import(
+  pathToFileURL(join(process.cwd(), "lib", "progress", "storage.ts")).href
 );
 
 test("a visit in this tab is merged into the account snapshot", async () => {
@@ -388,6 +428,273 @@ test("an accepted account clear writes the tombstone locally only after the PUT"
   const localProfile = JSON.parse(perTab.get(PROFILE_KEY));
   assert.equal(localProfile.historyClearedAt, clearedAt);
   assert.deepEqual(localProfile.results, []);
+});
+
+test("signed-out work is adopted by the first account that signs in, and the sync stamps the owner", async () => {
+  // Nobody has claimed this tab's progress yet: the intended feature this fix
+  // must not break is that it still gets adopted by whoever signs in first.
+  setProgressOwner(null);
+  perTab.set(PROFILE_KEY, JSON.stringify({
+    visited: ["reading"],
+    results: [{
+      module: "reading",
+      testId: "signed-out-practice",
+      testTitle: "Practice done before making an account",
+      band: 6,
+      date: "2026-08-14T08:00:00.000Z",
+    }],
+    genTests: [],
+  }));
+  perTab.set(PROFILE_UPDATED_KEY, "2026-08-14T08:00:00.000Z");
+  remoteSnapshots = []; // a brand-new account, nothing of its own yet
+  saveSession({
+    accessToken: fakeJwt("account-a"),
+    refreshToken: null,
+    expiresAt: null,
+    email: null,
+  });
+  expectedToken = fakeJwt("account-a");
+
+  try {
+    const outcome = await syncProgress();
+
+    assert.equal(outcome.status, "done");
+    const uploadedProfile = uploadedSnapshots.find((s) => s.storeKey === PROFILE_KEY).payload;
+    assert.deepEqual(
+      uploadedProfile.results.map((r) => r.testId),
+      ["signed-out-practice"],
+      "the real feature: signed-out practice is still adopted by the first account that signs in",
+    );
+    assert.equal(
+      progressOwner(),
+      "account-a",
+      "a successful sync stamps the owner, unprompted, so this account's own later syncs read as itself",
+    );
+  } finally {
+    saveSession({
+      accessToken: "test-access-token",
+      refreshToken: null,
+      expiresAt: null,
+      email: "learner@example.com",
+    });
+    expectedToken = "test-access-token";
+  }
+});
+
+test("the owner a real sync stamps keeps a same-account resync ordinary, not adoptable", async () => {
+  // First sync: signed-out work adopted by account A, exactly as above — the
+  // point here is what the *sync itself* records, not a marker this test sets
+  // by hand, which is what the next assertion depends on meaning anything.
+  setProgressOwner(null);
+  perTab.set(PROFILE_KEY, JSON.stringify({ visited: [], results: [], genTests: [] }));
+  perTab.set(PROFILE_UPDATED_KEY, "2026-08-14T09:00:00.000Z");
+  remoteSnapshots = [];
+  saveSession({
+    accessToken: fakeJwt("account-a"),
+    refreshToken: null,
+    expiresAt: null,
+    email: null,
+  });
+  expectedToken = fakeJwt("account-a");
+
+  try {
+    const first = await syncProgress();
+    assert.equal(first.status, "done");
+    assert.equal(progressOwner(), "account-a", "the first sync stamped account A as owner, unprompted");
+
+    // Second sync, still account A, with a fresh sitting recorded in this tab
+    // since the first sync. Had the stamp above not really happened — the
+    // marker still reading as signed-out — this would be indistinguishable
+    // from adoption; with it, it must merge as this account's own newer work.
+    const secondSitting = {
+      module: "listening",
+      testId: "account-a-second-sitting",
+      testTitle: "A second sitting by the same, already-recognised account",
+      band: 6,
+      date: "2026-08-14T09:05:00.000Z",
+    };
+    const current = JSON.parse(perTab.get(PROFILE_KEY));
+    perTab.set(PROFILE_KEY, JSON.stringify({ ...current, results: [secondSitting] }));
+    perTab.set(PROFILE_UPDATED_KEY, "2026-08-14T09:05:00.000Z");
+
+    const second = await syncProgress();
+    assert.equal(second.status, "done");
+    const uploadedProfile = uploadedSnapshots.find((s) => s.storeKey === PROFILE_KEY).payload;
+    assert.ok(
+      uploadedProfile.results.some((r) => r.testId === secondSitting.testId),
+      "same owner: the second sync must merge this tab's newer work as usual, not discard it as foreign",
+    );
+    assert.equal(progressOwner(), "account-a");
+  } finally {
+    saveSession({
+      accessToken: "test-access-token",
+      refreshToken: null,
+      expiresAt: null,
+      email: "learner@example.com",
+    });
+    expectedToken = "test-access-token";
+  }
+});
+
+test("a different account's local leftovers are refused, and the newly signed-in account's own data still arrives", async () => {
+  // This is the confirmed bug, reproduced: account A's practice is sitting in
+  // this tab, marked as belonging to A, when account B signs in on the same
+  // browser.
+  const accountASecret = {
+    module: "writing",
+    testId: "account-a-private-essay",
+    testTitle: "Account A's own essay",
+    band: 7,
+    date: "2026-08-14T08:00:00.000Z",
+  };
+  perTab.set(PROFILE_KEY, JSON.stringify({
+    visited: ["writing"],
+    results: [accountASecret],
+    genTests: [],
+  }));
+  perTab.set(PROFILE_UPDATED_KEY, "2026-08-14T08:00:00.000Z");
+  setProgressOwner("account-a");
+
+  // Account B is a different, already-established account with its own
+  // remote history — the fix must not cost B this on B's own sign-in.
+  const accountBOwn = {
+    module: "reading",
+    testId: "account-b-own-result",
+    testTitle: "Account B's own reading result",
+    band: 6.5,
+    date: "2026-08-13T09:00:00.000Z",
+  };
+  remoteSnapshots = [{
+    storeKey: PROFILE_KEY,
+    payload: { visited: ["reading"], results: [accountBOwn], genTests: [] },
+    clientUpdatedAt: "2026-08-13T09:00:00.000Z",
+  }];
+  saveSession({
+    accessToken: fakeJwt("account-b"),
+    refreshToken: null,
+    expiresAt: null,
+    email: null,
+  });
+  expectedToken = fakeJwt("account-b");
+
+  try {
+    const outcome = await syncProgress();
+
+    assert.equal(outcome.status, "done");
+
+    // The leak this fix closes: the request body actually sent to the
+    // account, not merely what this tab ends up showing, must carry nothing
+    // of account A's.
+    const uploadedProfile = uploadedSnapshots.find((s) => s.storeKey === PROFILE_KEY).payload;
+    assert.ok(
+      !uploadedProfile.results.some((r) => r.testId === accountASecret.testId),
+      "account A's local result must not appear in the payload PUT to account B's account",
+    );
+    assert.ok(
+      !JSON.stringify(uploadedSnapshots).includes("account-a-private-essay"),
+      "account A's data must not be uploaded under any field, not only the results array",
+    );
+    assert.ok(
+      !uploadedProfile.visited.includes("writing"),
+      "account A's 'writing' visit must not be unioned into what gets uploaded for account B",
+    );
+
+    // Discarding A's leftovers must not blank B's own legitimate history —
+    // it is still pulled down and ends up in what this tab shows.
+    assert.ok(
+      uploadedProfile.results.some((r) => r.testId === accountBOwn.testId),
+      "account B's own existing result must still be present after the sync",
+    );
+    const localProfile = JSON.parse(perTab.get(PROFILE_KEY));
+    assert.ok(
+      !localProfile.results.some((r) => r.testId === accountASecret.testId),
+      "this tab must not go on showing account A's result once account B has signed in",
+    );
+    assert.ok(
+      localProfile.results.some((r) => r.testId === accountBOwn.testId),
+      "this tab must show account B's own result — the fix must not blank a legitimate account",
+    );
+    assert.deepEqual(
+      [...localProfile.visited].sort(),
+      ["reading"],
+      "account A's 'writing' visit must not leak into what account B's tab shows either",
+    );
+
+    assert.equal(progressOwner(), "account-b", "the marker now records account B as this tab's owner");
+  } finally {
+    saveSession({
+      accessToken: "test-access-token",
+      refreshToken: null,
+      expiresAt: null,
+      email: "learner@example.com",
+    });
+    expectedToken = "test-access-token";
+  }
+});
+
+test("a history clear from a tab holding a foreign account's leftovers never uploads them", async () => {
+  // The clearHistoryAt path builds its hypothetical cleared profile by
+  // spreading this tab's local profile and then zeroing results/mockReports
+  // — so a field the spread does not zero, like `visited`, is exactly where a
+  // foreign owner's fingerprint could otherwise ride along into a clear.
+  perTab.set(PROFILE_KEY, JSON.stringify({
+    visited: ["account-a-only-marker"],
+    results: [{
+      module: "speaking",
+      testId: "account-a-leftover-before-clear",
+      testTitle: "Account A's leftover, sitting in this tab",
+      band: 7,
+      date: "2026-08-14T08:00:00.000Z",
+    }],
+    genTests: [],
+  }));
+  setProgressOwner("account-a");
+  const accountBExisting = {
+    module: "writing",
+    testId: "account-b-existing-before-clear",
+    testTitle: "Account B's own history before the clear",
+    band: 6,
+    date: "2026-08-13T08:00:00.000Z",
+  };
+  remoteSnapshots = [{
+    storeKey: PROFILE_KEY,
+    payload: { visited: ["writing"], results: [accountBExisting], genTests: [] },
+    clientUpdatedAt: "2026-08-13T08:00:00.000Z",
+  }];
+  saveSession({
+    accessToken: fakeJwt("account-b"),
+    refreshToken: null,
+    expiresAt: null,
+    email: null,
+  });
+  expectedToken = fakeJwt("account-b");
+  const clearedAt = "2026-08-14T08:05:00.000Z";
+
+  try {
+    const outcome = await clearSyncedProgress(clearedAt);
+
+    assert.equal(outcome.status, "done");
+    const uploadedProfile = uploadedSnapshots.find((s) => s.storeKey === PROFILE_KEY).payload;
+    assert.equal(uploadedProfile.historyClearedAt, clearedAt);
+    assert.deepEqual(uploadedProfile.results, [], "a history clear empties the results array as usual");
+    assert.ok(
+      !uploadedProfile.visited.includes("account-a-only-marker"),
+      "a foreign owner's fields must not ride along into a clear via the local-profile spread",
+    );
+    assert.ok(
+      !JSON.stringify(uploadedSnapshots).includes("account-a-leftover-before-clear"),
+      "account A's leftover result must not ride along inside the cleared profile either",
+    );
+    assert.equal(progressOwner(), "account-b");
+  } finally {
+    saveSession({
+      accessToken: "test-access-token",
+      refreshToken: null,
+      expiresAt: null,
+      email: "learner@example.com",
+    });
+    expectedToken = "test-access-token";
+  }
 });
 
 test("the device-clear UI never clears history before account confirmation", () => {

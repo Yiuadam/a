@@ -42,6 +42,28 @@
   which is the whole point of it, and the other two are settings for this
   device that would be tedious to keep re-choosing. Learner *work* is what
   moves; device *preferences* stay.
+
+  ---------------------------------------------------------------------------
+  Whose work this is
+
+  sessionStorage answers "does this survive the tab", not "whose is it" — and
+  the second question turned out to matter just as much. Sign out of one
+  account, sign into a different one in the same tab, and nothing above ever
+  asked whose placement result and practice history this was; it simply
+  merged whatever was sitting here into whoever signed in next. That is a
+  confirmed leak, not a theoretical one: the owner watched their own trend and
+  history appear under a brand-new test account, on the same browser and then
+  on a second device, because it had genuinely uploaded.
+
+  So alongside the progress itself, this file now keeps a marker for who it
+  belongs to. Absent or empty means the work was done signed out, and stays
+  exactly as adoptable as before — that is the real feature underneath this,
+  someone practising before they make an account and expecting it to be
+  theirs once they do. Set to an account's id, it means the opposite: that
+  data already has an owner, and lib/progress/sync.ts must refuse to let a
+  different account merge it in. See progressOwner, setProgressOwner and
+  clearProgressStore below, and lib/progress/sync.ts for where the marker is
+  read and acted on.
 */
 
 /*
@@ -143,4 +165,72 @@ export function removeLearnerItem(key: string): void {
   } catch {
     /* Nothing to do. */
   }
+}
+
+/*
+  The progress store: which keys make it up, and whose it is.
+
+  Everything above this point is a generic key/value primitive that happens to
+  live in sessionStorage; nothing between here and the top of the file knows
+  or cares that there are exactly three progress keys, or what they are
+  called. Below this point does, gathered in one place on purpose — a second,
+  independently maintained list of the same three keys is exactly how it would
+  drift from this one, and a key added to what syncs (lib/progress/sync.ts)
+  but not to what a device-clear or a sign-out wipes is how the next leak
+  would happen.
+*/
+
+/** Every sessionStorage key that holds a piece of a learner's progress. */
+export const PROGRESS_KEYS = ["ielts-prep-v1", "bandup.drills.v1", "bandup.lookups.v1"] as const;
+export type ProgressKey = (typeof PROGRESS_KEYS)[number];
+
+/*
+  Which account, if any, the progress above belongs to. An ordinary
+  learner-data key, deliberately: it should live, migrate and clear exactly
+  like the progress it describes, on the same "gone when the tab closes"
+  promise made to someone who has not made an account.
+*/
+const OWNER_KEY = "bandup.progress-owner.v1";
+
+/**
+ * Which account's work is currently held in this tab, or null for work done
+ * signed out.
+ *
+ * Null covers both "never set" and "set to an empty string", so a caller only
+ * ever has one falsy case to handle rather than two.
+ */
+export function progressOwner(): string | null {
+  const raw = readLearnerItem(OWNER_KEY);
+  return raw && raw.length > 0 ? raw : null;
+}
+
+/**
+ * Records which account the progress in this tab belongs to. Pass null for
+ * signed-out work, so the next sign-in knows it is free to adopt it.
+ */
+export function setProgressOwner(userId: string | null): void {
+  if (userId) {
+    // No clientUpdatedAt companion key: this marker is a label on the
+    // progress, not itself a piece of progress a merge ever compares
+    // timestamps against, so it does not need one of its own.
+    writeLearnerItem(OWNER_KEY, userId, { clientUpdatedAt: null });
+  } else {
+    removeLearnerItem(OWNER_KEY);
+  }
+}
+
+/**
+ * Forgets every piece of locally-held progress, and who it belonged to.
+ *
+ * Built from PROGRESS_KEYS and removeLearnerItem above rather than its own
+ * list, so it can never quietly drift from what actually syncs. Note this is
+ * not what components/account/ClearDeviceSection.tsx calls for "clear this
+ * device" — that clears the whole origin directly, keeping only a short named
+ * list — but it is exactly what a sign-out needs (lib/account.ts): everything
+ * this tab knows about a learner's work, gone, without also touching the
+ * theme or speech preferences a device-clear is careful to keep.
+ */
+export function clearProgressStore(): void {
+  for (const key of PROGRESS_KEYS) removeLearnerItem(key);
+  removeLearnerItem(OWNER_KEY);
 }
