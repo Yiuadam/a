@@ -7,6 +7,10 @@
   directory is moved aside for the duration of the export and restored
   afterwards — including if the build fails.
 
+  The website owner's console is also excluded. It depends on live, dynamic
+  user and sitting routes that a static iOS bundle cannot generate, and it is
+  intentionally available only on the canonical website.
+
   The billing pages go with it, for a different reason. Apple requires digital
   content used inside an iOS app to be sold through In-App Purchase and takes
   30% of it; BandUp's answer is that the iOS app sells nothing, so there is
@@ -25,7 +29,12 @@ const root = process.cwd();
 const stash = join(root, ".mobile-stash");
 
 /** Everything that must not exist in the iOS bundle, relative to the repo. */
-const EXCLUDED = [join("app", "api"), join("app", "pricing"), join("app", "billing")];
+const EXCLUDED = [
+  join("app", "api"),
+  join("app", "admin"),
+  join("app", "pricing"),
+  join("app", "billing"),
+];
 
 if (!process.env.NEXT_PUBLIC_API_BASE) {
   console.error(

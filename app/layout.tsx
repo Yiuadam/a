@@ -22,6 +22,10 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  // The monospace face is available for code-like content, but the learner
+  // routes do not need it during their first paint. Avoid preloading a font
+  // that most visits never consume; it will still load on demand if used.
+  preload: false,
 });
 
 export const metadata: Metadata = {

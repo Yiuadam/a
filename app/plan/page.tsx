@@ -100,7 +100,7 @@ export default function PlanPage() {
               </h2>
             </div>
             <p className="mb-2 mt-1 text-xs leading-5 text-slate-600">{b.rationale}</p>
-            <ul className="max-h-[9.5rem] space-y-1.5 overflow-y-auto pr-1">
+            <ul className="plan-task-list space-y-1.5">
               {b.tasks.map((t, i) => (
                 <li key={i}>
                   <Link

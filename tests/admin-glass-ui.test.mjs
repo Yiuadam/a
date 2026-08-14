@@ -20,6 +20,15 @@ test("the owner console uses the BandUp glass shell with one gated refractive la
   assert.match(styles, /@media \(prefers-reduced-transparency: reduce\)/);
 });
 
+test("the owner console uses the complete canonical BandUp mark, not its orange rear layer", () => {
+  const shell = read("components", "admin", "ConsoleShell.tsx");
+
+  assert.match(shell, /src="\/icons\/final\/steps-five-mark\.svg"/);
+  assert.match(shell, /sizes="38px"/);
+  assert.match(shell, /unoptimized/);
+  assert.doesNotMatch(shell, /steps-five-layer-rear-108\.png/);
+});
+
 test("admin controls and data surfaces share capsules and scoped glass", () => {
   const styles = read("components", "admin", "AdminConsole.module.css");
   const cards = read("components", "admin", "StatCard.tsx");

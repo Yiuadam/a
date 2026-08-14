@@ -62,6 +62,19 @@ export interface MigrationDomainReadiness {
   targetFingerprint: string | null;
 }
 
+/**
+ * The source evidence is intentionally reported separately from every domain.
+ *
+ * All exact domains depend on one restricted Supabase RPC. When that one
+ * operation is absent, stale or unreachable, painting eight bare
+ * "unavailable" labels looks like eight Cloudflare failures even though the
+ * target may be healthy. This contains no source rows or database error body;
+ * it merely tells the owner which side could not be proven.
+ */
+export interface MigrationSourceEvidence {
+  status: "available" | "unavailable" | "invalid";
+}
+
 export interface CloudflareMigrationReadinessReport {
   generatedAt: string;
   fingerprintVersion: string;
@@ -74,6 +87,7 @@ export interface CloudflareMigrationReadinessReport {
     learner: ReturnType<typeof cloudflareDataMode>;
     organization: ReturnType<typeof organizationDataMode>;
   };
+  sourceEvidence: MigrationSourceEvidence;
   domains: MigrationDomainReadiness[];
   appSettings: AppSettingsParityReport | null;
   outbox: CloudflareReplicaOutboxStatus | null;
@@ -233,46 +247,54 @@ export async function cloudflareTargetFingerprints(
 async function exactDomainReports(
   bindings: BandUpCloudflareBindings,
   readSource: () => Promise<SourceFingerprintRow[]>,
-): Promise<MigrationDomainReadiness[]> {
+): Promise<{ domains: MigrationDomainReadiness[]; sourceEvidence: MigrationSourceEvidence }> {
   let sourceRows: SourceFingerprintRow[];
   try {
     sourceRows = await readSource();
   } catch {
-    return EXACT_DOMAINS.map((domain) => ({
-      domain,
-      proof: "exact_identity_state_fingerprint",
-      ready: false,
-      status: "unavailable",
-      sourceCount: null,
-      targetCount: null,
-      sourceFingerprint: null,
-      targetFingerprint: null,
-    }));
+    return {
+      sourceEvidence: { status: "unavailable" },
+      domains: EXACT_DOMAINS.map((domain) => ({
+        domain,
+        proof: "exact_identity_state_fingerprint",
+        ready: false,
+        status: "unavailable",
+        sourceCount: null,
+        targetCount: null,
+        sourceFingerprint: null,
+        targetFingerprint: null,
+      })),
+    };
   }
   const knownDomains = new Set<string>(EXACT_DOMAINS);
   const seen = new Set<string>();
-  const validSource = sourceRows.length === EXACT_DOMAINS.length && sourceRows.every((row) => {
-    if (!knownDomains.has(row.domain) || seen.has(row.domain)) return false;
-    seen.add(row.domain);
-    const count = Number(row.row_count);
-    return Number.isSafeInteger(count)
-      && count >= 0
-      && /^[a-f0-9]{64}$/.test(row.fingerprint);
-  });
+  const validSource = Array.isArray(sourceRows)
+    && sourceRows.length === EXACT_DOMAINS.length
+    && sourceRows.every((row) => {
+      if (!knownDomains.has(row.domain) || seen.has(row.domain)) return false;
+      seen.add(row.domain);
+      const count = Number(row.row_count);
+      return Number.isSafeInteger(count)
+        && count >= 0
+        && /^[a-f0-9]{64}$/.test(row.fingerprint);
+    });
   if (!validSource) {
-    return EXACT_DOMAINS.map((domain) => ({
-      domain,
-      proof: "exact_identity_state_fingerprint",
-      ready: false,
-      status: "unavailable",
-      sourceCount: null,
-      targetCount: null,
-      sourceFingerprint: null,
-      targetFingerprint: null,
-    }));
+    return {
+      sourceEvidence: { status: "invalid" },
+      domains: EXACT_DOMAINS.map((domain) => ({
+        domain,
+        proof: "exact_identity_state_fingerprint",
+        ready: false,
+        status: "unavailable",
+        sourceCount: null,
+        targetCount: null,
+        sourceFingerprint: null,
+        targetFingerprint: null,
+      })),
+    };
   }
   const source = new Map(sourceRows.map((row) => [row.domain, row]));
-  return Promise.all(EXACT_DOMAINS.map(async (domain) => {
+  const domains = await Promise.all(EXACT_DOMAINS.map(async (domain) => {
     const left = source.get(domain);
     try {
       const right = await targetFingerprint(domain, bindings);
@@ -302,6 +324,7 @@ async function exactDomainReports(
       };
     }
   }));
+  return { domains, sourceEvidence: { status: "available" } };
 }
 
 function organizationReport(): MigrationDomainReadiness {
@@ -329,11 +352,12 @@ export async function cloudflareMigrationReadinessReport(
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const readSourceFingerprints = options.readSourceFingerprints
     ?? (() => rpc<SourceFingerprintRow[]>("cloudflare_migration_source_fingerprints", {}));
-  const [exact, appSettingsResult, outboxResult] = await Promise.all([
+  const [exactResult, appSettingsResult, outboxResult] = await Promise.all([
     exactDomainReports(bindings, readSourceFingerprints),
     (options.readAppSettings?.() ?? appSettingsParityReport(bindings)).catch(() => null),
     (options.readOutbox?.() ?? cloudflareReplicaOutboxStatus(bindings)).catch(() => null),
   ]);
+  const { domains: exact, sourceEvidence } = exactResult;
   const organization = organizationReport();
   const domains = [...exact, organization];
   const unsupportedDomains: string[] = [];
@@ -379,6 +403,7 @@ export async function cloudflareMigrationReadinessReport(
       reason: "Supabase Auth remains the identity provider and is not migrated.",
     },
     modes: { learner: cloudflareDataMode(), organization: organizationDataMode() },
+    sourceEvidence,
     domains,
     appSettings: appSettingsResult,
     outbox: outboxResult,

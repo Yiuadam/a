@@ -97,7 +97,9 @@ export default function MockListening({
   );
 
   const [playingPart, setPlayingPart] = useState<number | null>(null);
+  const [failedPart, setFailedPart] = useState<{ index: number; heard: boolean; message: string } | null>(null);
   const playingRef = useRef(false);
+  const playbackRunRef = useRef(0);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
   const supported =
@@ -114,6 +116,7 @@ export default function MockListening({
       window.speechSynthesis.removeEventListener("voiceschanged", load);
       /* Disarm before cancelling — cancel() fires the current utterance's end
          handler, which would otherwise queue the next turn after unmount. */
+      playbackRunRef.current += 1;
       playingRef.current = false;
       window.speechSynthesis.cancel();
     };
@@ -123,21 +126,49 @@ export default function MockListening({
     (index: number) => {
       const test = tests[index];
       if (!test || !supported || playingRef.current) return;
-      /*
-        Recorded as played the moment it starts, not when it ends. Stopping
-        halfway through is a thing that happens in a real exam too — the tape
-        does not rewind because you looked away.
-      */
-      onPlayed(index);
-      window.speechSynthesis.cancel();
-      playingRef.current = true;
+      const run = ++playbackRunRef.current;
+      let heard = false;
+      const freshVoices = rankedEnglishVoices();
+      if (freshVoices.length > 0) voicesRef.current = freshVoices;
       setPlayingPart(index);
+      setFailedPart(null);
+      try {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+      } catch {
+        playingRef.current = false;
+        setPlayingPart(null);
+        setFailedPart({
+          index,
+          heard: false,
+          message: "Your browser could not prepare this recording. Check its sound permission, then try again.",
+        });
+        return;
+      }
+      playingRef.current = true;
       playScript(test, 0, {
         voices: voicesRef.current,
         rate: () => 1,
-        stillPlaying: () => playingRef.current,
+        stillPlaying: () => playingRef.current && playbackRunRef.current === run,
         onTurn: () => {},
+        onStart: () => {
+          if (playbackRunRef.current !== run || heard) return;
+          /*
+            A browser can reject a queued utterance without any audible sound.
+            Only make this one-shot exam recording unavailable after its first
+            sentence genuinely starts; a pre-start failure remains retryable.
+          */
+          heard = true;
+          onPlayed(index);
+        },
+        onError: (message) => {
+          if (playbackRunRef.current !== run) return;
+          playingRef.current = false;
+          setPlayingPart(null);
+          setFailedPart({ index, heard, message });
+        },
         onEnd: () => {
+          if (playbackRunRef.current !== run) return;
           playingRef.current = false;
           setPlayingPart(null);
         },
@@ -147,6 +178,7 @@ export default function MockListening({
   );
 
   const finish = useCallback(() => {
+    playbackRunRef.current += 1;
     playingRef.current = false;
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -193,6 +225,20 @@ export default function MockListening({
               This browser cannot read the recordings aloud, so the listening paper cannot be
               sat here. Chrome, Edge and Safari can. The rest of the sitting works.
             </p>
+          ) : failedPart ? (
+            <div className="flex flex-wrap items-center justify-between gap-3" role="alert">
+              <p className="text-sm leading-6">
+                {failedPart.message}{" "}
+                {failedPart.heard
+                  ? "This part has been recorded as played, so continue when you are ready."
+                  : "No audio was heard, so you can retry this part."}
+              </p>
+              {(!failedPart.heard || nextUnplayed !== failedPart.index) && nextUnplayed !== -1 && (
+                <button type="button" className="btn-primary" onClick={() => play(nextUnplayed)}>
+                  {failedPart.heard ? `Play part ${nextUnplayed + 1}` : `Retry part ${nextUnplayed + 1}`}
+                </button>
+              )}
+            </div>
           ) : playingPart !== null ? (
             <p className="text-sm leading-6">
               Part {playingPart + 1} is playing. It plays once, as in the exam — answer as you

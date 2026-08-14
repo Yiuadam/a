@@ -73,7 +73,14 @@ export function OPTIONS(req: Request): Response {
     status: 204,
     headers: {
       "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      /*
+        Keep this list in step with the route handlers. In particular, account
+        progress sync uses PUT, profile edits use PATCH, and avatar removal
+        uses DELETE. A Capacitor/WebView request for any of those methods is
+        preflighted; omitting the method here makes the browser reject the
+        request before it ever reaches BandUp.
+      */
+      "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Max-Age": "600",
       Vary: "Origin",

@@ -10,9 +10,10 @@ import { boundedTouchCardTransform } from "@/lib/pointer-attraction";
   question buttons run forty copies of the same logic. This keeps one active
   element and one animation-frame update, regardless of how busy the page is.
 
-  `translate` and `scale` are individual transform properties. They compose
-  with components that already use `transform` for an active press or an icon
-  layer, instead of overwriting those effects.
+  The target itself never moves. Its text, icon, hit target and focus outline
+  stay exactly where they were; the custom properties below are consumed only
+  by a direct, decorative RefractiveGlassLayer. That lets the glass look as
+  though it follows the pointer without making a label drift underneath it.
 */
 
 /* Static `.card` panels are intentionally absent. A surface moves only when
@@ -26,9 +27,18 @@ const MAX_CARD_HEIGHT = 190;
 const FLOWING_CONTROL =
   ".theme-toggle-base, .interval-toggle-base, .panel-toggle-base, .speaking-engine-picker, .organization-view-tabs";
 const GLASS_SURFACE = ".card, .liquid-glass, .premade-glass, [data-glass-surface]";
+const REFRACTIVE_GLASS_LAYER = ":scope > .refractive-glass-layer";
 const REFLECTION_FRAME_MS = 32;
 const MAX_REFLECTION_DEVICE_PIXELS = 1_250_000;
 const REDUCED_TRANSPARENCY_QUERY = "(prefers-reduced-transparency: reduce)";
+
+/* A generic button may receive the low-cost directional reflection, but the
+   magnetic/deforming response is reserved for controls that already contain
+   an isolated visual glass layer. Moving a whole button would also move its
+   label and accessible focus geometry, which is the opposite of a lens. */
+function hasDirectRefractiveGlassLayer(target: HTMLElement) {
+  return target.querySelector(REFRACTIVE_GLASS_LAYER) !== null;
+}
 
 function targetFrom(node: EventTarget | null, current: HTMLElement | null): HTMLElement | null {
   if (!(node instanceof Element)) return null;
@@ -39,13 +49,14 @@ function targetFrom(node: EventTarget | null, current: HTMLElement | null): HTML
     const rect = target.getBoundingClientRect();
     if (rect.width > MAX_CARD_WIDTH || rect.height > MAX_CARD_HEIGHT) return null;
   }
-  return target;
+  return hasDirectRefractiveGlassLayer(target) ? target : null;
 }
 
 function touchTargetFrom(node: EventTarget | null): HTMLElement | null {
   if (!(node instanceof Element)) return null;
   const target = node.closest<HTMLElement>(TOUCH_TARGET);
   if (!target || target.matches(":disabled") || target.closest(FLOWING_CONTROL)) return null;
+  if (!hasDirectRefractiveGlassLayer(target)) return null;
   if (target.hasAttribute("data-pointer-attract")) return target;
   const rect = target.getBoundingClientRect();
   return rect.width <= MAX_CARD_WIDTH && rect.height <= MAX_CARD_HEIGHT ? target : null;

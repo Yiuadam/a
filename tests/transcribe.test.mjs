@@ -23,7 +23,16 @@ register("../scripts/ts-resolve.mjs", import.meta.url);
 
 const load = (file) => import(pathToFileURL(join(process.cwd(), "lib", file)).href);
 
-const { cleanTranscript, mergeAnswer, formatBytes, describeStatus } = await load("transcribe.ts");
+const {
+  cleanTranscript,
+  mergeAnswer,
+  formatBytes,
+  describeStatus,
+  fetchModelWithProgress,
+  isWhisperGgmlHeader,
+  LOCAL_MODELS,
+  modelDownloadUrls,
+} = await load("transcribe.ts");
 const { parseSpeechPrefs, DEFAULT_SPEECH_PREFS } = await load("speech.ts");
 
 test("whisper's non-speech annotations are stripped", () => {
@@ -64,6 +73,34 @@ test("download sizes are stated the way a person reads them", () => {
   assert.equal(formatBytes(78_000_000), "78 MB");
 });
 
+test("the model byte contracts match the canonical Whisper files", () => {
+  /*
+    `fetchModelWithProgress` deliberately rejects a file whose final byte
+    count differs from the model contract. These are the current
+    Content-Length values served by ggerganov/whisper.cpp, not rounded display
+    sizes. Rounding them to 78/148 million makes every successful download
+    look truncated at its final byte.
+  */
+  assert.equal(LOCAL_MODELS["tiny.en"].bytes, 77_704_715);
+  assert.equal(LOCAL_MODELS["base.en"].bytes, 147_964_211);
+});
+
+test("the canonical Whisper GGML header is accepted in its on-disk byte order", () => {
+  // The public ggml-tiny.en.bin starts `6c 6d 67 67` (`lmgg`): the
+  // little-endian byte representation of the GGML magic 0x67676d6c.
+  assert.equal(isWhisperGgmlHeader(Uint8Array.from([0x6c, 0x6d, 0x67, 0x67])), true);
+  assert.equal(isWhisperGgmlHeader(Uint8Array.from([0x67, 0x67, 0x6d, 0x6c])), false);
+  assert.equal(isWhisperGgmlHeader(Uint8Array.from([0x3c, 0x68, 0x74, 0x6d])), false);
+});
+
+test("direct model delivery is preferred, with one bounded same-origin fallback", () => {
+  const urls = modelDownloadUrls("tiny.en");
+  assert.match(urls[0], /huggingface\.co\/ggerganov\/whisper\.cpp/);
+  assert.match(urls[0], /ggml-tiny\.en\.bin$/);
+  assert.equal(urls.at(-1), "/api/speech-model?model=ggml-tiny.en.bin");
+  assert.equal(urls.filter((url) => url.startsWith("/api/speech-model?")).length, 1);
+});
+
 test("every phase says something a learner can understand", () => {
   assert.equal(describeStatus({ phase: "recording", percent: null }), "Recording");
   assert.equal(
@@ -93,4 +130,84 @@ test("nonsense in storage falls back to the platform recogniser", () => {
 test("the default is the platform recogniser, and the accurate local model", () => {
   assert.equal(DEFAULT_SPEECH_PREFS.engine, "platform");
   assert.equal(DEFAULT_SPEECH_PREFS.model, "base.en");
+});
+
+test("an interrupted model download retries from the first missing byte", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  const checkpoints = [];
+  const statuses = [];
+  let call = 0;
+
+  globalThis.fetch = async (_url, init = {}) => {
+    requests.push(new Headers(init.headers).get("Range"));
+    call += 1;
+    if (call === 1) {
+      let read = false;
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "Content-Length": "8" }),
+        body: {
+          getReader() {
+            return {
+              async read() {
+                if (!read) {
+                  read = true;
+                  return { done: false, value: Uint8Array.from([0x67, 0x67, 0x6d, 0x6c]) };
+                }
+                throw new Error("connection dropped");
+              },
+            };
+          },
+        },
+      };
+    }
+    return new Response(Uint8Array.from([4, 5, 6, 7]), {
+      status: 206,
+      headers: { "Content-Range": "bytes 4-7/8" },
+    });
+  };
+
+  try {
+    const blob = await fetchModelWithProgress(
+      "https://models.example/model.bin",
+      8,
+      (status) => statuses.push(status),
+      null,
+      async (partial) => checkpoints.push(partial.size),
+    );
+    assert.deepEqual([...new Uint8Array(await blob.arrayBuffer())], [0x67, 0x67, 0x6d, 0x6c, 4, 5, 6, 7]);
+    assert.deepEqual(requests, [null, "bytes=4-7"]);
+    assert.deepEqual(checkpoints, [4]);
+    assert.deepEqual(statuses.at(-1), { phase: "downloading", percent: 100 });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("a saved model prefix resumes on a later retry", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedRange = null;
+  globalThis.fetch = async (_url, init = {}) => {
+    requestedRange = new Headers(init.headers).get("Range");
+    return new Response(Uint8Array.from([8, 9, 10, 11]), {
+      status: 206,
+      headers: { "Content-Range": "bytes 4-7/8" },
+    });
+  };
+
+  try {
+    const prefix = new Blob([Uint8Array.from([0x67, 0x67, 0x6d, 0x6c])]);
+    const blob = await fetchModelWithProgress(
+      "https://models.example/model.bin",
+      8,
+      () => {},
+      prefix,
+    );
+    assert.equal(requestedRange, "bytes=4-7");
+    assert.equal(blob.size, 8);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

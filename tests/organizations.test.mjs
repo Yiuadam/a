@@ -376,10 +376,20 @@ test("the organization workspace uses a compact dashboard shell", () => {
   assert.match(footer, /pathname\.startsWith\("\/organization"\)/);
 });
 
-test("phone organization sections become full-page views with a compact list dashboard", () => {
+test("organization sections keep desktop workspace navigation and use full-page phone views", () => {
   const portal = readFileSync(join(process.cwd(), "components", "organization", "OrganizationPortal.tsx"), "utf8");
   assert.match(portal, /focusedOrganizationView/);
-  assert.match(portal, /managerWorkspace && compact \? "hidden"/);
+  // Focused mobile views normally remove the organisation-name card to save
+  // space. Do not remove it when it holds the only control for selecting a
+  // second eligible workspace: students, teachers, managers and admins must
+  // still be able to leave a focused view by switching organisation.
+  assert.match(portal, /compact && !canSwitchOrganization \? "max-sm:hidden"/);
+  assert.match(portal, /data-organization-switcher-persistent/);
+  assert.doesNotMatch(portal, /managerWorkspace && compact \? "hidden"/);
+  assert.match(portal, /function AdminWorkspaceSummary[\s\S]*OrganizationViewTabs portal=\{portal\} view=\{view\}/);
+  assert.match(portal, /function AdminOrganizationSwitcher/);
+  assert.match(portal, /function OrganizationSettingsButton/);
+  assert.match(portal, /data-unselected=\{selectedIndex < 0/);
   assert.match(portal, /ariaLabel = "Back to organisation dashboard"/);
   assert.match(portal, /m7\.5 12 9-6\.5v13Z/);
   assert.match(portal, /aria-label="Organisation dashboard" className="grid gap-1\.5 sm:hidden"/);
@@ -451,9 +461,13 @@ test("manager pages separate practice work from teacher-student team grouping", 
   const studentsStart = ui.indexOf('{view === "students"', assignmentsStart);
   const assignments = ui.slice(assignmentsStart, studentsStart);
   const teamStart = ui.indexOf('{view === "members"');
-  const pairingsStart = ui.indexOf('{view === "team-pairings"', teamStart);
+  const inviteStart = ui.indexOf('{view === "team-invite"', teamStart);
+  const teamAssignmentStart = ui.indexOf('{view === "team-assignment"', inviteStart);
+  const pairingsStart = ui.indexOf('{view === "team-pairings"', teamAssignmentStart);
   const settingsStart = ui.indexOf('{view === "settings"', teamStart);
-  const team = ui.slice(teamStart, pairingsStart);
+  const team = ui.slice(teamStart, inviteStart);
+  const invite = ui.slice(inviteStart, teamAssignmentStart);
+  const teamAssignment = ui.slice(teamAssignmentStart, pairingsStart);
   const pairings = ui.slice(pairingsStart, settingsStart);
 
   assert.match(overview, /title="Practice assignments"/);
@@ -463,14 +477,27 @@ test("manager pages separate practice work from teacher-student team grouping", 
   assert.match(assignments, /<AssignmentDirectoryCard/);
   assert.match(assignments, /view === "assignment-directory"/);
   assert.match(assignments, /<AssignmentDirectory/);
-  assert.match(team, /Assign students to a teacher/);
-  assert.match(team, /<TeacherAssignments/);
-  assert.match(team, /<TeamPairingsCard/);
+  assert.match(team, /data-team-directory/);
+  assert.match(team, /destination="invite"/);
+  assert.match(team, /destination="assignment"/);
+  assert.match(team, /destination="pairings"/);
+  assert.match(team, /onOpen=\{\(\) => onOpenView\("team-invite"\)\}/);
+  assert.match(team, /onOpen=\{\(\) => onOpenView\("team-assignment"\)\}/);
   assert.match(team, /onOpen=\{\(\) => onOpenView\("team-pairings"\)\}/);
+  assert.doesNotMatch(team, /<InvitationForm/);
+  assert.doesNotMatch(team, /<TeacherAssignments/);
   assert.doesNotMatch(team, /<TeamGroups/);
+  assert.match(invite, /data-team-invite-page/);
+  assert.match(invite, /<InvitationForm/);
+  assert.match(invite, /onBack=\{\(\) => onOpenView\("members", true\)\}/);
+  assert.match(teamAssignment, /data-team-assignment-page/);
+  assert.match(teamAssignment, /<TeacherAssignments/);
+  assert.match(teamAssignment, /onBack=\{\(\) => onOpenView\("members", true\)\}/);
   assert.match(pairings, /title="Team pairings"/);
   assert.match(pairings, /onBack=\{\(\) => onOpenView\("members", true\)\}/);
   assert.match(pairings, /<TeamGroups/);
+  assert.match(ui, /type ManagerView = [^;]+"team-invite"/);
+  assert.match(ui, /type ManagerView = [^;]+"team-assignment"/);
   assert.match(ui, /type ManagerView = [^;]+"team-pairings"/);
   assert.match(ui, /section", nextView/);
   assert.match(ui, /organization-view-tabs premade-glass/);
@@ -533,7 +560,7 @@ test("team assignment composer and pairing review keep atomic actions in respons
   const composerStart = ui.indexOf("function TeacherAssignments");
   const composerEnd = ui.indexOf("function Chevron", composerStart);
   const composer = ui.slice(composerStart, composerEnd);
-  const cardStart = ui.indexOf("function TeamPairingsCard");
+  const cardStart = ui.indexOf("function TeamDirectoryCard");
   const groupsStart = ui.indexOf("function TeamGroups", cardStart);
   const card = ui.slice(cardStart, groupsStart);
   const groupsEnd = ui.indexOf("function InvitationForm", groupsStart);
@@ -543,8 +570,9 @@ test("team assignment composer and pairing review keep atomic actions in respons
   assert.match(composer, /\? "Select students" : `\$\{selectedStudents\.length\} selected`/);
   assert.match(composer, /className="btn-primary col-span-2 min-h-11/);
   assert.doesNotMatch(composer, /showList/);
-  assert.match(card, /className="liquid-glass[^"]+sm:max-w-lg"/);
-  assert.match(card, /Team pairings/);
+  assert.match(card, /data-team-directory-card=\{destination\}/);
+  assert.match(card, /organization-team-directory-card liquid-glass/);
+  assert.match(card, /title: string/);
   assert.match(groups, /"unassign_teacher", teacherAssignmentPayload\(organizationId, teacher\.userId, student\.userId\)/);
   assert.match(groups, /const \[pendingUnassign, setPendingUnassign\] = useState<string \| null>\(null\)/);
   assert.match(groups, /window\.setTimeout\(\(\) => setPendingUnassign\(null\), 6_000\)/);
@@ -556,6 +584,57 @@ test("team assignment composer and pairing review keep atomic actions in respons
   assert.doesNotMatch(groups, />\s*Unassign\s*</);
   assert.doesNotMatch(groups, /window\.confirm/);
   assert.match(groups, /<MemberManagement member=\{student\}/);
+});
+
+test("manager invitations have a dedicated page and canonicalise the legacy deep link", () => {
+  const ui = readFileSync(
+    join(process.cwd(), "components/organization/OrganizationPortal.tsx"),
+    "utf8",
+  );
+  const managerStart = ui.indexOf("function ManagerArea");
+  const invitationStart = ui.indexOf("function InvitationForm", managerStart);
+  const usernameStart = ui.indexOf("function UsernameInvitationForm", invitationStart);
+  const manager = ui.slice(managerStart, invitationStart);
+  const invitation = ui.slice(invitationStart, usernameStart);
+
+  assert.match(manager, /Invite students or teachers/);
+  assert.match(manager, /onOpenView\("team-invite"\)/);
+  assert.match(manager, /onOpenView\("team-invite", true\)/);
+  assert.match(manager, /data-team-invite-page/);
+  assert.match(manager, /aria-labelledby="organisation-invite-people"/);
+  assert.match(manager, /<h3 id="organisation-invite-people"[^>]*>Invite people<\/h3>/);
+  assert.doesNotMatch(manager, /<summary[^>]*>Invite a team member<\/summary>/);
+  assert.match(manager, /invitationPanelRef\.current\?\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(ui, /section === "members" \|\| section === "team-invite"/);
+
+  const selector = invitation.indexOf("Invitation role");
+  const usernameForm = invitation.indexOf("<UsernameInvitationForm");
+  assert.ok(selector >= 0 && selector < usernameForm, "role choice must appear before username search");
+  assert.match(invitation, /\{ value: "student", label: "Student" \}/);
+  assert.match(invitation, /\{ value: "teacher", label: "Teacher" \}/);
+  assert.match(invitation, /actorRole === "owner" \|\| platformAdmin/);
+  assert.match(invitation, /key=\{role\}/);
+  assert.equal((invitation.match(/label="Invitation role"/g) ?? []).length, 1);
+  assert.match(ui, /for \(const parameter of \["focus", "attempt", "request", "requestKind", "invite"\]\) \{/);
+  assert.match(ui, /"requestKind", "invite"/);
+});
+
+test("team directory routes clear stale targets and keep team management manager-only", () => {
+  const ui = readFileSync(
+    join(process.cwd(), "components/organization/OrganizationPortal.tsx"),
+    "utf8",
+  );
+
+  assert.match(ui, /const TEAM_MANAGEMENT_VIEWS = new Set<ManagerView>\(\["members", "team-invite", "team-assignment", "team-pairings"\]\)/);
+  assert.match(ui, /portal\.actor\.platformAdmin && Boolean\(portal\.activeOrganizationId\)/);
+  assert.match(ui, /membership\?\.status === "active"[\s\S]*membership\.role === "manager" \|\| membership\.role === "owner"/);
+  assert.match(ui, /if \(canManageTeam\) return;[\s\S]*url\.searchParams\.delete\(parameter\);/);
+  assert.match(ui, /TEAM_MANAGEMENT_VIEWS\.has\(managerView\) && !canManageTeam[\s\S]*\? "overview"/);
+  assert.match(ui, /requestAnimationFrame\(\(\) => \{[\s\S]*setManagerView\("overview"\);[\s\S]*setAssignmentStudentId\(null\);[\s\S]*setNotificationFocus\(\{ kind: null, id: null \}\);/);
+  assert.match(ui, /if \(nextView !== "assignment-directory"\) url\.searchParams\.delete\("student"\);/);
+  assert.match(ui, /for \(const parameter of \["focus", "attempt", "request", "requestKind", "invite"\]\) \{[\s\S]*url\.searchParams\.delete\(parameter\);/);
+  assert.match(ui, /const section = params\.get\("section"\);[\s\S]*section === "members" \|\| section === "team-invite"/);
+  assert.match(ui, /onOpenView\("team-invite", true\)/);
 });
 
 test("team pairing review removes the redundant outer glass and compacts phone rows", () => {
@@ -822,7 +901,7 @@ test("student privacy settings show membership-scoped current and pending sharin
   assert.match(portal, /Current access stays unchanged until approval/);
   assert.match(portal, /Request to stop/);
   assert.match(portal, /Request to share/);
-  assert.match(portal, /const studentView = managerView === "settings" \? "settings" : "overview"/);
+  assert.match(portal, /const studentView = visibleManagerView === "settings" \? "settings" : "overview"/);
   assert.match(portal, /studentView === "settings" \? \(/);
   assert.match(portal, /membership\.role === "student" && membership\.status === "active"/);
   assert.match(portal, /aria-label="Open organisation settings"/);

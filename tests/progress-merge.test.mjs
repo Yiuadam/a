@@ -93,11 +93,66 @@ test("merged results come back newest first", () => {
   );
 });
 
-test("the newer side wins for the placement result", () => {
-  const local = { placement: { band: 6 }, results: [] };
-  const remote = { placement: { band: 7 }, results: [] };
-  assert.equal(mergeProfiles(local, remote, OLD, NEW).placement.band, 7);
-  assert.equal(mergeProfiles(local, remote, NEW, OLD).placement.band, 6);
+test("the later placement result wins independently of profile snapshot freshness", () => {
+  const local = {
+    placement: { band: 6, date: "2026-08-01T10:00:00.000Z" },
+    results: [],
+  };
+  const remote = {
+    placement: { band: 7, date: "2026-08-12T10:00:00.000Z" },
+    results: [],
+  };
+
+  assert.equal(mergeProfiles(local, remote, NEW, OLD).placement.band, 7);
+  assert.equal(mergeProfiles(remote, local, OLD, NEW).placement.band, 7);
+});
+
+test("a newer unrelated profile write cannot hide a newer placement from another device", () => {
+  const local = {
+    // This browser changed only the target after its older placement result.
+    placement: { band: 5.5, date: "2026-08-01T10:00:00.000Z" },
+    targetBand: 8,
+    results: [],
+  };
+  const remote = {
+    placement: { band: 7, date: "2026-08-12T10:00:00.000Z" },
+    targetBand: 6,
+    results: [],
+  };
+
+  const merged = mergeProfiles(
+    local,
+    remote,
+    Date.parse("2026-08-14T10:00:00.000Z"),
+    Date.parse("2026-08-12T11:00:00.000Z"),
+  );
+
+  assert.equal(merged.placement.band, 7);
+  assert.equal(merged.placement.date, "2026-08-12T10:00:00.000Z");
+  assert.equal(merged.targetBand, 8, "the unrelated newer target-band change still survives");
+});
+
+test("a missing or invalid placement date cannot displace a valid result", () => {
+  const dated = { band: 7, date: "2026-08-12T10:00:00.000Z" };
+
+  assert.equal(
+    mergeProfiles(
+      { placement: { band: 5.5 }, results: [] },
+      { placement: dated, results: [] },
+      NEW,
+      OLD,
+    ).placement.band,
+    7,
+  );
+  assert.equal(
+    mergeProfiles(
+      { placement: dated, results: [] },
+      { placement: { band: 8, date: "not-a-date" }, results: [] },
+      OLD,
+      NEW,
+    ).placement.band,
+    7,
+  );
 });
 
 test("a device that never sat the placement cannot erase one that did", () => {

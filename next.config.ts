@@ -49,6 +49,45 @@ const nextConfig: NextConfig = isMobile
       // terminal without rendering that badge on top of BandUp's interface.
       devIndicators: false,
       /*
+        Keep identity, cookies and cached documents on one public origin.
+
+        Google Identity Services authorises an exact JavaScript origin, so a
+        www account page is not equivalent to the apex account page. Cloudflare
+        also overwrites X-Forwarded-Proto with the visitor's actual scheme, and
+        OpenNext retains that header while evaluating this redirect table. The
+        scheme condition can therefore safely upgrade direct HTTP apex visits
+        without affecting localhost or the organisation preview.
+
+        Host expressions are explicitly anchored. Next anchors them as well,
+        while OpenNext evaluates the route-manifest expression directly; the
+        explicit anchors ensure a lookalike host can never be a partial match.
+        Query parameters that are not replaced in the destination are carried
+        across by Next's redirect handling.
+      */
+      async redirects() {
+        return [
+          {
+            source: "/:path*",
+            has: [{ type: "host", value: "^www\\.bandup\\.life$" }],
+            destination: "https://bandup.life/:path*",
+            permanent: true,
+          },
+          {
+            source: "/:path*",
+            has: [
+              { type: "host", value: "^bandup\\.life$" },
+              {
+                type: "header",
+                key: "x-forwarded-proto",
+                value: "^http$",
+              },
+            ],
+            destination: "https://bandup.life/:path*",
+            permanent: true,
+          },
+        ];
+      },
+      /*
         Cross-origin isolation, for the speaking test only.
 
         On-device transcription runs whisper.cpp in WebAssembly, which is built

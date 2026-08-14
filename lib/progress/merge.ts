@@ -117,12 +117,43 @@ function deletionMap(value: unknown): Record<string, string> {
   return out;
 }
 
+/*
+  A profile can be rewritten for many reasons after its placement test: a
+  learner may change their target band, open a new module, or choose a new
+  plan length. The profile snapshot stamp therefore says nothing reliable about
+  which placement result is newer. Compare the dated result itself instead.
+
+  Old snapshots can lack a date. A valid dated result beats an undated one;
+  when neither side supplies a valid date, keep the local value deterministically
+  rather than treating an unrelated profile rewrite as a new placement.
+*/
+function placementStamp(placement: Profile["placement"] | null | undefined): number | null {
+  const date = validIso(placement?.date);
+  return date ? Date.parse(date) : null;
+}
+
+function mergePlacement(
+  local: Profile["placement"] | null | undefined,
+  remote: Profile["placement"] | null | undefined,
+): Profile["placement"] | undefined {
+  if (local == null) return remote ?? undefined;
+  if (remote == null) return local;
+
+  const localStamp = placementStamp(local);
+  const remoteStamp = placementStamp(remote);
+  if (localStamp === null) return remoteStamp === null ? local : remote;
+  if (remoteStamp === null) return local;
+  return remoteStamp > localStamp ? remote : local;
+}
+
 /**
  * Combines two profiles without discarding anything countable.
  *
- * Lists are unioned. Single values — the placement result, the target band —
- * cannot be unioned, so they are taken from whichever snapshot is newer, which
- * is the only place a timestamp decides anything.
+ * Lists are unioned. Most single values — the target band, for example —
+ * cannot be unioned, so they are taken from whichever profile snapshot is
+ * newer. A placement is different: its own completion date is the timestamp
+ * for that result, and it must not be displaced by an unrelated later profile
+ * write such as changing the target band.
  */
 export function mergeProfiles(
   local: Partial<Profile> | null | undefined,
@@ -179,12 +210,11 @@ export function mergeProfiles(
   });
 
   /*
-    A single value cannot be merged, so the newer snapshot wins — but only if
-    it actually holds one. A device that has never sat the placement test must
-    not erase the result from a device that has, merely by having synced more
-    recently.
+    A placement is its own dated learner result. A device that has never sat
+    the test cannot erase one that did, and a later target-band or plan change
+    cannot hide a newer placement received from another browser.
   */
-  const placement = remoteIsNewer ? (b.placement ?? a.placement) : (a.placement ?? b.placement);
+  const placement = mergePlacement(a.placement, b.placement);
   const targetBand = remoteIsNewer
     ? (b.targetBand ?? a.targetBand)
     : (a.targetBand ?? b.targetBand);
@@ -258,16 +288,84 @@ export function mergeDrillScores(
  * lib/lookups.ts, and the newest entries are the ones kept when two devices
  * together hold more than the limit.
  */
+function lookupRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function lookupFavouriteUpdate(value: Record<string, unknown>): string | null {
+  return validIso(value.favouriteUpdatedAt) ?? null;
+}
+
+/*
+  Definitions retain the established local-first collision rule. Favourite
+  state is a separate learner action: its explicit revision timestamp wins,
+  including `false` after an unpin. This prevents an older browser from
+  restoring a star simply because it happens to sync afterwards.
+*/
+function mergeLookupEntry<T>(local: T, remote: T): T {
+  const localRecord = lookupRecord(local);
+  const remoteRecord = lookupRecord(remote);
+  if (!localRecord || !remoteRecord) return local;
+
+  const merged: Record<string, unknown> = { ...remoteRecord, ...localRecord };
+  const localUpdated = lookupFavouriteUpdate(localRecord);
+  const remoteUpdated = lookupFavouriteUpdate(remoteRecord);
+  const winner =
+    localUpdated && remoteUpdated
+      ? localUpdated >= remoteUpdated
+        ? localRecord
+        : remoteRecord
+      : localUpdated
+        ? localRecord
+        : remoteUpdated
+          ? remoteRecord
+          : null;
+
+  if (winner) {
+    merged.favourite = winner.favourite === true;
+    merged.favouriteUpdatedAt = winner.favouriteUpdatedAt;
+  } else if (localRecord.favourite === true || remoteRecord.favourite === true) {
+    // Legacy entries predate the timestamp field. Preserve a legacy star
+    // until a modern pin/unpin gives it an unambiguous revision.
+    merged.favourite = true;
+  }
+  return merged as T;
+}
+
+function lookupNewestAt(value: unknown): string {
+  const record = lookupRecord(value);
+  return record && typeof record.at === "string" ? record.at : "";
+}
+
+function lookupIsFavourite(value: unknown): boolean {
+  return lookupRecord(value)?.favourite === true;
+}
+
 export function mergeLookups<T>(
   local: Record<string, T> | null | undefined,
   remote: Record<string, T> | null | undefined,
   limit = 300,
 ): Record<string, T> {
-  const merged: Record<string, T> = { ...(remote ?? {}), ...(local ?? {}) };
-  const keys = Object.keys(merged);
-  if (keys.length <= limit) return merged;
+  const merged: Record<string, T> = { ...(remote ?? {}) };
+  for (const [key, localEntry] of Object.entries(local ?? {})) {
+    const remoteEntry = merged[key];
+    merged[key] = remoteEntry === undefined
+      ? localEntry
+      : mergeLookupEntry(localEntry, remoteEntry);
+  }
 
-  const trimmed: Record<string, T> = {};
-  for (const key of keys.slice(keys.length - limit)) trimmed[key] = merged[key];
+  const entries = Object.entries(merged);
+  if (entries.length <= limit) return merged;
+
+  const oldestFirst = (left: [string, T], right: [string, T]) =>
+    lookupNewestAt(left[1]).localeCompare(lookupNewestAt(right[1]));
+  const removable = entries.filter(([, value]) => !lookupIsFavourite(value)).sort(oldestFirst);
+  const candidates = removable.length >= entries.length - limit
+    ? removable
+    : [...removable, ...entries.filter(([, value]) => lookupIsFavourite(value)).sort(oldestFirst)];
+  const trimmed: Record<string, T> = { ...merged };
+  for (const [key] of candidates.slice(0, entries.length - limit)) delete trimmed[key];
   return trimmed;
 }

@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
-import bandupMark from "@/components/assets/steps-five-layer-rear-108.png";
 import styles from "@/components/admin/AdminConsole.module.css";
 
 /*
@@ -42,7 +41,7 @@ export default function ConsoleShell({
           <Link href="/" prefetch={false} className={styles.brand}>
             <span className={styles.brandMark}>
               <Image
-                src={bandupMark}
+                src="/icons/final/steps-five-mark.svg"
                 alt=""
                 fill
                 sizes="38px"

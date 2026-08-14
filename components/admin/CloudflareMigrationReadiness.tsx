@@ -47,6 +47,16 @@ export default function CloudflareMigrationReadiness() {
 
       {report && (
         <>
+          {report.sourceEvidence.status !== "available" && (
+            <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/60 px-3 py-3 text-xs text-amber-900">
+              <strong className="block">Supabase fingerprint evidence {report.sourceEvidence.status}</strong>
+              <p className="mt-1 leading-5">
+                {report.sourceEvidence.status === "unavailable"
+                  ? "The restricted source-fingerprint RPC could not be read. Verify that Supabase migration 0029 is applied, its service-role grant is present, and PostgREST has reloaded before retrying."
+                  : "The restricted source-fingerprint RPC returned incomplete or malformed evidence. The report stays fail-closed until it returns exactly one valid fingerprint for every domain."}
+              </p>
+            </div>
+          )}
           <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {report.domains.map((domain) => (
               <div key={domain.domain} className="rounded-xl border border-slate-200/80 px-3 py-2.5 text-xs">

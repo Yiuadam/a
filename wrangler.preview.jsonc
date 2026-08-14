@@ -38,5 +38,20 @@
       "binding": "BANDUP_FILES",
       "bucket_name": "bandup-organization-ui-preview"
     }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "ratelimits": [
+    {
+      "name": "AUDIO_GENERATION_RATE_LIMITER",
+      "namespace_id": "99042001",
+      "simple": { "limit": 2, "period": 60 }
+    },
+    {
+      "name": "MODEL_FETCH_RATE_LIMITER",
+      "namespace_id": "99042002",
+      "simple": { "limit": 12, "period": 60 }
+    }
   ]
 }

@@ -54,11 +54,72 @@ test("a silent examiner engine falls back or becomes recoverable", () => {
   );
 
   assert.match(neural, /FIRST_AUDIO_TIMEOUT_MS/);
-  assert.match(neural, /if \(!started\)[\s\S]+return false;/);
+  assert.match(neural, /if \(!started\)[\s\S]+return "unavailable";/);
+  assert.match(neural, /return "cancelled";/);
   assert.match(speech, /Promise<boolean>/);
   assert.match(speech, /Chrome can accept an utterance but emit neither start, end nor error/);
   assert.match(session, /Play question again/);
   assert.match(session, /Replay question/);
   assert.match(session, /if \(!spoken\)/);
   assert.match(session, /if \(!promptPlayed\)/);
+});
+
+test("a failed private model distinguishes download from runtime setup and stays recoverable", () => {
+  const session = readFileSync(
+    join(process.cwd(), "components", "speaking", "SpeakingSession.tsx"),
+    "utf8",
+  );
+
+  assert.match(session, /isLocalModelDownloadError\(error\)/);
+  assert.match(session, /setLocalSetupFailed\(downloadFailed \? "download" : "initializing"\)/);
+  assert.match(session, /Retry the download/);
+  assert.match(session, /Retry setup/);
+  assert.match(session, /Use my device recogniser/);
+  assert.match(session, /updatePrefs\(\{ \.\.\.prefs, engine: "platform" \}\)/);
+  assert.match(session, /void begin\(true\)/);
+  assert.match(session, /const chosenEngine: SpeechPrefs\["engine"\] =/);
+  assert.match(session, /forcePlatform \|\| localBlock !== null \? "platform" : prefs\.engine/);
+  assert.match(session, /sessionEngineRef\.current = chosenEngine/);
+  assert.match(session, /sessionEngineRef\.current === "local"/);
+});
+
+test("the answer phase is gated by the complete current examiner prompt", () => {
+  const session = readFileSync(
+    join(process.cwd(), "components", "speaking", "SpeakingSession.tsx"),
+    "utf8",
+  );
+
+  assert.match(session, /const \[answerWindowOpen, setAnswerWindowOpen\]/);
+  assert.match(session, /const promptGeneration = \+\+promptGenerationRef\.current/);
+  assert.match(session, /if \(promptGeneration !== promptGenerationRef\.current\) return;/);
+  assert.match(session, /if \(!step \|\| !answerWindowOpen \|\| advancingRef\.current\) return;/);
+  assert.match(session, /disabled=\{!answerWindowOpen \|\| examinerSpeaking \|\| preparing \|\| transcribing\}/);
+  assert.match(session, /The complete examiner question did not play/);
+  assert.match(session, /Use written question/);
+});
+
+test("stale microphone and preparation callbacks cannot enter a later answer", () => {
+  const session = readFileSync(
+    join(process.cwd(), "components", "speaking", "SpeakingSession.tsx"),
+    "utf8",
+  );
+
+  assert.match(session, /recRef\.current !== rec/);
+  assert.match(session, /sessionRef\.current !== session/);
+  assert.match(session, /prepGenerationRef\.current/);
+  assert.match(session, /answerWindowOpenRef\.current/);
+  assert.match(session, /const retainedAnswer = await stopAnswer\(\)/);
+  assert.match(session, /if \(beginningRef\.current\) return;/);
+});
+
+test("a marking outage keeps the completed transcript retryable", () => {
+  const session = readFileSync(
+    join(process.cwd(), "components", "speaking", "SpeakingSession.tsx"),
+    "utf8",
+  );
+
+  assert.match(session, /"grade-error"/);
+  assert.match(session, /Your interview is safely recorded/);
+  assert.match(session, /Retry marking/);
+  assert.match(session, /gradeInterview\(transcript\)/);
 });

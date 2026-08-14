@@ -84,6 +84,7 @@ export default function GoogleSignIn() {
   const [clientId, setClientId] = useState<string | null>(null);
   const [configReady, setConfigReady] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,7 +101,7 @@ export default function GoogleSignIn() {
         if (!configuredClientId) setError("Google sign-in is not configured yet.");
       })
       .catch(() => {
-        if (live) setError("Google sign-in could not be loaded. Please try again.");
+        if (live) setLoadFailed(true);
       })
       .finally(() => {
         if (live) setConfigReady(true);
@@ -138,9 +139,10 @@ export default function GoogleSignIn() {
           logo_alignment: "left",
           width: Math.max(240, Math.min(400, Math.floor(host.getBoundingClientRect().width))),
         });
+        setLoadFailed(false);
       })
       .catch(() => {
-        if (live) setError("Google sign-in could not be loaded. Please try again.");
+        if (live) setLoadFailed(true);
       });
 
     return () => {
@@ -200,7 +202,7 @@ export default function GoogleSignIn() {
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
         onReady={() => setScriptReady(true)}
-        onError={() => setError("Google sign-in could not be loaded. Please try again.")}
+        onError={() => setLoadFailed(true)}
       />
       <div className="google-signin-glass premade-glass relative mx-auto w-full max-w-[406px] rounded-full p-[3px]">
         <RefractiveGlassLayer radius={999} interactive />
@@ -208,13 +210,16 @@ export default function GoogleSignIn() {
           <div
             ref={hostRef}
             className={
-              busy
+              loadFailed
+                ? "google-signin-host flex min-h-10 w-full justify-center overflow-hidden rounded-full opacity-0 pointer-events-none"
+                : busy
                 ? "google-signin-host flex min-h-10 w-full justify-center overflow-hidden rounded-full opacity-50 pointer-events-none"
                 : "google-signin-host flex min-h-10 w-full justify-center overflow-hidden rounded-full"
             }
             aria-label="Continue with Google"
+            aria-hidden={loadFailed || undefined}
           />
-          {(!scriptReady || !configReady) && !error && (
+          {(!scriptReady || !configReady) && !error && !loadFailed && (
             <div
               className="btn-secondary absolute inset-0 min-h-10 rounded-full"
               aria-live="polite"
@@ -222,8 +227,27 @@ export default function GoogleSignIn() {
               <LoadingIndicator label="Loading Google sign-in…" />
             </div>
           )}
+          {loadFailed && (
+            <a
+              href={apiUrl("/api/auth/start?provider=google")}
+              className="btn-secondary absolute inset-0 min-h-10 rounded-full"
+              aria-describedby="google-signin-fallback-help"
+              data-google-signin-fallback
+            >
+              Continue with Google
+            </a>
+          )}
         </div>
       </div>
+      {loadFailed && (
+        <p
+          id="google-signin-fallback-help"
+          className="mt-2 text-center text-xs leading-5 text-slate-500"
+          role="status"
+        >
+          The Google button couldn&rsquo;t load in this browser. Continue to Google to sign in.
+        </p>
+      )}
       {busy && <p className="mt-2 text-center text-xs text-slate-500"><LoadingIndicator label="Signing in…" /></p>}
       {error && (
         <p className="mt-2 text-center text-xs leading-5 text-rose-700" role="alert">

@@ -40,13 +40,13 @@ test("every API route answers preflight", () => {
   assert.deepEqual(missing, [], `these routes never answer an OPTIONS preflight:\n  ${missing.join("\n  ")}`);
 });
 
-test("every exported GET and POST is wrapped", () => {
+test("every exported API handler is wrapped", () => {
   const offenders = [];
   for (const file of routeFiles()) {
     const source = readFileSync(file, "utf8");
     // A bare `export async function GET` means the handler bypasses the
     // wrapper, which is exactly the shape this migration removed.
-    if (/export\s+(async\s+)?function\s+(GET|POST)\s*\(/.test(source)) {
+    if (/export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)\s*\(/.test(source)) {
       offenders.push(`${file} exports a handler directly instead of via withCors`);
     }
   }
@@ -92,6 +92,12 @@ test("an allowed origin is granted, and told the answer varies by origin", () =>
     assert.equal(headers["Access-Control-Allow-Origin"], "capacitor://localhost");
     // Without Vary, a shared cache could hand one origin's grant to another.
     assert.equal(headers["Vary"], "Origin");
+
+    const preflight = OPTIONS(req("capacitor://localhost"));
+    assert.equal(
+      preflight.headers.get("Access-Control-Allow-Methods"),
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    );
   });
 });
 

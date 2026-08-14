@@ -300,6 +300,33 @@ body[data-viewport-locked] {
   overflow: hidden;
 }
 
+/*
+  Plan tasks live in a short vertical scroller. A refractive rim may extend a
+  few pixels while its control follows a fine pointer; clipping at the exact
+  edge of that scroller made the rim look sliced off at the first, last and
+  side-most task. Keep the real scroll boundary, but put a small paint gutter
+  *inside* it.
+
+  The negative margin and matching padding deliberately cancel in normal
+  flow: task text keeps its old width and the list keeps its 9.5rem reading
+  area. The physical scrollport is just wider/taller by the gutter, giving a
+  decorative layer room to settle without changing the link's hit target or
+  allowing horizontal page overflow. This is scoped to plan tasks; navigation
+  and other intentionally clipped windows retain their own boundaries.
+*/
+.plan-task-list {
+  --plan-task-lens-overscan: 0.5rem;
+  box-sizing: border-box;
+  max-height: calc(9.5rem + var(--plan-task-lens-overscan) + var(--plan-task-lens-overscan));
+  margin: calc(0px - var(--plan-task-lens-overscan));
+  padding: var(--plan-task-lens-overscan);
+  /* This preserves the old `pr-1` clearance for the scrollbar. */
+  padding-right: calc(var(--plan-task-lens-overscan) + 0.25rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-padding-block: var(--plan-task-lens-overscan);
+}
+
 .practice-result-page {
   margin-inline: var(--page-window-gutter);
   padding-top: var(--page-window-gutter);
@@ -639,7 +666,6 @@ html[data-theme="dark"] .google-signin-glass {
   -webkit-backdrop-filter: blur(42px) saturate(112%) brightness(102%);
   backdrop-filter: blur(42px) saturate(112%) brightness(102%);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
-  animation: glass-menu-open 340ms cubic-bezier(0.2, 0.82, 0.2, 1);
 }
 
 .nav-paper > .refractive-glass-layer {
@@ -674,105 +700,55 @@ html[data-theme="dark"] .google-signin-glass {
 }
 
 /*
-  backdrop-filter creates a containing block for fixed descendants. The open
-  menu is one of those descendants, so the header temporarily keeps the same
-  optical edge without the filter; otherwise the full-screen panel is trapped
-  inside the header's 60px box.
+  `backdrop-filter` creates a containing block for fixed descendants. The
+  expanded menu must stay fixed to the viewport, not become a strip inside the
+  header, so the open header cannot own its filter directly. Its decorative
+  `::before` layer owns the same normal liquid-glass material instead. A
+  sibling filter does not contain the menu, while the visual fill, blur, rim
+  and shadow remain precisely where the closed header paints them.
 */
 .nav-open-header {
+  /* A small non-filtering base keeps the bar visibly glassy in engines that
+     occasionally skip backdrop filtering on pseudo-elements. The actual blur
+     still belongs to ::before, so the fixed navigation sheet remains
+     viewport-relative. */
+  isolation: isolate;
   border-color: var(--glass-edge);
-  background: var(--glass-fill-strong);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  background: color-mix(in srgb, var(--glass-fill) 45%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 45%, transparent),
+    0 1px 3px color-mix(in srgb, var(--glass-shadow) 45%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.nav-open-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+  background: var(--glass-fill);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 3px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
+}
+
+/* The material belongs below the real controls. The fixed navigation panel
+   has its own higher stacking level and therefore still expands over the
+   viewport exactly as it did before the header gained its glass layer. */
+.nav-open-header > :not(.nav-paper) {
+  position: relative;
+  z-index: 1;
 }
 
 /* With viewport-fit=cover, the header surface continues behind an iPhone's
    status area instead of leaving a white strip above the navigation row. */
 .site-header {
   padding-top: env(safe-area-inset-top);
-}
-
-@keyframes glass-menu-open {
-  from {
-    opacity: 0;
-    transform: translateY(-0.25rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/*
-  Opening navigation is a short material transition: the three destination
-  groups appear to leave the menu control at the top-right, stretch into their
-  final cards, then settle. Only transform and opacity animate, so the browser
-  can composite the effect without repainting the glass or running a listener
-  for every card. The groups are mounted only while the menu is open, which
-  naturally restarts the stagger on the next open.
-*/
-.nav-menu-group {
-  --nav-group-flow-x: clamp(6rem, 32vw, 22rem);
-  transform-origin: 100% 0;
-  animation: nav-group-materialise 520ms cubic-bezier(0.16, 0.9, 0.24, 1.08) both;
-  animation-delay: calc(48ms + var(--nav-group-delay, 0ms));
-}
-
-@keyframes nav-group-materialise {
-  0% {
-    opacity: 0;
-    transform: translate3d(var(--nav-group-flow-x), -3.25rem, 0) scale3d(0.24, 0.12, 1);
-  }
-  72% {
-    opacity: 1;
-    transform: translate3d(-0.18rem, 0.1rem, 0) scale3d(1.016, 0.986, 1);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
-  }
-}
-
-@media (min-width: 640px) {
-  .nav-menu-group:nth-child(2n) {
-    --nav-group-flow-x: clamp(2.5rem, 14vw, 10rem);
-  }
-}
-
-@media (min-width: 1024px) {
-  .nav-menu-group:nth-child(1) {
-    --nav-group-flow-x: clamp(16rem, 38vw, 34rem);
-  }
-
-  .nav-menu-group:nth-child(2) {
-    --nav-group-flow-x: clamp(7rem, 18vw, 16rem);
-  }
-
-  .nav-menu-group:nth-child(3) {
-    --nav-group-flow-x: 1.5rem;
-  }
-}
-
-/* Touch devices do not need the desktop's elastic shape change. A shorter
-   compositor-only reveal keeps the relationship to the menu button while
-   reducing simultaneous layers and battery work. */
-@keyframes nav-group-touch-open {
-  from {
-    opacity: 0;
-    transform: translate3d(0.75rem, -0.5rem, 0) scale3d(0.985, 0.94, 1);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
-  }
-}
-
-@media (hover: none), (pointer: coarse), (prefers-reduced-transparency: reduce) {
-  .nav-menu-group {
-    animation-name: nav-group-touch-open;
-    animation-duration: 180ms;
-    animation-timing-function: ease-out;
-    animation-delay: calc(20ms + var(--nav-group-touch-delay, 0ms));
-  }
 }
 
 /*
@@ -1022,8 +998,22 @@ html[data-theme="dark"] .google-signin-glass {
   width: min(15rem, 44vw);
 }
 
+.organization-membership-actions:not(:has(.organization-workspace-switcher)) {
+  width: auto;
+}
+
 .organization-membership-actions > button {
   justify-self: end;
+}
+
+.organization-settings-button[aria-current="page"] {
+  color: var(--color-indigo-700);
+  border-color: color-mix(in srgb, var(--color-indigo-500) 52%, var(--glass-edge));
+  background: color-mix(in srgb, var(--color-indigo-100) 52%, var(--glass-fill-strong));
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 2px color-mix(in srgb, var(--color-indigo-500) 18%, transparent),
+    0 1px 2px var(--glass-shadow);
 }
 
 .organization-workspace-switcher {
@@ -1046,9 +1036,10 @@ html[data-theme="dark"] .google-signin-glass {
   }
 }
 
-/* A restrained magnetic response shared by cards and buttons. The page keeps
-   its geometry because individual translate/scale never participate in
-   layout; only the painted surface follows the pointer by a few pixels. */
+/* A restrained magnetic response shared by selected glass controls. The
+   control itself is deliberately stationary: its words, icon, hit target and
+   focus outline must not chase the pointer. Only the already-separate,
+   decorative refraction layer moves and stretches by a few pixels. */
 [data-pointer-attract-ready] {
   --pointer-drift-x: 0px;
   --pointer-drift-y: 0px;
@@ -1056,31 +1047,36 @@ html[data-theme="dark"] .google-signin-glass {
   --pointer-stretch-y: 1;
   --pointer-origin-x: 50%;
   --pointer-origin-y: 50%;
+}
+
+[data-pointer-attract-ready] > .refractive-glass-layer {
   translate: var(--pointer-drift-x) var(--pointer-drift-y);
   scale: var(--pointer-stretch-x) var(--pointer-stretch-y);
   transform-origin: var(--pointer-origin-x) var(--pointer-origin-y);
-  transition-property: translate, scale, border-color, background-color, box-shadow, color, opacity;
-  transition-duration: 420ms, 420ms, 180ms, 180ms, 240ms, 180ms, 180ms;
+  transition-property: translate, scale;
+  transition-duration: 420ms, 420ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   will-change: translate, scale;
 }
 
-[data-pointer-attract-ready][data-pointer-attracting] {
+[data-pointer-attract-ready][data-pointer-attracting] > .refractive-glass-layer {
   /* Track the pointer almost immediately. Longer easing here reads as input
      lag because every pointer frame starts another transition. */
-  transition-duration: 28ms, 36ms, 180ms, 180ms, 240ms, 180ms, 180ms;
-  transition-timing-function:
-    linear,
-    linear,
-    cubic-bezier(0.16, 1, 0.3, 1),
-    cubic-bezier(0.16, 1, 0.3, 1),
-    cubic-bezier(0.16, 1, 0.3, 1),
-    cubic-bezier(0.16, 1, 0.3, 1),
-    cubic-bezier(0.16, 1, 0.3, 1);
+  transition-duration: 28ms, 36ms;
+  transition-timing-function: linear, linear;
 }
 
-[data-pointer-attract-ready][data-pointer-attract-touch] {
-  transition-duration: 24ms, 32ms, 180ms, 180ms, 240ms, 180ms, 180ms;
+/* While the lens is stretching, it is the only painted edge. Leaving the
+   semantic button's normal border in place creates a second, static ring
+   beneath it (especially noticeable on round icon controls). The hit target
+   and keyboard focus geometry remain on the button; only its base rim fades
+   until the lens comes to rest. */
+[data-pointer-attract-ready][data-pointer-attracting] {
+  border-color: transparent;
+}
+
+[data-pointer-attract-ready][data-pointer-attract-touch] > .refractive-glass-layer {
+  transition-duration: 24ms, 32ms;
 }
 
 .pointer-attract-glass {
@@ -1096,6 +1092,14 @@ html[data-theme="dark"] .google-signin-glass {
 .pointer-attract-glass:hover {
   border-color: var(--glass-specular);
   background: var(--glass-fill-strong);
+}
+
+/* This comes after the hover recipe because an actively stretching lens is
+   naturally hovered. Keep the semantic control's paint out of the way so the
+   moving decorative rim is the only visible boundary. */
+.pointer-attract-glass[data-pointer-attracting] {
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .panel-toggle-base {
@@ -2197,102 +2201,12 @@ textarea {
   background: linear-gradient(90deg, var(--color-indigo-400), var(--color-indigo-600));
 }
 
-/*
-  The topic index on Grammar and Vocabulary, made dense.
-
-  Both pages render through <DrillSection>, which this change does not own, so
-  the density it needs is applied from the outside: the page wraps it in
-  `.drill-dense` and every rule here reaches the topic index only. `> div >
-  .grid` is the grid of topic buttons, and `> div > div:not([class])` is the
-  heading block above it — the open-topic view puts a `.card` in that position
-  instead, which is why the attribute selector is doing real work rather than
-  being decoration.
-
-  Nothing is hidden. Ten grammar topics across five columns are the same ten
-  topics; the one-sentence excerpt under each title is the excerpt it always
-  was, and the whole note is on the topic itself, one tap away.
-*/
-.drill-dense > div > div:not([class]) h1 {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-}
-.drill-dense > div > .grid {
-  gap: 0.625rem;
-  margin-top: 0.75rem;
-}
-.drill-dense > div > .grid > .card {
-  padding: 0.75rem;
-}
-.drill-dense > div > .grid > .card h2 {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-}
-.drill-dense > div > .grid > .card > p {
-  margin-top: 0.25rem;
-}
-.drill-dense > div > .grid > .card > div:last-child {
-  margin-top: 0.375rem;
-}
-/* One line of the excerpt on a phone, two once there is room for two. */
-@media (max-width: 639px) {
-  /*
-    Topic indexes are two-row horizontal decks on phones. Every grammar or
-    vocabulary topic stays reachable, but the page no longer becomes ten
-    vertically stacked cards before the learner can choose one.
-  */
-  .drill-dense > div > .grid {
-    grid-template-columns: none;
-    grid-template-rows: repeat(2, minmax(0, auto));
-    grid-auto-columns: min(82vw, 20rem);
-    grid-auto-flow: column;
-    margin-inline: -1.25rem;
-    padding: 0.125rem 1.25rem 0.5rem;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scroll-padding-inline: 1.25rem;
-    scroll-snap-type: inline mandatory;
-    scrollbar-width: none;
-  }
-
-  .drill-dense > div > .grid::-webkit-scrollbar {
-    display: none;
-  }
-
-  .drill-dense > div > .grid > * {
-    min-width: 0;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-
-  .drill-dense > div > .grid > .card > p {
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-  }
-}
-@media (min-width: 1024px) {
-  .drill-dense > div > .grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-/*
-  The column count is chosen so the topics land in exactly two rows on a
-  laptop: ten grammar topics across five, eight vocabulary topics across four.
-  Wider cards wrap fewer titles, so the wrong count is both emptier and taller.
-*/
-@media (min-width: 1280px) {
-  .drill-dense > div > .grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .drill-dense-5 > div > .grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  [data-pointer-attract-ready] {
+  [data-pointer-attract-ready] > .refractive-glass-layer {
     translate: none;
     scale: none;
     transition: none;
+    will-change: auto;
   }
 
   a.card,
@@ -2301,14 +2215,6 @@ textarea {
   }
   .btn-primary:hover:not(:disabled),
   a.card:hover {
-    transform: none;
-  }
-  .nav-paper {
-    animation: none;
-  }
-  .nav-menu-group {
-    animation: none;
-    opacity: 1;
     transform: none;
   }
   .liquid-glass,
@@ -2650,9 +2556,23 @@ html[data-theme="dark"] .nav-paper {
 }
 
 html[data-theme="dark"] .nav-open-header {
-  border-color: var(--glass-edge);
-  background: rgba(20, 20, 23, 0.56);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  background: color-mix(in srgb, var(--glass-fill) 45%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 45%, transparent),
+    0 1px 2px color-mix(in srgb, var(--glass-shadow) 45%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Mirror the dark `.liquid-glass` recipe rather than the stronger menu
+   surface: the opened bar should look indistinguishable from the closed bar. */
+html[data-theme="dark"] .nav-open-header::before {
+  background: var(--glass-fill);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(105%) brightness(106%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(105%) brightness(106%);
 }
 
 html[data-theme="dark"] .theme-toggle-base,
@@ -2790,4 +2710,12 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
   .premade-glass[data-glass-reflecting] {
     background-image: none;
   }
+}
+
+/* The selection lookup trigger is a fixed annotation of the selected word.
+   Unlike interactive glass controls, it deliberately has no pointer-driven
+   translation, scale or transition: it must stay where the selection put it
+   while the learner moves their pointer over to press it. */
+.lookup-selection-pill {
+  translate: -50% calc(-100% - 0.5rem);
 }

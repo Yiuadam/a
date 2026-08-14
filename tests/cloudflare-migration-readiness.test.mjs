@@ -150,6 +150,7 @@ test("the global report proves exact identities and versions but fails closed on
   ));
 
   assert.equal(report.domains.slice(0, 8).every((domain) => domain.status === "equal"), true);
+  assert.equal(report.sourceEvidence.status, "available");
   assert.equal(report.domains.find((domain) => domain.domain === "organizations").status, "authoritative");
   assert.equal(report.supabaseAuth.included, false);
   assert.equal(report.supabaseAuth.authority, "supabase");
@@ -204,7 +205,25 @@ test("missing, duplicate or malformed source evidence is unavailable rather than
     },
   ));
   assert.equal(report.domains.slice(0, 8).every((domain) => domain.status === "unavailable"), true);
+  assert.equal(report.sourceEvidence.status, "invalid");
   assert.equal(report.readyForCloudflareOnly, false);
+});
+
+test("an unreadable source fingerprint RPC is named without exposing source rows or error text", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const report = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => { throw new Error("source database detail must stay server-only"); },
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+
+  assert.equal(report.sourceEvidence.status, "unavailable");
+  assert.equal(report.domains.slice(0, 8).every((domain) => domain.status === "unavailable"), true);
+  assert.doesNotMatch(JSON.stringify(report), /source database detail must stay server-only/);
 });
 
 test("the source RPC and API expose migration evidence only to the owner service path", () => {
@@ -230,6 +249,8 @@ test("the source RPC and API expose migration evidence only to the owner service
   assert.match(route, /private, no-store/);
   assert.match(ui, /Supabase Auth is deliberately excluded/);
   assert.match(ui, /Cloudflare-only readiness/);
+  assert.match(ui, /Supabase fingerprint evidence/);
+  assert.match(ui, /migration 0029/);
   assert.match(ui, /Cutover blockers/);
   assert.match(ui, /cleanupDead/);
 });

@@ -16,7 +16,7 @@ import ExplainText from "@/components/ExplainText";
 import UpgradePanel from "@/components/billing/UpgradePanel";
 import { tierShows, useTier } from "@/lib/billing/useTier";
 import VolumeMeter from "@/components/speaking/VolumeMeter";
-import { postJSON } from "@/lib/api";
+import { apiUrl, postJSON } from "@/lib/api";
 import speakingData from "@/data/speaking-topics.json";
 import { useMounted } from "@/lib/hooks";
 import {
@@ -27,8 +27,6 @@ import {
   speechPrefs,
   speechRecognitionSupported,
   speak,
-  prepareNaturalExaminerVoice,
-  primeSpeechPlayback,
   subscribeSpeechPrefs,
   writeSpeechPrefs,
   type SpeechPrefs,
@@ -44,6 +42,7 @@ import {
   describeStatus,
   formatBytes,
   isModelCached,
+  isLocalModelDownloadError,
   localAvailability,
   mergeAnswer,
   prepareLocal,
@@ -68,6 +67,11 @@ import {
   SPEAKING_PART_INTRO,
   type TurnEndReason,
 } from "@/lib/speaking/turn-control";
+import {
+  bundledExaminerAudioUrl,
+  examinerFollowUpAudioId,
+  examinerQuestionAudioId,
+} from "@/lib/examiner-audio";
 
 const data = speakingData as SpeakingTopicsData;
 
@@ -131,9 +135,9 @@ export default function SpeakingSession({
   const marked =
     account.phase !== "ready" || !account.accountsEnabled || tierShows(account, "grade-speaking");
 
-  const [stage, setStage] = useState<"intro" | "interview" | "grading" | "result" | "unmarked">(
-    "intro",
-  );
+  const [stage, setStage] = useState<
+    "intro" | "interview" | "grading" | "grade-error" | "result" | "unmarked"
+  >("intro");
   const [steps, setSteps] = useState<Step[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [transcript, setTranscript] = useState<Turn[]>([]);
@@ -141,6 +145,7 @@ export default function SpeakingSession({
   const [interim, setInterim] = useState("");
   const [recording, setRecording] = useState(false);
   const [examinerSpeaking, setExaminerSpeaking] = useState(false);
+  const [answerWindowOpen, setAnswerWindowOpen] = useState(false);
   const [prepSeconds, setPrepSeconds] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [grade, setGrade] = useState<SpeakingGrade | null>(null);
@@ -162,18 +167,25 @@ export default function SpeakingSession({
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
 
   const prefs = useSyncExternalStore(subscribeSpeechPrefs, speechPrefs, serverSpeechPrefs);
+  /*
+    Freeze the recogniser choice for a sitting. In particular, the one-tap
+    recovery from an unavailable on-device model must take effect before the
+    asynchronous `begin()` work continues; waiting for the external preference
+    store to re-render could otherwise start a local recorder after the learner
+    selected their device recogniser.
+  */
+  const [sessionEngine, setSessionEngine] = useState<SpeechPrefs["engine"] | null>(null);
   const [enginePreview, setEnginePreview] = useState<SpeechPrefs["engine"] | null>(null);
   const [localBlock, setLocalBlock] = useState<LocalBlocker | null>("server");
   const [modelCached, setModelCached] = useState(false);
   const [localStatus, setLocalStatus] = useState<LocalStatus | null>(null);
+  const [localSetupFailed, setLocalSetupFailed] = useState<"download" | "initializing" | null>(null);
   const [transcribing, setTranscribing] = useState(false);
-  const [voiceStatus, setVoiceStatus] = useState<"idle" | "loading" | "ready" | "fallback">(
-    "idle",
-  );
   const [voiceProblem, setVoiceProblem] = useState(false);
   const mounted = useMounted();
 
-  const usingLocal = prefs.engine === "local" && localBlock === null;
+  const activeEngine = sessionEngine ?? prefs.engine;
+  const usingLocal = activeEngine === "local" && localBlock === null;
   const micSupported =
     mounted && !micBlocked && (usingLocal || speechRecognitionSupported());
 
@@ -186,6 +198,21 @@ export default function SpeakingSession({
   const lastVoiceAtRef = useRef<number | null>(null);
   const speechDetectedRef = useRef(false);
   const advancingRef = useRef(false);
+  const promptGenerationRef = useRef(0);
+  const prepGenerationRef = useRef<number | null>(null);
+  const answerWindowOpenRef = useRef(false);
+  const beginningRef = useRef(false);
+  const sessionEngineRef = useRef<SpeechPrefs["engine"] | null>(null);
+  const examinerAudioRef = useRef<HTMLAudioElement | null>(null);
+  const examinerAudioRunRef = useRef(0);
+  const examinerAudioCreatedRef = useRef<HTMLAudioElement | null>(null);
+  const [examinerAudioCurrentTime, setExaminerAudioCurrentTime] = useState(0);
+  const [examinerAudioDuration, setExaminerAudioDuration] = useState(0);
+
+  const updateAnswerWindow = useCallback((open: boolean) => {
+    answerWindowOpenRef.current = open;
+    setAnswerWindowOpen(open);
+  }, []);
 
   // Whether the local recogniser can actually run here.
   useEffect(() => {
@@ -213,6 +240,7 @@ export default function SpeakingSession({
   const updatePrefs = useCallback((next: SpeechPrefs) => {
     writeSpeechPrefs(next);
     setMicBlocked(false);
+    setLocalSetupFailed(null);
     setError(null);
   }, []);
 
@@ -225,8 +253,19 @@ export default function SpeakingSession({
   useEffect(() => {
     // Stop any speech or recognition still running when the user navigates away.
     return () => {
+      promptGenerationRef.current += 1;
+      examinerAudioRunRef.current += 1;
       cancelSpeech();
       disposeNaturalExaminerVoice();
+      const media = examinerAudioRef.current;
+      if (media) {
+        media.pause();
+        media.removeAttribute("src");
+        media.load();
+      }
+      examinerAudioCreatedRef.current?.remove();
+      examinerAudioCreatedRef.current = null;
+      examinerAudioRef.current = null;
       wantRecordingRef.current = false;
       recRef.current?.abort();
       sessionRef.current?.abort();
@@ -276,7 +315,18 @@ export default function SpeakingSession({
 
   const stopRecording = useCallback(() => {
     wantRecordingRef.current = false;
-    recRef.current?.stop();
+    const rec = recRef.current;
+    recRef.current = null;
+    if (rec) {
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
+      try {
+        rec.stop();
+      } catch {
+        // It may already have stopped after its last result.
+      }
+    }
     setRecording(false);
     setInterim("");
     interimRef.current = "";
@@ -289,7 +339,11 @@ export default function SpeakingSession({
     speechDetectedRef.current = false;
   }, []);
 
-  const startRecording = useCallback(() => {
+  const startRecording = useCallback((expectedGeneration: number) => {
+    if (
+      expectedGeneration !== promptGenerationRef.current ||
+      !answerWindowOpenRef.current
+    ) return;
     const rec = getSpeechRecognition();
     if (!rec) {
       setMicBlocked(true);
@@ -302,6 +356,11 @@ export default function SpeakingSession({
     beginAnswerClock();
 
     rec.onresult = (e: SpeechRecognitionEvent) => {
+      if (
+        recRef.current !== rec ||
+        expectedGeneration !== promptGenerationRef.current ||
+        !answerWindowOpenRef.current
+      ) return;
       let finalChunk = "";
       let pending = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -321,6 +380,7 @@ export default function SpeakingSession({
       }
     };
     rec.onerror = (e) => {
+      if (recRef.current !== rec || expectedGeneration !== promptGenerationRef.current) return;
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         setError("Microphone access was blocked. Allow it in your browser, or type your answer.");
         wantRecordingRef.current = false;
@@ -333,6 +393,10 @@ export default function SpeakingSession({
       // Check identity too: a recognizer replaced by a newer one must not
       // resurrect itself and double-transcribe into the same answer.
       if (wantRecordingRef.current && recRef.current === rec) {
+        if (
+          expectedGeneration !== promptGenerationRef.current ||
+          !answerWindowOpenRef.current
+        ) return;
         try {
           rec.start();
         } catch {
@@ -353,16 +417,32 @@ export default function SpeakingSession({
     the candidate is talking, so the wait afterwards has to be visible — hence
     `localStatus`, which carries the download and transcription progress.
   */
-  const startLocal = useCallback(async () => {
+  const startLocal = useCallback(async (expectedGeneration: number) => {
+    if (
+      expectedGeneration !== promptGenerationRef.current ||
+      !answerWindowOpenRef.current
+    ) return;
     const session = createLocalSession(prefs.model, setLocalStatus);
     sessionRef.current = session;
     setError(null);
     try {
       await session.start();
+      if (
+        sessionRef.current !== session ||
+        expectedGeneration !== promptGenerationRef.current ||
+        !answerWindowOpenRef.current
+      ) {
+        session.abort();
+        if (sessionRef.current === session) sessionRef.current = null;
+        return;
+      }
       setRecording(true);
       setElapsed(0);
       beginAnswerClock();
     } catch {
+      if (sessionRef.current !== session || expectedGeneration !== promptGenerationRef.current) {
+        return;
+      }
       sessionRef.current = null;
       setLocalStatus(null);
       setRecording(false);
@@ -373,6 +453,7 @@ export default function SpeakingSession({
 
   /** Stop the local recorder, transcribe, and fold the text into the answer. */
   const finishLocal = useCallback(async (): Promise<string> => {
+    const expectedGeneration = promptGenerationRef.current;
     const session = sessionRef.current;
     sessionRef.current = null;
     setRecording(false);
@@ -380,25 +461,31 @@ export default function SpeakingSession({
     setTranscribing(true);
     try {
       const text = await session.stop();
+      if (expectedGeneration !== promptGenerationRef.current) return answerRef.current.trim();
       answerRef.current = mergeAnswer(answerRef.current, text);
       setAnswer(answerRef.current);
     } catch {
-      setError(
-        "The on-device recogniser couldn't transcribe that answer. Type it here, or switch to the device recogniser before the next question.",
-      );
+      if (expectedGeneration === promptGenerationRef.current) {
+        setError(
+          "The on-device recogniser couldn't transcribe that answer. Type it here, or switch to the device recogniser before the next question.",
+        );
+      }
     } finally {
-      setTranscribing(false);
-      setLocalStatus(null);
+      if (expectedGeneration === promptGenerationRef.current) {
+        setTranscribing(false);
+        setLocalStatus(null);
+      }
     }
     return answerRef.current.trim();
   }, []);
 
   /** Finish the current answer whichever recogniser produced it. */
   const stopAnswer = useCallback(async (): Promise<string> => {
-    if (usingLocal) return await finishLocal();
+    if (sessionEngineRef.current === "local" && localBlock === null) return await finishLocal();
+    const captured = (answerRef.current + " " + interimRef.current).trim();
     stopRecording();
-    return (answerRef.current + " " + interimRef.current).trim();
-  }, [usingLocal, finishLocal, stopRecording]);
+    return captured;
+  }, [localBlock, finishLocal, stopRecording]);
 
   /*
     Get the model before the test, not during it.
@@ -414,13 +501,18 @@ export default function SpeakingSession({
     begin the interview unless it did.
   */
   const warmUpLocal = useCallback(async (): Promise<boolean> => {
+    setLocalSetupFailed(null);
     try {
       await prepareLocal(prefs.model, setLocalStatus);
       setModelCached(true);
       return true;
-    } catch {
+    } catch (error) {
+      const downloadFailed = isLocalModelDownloadError(error);
+      setLocalSetupFailed(downloadFailed ? "download" : "initializing");
       setError(
-        "Couldn't download the speech model for on-device transcription. Check your connection and try again, or switch to your device's recogniser above — that needs no download.",
+        downloadFailed
+          ? "Couldn't download the speech model for on-device transcription. We also tried the BandUp fallback. Check your connection and try again, or switch to your device's recogniser above — that needs no download."
+          : "The speech model downloaded, but this device couldn't start it. Retry setup, or switch to your device's recogniser above — that needs no model download.",
       );
       return false;
     } finally {
@@ -441,19 +533,27 @@ export default function SpeakingSession({
     render has to be guarded against every re-render that is not that event.
     It is also the shape react-hooks/set-state-in-effect exists to catch.
   */
-  const openAnswerWindow = useCallback(() => {
+  const openAnswerWindow = useCallback((expectedGeneration: number) => {
+    if (expectedGeneration !== promptGenerationRef.current || answerWindowOpenRef.current) return;
+    updateAnswerWindow(true);
     if (!micSupported || micBlocked) return;
-    if (usingLocal) void startLocal();
-    else startRecording();
-  }, [micSupported, micBlocked, usingLocal, startLocal, startRecording]);
+    if (sessionEngineRef.current === "local" && localBlock === null) {
+      void startLocal(expectedGeneration);
+    }
+    else startRecording(expectedGeneration);
+  }, [micSupported, micBlocked, localBlock, startLocal, startRecording, updateAnswerWindow]);
 
-  const continueAfterQuestion = useCallback((current: Step) => {
+  const continueAfterQuestion = useCallback((current: Step, promptGeneration: number) => {
+    if (promptGeneration !== promptGenerationRef.current) return;
     if (current.part === 2) {
+      updateAnswerWindow(false);
+      prepGenerationRef.current = promptGeneration;
       setPrepSeconds(60);
       return;
     }
-    openAnswerWindow();
-  }, [openAnswerWindow]);
+    prepGenerationRef.current = null;
+    openAnswerWindow(promptGeneration);
+  }, [openAnswerWindow, updateAnswerWindow]);
 
   /*
     One-minute preparation countdown for Part 2. The moment it ends is the
@@ -464,68 +564,258 @@ export default function SpeakingSession({
   useEffect(() => {
     if (prepSeconds <= 0) return;
     const last = prepSeconds === 1;
+    const expectedGeneration = prepGenerationRef.current;
     const t = setTimeout(() => {
       setPrepSeconds((n) => Math.max(0, n - 1));
-      if (last) openAnswerWindow();
+      if (last && expectedGeneration !== null) {
+        prepGenerationRef.current = null;
+        openAnswerWindow(expectedGeneration);
+      }
     }, 1000);
     return () => clearTimeout(t);
   }, [prepSeconds, openAnswerWindow]);
+
+  const ensureExaminerAudio = useCallback((): HTMLAudioElement | null => {
+    if (examinerAudioRef.current) return examinerAudioRef.current;
+    if (typeof document === "undefined") return null;
+
+    /*
+      The first question starts from the same click as Start interview. React
+      has not necessarily committed the interview screen's declarative player
+      at that point, so make a real HTMLMediaElement synchronously here. It is
+      the same native media path as the visible host below, and is kept until
+      unmount so Safari and embedded browsers retain the play permission.
+    */
+    const media = document.createElement("audio");
+    media.preload = "none";
+    media.hidden = true;
+    media.setAttribute("aria-hidden", "true");
+    media.setAttribute("data-examiner-native-audio", "true");
+    document.body.appendChild(media);
+    examinerAudioCreatedRef.current = media;
+    examinerAudioRef.current = media;
+    return media;
+  }, []);
+
+  const stopExaminerAudio = useCallback(() => {
+    examinerAudioRunRef.current += 1;
+    const media = examinerAudioRef.current;
+    if (media) {
+      media.pause();
+      media.removeAttribute("src");
+      media.load();
+    }
+    setExaminerAudioCurrentTime(0);
+    setExaminerAudioDuration(0);
+  }, []);
+
+  /*
+    Built-in examiner prompts are served as real MP3s from our strict,
+    reviewed catalogue. Normal media playback works in environments that have
+    neither SpeechSynthesis nor WebAudio. The device voice remains a recovery
+    only when that media request itself fails, never the primary answer.
+  */
+  const playExaminerPrompt = useCallback(
+    async (
+      audioId: string | null,
+      fallbackText: string,
+      rate: number,
+      expectedGeneration: number,
+    ): Promise<boolean> => {
+      const media = ensureExaminerAudio();
+      if (!audioId || !media) {
+        return expectedGeneration === promptGenerationRef.current
+          ? speak(fallbackText, rate).catch(() => false)
+          : false;
+      }
+
+      const run = ++examinerAudioRunRef.current;
+      cancelSpeech();
+      setExaminerAudioCurrentTime(0);
+      setExaminerAudioDuration(0);
+
+      return new Promise((resolve) => {
+        let finished = false;
+        let started = false;
+        let fallingBack = false;
+        const isCurrent = () =>
+          run === examinerAudioRunRef.current && expectedGeneration === promptGenerationRef.current;
+        const cleanUp = () => {
+          media.removeEventListener("loadedmetadata", onMetadata);
+          media.removeEventListener("playing", onPlaying);
+          media.removeEventListener("timeupdate", onTimeUpdate);
+          media.removeEventListener("ended", onEnded);
+          media.removeEventListener("error", onError);
+        };
+        const finish = (played: boolean) => {
+          if (finished) return;
+          finished = true;
+          cleanUp();
+          resolve(played && isCurrent());
+        };
+        const fallbackToDeviceAudio = () => {
+          if (finished || fallingBack) return;
+          fallingBack = true;
+          cleanUp();
+          if (!isCurrent()) {
+            finish(false);
+            return;
+          }
+          media.pause();
+          media.removeAttribute("src");
+          media.load();
+          void speak(fallbackText, rate)
+            .then((played) => finish(played))
+            .catch(() => finish(false));
+        };
+        const onMetadata = () => {
+          if (!isCurrent()) return;
+          const duration = media.duration;
+          if (Number.isFinite(duration) && duration > 0) setExaminerAudioDuration(duration);
+        };
+        const onPlaying = () => {
+          if (!isCurrent()) return;
+          started = true;
+        };
+        const onTimeUpdate = () => {
+          if (!isCurrent()) return;
+          if (Number.isFinite(media.currentTime)) setExaminerAudioCurrentTime(media.currentTime);
+          if (Number.isFinite(media.duration) && media.duration > 0) {
+            setExaminerAudioDuration(media.duration);
+          }
+        };
+        const onEnded = () => {
+          if (!isCurrent()) return;
+          if (Number.isFinite(media.duration)) setExaminerAudioCurrentTime(media.duration);
+          finish(started);
+        };
+        const onError = () => fallbackToDeviceAudio();
+
+        media.addEventListener("loadedmetadata", onMetadata);
+        media.addEventListener("playing", onPlaying);
+        media.addEventListener("timeupdate", onTimeUpdate);
+        media.addEventListener("ended", onEnded);
+        media.addEventListener("error", onError);
+        try {
+          media.pause();
+          media.currentTime = 0;
+          media.src = apiUrl(bundledExaminerAudioUrl(audioId));
+          media.load();
+          void media.play().catch(fallbackToDeviceAudio);
+        } catch {
+          fallbackToDeviceAudio();
+        }
+      });
+    },
+    [ensureExaminerAudio],
+  );
 
   const askCurrent = useCallback(
     async (index: number, list: Step[]) => {
       const s = list[index];
       if (!s) return;
+      const promptGeneration = ++promptGenerationRef.current;
+      prepGenerationRef.current = null;
+      updateAnswerWindow(false);
       setVoiceProblem(false);
       setExaminerSpeaking(true);
-      const spoken = await speak(examinerQuestion(list, index), 0.95);
+      const prompt = examinerQuestion(list, index);
+      const spoken = await playExaminerPrompt(
+        examinerQuestionAudioId(list, index),
+        prompt,
+        0.95,
+        promptGeneration,
+      );
+      if (promptGeneration !== promptGenerationRef.current) return;
       setExaminerSpeaking(false);
       if (!spoken) {
         setVoiceProblem(true);
-        setError("The examiner audio did not start. Tap Play question again; the written question is still here.");
+        setError("The complete examiner question did not play. Play it again, or use the written question below.");
         return;
       }
-      continueAfterQuestion(s);
+      continueAfterQuestion(s, promptGeneration);
     },
-    [continueAfterQuestion],
+    [continueAfterQuestion, playExaminerPrompt, updateAnswerWindow],
   );
 
   const repeatQuestion = useCallback(async () => {
     if (!step || examinerSpeaking) return;
+    const promptGeneration = ++promptGenerationRef.current;
     cancelSpeech();
+    prepGenerationRef.current = null;
+    setPrepSeconds(0);
+    updateAnswerWindow(false);
     setError(null);
     setVoiceProblem(false);
+
+    /* Replaying while an answer is open must pause capture first. Otherwise the
+       examiner's own voice is transcribed as the candidate's answer. Keep any
+       words already captured so replay is non-destructive. */
+    if (recording || sessionRef.current) {
+      const retainedAnswer = await stopAnswer();
+      if (promptGeneration !== promptGenerationRef.current) return;
+      answerRef.current = retainedAnswer;
+      interimRef.current = "";
+      setAnswer(retainedAnswer);
+      setInterim("");
+    }
+
     setExaminerSpeaking(true);
-    const spoken = await speak(examinerQuestion(steps, stepIndex), 0.95);
+    const prompt = examinerQuestion(steps, stepIndex);
+    const spoken = await playExaminerPrompt(
+      examinerQuestionAudioId(steps, stepIndex),
+      prompt,
+      0.95,
+      promptGeneration,
+    );
+    if (promptGeneration !== promptGenerationRef.current) return;
     setExaminerSpeaking(false);
     if (!spoken) {
       setVoiceProblem(true);
-      setError("Audio is still blocked. Check this tab's sound permission and volume, then try again.");
+      setError("The complete question still did not play. Check this tab's sound permission and volume, then try again.");
       return;
     }
-    continueAfterQuestion(step);
-  }, [continueAfterQuestion, examinerSpeaking, step, stepIndex, steps]);
+    continueAfterQuestion(step, promptGeneration);
+  }, [continueAfterQuestion, examinerSpeaking, playExaminerPrompt, recording, step, stepIndex, steps, stopAnswer, updateAnswerWindow]);
 
   /** Leave the interview: silence the examiner and release the microphone. */
   const endTest = useCallback(() => {
+    promptGenerationRef.current += 1;
+    prepGenerationRef.current = null;
+    beginningRef.current = false;
+    advancingRef.current = false;
     cancelSpeech();
+    stopExaminerAudio();
     wantRecordingRef.current = false;
     recRef.current?.abort();
     recRef.current = null;
     sessionRef.current?.abort();
     sessionRef.current = null;
+    sessionEngineRef.current = null;
+    setSessionEngine(null);
     setLocalStatus(null);
     setTranscribing(false);
     setRecording(false);
     setExaminerSpeaking(false);
+    updateAnswerWindow(false);
     setPrepSeconds(0);
     setInterim("");
     interimRef.current = "";
     setAnswer("");
     answerRef.current = "";
     setStage("intro");
-  }, []);
+  }, [stopExaminerAudio, updateAnswerWindow]);
 
-  const begin = useCallback(async () => {
+  const begin = useCallback(async (forcePlatform = false) => {
+    if (beginningRef.current) return;
+    beginningRef.current = true;
+    const chosenEngine: SpeechPrefs["engine"] =
+      forcePlatform || localBlock !== null ? "platform" : prefs.engine;
+    sessionEngineRef.current = chosenEngine;
+    setSessionEngine(chosenEngine);
+    promptGenerationRef.current += 1;
+    prepGenerationRef.current = null;
+    advancingRef.current = false;
     const list = buildInterview();
     setSteps(list);
     setStepIndex(0);
@@ -534,28 +824,19 @@ export default function SpeakingSession({
     setAnswer("");
     setInterim("");
     setError(null);
+    setLocalSetupFailed(null);
     setVoiceProblem(false);
+    updateAnswerWindow(false);
     answerRef.current = "";
-    /*
-      Downloaded and loaded before the interview begins, so a failure is
-      something the candidate meets on the start screen — where switching
-      recogniser is one tap away — rather than one question into the exam.
-    */
-    setVoiceStatus("loading");
-    /* Keep the click's audio permission alive, then ask immediately through
-       the device voice. The larger neural voice finishes in the background
-       and takes over later questions without holding the first one hostage. */
-    primeSpeechPlayback();
-    const naturalVoice = prepareNaturalExaminerVoice().then((ready) => {
-      setVoiceStatus(ready ? "ready" : "fallback");
-      return ready;
-    });
-    const transcriptionReady = usingLocal ? await warmUpLocal() : true;
-    if (!transcriptionReady) return;
+    const transcriptionReady = chosenEngine === "local" ? await warmUpLocal() : true;
+    if (!transcriptionReady) {
+      beginningRef.current = false;
+      return;
+    }
     setStage("interview");
     await askCurrent(0, list);
-    void naturalVoice;
-  }, [askCurrent, usingLocal, warmUpLocal]);
+    beginningRef.current = false;
+  }, [askCurrent, localBlock, prefs.engine, updateAnswerWindow, warmUpLocal]);
 
   const gradeInterview = useCallback(
     async (finalTranscript: Turn[]) => {
@@ -602,15 +883,18 @@ export default function SpeakingSession({
           return;
         }
         setError(err instanceof Error ? err.message : "Grading failed.");
-        setStage("interview");
+        setStage("grade-error");
       }
     },
     [exam],
   );
 
   const nextQuestion = useCallback(async (reason: TurnEndReason = "natural-pause") => {
-    if (!step || advancingRef.current) return;
+    if (!step || !answerWindowOpen || advancingRef.current) return;
     advancingRef.current = true;
+    const promptGeneration = ++promptGenerationRef.current;
+    prepGenerationRef.current = null;
+    updateAnswerWindow(false);
     const nextIndex = stepIndex + 1;
     const finalQuestion = nextIndex >= steps.length;
 
@@ -618,16 +902,34 @@ export default function SpeakingSession({
       /* Stop capture before the examiner speaks so its voice never lands in the
          candidate's answer. Local transcription and the short transition can
          then run together, avoiding a long robotic silence. */
-      const spokenPromise = stopAnswer();
+      const spokenPromise = stopAnswer().then((spoken) => {
+        if (promptGeneration === promptGenerationRef.current) {
+          answerRef.current = "";
+          interimRef.current = "";
+          setAnswer("");
+          setInterim("");
+          setPrepSeconds(0);
+          setElapsed(0);
+          answerStartedAtRef.current = null;
+        }
+        return spoken;
+      });
       if (!finalQuestion) setStepIndex(nextIndex);
       setVoiceProblem(false);
       setExaminerSpeaking(true);
-      const promptPromise = speak(examinerFollowUp(steps, stepIndex, reason), 0.96);
+      const prompt = examinerFollowUp(steps, stepIndex, reason);
+      const promptPromise = playExaminerPrompt(
+        examinerFollowUpAudioId(steps, stepIndex, reason),
+        prompt,
+        0.96,
+        promptGeneration,
+      );
       const [spoken, promptPlayed] = await Promise.all([spokenPromise, promptPromise]);
+      if (promptGeneration !== promptGenerationRef.current) return;
       setExaminerSpeaking(false);
       if (!promptPlayed) {
         setVoiceProblem(true);
-        setError("The examiner audio did not start. Tap Play question again; the written question is still here.");
+        setError("The complete examiner question did not play. Play it again, or use the written question below.");
       }
 
       const updated: Turn[] = [
@@ -636,13 +938,6 @@ export default function SpeakingSession({
         { role: "candidate", part: step.part, text: spoken || "(no answer given)" },
       ];
       setTranscript(updated);
-      answerRef.current = "";
-      interimRef.current = "";
-      setAnswer("");
-      setInterim("");
-      setPrepSeconds(0);
-      setElapsed(0);
-      answerStartedAtRef.current = null;
 
       if (finalQuestion) {
         /*
@@ -660,17 +955,15 @@ export default function SpeakingSession({
         return;
       }
       if (!promptPlayed) return;
-      if (steps[nextIndex]?.part === 2) {
-        setPrepSeconds(60);
-      } else {
-        openAnswerWindow();
-      }
+      const nextStep = steps[nextIndex];
+      if (nextStep) continueAfterQuestion(nextStep, promptGeneration);
     } finally {
-      setExaminerSpeaking(false);
-      advancingRef.current = false;
+      if (promptGeneration === promptGenerationRef.current) setExaminerSpeaking(false);
+      if (promptGeneration === promptGenerationRef.current) advancingRef.current = false;
     }
   }, [
     step,
+    answerWindowOpen,
     stepIndex,
     steps,
     transcript,
@@ -678,7 +971,9 @@ export default function SpeakingSession({
     gradeInterview,
     marked,
     exam,
-    openAnswerWindow,
+    continueAfterQuestion,
+    playExaminerPrompt,
+    updateAnswerWindow,
   ]);
 
   const readMicrophoneLevel = useCallback(
@@ -764,31 +1059,13 @@ export default function SpeakingSession({
                 card below it is already showing how far along it is. */}
             <button
               className="btn-primary mt-3 w-full"
-              onClick={begin}
-              disabled={localStatus !== null || voiceStatus === "loading"}
+              onClick={() => void begin()}
+              disabled={localStatus !== null}
             >
-              {localStatus !== null || voiceStatus === "loading"
+              {localStatus !== null
                 ? <LoadingIndicator label="Getting ready…" announce={false} />
                 : "Start the interview"}
             </button>
-            {voiceStatus === "loading" && (
-              <div
-                className="mt-3 rounded-2xl bg-indigo-50 px-4 py-3 text-left"
-                aria-live="polite"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-indigo-800">
-                  <LoadingIndicator label="Preparing the natural British examiner voice" announce={false} />
-                  <span className="text-xs text-indigo-700">about 92 MB · once only</span>
-                </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-indigo-100">
-                  <div className="h-full w-full animate-pulse rounded-full bg-indigo-500" />
-                </div>
-                <p className="mt-2 text-xs leading-5 text-indigo-700">
-                  The voice runs on this device. No question or answer is sent to a voice
-                  service.
-                </p>
-              </div>
-            )}
             {localStatus && (
               <div className="mt-3 rounded-2xl bg-indigo-50 px-4 py-3 text-left" aria-live="polite">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-indigo-800">
@@ -815,9 +1092,30 @@ export default function SpeakingSession({
                 {error}
               </p>
             )}
+            {localSetupFailed && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => void begin()}
+                >
+                  {localSetupFailed === "download" ? "Retry the download" : "Retry setup"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    updatePrefs({ ...prefs, engine: "platform" });
+                    void begin(true);
+                  }}
+                >
+                  Use my device recogniser
+                </button>
+              </div>
+            )}
             <p className="mt-2 text-xs leading-5 text-slate-400">
-              On the web, the natural British examiner voice downloads once (about 92 MB) and
-              then runs on this device. If it cannot load, BandUp uses your device voice. {" "}
+              BandUp plays reviewed examiner audio for this interview. If a recording cannot be
+              reached, it falls back to your device voice when one is available. {" "}
               {usingLocal
                 ? "Your voice is transcribed on this device and never uploaded. Only the text transcript is sent for marking."
                 : "Your voice is transcribed by your device's own recogniser, which may send the audio to its maker. Only the text transcript is sent for marking."}{" "}
@@ -921,9 +1219,9 @@ export default function SpeakingSession({
         <div className="card !p-4">
           <h1 className="text-xl font-semibold text-slate-900">Interview complete</h1>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            You answered every question, in exam order and against the clock. Here is everything
-            you said. AI marking — a band for each criterion, and what to fix first — is part of
-            Plus.
+            {marked
+              ? "You answered every question, in exam order and against the clock. Here is everything you said. Marking could not be completed just now, but you can retry without repeating the interview."
+              : "You answered every question, in exam order and against the clock. Here is everything you said. AI marking — a band for each criterion, and what to fix first — is part of Plus."}
           </p>
         </div>
 
@@ -947,10 +1245,15 @@ export default function SpeakingSession({
           </div>
         </div>
 
-        <UpgradePanel feature="have this marked" signedIn={account.signedIn} tier="plus" />
+        {!marked && <UpgradePanel feature="have this marked" signedIn={account.signedIn} tier="plus" />}
 
         <div className="flex flex-wrap gap-2">
-          <button className="btn-primary" onClick={() => setStage("intro")}>
+          {marked && (
+            <button className="btn-primary" onClick={() => void gradeInterview(transcript)}>
+              Retry marking
+            </button>
+          )}
+          <button className={marked ? "btn-secondary" : "btn-primary"} onClick={() => setStage("intro")}>
             Take another interview
           </button>
           <Link href="/plan" className="btn-secondary">
@@ -967,6 +1270,29 @@ export default function SpeakingSession({
         <div className="card w-full space-y-3 py-12 text-center">
           <p className="text-[15px] text-slate-700"><LoadingIndicator label="The examiner is marking your interview…" iconClassName="text-2xl text-indigo-600" /></p>
           <p className="text-sm text-slate-500">This usually takes under a minute.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (stage === "grade-error") {
+    return (
+      <div className="mx-auto max-w-xl space-y-3">
+        <div className="card !p-4">
+          <h1 className="text-xl font-semibold text-slate-900">Your interview is safely recorded</h1>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            BandUp could not mark it just now. Your transcript is still here, so retrying will not
+            make you repeat the speaking test.
+          </p>
+          {error && <p className="mt-2 text-sm leading-6 text-rose-600">{error}</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button className="btn-primary" onClick={() => void gradeInterview(transcript)}>
+              Retry marking
+            </button>
+            <button className="btn-secondary" onClick={() => setStage("unmarked")}>
+              View my transcript
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1087,6 +1413,11 @@ export default function SpeakingSession({
 
   return (
     <div className="mx-auto max-w-2xl space-y-3">
+      {/* The real player is created synchronously from Start when necessary,
+          so first-question autoplay survives React's screen transition. This
+          declarative host makes the native media affordance explicit in the
+          interview DOM as well. */}
+      <audio data-examiner-native-audio preload="none" aria-hidden="true" hidden />
       <div className="flex items-center justify-between text-sm text-slate-500">
         <span>
           Part {step?.part} · question {stepIndex + 1} of {totalSteps}
@@ -1102,6 +1433,18 @@ export default function SpeakingSession({
         />
       </div>
 
+      {examinerSpeaking && examinerAudioDuration > 0 && (
+        <div className="flex items-center gap-2 text-xs text-slate-500" aria-live="polite">
+          <progress
+            className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full accent-indigo-600"
+            max={examinerAudioDuration}
+            value={Math.min(examinerAudioCurrentTime, examinerAudioDuration)}
+            aria-label="Examiner audio progress"
+          />
+          <span>{Math.floor(examinerAudioCurrentTime)} / {Math.ceil(examinerAudioDuration)}s</span>
+        </div>
+      )}
+
       {isNewPart && (
         <p className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm leading-6 text-indigo-800">
           {SPEAKING_PART_INTRO[step.part]}
@@ -1110,7 +1453,14 @@ export default function SpeakingSession({
 
       <div className="card !p-4">
         <div className="mb-1 flex items-center justify-between gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-          <span>Examiner {examinerSpeaking && <LoadingIndicator label="speaking…" announce={false} />}</span>
+          <span>
+            Examiner {examinerSpeaking && (
+              <LoadingIndicator
+                label="speaking…"
+                announce={false}
+              />
+            )}
+          </span>
           <button
             type="button"
             className="normal-case tracking-normal text-indigo-700 underline decoration-indigo-300 underline-offset-2 disabled:cursor-wait disabled:text-slate-400 disabled:no-underline"
@@ -1138,7 +1488,7 @@ export default function SpeakingSession({
               onClick={() => {
                 setVoiceProblem(false);
                 setError(null);
-                if (step) continueAfterQuestion(step);
+                if (step) continueAfterQuestion(step, promptGenerationRef.current);
               }}
             >
               Use written question
@@ -1194,7 +1544,11 @@ export default function SpeakingSession({
                       ? `Answering \u2014 ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}${
                           step?.part === 2 ? " (aim for 1\u20132 minutes)" : ""
                         } · the examiner will move on at a natural pause`
-                      : "Speak your answer out loud"}
+                      : answerWindowOpen
+                        ? "Speak your answer out loud"
+                        : voiceProblem
+                          ? "Play the question again, or use the written question"
+                          : "Wait for the examiner's question"}
             </p>
           </>
         ) : null}
@@ -1229,13 +1583,18 @@ export default function SpeakingSession({
         <textarea
           className="input h-24 w-full resize-y text-left leading-7"
           placeholder={
-            !micSupported
+            !answerWindowOpen
+              ? voiceProblem
+                ? "Choose Play question again or Use written question above."
+                : "Your answer opens after the examiner finishes the question."
+              : !micSupported
               ? "Type your answer here."
               : usingLocal
                 ? "Speak, then stop — your words land here. You can also type or correct them."
                 : "Your speech appears here — you can also type or correct it."
           }
           value={answer + (interim ? " " + interim : "")}
+          disabled={!answerWindowOpen || examinerSpeaking || preparing || transcribing}
           onChange={(e) => {
             answerRef.current = e.target.value;
             interimRef.current = "";
@@ -1247,7 +1606,7 @@ export default function SpeakingSession({
         <button
           className="btn-primary w-full sm:w-auto"
           onClick={() => void nextQuestion()}
-          disabled={examinerSpeaking || transcribing}
+          disabled={!answerWindowOpen || examinerSpeaking || transcribing}
         >
           {transcribing
             ? <LoadingIndicator label="Transcribing…" announce={false} />

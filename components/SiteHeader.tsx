@@ -101,7 +101,7 @@ export default function SiteHeader({
   const account = useTier();
   const { profile } = useAccountProfile();
   const isOwner = account.phase === "ready" && account.signedIn && account.tier === "admin";
-  const groups = isOwner
+  const groups = isOwner && !IS_MOBILE_BUILD
     ? NAV_GROUPS.map((group, i) =>
         i === NAV_GROUPS.length - 1
           ? { ...group, items: [...group.items, OWNER_ITEM] }
@@ -402,10 +402,6 @@ export default function SiteHeader({
                   <div
                     key={group.title}
                     className="nav-menu-group liquid-glass rounded-[1.75rem] border p-3 sm:p-4"
-                    style={{
-                      "--nav-group-delay": `${groupIndex * 64}ms`,
-                      "--nav-group-touch-delay": `${groupIndex * 20}ms`,
-                    } as React.CSSProperties}
                   >
                     <h2 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
                       {group.title}

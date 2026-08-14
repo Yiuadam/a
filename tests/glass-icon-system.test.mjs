@@ -5,6 +5,14 @@ import { test } from "node:test";
 
 const read = (path) => readFileSync(join(process.cwd(), path), "utf8");
 
+const cssRule = (css, selector) => {
+  const start = css.indexOf(`${selector} {`);
+  assert.notEqual(start, -1, `missing ${selector} rule`);
+  const end = css.indexOf("\n}", start);
+  assert.notEqual(end, -1, `unterminated ${selector} rule`);
+  return css.slice(start, end + 2);
+};
+
 test("adaptive glass has one delegated frame budget and preserves low-cost fallbacks", () => {
   const component = read("components/RefractiveGlassLayer.tsx");
   const gate = read("components/GlassPerformanceGate.tsx");
@@ -73,22 +81,18 @@ test("the full navigation menu is one strongly blurred refractive surface", () =
   assert.match(css, /@supports not[\s\S]*\.nav-paper \{[\s\S]*background: var\(--color-background\)/);
 });
 
-test("navigation groups reform from the menu with compositor-only fallbacks", () => {
+test("navigation opens immediately without stagger while keeping its fixed glass surface", () => {
   const css = read("app/globals.css");
   const header = read("components/SiteHeader.tsx");
-  const frames = css.slice(
-    css.indexOf("@keyframes nav-group-materialise"),
-    css.indexOf("@media (min-width: 640px)", css.indexOf("@keyframes nav-group-materialise")),
-  );
+  const panel = cssRule(css, ".nav-paper");
 
   assert.match(header, /className="nav-menu-group liquid-glass/);
-  assert.match(header, /"--nav-group-delay": `\$\{groupIndex \* 64\}ms`/);
-  assert.doesNotMatch(header, /onAnimation(?:Start|End|Iteration)=/);
-  assert.match(css, /\.nav-menu-group \{[\s\S]*animation: nav-group-materialise/);
-  assert.match(frames, /opacity:[\s\S]*transform:/);
-  assert.doesNotMatch(frames, /(?:filter|backdrop-filter|border-radius):/);
-  assert.match(css, /@media \(hover: none\), \(pointer: coarse\), \(prefers-reduced-transparency: reduce\)[\s\S]*animation-name: nav-group-touch-open/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.nav-menu-group \{[\s\S]*animation: none/);
+  assert.match(header, /className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-\[var\(--header-h\)\]/);
+  assert.match(panel, /backdrop-filter: blur\(42px\)/);
+  assert.doesNotMatch(panel, /\banimation(?:-\w+)?:/);
+  assert.doesNotMatch(css, /\.nav-menu-group\s*\{[^}]*\banimation(?:-\w+)?\s*:/);
+  assert.doesNotMatch(header, /--nav-group-(?:delay|touch-delay|flow-x)/);
+  assert.doesNotMatch(css, /@keyframes (?:glass-menu-open|nav-group-materialise|nav-group-touch-open)/);
 });
 
 test("the header icon ships a right-sized immutable static asset without image optimisation", () => {

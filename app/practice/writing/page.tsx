@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import ExplainText from "@/components/ExplainText";
@@ -14,9 +15,10 @@ import { addResult } from "@/lib/store";
 import type { WritingGrade, WritingTasksData } from "@/lib/types";
 import Chart from "@/components/Chart";
 import SkillGate from "@/components/SkillGate";
-import WritingTaskPicker from "@/components/WritingTaskPicker";
 import { tierShows, useTier } from "@/lib/billing/useTier";
 import AssignedPracticeNotice from "@/components/organization/AssignedPracticeNotice";
+import TestChooser from "@/components/TestChooser";
+import { useMounted } from "@/lib/hooks";
 
 const tasks = (writingData as WritingTasksData).tasks;
 const compactTableHeadings: Record<string, string> = {
@@ -70,7 +72,7 @@ function WritingMobilePanels({ panels, lead }: { panels: SwipePanel[]; lead?: Re
   );
 }
 
-function WritingSession() {
+function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   /*
     Whether marking is included, which is not the same as whether the page is
     open. Standard unlocks writing practice — the task, the timer, the word
@@ -91,14 +93,13 @@ function WritingSession() {
     account.phase !== "ready" || !account.accountsEnabled || tierShows(account, "grade-writing");
   const wide = useIsWide();
 
-  const [taskId, setTaskId] = useState(tasks[0].id);
   const [essay, setEssay] = useState("");
   const [started, setStarted] = useState(false);
   const [grading, setGrading] = useState(false);
   const [grade, setGrade] = useState<WritingGrade | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const task = useMemo(() => tasks.find((t) => t.id === taskId)!, [taskId]);
+  const task = useMemo(() => tasks.find((t) => t.id === initialTaskId)!, [initialTaskId]);
   const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0;
 
   async function submit() {
@@ -132,8 +133,7 @@ function WritingSession() {
     }
   }
 
-  const resetTask = (nextId = taskId) => {
-    setTaskId(nextId);
+  const resetTask = () => {
     setEssay("");
     setGrade(null);
     setError(null);
@@ -142,7 +142,6 @@ function WritingSession() {
 
   const prompt = (
     <div className="min-w-0 space-y-3">
-      <WritingTaskPicker tasks={tasks} value={taskId} onChange={resetTask} />
       <div className="min-w-0">
         <h2 className="mb-2 text-sm font-semibold text-slate-900">Task {task.task}</h2>
         <p className="whitespace-pre-line break-words text-[15px] leading-7 text-slate-800">{task.prompt}</p>
@@ -340,13 +339,52 @@ function WritingSession() {
 */
 export default function WritingPage() {
   return (
+    <Suspense
+      fallback={(
+        <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-xl items-center justify-center px-4">
+          <LoadingIndicator label="Loading writing tasks…" />
+        </div>
+      )}
+    >
+      <WritingPageContent />
+    </Suspense>
+  );
+}
+
+function WritingPageContent() {
+  const params = useSearchParams();
+  const mounted = useMounted();
+
+  if (!mounted) return null;
+
+  const asked = params.get("id");
+  const selected = tasks.find((task) => task.id === asked) ?? null;
+
+  if (!selected) {
+    const retained = new URLSearchParams();
+    for (const key of ["assignment", "from", "preview"] as const) {
+      const value = params.get(key);
+      if (value !== null) retained.set(key, value);
+    }
+
+    return (
+      <TestChooser
+        kind="writing"
+        tests={tasks}
+        missingId={asked}
+        retainedQuery={retained.toString()}
+      />
+    );
+  }
+
+  return (
     /* The page-level lock paints its own translucent window around the exam.
        Give that outermost window the same viewport gutter as the exam shell,
        otherwise the locked preview touches the browser edge even though the
        writing panes inside it do not. The class only applies while the gate is
        pending or locked; an unlocked session keeps ExamShell's own gutter. */
     <SkillGate module="writing" className="px-0 pt-0 sm:px-4 sm:pt-4">
-      <WritingSession />
+      <WritingSession key={selected.id} initialTaskId={selected.id} />
     </SkillGate>
   );
 }

@@ -82,11 +82,24 @@ test("on-device transcription can use time and microphone activity without live 
 });
 
 test("the examiner uses a clear closing phrase", () => {
-  assert.equal(control.examinerTransition(false, "time-limit"), "Thank you, let's move on.");
+  assert.equal(control.examinerTransition(false, "time-limit"), "Thank you. Let's move on.");
   assert.equal(
     control.examinerTransition(true, "natural-pause"),
     "Thank you. That is the end of the speaking test.",
   );
+});
+
+test("the examiner varies neutral connecting phrases instead of repeating one line", () => {
+  const natural = Array.from({ length: 5 }, (_, index) =>
+    control.examinerTransition(false, "natural-pause", index),
+  );
+  const timed = Array.from({ length: 4 }, (_, index) =>
+    control.examinerTransition(false, "time-limit", index),
+  );
+
+  assert.equal(new Set(natural).size, 5);
+  assert.equal(new Set(timed).size, 4);
+  assert.ok(natural.every((line) => !/^All right, thank you\.$/.test(line)));
 });
 
 test("the acknowledgement and next question are one continuous prompt", () => {
@@ -97,11 +110,11 @@ test("the acknowledgement and next question are one continuous prompt", () => {
   ];
   assert.equal(
     control.examinerFollowUp(questions, 0, "natural-pause"),
-    "All right, thank you. What do you like about it?",
+    "Thank you. Let's continue. What do you like about it?",
   );
   assert.equal(
     control.examinerFollowUp(questions, 1, "time-limit"),
-    "Thank you, let's move on. In Part 2, I'm going to give you a topic card. You have one minute to prepare, then talk for one to two minutes. Describe a memorable journey.",
+    "All right, we'll continue. In Part 2, I'm going to give you a topic card. You have one minute to prepare, then talk for one to two minutes. Describe a memorable journey.",
   );
 });
 

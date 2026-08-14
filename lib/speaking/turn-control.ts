@@ -77,9 +77,30 @@ export function decideTurnEnd(evidence: TurnEvidence): TurnEndReason | null {
   return null;
 }
 
-export function examinerTransition(finalQuestion: boolean, reason: TurnEndReason): string {
+const NATURAL_TRANSITIONS = [
+  "Thank you. Let's continue.",
+  "All right. Moving on.",
+  "I see. Here's another question.",
+  "Okay. Let's turn to the next point.",
+  "Right. We'll continue.",
+] as const;
+
+const TIME_LIMIT_TRANSITIONS = [
+  "Thank you. Let's move on.",
+  "All right, we'll continue.",
+  "Okay, let's move to the next question.",
+  "Thank you. We'll leave that there and continue.",
+] as const;
+
+/** A neutral, varied bridge between answers, selected deterministically per turn. */
+export function examinerTransition(
+  finalQuestion: boolean,
+  reason: TurnEndReason,
+  turnIndex = 0,
+): string {
   if (finalQuestion) return "Thank you. That is the end of the speaking test.";
-  return reason === "time-limit" ? "Thank you, let's move on." : "All right, thank you.";
+  const transitions = reason === "time-limit" ? TIME_LIMIT_TRANSITIONS : NATURAL_TRANSITIONS;
+  return transitions[Math.abs(turnIndex) % transitions.length];
 }
 
 export interface ExaminerQuestion {
@@ -113,7 +134,7 @@ export function examinerFollowUp(
   const nextIndex = currentIndex + 1;
   const finalQuestion = nextIndex >= questions.length;
   return [
-    examinerTransition(finalQuestion, reason),
+    examinerTransition(finalQuestion, reason, currentIndex),
     finalQuestion ? "" : examinerQuestion(questions, nextIndex),
   ]
     .filter(Boolean)

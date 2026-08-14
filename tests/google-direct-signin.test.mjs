@@ -41,6 +41,19 @@ test("native builds retain the established OAuth compatibility path", () => {
   assert.match(component, /\/api\/auth\/start\?provider=google/);
 });
 
+test("web Google sign-in falls back to the established full-navigation flow", () => {
+  assert.match(component, /const \[loadFailed, setLoadFailed\] = useState\(false\)/);
+  assert.match(component, /onError=\{\(\) => setLoadFailed\(true\)\}/);
+  assert.match(component, /\.catch\(\(\) => \{\s*if \(live\) setLoadFailed\(true\);/);
+  assert.match(component, /identity\.renderButton[\s\S]*setLoadFailed\(false\)/);
+  assert.match(
+    component,
+    /loadFailed && \([\s\S]*href=\{apiUrl\("\/api\/auth\/start\?provider=google"\)\}[\s\S]*data-google-signin-fallback/,
+  );
+  assert.match(component, /aria-describedby="google-signin-fallback-help"/);
+  assert.match(component, /id="google-signin-fallback-help"[\s\S]*role="status"/);
+});
+
 test("Google sign-in uses its supported pill inside BandUp glass", () => {
   assert.match(component, /shape:\s*"pill"/);
   assert.match(component, /google-signin-glass premade-glass/);

@@ -8,6 +8,7 @@ import { apiUrl } from "@/lib/api";
 import {
   memberActionPayload,
   organizationActionPayload,
+  organizationDeletionPayload,
   practiceBatchAssignmentPayload,
   teacherBatchAssignmentPayload,
   teacherAssignmentPayload,
@@ -40,9 +41,10 @@ import {
 } from "./OrganizationUI";
 
 type Phase = "loading" | "ready" | "signed-out" | "unavailable";
-type ManagerView = "overview" | "requests" | "assignments" | "assignment-directory" | "students" | "members" | "team-pairings" | "settings";
+type ManagerView = "overview" | "requests" | "assignments" | "assignment-directory" | "students" | "members" | "team-invite" | "team-assignment" | "team-pairings" | "settings" | "administration";
 
-const MANAGER_VIEWS = new Set<ManagerView>(["overview", "requests", "assignments", "assignment-directory", "students", "members", "team-pairings", "settings"]);
+const MANAGER_VIEWS = new Set<ManagerView>(["overview", "requests", "assignments", "assignment-directory", "students", "members", "team-invite", "team-assignment", "team-pairings", "settings", "administration"]);
+const TEAM_MANAGEMENT_VIEWS = new Set<ManagerView>(["members", "team-invite", "team-assignment", "team-pairings"]);
 const TARGET_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 interface NotificationFocus {
@@ -110,7 +112,7 @@ export default function OrganizationPortal({
   // database return its receipt rather than duplicating a committed request.
   const retryKeys = useRef(new Map<string, string>());
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (selectedOverride?: string | null) => {
     if (preview) return;
     setError(null);
     try {
@@ -119,8 +121,10 @@ export default function OrganizationPortal({
         : new URLSearchParams(window.location.search).get("organization");
       // Prefer the live location: the in-page organization switcher updates it
       // without asking the App Router to remount this workspace.
-      const selected = selectedFromLocation
-        ?? (routeOrganizationId && TARGET_ID.test(routeOrganizationId) ? routeOrganizationId : null);
+      const selected = selectedOverride !== undefined
+        ? selectedOverride
+        : selectedFromLocation
+          ?? (routeOrganizationId && TARGET_ID.test(routeOrganizationId) ? routeOrganizationId : null);
       const endpoint = selected
         ? `/api/organization?organization=${encodeURIComponent(selected)}`
         : "/api/organization";
@@ -154,23 +158,74 @@ export default function OrganizationPortal({
   const openManagerView = useCallback((nextView: ManagerView, replace = false) => {
     setManagerView(nextView);
     if (nextView !== "assignment-directory") setAssignmentStudentId(null);
+    setNotificationFocus({ kind: null, id: null });
     const url = new URL(window.location.href);
     if (nextView === "overview") url.searchParams.delete("section");
     else url.searchParams.set("section", nextView);
     if (nextView !== "assignment-directory") url.searchParams.delete("student");
+    // These target one specific record in a previous view. Ordinary section
+    // changes must not carry them into a different workspace panel.
+    for (const parameter of ["focus", "attempt", "request", "requestKind", "invite"]) {
+      url.searchParams.delete(parameter);
+    }
     const nextUrl = `${url.pathname}${url.search}${url.hash}`;
     if (replace) window.history.replaceState(window.history.state, "", nextUrl);
     else window.history.pushState({ ...window.history.state, bandupOrganizationSection: nextView }, "", nextUrl);
   }, []);
 
+  useEffect(() => {
+    if (phase !== "ready" || !portal || managerView !== "administration" || portal.actor.platformAdmin) return;
+    // The administration destination is deliberately absent for ordinary
+    // organisation roles. A copied URL must land on their normal overview,
+    // not an empty or partially disclosed platform screen.
+    const url = new URL(window.location.href);
+    for (const parameter of ["section", "student", "focus", "attempt", "request", "requestKind", "invite"]) {
+      url.searchParams.delete(parameter);
+    }
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    const frame = requestAnimationFrame(() => {
+      setManagerView("overview");
+      setAssignmentStudentId(null);
+      setNotificationFocus({ kind: null, id: null });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [managerView, phase, portal]);
+
+  useEffect(() => {
+    if (phase !== "ready" || !portal || !TEAM_MANAGEMENT_VIEWS.has(managerView)) return;
+    const membership = activeMembership(portal);
+    const canManageTeam = (portal.actor.platformAdmin && Boolean(portal.activeOrganizationId)) || (
+      membership?.status === "active"
+      && (membership.role === "manager" || membership.role === "owner")
+    );
+    if (canManageTeam) return;
+    // Team management has manager/owner permissions. A copied destination
+    // must resolve to the ordinary dashboard for teachers and students.
+    const url = new URL(window.location.href);
+    for (const parameter of ["section", "student", "focus", "attempt", "request", "requestKind", "invite"]) {
+      url.searchParams.delete(parameter);
+    }
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    const frame = requestAnimationFrame(() => {
+      setManagerView("overview");
+      setAssignmentStudentId(null);
+      setNotificationFocus({ kind: null, id: null });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [managerView, phase, portal]);
+
   const openAssignmentDirectory = useCallback((studentId: string | null = null, replace = false) => {
     const selected = studentId && TARGET_ID.test(studentId) ? studentId : null;
     setManagerView("assignment-directory");
     setAssignmentStudentId(selected);
+    setNotificationFocus({ kind: null, id: null });
     const url = new URL(window.location.href);
     url.searchParams.set("section", "assignment-directory");
     if (selected) url.searchParams.set("student", selected);
     else url.searchParams.delete("student");
+    for (const parameter of ["focus", "attempt", "request", "requestKind", "invite"]) {
+      url.searchParams.delete(parameter);
+    }
     const nextUrl = `${url.pathname}${url.search}${url.hash}`;
     if (replace) window.history.replaceState(window.history.state, "", nextUrl);
     else window.history.pushState({ ...window.history.state, bandupOrganizationSection: "assignment-directory" }, "", nextUrl);
@@ -230,7 +285,7 @@ export default function OrganizationPortal({
     // A section can expose organization-scoped records and role-specific UI.
     // Always land in the new workspace's overview and discard exact-record
     // focus parameters before asking the server to authorize that workspace.
-    for (const parameter of ["section", "student", "focus", "attempt", "request", "requestKind"]) {
+    for (const parameter of ["section", "student", "focus", "attempt", "request", "requestKind", "invite"]) {
       url.searchParams.delete(parameter);
     }
     window.history.pushState(
@@ -290,12 +345,31 @@ export default function OrganizationPortal({
           if (response.status < 500) retryKeys.current.delete(retryFingerprint);
           throw new Error(body && "error" in body && body.error ? body.error : "That change could not be saved.");
         }
+        // Deleting the selected workspace makes every organization-scoped
+        // query parameter stale. Remove it before re-reading so the server can
+        // safely select another eligible workspace (or the no-membership
+        // state) instead of asking for an organization that no longer exists.
+        const deletedSelectedOrganization = (
+          action === "delete_organization"
+          && typeof payload.organizationId === "string"
+          && payload.organizationId === portalRef.current?.activeOrganizationId
+        );
+        if (deletedSelectedOrganization) {
+          const url = new URL(window.location.href);
+          for (const parameter of ["organization", "section", "student", "focus", "attempt", "request", "requestKind", "invite"]) {
+            url.searchParams.delete(parameter);
+          }
+          window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+          setManagerView("overview");
+          setAssignmentStudentId(null);
+          setNotificationFocus({ kind: null, id: null });
+        }
         // Commands return a durable database result, not a client-shaped
         // snapshot. Re-read the role-filtered portal after success so every
         // panel is based on the same server-authoritative view.
-        await load();
+        await load(deletedSelectedOrganization ? null : undefined);
         retryKeys.current.delete(retryFingerprint);
-        setNotice("Saved.");
+        setNotice(action === "delete_organization" ? "Organisation deleted." : "Saved.");
         return body && "ok" in body && body.ok === true
           ? body as OrganizationActionResponse
           : null;
@@ -333,18 +407,26 @@ export default function OrganizationPortal({
     ? portal.memberships.find((item) => item.organization.id === adminWorkspace.id) ?? null
     : activeMembership(portal);
   const role = adminWorkspace ? "owner" : membership?.role ?? null;
+  const platformAdministrationView = portal.actor.platformAdmin && managerView === "administration";
+  const canManageTeam = (portal.actor.platformAdmin && Boolean(portal.activeOrganizationId)) || (
+    membership?.status === "active" && (role === "manager" || role === "owner")
+  );
+  const visibleManagerView = (managerView === "administration" && !portal.actor.platformAdmin)
+    || (TEAM_MANAGEMENT_VIEWS.has(managerView) && !canManageTeam)
+      ? "overview"
+      : managerView;
   const acting = busy !== null;
-  const managerFocused = Boolean((role === "manager" || role === "owner") && managerView !== "overview");
-  const teacherDirectoryFocused = role === "teacher" && managerView === "assignment-directory";
+  const managerFocused = Boolean((role === "manager" || role === "owner") && visibleManagerView !== "overview");
+  const teacherDirectoryFocused = role === "teacher" && visibleManagerView === "assignment-directory";
   // Students share the same query-backed settings destination as managers, but
   // no other manager section is meaningful to them. Treat a copied manager URL
   // as their dashboard rather than leaving the student workspace blank.
-  const studentView = managerView === "settings" ? "settings" : "overview";
+  const studentView = visibleManagerView === "settings" ? "settings" : "overview";
   const studentSettingsFocused = role === "student" && studentView === "settings";
   const focusedOrganizationView = managerFocused || teacherDirectoryFocused || studentSettingsFocused;
 
   return (
-    <PortalFrame dashboard={Boolean(membership)} preview={Boolean(preview || previewRole)} focused={focusedOrganizationView}>
+    <PortalFrame dashboard={Boolean(membership || adminWorkspace)} preview={Boolean(preview || previewRole)} focused={focusedOrganizationView}>
       {(error || notice) && (
         <div
           role={error ? "alert" : "status"}
@@ -355,23 +437,31 @@ export default function OrganizationPortal({
       )}
 
       {adminWorkspace ? (
-        <AdminWorkspaceSummary organization={adminWorkspace} portal={portal} />
+        <AdminWorkspaceSummary
+          organization={adminWorkspace}
+          portal={portal}
+          compact={managerFocused}
+          view={visibleManagerView}
+          onOpenView={openManagerView}
+          onSelectOrganization={selectOrganization}
+          switchingOrganization={switchingOrganization}
+        />
       ) : membership ? (
         <MembershipSummary
           membership={membership}
           portal={portal}
-          compact={(managerView !== "overview" && (role === "manager" || role === "owner")) || teacherDirectoryFocused || studentSettingsFocused}
+          compact={(visibleManagerView !== "overview" && (role === "manager" || role === "owner")) || teacherDirectoryFocused || studentSettingsFocused}
           onOpenSettings={() => openManagerView("settings")}
           onSelectOrganization={selectOrganization}
           switchingOrganization={switchingOrganization}
-          managerView={role === "student" ? studentView : role === "manager" || role === "owner" ? managerView : null}
+          managerView={role === "student" ? studentView : role === "manager" || role === "owner" ? visibleManagerView : null}
           onOpenManagerView={openManagerView}
         />
-      ) : (
+      ) : platformAdministrationView ? null : (
         <NoMembership portal={portal} act={act} busy={acting} previewRole={previewRole} />
       )}
 
-      {role === "student" && membership?.status === "active" && (
+      {!platformAdministrationView && role === "student" && membership?.status === "active" && (
         studentView === "settings" ? (
           <StudentOrganizationSettings
             membership={membership}
@@ -383,60 +473,105 @@ export default function OrganizationPortal({
           <StudentArea portal={portal} notificationFocus={notificationFocus} />
         )
       )}
-      {role === "student" && membership?.status === "removed" && (
+      {!platformAdministrationView && role === "student" && membership?.status === "removed" && (
         <FormerStudentArea membership={membership} act={act} busy={acting} />
       )}
-      {role === "teacher" && membership?.status === "active" && (
+      {!platformAdministrationView && role === "teacher" && membership?.status === "active" && (
         <TeacherArea
           portal={portal}
           previewRole={preview || previewRole ? "teacher" : null}
           act={act}
           busy={acting}
           notificationFocus={notificationFocus}
-          view={managerView}
+          view={visibleManagerView}
           assignmentStudentId={assignmentStudentId}
           onOpenView={openManagerView}
           onOpenAssignmentDirectory={openAssignmentDirectory}
         />
       )}
-      {(role === "manager" || role === "owner") && (membership?.status === "active" || Boolean(adminWorkspace)) && (
+      {!platformAdministrationView && (role === "manager" || role === "owner") && (membership?.status === "active" || Boolean(adminWorkspace)) && (
         <ManagerArea
           portal={portal}
           act={act}
           busy={acting}
           actorRole={role}
           previewRole={preview || previewRole ? "manager" : null}
-          view={managerView}
+          view={visibleManagerView}
           onOpenView={openManagerView}
           assignmentStudentId={assignmentStudentId}
           onOpenAssignmentDirectory={openAssignmentDirectory}
           notificationFocus={notificationFocus}
         />
       )}
-      {portal.actor.platformAdmin && <PlatformAdminArea portal={portal} act={act} busy={acting} />}
+      {portal.actor.platformAdmin && (
+        platformAdministrationView ? (
+          <PlatformAdminArea
+            portal={portal}
+            act={act}
+            busy={acting}
+            onBack={() => openManagerView("overview", true)}
+          />
+        ) : visibleManagerView === "overview" ? (
+          <PlatformAdminCard portal={portal} onOpen={() => openManagerView("administration")} />
+        ) : null
+      )}
     </PortalFrame>
   );
 }
 
-function AdminWorkspaceSummary({ organization, portal }: {
+function AdminWorkspaceSummary({
+  organization,
+  portal,
+  compact,
+  view,
+  onOpenView,
+  onSelectOrganization,
+  switchingOrganization,
+}: {
   organization: NonNullable<Portal["organizations"]>[number];
   portal: Portal;
+  compact: boolean;
+  view: ManagerView;
+  onOpenView: (view: ManagerView) => void;
+  onSelectOrganization: (organizationId: string) => void;
+  switchingOrganization: boolean;
 }) {
-  const pending = (portal.requests ?? []).filter((request) => request.status === "pending" && request.kind !== "invitation").length;
+  const settingsSelected = view === "settings";
+  const canSwitchOrganization = (portal.organizations ?? []).filter(
+    (candidate) => candidate.status === "active",
+  ).length > 1;
   return (
-    <section className="card !rounded-[var(--radius-xl)] !p-3 sm:!px-4 sm:!py-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
+    <section
+      className={`organization-membership-summary card !rounded-[var(--radius-xl)] !p-2.5 sm:!px-4 sm:!py-3 ${compact && !canSwitchOrganization ? "max-sm:hidden" : ""}`}
+      data-compact={compact ? "" : undefined}
+      data-organization-switcher-persistent={compact && canSwitchOrganization ? "" : undefined}
+      aria-label={`${organization.name} workspace navigation`}
+    >
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 lg:grid-cols-[minmax(12rem,1fr)_minmax(28rem,auto)_auto] lg:items-center">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-[17px] font-semibold tracking-tight text-slate-900 sm:text-[18px]">{organization.name}</h2>
+            <h2 className="break-words text-[16px] font-semibold leading-5 tracking-tight text-slate-900 sm:text-[18px] sm:leading-6">{organization.name}</h2>
             <StatusPill tone={organization.status === "active" ? "good" : "warn"}>{titleCase(organization.status)}</StatusPill>
           </div>
-          <p className="mt-0.5 text-[11px] text-slate-500">BandUp administrator workspace</p>
+          <div className="organization-membership-details" aria-hidden={compact || undefined}>
+            <div>
+              <p className="mt-1 text-[11px] text-slate-500">BandUp administrator workspace</p>
+            </div>
+          </div>
         </div>
-        <div className="grid w-full min-w-0 grid-cols-3 gap-1.5 sm:flex sm:w-auto sm:items-center" aria-label="Organisation summary">
-          <span className="min-w-0 border-l border-slate-300/60 px-1 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{organization.studentCount ?? 0}</strong><span className="block text-[9px] uppercase tracking-wide text-slate-500">Students</span></span>
-          <span className="min-w-0 border-l border-slate-300/60 px-1 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{organization.memberCount ?? 0}</strong><span className="block text-[9px] uppercase tracking-wide text-slate-500">Members</span></span>
-          <span className="min-w-0 border-l border-slate-300/60 px-1 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{pending}</strong><span className="block text-[9px] uppercase tracking-wide text-slate-500">Pending</span></span>
+
+        <div className="col-span-2 min-w-0 sm:row-start-2 lg:col-span-1 lg:col-start-2 lg:row-start-1">
+          <OrganizationViewTabs portal={portal} view={view} onOpen={onOpenView} />
+        </div>
+
+        <div className="organization-membership-actions col-start-2 row-start-1 grid justify-items-end gap-1.5 lg:col-start-3">
+          <OrganizationSettingsButton selected={settingsSelected} onClick={() => onOpenView("settings")} />
+          <AdminOrganizationSwitcher
+            organizations={portal.organizations ?? []}
+            activeOrganizationId={portal.activeOrganizationId}
+            busy={switchingOrganization}
+            onSelect={onSelectOrganization}
+          />
         </div>
       </div>
     </section>
@@ -527,6 +662,64 @@ function OrganizationSwitcher({
   );
 }
 
+function AdminOrganizationSwitcher({
+  organizations,
+  activeOrganizationId,
+  busy,
+  onSelect,
+}: {
+  organizations: NonNullable<Portal["organizations"]>;
+  activeOrganizationId: string | null;
+  busy: boolean;
+  onSelect: (organizationId: string) => void;
+}) {
+  const workspaces = organizations.filter((organization) => organization.status === "active");
+  if (workspaces.length < 2) return null;
+  const current = workspaces.some((organization) => organization.id === activeOrganizationId)
+    ? activeOrganizationId!
+    : workspaces[0].id;
+  return (
+    <div className="organization-workspace-switcher min-w-0" data-organization-switcher>
+      <GlassSelect
+        label="Switch organisation"
+        value={current}
+        options={workspaces.map((organization) => ({
+          value: organization.id,
+          label: organization.name,
+        }))}
+        onValueChange={onSelect}
+        disabled={busy}
+        compact
+        className="w-full"
+        minMenuWidth={256}
+        fullPageThreshold={8}
+      />
+    </div>
+  );
+}
+
+function OrganizationSettingsButton({
+  selected,
+  onClick,
+}: {
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="organization-settings-button liquid-glass premade-glass relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-slate-200/75 bg-surface/45 shadow-sm transition-colors hover:bg-surface/70"
+      aria-label="Open organisation settings"
+      aria-current={selected ? "page" : undefined}
+      title="Organisation settings"
+      onClick={onClick}
+    >
+      <RefractiveGlassLayer radius={18} interactive />
+      <CardIcon name="gear" size={18} className="relative z-10" />
+    </button>
+  );
+}
+
 function OrganizationViewTabs({
   portal,
   view,
@@ -552,8 +745,13 @@ function OrganizationViewTabs({
     ["students", "Students", portal.students?.length ?? 0],
     ["members", "Team", portal.members?.length ?? 0],
   ];
-  const selectedIndex = Math.max(0, options.findIndex(([id]) => id === view));
-  const visibleIndex = previewIndex ?? selectedIndex;
+  const selectedView = view === "assignment-directory"
+    ? "assignments"
+    : view === "team-invite" || view === "team-assignment" || view === "team-pairings"
+      ? "members"
+      : view;
+  const selectedIndex = options.findIndex(([id]) => id === selectedView);
+  const visibleIndex = previewIndex ?? Math.max(0, selectedIndex);
 
   const indexAtPointer = (event: PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -572,6 +770,7 @@ function OrganizationViewTabs({
       role="tablist"
       aria-label="Organisation sections"
       data-flowing={previewIndex !== null ? "" : undefined}
+      data-unselected={selectedIndex < 0 && previewIndex === null ? "" : undefined}
       className="organization-view-tabs premade-glass relative hidden min-w-0 touch-none grid-cols-5 items-center overflow-hidden rounded-[var(--radius-xl)] p-1 sm:grid"
       style={{
         "--organization-view-index": visibleIndex,
@@ -611,7 +810,7 @@ function OrganizationViewTabs({
           key={id}
           type="button"
           role="tab"
-          aria-selected={view === id}
+          aria-selected={selectedView === id}
           onPointerEnter={() => {
             dragIndex.current = index;
             setPreviewIndex(index);
@@ -663,8 +862,9 @@ function MembershipSummary({
   )).length > 1;
   return (
     <section
-      className={`organization-membership-summary card !rounded-[var(--radius-xl)] !p-2.5 sm:!px-4 sm:!py-3 ${compact ? "max-sm:hidden" : ""} ${managerWorkspace && compact ? "hidden" : ""}`}
+      className={`organization-membership-summary card !rounded-[var(--radius-xl)] !p-2.5 sm:!px-4 sm:!py-3 ${compact && !canSwitchOrganization ? "max-sm:hidden" : ""}`}
       data-compact={compact ? "" : undefined}
+      data-organization-switcher-persistent={compact && canSwitchOrganization ? "" : undefined}
     >
       <div className={`${managerWorkspace ? "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(12rem,1fr)_minmax(28rem,auto)_auto] lg:items-center" : "flex flex-wrap items-center justify-between gap-3"}`}>
         <div className="min-w-0 flex-1">
@@ -683,7 +883,7 @@ function MembershipSummary({
           </div>
         </div>
 
-        {managerWorkspace && managerView === "overview" && onOpenManagerView && (
+        {managerWorkspace && managerView && onOpenManagerView && (
           <div className="col-span-2 min-w-0 sm:row-start-2 lg:col-span-1 lg:col-start-2 lg:row-start-1">
             <OrganizationViewTabs portal={portal} view={managerView} onOpen={onOpenManagerView} />
           </div>
@@ -691,16 +891,7 @@ function MembershipSummary({
 
         <div className="organization-membership-actions col-start-2 row-start-1 grid justify-items-end gap-1.5 lg:col-start-3">
           {(managerWorkspace || (membership.role === "student" && membership.status === "active")) && onOpenSettings && (
-            <button
-              type="button"
-              className="liquid-glass premade-glass relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-slate-200/75 bg-surface/45 shadow-sm transition-colors hover:bg-surface/70"
-              aria-label="Open organisation settings"
-              title="Organisation settings"
-              onClick={onOpenSettings}
-            >
-              <RefractiveGlassLayer radius={18} interactive />
-              <CardIcon name="gear" size={18} className="relative z-10" />
-            </button>
+            <OrganizationSettingsButton selected={managerView === "settings"} onClick={onOpenSettings} />
           )}
           {canSwitchOrganization && onSelectOrganization && (
             <OrganizationSwitcher
@@ -712,7 +903,7 @@ function MembershipSummary({
           )}
         </div>
 
-        {!(managerWorkspace && managerView === "overview" && onOpenManagerView) && (
+        {!(managerWorkspace && managerView && onOpenManagerView) && (
         <div className={`${compact ? "hidden" : managerWorkspace ? "hidden sm:flex" : "grid"} w-full min-w-0 grid-cols-4 gap-1 sm:w-auto sm:items-center`} aria-label="Organisation summary">
           {membership.organization.studentCount !== null && (
             <span className="min-w-0 border-l border-slate-300/60 px-0.5 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{membership.organization.studentCount}</strong><span className="block text-[8px] uppercase tracking-wide text-slate-500 sm:text-[9px]">Students</span></span>
@@ -1605,6 +1796,13 @@ function managerViewFromLocation(): ManagerView {
   return section && MANAGER_VIEWS.has(section as ManagerView) ? section as ManagerView : "overview";
 }
 
+function invitationFocusFromLocation(): boolean {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  const section = params.get("section");
+  return (section === "members" || section === "team-invite") && params.get("invite") === "people";
+}
+
 function MobileManagerDashboard({
   requests,
   students,
@@ -1738,8 +1936,10 @@ function ManagerArea({
   notificationFocus: NotificationFocus;
 }) {
   const [peopleQuery, setPeopleQuery] = useState("");
+  const [invitationFocus, setInvitationFocus] = useState(invitationFocusFromLocation);
   const focusedRequestId = notificationFocus.kind === "request" ? notificationFocus.id : null;
   const focusedRequestRef = useRef<HTMLDivElement>(null);
+  const invitationPanelRef = useRef<HTMLElement>(null);
   const students = portal.students ?? [];
   // Invitation acceptance belongs to the invited learner. Managers decide
   // join, leave and access requests only; sending an invitation id to the join
@@ -1786,12 +1986,19 @@ function ManagerArea({
       })
     : members;
   const organizationId = portal.activeOrganizationId;
+  const selectedOrganization = portal.memberships.find(
+    (membership) => membership.organization.id === organizationId,
+  )?.organization ?? portal.organizations?.find((organization) => organization.id === organizationId) ?? null;
+  const canDeleteOrganization = portal.actor.platformAdmin || actorRole === "manager" || actorRole === "owner";
   const recentStudents = [...students]
     .sort((left, right) => Date.parse(right.lastActiveAt ?? "") - Date.parse(left.lastActiveAt ?? ""))
     .slice(0, 2);
   const assignedStudents = new Set((portal.assignments ?? []).map((assignment) => assignment.studentUserId)).size;
   const practiceAssignments = portal.practiceAssignments ?? [];
   const outstandingPractice = practiceAssignments.filter((assignment) => !assignment.completedAt).length;
+  const teamAssignments = portal.assignments ?? [];
+  const pairedTeacherCount = new Set(teamAssignments.map((assignment) => assignment.teacherUserId)).size;
+  const pairedStudentCount = new Set(teamAssignments.map((assignment) => assignment.studentUserId)).size;
 
   useEffect(() => {
     if (view !== "requests" || !focusedRequestExists) return;
@@ -1801,6 +2008,35 @@ function ManagerArea({
     });
     return () => cancelAnimationFrame(frame);
   }, [focusedRequestExists, focusedRequestId, view]);
+
+  useEffect(() => {
+    const syncInvitationFocus = () => setInvitationFocus(invitationFocusFromLocation());
+    window.addEventListener("popstate", syncInvitationFocus);
+    return () => window.removeEventListener("popstate", syncInvitationFocus);
+  }, []);
+
+  useEffect(() => {
+    // Keep existing invite links working while moving the form out of the
+    // directory. Replacing this URL means Back never returns to an obsolete
+    // embedded-panel state.
+    if ((view !== "members" && view !== "team-invite") || !invitationFocus || !invitationFocusFromLocation()) return;
+    onOpenView("team-invite", true);
+  }, [invitationFocus, onOpenView, view]);
+
+  useEffect(() => {
+    if (view !== "team-invite" || !invitationFocus) return;
+    const frame = requestAnimationFrame(() => {
+      invitationPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      invitationPanelRef.current?.focus({ preventScroll: true });
+      setInvitationFocus(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [invitationFocus, view]);
+
+  const openInvitationPanel = () => {
+    setInvitationFocus(true);
+    onOpenView("team-invite");
+  };
 
   return (
     <div className="space-y-2 lg:min-h-0">
@@ -1855,6 +2091,13 @@ function ManagerArea({
                 ))}
               </div>
             )}
+            <button
+              type="button"
+              className="btn-secondary mt-2 w-full !min-h-9 !rounded-[var(--radius-lg)] !px-3 !py-2 text-xs"
+              onClick={openInvitationPanel}
+            >
+              Invite students or teachers
+            </button>
           </GlassSection>
         </div>
       )}
@@ -1932,31 +2175,58 @@ function ManagerArea({
       {view === "members" && (
         <GlassSection
           title="Team"
-          lead="Pair one teacher with one or more students."
+          lead="Choose how to manage people and their pairings."
           action={<MobileDashboardBack onBack={() => onOpenView("overview", true)} />}
           className="md:max-h-[calc(100dvh-8rem)] md:overflow-y-auto"
         >
-          {organizationId && (
-            <div className="rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/25 px-3 py-2.5">
-              <h3 className="mb-2 text-sm font-semibold text-slate-900">Assign students to a teacher</h3>
-              <TeacherAssignments
-                organizationId={organizationId}
-                teachers={teachers}
-                students={members.filter((member) => member.role === "student")}
-                assignments={portal.assignments ?? []}
-                act={act}
-                busy={busy}
-              />
-            </div>
-          )}
-          <TeamPairingsCard
-            members={members}
-            assignments={portal.assignments ?? []}
-            onOpen={() => onOpenView("team-pairings")}
-          />
-          {organizationId && (
-            <details className="mt-2.5 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/20 px-3 py-2.5">
-              <summary className="cursor-pointer text-sm font-semibold text-slate-800">Invite a team member</summary>
+          <div className="organization-team-directory-grid grid gap-2 sm:grid-cols-3" data-team-directory>
+            <TeamDirectoryCard
+              destination="invite"
+              title="Invite people"
+              detail={actorRole === "owner" || portal.actor.platformAdmin
+                ? "Invite students, teachers or managers to join this organisation."
+                : "Invite students or teachers to join this organisation."}
+              icon="profile"
+              onOpen={() => onOpenView("team-invite")}
+            />
+            <TeamDirectoryCard
+              destination="assignment"
+              title="Assign students to a teacher"
+              detail="Choose one teacher and one or more students for a new pairing."
+              icon="tutor"
+              onOpen={() => onOpenView("team-assignment")}
+            />
+            <TeamDirectoryCard
+              destination="pairings"
+              title="Review team pairings"
+              detail={teamAssignments.length
+                ? `${pairedTeacherCount} teacher${pairedTeacherCount === 1 ? "" : "s"} paired with ${pairedStudentCount} student${pairedStudentCount === 1 ? "" : "s"}`
+                : "See current groups and unassign students when needed."}
+              icon="organization"
+              onOpen={() => onOpenView("team-pairings")}
+            />
+          </div>
+        </GlassSection>
+      )}
+
+      {view === "team-invite" && (
+        <GlassSection
+          title="Invite people"
+          lead="Choose a role, then invite an existing BandUp account."
+          action={<MobileDashboardBack onBack={() => onOpenView("members", true)} desktopLabel="Team" ariaLabel="Back to team" />}
+          headerClassName="max-sm:!flex-nowrap max-sm:!justify-start"
+          className="md:max-h-[calc(100dvh-8rem)] md:overflow-y-auto"
+        >
+          {!organizationId ? <EmptyState>No active organisation is selected.</EmptyState> : (
+            <section
+              ref={invitationPanelRef}
+              tabIndex={-1}
+              aria-labelledby="organisation-invite-people"
+              data-team-invite-page
+              className="min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/45"
+            >
+              <h3 id="organisation-invite-people" className="text-sm font-semibold text-slate-900">Invite people</h3>
+              <p className="mt-0.5 text-xs leading-4 text-slate-500">Choose Student or Teacher, then find their exact BandUp username. They decide whether to join.</p>
               <div className="mt-2.5">
                 <InvitationForm
                   organizationId={organizationId}
@@ -1966,22 +2236,45 @@ function ManagerArea({
                   busy={busy}
                   previewRole={previewRole}
                 />
-                {invitations.length > 0 && (
-                  <div className="mt-3 rounded-xl border border-slate-200/70 bg-surface/20 px-3">
-                    {invitations.map((invitation) => (
-                      <div key={invitation.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 py-2.5 last:border-b-0">
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-slate-900">{invitation.invitationEmail ?? "Invited account"}</span>
-                          <span className="block text-xs text-slate-500">{titleCase(invitation.requestedRole ?? "student")} · Sent {formatDate(invitation.createdAt)}</span>
-                        </span>
-                        <StatusPill tone="warn">Awaiting acceptance</StatusPill>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-            </details>
+              {invitations.length > 0 && (
+                <div className="mt-3 rounded-xl border border-slate-200/70 bg-surface/20 px-3">
+                  {invitations.map((invitation) => (
+                    <div key={invitation.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 py-2.5 last:border-b-0">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-slate-900">{invitation.invitationEmail ?? "Invited account"}</span>
+                        <span className="block text-xs text-slate-500">{titleCase(invitation.requestedRole ?? "student")} · Sent {formatDate(invitation.createdAt)}</span>
+                      </span>
+                      <StatusPill tone="warn">Awaiting acceptance</StatusPill>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           )}
+        </GlassSection>
+      )}
+
+      {view === "team-assignment" && (
+        <GlassSection
+          title="Assign students to a teacher"
+          lead="Select one teacher and one or more students to create a team pairing."
+          action={<MobileDashboardBack onBack={() => onOpenView("members", true)} desktopLabel="Team" ariaLabel="Back to team" />}
+          headerClassName="max-sm:!flex-nowrap max-sm:!justify-start"
+          className="md:max-h-[calc(100dvh-8rem)] md:overflow-y-auto"
+        >
+          <div data-team-assignment-page>
+            {!organizationId ? <EmptyState>No active organisation is selected.</EmptyState> : (
+              <TeacherAssignments
+                organizationId={organizationId}
+                teachers={teachers}
+                students={members.filter((member) => member.role === "student")}
+                assignments={teamAssignments}
+                act={act}
+                busy={busy}
+              />
+            )}
+          </div>
         </GlassSection>
       )}
 
@@ -2005,7 +2298,7 @@ function ManagerArea({
           {filteredMembers.length === 0 ? <EmptyState>{members.length ? "No team members match that search." : "No members are visible."}</EmptyState> : (
             <TeamGroups
               members={filteredMembers}
-              assignments={portal.assignments ?? []}
+              assignments={teamAssignments}
               organizationId={organizationId}
               actorRole={actorRole}
               platformAdmin={portal.actor.platformAdmin}
@@ -2049,6 +2342,14 @@ function ManagerArea({
                 </Link>
               </div>
           </div>
+          {organizationId && selectedOrganization && canDeleteOrganization && (
+            <OrganizationDeletionControl
+              organizationId={organizationId}
+              organizationName={selectedOrganization.name}
+              act={act}
+              busy={busy}
+            />
+          )}
         </GlassSection>
       )}
     </div>
@@ -2156,33 +2457,32 @@ function MemberManagement({ member, organizationId, actorRole, platformAdmin, ac
   );
 }
 
-function TeamPairingsCard({
-  members,
-  assignments,
+function TeamDirectoryCard({
+  destination,
+  title,
+  detail,
+  icon,
   onOpen,
 }: {
-  members: NonNullable<Portal["members"]>;
-  assignments: NonNullable<Portal["assignments"]>;
+  destination: "invite" | "assignment" | "pairings";
+  title: string;
+  detail: string;
+  icon: CardIconName;
   onOpen: () => void;
 }) {
-  const teachers = new Set(assignments.map((assignment) => assignment.teacherUserId)).size;
-  const assignedStudents = new Set(assignments.map((assignment) => assignment.studentUserId)).size;
-  const activeStudents = members.filter((member) => member.role === "student" && (member.status === "active" || member.status === "leave_requested")).length;
-  const unassignedStudents = Math.max(0, activeStudents - assignedStudents);
   return (
     <button
       type="button"
-      className="liquid-glass group mt-2.5 flex min-h-16 w-full min-w-0 items-center gap-3 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/30 px-3 py-2.5 text-left sm:max-w-lg"
+      data-team-directory-card={destination}
+      className="organization-team-directory-card liquid-glass group flex min-h-[5.25rem] w-full min-w-0 items-center gap-3 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/30 px-3 py-2.5 text-left transition-colors hover:bg-surface/50 sm:min-h-[7.25rem] sm:items-start sm:px-3.5 sm:py-3"
       onClick={onOpen}
     >
-      <CardIcon name="organization" size={30} className="shrink-0 text-indigo-700" />
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-slate-200/70 bg-surface/45 text-indigo-700 sm:size-10">
+        <CardIcon name={icon} size={22} className="text-current" />
+      </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-slate-900">Team pairings</span>
-        <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">
-          {assignments.length === 0
-            ? "No students are paired yet"
-            : `${teachers} teacher${teachers === 1 ? "" : "s"} · ${assignedStudents} student${assignedStudents === 1 ? "" : "s"} · ${unassignedStudents} unassigned`}
-        </span>
+        <span className="block text-sm font-semibold text-slate-900">{title}</span>
+        <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">{detail}</span>
       </span>
       <span aria-hidden="true" className="shrink-0 text-lg text-slate-400 transition-transform group-hover:translate-x-0.5">›</span>
     </button>
@@ -2308,24 +2608,47 @@ function InvitationForm({
   const [role, setRole] = useState<"student" | "teacher" | "manager">("student");
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const roleOptions = [
+    { value: "student", label: "Student" },
+    { value: "teacher", label: "Teacher" },
+    ...((actorRole === "owner" || platformAdmin) ? [{ value: "manager", label: "Manager" }] : []),
+  ];
 
   return (
-    <div className="rounded-xl border border-slate-200/70 bg-surface/25 p-3">
-      <UsernameInvitationForm
-        organizationId={organizationId}
-        role={role}
-        act={act}
-        busy={busy}
-        previewRole={previewRole}
-        onInvited={(invitationLink) => {
-          setLink(invitationLink);
-          setCopied(false);
-        }}
-      />
+    <div className="rounded-xl border border-slate-200/70 bg-surface/25 p-2.5 sm:p-3">
+      <div className="grid min-w-0 gap-2.5 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-end">
+        <div className="min-w-0">
+          <span className="mb-1 block text-xs font-semibold text-slate-600">Invite as</span>
+          <GlassSelect
+            label="Invitation role"
+            value={role}
+            options={roleOptions}
+            compact
+            className="w-full"
+            onValueChange={(value) => {
+              setRole(value as typeof role);
+              setLink(null);
+              setCopied(false);
+            }}
+          />
+        </div>
+        <UsernameInvitationForm
+          key={role}
+          organizationId={organizationId}
+          role={role}
+          act={act}
+          busy={busy}
+          previewRole={previewRole}
+          onInvited={(invitationLink) => {
+            setLink(invitationLink);
+            setCopied(false);
+          }}
+        />
+      </div>
       <details className="mt-3 border-t border-slate-200/70 pt-2">
         <summary className="cursor-pointer text-xs font-semibold text-slate-600">Invite by email instead</summary>
       <form
-        className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+        className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
         onSubmit={async (event) => {
           event.preventDefault();
           const token = invitationToken();
@@ -2349,24 +2672,9 @@ function InvitationForm({
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             className="input min-h-10 w-full rounded-xl border border-slate-300 bg-surface/60 px-3 py-2 text-sm text-slate-900"
-            placeholder="student@example.com"
+            placeholder={`${role}@example.com`}
           />
         </label>
-        <div>
-          <span className="mb-1 block text-xs font-semibold text-slate-600">Role</span>
-          <GlassSelect
-            label="Invitation role"
-            placeholder="Choose role"
-            value={role}
-            options={[
-              { value: "student", label: "Student" },
-              { value: "teacher", label: "Teacher" },
-              ...((actorRole === "owner" || platformAdmin) ? [{ value: "manager", label: "Manager" }] : []),
-            ]}
-            compact
-            onValueChange={(value) => setRole(value as typeof role)}
-          />
-        </div>
         <button type="submit" className="btn-primary min-h-10 !px-4" disabled={busy || !email.trim()}>
           Create invite
         </button>
@@ -2677,13 +2985,199 @@ function RequestRow({
   );
 }
 
-function PlatformAdminArea({ portal, act, busy }: { portal: Portal; act: Act; busy: boolean }) {
+function OrganizationDeletionControl({
+  organizationId,
+  organizationName,
+  act,
+  busy,
+  compact = false,
+}: {
+  organizationId: string;
+  organizationName: string;
+  act: Act;
+  busy: boolean;
+  compact?: boolean;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [confirmationName, setConfirmationName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const confirmationId = `delete-organisation-${organizationId}`;
+  const copyId = `${confirmationId}-consequences`;
+  const nameMatches = confirmationName === organizationName;
+
+  const cancel = () => {
+    setConfirming(false);
+    setConfirmationName("");
+  };
+
+  const remove = async () => {
+    if (!nameMatches || busy || submitting) return;
+    setSubmitting(true);
+    try {
+      const result = await act(
+        "delete_organization",
+        organizationDeletionPayload(organizationId, confirmationName),
+      );
+      if (result) cancel();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (compact && !confirming) {
+    return (
+      <div className="mt-2 flex justify-end" data-organization-deletion-control>
+        <button
+          type="button"
+          className="btn-secondary !min-h-8 !rounded-[var(--radius-lg)] !border-rose-200 !px-2.5 !py-1 text-[11px] font-semibold !text-rose-800"
+          aria-label={`Delete ${organizationName} organisation`}
+          aria-expanded="false"
+          disabled={busy || submitting}
+          onClick={() => setConfirming(true)}
+        >
+          Delete organisation
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <section
+      className={`${compact ? "mt-3 px-3 py-2.5" : "mt-3 px-3.5 py-3"} rounded-[var(--radius-lg)] border border-rose-200/90 bg-rose-50/55`}
+      data-organization-deletion-control
+      aria-labelledby={`${confirmationId}-title`}
+    >
+      <div data-organization-deletion-summary>
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <strong
+            id={`${confirmationId}-title`}
+            className="min-w-0 whitespace-nowrap text-sm font-semibold text-rose-900"
+          >
+            Delete organisation
+          </strong>
+          {!confirming && (
+            <button
+              type="button"
+              className="grid size-11 shrink-0 place-items-center rounded-full border border-rose-300 bg-rose-50 text-[1.35rem] font-light leading-none text-rose-900 transition-colors hover:bg-rose-100 disabled:opacity-50"
+              aria-label={`Delete ${organizationName} organisation`}
+              aria-expanded="false"
+              aria-controls={`${confirmationId}-confirmation`}
+              disabled={busy || submitting}
+              onClick={() => setConfirming(true)}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          )}
+        </div>
+        <p id={copyId} className="mt-1.5 w-full text-[11px] leading-4 text-rose-800">
+          Permanently removes this workspace, its memberships, requests, assignments and shared organisation records. Learners keep their own practice history. This cannot be undone.
+        </p>
+      </div>
+      {confirming && (
+        <div id={`${confirmationId}-confirmation`} className="mt-3 grid gap-2.5" role="group" aria-describedby={copyId}>
+          <label htmlFor={confirmationId} className="text-xs font-medium leading-5 text-rose-900">
+            Type <strong>{organizationName}</strong> exactly to confirm
+          </label>
+          <input
+            id={confirmationId}
+            className="input !min-h-10 !border-rose-300 bg-surface/85 text-sm"
+            value={confirmationName}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            disabled={busy || submitting}
+            aria-describedby={copyId}
+            onChange={(event) => setConfirmationName(event.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn border border-rose-400 bg-rose-600 !min-h-9 !rounded-[var(--radius-lg)] !px-3 !py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+              disabled={busy || submitting || !nameMatches}
+              onClick={() => void remove()}
+            >
+              {submitting ? <LoadingIndicator label="Deleting…" announce={false} /> : "Delete permanently"}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary !min-h-9 !rounded-[var(--radius-lg)] !px-3 !py-1.5 text-xs"
+              disabled={busy || submitting}
+              onClick={cancel}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PlatformAdminCard({
+  portal,
+  onOpen,
+}: {
+  portal: Portal;
+  onOpen: () => void;
+}) {
+  const applications = portal.applications ?? [];
+  const organizations = portal.organizations ?? [];
+  const waitingApplications = applications.filter(
+    (application) => application.status === "submitted" || application.status === "under_review",
+  ).length;
+  return (
+    <button
+      type="button"
+      className="card group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 text-left !rounded-[var(--radius-xl)] !px-3.5 !py-3 sm:!px-4"
+      aria-label="Open BandUp administration"
+      data-platform-admin-card
+      onClick={onOpen}
+    >
+      <span className="grid size-10 shrink-0 place-items-center rounded-[var(--radius-lg)] border border-slate-200/75 bg-surface/50 text-indigo-700 shadow-sm">
+        <CardIcon name="gear" size={21} className="text-current" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <strong className="block text-[15px] font-semibold tracking-tight text-slate-900 sm:text-base">BandUp administration</strong>
+        <span className="mt-0.5 block text-[11px] leading-4 text-slate-500 sm:text-xs">
+          Review organisation applications and manage every workspace.
+        </span>
+      </span>
+      <span className="hidden shrink-0 text-right sm:block">
+        <strong className="block text-xs font-semibold tabular-nums text-slate-700">
+          {waitingApplications} waiting
+        </strong>
+        <span className="block text-[10px] text-slate-500">
+          {organizations.length} organisation{organizations.length === 1 ? "" : "s"}
+        </span>
+      </span>
+      <span aria-hidden="true" className="shrink-0 text-xl leading-none text-slate-400 transition-transform group-hover:translate-x-0.5">›</span>
+    </button>
+  );
+}
+
+function PlatformAdminArea({
+  portal,
+  act,
+  busy,
+  onBack,
+}: {
+  portal: Portal;
+  act: Act;
+  busy: boolean;
+  onBack: () => void;
+}) {
   const applications = portal.applications ?? [];
   const organizations = portal.organizations ?? [];
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 pt-2"><span className="h-px flex-1 bg-slate-300/70" /><span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">BandUp administration</span><span className="h-px flex-1 bg-slate-300/70" /></div>
-      <div className="grid gap-4 lg:grid-cols-2">
+    <section className="min-w-0 space-y-2" aria-labelledby="bandup-administration-title" data-platform-administration-page>
+      <div className="flex min-w-0 items-start gap-2 px-0.5">
+        <MobileDashboardBack onBack={onBack} ariaLabel="Back to organisation overview" />
+        <div className="min-w-0">
+          <h2 id="bandup-administration-title" className="text-[19px] font-semibold tracking-tight text-slate-900 sm:text-[22px]">BandUp administration</h2>
+          <p className="mt-0.5 text-xs leading-4 text-slate-600 sm:text-[13px]">Organisation applications and platform-level workspace controls.</p>
+        </div>
+      </div>
+      <div className="grid min-w-0 gap-2.5 lg:grid-cols-2">
         <GlassSection title="Organisation applications" lead="Only BandUp administrators can approve creation.">
           {applications.length === 0 ? <EmptyState>No applications are waiting.</EmptyState> : <div className="space-y-2.5"><ApplicationList applications={applications} admin act={act} busy={busy} /></div>}
         </GlassSection>
@@ -2692,31 +3186,40 @@ function PlatformAdminArea({ portal, act, busy }: { portal: Portal; act: Act; bu
             <div className="space-y-2.5">{organizations.map((organization) => (
               <div key={organization.id} className="rounded-xl border border-slate-200/70 bg-surface/25 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3"><span><span className="block text-sm font-semibold text-slate-900">{organization.name}</span><span className="block text-xs text-slate-500">{organization.studentCount ?? 0} students · {organization.memberCount ?? 0} members</span></span><StatusPill tone={organization.status === "active" ? "good" : "warn"}>{titleCase(organization.status)}</StatusPill></div>
-                <Link
-                  href={`/organization?organization=${encodeURIComponent(organization.id)}`}
-                  className="btn-primary mt-3 inline-flex !px-3 !py-2 text-xs"
-                >
-                  Open workspace
-                </Link>
-                {organization.status !== "closed" && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="btn-secondary mt-3 !px-3 !py-2 text-xs"
-                    onClick={() => void act(
-                      organization.status === "suspended" ? "restore_organization" : "suspend_organization",
-                      organizationActionPayload(organization.id),
-                    )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/organization?organization=${encodeURIComponent(organization.id)}`}
+                    className="btn-primary inline-flex !px-3 !py-2 text-xs"
                   >
-                    {organization.status === "suspended" ? "Restore organisation" : "Suspend organisation"}
-                  </button>
-                )}
+                    Open workspace
+                  </Link>
+                  {organization.status !== "closed" && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="btn-secondary !px-3 !py-2 text-xs"
+                      onClick={() => void act(
+                        organization.status === "suspended" ? "restore_organization" : "suspend_organization",
+                        organizationActionPayload(organization.id),
+                      )}
+                    >
+                      {organization.status === "suspended" ? "Restore organisation" : "Suspend organisation"}
+                    </button>
+                  )}
+                </div>
+                <OrganizationDeletionControl
+                  organizationId={organization.id}
+                  organizationName={organization.name}
+                  act={act}
+                  busy={busy}
+                  compact
+                />
               </div>
             ))}</div>
           )}
         </GlassSection>
       </div>
-    </div>
+    </section>
   );
 }
 

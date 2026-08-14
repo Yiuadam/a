@@ -49,6 +49,12 @@ interface ApplicationRow {
   status: string;
 }
 
+interface OrganizationRow {
+  id: string;
+  name: string;
+  status: string;
+}
+
 interface AttemptRow {
   id: string;
   user_id: string;
@@ -194,6 +200,26 @@ async function organizationActive(db: Db, organizationId: string): Promise<boole
   return Boolean(await db.prepare(
     "SELECT 1 AS ok FROM organizations WHERE id = ? AND status = 'active'",
   ).bind(organizationId).first<{ ok: number }>());
+}
+
+async function hasLiveExternalSeatPool(db: Db, organizationId: string): Promise<boolean> {
+  return Boolean(await db.prepare(`
+    SELECT 1 AS ok FROM organization_seat_pools
+     WHERE organization_id = ?
+       AND (
+         status IN ('pending', 'active')
+         OR source_status IN ('pending', 'active', 'past_due', 'paused')
+       )
+       AND (
+         provider <> 'manual'
+         OR (source_provider IS NOT NULL AND source_provider <> 'manual')
+         OR (
+           source_external_subscription_id IS NOT NULL
+           AND coalesce(source_provider, '') <> 'manual'
+         )
+       )
+     LIMIT 1
+  `).bind(organizationId).first<{ ok: number }>());
 }
 
 async function assigned(db: Db, organizationId: string, teacherId: string, studentId: string) {
@@ -359,6 +385,7 @@ async function executeCommand(
     organizationId
     && action !== "suspend_organization"
     && action !== "restore_organization"
+    && action !== "delete_organization"
     && action !== "decide_application"
     && !(await organizationActive(db, organizationId))
   ) fail("Organisation is not active.");
@@ -473,6 +500,52 @@ async function executeCommand(
       db.prepare("UPDATE organizations SET status = ?, updated_at = ? WHERE id = ?")
         .bind(action === "suspend_organization" ? "suspended" : "active", now, orgId),
       audit(db, user.id, action, orgId, "organization", orgId),
+    ], receipt(db, user.id, idempotencyKey, action, requestHash, response));
+    return response;
+  }
+
+  if (action === "delete_organization") {
+    const orgId = id(payload.organizationId, "organisation");
+    const organization = await db.prepare(`
+      SELECT id, name, status FROM organizations WHERE id = ?
+    `).bind(orgId).first<OrganizationRow>();
+    if (!organization) notFound("Organisation not found.");
+
+    const actorRole = await activeRole(db, orgId, user.id);
+    if (!canManage(actorRole, platformAdmin)) forbidden();
+    // A suspended organisation is visible only to platform administration.
+    // Do not let a manager bypass that boundary with a hand-written command.
+    if (!platformAdmin && organization.status !== "active") forbidden();
+    // The browser confirmation is backed by the command boundary: outer
+    // whitespace is ignored, but spelling and case must match exactly.
+    const confirmationName = text(
+      payload.confirmationName,
+      "Confirmation name",
+      2,
+      120,
+    );
+    if (confirmationName !== organization.name.trim()) {
+      fail("Type the organisation name exactly to confirm deletion.");
+    }
+    // Provider cancellation cannot be made atomic with D1. Keep the local
+    // organisation until billing has reached a non-live state, otherwise a
+    // deleted workspace could leave an external subscription charging.
+    if (await hasLiveExternalSeatPool(db, orgId)) {
+      conflict("Cancel this organisation's external seat subscription before deleting it.");
+    }
+
+    const response = { ok: true } as const;
+    await runBatch(db, [
+      // Audit rows deliberately have no organisation foreign key, so this
+      // immutable deletion record and the earlier audit trail survive the
+      // following cascade. Learner-owned attempts and their R2 payloads are
+      // not children of an organisation and therefore remain untouched.
+      audit(db, user.id, action, orgId, "organization", orgId, {
+        name: organization.name,
+        previousStatus: organization.status,
+        actorRole: actorRole ?? (platformAdmin ? "platform_admin" : null),
+      }),
+      db.prepare("DELETE FROM organizations WHERE id = ?").bind(orgId),
     ], receipt(db, user.id, idempotencyKey, action, requestHash, response));
     return response;
   }

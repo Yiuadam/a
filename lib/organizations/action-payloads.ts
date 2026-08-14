@@ -37,6 +37,13 @@ export function organizationActionPayload(organizationId: string) {
   return { organizationId } as const;
 }
 
+export function organizationDeletionPayload(
+  organizationId: string,
+  confirmationName: string,
+) {
+  return { organizationId, confirmationName: confirmationName.trim() } as const;
+}
+
 export function practiceAssignmentPayload(
   organizationId: string,
   studentUserId: string,

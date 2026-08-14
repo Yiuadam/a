@@ -8,9 +8,10 @@ const { topics } = grammarData as DrillData;
 
 export default function GrammarPage() {
   return (
-    /* See `.drill-dense` in globals.css — five topics across, not two. */
-    <div className="drill-dense drill-dense-5">
+    <div data-grammar-practice>
       <DrillSection
+        compact
+        compactColumns={5}
         kind="grammar"
         title="Grammar practice"
         intro="Ten topics, each on a mistake learners make often. Read the rule, then answer the questions."

@@ -34,6 +34,17 @@ const perTab = new Map([
   [PROFILE_KEY, JSON.stringify({ visited: ["reading"], results: [], genTests: [] })],
   [PROFILE_UPDATED_KEY, "2026-08-11T07:45:00.000Z"],
 ]);
+const dispatchedStorageKeys = [];
+const windowListeners = new Map();
+
+function listenersFor(type) {
+  let listeners = windowListeners.get(type);
+  if (!listeners) {
+    listeners = new Set();
+    windowListeners.set(type, listeners);
+  }
+  return listeners;
+}
 
 const shelf = (map) => ({
   getItem: (key) => (map.has(key) ? map.get(key) : null),
@@ -45,9 +56,13 @@ const shelf = (map) => ({
 globalThis.window = {
   localStorage: shelf(durable),
   sessionStorage: shelf(perTab),
-  dispatchEvent: () => true,
-  addEventListener: () => {},
-  removeEventListener: () => {},
+  dispatchEvent: (event) => {
+    if (event.type === "storage") dispatchedStorageKeys.push(event.key);
+    for (const listener of listenersFor(event.type)) listener(event);
+    return true;
+  },
+  addEventListener: (type, listener) => listenersFor(type).add(listener),
+  removeEventListener: (type, listener) => windowListeners.get(type)?.delete(listener),
 };
 globalThis.StorageEvent = class StorageEvent extends Event {
   constructor(type, init = {}) {
@@ -100,6 +115,9 @@ globalThis.fetch = async (input, init = {}) => {
 
 const { clearSyncedProgress, syncProgress } = await import(
   pathToFileURL(join(process.cwd(), "lib", "progress", "sync.ts")).href
+);
+const profileStore = await import(
+  pathToFileURL(join(process.cwd(), "lib", "store.ts")).href
 );
 
 test("a visit in this tab is merged into the account snapshot", async () => {
@@ -220,6 +238,57 @@ test("an older local scalar does not overwrite a newer account choice", async ()
     "2026-08-11T07:00:00.000Z",
   );
   assert.equal(JSON.parse(perTab.get(PROFILE_KEY)).targetBand, 8);
+});
+
+test("autosync restores a newer placement and emits the profile refresh event", async () => {
+  const stalePlacement = { band: 5.5, date: "2026-08-01T10:00:00.000Z" };
+  const newerPlacement = { band: 7, date: "2026-08-12T10:00:00.000Z" };
+  perTab.set(PROFILE_KEY, JSON.stringify({
+    placement: stalePlacement,
+    targetBand: 8,
+    results: [],
+    genTests: [],
+  }));
+  // This stamp belongs to a later target-band change, not to the placement.
+  perTab.set(PROFILE_UPDATED_KEY, "2026-08-14T10:00:00.000Z");
+  remoteSnapshots = [{
+    storeKey: PROFILE_KEY,
+    payload: {
+      placement: newerPlacement,
+      targetBand: 6,
+      results: [],
+      genTests: [],
+    },
+    clientUpdatedAt: "2026-08-12T11:00:00.000Z",
+  }];
+  dispatchedStorageKeys.length = 0;
+  assert.equal(profileStore.getSnapshot().placement.band, 5.5);
+  let refreshes = 0;
+  const unsubscribe = profileStore.subscribe(() => {
+    refreshes += 1;
+  });
+
+  try {
+    const outcome = await syncProgress();
+
+    assert.equal(outcome.status, "done");
+    const uploadedProfile = uploadedSnapshots.find((snapshot) => snapshot.storeKey === PROFILE_KEY)
+      .payload;
+    assert.equal(uploadedProfile.placement.band, 7);
+    assert.equal(uploadedProfile.targetBand, 8);
+
+    const refreshedProfile = JSON.parse(perTab.get(PROFILE_KEY));
+    assert.equal(refreshedProfile.placement.band, 7);
+    assert.equal(refreshedProfile.targetBand, 8);
+    assert.ok(
+      dispatchedStorageKeys.includes(PROFILE_KEY),
+      "the profile storage event keeps useSyncExternalStore views fresh after autosync",
+    );
+    assert.ok(refreshes > 0, "the profile store listener is notified after autosync");
+    assert.equal(profileStore.getSnapshot().placement.band, 7);
+  } finally {
+    unsubscribe();
+  }
 });
 
 test("a failed account clear leaves the browser's working copy byte-for-byte intact", async () => {

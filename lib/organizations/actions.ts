@@ -1,10 +1,10 @@
 /**
  * Commands accepted by the organization API.
  *
- * This allow-list is intentionally duplicated by the database RPC. The route
- * rejects mistakes cheaply; PostgreSQL remains the authority if this code is
- * bypassed or an older client sends a command the current server no longer
- * understands.
+ * The route rejects mistakes cheaply; the selected data authority rechecks
+ * roles and command semantics at its own write boundary. D1 is the production
+ * organisation authority, while the legacy PostgreSQL RPC keeps its existing
+ * command set for installations that have not cut over.
  */
 export const ORGANIZATION_ACTIONS = [
   "submit_application",
@@ -12,6 +12,7 @@ export const ORGANIZATION_ACTIONS = [
   "decide_application",
   "suspend_organization",
   "restore_organization",
+  "delete_organization",
   "invite_member",
   "accept_invitation",
   "request_to_join",
