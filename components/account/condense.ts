@@ -18,22 +18,25 @@ import { cropRect, outputSize, type View } from "./crop";
   9 MB to show a face at 64 pixels across.
 
   So the ceiling stays where it is and the work moves to where the picture
-  already lives. By the time anything crosses the network it is a 512-pixel
-  square — tens of kilobytes, not megabytes — and the server's 2 MB guard is
+  already lives. By the time anything crosses the network it is a 256-pixel
+  square — a few kilobytes, not megabytes — and the server's 2 MB guard is
   never even approached. The learner's side of the bargain is that they may
   pick anything they like: any resolution, any orientation, any of the formats
   their browser can decode, up to MAX_SOURCE_BYTES.
 
   ---------------------------------------------------------------------------
-  Why the output is JPEG
+  Why the output prefers WebP
 
   app/api/account/avatar/route.ts identifies a file by its first bytes and not
   by its name or its Content-Type, and accepts exactly three types. Whatever
   comes out of here therefore has to genuinely be one of those three. Canvas
-  encoding is the guarantee: a JPEG produced by toBlob starts FF D8 FF because
-  that is what a JPEG is, no matter what went in. A HEIC from an iPhone, a TIFF
-  from a scanner, an animated GIF — if the browser could decode it, what leaves
-  here is a plain JPEG and the route's check passes for the right reason.
+  encoding is the guarantee: a WebP produced by toBlob has a real RIFF/WEBP
+  signature, no matter what went in. WebP is materially smaller than JPEG for
+  the same tiny portrait. A JPEG fallback keeps the upload working in an older
+  embedded browser that can decode the picture but cannot encode WebP. A HEIC
+  from an iPhone, a TIFF from a scanner, an animated GIF — if the browser can
+  decode it, what leaves here is a small ordinary still image the route can
+  identify safely.
 */
 
 /**
@@ -50,11 +53,11 @@ export const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
  * What the finished square must fit inside.
  *
  * Well under the route's own 2 MB so there is no argument at the boundary: a
- * 512-pixel JPEG lands near 60 KB in practice, and if some pathological image
+ * 256-pixel WebP lands near 10–25 KB in practice, and if a pathological image
  * ever pushed past this the quality ladder below brings it back rather than
  * letting the upload fail in front of the learner.
  */
-export const TARGET_BYTES = 900 * 1024;
+export const TARGET_BYTES = 96 * 1024;
 
 /*
   The first canvas is capped at 2048 on a side.
@@ -63,7 +66,7 @@ export const TARGET_BYTES = 900 * 1024;
   worse, does not always say so — it hands back a blank context and the upload
   becomes a white square. 2048 squared is a quarter of that ceiling, which is
   comfortable on the oldest device this app supports, and costs nothing:
-  everything here is on its way down to 512 regardless.
+  everything here is on its way down to 256 regardless.
 */
 const MAX_FIRST_PASS = 2048;
 
@@ -73,7 +76,8 @@ const MAX_FIRST_PASS = 2048;
   too big" can never be something the learner is told after they have already
   cropped it.
 */
-const QUALITY_LADDER = [0.85, 0.72, 0.6, 0.45];
+const QUALITY_LADDER = [0.82, 0.7, 0.58, 0.45];
+const OUTPUT_TYPES = ["image/webp", "image/jpeg"] as const;
 
 export interface LoadedImage {
   element: HTMLImageElement;
@@ -169,9 +173,10 @@ function square(size: number): { canvas: HTMLCanvasElement; ctx: CanvasRendering
   canvas.height = size;
   const ctx = context(canvas);
   /*
-    A white base under everything, because JPEG has no transparency. Without it
-    a PNG with a cut-out background arrives as a face on a black square, which
-    looks like a bug in the app rather than a property of the format. White is
+  A white base under everything, so every output has the same opaque backdrop.
+  Without it a PNG with a cut-out background can arrive as a face on a black
+  square, which looks like a bug in the app rather than a property of the
+  format. White is
     also invisible in the place it would otherwise show: avatars are drawn as
     circles, and the corners of the square where a transparent edge would sit
     are outside that circle and never seen.
@@ -181,13 +186,21 @@ function square(size: number): { canvas: HTMLCanvasElement; ctx: CanvasRendering
   return { canvas, ctx };
 }
 
-function toBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob | null> {
+function toBlob(
+  canvas: HTMLCanvasElement,
+  mime: (typeof OUTPUT_TYPES)[number],
+  quality: number,
+): Promise<Blob | null> {
   return new Promise((resolve) => {
     if (typeof canvas.toBlob !== "function") {
       resolve(null);
       return;
     }
-    canvas.toBlob((blob) => resolve(blob), "image/jpeg", quality);
+    canvas.toBlob(
+      (blob) => resolve(blob?.type === mime ? blob : null),
+      mime,
+      quality,
+    );
   });
 }
 
@@ -196,10 +209,10 @@ function toBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob | null
  *
  * The shrink happens in halving steps rather than in one jump. drawImage does
  * a cheap bilinear sample, which is fine for a small reduction and visibly
- * wrong for a large one: taking a 4000-pixel photo straight down to 512 throws
- * away fifteen of every sixteen pixels and produces the speckled, aliased look
+ * wrong for a large one: taking a 4000-pixel photo straight down to 256 throws
+ * away most of its pixels at once and produces the speckled, aliased look
  * of a badly resized image. Halving repeatedly averages the pixels that are
- * being discarded, and three or four extra draws on a 512-pixel canvas cost
+ * being discarded, and three or four extra draws on a 256-pixel canvas cost
  * nothing a person can perceive.
  */
 export async function renderCrop(image: LoadedImage, view: View): Promise<Blob> {
@@ -220,11 +233,13 @@ export async function renderCrop(image: LoadedImage, view: View): Promise<Blob> 
   }
 
   let smallest: Blob | null = null;
-  for (const quality of QUALITY_LADDER) {
-    const blob = await toBlob(canvas, quality);
-    if (!blob) break;
-    if (blob.size <= TARGET_BYTES) return blob;
-    smallest = blob;
+  for (const mime of OUTPUT_TYPES) {
+    for (const quality of QUALITY_LADDER) {
+      const blob = await toBlob(canvas, mime, quality);
+      if (!blob) break;
+      if (blob.size <= TARGET_BYTES) return blob;
+      if (!smallest || blob.size < smallest.size) smallest = blob;
+    }
   }
 
   if (smallest) return smallest;

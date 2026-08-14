@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import ClearHistoryButton from "@/components/history/ClearHistoryButton";
+import LookupHistoryCard from "@/components/history/LookupHistoryCard";
 import { useProfile } from "@/lib/hooks";
 import { newestFirst, seriesFor } from "@/lib/results";
 import type { ModuleName, ModuleResult } from "@/lib/types";
@@ -368,6 +369,8 @@ export default function HistoryPage() {
           </section>
         </>
       )}
+
+      <LookupHistoryCard compact />
     </div>
   );
 }

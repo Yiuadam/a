@@ -4,6 +4,8 @@ import { useState } from "react";
 import { apiUrl } from "@/lib/api";
 import { saveSession } from "@/lib/account";
 import GoogleSignIn from "./GoogleSignIn";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { consumeAuthReturnPath } from "@/lib/auth/return-path";
 
 /*
   Signing in, and the second door for people who cannot.
@@ -260,7 +262,7 @@ function PasswordForm() {
           at mount — the header, the tier, the sync — and a reload is one line
           against half a dozen subscriptions that would each need waking.
         */
-        window.location.assign("/account/");
+        window.location.assign(consumeAuthReturnPath("/"));
         return;
       }
       setError("That didn't work. Please try again.");
@@ -323,8 +325,8 @@ function PasswordForm() {
         </p>
       )}
 
-      <button type="submit" className="btn-primary" disabled={busy}>
-        {busy ? (creating ? "Creating…" : "Signing in…") : creating ? "Create account" : "Sign in"}
+        <button type="submit" className="btn-primary" disabled={busy}>
+        {busy ? <LoadingIndicator label={creating ? "Creating…" : "Signing in…"} announce={false} /> : creating ? "Create account" : "Sign in"}
       </button>
 
       <p className="text-sm leading-6 text-slate-500">
@@ -339,6 +341,12 @@ function PasswordForm() {
         >
           {creating ? "Sign in instead" : "Create one with an email address"}
         </button>
+
+      {creating && (
+        <p className="rounded-xl border border-indigo-200 bg-indigo-50/55 px-3 py-2 text-xs leading-5 text-indigo-800">
+          After your email is confirmed, you&rsquo;ll choose a unique username. You can add your display name then, or do it later.
+        </p>
+      )}
       </p>
     </form>
   );
@@ -401,7 +409,7 @@ function RecoveryForm({ onDone }: { onDone: () => void }) {
         onChange={(e) => setEmail(e.target.value)}
       />
       <button type="submit" className="btn-primary" disabled={sending}>
-        {sending ? "Sending…" : "Send the link"}
+        {sending ? <LoadingIndicator label="Sending…" announce={false} /> : "Send the link"}
       </button>
     </form>
   );

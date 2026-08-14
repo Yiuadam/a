@@ -25,9 +25,9 @@ import { join, relative } from "node:path";
 
 const ROOT = process.cwd();
 
-test("the build script keeps the billing routes out of the bundle", () => {
+test("the build script keeps server-only and billing routes out of the bundle", () => {
   const source = readFileSync(join(ROOT, "scripts", "build-mobile.mjs"), "utf8");
-  for (const dir of ["api", "pricing", "billing"]) {
+  for (const dir of ["api", "admin", "pricing", "billing"]) {
     assert.match(
       source,
       new RegExp(`join\\("app", "${dir}"\\)`),
@@ -38,6 +38,15 @@ test("the build script keeps the billing routes out of the bundle", () => {
     source,
     /NEXT_PUBLIC_MOBILE_BUILD: "1"/,
     "the mobile build no longer sets the flag the interface reads",
+  );
+});
+
+test("the website owner console is absent from mobile navigation", () => {
+  const source = readFileSync(join(ROOT, "components", "SiteHeader.tsx"), "utf8");
+  assert.match(
+    source,
+    /const groups = isOwner && !IS_MOBILE_BUILD/,
+    "the static iOS bundle must not link to its excluded website-only owner console",
   );
 });
 

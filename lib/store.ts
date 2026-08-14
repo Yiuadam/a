@@ -45,6 +45,7 @@ function read(): Profile {
       results: parsed.results ?? [],
       mockReports: parsed.mockReports ?? [],
       historyClearedAt: parsed.historyClearedAt,
+      deletedGenTests: parsed.deletedGenTests ?? {},
       genTests: parsed.genTests ?? [],
     };
   } catch {
@@ -170,7 +171,13 @@ export function clearHistory(at = new Date().toISOString()): Profile {
 
 export function addGeneratedTest(test: GeneratedTest): Profile {
   const p = getSnapshot();
-  return commit({ ...p, genTests: [test, ...p.genTests].slice(0, 20) });
+  const id = test.test.id;
+  const deletedGenTests = { ...(p.deletedGenTests ?? {}) };
+  /* Defensive rather than ordinarily necessary: generated ids are unique,
+     but if a provider repeats one, deliberately generating it again is a
+     newer action than the old deletion. */
+  delete deletedGenTests[id];
+  return commit({ ...p, deletedGenTests, genTests: [test, ...p.genTests].slice(0, 20) });
 }
 
 /**
@@ -189,5 +196,12 @@ export function removeGeneratedTest(id: string): Profile {
   const p = getSnapshot();
   const next = p.genTests.filter((g) => g.test.id !== id);
   if (next.length === p.genTests.length) return p;
-  return commit({ ...p, genTests: next });
+  return commit({
+    ...p,
+    genTests: next,
+    deletedGenTests: {
+      ...(p.deletedGenTests ?? {}),
+      [id]: new Date().toISOString(),
+    },
+  });
 }

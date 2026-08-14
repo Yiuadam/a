@@ -2,6 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore, type CSSProperties, type PointerEvent } from "react";
 import { Icon } from "@/components/Icons";
+import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import {
   THEMES,
   getServerTheme,
@@ -39,7 +40,7 @@ export default function ThemeToggle() {
       role="radiogroup"
       aria-label="Colour theme"
       data-flowing={previewIndex !== null ? "" : undefined}
-      className="theme-toggle-base relative flex touch-none items-center gap-0.5 rounded-xl p-0.5"
+      className="theme-toggle-base premade-glass relative flex touch-none items-center gap-0.5 overflow-hidden rounded-xl p-0.5"
       style={{ "--theme-index": visibleIndex } as CSSProperties}
       onPointerDown={(event) => {
         dragging.current = true;
@@ -68,6 +69,7 @@ export default function ThemeToggle() {
         if (!dragging.current) setPreviewIndex(null);
       }}
     >
+      <RefractiveGlassLayer radius={14} interactive />
       <span className="theme-toggle-selector" aria-hidden="true" />
       {THEMES.map((t, index) => {
         const active = theme === t.id;
@@ -90,7 +92,7 @@ export default function ThemeToggle() {
               setTheme(t.id);
               setPreviewIndex(null);
             }}
-            className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-colors focus-visible:outline-none ${
+            className={`app-icon-control relative z-10 flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-colors focus-visible:outline-none ${
               visible ? "text-slate-900" : "text-slate-500 hover:text-slate-800"
             }`}
           >

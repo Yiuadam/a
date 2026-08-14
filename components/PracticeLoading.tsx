@@ -1,3 +1,5 @@
+import LoadingIndicator from "@/components/LoadingIndicator";
+
 export default function PracticeLoading({ kind }: { kind: "Reading" | "Listening" }) {
   return (
     <div
@@ -6,7 +8,7 @@ export default function PracticeLoading({ kind }: { kind: "Reading" | "Listening
     >
       <div className="card w-full !p-4">
         <h1 className="text-xl font-semibold text-slate-900">{kind} practice</h1>
-        <p className="mt-1 text-sm text-slate-600">Opening your practice papers…</p>
+        <p className="mt-1 text-sm text-slate-600"><LoadingIndicator label="Opening your practice papers…" /></p>
       </div>
     </div>
   );

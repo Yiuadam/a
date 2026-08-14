@@ -25,6 +25,7 @@ import { addResult } from "@/lib/store";
 import { READING_TESTS } from "@/lib/tests";
 import type { ReadingTest } from "@/lib/types";
 import TestChooser from "@/components/TestChooser";
+import AssignedPracticeNotice from "@/components/organization/AssignedPracticeNotice";
 
 const bundled = READING_TESTS;
 
@@ -139,6 +140,7 @@ function ReadingTestPageRunner() {
     return (
       <div className="mx-auto flex min-h-[calc(100dvh-3.75rem)] max-w-xl items-center px-4">
         <div className="card w-full space-y-4 py-8 text-center">
+          <AssignedPracticeNotice />
           <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>
           <p className="text-sm text-slate-600">{test.topic}</p>
           <p className="text-sm text-slate-600">
@@ -159,7 +161,7 @@ function ReadingTestPageRunner() {
                 },
                 {
                   id: "free" as const,
-                  title: "Practice slowly",
+                  title: "Practise slowly",
                   blurb: "No clock. Check answers as you go"
                 },
               ]).map((option) => (
@@ -186,7 +188,7 @@ function ReadingTestPageRunner() {
               though it applied to both — next to a button labelled "Exam
               conditions", which is where the contradiction came from.
             */}
-            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm leading-6 text-amber-800">
+            <p className="mt-2 rounded-lg bg-indigo-50 px-3 py-2 text-left text-sm leading-6 text-indigo-800">
               {mode === "timed"
                 ? "Like the real exam: you cannot see any answers until you finish. When you finish, you get your band and every explanation."
                 : "You can check one answer at a time and read why it is right. Once you check a question you cannot change it, so your band still means something."}

@@ -13,7 +13,16 @@ import TestQuestions, {
 import { testAdvice } from "@/lib/advice";
 import { isCorrect, rawToBand } from "@/lib/band";
 import { rankedEnglishVoices } from "@/lib/speech";
+import { apiUrl } from "@/lib/api";
 import { playScript } from "@/lib/exam/playback";
+import { bundledListeningAudio, bundledListeningAudioUrl } from "@/lib/listening-audio";
+import {
+  cancelNaturalExaminerVoice,
+  disposeNaturalExaminerVoice,
+  naturalExaminerVoiceSupported,
+  speakNaturalExaminer,
+  waitForNaturalExaminerVoice,
+} from "@/lib/neural-speech";
 import { useMounted, useProfile } from "@/lib/hooks";
 import { flatQuestions, questionCount } from "@/lib/questions";
 import { buildReview } from "@/lib/review";
@@ -25,8 +34,17 @@ import TestChooser from "@/components/TestChooser";
 import ExamShell from "@/components/exam/ExamShell";
 import { useExamNavigation } from "@/lib/exam/navigation";
 import styles from "./listening.module.css";
+import GlassSelect from "@/components/GlassSelect";
+import AssignedPracticeNotice from "@/components/organization/AssignedPracticeNotice";
 
 const bundled = LISTENING_TESTS;
+const NATIVE_AUDIO_PREFETCH_AHEAD = 3;
+
+function formatAudioTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const whole = Math.floor(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
 
 function ListeningTestPageRunner() {
   const params = useSearchParams();
@@ -44,12 +62,30 @@ function ListeningTestPageRunner() {
   const [band, setBand] = useState<number | null>(null);
   const [raw, setRaw] = useState(0);
   const [playing, setPlaying] = useState(false);
+  // SpeechSynthesis may accept an utterance without ever making a sound. Keep
+  // "starting" separate from "playing" so that failure is visible instead of
+  // looking like a completed listening recording.
+  const [playbackStarted, setPlaybackStarted] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [playbackTurn, setPlaybackTurn] = useState(0);
   const [turnIndex, setTurnIndex] = useState(-1);
   const [finishedAudio, setFinishedAudio] = useState(false);
+  const [usingServerAudio, setUsingServerAudio] = useState(false);
+  const [usingBuiltInAudio, setUsingBuiltInAudio] = useState(false);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioPartIndex, setAudioPartIndex] = useState(0);
   const [rate, setRate] = useState(1);
   const [showTranscript, setShowTranscript] = useState(false);
 
   const playingRef = useRef(false);
+  const playbackRunRef = useRef(0);
+  const nativeAudioRunRef = useRef(0);
+  const nativeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const nativeAudioPartRef = useRef(0);
+  const nativeAudioPartCountRef = useRef(1);
+  const nativeAudioFromRef = useRef(0);
+  const prefetchedNativeAudioPartsRef = useRef(new Set<number>());
   const rateRef = useRef(1);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
@@ -66,6 +102,14 @@ function ListeningTestPageRunner() {
   }, [params, profile.genTests]);
 
   const flat = useMemo(() => (test ? flatQuestions(test.questions) : []), [test]);
+  // Only the reviewed, canonical papers get the local neural recovery path.
+  // Generated papers continue to use browser speech so an unexpectedly long
+  // script never starts a large model download without an explicit choice.
+  const isBundledTest = !!test && bundled.some((candidate) => candidate.id === test.id);
+  const serverAudioParts = useMemo(
+    () => (isBundledTest && test ? bundledListeningAudio(test.id)?.parts ?? [] : []),
+    [isBundledTest, test],
+  );
   const nav = useExamNavigation(
     useMemo(
       () => flat.map((q) => ({ id: q.id, answered: answers[q.id] !== undefined })),
@@ -74,6 +118,16 @@ function ListeningTestPageRunner() {
   );
 
   const ttsSupported = mounted && typeof window !== "undefined" && "speechSynthesis" in window;
+  const builtInAudioSupported = mounted && isBundledTest && naturalExaminerVoiceSupported();
+  // A canonical paper can always try the same-origin MPEG route first. That
+  // remains playable in embedded browsers that expose neither Web Speech nor
+  // WebAudio, while generated papers keep their browser-only speech path.
+  const audioSupported = ttsSupported || builtInAudioSupported || isBundledTest;
+  const serverAudioPartCount = Math.max(1, serverAudioParts.length);
+  const serverAudioProgress =
+    audioDuration > 0
+      ? Math.min(1, (audioPartIndex + audioCurrentTime / audioDuration) / serverAudioPartCount)
+      : undefined;
 
   useEffect(() => {
     if (!ttsSupported) return;
@@ -87,40 +141,327 @@ function ListeningTestPageRunner() {
       // Disarm the chain BEFORE cancelling: cancel() fires the current
       // utterance's end/error event, which would otherwise queue the next turn
       // and keep reading the script after the user has navigated away.
+      playbackRunRef.current += 1;
       playingRef.current = false;
       window.speechSynthesis.cancel();
     };
   }, [ttsSupported]);
 
-  const startAudio = useCallback(
-    (from: number) => {
-      if (!test || !ttsSupported) return;
-      window.speechSynthesis.cancel();
+  useEffect(() => {
+    return () => {
+      playbackRunRef.current += 1;
+      nativeAudioRunRef.current = 0;
+      playingRef.current = false;
+      cancelNaturalExaminerVoice();
+      disposeNaturalExaminerVoice();
+    };
+  }, []);
+
+  useEffect(() => {
+    // The player does not exist on the chooser screen, so capture the actual
+    // element only after the test workspace mounts. This avoids leaving media
+    // running if the learner returns to the chooser or navigates away.
+    const media = nativeAudioRef.current;
+    return () => {
+      if (!media) return;
+      media.pause();
+      media.removeAttribute("src");
+      media.load();
+    };
+  }, [started]);
+
+  const startBuiltInAudio = useCallback(
+    async (run: number) => {
+      if (!test || !isBundledTest || !builtInAudioSupported) {
+        if (playbackRunRef.current !== run) return;
+        playingRef.current = false;
+        setPlaying(false);
+        setPlaybackStarted(false);
+        setUsingBuiltInAudio(false);
+        setPlaybackError("This recording could not be prepared. Use the transcript below instead.");
+        return;
+      }
+
+      try {
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+      } catch {
+        // WebAudio remains a valid recovery path when browser speech cannot cancel.
+      }
+
       playingRef.current = true;
       setPlaying(true);
-      setFinishedAudio(false);
+      setPlaybackStarted(false);
+      setUsingBuiltInAudio(true);
+      setPlaybackError(null);
+
+      const ready = await waitForNaturalExaminerVoice();
+      if (playbackRunRef.current !== run) return;
+      if (!ready) {
+        playingRef.current = false;
+        setPlaying(false);
+        setPlaybackStarted(false);
+        setUsingBuiltInAudio(false);
+        setPlaybackError(
+          "BandUp could not prepare the built-in British audio. Check your connection and try again, or use the transcript.",
+        );
+        return;
+      }
+
+      // The local emergency recording intentionally uses one British voice.
+      // It keeps the entire canonical paper audible when a browser exposes no
+      // working SpeechSynthesis voice; normal browser playback still preserves
+      // the multiple-speaker delivery first.
+      setPlaybackStarted(true);
+      const result = await speakNaturalExaminer(
+        test.script.map((turn) => turn.text).join("\n"),
+        rateRef.current,
+      );
+      if (playbackRunRef.current !== run) return;
+      if (result === "completed") {
+        playingRef.current = false;
+        setPlaying(false);
+        setPlaybackStarted(false);
+        setUsingBuiltInAudio(false);
+        setFinishedAudio(true);
+        setTurnIndex(-1);
+        setPlaybackTurn(test.script.length);
+        return;
+      }
+      if (result === "cancelled") return;
+
+      playingRef.current = false;
+      setPlaying(false);
+      setPlaybackStarted(false);
+      setUsingBuiltInAudio(false);
+      setTurnIndex(-1);
+      setPlaybackError(
+        "The built-in British audio stopped before it finished. Check your connection and try again, or use the transcript.",
+      );
+    },
+    [builtInAudioSupported, isBundledTest, test],
+  );
+
+  const startBrowserAudio = useCallback(
+    (run: number, from: number) => {
+      if (!test || playbackRunRef.current !== run) return;
+      const freshVoices = rankedEnglishVoices();
+      if (freshVoices.length > 0) voicesRef.current = freshVoices;
+      setUsingServerAudio(false);
+      setUsingBuiltInAudio(false);
+      setAudioCurrentTime(0);
+      setAudioDuration(0);
+      if (!ttsSupported) {
+        void startBuiltInAudio(run);
+        return;
+      }
+      try {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+      } catch {
+        if (builtInAudioSupported) {
+          void startBuiltInAudio(run);
+          return;
+        }
+        playingRef.current = false;
+        setPlaying(false);
+        setPlaybackError("Your browser could not prepare the recording. Check its sound permission, then try again.");
+        return;
+      }
+      playingRef.current = true;
+      setPlaying(true);
       playScript(test, from, {
         voices: voicesRef.current,
         rate: () => rateRef.current,
-        stillPlaying: () => playingRef.current,
-        onTurn: setTurnIndex,
-        onEnd: () => {
+        stillPlaying: () => playingRef.current && playbackRunRef.current === run,
+        onTurn: (index) => {
+          setTurnIndex(index);
+          setPlaybackTurn(index - from + 1);
+        },
+        onStart: () => {
+          if (playbackRunRef.current !== run) return;
+          setPlaybackStarted(true);
+        },
+        onError: (message) => {
+          if (playbackRunRef.current !== run) return;
+          if (builtInAudioSupported) {
+            void startBuiltInAudio(run);
+            return;
+          }
           playingRef.current = false;
           setPlaying(false);
+          setPlaybackStarted(false);
+          setTurnIndex(-1);
+          setPlaybackError(message);
+        },
+        onEnd: () => {
+          if (playbackRunRef.current !== run) return;
+          playingRef.current = false;
+          setPlaying(false);
+          setPlaybackStarted(false);
           setFinishedAudio(true);
           setTurnIndex(-1);
+          setPlaybackTurn(test.script.length);
         },
       });
     },
-    [test, ttsSupported],
+    [builtInAudioSupported, startBuiltInAudio, test, ttsSupported],
+  );
+
+  const fallbackFromNativeAudio = useCallback(
+    (run: number, from: number) => {
+      if (nativeAudioRunRef.current !== run || playbackRunRef.current !== run) return;
+      nativeAudioRunRef.current = 0;
+      nativeAudioPartRef.current = 0;
+      nativeAudioPartCountRef.current = 1;
+      prefetchedNativeAudioPartsRef.current.clear();
+      const media = nativeAudioRef.current;
+      if (media) {
+        media.pause();
+        media.removeAttribute("src");
+        media.load();
+      }
+      startBrowserAudio(run, from);
+    },
+    [startBrowserAudio],
+  );
+
+  const prefetchNativeAudioParts = useCallback(
+    (currentPart: number) => {
+      if (!test || !isBundledTest) return;
+      const last = Math.min(serverAudioParts.length, currentPart + 1 + NATIVE_AUDIO_PREFETCH_AHEAD);
+      for (let part = currentPart + 1; part < last; part += 1) {
+        if (prefetchedNativeAudioPartsRef.current.has(part)) continue;
+        prefetchedNativeAudioPartsRef.current.add(part);
+        // The response is immutable and R2-backed. Reaching its headers means
+        // the Worker has already stored a cacheable MP3; canceling the browser
+        // body avoids downloading a second copy before its dialogue turn.
+        void fetch(apiUrl(bundledListeningAudioUrl(test.id, part)))
+          .then((response) => {
+            if (!response.ok) throw new Error(`audio prefetch ${response.status}`);
+            return response.body?.cancel();
+          })
+          .catch(() => {
+            prefetchedNativeAudioPartsRef.current.delete(part);
+          });
+      }
+    },
+    [isBundledTest, serverAudioParts.length, test],
+  );
+
+  const playNativeAudioPart = useCallback(
+    (run: number, from: number, part: number) => {
+      const media = nativeAudioRef.current;
+      if (!test || !isBundledTest || !media || part < 0 || part >= serverAudioParts.length) {
+        startBrowserAudio(run, from);
+        return;
+      }
+
+      nativeAudioRunRef.current = run;
+      nativeAudioPartRef.current = part;
+      nativeAudioPartCountRef.current = serverAudioParts.length;
+      nativeAudioFromRef.current = from;
+      playingRef.current = true;
+      setPlaying(true);
+      setPlaybackStarted(false);
+      setUsingServerAudio(true);
+      setUsingBuiltInAudio(false);
+      setAudioCurrentTime(0);
+      setAudioDuration(0);
+      setAudioPartIndex(part);
+
+      try {
+        media.pause();
+        media.currentTime = 0;
+        media.src = apiUrl(bundledListeningAudioUrl(test.id, part));
+        media.load();
+        // The first call is directly in the learner's click path. Each later
+        // part is started synchronously by the previous media `ended` event,
+        // so a long paper remains a normal, user-authorised audio playlist.
+        void media.play().catch(() => fallbackFromNativeAudio(run, from));
+      } catch {
+        fallbackFromNativeAudio(run, from);
+      }
+    },
+    [fallbackFromNativeAudio, isBundledTest, serverAudioParts.length, startBrowserAudio, test],
+  );
+
+  const startNativeAudio = useCallback(
+    (run: number, from: number) => {
+      playNativeAudioPart(run, from, 0);
+    },
+    [playNativeAudioPart],
+  );
+
+  const startAudio = useCallback(
+    (from: number) => {
+      if (!test || !audioSupported) return;
+      // A cancelled playback can synchronously emit `ended` or `error`. A run
+      // identity makes that old callback harmless before a new recording starts.
+      const run = ++playbackRunRef.current;
+      nativeAudioRunRef.current = 0;
+      nativeAudioPartRef.current = 0;
+      nativeAudioPartCountRef.current = 1;
+      nativeAudioFromRef.current = from;
+      prefetchedNativeAudioPartsRef.current.clear();
+      const media = nativeAudioRef.current;
+      if (media) {
+        media.pause();
+        media.removeAttribute("src");
+        media.load();
+      }
+      setPlaybackStarted(false);
+      setPlaybackError(null);
+      setPlaybackTurn(0);
+      setTurnIndex(-1);
+      setFinishedAudio(false);
+      setUsingServerAudio(false);
+      setUsingBuiltInAudio(false);
+      setAudioCurrentTime(0);
+      setAudioDuration(0);
+      setAudioPartIndex(0);
+
+      if (isBundledTest) {
+        startNativeAudio(run, from);
+        return;
+      }
+      startBrowserAudio(run, from);
+    },
+    [audioSupported, isBundledTest, startBrowserAudio, startNativeAudio, test],
   );
 
   const stopAudio = useCallback(() => {
+    playbackRunRef.current += 1;
+    nativeAudioRunRef.current = 0;
+    nativeAudioPartRef.current = 0;
+    nativeAudioPartCountRef.current = 1;
+    prefetchedNativeAudioPartsRef.current.clear();
     playingRef.current = false;
+    const media = nativeAudioRef.current;
+    if (media) {
+      media.pause();
+      media.removeAttribute("src");
+      media.load();
+    }
     setPlaying(false);
+    setPlaybackStarted(false);
+    setUsingServerAudio(false);
+    setUsingBuiltInAudio(false);
+    setAudioCurrentTime(0);
+    setAudioDuration(0);
+    setAudioPartIndex(0);
+    cancelNaturalExaminerVoice();
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
+  }, []);
+
+  const openTest = useCallback(() => {
+    // Canonical papers use the cached server recording first. Do not begin the
+    // large on-device fallback download merely by opening a test; it is only
+    // prepared if both native media and browser speech genuinely fail.
+    setStarted(true);
   }, []);
 
   const submit = useCallback(() => {
@@ -190,19 +531,25 @@ function ListeningTestPageRunner() {
     return (
       <div className="mx-auto flex min-h-[calc(100dvh-3.75rem)] max-w-xl items-center px-4">
         <div className="card w-full space-y-4 py-8 text-center">
+          <AssignedPracticeNotice />
           <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>
           <p className="text-sm text-slate-600">{test.context}</p>
           <p className="text-sm text-slate-600">
-            The recording is read aloud by your browser ({test.script.length} turns,{" "}
+            The recording is read aloud with BandUp audio, with your browser as a fallback ({test.script.length} turns,{" "}
             {test.speakers.length} speaker{test.speakers.length > 1 ? "s" : ""}). Read the{" "}
             {questionCount(test.questions)} questions first, then press play and answer as you listen.
             In exam conditions you hear the recording <span className="font-medium">once</span> —
             but you can replay while practising.
           </p>
-          {!ttsSupported && (
+          {!ttsSupported && !builtInAudioSupported && !isBundledTest && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
               Your browser does not support speech synthesis. Use Chrome, Edge or Safari for
               audio — or practise in transcript mode below.
+            </p>
+          )}
+          {!ttsSupported && isBundledTest && (
+            <p className="rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-800">
+              BandUp will prepare a playable recording when you open this paper.
             </p>
           )}
           <div>
@@ -218,7 +565,7 @@ function ListeningTestPageRunner() {
                 },
                 {
                   id: "free" as const,
-                  title: "Practice slowly",
+                  title: "Practise slowly",
                   blurb: "No clock. Replay, pause and check answers",
                 },
               ]).map((option) => (
@@ -245,13 +592,13 @@ function ListeningTestPageRunner() {
               though it applied to both — next to a button labelled "Exam
               conditions", which is where the contradiction came from.
             */}
-            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm leading-6 text-amber-800">
+            <p className="mt-2 rounded-lg bg-indigo-50 px-3 py-2 text-left text-sm leading-6 text-indigo-800">
               {mode === "timed"
                 ? "Like the real exam: you cannot see any answers until you finish. When you finish, you get your band and every explanation."
                 : "You can check one answer at a time and read why it is right. Once you check a question you cannot change it, so your band still means something."}
             </p>
           </div>
-          <button className="btn-primary" onClick={() => setStarted(true)}>
+          <button className="btn-primary" onClick={openTest}>
             Open the test
           </button>
         </div>
@@ -276,21 +623,20 @@ function ListeningTestPageRunner() {
       bottomLeft={submitted && band !== null ? `Band ${band} · ${raw}/${flat.length}` : "Practice complete"}
       topRight={
         <div className="flex items-center gap-1.5">
-          <select
-            className="input !h-8 !w-auto !px-1.5 !py-0 text-xs"
-            value={rate}
-            onChange={(e) => {
-              const nextRate = Number(e.target.value);
+          <GlassSelect
+            label="Playback speed"
+            value={String(rate)}
+            options={[{ value: "0.85", label: "0.85×" }, { value: "1", label: "1×" }, { value: "1.15", label: "1.15×" }]}
+            onValueChange={(value) => {
+              const nextRate = Number(value);
               setRate(nextRate);
               rateRef.current = nextRate;
             }}
-            title="Playback speed"
-          >
-            <option value={0.85}>0.85×</option>
-            <option value={1}>1×</option>
-            <option value={1.15}>1.15×</option>
-          </select>
-          {ttsSupported && !playing ? (
+            compact
+            className="w-[5.5rem]"
+            minMenuWidth={96}
+          />
+          {audioSupported && !playing ? (
             <button
               type="button"
               className={styles.playbackControl}
@@ -304,9 +650,9 @@ function ListeningTestPageRunner() {
               >
                 <path d="M2.5 1.5v9l7-4.5-7-4.5Z" />
               </svg>
-              {finishedAudio ? "Replay" : "Play"}
+              {playbackError ? "Retry audio" : finishedAudio ? "Replay" : "Play"}
             </button>
-          ) : ttsSupported ? (
+          ) : audioSupported ? (
             <button type="button" className={styles.playbackControl} onClick={stopAudio}>
               Stop
             </button>
@@ -314,13 +660,93 @@ function ListeningTestPageRunner() {
         </div>
       }
     >
+      <audio
+        ref={nativeAudioRef}
+        data-listening-native-audio
+        preload="none"
+        aria-hidden="true"
+        onLoadedMetadata={(event) => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          const duration = event.currentTarget.duration;
+          if (Number.isFinite(duration) && duration > 0) setAudioDuration(duration);
+        }}
+        onPlaying={() => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          playingRef.current = true;
+          setPlaying(true);
+          setPlaybackStarted(true);
+          setUsingServerAudio(true);
+          setPlaybackError(null);
+          prefetchNativeAudioParts(nativeAudioPartRef.current);
+        }}
+        onTimeUpdate={(event) => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          const { currentTime, duration } = event.currentTarget;
+          if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) return;
+          setAudioCurrentTime(currentTime);
+          setAudioDuration(duration);
+          const partProgress = nativeAudioPartRef.current + currentTime / duration;
+          const paperProgress = partProgress / nativeAudioPartCountRef.current;
+          const turn = Math.min(
+            test.script.length,
+            Math.max(1, Math.ceil(paperProgress * test.script.length)),
+          );
+          setPlaybackTurn(turn);
+          setTurnIndex(Math.min(test.script.length - 1, turn - 1));
+        }}
+        onEnded={(event) => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          const nextPart = nativeAudioPartRef.current + 1;
+          if (nextPart < nativeAudioPartCountRef.current) {
+            // Long reviewed papers are stored as Aura-safe MP3 parts. Keep
+            // the same native player alive and advance before browser speech
+            // is considered, so the full recording remains a media playlist.
+            playNativeAudioPart(run, nativeAudioFromRef.current, nextPart);
+            return;
+          }
+          nativeAudioRunRef.current = 0;
+          playingRef.current = false;
+          setPlaying(false);
+          setPlaybackStarted(false);
+          setUsingServerAudio(false);
+          setUsingBuiltInAudio(false);
+          setFinishedAudio(true);
+          setTurnIndex(-1);
+          setPlaybackTurn(test.script.length);
+          if (Number.isFinite(event.currentTarget.duration)) {
+            setAudioDuration(event.currentTarget.duration);
+            setAudioCurrentTime(event.currentTarget.duration);
+          }
+        }}
+        onError={() => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          fallbackFromNativeAudio(run, 0);
+        }}
+      />
       <div className="min-h-0 flex-1 overflow-y-auto" data-listening-paper>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--exam-line)] pb-2 text-xs text-[color:var(--exam-muted)]">
           <span>
             {playing
-              ? `Playing ${turnIndex + 1} of ${test.script.length} · ${test.script[Math.max(0, turnIndex)]?.speaker}`
+              ? usingServerAudio
+                ? playbackStarted
+                  ? "Playing BandUp audio…"
+                  : "Preparing BandUp audio…"
+                : usingBuiltInAudio
+                ? playbackStarted
+                  ? "Playing the built-in British audio…"
+                  : "Preparing the built-in British audio…"
+                : playbackStarted
+                  ? `Playing ${turnIndex + 1} of ${test.script.length} · ${test.script[Math.max(0, turnIndex)]?.speaker}`
+                  : "Starting the recording…"
               : finishedAudio
                 ? "Recording finished"
+                : playbackError
+                  ? "Recording needs to be restarted"
                 : mode === "timed"
                   ? "The recording plays once"
                   : "Replay and pause while practising"}
@@ -332,6 +758,82 @@ function ListeningTestPageRunner() {
           >
             {showTranscript ? "Hide transcript" : submitted || mode === "free" ? "Show transcript" : "Show transcript (spoiler)"}
           </button>
+        </div>
+
+        <div className="mb-4 space-y-2" data-listening-audio>
+          <div className="flex items-center justify-between gap-3 text-xs text-[color:var(--exam-muted)]">
+            <span className="font-medium text-[color:var(--exam-fg)]">Audio progress</span>
+            <span aria-live="polite">
+              {finishedAudio
+                ? `Complete · ${test.script.length} of ${test.script.length} turns`
+                : usingServerAudio && audioDuration > 0
+                  ? `${formatAudioTime(audioCurrentTime)} of ${formatAudioTime(audioDuration)} · recording ${audioPartIndex + 1} of ${serverAudioPartCount}`
+                  : usingServerAudio && playing
+                    ? "Preparing BandUp audio"
+                : usingBuiltInAudio && playing
+                  ? "Built-in audio is playing"
+                : playbackTurn > 0
+                  ? `Turn ${playbackTurn} of ${test.script.length}`
+                  : `Turn 0 of ${test.script.length}`}
+            </span>
+          </div>
+          <progress
+            data-listening-playback-progress
+            aria-label="Audio playback progress"
+            aria-valuemin={0}
+            aria-valuemax={usingServerAudio && audioDuration > 0 ? 1 : test.script.length}
+            aria-valuenow={
+              usingServerAudio && audioDuration > 0
+                ? serverAudioProgress
+                : usingServerAudio && playing
+                  ? undefined
+                : usingBuiltInAudio && playing
+                ? undefined
+                : finishedAudio
+                  ? test.script.length
+                  : playbackTurn
+            }
+            aria-valuetext={
+              finishedAudio
+                ? `Complete, ${test.script.length} of ${test.script.length} turns`
+                : usingServerAudio && audioDuration > 0
+                  ? `${formatAudioTime(audioCurrentTime)} of ${formatAudioTime(audioDuration)}, recording ${audioPartIndex + 1} of ${serverAudioPartCount}`
+                  : usingServerAudio && playing
+                    ? "Preparing BandUp audio"
+                : usingBuiltInAudio && playing
+                  ? "Built-in British audio is playing"
+                : `Turn ${playbackTurn} of ${test.script.length}`
+            }
+            value={
+              usingServerAudio && audioDuration > 0
+                ? serverAudioProgress
+                : usingServerAudio && playing
+                  ? undefined
+                : usingBuiltInAudio && playing
+                ? undefined
+                : finishedAudio
+                  ? test.script.length
+                  : playbackTurn
+            }
+            max={usingServerAudio && audioDuration > 0 ? 1 : test.script.length}
+            className="block h-2 w-full overflow-hidden rounded-full accent-indigo-600"
+          />
+          {playbackError && (
+            <div
+              data-listening-playback-error
+              role="alert"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+            >
+              <span>{playbackError}</span>
+              <button
+                type="button"
+                className="font-semibold underline underline-offset-4"
+                onClick={() => startAudio(0)}
+              >
+                Retry audio
+              </button>
+            </div>
+          )}
         </div>
 
         {submitted && band !== null && (

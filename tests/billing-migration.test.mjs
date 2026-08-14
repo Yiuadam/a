@@ -29,6 +29,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { SUPABASE_STUB } from "./supabase-stub.mjs";
 
 /** The newest Postgres in the usual Debian/Ubuntu location. */
 function findPostgresBin() {
@@ -77,24 +78,6 @@ function makeRunner(bin, dir) {
   so the parts of the schema this test does not own are faked just far enough
   for the parts it does own to be real.
 */
-const SUPABASE_STUB = `
-create extension if not exists pgcrypto;
-do $$ begin
-  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
-  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
-  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
-end $$;
-create schema if not exists auth;
-create table if not exists auth.users (
-  id uuid primary key default gen_random_uuid(),
-  email text,
-  created_at timestamptz not null default now()
-);
-create or replace function auth.uid() returns uuid language sql stable as $$
-  select nullif(current_setting('request.jwt.claims', true)::json ->> 'sub', '')::uuid;
-$$;
-grant usage on schema public, auth to anon, authenticated, service_role;
-`;
 
 /** Brings a cluster up, or returns the reason it could not. */
 function provision() {
@@ -310,6 +293,82 @@ test("the webhook's idempotency holds in the database that enforces it", async (
         end $p$;
         select 'denied'`);
       assert.equal(denied, "denied");
+    });
+
+    await t.test("admin tier counts use one current effective tier per account", () => {
+      const baseline = JSON.parse(
+        pg.psql("select coalesce(jsonb_object_agg(tier, count), '{}'::jsonb) from public.admin_tier_counts()"),
+      );
+      const overlap = pg.psql("insert into auth.users (email) values ('overlap@example.test') returning id");
+      const expired = pg.psql("insert into auth.users (email) values ('expired@example.test') returning id");
+      const refunded = pg.psql("insert into auth.users (email) values ('refunded@example.test') returning id");
+      const envAdmin = pg.psql("insert into auth.users (email) values ('env-admin@example.test') returning id");
+
+      pg.psql(`
+        insert into public.subscriptions
+          (user_id, provider, status, tier, external_subscription_id, current_period_end)
+        values
+          ('${overlap}', 'stripe', 'active', 'standard', 'sub_overlap_standard', now() + interval '30 days'),
+          ('${overlap}', 'apple', 'active', 'pro', 'sub_overlap_pro', now() + interval '10 days'),
+          ('${expired}', 'stripe', 'active', 'pro', 'sub_expired', now() - interval '1 day'),
+          ('${refunded}', 'stripe', 'refunded', 'pro', 'sub_refunded', now() + interval '30 days')
+      `);
+
+      const counted = JSON.parse(
+        pg.psql(`select coalesce(jsonb_object_agg(tier, count), '{}'::jsonb)
+                   from public.admin_tier_counts('${envAdmin}')`),
+      );
+      const value = (record, tier) => Number(record[tier] ?? 0);
+      assert.equal(value(counted, "pro"), value(baseline, "pro") + 1,
+        "overlapping Standard and Pro rows must count one effective Pro account");
+      assert.equal(value(counted, "standard"), value(baseline, "standard"),
+        "the weaker overlapping row must not be counted separately");
+      assert.equal(value(counted, "free"), value(baseline, "free") + 2,
+        "expired and refunded rows must resolve to free");
+      assert.equal(value(counted, "admin"), value(baseline, "admin") + 1,
+        "the verified ADMIN_EMAILS actor is counted as admin even without a stored role");
+    });
+
+    await t.test("admin usage breakdown names pre-provider decisions without identities", () => {
+      pg.psql(`
+        insert into public.usage_events (user_id, route, outcome) values
+          ('${user}', 'chat', 'admitted'),
+          ('${user}', 'chat', 'denied_quota'),
+          ('${user}', 'chat', 'denied_rate'),
+          (null, 'define', 'denied_quota')
+      `);
+      assert.equal(
+        pg.psql(`select count from public.admin_usage_breakdown(30)
+                  where route = 'chat' and decision = 'allowed' and caller = 'signed_in'`),
+        "1",
+      );
+      assert.equal(
+        pg.psql(`select count from public.admin_usage_breakdown(30)
+                  where route = 'chat' and decision = 'blocked_quota' and caller = 'signed_in'`),
+        "1",
+      );
+      assert.equal(
+        pg.psql(`select count from public.admin_usage_breakdown(30)
+                  where route = 'chat' and decision = 'blocked_rate' and caller = 'signed_in'`),
+        "1",
+      );
+      assert.equal(
+        pg.psql(`select count from public.admin_usage_breakdown(30)
+                  where route = 'define' and decision = 'blocked_quota' and caller = 'anonymous'`),
+        "1",
+      );
+      assert.equal(
+        pg.psql(`select coalesce(sum(count), 0) from public.admin_usage_breakdown(30, '${user}')
+                  where caller = 'signed_in'`),
+        "0",
+        "the verified owner must not inflate learner-demand breakdowns",
+      );
+      assert.equal(
+        pg.psql(`select coalesce(sum(admitted + denied), 0)
+                   from public.admin_usage_daily(30, '${user}')`),
+        "1",
+        "the daily learner chart keeps anonymous demand while excluding owner diagnostics",
+      );
     });
   } finally {
     teardown(pg);

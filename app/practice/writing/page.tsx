@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import ExplainText from "@/components/ExplainText";
 import ExamShell from "@/components/exam/ExamShell";
 import SplitPanes, { useIsWide } from "@/components/exam/SplitPanes";
@@ -13,12 +15,64 @@ import { addResult } from "@/lib/store";
 import type { WritingGrade, WritingTasksData } from "@/lib/types";
 import Chart from "@/components/Chart";
 import SkillGate from "@/components/SkillGate";
-import WritingTaskPicker from "@/components/WritingTaskPicker";
 import { tierShows, useTier } from "@/lib/billing/useTier";
+import AssignedPracticeNotice from "@/components/organization/AssignedPracticeNotice";
+import TestChooser from "@/components/TestChooser";
+import { useMounted } from "@/lib/hooks";
 
 const tasks = (writingData as WritingTasksData).tasks;
+const compactTableHeadings: Record<string, string> = {
+  Agriculture: "Agric.",
+  Households: "Homes",
+};
 
-function WritingSession() {
+function TableHeading({ heading }: { heading: string }) {
+  return (
+    <>
+      <span className="sm:hidden">{compactTableHeadings[heading] ?? heading}</span>
+      <span className="hidden sm:inline">{heading}</span>
+    </>
+  );
+}
+
+/*
+  A writing task is a document on a phone, not a carousel.
+
+  The shared SwipePanels deliberately leaves the neighbouring panel peeking in
+  so reading and listening candidates know that they can swipe. Here that cue
+  took width away from the prompt, the figure and the answer at the same time:
+  a paragraph became a column of six-word lines and a five-column table could
+  only show its first two columns. Writing therefore has one narrow-screen
+  flow. The sections use the full paper width and the paper scrolls vertically;
+  the desktop keeps its independent split panes.
+*/
+function WritingMobilePanels({ panels, lead }: { panels: SwipePanel[]; lead?: React.ReactNode }) {
+  return (
+    <div
+      data-writing-mobile-panels=""
+      className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-1 pb-5"
+    >
+      {lead}
+      <div className="min-w-0 divide-y divide-[color:var(--exam-line)]">
+        {panels.map((panel) => (
+          <section
+            key={panel.label}
+            aria-label={panel.label}
+            data-writing-mobile-panel={panel.label.toLowerCase()}
+            className="w-full min-w-0 py-4 first:pt-1 last:pb-2"
+          >
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--exam-muted)]">
+              {panel.label}
+            </p>
+            <div className="min-w-0 max-w-full">{panel.content}</div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   /*
     Whether marking is included, which is not the same as whether the page is
     open. Standard unlocks writing practice — the task, the timer, the word
@@ -39,14 +93,13 @@ function WritingSession() {
     account.phase !== "ready" || !account.accountsEnabled || tierShows(account, "grade-writing");
   const wide = useIsWide();
 
-  const [taskId, setTaskId] = useState(tasks[0].id);
   const [essay, setEssay] = useState("");
   const [started, setStarted] = useState(false);
   const [grading, setGrading] = useState(false);
   const [grade, setGrade] = useState<WritingGrade | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const task = useMemo(() => tasks.find((t) => t.id === taskId)!, [taskId]);
+  const task = useMemo(() => tasks.find((t) => t.id === initialTaskId)!, [initialTaskId]);
   const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0;
 
   async function submit() {
@@ -80,8 +133,7 @@ function WritingSession() {
     }
   }
 
-  const resetTask = (nextId = taskId) => {
-    setTaskId(nextId);
+  const resetTask = () => {
     setEssay("");
     setGrade(null);
     setError(null);
@@ -89,11 +141,10 @@ function WritingSession() {
   };
 
   const prompt = (
-    <div className="space-y-3">
-      <WritingTaskPicker tasks={tasks} value={taskId} onChange={resetTask} />
-      <div>
+    <div className="min-w-0 space-y-3">
+      <div className="min-w-0">
         <h2 className="mb-2 text-sm font-semibold text-slate-900">Task {task.task}</h2>
-        <p className="whitespace-pre-line text-[15px] leading-7 text-slate-800">{task.prompt}</p>
+        <p className="whitespace-pre-line break-words text-[15px] leading-7 text-slate-800">{task.prompt}</p>
         <p className="mt-3 text-xs text-slate-500">
           At least {task.minWords} words · {task.timeMinutes} minutes
         </p>
@@ -104,17 +155,24 @@ function WritingSession() {
   const visual = task.chart ? (
     <Chart spec={task.chart} />
   ) : task.dataTable ? (
-    <div className="overflow-x-auto">
+    <div className="min-w-0 max-w-full sm:overflow-x-auto">
       <p className="mb-2 text-sm font-semibold text-slate-700">{task.dataTable.title}</p>
-      <table className="w-full border-collapse text-sm">
+      <table
+        className="w-full table-fixed border-collapse leading-normal sm:table-auto"
+        /* Five headings still fit at 320px without turning into broken word
+           fragments. Twelve pixels is the floor; the type grows smoothly to
+           the normal 14px table size by 400px and stays there on desktop. */
+        style={{ fontSize: "clamp(0.75rem, 3.5vw, 0.875rem)" }}
+      >
         <thead>
           <tr>
             {task.dataTable.headers.map((heading) => (
               <th
                 key={heading}
-                className="border border-slate-300 bg-slate-100 px-3 py-2 text-left font-semibold text-slate-700"
+                aria-label={heading}
+                className="break-words border border-slate-300 bg-slate-100 px-0.5 py-2 text-left font-semibold leading-tight text-slate-700 sm:px-3"
               >
-                {heading}
+                <TableHeading heading={heading} />
               </th>
             ))}
           </tr>
@@ -123,7 +181,7 @@ function WritingSession() {
           {task.dataTable.rows.map((row, rowIndex) => (
             <tr key={rowIndex}>
               {row.map((cell, cellIndex) => (
-                <td key={cellIndex} className="border border-slate-300 px-3 py-2 text-slate-700">
+                <td key={cellIndex} className="break-words border border-slate-300 px-0.5 py-2 text-slate-700 sm:px-3">
                   {cell}
                 </td>
               ))}
@@ -164,6 +222,7 @@ function WritingSession() {
 
   const source = (
     <div className="space-y-5">
+      <AssignedPracticeNotice />
       {prompt}
       {visual && <div className="border-t border-slate-200 pt-4">{visual}</div>}
     </div>
@@ -237,6 +296,7 @@ function WritingSession() {
       minutes={task.timeMinutes}
       running={started && !grade}
       comfortableGutter
+      edgeToEdgeOnPhone
       bottomLeft={grade ? `Band ${grade.overallBand}` : `${wordCount} / ${task.minWords} words`}
       bottomRight={
         grade ? (
@@ -252,7 +312,7 @@ function WritingSession() {
             onClick={submit}
             disabled={grading || wordCount < 40}
           >
-            {grading ? "Marking…" : "Submit for marking"}
+            {grading ? <LoadingIndicator label="Marking…" announce={false} /> : "Submit for marking"}
           </button>
         ) : (
           <span className="text-[11px] text-slate-500">Saved on device</span>
@@ -260,11 +320,14 @@ function WritingSession() {
       }
     >
       {grade ? (
-        <SwipePanels panels={feedbackPanels} />
+        wide ? <SwipePanels panels={feedbackPanels} /> : <WritingMobilePanels panels={feedbackPanels} />
       ) : wide ? (
         <SplitPanes className="h-full" initial={48} left={source} right={response} />
       ) : (
-        <SwipePanels panels={practicePanels} />
+        <WritingMobilePanels
+          panels={practicePanels}
+          lead={<AssignedPracticeNotice className="mx-1 mb-2" />}
+        />
       )}
     </ExamShell>
   );
@@ -276,8 +339,52 @@ function WritingSession() {
 */
 export default function WritingPage() {
   return (
-    <SkillGate module="writing" className="pt-3 sm:pt-4">
-      <WritingSession />
+    <Suspense
+      fallback={(
+        <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-xl items-center justify-center px-4">
+          <LoadingIndicator label="Loading writing tasks…" />
+        </div>
+      )}
+    >
+      <WritingPageContent />
+    </Suspense>
+  );
+}
+
+function WritingPageContent() {
+  const params = useSearchParams();
+  const mounted = useMounted();
+
+  if (!mounted) return null;
+
+  const asked = params.get("id");
+  const selected = tasks.find((task) => task.id === asked) ?? null;
+
+  if (!selected) {
+    const retained = new URLSearchParams();
+    for (const key of ["assignment", "from", "preview"] as const) {
+      const value = params.get(key);
+      if (value !== null) retained.set(key, value);
+    }
+
+    return (
+      <TestChooser
+        kind="writing"
+        tests={tasks}
+        missingId={asked}
+        retainedQuery={retained.toString()}
+      />
+    );
+  }
+
+  return (
+    /* The page-level lock paints its own translucent window around the exam.
+       Give that outermost window the same viewport gutter as the exam shell,
+       otherwise the locked preview touches the browser edge even though the
+       writing panes inside it do not. The class only applies while the gate is
+       pending or locked; an unlocked session keeps ExamShell's own gutter. */
+    <SkillGate module="writing" className="px-0 pt-0 sm:px-4 sm:pt-4">
+      <WritingSession key={selected.id} initialTaskId={selected.id} />
     </SkillGate>
   );
 }

@@ -180,9 +180,9 @@ function plural(value: number, one: string, many = `${one}s`): string {
 
 function rowText(kind: TrendKind, row: DayRow): string {
   if (kind === "signups") return `${dateLabel(row.day)}: ${plural(valueOf(row.count), "signup")}`;
-  return `${dateLabel(row.day)}: ${plural(valueOf(row.admitted), "served request")}, ${plural(
+  return `${dateLabel(row.day)}: ${plural(valueOf(row.admitted), "allowed request")}, ${plural(
     valueOf(row.denied),
-    "refused request",
+    "request blocked before AI",
   )}`;
 }
 
@@ -204,17 +204,17 @@ export default function AdminTrendChart({
   const frame = buildFrame(width, height, rows.length, maximum, kind);
   const labels = dateLabelIndices(rows.length, width);
   const totalSignups = rows.reduce((total, row) => total + valueOf(row.count), 0);
-  const totalServed = rows.reduce((total, row) => total + valueOf(row.admitted), 0);
-  const totalRefused = rows.reduce((total, row) => total + valueOf(row.denied), 0);
-  const title = kind === "signups" ? "New accounts" : "AI requests";
+  const totalAllowed = rows.reduce((total, row) => total + valueOf(row.admitted), 0);
+  const totalBlocked = rows.reduce((total, row) => total + valueOf(row.denied), 0);
+  const title = kind === "signups" ? "New accounts" : "Learner AI request attempts";
   const summary =
     kind === "signups"
       ? `${plural(totalSignups, "signup")} · ${days} days`
-      : `${totalServed.toLocaleString()} served · ${totalRefused.toLocaleString()} refused`;
+      : `${totalAllowed.toLocaleString()} allowed · ${totalBlocked.toLocaleString()} blocked before AI`;
   const description =
     kind === "signups"
       ? `Daily new accounts over the last ${days} days. ${plural(totalSignups, "signup")} in total.`
-      : `Daily AI requests over the last ${days} days. ${plural(totalServed, "request")} served and ${plural(totalRefused, "request")} refused.`;
+      : `Daily learner AI request attempts over the last ${days} days. BandUp allowed ${plural(totalAllowed, "request")} through and blocked ${plural(totalBlocked, "request")} before an AI provider was called. Owner activity is excluded.`;
   /* Data can refresh while the owner is inspecting it. Treat an old index as
      no selection without scheduling a second render just to clear the state. */
   const selectedIndex = activeIndex != null && activeIndex < rows.length ? activeIndex : null;
@@ -249,7 +249,7 @@ export default function AdminTrendChart({
 
   return (
     <section
-      className={`${styles.root}${className ? ` ${className}` : ""}`}
+      className={`${styles.root} card${className ? ` ${className}` : ""}`}
       aria-labelledby={`${id}-heading`}
     >
       <header className={styles.header}>
@@ -262,7 +262,7 @@ export default function AdminTrendChart({
         <div className={styles.legend} aria-label="Chart legend">
           <span className={styles.legendItem}>
             <span className={styles.legendMark} aria-hidden="true" />
-            {kind === "signups" ? "Signups" : "Served"}
+            {kind === "signups" ? "Signups" : "Allowed"}
           </span>
           {kind === "usage" && (
             <span className={styles.legendItem}>
@@ -270,7 +270,7 @@ export default function AdminTrendChart({
                 className={`${styles.legendMark} ${styles.legendMarkRefused}`}
                 aria-hidden="true"
               />
-              Refused
+              Blocked before AI
             </span>
           )}
         </div>
@@ -356,10 +356,10 @@ export default function AdminTrendChart({
                   ) : (
                     <>
                       <th scope="col" className={styles.numeric}>
-                        Served
+                        Allowed
                       </th>
                       <th scope="col" className={styles.numeric}>
-                        Refused
+                        Blocked before AI
                       </th>
                     </>
                   )}
@@ -562,10 +562,10 @@ function Selection({ kind, row, index, frame }: { kind: TrendKind; row: DayRow; 
       ) : (
         <>
           <text x={tooltipX + 10} y={tooltipY + 32} fill="var(--admin-chart-primary)" fontSize="11.5" fontWeight="600">
-            {valueOf(row.admitted).toLocaleString()} served
+            {valueOf(row.admitted).toLocaleString()} allowed
           </text>
           <text x={tooltipX + 10} y={tooltipY + 47} fill="var(--admin-chart-refused)" fontSize="11.5" fontWeight="600">
-            {valueOf(row.denied).toLocaleString()} refused
+            {valueOf(row.denied).toLocaleString()} blocked before AI
           </text>
         </>
       )}

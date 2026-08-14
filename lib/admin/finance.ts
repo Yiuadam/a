@@ -1,5 +1,6 @@
 import { minorPerUnit } from "@/lib/billing/currency";
 import { addDecimal, multiplyDecimal, subtractDecimal } from "./finance-decimal";
+import { referenceHkdFxSnapshot } from "./finance-fx";
 import { grossCustomerPayments } from "./finance-view";
 import type {
   AnthropicCostSnapshot,
@@ -127,17 +128,29 @@ function hkdTotals(
 
 /**
  * Convert every provider currency to HKD using the latest official HKMA
- * closing middle rates. This is deliberately marked estimated: applying one
- * current rate to historical totals is a planning view, not accounting FX.
+ * closing middle rates, or the fixed reference table (finance-fx.ts) when
+ * the live feed is unavailable. This is deliberately marked estimated
+ * either way: applying one current rate to historical totals is a planning
+ * view, not accounting FX, before the reference table's own coarseness is
+ * even considered.
+ *
+ * `fx` arrives already resolved by the caller — a null here means the HKMA
+ * fetch raised a FinanceFxError of some kind (provider outage, bad payload,
+ * stale data; the specific reason lives in the caller's provider-availability
+ * record, not here). Previously that null propagated straight through and
+ * every HKD-denominated figure disappeared along with the merged chart; now
+ * any such failure falls back to the reference snapshot instead, so a rate
+ * outage costs the reader precision, not the whole picture.
  */
 export function estimatedHkdFinance(
   stripe: StripeFinancialSnapshot | null,
   anthropic: AnthropicCostSnapshot | null,
   fx: HkdFxSnapshot | null,
 ): HkdFinanceEstimate | null {
-  if (!stripe || !anthropic || !fx) return null;
-  const lifetime = hkdTotals(stripe, anthropic, fx, "lifetime");
-  const period = hkdTotals(stripe, anthropic, fx, "period");
+  if (!stripe || !anthropic) return null;
+  const rates = fx ?? referenceHkdFxSnapshot();
+  const lifetime = hkdTotals(stripe, anthropic, rates, "lifetime");
+  const period = hkdTotals(stripe, anthropic, rates, "period");
   if (!lifetime || !period) return null;
 
   const daily = anthropic.daily.map((costRow) => {
@@ -146,9 +159,9 @@ export function estimatedHkdFinance(
         const row = currency.daily.find((candidate) => candidate.day === costRow.day);
         return row?.operatingNet ?? money(currency.currency, "0");
       }),
-      fx,
+      rates,
     );
-    const aiCost = estimateMoneyInHkd(costRow.cost, fx);
+    const aiCost = estimateMoneyInHkd(costRow.cost, rates);
     if (!received || !aiCost) return null;
     return {
       day: costRow.day,
@@ -162,7 +175,7 @@ export function estimatedHkdFinance(
   return {
     currency: "HKD",
     basis: "estimated",
-    fx,
+    fx: rates,
     lifetime,
     period,
     daily: daily.filter((row): row is NonNullable<typeof row> => row !== null),

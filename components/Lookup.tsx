@@ -1,9 +1,20 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import PronunciationButton from "@/components/PronunciationButton";
 import { postJSON } from "@/lib/api";
 import { findTerm } from "@/lib/glossary";
-import { type Definition, cachedLookup, saveLookup } from "@/lib/lookups";
+import {
+  type Definition,
+  cachedLookup,
+  saveLookup,
+  saveLookupForLater,
+  savedLookup,
+  setLookupFavourite,
+} from "@/lib/lookups";
+import { lookupSelectionAnchor } from "@/lib/lookup-selection-anchor";
+import { stopPronunciation } from "@/lib/pronunciation";
 
 type PanelState =
   | { status: "closed" }
@@ -50,6 +61,7 @@ export default function LookupProvider({ children }: { children: React.ReactNode
     null,
   );
   const [query, setQuery] = useState("");
+  const [panelFavourite, setPanelFavourite] = useState(false);
   // Only the newest request may write to the panel; an earlier slow lookup
   // must not overwrite the answer the user is currently reading.
   const requestId = useRef(0);
@@ -61,24 +73,30 @@ export default function LookupProvider({ children }: { children: React.ReactNode
     setPill(null);
 
     const id = ++requestId.current;
+    setPanelFavourite(savedLookup(clean)?.favourite === true);
 
     const local = findTerm(clean);
     if (local) {
+      const definition = saveLookup({
+        term: local.term,
+        short: local.short,
+        example: local.example,
+        source: "glossary",
+        at: new Date().toISOString(),
+      });
       setPanel({
         status: "ready",
-        definition: {
-          term: local.term,
-          short: local.short,
-          example: local.example,
-          source: "glossary",
-        },
+        definition,
       });
+      setPanelFavourite(definition.favourite === true);
       return;
     }
 
     const cached = cachedLookup(clean);
     if (cached) {
-      setPanel({ status: "ready", definition: { ...cached, source: "cache" } });
+      const definition = saveLookup({ ...cached, source: "cache", at: new Date().toISOString() });
+      setPanel({ status: "ready", definition });
+      setPanelFavourite(definition.favourite === true);
       return;
     }
 
@@ -95,8 +113,9 @@ export default function LookupProvider({ children }: { children: React.ReactNode
           source: "ai",
           at: new Date().toISOString(),
         };
-        saveLookup(definition);
-        setPanel({ status: "ready", definition });
+        const saved = saveLookup(definition);
+        setPanel({ status: "ready", definition: saved });
+        setPanelFavourite(saved.favourite === true);
       })
       .catch((err: unknown) => {
         if (requestId.current !== id) return;
@@ -110,7 +129,9 @@ export default function LookupProvider({ children }: { children: React.ReactNode
 
   const close = useCallback(() => {
     requestId.current += 1;
+    stopPronunciation();
     setQuery("");
+    setPanelFavourite(false);
     setPanel({ status: "closed" });
   }, []);
 
@@ -149,10 +170,12 @@ export default function LookupProvider({ children }: { children: React.ReactNode
         return;
       }
       const clean = text.trim();
+      const anchor = lookupSelectionAnchor(rect);
       setPill({
-        // Keep the pill on screen when the selection sits near an edge.
-        x: Math.min(window.innerWidth - 110, Math.max(110, rect.left + rect.width / 2)),
-        y: rect.top,
+        // The trigger is anchored to the word itself. Do not edge-clamp or
+        // magnetise it: moving it when the learner aims for it makes the
+        // lookup control feel as though it is avoiding their pointer.
+        ...anchor,
         text: clean,
         context: sentenceAround(selection, clean),
       });
@@ -176,6 +199,22 @@ export default function LookupProvider({ children }: { children: React.ReactNode
     if (query.trim()) look(query);
   };
 
+  const toggleFavourite = () => {
+    if (!panelTerm) return;
+    const currentDefinition = savedLookup(panelTerm) ?? saveLookupForLater(panelTerm);
+    if (!currentDefinition) return;
+    const definition = setLookupFavourite(panelTerm, currentDefinition.favourite !== true);
+    if (!definition) return;
+    setPanelFavourite(definition.favourite === true);
+    if (panel.status === "ready") setPanel({ status: "ready", definition });
+  };
+
+  // Pronunciation belongs to the word currently being explained. Keep it
+  // available even when the definition service is loading or unavailable:
+  // device speech does not depend on the tutor response.
+  const panelTerm =
+    panel.status === "ready" ? panel.definition.term : panel.status === "closed" ? "" : panel.term;
+
   return (
     <LookupContext.Provider value={api}>
       {children}
@@ -197,8 +236,8 @@ export default function LookupProvider({ children }: { children: React.ReactNode
             e.preventDefault();
             look(pill.text, pill.context);
           }}
-          style={{ left: pill.x, top: Math.max(8, pill.y - 46) }}
-          className="fixed z-40 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2.5 text-xs font-medium text-slate-50 shadow-lg"
+          style={{ left: pill.x, top: pill.y }}
+          className="lookup-selection-pill fixed z-40 rounded-full bg-slate-900 px-4 py-2.5 text-xs font-medium text-slate-50 shadow-lg"
         >
           🔍 Look up “{pill.text.length > 22 ? `${pill.text.slice(0, 22)}…` : pill.text}”
         </button>
@@ -214,9 +253,46 @@ export default function LookupProvider({ children }: { children: React.ReactNode
           />
           <div className="card relative m-0 w-full max-w-lg rounded-b-none sm:m-4 sm:rounded-2xl">
             <div className="flex items-start justify-between gap-3">
-              <h2 className="text-lg font-semibold text-slate-900">
-                {panel.status === "ready" ? panel.definition.term : panel.term}
-              </h2>
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  {panelTerm}
+                </h2>
+                <div
+                  className="mt-2 flex flex-wrap items-start gap-2"
+                  role="group"
+                  aria-label={`Tools for ${panelTerm}`}
+                  data-lookup-actions
+                >
+                  <PronunciationButton
+                    term={panelTerm}
+                    showLabel
+                    showStatus
+                    className="shrink-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleFavourite}
+                    aria-pressed={panelFavourite}
+                    aria-label={
+                      panelFavourite
+                        ? `Remove ${panelTerm} from favourites`
+                        : `Add ${panelTerm} to favourites`
+                    }
+                    data-lookup-favourite-button
+                    title={panelFavourite ? "Remove pin" : "Pin this word for revision"}
+                    className={`inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
+                      panelFavourite
+                        ? "border-indigo-300 bg-indigo-100 text-indigo-900 hover:bg-indigo-200"
+                        : "border-indigo-300 bg-white text-indigo-900 hover:border-indigo-400 hover:bg-indigo-50"
+                    }`}
+                  >
+                    <span aria-hidden className="text-base leading-none">
+                      {panelFavourite ? "★" : "☆"}
+                    </span>
+                    {panelFavourite ? "Pinned" : "Pin word"}
+                  </button>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={close}
@@ -228,7 +304,7 @@ export default function LookupProvider({ children }: { children: React.ReactNode
             </div>
 
             {panel.status === "loading" && (
-              <p className="mt-4 text-sm text-slate-500">Looking it up…</p>
+              <p className="mt-4 text-sm text-slate-500"><LoadingIndicator label="Looking it up…" /></p>
             )}
 
             {panel.status === "error" && (

@@ -1,6 +1,7 @@
 "use client";
 
 import StatCard from "@/components/admin/StatCard";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import AdminOverviewCharts, {
   type AdminOverviewChartOption,
 } from "@/components/admin/AdminOverviewCharts";
@@ -62,7 +63,7 @@ export default function AdminPage() {
   const { phase: financePhase, finance } = useFinance();
 
   if (phase === "loading") {
-    return <p className="px-5 py-6 text-sm text-slate-500">Checking…</p>;
+    return <p className="px-5 py-6 text-sm text-slate-500"><LoadingIndicator label="Checking…" /></p>;
   }
 
   if (phase === "denied" || !state) {
@@ -96,6 +97,27 @@ export default function AdminPage() {
     value: exactMoneyMajor(row.afterAi),
   })) ?? [];
   const receivedMoney = financeEstimate?.period.received ?? financePrimary?.period.net ?? null;
+  /*
+    "You received" has no single figure to print whenever the finance fetch
+    itself failed, or Stripe settled in more than one currency and no HKD
+    estimate could be built to merge them — previously a bare "—" either way,
+    because the old guard only fired for the "no currencies at all" case.
+    The FX reason is the last resort rather than the first: since
+    estimatedHkdFinance now falls back to the reference table on its own, a
+    missing figure here is usually Stripe or Anthropic itself being
+    unavailable, and the more specific message is the truer one to show.
+  */
+  const receivedUnavailable =
+    financePhase !== "loading" && !receivedMoney
+      ? financeCurrencies.length === 0
+        ? "Stripe receipt data is unavailable."
+        : (finance?.providers.fx.reason?.message ??
+          "A single figure is not available across these currencies.")
+      : undefined;
+  const aiCostUnavailable =
+    financePhase !== "loading" && !finance?.anthropic
+      ? finance?.providers.anthropic.reason?.message ?? "AI cost is unavailable."
+      : undefined;
   const receivedPoints = financeEstimate?.daily.map((row) => ({
     day: row.day,
     value: exactMoneyMajor(row.received),
@@ -115,8 +137,8 @@ export default function AdminPage() {
     },
     {
       id: "usage",
-      label: "AI requests",
-      description: "Daily served and refused requests.",
+      label: "Learner AI request attempts",
+      description: "Learner requests allowed through or blocked before AI; owner activity is excluded.",
       content:
         stats?.usage && stats.usage.length > 0 ? (
           <AdminTrendChart kind="usage" rows={stats.usage} days={stats.days} compact />
@@ -190,6 +212,7 @@ export default function AdminPage() {
               ? formatExactMoney(receivedMoney)
               : undefined
           : undefined,
+    valueLoading: n.href === "/admin/site" && state.closed !== state.closedByDeploy,
     tone:
       (n.href === "/admin/site" && (state.closed || state.closedByDeploy)) ||
       (n.href === "/admin/config" && failing > 0)
@@ -209,23 +232,31 @@ export default function AdminPage() {
           icon={<Dot />}
         />
         <StatCard
-          label="Paying subscribers"
+          label="Active Stripe subscriptions"
           value={stats?.billing ? stats.billing.active.toLocaleString() : "—"}
-          hint={stats?.billing ? "Active subscriptions, from Stripe" : undefined}
+          hint={stats?.billing ? "Active subscription objects, from Stripe" : undefined}
           unavailable={billingUnavailable}
           icon={<Dot />}
         />
         <StatCard
           label={`You received, ${finance?.period.days ?? 30} days`}
           value={receivedMoney ? formatExactMoney(receivedMoney) : "—"}
-          hint={receivedMoney ? financeEstimate ? `Estimated in HKD using HKMA ${financeEstimate.fx.asOf}` : "After Stripe fees, refunds and disputes" : undefined}
-          unavailable={financePhase === "ready" && financeCurrencies.length === 0 ? "Stripe receipt data is unavailable." : undefined}
+          hint={
+            receivedMoney
+              ? financeEstimate
+                ? financeEstimate.fx.approximate
+                  ? `Estimated in HKD using a reference rate, not HKMA — as of ${financeEstimate.fx.asOf}`
+                  : `Estimated in HKD using HKMA ${financeEstimate.fx.asOf}`
+                : "After Stripe fees, refunds and disputes"
+              : undefined
+          }
+          unavailable={receivedUnavailable}
           icon={<Dot />}
         />
         <StatCard
           label={`AI cost, ${finance?.period.days ?? 30} days`}
           value={finance?.anthropic ? formatExactMoney(finance.anthropic.period.cost) : "—"}
-          unavailable={financePhase === "ready" && !finance?.anthropic ? finance?.providers.anthropic.reason?.message ?? "AI cost is unavailable." : undefined}
+          unavailable={aiCostUnavailable}
           icon={<Dot />}
         />
       </div>

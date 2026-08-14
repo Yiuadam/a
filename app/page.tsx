@@ -1,17 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import BandBadge from "@/components/BandBadge";
 import { useProfile } from "@/lib/hooks";
-import { newestFirst } from "@/lib/results";
+import { newestFirst, seriesFor } from "@/lib/results";
 import LockedCard from "@/components/LockedCard";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
-import type { ModuleName } from "@/lib/types";
+import type { ModuleName, ModuleResult, PlacementResult } from "@/lib/types";
 import { Icon } from "@/components/Icons";
 import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
+import CardIcon from "@/components/CardIcon";
 import NewBadge from "@/components/NewBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
+import {
+  authedFetch,
+  getServerSnapshot as getSessionServerSnapshot,
+  getSnapshot as getSessionSnapshot,
+  subscribe as subscribeSession,
+} from "@/lib/account";
+import { apiUrl } from "@/lib/api";
+import {
+  homeOrganizationShortcutFromResponse,
+  type HomeOrganizationShortcut,
+} from "@/lib/dashboard-home";
 import {
   drillSectionNeedsNewBadge,
   moduleNeedsNewBadge,
@@ -90,82 +103,262 @@ function CardBlurb({ short, full }: { short: string; full: string }) {
   );
 }
 
+const TREND_MODULES: {
+  key: ModuleName;
+  label: string;
+  stroke: string;
+  icon: string;
+}[] = [
+  { key: "listening", label: "Listening", stroke: "var(--color-indigo-600)", icon: "listening" },
+  { key: "reading", label: "Reading", stroke: "var(--color-indigo-600)", icon: "reading" },
+  { key: "writing", label: "Writing", stroke: "var(--color-indigo-600)", icon: "writing" },
+  { key: "speaking", label: "Speaking", stroke: "var(--color-indigo-600)", icon: "speaking" },
+];
+
+function roleLabel(role: HomeOrganizationShortcut["role"]): string {
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+function useHomeOrganizationShortcut(): HomeOrganizationShortcut | null {
+  const session = useSyncExternalStore(
+    subscribeSession,
+    getSessionSnapshot,
+    getSessionServerSnapshot,
+  );
+  const [resolved, setResolved] = useState<{
+    token: string | null;
+    shortcut: HomeOrganizationShortcut | null;
+  }>({ token: null, shortcut: null });
+
+  useEffect(() => {
+    if (!session) return;
+    const token = session.accessToken;
+    const controller = new AbortController();
+    authedFetch(apiUrl("/api/organization/shortcut"), {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((portal: unknown) => {
+        if (!controller.signal.aborted) {
+          setResolved({ token, shortcut: homeOrganizationShortcutFromResponse(portal) });
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setResolved({ token, shortcut: null });
+      });
+    return () => controller.abort();
+  }, [session]);
+
+  return session && resolved.token === session.accessToken ? resolved.shortcut : null;
+}
+
+function PlacementHero() {
+  return (
+    <section className="dashboard-hero card premade-glass flex shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-3 p-4 sm:p-5">
+      <RefractiveGlassLayer />
+      <div className="premade-glass-content min-w-0 flex-1 basis-64">
+        <h1 className="text-xl font-semibold leading-snug text-slate-900 sm:text-[22px]">
+          BandUp
+        </h1>
+        <p className="mt-1 text-sm leading-5 text-slate-600">
+          An IELTS learning and practice app with a placement test and personal study plan.
+        </p>
+        <p className="dashboard-summary mt-1 text-sm leading-6 text-slate-600">
+          Find your starting band in five minutes. BandUp will use the result to build your study plan.
+        </p>
+      </div>
+      <div className="dashboard-hero-actions premade-glass-content flex shrink-0 flex-wrap items-center gap-2">
+        <IntentPrefetchLink href="/placement" className="dashboard-placement-button btn-primary premade-glass shrink-0 whitespace-nowrap">
+          <RefractiveGlassLayer radius={16} interactive optics="enhanced" />
+          <span className="premade-glass-content">Start the 5-minute test</span>
+        </IntentPrefetchLink>
+      </div>
+    </section>
+  );
+}
+
+function OrganisationHero({ organization }: { organization: HomeOrganizationShortcut }) {
+  const counts = [
+    organization.studentCount === null
+      ? null
+      : `${organization.studentCount} student${organization.studentCount === 1 ? "" : "s"}`,
+    organization.memberCount === null
+      ? null
+      : `${organization.memberCount} member${organization.memberCount === 1 ? "" : "s"}`,
+  ].filter((value): value is string => value !== null);
+
+  return (
+    <IntentPrefetchLink
+      href={`/organization?organization=${encodeURIComponent(organization.id)}`}
+      className="dashboard-organization-card card premade-glass block min-w-0 shrink-0 p-4 sm:p-5"
+      aria-label={`Open ${organization.name} organisation dashboard`}
+    >
+      <RefractiveGlassLayer interactive />
+      <div className="premade-glass-content flex min-w-0 items-center justify-between gap-4">
+        <span className="flex min-w-0 items-center gap-3">
+          <CardIcon name="organization" size={28} />
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-indigo-700">
+              Your organisation
+            </span>
+            <h1 className="mt-0.5 truncate text-xl font-semibold text-slate-900 sm:text-[22px]">
+              {organization.name}
+            </h1>
+            <span className="mt-0.5 block truncate text-sm text-slate-600">
+              {[roleLabel(organization.role), ...counts].join(" · ")}
+            </span>
+          </span>
+        </span>
+        <span className="shrink-0 text-right text-sm font-semibold text-indigo-700">
+          <span className="hidden sm:inline">Open dashboard </span>→
+        </span>
+      </div>
+    </IntentPrefetchLink>
+  );
+}
+
+function trendPoints(series: readonly ModuleResult[]): string {
+  const points = series.slice(-8);
+  if (points.length < 2) return "";
+  const bands = points.map((result) => result.band);
+  const lo = Math.min(...bands);
+  const hi = Math.max(...bands);
+  const span = hi === lo ? 1 : hi - lo;
+  return points.map((result, index) => {
+    const x = 4 + (112 * index) / (points.length - 1);
+    const y = hi === lo ? 16 : 28 - ((result.band - lo) / span) * 24;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+}
+
+function ScoreTrendCard({
+  module,
+  label,
+  icon,
+  stroke,
+  results,
+}: {
+  module: ModuleName;
+  label: string;
+  icon: string;
+  stroke: string;
+  results: readonly ModuleResult[];
+}) {
+  const series = seriesFor(results, module);
+  const latest = series.at(-1);
+  const points = trendPoints(series);
+  return (
+    <IntentPrefetchLink
+      href={`/history?module=${module}`}
+      className="dashboard-trend-card card premade-glass block min-w-0 p-3.5"
+      aria-label={`Open ${label} score history`}
+    >
+      <RefractiveGlassLayer interactive />
+      <span className="premade-glass-content block min-w-0">
+        <span className="flex items-start justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-2">
+            <Icon name={icon} className="h-5 w-5 shrink-0 text-indigo-600" />
+            <span className="truncate text-sm font-semibold text-slate-900">{label}</span>
+          </span>
+          <span className="shrink-0 text-lg font-semibold tabular-nums text-slate-900">
+            {latest?.band ?? "—"}
+          </span>
+        </span>
+        <span className="mt-0.5 block text-xs text-slate-500">
+          {series.length === 0
+            ? "No practice score yet"
+            : `${series.length} sitting${series.length === 1 ? "" : "s"} · latest band`}
+        </span>
+        <svg
+          viewBox="0 0 120 32"
+          preserveAspectRatio="none"
+          className="mt-2 h-8 w-full"
+          role="img"
+          aria-label={series.length === 0
+            ? `${label}: no practice scores yet`
+            : `${label}: ${series.length} recorded sittings, latest band ${latest?.band}`}
+        >
+          <path d="M4 28 H116" fill="none" stroke="var(--glass-edge)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          {points ? (
+            <polyline
+              points={points}
+              fill="none"
+              stroke={stroke}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : latest ? (
+            <circle cx="60" cy="16" r="2.5" fill={stroke} />
+          ) : null}
+        </svg>
+      </span>
+    </IntentPrefetchLink>
+  );
+}
+
+function ScoreTrendOverview({
+  placement,
+  results,
+}: {
+  placement: PlacementResult;
+  results: readonly ModuleResult[];
+}) {
+  return (
+    <section className="dashboard-score-overview min-w-0 shrink-0" aria-labelledby="dashboard-score-heading">
+      <div className="mb-2 flex min-w-0 flex-wrap items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-2.5">
+          <BandBadge band={placement.band} size="sm" />
+          <span className="min-w-0">
+            <h1 id="dashboard-score-heading" className="truncate text-xl font-semibold text-slate-900 sm:text-[22px]">
+              Your score trends
+            </h1>
+            <span className="block text-xs text-slate-500">Placement band {placement.band}</span>
+          </span>
+        </span>
+        <span className="flex flex-wrap items-center justify-end gap-2">
+          <IntentPrefetchLink href="/plan" className="btn-primary premade-glass shrink-0 whitespace-nowrap">
+            <RefractiveGlassLayer radius={999} interactive />
+            <span className="premade-glass-content">See what to do next</span>
+          </IntentPrefetchLink>
+          <IntentPrefetchLink href="/placement" className="btn-secondary premade-glass shrink-0 whitespace-nowrap">
+            <RefractiveGlassLayer radius={999} interactive />
+            <span className="premade-glass-content">Re-test</span>
+          </IntentPrefetchLink>
+        </span>
+      </div>
+      <div className="dashboard-trend-grid grid min-w-0 grid-cols-2 gap-2.5 lg:grid-cols-4">
+        {TREND_MODULES.map(({ key, ...module }) => (
+          <ScoreTrendCard key={key} {...module} module={key} results={results} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function Dashboard() {
   const profile = useProfile();
   const scores = useSyncExternalStore(subscribeDrills, drillScores, getServerDrillScores);
   const access = useSessionAccess();
   const placement = profile.placement;
+  const organization = useHomeOrganizationShortcut();
   const recent = newestFirst(profile.results).slice(0, 6);
-
   return (
-    <div className="dashboard-screen h-full overflow-hidden px-4 py-3 sm:px-5 sm:py-5">
+    <div className="dashboard-screen overflow-x-clip px-4 py-3 sm:px-5 sm:py-5">
       {/*
         One card, one obvious next step — and now one row of it. The welcome
         used to be a paragraph and a 96px band badge stacked above everything
         else, which cost a third of a laptop screen before the first link.
       */}
-      <section className="card premade-glass p-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-3 sm:p-5">
-        <RefractiveGlassLayer />
-        <div className="premade-glass-content min-w-0 flex-1 basis-64">
-          {/*
-            A first-time visitor is told what this is before being told what to
-            do, and the product is named rather than assumed.
-
-            It read "Let's find your band score." — warm, and it only works if
-            you already know where you are. Somebody arriving cold from a link
-            got a dashboard for an app whose name and purpose appeared nowhere
-            on the page. Google's OAuth reviewer was the first to say so out
-            loud, refusing to verify the consent screen on two counts: the
-            homepage "does not explain the purpose of your app", and the name
-            on it did not match the name asking for consent. Both were fair.
-
-            A returning learner still gets "Welcome back." — they know what
-            BandUp is, and re-introducing it every visit would be the other
-            mistake.
-          */}
-          <h1 className="text-xl font-semibold leading-snug text-slate-900 sm:text-[22px]">
-            BandUp
-          </h1>
-          <p className="mt-1 text-sm leading-5 text-slate-600">
-            An IELTS learning and practice app with a placement test and personal study plan.
-          </p>
-          <p className="dashboard-summary mt-1 text-sm leading-6 text-slate-600">
-            {placement
-              ? `Around band ${placement.band}. Your plan says what to do next.`
-              : "Find your band score in five minutes, get a study plan built around it, and " +
-                "practise listening, reading, writing and speaking with an AI examiner."}
-          </p>
-        </div>
-        <div className="premade-glass-content flex flex-wrap items-center gap-2">
-          {placement && (
-            <span className="mr-1 flex items-center gap-2">
-              <BandBadge band={placement.band} size="sm" />
-              <span className="text-xs leading-4 text-slate-500">
-                Current
-                <br />
-                estimate
-              </span>
-            </span>
-          )}
-          {placement ? (
-            <>
-              <IntentPrefetchLink href="/plan" className="btn-primary premade-glass">
-                <RefractiveGlassLayer radius={999} />
-                <span className="premade-glass-content">See what to do next</span>
-              </IntentPrefetchLink>
-              <IntentPrefetchLink href="/placement" className="btn-secondary premade-glass">
-                <RefractiveGlassLayer radius={999} />
-                <span className="premade-glass-content">Re-test</span>
-              </IntentPrefetchLink>
-            </>
-          ) : (
-              <IntentPrefetchLink href="/placement" className="dashboard-placement-button btn-primary premade-glass">
-                <RefractiveGlassLayer radius={16} />
-                <span className="premade-glass-content">Start the 5-minute test</span>
-              </IntentPrefetchLink>
-          )}
-        </div>
-      </section>
+      {organization ? (
+        <OrganisationHero organization={organization} />
+      ) : placement ? (
+        <ScoreTrendOverview placement={placement} results={profile.results} />
+      ) : (
+        <PlacementHero />
+      )}
 
       {/*
         Practice, study and history side by side on a laptop rather than three
@@ -227,8 +420,9 @@ export default function Dashboard() {
                 */
                 if (skill.pending) {
                   return (
-                    <div key={m.key} className="dashboard-skill-card card premade-glass p-3.5 cursor-wait opacity-60" aria-busy="true">
+                    <div key={m.key} className="dashboard-skill-card card premade-glass relative p-3.5 cursor-wait opacity-60" aria-busy="true">
                       <RefractiveGlassLayer />
+                      <LoadingIndicator label="Checking access…" className="absolute right-3 top-3 z-10 text-sm text-indigo-600" textClassName="sr-only" />
                       <div className="premade-glass-content flex items-start gap-2.5">
                         <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
                         <div className="min-w-0">
@@ -269,7 +463,7 @@ export default function Dashboard() {
                     href={m.href}
                     className="dashboard-skill-card card premade-glass p-3.5 block"
                   >
-                    <RefractiveGlassLayer />
+                    <RefractiveGlassLayer interactive />
                     <div className="premade-glass-content flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-start gap-2.5">
                         <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
@@ -309,7 +503,7 @@ export default function Dashboard() {
                 const isNew = drillSectionNeedsNewBadge(scores, s.key);
                 return (
                   <IntentPrefetchLink key={s.href} href={s.href} className="dashboard-skill-card card premade-glass p-3.5 block">
-                    <RefractiveGlassLayer />
+                    <RefractiveGlassLayer interactive />
                     <div className="premade-glass-content flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-start gap-2.5">
                         <Icon name={s.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />

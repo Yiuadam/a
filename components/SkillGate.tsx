@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import LockedCard from "@/components/LockedCard";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
@@ -91,7 +92,7 @@ export default function SkillGate({
   if (skill.pending) {
     return (
       <div className={`card ${className}`} aria-busy="true">
-        <p className="text-[15px] text-slate-500">Checking your account…</p>
+        <p className="text-[15px] text-slate-500"><LoadingIndicator label="Checking your account…" /></p>
       </div>
     );
   }

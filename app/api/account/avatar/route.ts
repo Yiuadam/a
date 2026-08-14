@@ -11,6 +11,20 @@ import {
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
+import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { replicateLearnerProfile } from "@/lib/cloudflare/data-router";
+import {
+  cloudflareAvatarDeliveryConfigured,
+  cloudflareAvatarUrl,
+} from "@/lib/cloudflare/avatar-delivery";
+import {
+  deleteCloudflareAvatar,
+  putCloudflareAvatar,
+} from "@/lib/cloudflare/learner-data";
+import {
+  replicateAvatarDeleteDurably,
+  replicateAvatarPutDurably,
+} from "@/lib/cloudflare/replica-replay";
 
 /*
   Uploading and removing a profile picture.
@@ -31,32 +45,31 @@ import { withCors } from "@/lib/http/cors";
   learner's folder.
 
   ---------------------------------------------------------------------------
-  Why the size limit did not move when the app started accepting 10 MB photos
+  Why the server limit is much smaller than the selectable-photo limit
 
   The account screen now lets a learner pick a picture of any resolution up to
-  ten megabytes. Nothing here changed to allow that, and nothing here should
+  ten megabytes. This route does not accept that original, and it should not:
   have: components/account/condense.ts crops and re-encodes the picture in the
-  browser first, so what arrives is a 512-pixel JPEG of perhaps sixty
+  browser first, so what arrives is a 256-pixel WebP of perhaps ten to twenty
   kilobytes. The learner's ceiling and this route's ceiling are answers to
   different questions — theirs is "what may I choose", which should be
   generous, and this one is "how much may an authenticated caller push into
-  storage per request", which should not be.
+  storage per request", which should stay close to the encoder's real output.
 
-  Raising this to ten would multiply the cost of the cheapest abuse there is by
-  five and buy nobody anything, since no legitimate upload from this app comes
-  close to two. It would also put the route above the bucket, whose
-  file_size_limit is two megabytes (0005_profile_fields.sql) — and a request
-  accepted here and refused by storage fails later, less clearly, and after the
-  bytes have already crossed the network.
+  Raising this to ten would multiply the cost of the cheapest abuse and buy
+  nobody anything, since no legitimate upload from this app comes close to the
+  limit. The bucket remains a second, broader guard; this route is intentionally
+  stricter because it knows the exact file BandUp itself creates.
 */
 
 export const dynamic = "force-dynamic";
 
 /*
-  Two megabytes, matching the bucket. Every real upload is a small fraction of
-  it; anything near it did not come from this app's own screen.
+  128 KB, above the browser encoder's 96 KB target. Keeping the server ceiling
+  close to the real output guarantees that even a caller bypassing the account
+  screen cannot turn an avatar into a multi-megabyte download.
 */
-const MAX_BYTES = 2 * 1024 * 1024;
+const MAX_BYTES = 128 * 1024;
 
 /*
   Magic numbers for the three types the bucket accepts. A file is what its
@@ -132,6 +145,38 @@ async function handlePOST(req: Request) {
     return safeJsonError("That doesn't look like a JPEG, PNG or WebP image.", 415);
   }
 
+  if (cloudflareDataMode() === "cloudflare") {
+    // Check configuration before storing anything: a private object without a
+    // browser-loadable delivery grant would look like a failed save and invite
+    // repeated uploads.
+    if (!cloudflareAvatarDeliveryConfigured()) {
+      logInternal("account/avatar POST", new Error("avatar delivery key is unavailable"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    let write;
+    try {
+      write = await putCloudflareAvatar(auth.user, buffer, kind);
+    } catch {
+      write = { success: false, objectKey: null };
+    }
+    if (!write.success || !write.objectKey) {
+      logInternal("account/avatar POST", new Error("Cloudflare avatar write failed"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    let avatarUrl = null;
+    try {
+      avatarUrl = await cloudflareAvatarUrl(req.url, auth.user.id, write.objectKey);
+    } catch {
+      // The pointer is already durable; report an actionable failure without
+      // exposing signing details. A retry replaces this object safely.
+    }
+    if (!avatarUrl) {
+      logInternal("account/avatar POST", new Error("avatar delivery grant failed"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    return NextResponse.json({ avatarUrl });
+  }
+
   /*
     A random segment in the path, even though the folder is already the user's
     id. Without it the URL of a picture is derivable from an account id, and
@@ -152,13 +197,35 @@ async function handlePOST(req: Request) {
     return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
 
+  const current = await getProfile(auth.user.id);
+  if (current) {
+    const replicated = await replicateLearnerProfile(auth.user, current);
+    if (replicated === false) {
+      logInternal("account/avatar POST", new Error("Cloudflare profile replication failed"));
+    }
+  }
+  if (cloudflareDataMode() === "dual") {
+    try {
+      const mirrored = current?.updatedAt
+        ? await replicateAvatarPutDurably(auth.user, buffer, kind, current.updatedAt)
+        : false;
+      if (!mirrored) {
+        logInternal("account/avatar POST", new Error("Cloudflare avatar replica write failed"));
+      }
+    } catch (error) {
+      // Supabase has already committed. Keep that authoritative success while
+      // making the missed R2/D1 copy visible to operations.
+      logInternal("account/avatar POST Cloudflare replica", error);
+    }
+  }
+
   /*
     The old file goes only after the new one is stored and pointed at. The
     other order risks deleting a picture and then failing to replace it, which
     loses something the learner cannot get back from us.
   */
   if (previous?.avatarPath && previous.avatarPath !== path) {
-    void deleteAvatar(previous.avatarPath);
+    await deleteAvatar(previous.avatarPath);
   }
 
   return NextResponse.json({ avatarUrl: await signedAvatarUrl(path) });
@@ -169,12 +236,42 @@ async function handleDELETE(req: Request) {
   if (auth.error === "off") return NextResponse.json({ error: "Not found." }, { status: 404 });
   if (auth.error === "anon") return safeJsonError(MESSAGES.signInRequired, 401);
 
+  if (cloudflareDataMode() === "cloudflare") {
+    let removed = false;
+    try {
+      removed = await deleteCloudflareAvatar(auth.user);
+    } catch {
+      removed = false;
+    }
+    if (!removed) {
+      logInternal("account/avatar DELETE", new Error("Cloudflare avatar delete failed"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    return NextResponse.json({ avatarUrl: null });
+  }
+
   const profile = await getProfile(auth.user.id);
   if (!(await updateProfile(auth.user.id, { avatarPath: null }))) {
     logInternal("account/avatar DELETE", new Error("profile not cleared"));
     return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
-  if (profile?.avatarPath) void deleteAvatar(profile.avatarPath);
+  const current = await getProfile(auth.user.id);
+  if (current) {
+    const replicated = await replicateLearnerProfile(auth.user, current);
+    if (replicated === false) {
+      logInternal("account/avatar DELETE", new Error("Cloudflare profile replication failed"));
+    }
+  }
+  if (cloudflareDataMode() === "dual") {
+    try {
+      if (!current?.updatedAt || !(await replicateAvatarDeleteDurably(auth.user, current.updatedAt))) {
+        logInternal("account/avatar DELETE", new Error("Cloudflare avatar replica delete failed"));
+      }
+    } catch (error) {
+      logInternal("account/avatar DELETE Cloudflare replica", error);
+    }
+  }
+  if (profile?.avatarPath) await deleteAvatar(profile.avatarPath);
 
   return NextResponse.json({ avatarUrl: null });
 }

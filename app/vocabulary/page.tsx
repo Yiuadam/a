@@ -76,16 +76,14 @@ function MyWords() {
 
 export default function VocabularyPage() {
   return (
-    <div className="space-y-2.5">
-      {/* See `.drill-dense` in globals.css — four topics across, not two. */}
-      <div className="drill-dense">
-        <DrillSection
-          kind="vocabulary"
-          title="Vocabulary practice"
-          intro="Eight topics of words that raise your band. Read the note, then answer the questions."
-          topics={topics}
-        />
-      </div>
+    <div className="space-y-3" data-vocabulary-practice>
+      <DrillSection
+        compact
+        kind="vocabulary"
+        title="Vocabulary practice"
+        intro="Eight topics of words that raise your band. Read the note, then answer the questions."
+        topics={topics}
+      />
       <MyWords />
       <p className="text-xs leading-5 text-slate-400">
         Looking for exam-format practice instead?{" "}

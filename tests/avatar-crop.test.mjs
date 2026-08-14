@@ -35,6 +35,9 @@ const {
 } = await import(
   pathToFileURL(join(process.cwd(), "components", "account", "crop.ts")).href
 );
+const { TARGET_BYTES, renderCrop } = await import(
+  pathToFileURL(join(process.cwd(), "components", "account", "condense.ts")).href
+);
 
 /** Every shape a learner might plausibly hand the editor. */
 const IMAGES = [
@@ -150,12 +153,89 @@ test("a pinch past the ceiling stops zooming and stops drifting", () => {
 });
 
 test("the saved square follows the crop and is never inflated", () => {
+  assert.equal(OUTPUT_SIZE, 256);
+  // The largest avatar is 64 CSS px, so this still exceeds a 3x phone screen.
+  assert.ok(OUTPUT_SIZE >= 64 * 3);
+  assert.equal(TARGET_BYTES, 96 * 1024);
   assert.equal(outputSize(4000), OUTPUT_SIZE);
   assert.equal(outputSize(OUTPUT_SIZE), OUTPUT_SIZE);
-  // A 300-pixel crop stays 300: enlarging it would invent detail that was
+  // A 200-pixel crop stays 200: enlarging it would invent detail that was
   // never in the file and cost the learner bytes for the privilege.
-  assert.equal(outputSize(300), 300);
+  assert.equal(outputSize(200), 200);
   assert.equal(outputSize(12), MIN_OUTPUT_SIZE);
+});
+
+test("the browser uploads a small WebP thumbnail", async () => {
+  const previousDocument = globalThis.document;
+  const canvases = [];
+  globalThis.document = {
+    createElement(tag) {
+      assert.equal(tag, "canvas");
+      const canvas = {
+        width: 0,
+        height: 0,
+        getContext: () => ({
+          drawImage() {},
+          fillRect() {},
+          imageSmoothingEnabled: false,
+          imageSmoothingQuality: "low",
+          fillStyle: "",
+        }),
+        toBlob(callback, mime) {
+          callback(new Blob([new Uint8Array(18 * 1024)], { type: mime }));
+        },
+      };
+      canvases.push(canvas);
+      return canvas;
+    },
+  };
+
+  try {
+    const result = await renderCrop(
+      { element: {}, url: "blob:test", width: 4000, height: 3000, release() {} },
+      CENTRED,
+    );
+    assert.equal(result.type, "image/webp");
+    assert.ok(result.size <= TARGET_BYTES);
+    assert.equal(canvases.at(-1).width, OUTPUT_SIZE);
+    assert.equal(canvases.at(-1).height, OUTPUT_SIZE);
+  } finally {
+    globalThis.document = previousDocument;
+  }
+});
+
+test("JPEG remains a fallback when a browser cannot encode WebP", async () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = {
+    createElement() {
+      return {
+        width: 0,
+        height: 0,
+        getContext: () => ({
+          drawImage() {},
+          fillRect() {},
+          imageSmoothingEnabled: false,
+          imageSmoothingQuality: "low",
+          fillStyle: "",
+        }),
+        toBlob(callback, mime) {
+          const actual = mime === "image/webp" ? "image/png" : mime;
+          callback(new Blob([new Uint8Array(24 * 1024)], { type: actual }));
+        },
+      };
+    },
+  };
+
+  try {
+    const result = await renderCrop(
+      { element: {}, url: "blob:test", width: 1200, height: 1200, release() {} },
+      CENTRED,
+    );
+    assert.equal(result.type, "image/jpeg");
+    assert.ok(result.size <= TARGET_BYTES);
+  } finally {
+    globalThis.document = previousDocument;
+  }
 });
 
 test("at rest the picture exactly covers the square and no more", () => {

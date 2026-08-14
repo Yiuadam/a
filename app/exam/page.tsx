@@ -7,6 +7,7 @@ import MockListening from "@/components/exam/MockListening";
 import MockReading from "@/components/exam/MockReading";
 import MockResults from "@/components/exam/MockResults";
 import MockWriting from "@/components/exam/MockWriting";
+import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import { useMounted } from "@/lib/hooks";
 import {
   MODULE_MINUTES,
@@ -204,7 +205,7 @@ export default function ExamPage() {
     case "speaking":
       return (
         <div className="mx-auto max-w-3xl space-y-3">
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-800">
+          <p className="rounded-lg bg-indigo-50 px-3 py-2 text-sm leading-6 text-indigo-800">
             Last module. The examiner speaks, you answer out loud, and your band for the whole
             sitting appears when the interview ends.
           </p>
@@ -239,10 +240,12 @@ function StartScreen({ onStart }: { onStart: () => void }) {
   ];
 
   return (
-    <section className="exam-start mx-auto flex h-[calc(100dvh-3.75rem)] w-full max-w-5xl items-center overflow-hidden px-5">
-      <div className="exam-start-content mx-auto w-full space-y-[clamp(0.75rem,2.4vh,1.5rem)]">
+    <section className="exam-start mx-auto flex h-[calc(100dvh-3.75rem)] w-full max-w-6xl items-center overflow-y-auto px-3 sm:px-5">
+      <div className="exam-start-window card premade-glass relative mx-auto w-full overflow-hidden !p-[clamp(1rem,3vw,2rem)]">
+        <RefractiveGlassLayer radius={32} />
+        <div className="exam-start-content premade-glass-content mx-auto w-full space-y-[clamp(0.75rem,2.4vh,1.5rem)]">
         <header className="max-w-2xl">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-700">
+          <p className="liquid-glass mb-2 inline-flex min-h-7 items-center rounded-full border px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700">
             Full sitting
           </p>
           <h1 className="text-[clamp(1.9rem,5vw,3.5rem)] font-semibold leading-none tracking-tight text-slate-900">
@@ -253,9 +256,9 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           </p>
         </header>
 
-        <ul className="grid grid-cols-2 gap-x-5 gap-y-3 border-y border-slate-300 py-[clamp(0.65rem,2vh,1rem)] sm:grid-cols-4 sm:gap-x-7">
+        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
           {rows.map(({ module, detail }) => (
-            <li key={module} className="min-w-0 border-l-2 border-indigo-400 pl-3">
+            <li key={module} className="liquid-glass min-w-0 rounded-[var(--radius-xl)] border px-3 py-2.5 sm:px-4">
               <span className="block text-sm font-semibold text-slate-900">
                 {MODULE_NAMES[module]}
               </span>
@@ -278,8 +281,9 @@ function StartScreen({ onStart }: { onStart: () => void }) {
         </div>
 
         <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-          <button className="btn-primary min-w-44" onClick={onStart}>
-            Start exam
+          <button className="btn-primary premade-glass min-w-44" onClick={onStart}>
+            <RefractiveGlassLayer radius={999} interactive />
+            <span className="premade-glass-content">Start exam</span>
           </button>
           <p className="exam-start-alternative text-xs text-slate-500 sm:pl-2">
             Not ready for a full sitting?{" "}
@@ -287,6 +291,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
               Practise one skill
             </Link>
           </p>
+        </div>
         </div>
       </div>
     </section>

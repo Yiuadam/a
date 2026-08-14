@@ -10,7 +10,7 @@ export const THEME_KEY = "bandup.theme";
 
 const BROWSER_THEME_COLORS: Record<Theme, string> = {
   warm: "#e7e0d8",
-  light: "#e8ebef",
+  light: "#fafafa",
   dark: "#151517",
 };
 
@@ -23,7 +23,7 @@ const BROWSER_THEME_COLORS: Record<Theme, string> = {
  */
 export const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(
   THEME_KEY,
-)});t=(t==="light"||t==="dark"||t==="warm")?t:"warm";document.documentElement.dataset.theme=t;var m=document.querySelector('meta[name="theme-color"]');if(!m){m=document.createElement("meta");m.name="theme-color";document.head.appendChild(m)}m.content=({warm:"#e7e0d8",light:"#e8ebef",dark:"#151517"})[t]}catch(e){}`;
+)});t=(t==="light"||t==="dark"||t==="warm")?t:"warm";document.documentElement.dataset.theme=t;var m=document.querySelector('meta[name="theme-color"]');if(!m){m=document.createElement("meta");m.name="theme-color";document.head.appendChild(m)}m.content=({warm:"#e7e0d8",light:"#fafafa",dark:"#151517"})[t]}catch(e){}`;
 
 function setBrowserThemeColor(theme: Theme): void {
   if (typeof document === "undefined") return;

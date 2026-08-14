@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import BandBadge from "@/components/BandBadge";
+import GlassSelect from "@/components/GlassSelect";
 import { useProfile } from "@/lib/hooks";
 import { buildPlan, listJoin, PLAN_DURATIONS } from "@/lib/plan";
 import { setPlanDays, setTargetBand } from "@/lib/store";
@@ -48,34 +49,14 @@ export default function PlanPage() {
               second combobox beside it, "select, select" is all a screen
               reader had left to go on.
             */}
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <div className="flex items-center gap-2 text-sm text-slate-700">
               <span>Target band</span>
-              <select
-                className="input !py-2"
-                value={plan.targetBand}
-                onChange={(e) => setTargetBand(Number(e.target.value))}
-              >
-                {[5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <GlassSelect label="Target band" value={String(plan.targetBand)} options={[5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map((band) => ({ value: String(band), label: String(band) }))} onValueChange={(value) => setTargetBand(Number(value))} compact className="w-24" />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-700">
               <span>Plan length</span>
-              <select
-                className="input !py-2"
-                value={plan.duration.days}
-                onChange={(e) => setPlanDays(Number(e.target.value))}
-              >
-                {PLAN_DURATIONS.map((d) => (
-                  <option key={d.days} value={d.days}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <GlassSelect label="Plan length" value={String(plan.duration.days)} options={PLAN_DURATIONS.map((duration) => ({ value: String(duration.days), label: duration.label }))} onValueChange={(value) => setPlanDays(Number(value))} compact className="w-32" />
+            </div>
             <span className="flex items-center gap-2">
               <BandBadge band={plan.currentBand} size="sm" />
               <span className="text-xs leading-4 text-slate-500">
@@ -119,7 +100,7 @@ export default function PlanPage() {
               </h2>
             </div>
             <p className="mb-2 mt-1 text-xs leading-5 text-slate-600">{b.rationale}</p>
-            <ul className="max-h-[9.5rem] space-y-1.5 overflow-y-auto pr-1">
+            <ul className="plan-task-list space-y-1.5">
               {b.tasks.map((t, i) => (
                 <li key={i}>
                   <Link

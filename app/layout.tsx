@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import LookupProvider from "@/components/Lookup";
 import AutoSync from "@/components/AutoSync";
 import MaintenanceGate from "@/components/MaintenanceGate";
@@ -7,6 +8,9 @@ import AppMain from "@/components/AppMain";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import PointerAttraction from "@/components/PointerAttraction";
+import { GLASS_LAB } from "@/lib/glass-lab";
+import AccountProfileProvider from "@/components/account/AccountProfileProvider";
+import RequiredAccountGate from "@/components/account/RequiredAccountGate";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -19,6 +23,10 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  // The monospace face is available for code-like content, but the learner
+  // routes do not need it during their first paint. Avoid preloading a font
+  // that most visits never consume; it will still load on demand if used.
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -80,7 +88,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <Script id="bandup-theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       {/*
         `min-h-dvh` rather than `min-h-full`, and it is load-bearing rather than
@@ -94,7 +102,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         here, because `min-` height still lets the body grow to its content. See
         components/TutorChat.tsx, which needed a real cap.
       */}
-      <body className="flex min-h-dvh flex-col">
+      {/*
+        The lab's ruled backdrop, and only the lab's: a refraction can only be
+        seen bending something, and BandUp's own washes are broad gradients
+        with no straight edge anywhere in them. GLASS_LAB is substituted at
+        build time, so a production build renders this attribute as absent
+        rather than as an empty one.
+      */}
+      <body className="flex min-h-dvh flex-col" data-glass-lab={GLASS_LAB ? "" : undefined}>
         {/*
           Closed for maintenance: the app is replaced rather than covered.
 
@@ -114,8 +129,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           still recorded while the shop is shut.
         */}
         <MaintenanceGate closed={closed}>
+        <AccountProfileProvider>
         <>
-        <SiteHeader />
+        <SiteHeader
+          isolatedOrganizationPreview={process.env.ORGANIZATION_UI_PREVIEW === "1"}
+        />
         <PointerAttraction />
         {/*
           `data-lookupable` on <main> means any word a learner selects anywhere
@@ -124,6 +142,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         {/* Renders nothing; keeps a signed-in account's progress current. */}
         <AutoSync />
+        <RequiredAccountGate>
         <LookupProvider>
           {/*
             The shell grows with the screen instead of stopping at 1024px.
@@ -144,6 +163,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           */}
           <AppMain>{children}</AppMain>
         </LookupProvider>
+        </RequiredAccountGate>
         {/*
           The privacy policy lives here rather than in the menu: it is a page a
           learner visits once, if ever, while Apple needs it publicly reachable
@@ -151,6 +171,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         <SiteFooter />
         </>
+        </AccountProfileProvider>
         </MaintenanceGate>
       </body>
     </html>

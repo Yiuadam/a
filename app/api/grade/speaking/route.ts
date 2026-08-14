@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
+import { requireFeature } from "@/lib/billing/gate";
 import { checkAiUsage } from "@/lib/usage/guard";
 import { clampBand } from "@/lib/band";
 import { SPEAKING_CRITERIA } from "@/lib/descriptors";
@@ -56,9 +57,6 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
 
-  const denied = await checkAiUsage(req, "grade/speaking");
-  if (denied) return denied;
-
   let body: { transcript?: unknown };
   try {
     body = await req.json();
@@ -113,6 +111,11 @@ async function handlePOST(req: Request) {
     .map((t) => `[Part ${t.part}] ${t.role === "examiner" ? "EXAMINER" : "CANDIDATE"}: ${t.text}`)
     .join("\n")
     .slice(-MAX_TRANSCRIPT_CHARS);
+
+  const unentitled = await requireFeature(req, "grade-speaking");
+  if (unentitled) return unentitled;
+  const denied = await checkAiUsage(req, "grade/speaking");
+  if (denied) return denied;
 
   try {
     const grade = await callClaudeJSON<SpeakingGrade>({

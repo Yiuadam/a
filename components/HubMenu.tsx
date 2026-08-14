@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import type { Route } from "next";
+import CardIcon, { type CardIconName } from "@/components/CardIcon";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 /*
   A page that is a menu, and the rows it is made of.
@@ -42,12 +44,22 @@ import type { Route } from "next";
 
 export interface HubItem {
   href: Route;
+  /** A decorative visual cue; the adjacent title remains the accessible name. */
+  icon?: CardIconName;
   /** The subject, in the fewest words that name it. */
   title: string;
   /** One line on what is inside. Not a sentence about why it matters. */
   detail: string;
   /** The answer to the obvious question, shown without opening the row. */
   value?: string;
+  /** Indicates that `value` describes work that is currently in progress. */
+  valueLoading?: boolean;
+  /**
+   * Most values belong on the far edge of a menu row. A long identifier such
+   * as an email needs the available text column instead, otherwise it steals
+   * the title's width and makes a compact card grow into a tall panel.
+   */
+  valuePlacement?: "edge" | "below";
   /** Draws the value as something that wants attention rather than as a fact. */
   tone?: "plain" | "warn";
   /** Owner-only rows are marked, so the owner can see which is which. */
@@ -67,13 +79,14 @@ export function HubMenu({ items }: { items: HubItem[] }) {
           <Link
             href={item.href}
             prefetch={false}
-            className="card flex h-full items-center gap-3 !px-4 !py-3.5 active:translate-y-px"
+            className="card hub-menu-card flex h-full min-h-[6.25rem] items-center gap-3 !px-4 !py-3.5 active:translate-y-px sm:min-h-[7.25rem]"
           >
+            {item.icon && <CardIcon name={item.icon} size={27} />}
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-[15px] font-semibold text-slate-900">{item.title}</span>
                 {item.badge && (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-800">
                     {item.badge}
                   </span>
                 )}
@@ -81,15 +94,23 @@ export function HubMenu({ items }: { items: HubItem[] }) {
               <span className="mt-0.5 block text-[13px] leading-5 text-slate-500">
                 {item.detail}
               </span>
+              {item.value && item.valuePlacement === "below" && (
+                <span
+                  title={item.value}
+                  className="mt-1 block truncate text-[13px] font-medium text-slate-700"
+                >
+                  {item.value}
+                </span>
+              )}
             </span>
 
-            {item.value && (
+            {item.value && item.valuePlacement !== "below" && (
               <span
                 className={`shrink-0 text-[13px] font-medium tabular-nums ${
                   item.tone === "warn" ? "text-amber-700" : "text-slate-700"
                 }`}
               >
-                {item.value}
+                {item.valueLoading ? <LoadingIndicator label={item.value} /> : item.value}
               </span>
             )}
             <span aria-hidden="true" className="shrink-0 text-slate-300">

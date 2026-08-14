@@ -73,6 +73,7 @@ export function parseHkmaFx(payload: unknown, now: Date = new Date()): HkdFxSnap
 
   return {
     source: "Hong Kong Monetary Authority",
+    approximate: false,
     sourceUrl: HKMA_FX_SOURCE_URL,
     asOf,
     rates,
@@ -118,4 +119,55 @@ export async function hkmaFxSnapshot(
   const value = parseHkmaFx(payload, now);
   cached = { value, until: now.getTime() + CACHE_MS };
   return value;
+}
+
+/*
+  Approximate HKD-per-major-unit reference rates.
+
+  These are round, long-run approximations — deliberately simple so a human
+  glancing at "7.8" can correct it by eye later rather than needing to reverse
+  a formula. HKD is pegged to USD at roughly 7.8, which is why that one holds
+  steadiest; every other currency drifts against it over time, and this table
+  is not refreshed automatically the way the live HKMA feed is.
+
+  They exist for exactly one job: letting the owner's dashboard still show a
+  clearly labelled, indicative HKD total when the live rate cannot be
+  fetched. They must NEVER be used for anything that charges a customer —
+  Stripe and Adaptive Pricing already settle at the real rate, and this table
+  is not accurate enough to stand in for that.
+*/
+const REFERENCE_HKD_PER_UNIT: Record<string, number> = {
+  USD: 7.8,
+  EUR: 8.5,
+  GBP: 9.9,
+  CNY: 1.08,
+  JPY: 0.052,
+  AUD: 5.1,
+  CAD: 5.7,
+  SGD: 5.8,
+  NZD: 4.7,
+  CHF: 8.8,
+  HKD: 1,
+};
+
+/**
+ * A fixed-table HKD snapshot, for use only when the live HKMA feed in
+ * `hkmaFxSnapshot` above is unavailable. Built through the same
+ * `rateDecimal`/`normaliseDecimal` formatting the live parser uses, so a
+ * reference rate and a live rate are indistinguishable in shape — only
+ * `approximate` tells them apart.
+ */
+export function referenceHkdFxSnapshot(now: Date = new Date()): HkdFxSnapshot {
+  const rates: Record<string, string> = {};
+  for (const [currency, perUnit] of Object.entries(REFERENCE_HKD_PER_UNIT)) {
+    const rate = rateDecimal(perUnit);
+    if (rate) rates[currency] = rate;
+  }
+  return {
+    source: "Approximate reference rate",
+    approximate: true,
+    sourceUrl: HKMA_FX_SOURCE_URL,
+    asOf: now.toISOString().slice(0, 10),
+    rates,
+  };
 }

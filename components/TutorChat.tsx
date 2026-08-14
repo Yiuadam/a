@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import Link from "next/link";
 import UpgradePanel from "@/components/billing/UpgradePanel";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
@@ -301,7 +302,7 @@ export default function TutorChat() {
       actually have.
     */
     <div className="flex h-[calc(100dvh-3.75rem)] min-h-0 w-full flex-col overflow-hidden bg-slate-50">
-      <div className="liquid-glass z-10 mx-2 mt-2 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border px-4 sm:mx-3 sm:px-6">
+      <div className="liquid-glass z-10 mx-3 mt-3 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border px-4 sm:mx-5 sm:px-6">
         <h1 className="text-[20px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
           Ask a tutor
         </h1>
@@ -311,7 +312,7 @@ export default function TutorChat() {
       {off ? <NotSwitchedOn /> : null}
 
       {locked && (
-        <UpgradePanel feature="ask the tutor" signedIn={account.signedIn} />
+        <UpgradePanel className="mx-3 mt-2 sm:mx-5" feature="ask the tutor" signedIn={account.signedIn} />
       )}
 
       {!off && !locked && (
@@ -338,7 +339,7 @@ export default function TutorChat() {
               </ol>
             )}
 
-            {sending && <p className="mt-5 text-sm text-slate-500">Thinking about that&hellip;</p>}
+            {sending && <p className="mt-5 text-sm text-slate-500"><LoadingIndicator label="Thinking about that…" /></p>}
             <div ref={bottom} />
           </section>
 
@@ -376,7 +377,7 @@ export default function TutorChat() {
               className="btn-primary shrink-0"
               disabled={sending || draft.trim().length === 0 || overLength}
             >
-              {sending ? "Asking…" : "Ask"}
+              {sending ? <LoadingIndicator label="Asking…" announce={false} /> : "Ask"}
             </button>
           </form>
 
@@ -407,7 +408,7 @@ export default function TutorChat() {
 */
 function NotSwitchedOn() {
   return (
-    <section className="card">
+    <section className="card mx-3 mt-2 sm:mx-5">
       <h2 className="text-[17px] font-semibold text-slate-900">The tutor isn&rsquo;t available here</h2>
       <p className="mt-2 text-[15px] leading-7 text-slate-600">
         This copy of BandUp has no connection to the AI tutor, so there is nobody to answer
@@ -528,12 +529,12 @@ function Empty({ onPick, disabled }: { onPick: (q: string) => void; disabled: bo
       <p className="mt-1 text-[12px] leading-5 text-slate-500">
         Study help, not an official IELTS examiner.
       </p>
-      <div className="mt-4 flex snap-x gap-2 overflow-x-auto pb-2">
+      <div className="mt-4 grid w-full gap-2">
         {OPENERS.map((q) => (
           <button
             key={q}
             type="button"
-            className="btn-secondary min-w-[15rem] shrink-0 snap-start text-left sm:min-w-0"
+            className="btn-secondary w-full justify-start whitespace-normal text-left"
             disabled={disabled}
             onClick={() => onPick(q)}
           >

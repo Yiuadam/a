@@ -1,24 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { getSnapshot as accountSnapshot, SESSION_KEY } from "@/lib/account";
-import { syncProgress } from "@/lib/progress/sync";
-import { clearHistory } from "@/lib/store";
+import { useState, useSyncExternalStore } from "react";
+import {
+  getServerSnapshot as accountServerSnapshot,
+  getSnapshot as accountSnapshot,
+  SESSION_KEY,
+  subscribe as subscribeToAccount,
+} from "@/lib/account";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { clearSyncedProgress } from "@/lib/progress/sync";
+import { useHistoryClearPolicy } from "@/lib/organizations/useHistoryClearPolicy";
 
 /*
   Delete everything this browser is keeping.
 
-  BandUp stores a learner's progress in localStorage and nowhere else until
-  they sign in — the privacy policy names every key. What it did not have was a
-  way to undo that from inside the app: clearing meant finding the right screen
-  in browser settings, which most people cannot do and nobody should have to.
+  BandUp keeps a learner's working copy in this tab until they sign in, when
+  the account becomes the durable copy. The privacy policy names every key.
+  What the app did not have was a way to undo that from inside the app:
+  clearing meant finding the right screen in browser settings, which most
+  people cannot do and nobody should have to.
 
   Two things this deliberately is not:
 
     It is not "delete my account". That is a separate, server-side thing and it
-      lives further down this page. This one touches this device only, and says
-      so, because somebody who taps the wrong one should still have their
-      account.
+      lives further down this page. This one clears this device and, while
+      signed in, the synced practice-history copy so it cannot immediately
+      return. The identity and profile remain.
 
     It is not silent. A signed-in learner whose progress is synced will get it
       back from the server on the next load, and being surprised by that is
@@ -50,6 +57,12 @@ const KEEP_ACROSS_WIPE = [
 ];
 
 export default function ClearDeviceSection() {
+  const access = useHistoryClearPolicy();
+  const session = useSyncExternalStore(
+    subscribeToAccount,
+    accountSnapshot,
+    accountServerSnapshot,
+  );
   const [armed, setArmed] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,18 +71,35 @@ export default function ClearDeviceSection() {
     setDone(true);
     setError(null);
 
-    /*
-      A local wipe used to be followed by the account restoring every sitting.
-      Write the history tombstone to the account first. If a signed-in account
-      cannot accept it, stop rather than claiming a permanent clear that was
-      not permanent.
-    */
-    clearHistory();
-    const sync = await syncProgress();
-    if (accountSnapshot() && sync.status === "unavailable") {
-      setDone(false);
-      setError("Your account could not be reached. Nothing else was cleared; please try again.");
-      return;
+    if (session) {
+      /*
+        Do not call clearHistory() here. It mutates sessionStorage before the
+        network request, so the old failure message ("Nothing else was
+        cleared") was false and autosync could later upload the tombstone even
+        after this screen reported failure.
+
+        clearSyncedProgress submits a hypothetical cleared profile and changes
+        the browser only after the account accepts it. This means an ordinary
+        outage leaves the tab exactly as it was.
+      */
+      const sync = await clearSyncedProgress();
+      if (sync.status !== "done") {
+        setDone(false);
+        if (sync.status === "restricted") {
+          setError(
+            "Your organisation currently keeps this history. Nothing was cleared.",
+          );
+        } else if (sync.status === "signed-out") {
+          setError(
+            "Your sign-in has expired. Nothing was cleared; sign in again and retry.",
+          );
+        } else {
+          setError(
+            "BandUp couldn't confirm the synced clear. This browser has kept its copy for now. Check your connection and retry.",
+          );
+        }
+        return;
+      }
     }
 
     try {
@@ -87,6 +117,10 @@ export default function ClearDeviceSection() {
     */
     window.location.replace(new URL("/", window.location.href));
   }
+
+  // Clearing this origin also clears history. Organization students therefore
+  // cannot use the wider device wipe as a second route around the policy.
+  if (access !== "allowed") return null;
 
   return (
     <section className="card !p-4 sm:!p-6">
@@ -118,10 +152,16 @@ export default function ClearDeviceSection() {
             Clear everything saved in this browser? This cannot be undone here. Your theme and your
             sign-in are kept.
           </p>
-          <p className="text-[13px] leading-5 text-rose-800/80">
-            This is not your account. Your saved practice history is also cleared from the synced
-            account, so old sittings will not return. Your sign-in and account profile remain.
-          </p>
+          {session ? (
+            <p className="text-[13px] leading-5 text-rose-800/80">
+              This is not your account. BandUp clears the synced practice history first, so old
+              sittings will not return. Your sign-in and account profile remain.
+            </p>
+          ) : (
+            <p className="text-[13px] leading-5 text-rose-800/80">
+              Only this browser is affected. There is no signed-in account to change.
+            </p>
+          )}
           {error ? (
             <p className="text-[13px] leading-5 text-rose-900" role="alert">
               {error}
@@ -134,7 +174,11 @@ export default function ClearDeviceSection() {
               disabled={done}
               className="btn-primary shrink-0"
             >
-              {done ? "Clearing…" : "Yes, clear it"}
+              {done ? (
+                <LoadingIndicator label="Clearing…" announce={false} />
+              ) : (
+                "Yes, clear it"
+              )}
             </button>
             <button
               type="button"

@@ -1,6 +1,7 @@
 "use client";
 
 import ConsoleShell, { NotFound } from "@/components/admin/ConsoleShell";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { SiteSwitch } from "@/components/admin/ConsoleParts";
 import { useTier } from "@/lib/billing/useTier";
 import { useConsole } from "@/lib/admin/useConsole";
@@ -18,7 +19,7 @@ export default function SiteScreen() {
   const { phase, state, busy, error, toggle } = useConsole();
 
   if (phase === "loading") {
-    return <p className="px-5 py-6 text-sm text-slate-500">Checking…</p>;
+    return <p className="px-5 py-6 text-sm text-slate-500"><LoadingIndicator label="Checking…" /></p>;
   }
   if (phase === "denied" || !state) {
     return <NotFound mayNeedSignIn={account.phase === "ready" && !account.signedIn} />;

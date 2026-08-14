@@ -131,7 +131,15 @@ export interface ContributionSnapshot {
 }
 
 export interface HkdFxSnapshot {
-  source: "Hong Kong Monetary Authority";
+  /** Where `rates` came from. The reference table is a fallback — see `approximate`. */
+  source: "Hong Kong Monetary Authority" | "Approximate reference rate";
+  /**
+   * True when `rates` comes from the fixed reference table (finance-fx.ts)
+   * rather than a live HKMA snapshot. A separate, explicit flag rather than a
+   * sentinel value in `asOf` or a string comparison against `source`, so a
+   * consumer cannot mistake an approximate rate for the day's official one.
+   */
+  approximate: boolean;
   sourceUrl: string;
   asOf: string;
   /** HKD major units per one major unit of each ISO currency. */

@@ -24,7 +24,7 @@ export default function ChecksScreen() {
       back="/billing"
       backLabel="Bill and usage"
       title="Is everything wired up?"
-      lead="Checks the variables and the database functions the app depends on, and prints what the server actually said. It records one usage row against your own account."
+      lead="Checks the variables and database functions the app depends on without adding artificial AI usage."
     >
       {isOwner ? (
         <OwnerDiagnostics />

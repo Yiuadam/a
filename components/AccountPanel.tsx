@@ -15,6 +15,8 @@ import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { TIERS, type Tier } from "@/lib/billing/tiers";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { AccountStatus } from "@/components/account/types";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { lastSyncedAt, lastSyncFailed, subscribeSyncStatus } from "@/lib/progress/sync";
 
 /*
   The account screen, and the only place in the app where signing in happens.
@@ -34,18 +36,17 @@ import type { AccountStatus } from "@/components/account/types";
   ---------------------------------------------------------------------------
   Signed in, this is a menu
 
-  It was four groups of cards in a column: profile, plan, sync, and the two
-  buttons that delete things — 3049 pixels on a 390-wide phone. Every one of
+  It was four groups of cards in a column: profile, plan, sync controls, and
+  the two buttons that delete things — 3049 pixels on a 390-wide phone. Every one of
   them was a true thing about the account, and stacking them is how the page
   got made, one true thing under the last.
 
-  Nobody arrives here wanting all four. They arrive to change a picture, or to
-  sign out, or to find out why a phone and a laptop disagree — and the page
-  answered whichever it was somewhere in the middle of three answers to
-  questions they had not asked. So each is its own screen now, and this page is
-  the choice between them. What that costs is one tap for the thing you came
-  for; what it buys is that you can see all four options at once and know which
-  tap it is.
+  Nobody arrives here wanting every control at once. They arrive to change a
+  picture, manage a plan or sign out, and the page answered whichever it was
+  somewhere in the middle of several answers to questions they had not asked.
+  So each remaining action is its own screen and this page is the choice between
+  them. Progress sync is deliberately absent: it runs automatically whenever an
+  account session is active and is not something a learner should have to manage.
 
     The plan row goes straight to /pricing. That screen shows the current plan,
     every alternative and the subscribe/manage control together, so upgrading
@@ -54,7 +55,14 @@ import type { AccountStatus } from "@/components/account/types";
 
 type Phase = "loading" | "ready" | "unavailable";
 
-export default function AccountPanel() {
+const LOCAL_MENU_PREVIEW: AccountStatus = {
+  enabled: true,
+  signedIn: true,
+  tier: "plus",
+  usage: { windowSeconds: 0, oldestAt: null, routes: [] },
+};
+
+export default function AccountPanel({ localMenuPreview = false }: { localMenuPreview?: boolean }) {
   const session = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [phase, setPhase] = useState<Phase>("loading");
   const [status, setStatus] = useState<AccountStatus | null>(null);
@@ -66,6 +74,10 @@ export default function AccountPanel() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    if (localMenuPreview) {
+      return;
+    }
+
     /*
       `alive` is not ceremony. Signing out re-runs this effect while the
       previous request is still in flight, and without the guard the older
@@ -91,18 +103,21 @@ export default function AccountPanel() {
     return () => {
       alive = false;
     };
-  }, [session, reloadKey]);
+  }, [session, reloadKey, localMenuPreview]);
 
   const reload = useCallback(() => setReloadKey((n) => n + 1), []);
 
-  const accountsOff = phase === "ready" && status?.enabled === false;
+  const resolvedPhase = localMenuPreview ? "ready" : phase;
+  const resolvedStatus = localMenuPreview ? LOCAL_MENU_PREVIEW : status;
+  const accountsOff = resolvedPhase === "ready" && resolvedStatus?.enabled === false;
 
   /*
     Signed out, this page is one thing: a sign-in form, and it gets a narrow
     column so the card ends where the form ends rather than stretching to
     1400px with its right half empty.
   */
-  const signingIn = phase === "ready" && status?.enabled === true && !status.signedIn;
+  const signingIn =
+    resolvedPhase === "ready" && resolvedStatus?.enabled === true && !resolvedStatus.signedIn;
 
   return (
     <div className={`mx-auto w-full space-y-6 ${signingIn ? "max-w-lg" : "max-w-2xl"}`}>
@@ -122,13 +137,13 @@ export default function AccountPanel() {
         </p>
       </div>
 
-      {phase === "loading" && (
+      {resolvedPhase === "loading" && (
         <section className="card">
-          <p className="text-sm text-slate-500">Checking…</p>
+          <p className="text-sm text-slate-500"><LoadingIndicator label="Checking…" /></p>
         </section>
       )}
 
-      {phase === "unavailable" && (
+      {resolvedPhase === "unavailable" && (
         <section className="card">
           <h2 className="text-[17px] font-semibold text-slate-900">
             Accounts aren&rsquo;t reachable right now
@@ -148,9 +163,9 @@ export default function AccountPanel() {
         show an account screen to someone holding a revoked token, and every
         figure on it would be a guess.
       */}
-      {phase === "ready" && status?.enabled === true && !status.signedIn && (
+      {resolvedPhase === "ready" && resolvedStatus?.enabled === true && !resolvedStatus.signedIn && (
         <>
-          <SignedOut providers={status.providers ?? []} onRecovered={reload} />
+          <SignedOut providers={resolvedStatus.providers ?? []} onRecovered={reload} />
           {/*
             Shown signed out as well, and that is the case it matters most in:
             a visitor has every one of their scores in this browser and no
@@ -162,8 +177,11 @@ export default function AccountPanel() {
         </>
       )}
 
-      {phase === "ready" && status?.enabled === true && status.signedIn === true && (
-        <SignedIn status={status} email={session?.email ?? null} />
+      {resolvedPhase === "ready" && resolvedStatus?.enabled === true && resolvedStatus.signedIn === true && (
+        <SignedIn
+          status={resolvedStatus}
+          email={localMenuPreview ? "member@bandup.local" : session?.email ?? null}
+        />
       )}
     </div>
   );
@@ -205,8 +223,9 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
   const items: HubItem[] = [
     {
       href: "/account/profile",
+      icon: "profile",
       title: "Your profile",
-      detail: "Name, date of birth and picture",
+      detail: "Name, birth date and photo",
       /*
         The address on the menu, because "which account am I in" is the single
         commonest reason to open this page and it should not cost a tap. Long
@@ -214,16 +233,13 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
         the middle of a domain reads as a different address.
       */
       value: email ?? undefined,
-    },
-    {
-      href: "/account/sync",
-      title: "Practice on other devices",
-      detail: "Move your work between phone and laptop",
+      valuePlacement: "below",
     },
     {
       href: "/account/close",
+      icon: "exit",
       title: "Sign out, or close the account",
-      detail: "Leave this device, or leave BandUp",
+      detail: "Sign out here, or leave BandUp",
     },
   ];
 
@@ -242,8 +258,9 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
   if (!IS_MOBILE_BUILD) {
     items.splice(1, 0, {
       href: "/pricing",
+      icon: "plans",
       title: "Plans & pricing",
-      detail: "Compare, subscribe or manage your plan",
+      detail: "Compare or manage your plan",
       value: planName(status.tier),
     });
   }
@@ -257,6 +274,49 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
           app — anything you buy there works here straight away.
         </p>
       )}
+      <SyncStatusLine />
     </>
   );
+}
+
+/*
+  Progress sync itself has no control on this page — see the file header, it
+  runs automatically and a learner should not have to manage it. But a sync
+  that has been silently failing on every attempt is worse than one with no
+  control at all, which is how cross-device sync going quietly wrong in
+  production stayed undiagnosed. This reads the state autosync already leaves
+  behind (lib/progress/sync.ts) rather than triggering anything of its own.
+
+  A device that has never even attempted a sync renders nothing: that is the
+  ordinary first moment after a brand-new sign-in, not a fault worth a line
+  about. `useSyncExternalStore`'s server snapshot is a fixed `null`/`false`
+  rather than `lastSyncedAt`/`lastSyncFailed` themselves, so the very first
+  client render matches the server-rendered markup exactly and only repaints
+  with the real, browser-only answer once mounted.
+*/
+function SyncStatusLine() {
+  const at = useSyncExternalStore(subscribeSyncStatus, lastSyncedAt, () => null);
+  const failed = useSyncExternalStore(subscribeSyncStatus, lastSyncFailed, () => false);
+
+  if (at === null && !failed) return null;
+
+  return (
+    <p className="mt-3 text-[13px] leading-5 text-slate-500">
+      {at ? `This device last synced ${friendlyWhen(at)}.` : "This device has not synced yet."}
+      {failed
+        ? " It could not sync just now — nothing here is lost, and it will try again automatically."
+        : ""}
+    </p>
+  );
+}
+
+/** A short, human moment for a sync timestamp — plain enough for a status line. */
+function friendlyWhen(value: string): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "recently";
+  const elapsed = Date.now() - date.getTime();
+  if (elapsed >= 0 && elapsed < 60_000) return "just now";
+  if (elapsed >= 0 && elapsed < 3_600_000) return `${Math.max(1, Math.floor(elapsed / 60_000))}m ago`;
+  if (elapsed >= 0 && elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)}h ago`;
+  return `on ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(date)}`;
 }

@@ -12,11 +12,8 @@ export function formatExactMoney(money: ExactMoney): string {
   return new Intl.NumberFormat("en", {
     style: "currency",
     currency: money.currency.toUpperCase(),
-    /* Anthropic reports decimal cents. Keep that provider precision even once
-       the total crosses one dollar; switching to two decimals at that point
-       made an exact $1.2345 cost look like $1.23. Stripe's integer-minor-unit
-       amounts still render normally because Intl does not add optional zeroes. */
-    maximumFractionDigits: 8,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 

@@ -232,12 +232,12 @@ test("the yearly plan costs less per month than the monthly one", () => {
   assert.ok(PLANS["pro-monthly"].amountMinor > 0);
 });
 
-test("prices are formatted as money, without inventing pennies", () => {
-  assert.equal(formatPrice(900, "usd"), "$9");
-  assert.equal(formatPrice(7200, "usd"), "$72");
-  assert.equal(formatPrice(600, "usd"), "$6");
+test("prices are formatted with two decimal places", () => {
+  assert.equal(formatPrice(900, "usd"), "$9.00");
+  assert.equal(formatPrice(7200, "usd"), "$72.00");
+  assert.equal(formatPrice(600, "usd"), "$6.00");
   assert.equal(formatPrice(799, "usd"), "$7.99");
-  assert.equal(formatPrice(0, "usd"), "$0");
+  assert.equal(formatPrice(0, "usd"), "$0.00");
 });
 
 /*

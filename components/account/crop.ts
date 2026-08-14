@@ -50,17 +50,17 @@ export const MIN_ZOOM = 1;
 export const MAX_ZOOM = 4;
 
 /*
-  The square that gets uploaded. Avatars are displayed at 64 CSS pixels, so 512
-  covers a 3x screen twice over; anything larger is bytes the learner waits for
-  and nobody ever sees.
+  The square that gets uploaded. Avatars are displayed at no more than 64 CSS
+  pixels, so 256 still gives a 3x phone screen 64 spare source pixels; anything
+  larger is bytes the learner waits for and nobody ever sees.
 
   The floor matters for the opposite case. Somebody uploading a 100-pixel
-  picture from an old forum account should not have it inflated to 512 — that
+  picture from an old forum account should not have it inflated to 256 — that
   invents detail which was never there and makes the file bigger for the
   privilege — so the output is capped by the crop's own size, down to a floor
   that stops a thumbnail becoming a postage stamp.
 */
-export const OUTPUT_SIZE = 512;
+export const OUTPUT_SIZE = 256;
 export const MIN_OUTPUT_SIZE = 96;
 
 /** How the learner has positioned and enlarged the picture inside the square. */

@@ -25,19 +25,26 @@ import { useEffect, type ReactNode } from "react";
 export default function AppMain({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const console_ = pathname.startsWith("/admin");
-  const immersive =
-    pathname === "/" ||
+  const workspace = pathname.startsWith("/organization");
+  const viewportLocked =
     pathname === "/chat" ||
     pathname === "/practice/listening" ||
     pathname === "/practice/reading" ||
     pathname === "/practice/writing" ||
     pathname === "/exam";
+  /* The homepage is full-bleed, but it is still a document. Locking it to one
+     viewport makes the legal footer take height away from the card grid; in a
+     narrow or short window the hero then collapses and the final study cards
+     sit behind a separate inner scroller. */
+  const fullBleed = pathname === "/" || viewportLocked;
 
   useEffect(() => {
-    if (!immersive) return;
+    if (!viewportLocked) return;
     document.body.setAttribute("data-viewport-locked", "");
-    return () => document.body.removeAttribute("data-viewport-locked");
-  }, [immersive]);
+    return () => {
+      document.body.removeAttribute("data-viewport-locked");
+    };
+  }, [viewportLocked]);
 
   return (
     <main
@@ -48,7 +55,7 @@ export default function AppMain({ children }: { children: ReactNode }) {
       */
       data-lookupable
       className={
-        console_ || immersive
+        console_ || workspace || fullBleed
           ? "w-full min-h-0 flex-1"
           : /* Less air above and below on a phone. Forty pixels top and bottom
                is right on a laptop, where the page is a document in a window;

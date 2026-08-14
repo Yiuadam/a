@@ -3,6 +3,7 @@ import { register } from "node:module";
 import { test } from "node:test";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
 
 register("../scripts/ts-resolve.mjs", import.meta.url);
 
@@ -14,6 +15,27 @@ function transformedAxis(size, drift, scale, originPercent) {
   const origin = size * originPercent / 100;
   const start = drift + origin * (1 - scale);
   return { start, end: start + size * scale };
+}
+
+function rule(css, selector) {
+  const start = css.indexOf(`${selector} {`);
+  assert.notEqual(start, -1, `missing ${selector} rule`);
+  const end = css.indexOf("\n}", start);
+  assert.notEqual(end, -1, `unterminated ${selector} rule`);
+  return css.slice(start, end + 2);
+}
+
+function ruleContaining(css, selector, declaration) {
+  let start = css.indexOf(selector);
+  while (start !== -1) {
+    const end = css.indexOf("\n}", start);
+    if (end !== -1) {
+      const candidate = css.slice(start, end + 2);
+      if (candidate.includes(declaration)) return candidate;
+    }
+    start = css.indexOf(selector, start + selector.length);
+  }
+  return null;
 }
 
 test("touch attraction never paints outside the card layout box", () => {
@@ -35,4 +57,117 @@ test("touch attraction clamps fingers dragged beyond the card", () => {
     boundedTouchCardTransform(4, -3, 320, 84),
     boundedTouchCardTransform(1, -1, 320, 84),
   );
+});
+
+test("only bounded interactive controls keep pointer attraction", () => {
+  const source = readFileSync(
+    join(process.cwd(), "components", "PointerAttraction.tsx"),
+    "utf8",
+  );
+  assert.match(source, /MAX_CARD_WIDTH = 560/);
+  assert.match(source, /MAX_CARD_HEIGHT = 190/);
+  assert.match(source, /\[data-pointer-attract\], button, a\[href\], summary/);
+  assert.doesNotMatch(source, /const TARGET = .*\.card/);
+  assert.match(source, /it is an actual control/);
+});
+
+test("all glass reflection is delegated to one visible, power-aware surface", () => {
+  const source = readFileSync(
+    join(process.cwd(), "components", "PointerAttraction.tsx"),
+    "utf8",
+  );
+  assert.match(source, /GLASS_SURFACE = "\.card, \.liquid-glass, \.premade-glass/);
+  assert.match(source, /REFLECTION_FRAME_MS = 32/);
+  assert.match(source, /MAX_REFLECTION_DEVICE_PIXELS = 1_250_000/);
+  assert.equal((source.match(/document\.addEventListener\("pointermove"/g) ?? []).length, 1);
+  assert.match(source, /connection\?\.saveData/);
+  assert.match(source, /document\.visibilityState === "visible"/);
+  assert.match(source, /document\.addEventListener\("visibilitychange"/);
+  assert.match(source, /prefers-reduced-transparency: reduce/);
+  assert.match(source, /rect\.width \* rect\.height \* dpr \* dpr <= MAX_REFLECTION_DEVICE_PIXELS/);
+  assert.match(source, /rect\.bottom > 0[\s\S]*rect\.top < window\.innerHeight/);
+  assert.match(source, /Math\.round\(Math\.max\(0, Math\.min\(100/);
+  assert.match(source, /target === current/);
+  assert.ok(source.indexOf("timestamp - lastReflectionPaint") < source.indexOf("const rect = glassSurface.getBoundingClientRect()"));
+});
+
+test("pointer attraction moves only a decorative glass child, never a control's label", () => {
+  const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
+  const engine = readFileSync(join(process.cwd(), "components", "PointerAttraction.tsx"), "utf8");
+  const target = rule(css, "[data-pointer-attract-ready]");
+  const glass = rule(css, "[data-pointer-attract-ready] > .refractive-glass-layer");
+
+  // The target is the semantic button/link. It may publish values, but must
+  // never translate or stretch its children (including visible words/icons).
+  assert.match(target, /--pointer-drift-x: 0px/);
+  assert.match(target, /--pointer-stretch-x: 1/);
+  assert.doesNotMatch(target, /\n\s*(?:translate|scale|transform(?:-origin)?|will-change)\s*:/);
+
+  // Motion belongs to the aria-hidden refractive layer, which is a direct
+  // child of the control and paints underneath its regular content.
+  assert.match(glass, /translate: var\(--pointer-drift-x\) var\(--pointer-drift-y\)/);
+  assert.match(glass, /scale: var\(--pointer-stretch-x\) var\(--pointer-stretch-y\)/);
+  assert.match(glass, /transform-origin: var\(--pointer-origin-x\) var\(--pointer-origin-y\)/);
+  assert.match(glass, /will-change: translate, scale/);
+  assert.match(css, /\[data-pointer-attract-ready\]\[data-pointer-attracting\] > \.refractive-glass-layer \{[\s\S]*?transition-duration:/);
+  assert.match(css, /\[data-pointer-attract-ready\]\[data-pointer-attract-touch\] > \.refractive-glass-layer \{[\s\S]*?transition-duration:/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\[data-pointer-attract-ready\] > \.refractive-glass-layer \{[\s\S]*?translate: none;[\s\S]*?scale: none;[\s\S]*?transition: none/);
+
+  // Segmented controls use a dedicated selector layer. Do not also apply the
+  // generic attraction marker to their individual text buttons.
+  for (const control of [
+    ".theme-toggle-base",
+    ".interval-toggle-base",
+    ".panel-toggle-base",
+    ".speaking-engine-picker",
+    ".organization-view-tabs",
+  ]) {
+    assert.match(engine, new RegExp(control.replace(/\./g, "\\.")));
+  }
+  assert.equal((engine.match(/target\.closest\(FLOWING_CONTROL\)/g) ?? []).length, 2);
+  assert.match(engine, /REFRACTIVE_GLASS_LAYER = ":scope > \.refractive-glass-layer"/);
+  assert.match(engine, /function hasDirectRefractiveGlassLayer\(target: HTMLElement\)/);
+  assert.match(engine, /return hasDirectRefractiveGlassLayer\(target\) \? target : null/);
+  assert.match(engine, /if \(!hasDirectRefractiveGlassLayer\(target\)\) return null/);
+});
+
+test("a stretched lens suppresses the static control rim without removing focus", () => {
+  const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
+  const active = rule(css, "[data-pointer-attract-ready][data-pointer-attracting]");
+  const activeGlass = rule(css, ".pointer-attract-glass[data-pointer-attracting]");
+
+  assert.match(active, /border-color: transparent/);
+  assert.match(activeGlass, /border-color: transparent/);
+  assert.match(activeGlass, /box-shadow: none/);
+  assert.doesNotMatch(active, /outline\s*:\s*(?:none|0)/);
+});
+
+test("each flowing tab or filter puts its glass selector behind static labels", () => {
+  const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
+  const contracts = [
+    ["components/ThemeToggle.tsx", "theme-toggle-selector"],
+    ["components/account/NotificationInbox.tsx", "notification-filter-selector"],
+    ["app/pricing/PricingPlans.tsx", "interval-toggle-selector"],
+    ["components/exam/SwipePanels.tsx", "panel-toggle-selector"],
+    ["components/speaking/SpeakingSession.tsx", "speaking-engine-selector"],
+    ["components/organization/OrganizationPortal.tsx", "organization-view-selector"],
+    ["components/SiteHeader.tsx", "nav-primary-selector"],
+    ["components/SiteHeader.tsx", "nav-menu-selector"],
+  ];
+
+  for (const [file, selector] of contracts) {
+    const source = readFileSync(join(process.cwd(), file), "utf8");
+    const selectorIndex = source.indexOf(selector);
+    assert.notEqual(selectorIndex, -1, `${selector} must be rendered`);
+    const surrounding = source.slice(Math.max(0, selectorIndex - 1_000), selectorIndex + 4_000);
+
+    assert.match(surrounding, new RegExp(`<span[^>]*${selector}[^>]*aria-hidden=\"true\"`));
+    // Speaking shares its visible option component below the picker, while
+    // the other controls render their labels inline. In both cases content is
+    // raised above the selector in the same component module.
+    assert.match(source, /className=(?:\{`[^`]*|")[^\n]*\brelative z-10\b/);
+
+    const paintedRule = ruleContaining(css, `.${selector}`, "pointer-events: none");
+    assert.ok(paintedRule, `${selector} must be a non-interactive painted layer`);
+  }
 });

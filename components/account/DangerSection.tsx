@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 /*
   Closing the account for good.
@@ -29,26 +30,65 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [deleted, setDeleted] = useState(false);
 
   async function remove() {
     setBusy(true);
     setProblem(null);
+    setProgress("Checking everything linked to your account…");
+
+    const request = new AbortController();
+    const slower = window.setTimeout(() => {
+      setProgress("Still checking every place your data is stored…");
+    }, 6_000);
+    let rejectDeadline: ((reason?: unknown) => void) | null = null;
+    const deadline = new Promise<never>((_, reject) => {
+      rejectDeadline = reject;
+    });
+    const timeout = window.setTimeout(() => {
+      request.abort();
+      rejectDeadline?.(new DOMException("Timed out", "AbortError"));
+    }, 30_000);
+
     try {
-      const res = await authedFetch(apiUrl("/api/account/delete"), {
+      const response = authedFetch(apiUrl("/api/account/delete"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirm: "DELETE" }),
+        signal: request.signal,
       });
+      // `authedFetch` may refresh an expired session before it starts the
+      // request. Bound the whole operation, not only the final fetch, so this
+      // screen can never remain on an endless spinner.
+      const res = await Promise.race([
+        response,
+        deadline,
+      ]);
       if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
+        const body = await res.json().catch(() => ({})) as { error?: string };
         setProblem(body.error ?? "That didn't work. Please try again.");
         setBusy(false);
+        setProgress(null);
+        setRetrying(true);
         return;
       }
-      onDeleted();
-    } catch {
-      setProblem("That didn't work. Please try again.");
+      setDeleted(true);
       setBusy(false);
+      setProgress(null);
+      onDeleted();
+    } catch (error) {
+      const timedOut = error instanceof DOMException && error.name === "AbortError";
+      setProblem(timedOut
+        ? "BandUp did not receive a final answer within 30 seconds. Deletion may still be finishing; press Check deletion status to safely continue."
+        : "That didn't work. Please try again.");
+      setBusy(false);
+      setProgress(null);
+      setRetrying(true);
+    } finally {
+      window.clearTimeout(slower);
+      window.clearTimeout(timeout);
     }
   }
 
@@ -66,7 +106,14 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
         Removes your account and everything stored against it. It cannot be undone.
       </p>
 
-      {!open ? (
+      {deleted ? (
+        <p
+          className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[15px] leading-7 text-emerald-800"
+          role="status"
+        >
+          <LoadingIndicator label="Your account was deleted. Returning to sign in…" announce={false} />
+        </p>
+      ) : !open ? (
         <button type="button" className="btn-secondary mt-3" onClick={() => setOpen(true)}>
           Delete my account
         </button>
@@ -85,8 +132,14 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
             className="input"
             value={confirm}
             autoComplete="off"
+            disabled={busy}
             onChange={(e) => setConfirm(e.target.value)}
           />
+          {progress && (
+            <p className="text-[14px] leading-6 text-slate-600" role="status" aria-live="polite">
+              <LoadingIndicator label={progress} announce={false} />
+            </p>
+          )}
           {problem && (
             <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[15px] leading-7 text-rose-800">
               {problem}
@@ -99,9 +152,14 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
               disabled={busy || confirm.trim().toUpperCase() !== "DELETE"}
               onClick={remove}
             >
-              {busy ? "Deleting…" : "Delete permanently"}
+              {busy ? <LoadingIndicator label="Deleting securely…" announce={false} /> : retrying ? "Check deletion status" : "Delete permanently"}
             </button>
-            <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={busy}
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </button>
           </div>

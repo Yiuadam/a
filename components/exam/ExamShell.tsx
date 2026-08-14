@@ -77,6 +77,7 @@ export default function ExamShell({
   bottomLeft,
   bottomRight,
   comfortableGutter = false,
+  edgeToEdgeOnPhone = false,
   children,
 }: {
   /** "Reading", "Listening" — what the exam calls this part. */
@@ -119,13 +120,28 @@ export default function ExamShell({
    * computer-exam frame.
    */
   comfortableGutter?: boolean;
+  /**
+   * Let a content-heavy paper use the phone's width without changing its
+   * desktop frame. Writing uses this because a frame, a paper inset and a
+   * panel inset together leave too little room for a task, figure and answer.
+   * From `sm` upwards the ordinary (or comfortable) frame is restored.
+   */
+  edgeToEdgeOnPhone?: boolean;
   children: ReactNode;
 }) {
   const display = useExamDisplay();
   const vars = SCHEME_VARS[display.scheme] ?? SCHEME_VARS.standard;
-  const frameSize = comfortableGutter
-    ? "m-3 h-[calc(100dvh-5.25rem)] w-[calc(100%-1.5rem)] sm:m-4 sm:h-[calc(100dvh-5.75rem)] sm:w-[calc(100%-2rem)]"
-    : "m-1 h-[calc(100dvh-4.25rem)] w-[calc(100%-0.5rem)] sm:m-2 sm:h-[calc(100dvh-4.75rem)] sm:w-[calc(100%-1rem)]";
+  const frameSize = edgeToEdgeOnPhone
+    ? comfortableGutter
+      ? "m-0 h-[calc(100dvh-4rem)] w-full sm:m-4 sm:h-[calc(100dvh-5.75rem)] sm:w-[calc(100%-2rem)]"
+      : "m-0 h-[calc(100dvh-4rem)] w-full sm:m-2 sm:h-[calc(100dvh-4.75rem)] sm:w-[calc(100%-1rem)]"
+    : comfortableGutter
+      ? "m-3 h-[calc(100dvh-5.25rem)] w-[calc(100%-1.5rem)] sm:m-4 sm:h-[calc(100dvh-5.75rem)] sm:w-[calc(100%-2rem)]"
+      : "m-1 h-[calc(100dvh-4.25rem)] w-[calc(100%-0.5rem)] sm:m-2 sm:h-[calc(100dvh-4.75rem)] sm:w-[calc(100%-1rem)]";
+  const frameSurface = edgeToEdgeOnPhone
+    ? "rounded-none border-0 shadow-none sm:rounded-2xl sm:border sm:border-[color:var(--exam-line)] sm:shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)]"
+    : "rounded-xl border border-[color:var(--exam-line)] shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)] sm:rounded-2xl";
+  const paperInset = edgeToEdgeOnPhone ? "px-2 py-2 sm:px-4" : "px-3 py-2 sm:px-4";
 
   return (
     <div
@@ -172,7 +188,7 @@ export default function ExamShell({
         is still taller than the window — the site footer is below all of
         this — but the exam does not depend on scrolling to it.
       */
-      className={`${frameSize} flex min-h-[26rem] flex-col overflow-hidden rounded-xl border border-[color:var(--exam-line)] bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)] shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)] sm:rounded-2xl`}
+      className={`${frameSize} ${frameSurface} flex min-h-[26rem] flex-col overflow-hidden bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)]`}
     >
       <header className="exam-shell-header exam-glass z-50 m-2 mb-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-b-2 border-b-[color:var(--exam-accent)] px-3 py-1.5 sm:rounded-2xl">
         {/*
@@ -208,7 +224,7 @@ export default function ExamShell({
         independent. A page that wants one scrolling column puts its own
         overflow-y-auto in here.
       */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-2 sm:px-4">{children}</div>
+      <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${paperInset}`}>{children}</div>
 
       {palette && palette.length > 0 ? (
         <QuestionPalette

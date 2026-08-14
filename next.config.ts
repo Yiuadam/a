@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 /*
   Two build targets from one codebase:
@@ -11,6 +12,21 @@ import type { NextConfig } from "next";
     deployed /api routes over the network via NEXT_PUBLIC_API_BASE.
 */
 const isMobile = process.env.MOBILE_BUILD === "1";
+
+/*
+  `next dev` normally has no Cloudflare bindings. The organization/data
+  migration is developed against an isolated local D1/R2 pair declared in
+  wrangler.preview.jsonc, so the exact same binding API runs here and in a
+  Cloudflare preview Worker. Production remains on wrangler.jsonc until the
+  copy, verification and rollback rehearsal have all passed.
+*/
+if (!isMobile && process.env.NODE_ENV === "development") {
+  void initOpenNextCloudflareForDev({
+    configPath: "wrangler.preview.jsonc",
+    remoteBindings: false,
+    persist: { path: ".wrangler/state/v3" },
+  });
+}
 
 /*
   Closed for maintenance — see lib/maintenance.ts. Read here as well as there
@@ -27,6 +43,50 @@ const nextConfig: NextConfig = isMobile
       trailingSlash: true,
     }
   : {
+      // The development route indicator is a fixed black badge that sits over
+      // the bottom-left of the page. On phone-sized previews it covers the
+      // Grammar/Vocabulary cards, so keep diagnostics in the dev overlay and
+      // terminal without rendering that badge on top of BandUp's interface.
+      devIndicators: false,
+      /*
+        Keep identity, cookies and cached documents on one public origin.
+
+        Google Identity Services authorises an exact JavaScript origin, so a
+        www account page is not equivalent to the apex account page. Cloudflare
+        also overwrites X-Forwarded-Proto with the visitor's actual scheme, and
+        OpenNext retains that header while evaluating this redirect table. The
+        scheme condition can therefore safely upgrade direct HTTP apex visits
+        without affecting localhost or the organisation preview.
+
+        Host expressions are explicitly anchored. Next anchors them as well,
+        while OpenNext evaluates the route-manifest expression directly; the
+        explicit anchors ensure a lookalike host can never be a partial match.
+        Query parameters that are not replaced in the destination are carried
+        across by Next's redirect handling.
+      */
+      async redirects() {
+        return [
+          {
+            source: "/:path*",
+            has: [{ type: "host", value: "^www\\.bandup\\.life$" }],
+            destination: "https://bandup.life/:path*",
+            permanent: true,
+          },
+          {
+            source: "/:path*",
+            has: [
+              { type: "host", value: "^bandup\\.life$" },
+              {
+                type: "header",
+                key: "x-forwarded-proto",
+                value: "^http$",
+              },
+            ],
+            destination: "https://bandup.life/:path*",
+            permanent: true,
+          },
+        ];
+      },
       /*
         Cross-origin isolation, for the speaking test only.
 
@@ -77,7 +137,9 @@ const nextConfig: NextConfig = isMobile
             own far-future caching. Only documents lose theirs.
           */
           {
-            source: "/((?!_next/static|_next/image).*)",
+            // Authenticated API handlers own their stricter private/no-store
+            // policy. Never overwrite it with a cacheable document header.
+            source: "/((?!api(?:/|$)|_next/static|_next/image).*)",
             headers: [
               {
                 key: "Cache-Control",

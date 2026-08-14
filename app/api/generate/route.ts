@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaudeJSON, hasApiKey, NO_KEY_MESSAGE } from "@/lib/anthropic";
+import { requireFeature } from "@/lib/billing/gate";
 import { checkAiUsage } from "@/lib/usage/guard";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 import { withCors } from "@/lib/http/cors";
@@ -103,9 +104,6 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ error: NO_KEY_MESSAGE }, { status: 503 });
   }
 
-  const denied = await checkAiUsage(req, "generate");
-  if (denied) return denied;
-
   let body: { kind: "reading" | "listening"; difficulty: "medium" | "hard"; topicHint?: string };
   try {
     body = await req.json();
@@ -120,6 +118,11 @@ async function handlePOST(req: Request) {
   const id = `gen-${kind}-${Date.now()}`;
   // The body is untrusted: only accept a string hint, and bound its length.
   const hint = typeof topicHint === "string" ? topicHint.slice(0, 200) : undefined;
+
+  const unentitled = await requireFeature(req, "generate");
+  if (unentitled) return unentitled;
+  const denied = await checkAiUsage(req, "generate");
+  if (denied) return denied;
 
   const system =
     "You are an expert IELTS exam content writer. Write ORIGINAL content that faithfully matches authentic IELTS format, register, difficulty calibration, and question style. Never reproduce real past-paper content.";

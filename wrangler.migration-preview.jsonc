@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bandup-migration-validation",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-12",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": false,
+  "keep_vars": true,
+  "d1_databases": [
+    {
+      "binding": "BANDUP_DB",
+      "database_name": "bandup-data-preview",
+      "database_id": "cb197fe4-6f3c-49da-bfff-cb9195eaa256",
+      "preview_database_id": "cb197fe4-6f3c-49da-bfff-cb9195eaa256",
+      "migrations_dir": "cloudflare/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BANDUP_FILES",
+      "bucket_name": "bandup-files-preview"
+    }
+  ]
+}

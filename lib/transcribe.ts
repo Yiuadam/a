@@ -31,6 +31,18 @@ import { isNative, nativeWhisper, nativeWhisperAvailable } from "./native";
 
 export type LocalModelId = "tiny.en" | "base.en";
 
+/** A failure before the model bytes were available, rather than a WASM error. */
+export class LocalModelDownloadError extends Error {
+  constructor() {
+    super("Could not download the speech model.");
+    this.name = "LocalModelDownloadError";
+  }
+}
+
+export function isLocalModelDownloadError(error: unknown): error is LocalModelDownloadError {
+  return error instanceof LocalModelDownloadError;
+}
+
 export interface LocalModel {
   id: LocalModelId;
   /** Whisper's own name for the weights file. */
@@ -59,14 +71,14 @@ export const LOCAL_MODELS: Record<LocalModelId, LocalModel> = {
     id: "base.en",
     file: "ggml-base.en.bin",
     label: "Accurate",
-    bytes: 148_000_000,
+    bytes: 147_964_211,
     note: "About 145 MB, downloaded once. The more accurate of the two.",
   },
   "tiny.en": {
     id: "tiny.en",
     file: "ggml-tiny.en.bin",
     label: "Light",
-    bytes: 78_000_000,
+    bytes: 77_704_715,
     note: "About 75 MB and quicker, but it makes more mistakes.",
   },
 };
@@ -76,18 +88,28 @@ export const DEFAULT_LOCAL_MODEL: LocalModelId = "base.en";
 /*
   Where the weights come from. Hugging Face serves the canonical whisper.cpp
   ggml files with permissive CORS, which is what lets the browser fetch them
-  directly. The repository was renamed when whisper.cpp moved to the ggml-org
-  organisation and the old name still redirects, but rather than bet on a
-  redirect surviving, both are tried in order.
+  directly. The public weights remain in ggerganov/whisper.cpp; a short-lived
+  ggml-org mirror now returns an authenticated 401, so it must not be used as a
+  fallback that turns one recoverable network interruption into a hard error.
 */
-const MODEL_HOSTS = [
+const MODEL_HOSTS = [...new Set([
   process.env.NEXT_PUBLIC_WHISPER_MODEL_BASE,
   "https://huggingface.co/ggerganov/whisper.cpp/resolve/main",
-  "https://huggingface.co/ggml-org/whisper.cpp/resolve/main",
-].filter((h): h is string => Boolean(h));
+].filter((h): h is string => Boolean(h)))];
 
 const CACHE_NAME = "bandup-whisper-v1";
 const SHOUT_URL = "/whisper/shout.wasm.js";
+const DOWNLOAD_ATTEMPTS = 3;
+
+/**
+ * Direct Hugging Face remains the normal path. The constrained same-origin
+ * route is a fallback for a school, network or region that blocks that host.
+ */
+export function modelDownloadUrls(model: LocalModelId): string[] {
+  const file = LOCAL_MODELS[model].file;
+  const direct = MODEL_HOSTS.map((host) => `${host.replace(/\/+$/, "")}/${file}`);
+  return [...direct, `/api/speech-model?model=${encodeURIComponent(file)}`];
+}
 
 export type LocalPhase = "recording" | "downloading" | "loading" | "transcribing";
 
@@ -255,21 +277,111 @@ function cacheKey(model: LocalModelId): string {
   return `https://bandup.local/whisper/${LOCAL_MODELS[model].file}`;
 }
 
-async function fetchWithProgress(url: string, expected: number, onStatus: StatusListener) {
-  const res = await fetch(url, { mode: "cors", credentials: "omit" });
-  if (!res.ok || !res.body) throw new Error(`model fetch failed: ${res.status}`);
-  const total = Number(res.headers.get("content-length")) || expected;
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.byteLength;
-    onStatus({ phase: "downloading", percent: Math.min(99, (received / total) * 100) });
+function partialCacheKey(model: LocalModelId): string {
+  return `${cacheKey(model)}?partial=1`;
+}
+
+function retryDelay(attempt: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+}
+
+function contentRangeStart(value: string | null): { start: number; total: number } | null {
+  const match = value?.match(/^bytes (\d+)-\d+\/(\d+)$/i);
+  if (!match) return null;
+  return { start: Number(match[1]), total: Number(match[2]) };
+}
+
+/**
+ * Download one exact model file, retaining bytes already received when a
+ * connection drops. Hugging Face's model CDN supports a single byte range, so
+ * a retry asks only for the missing suffix rather than restarting a 148 MB
+ * download. `checkpoint` lets the caller put that prefix in Cache Storage,
+ * which also makes a second press of Retry resume the first press.
+ */
+export async function fetchModelWithProgress(
+  url: string,
+  expected: number,
+  onStatus: StatusListener,
+  initial: Blob | null = null,
+  checkpoint?: (partial: Blob) => Promise<void>,
+  attempts = DOWNLOAD_ATTEMPTS,
+): Promise<Blob> {
+  let chunks: BlobPart[] = initial && initial.size > 0 && initial.size < expected
+    ? [initial]
+    : [];
+  let received = initial && initial.size > 0 && initial.size < expected ? initial.size : 0;
+  let lastError: unknown = null;
+
+  onStatus({ phase: "downloading", percent: Math.min(99, (received / expected) * 100) });
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const resumeAt = received;
+      const res = await fetch(url, {
+        mode: "cors",
+        credentials: "omit",
+        headers: resumeAt > 0 ? { Range: `bytes=${resumeAt}-${expected - 1}` } : undefined,
+      });
+
+      if (!res.ok || !res.body) {
+        if (res.status === 416 && resumeAt > 0) {
+          chunks = [];
+          received = 0;
+        }
+        throw new Error(`model fetch failed: ${res.status}`);
+      }
+
+      if (resumeAt > 0 && res.status === 206) {
+        const range = contentRangeStart(res.headers.get("content-range"));
+        if (!range || range.start !== resumeAt || range.total !== expected) {
+          chunks = [];
+          received = 0;
+          throw new Error("model server returned the wrong byte range");
+        }
+      } else if (resumeAt > 0) {
+        // Some mirrors ignore Range and send the complete file with 200. That
+        // is still usable, but the saved prefix must not be prepended twice.
+        chunks = [];
+        received = 0;
+      }
+
+      const reader = res.body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (received + value.byteLength > expected) {
+          chunks = [];
+          received = 0;
+          throw new Error("speech model was larger than expected");
+        }
+        chunks.push(value);
+        received += value.byteLength;
+        onStatus({
+          phase: "downloading",
+          percent: Math.min(99, (received / expected) * 100),
+        });
+      }
+
+      if (received !== expected) {
+        throw new Error(`speech model download ended at ${received} of ${expected} bytes`);
+      }
+      onStatus({ phase: "downloading", percent: 100 });
+      return new Blob(chunks, { type: "application/octet-stream" });
+    } catch (error) {
+      lastError = error;
+      if (checkpoint && received >= 4 && received < expected) {
+        try {
+          await checkpoint(new Blob(chunks, { type: "application/octet-stream" }));
+        } catch {
+          // Private browsing or a full cache only removes cross-press resume;
+          // the prefix is still retained in memory for the immediate retry.
+        }
+      }
+      if (attempt + 1 < attempts) await retryDelay(attempt);
+    }
   }
-  return new Blob(chunks as BlobPart[], { type: "application/octet-stream" });
+
+  throw lastError instanceof Error ? lastError : new Error("model fetch failed");
 }
 
 /**
@@ -287,15 +399,32 @@ async function fetchWithProgress(url: string, expected: number, onStatus: Status
   "Starting the speech model" for ever. Every ggml file opens with those four
   bytes, and none of them is a tenth of the size of the smallest real model.
 */
-async function looksLikeGgml(blob: Blob): Promise<boolean> {
-  if (blob.size < 10_000_000) return false;
+/**
+ * GGML writes its 32-bit magic number little-endian. Its four bytes therefore
+ * appear on disk as `lmgg`, not the human-readable `ggml`. Compare the
+ * integer, rather than a byte-order-dependent string, so genuine Whisper
+ * weights are not discarded after a successful download.
+ */
+export function isWhisperGgmlHeader(bytes: Uint8Array): boolean {
+  if (bytes.byteLength < 4) return false;
+  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0, true)
+    === 0x67676d6c;
+}
+
+async function hasGgmlMagic(blob: Blob): Promise<boolean> {
+  if (blob.size < 4) return false;
   const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
-  return head[0] === 0x67 && head[1] === 0x67 && head[2] === 0x6d && head[3] === 0x6c;
+  return isWhisperGgmlHeader(head);
+}
+
+async function looksLikeGgml(blob: Blob): Promise<boolean> {
+  return blob.size >= 10_000_000 && await hasGgmlMagic(blob);
 }
 
 async function loadModelBlob(model: LocalModelId, onStatus: StatusListener): Promise<Blob> {
   const cache = await openCache();
   const key = cacheKey(model);
+  const partialKey = partialCacheKey(model);
   const cached = await cache?.match(key);
   if (cached) {
     const blob = await cached.blob();
@@ -305,21 +434,50 @@ async function loadModelBlob(model: LocalModelId, onStatus: StatusListener): Pro
     await cache?.delete(key);
   }
 
+  let partial: Blob | null = null;
+  const savedPartial = await cache?.match(partialKey);
+  if (savedPartial) {
+    const candidate = await savedPartial.blob();
+    if (
+      candidate.size > 0
+      && candidate.size < LOCAL_MODELS[model].bytes
+      && await hasGgmlMagic(candidate)
+    ) {
+      partial = candidate;
+    } else {
+      await cache?.delete(partialKey);
+    }
+  }
+
   // Announce the download before asking for it: the first byte can be a second
   // or two away, and a silent second or two reads as nothing happening.
   onStatus({ phase: "downloading", percent: 0 });
 
-  const file = LOCAL_MODELS[model].file;
   let lastError: unknown = null;
-  for (const host of MODEL_HOSTS) {
+  for (const url of modelDownloadUrls(model)) {
     try {
-      const blob = await fetchWithProgress(`${host}/${file}`, LOCAL_MODELS[model].bytes, onStatus);
+      const blob = await fetchModelWithProgress(
+        url,
+        LOCAL_MODELS[model].bytes,
+        onStatus,
+        partial,
+        async (checkpoint) => {
+          partial = checkpoint;
+          await cache?.put(partialKey, new Response(checkpoint));
+        },
+        // A blocked remote host should move promptly to the next route. The
+        // same-origin fallback gets retries because it is under our control.
+        url.startsWith("/api/speech-model?") ? DOWNLOAD_ATTEMPTS : 1,
+      );
       if (!(await looksLikeGgml(blob))) {
         lastError = new Error("what came back is not a speech model");
+        partial = null;
+        await cache?.delete(partialKey);
         continue;
       }
       try {
         await cache?.put(key, new Response(blob));
+        await cache?.delete(partialKey);
       } catch {
         // Out of quota: keep going with what is already in memory.
       }
@@ -328,9 +486,10 @@ async function loadModelBlob(model: LocalModelId, onStatus: StatusListener): Pro
       lastError = err;
     }
   }
-  throw new Error(
-    `Could not download the speech model. ${lastError instanceof Error ? lastError.message : ""}`.trim(),
-  );
+  // Keep upstream details out of the learner-facing UI. The caller still
+  // distinguishes this from a later WASM/runtime-init failure.
+  void lastError;
+  throw new LocalModelDownloadError();
 }
 
 /** Forget the downloaded weights — offered in the UI so 145 MB is reclaimable. */

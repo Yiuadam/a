@@ -27,6 +27,7 @@ export const SERVER_ONLY_ENV_VARS = [
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_ANON_KEY",
+  "AVATAR_URL_SIGNING_KEY",
   "USAGE_IP_HASH_SALT",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
@@ -103,6 +104,11 @@ export function supabaseConfig(): SupabaseConfig | null {
   const anonKey = secret("SUPABASE_ANON_KEY");
   if (!url || !serviceRoleKey || !anonKey) return null;
   return { url: url.replace(/\/$/, ""), serviceRoleKey, anonKey };
+}
+
+/** HMAC key for short-lived private R2 avatar delivery grants. */
+export function avatarUrlSigningKey(): string | undefined {
+  return secret("AVATAR_URL_SIGNING_KEY");
 }
 
 /**

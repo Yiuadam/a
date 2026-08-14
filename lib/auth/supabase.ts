@@ -1,5 +1,10 @@
 import { assertServerOnly } from "./server-only";
 import { supabaseConfig } from "./env";
+import { readAccountKind } from "./account-identity";
+import type {
+  ProgressSnapshotExpectation,
+  ProgressSnapshotMutation,
+} from "@/lib/progress/server-snapshots";
 
 /*
   A deliberately small Supabase client.
@@ -99,6 +104,50 @@ export async function rpcDiagnostic(
   return { ok: res.ok, status: res.status, detail: body.slice(0, 600) };
 }
 
+export interface AppSettingRecord {
+  key: string;
+  value: unknown;
+  updatedAt: string;
+  updatedBy: string | null;
+}
+
+/**
+ * Fixed service-role read used by the temporary Cloudflare parity bridge.
+ *
+ * This intentionally exposes one named operation rather than a generic table
+ * query. The caller needs the authoritative Postgres clock as well as the JSON
+ * value; `get_app_setting` returns only the value and cannot prove that an
+ * ordered D1 replica has caught up.
+ */
+export async function getAppSettingRecord(key: string): Promise<AppSettingRecord | null> {
+  if (key.length < 1 || key.length > 120 || key.includes("\0")) {
+    throw new SupabaseError("app setting key is invalid");
+  }
+  const res = await request(
+    `/rest/v1/app_settings?key=eq.${encodeURIComponent(key)}`
+      + "&select=key,value,updated_at,updated_by&limit=1",
+    { method: "GET", asServiceRole: true },
+  );
+  if (!res.ok) throw new SupabaseError(`app setting read failed with ${res.status}`);
+  const rows = (await res.json()) as Record<string, unknown>[];
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row) return null;
+  if (
+    row.key !== key
+    || typeof row.updated_at !== "string"
+    || !Number.isFinite(Date.parse(row.updated_at))
+    || (row.updated_by !== null && typeof row.updated_by !== "string")
+  ) {
+    throw new SupabaseError("app setting response is invalid");
+  }
+  return {
+    key,
+    value: row.value,
+    updatedAt: new Date(row.updated_at).toISOString(),
+    updatedBy: typeof row.updated_by === "string" ? row.updated_by : null,
+  };
+}
+
 /**
  * Emails a one-time sign-in link.
  *
@@ -170,37 +219,68 @@ export async function enabledOAuthProviders(): Promise<string[] | null> {
 
 export interface Profile {
   displayName: string | null;
+  username: string | null;
+  accountKind: import("./account-identity").AccountKind | null;
   avatarPath: string | null;
   birthDate: string | null;
   email: string | null;
+  /** Authoritative profile row clock used to order the temporary D1 mirror. */
+  updatedAt: string | null;
 }
 
-function readProfileRow(row: Record<string, unknown>): Profile {
+/**
+ * Read only the retired account-kind value while saving identity. Unlike the
+ * optional profile presentation read, storage failures throw so callers can
+ * fail closed instead of confusing an outage with an empty legacy field.
+ */
+export async function getAccountKind(
+  userId: string,
+): Promise<import("./account-identity").AccountKind | null> {
+  const res = await request(
+    `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=account_kind`,
+    { method: "GET", asServiceRole: true },
+  );
+  if (!res.ok) throw new SupabaseError(`profile account kind read failed with ${res.status}`);
+  const rows = (await res.json()) as Record<string, unknown>[];
+  if (!Array.isArray(rows)) throw new SupabaseError("profile account kind response is invalid");
+  return rows[0] ? readAccountKind(rows[0].account_kind) : null;
+}
+
+function readProfileRow(row: Record<string, unknown>, username: string | null): Profile {
   const str = (v: unknown) => (typeof v === "string" && v.length > 0 ? v : null);
   return {
     displayName: str(row.display_name),
+    username,
+    accountKind: readAccountKind(row.account_kind),
     avatarPath: str(row.avatar_path),
     birthDate: str(row.birth_date),
     email: str(row.email),
+    updatedAt: str(row.updated_at),
   };
 }
 
 /** The caller's own profile row. Null when it cannot be read. */
 export async function getProfile(userId: string): Promise<Profile | null> {
   let res: Response;
+  let usernameRes: Response;
   try {
-    res = await request(
+    [res, usernameRes] = await Promise.all([request(
       `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}` +
-        `&select=display_name,avatar_path,birth_date,email`,
+        `&select=display_name,avatar_path,birth_date,email,account_kind,updated_at`,
       { method: "GET", asServiceRole: true },
-    );
+    ), request(
+      `/rest/v1/usernames?user_id=eq.${encodeURIComponent(userId)}&select=username`,
+      { method: "GET", asServiceRole: true },
+    )]);
   } catch {
     return null;
   }
-  if (!res.ok) return null;
+  if (!res.ok || !usernameRes.ok) return null;
   try {
     const rows = (await res.json()) as Record<string, unknown>[];
-    return Array.isArray(rows) && rows[0] ? readProfileRow(rows[0]) : null;
+    const usernames = (await usernameRes.json()) as { username?: unknown }[];
+    const username = typeof usernames?.[0]?.username === "string" ? usernames[0].username : null;
+    return Array.isArray(rows) && rows[0] ? readProfileRow(rows[0], username) : null;
   } catch {
     return null;
   }
@@ -217,12 +297,13 @@ export async function getProfile(userId: string): Promise<Profile | null> {
  */
 export async function updateProfile(
   userId: string,
-  fields: Partial<Pick<Profile, "displayName" | "birthDate" | "avatarPath">>,
+  fields: Partial<Pick<Profile, "displayName" | "birthDate" | "avatarPath" | "accountKind">>,
 ): Promise<boolean> {
   const patch: Record<string, unknown> = {};
   if ("displayName" in fields) patch.display_name = fields.displayName;
   if ("birthDate" in fields) patch.birth_date = fields.birthDate;
   if ("avatarPath" in fields) patch.avatar_path = fields.avatarPath;
+  if ("accountKind" in fields) patch.account_kind = fields.accountKind;
   if (Object.keys(patch).length === 0) return true;
 
   try {
@@ -235,6 +316,125 @@ export async function updateProfile(
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+export type AccountIdentityStatus =
+  | "ok"
+  | "invalid_display_name"
+  | "invalid_account_kind"
+  | "invalid_username"
+  | "reserved_username"
+  | "taken_username"
+  | "missing_profile";
+
+export async function setAccountIdentity(
+  userId: string,
+  displayName: string,
+  username: string,
+  accountKind: import("./account-identity").AccountKind,
+  birthDate: string | null,
+): Promise<AccountIdentityStatus> {
+  return rpc<AccountIdentityStatus>("set_account_identity", {
+    p_user_id: userId,
+    p_display_name: displayName,
+    p_username: username,
+    p_account_kind: accountKind,
+    p_birth_date: birthDate,
+  });
+}
+
+export type UsernameClaimStatus = "ok" | "invalid" | "reserved" | "taken";
+
+/** Atomically claims or changes one username through the service-role RPC. */
+export async function claimUsername(
+  userId: string,
+  username: string,
+): Promise<UsernameClaimStatus> {
+  return rpc<UsernameClaimStatus>("claim_username", {
+    p_user_id: userId,
+    p_username: username,
+  });
+}
+
+export async function emailForUsername(username: string): Promise<string | null> {
+  try {
+    return await rpc<string | null>("email_for_username", { p_username: username });
+  } catch {
+    return null;
+  }
+}
+
+export interface StripeSubscriptionReplica {
+  id: string;
+  userId: string;
+  status: string;
+  tier: string;
+  customerId: string | null;
+  subscriptionId: string;
+  priceId: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  providerEventAt: string | null;
+  verifiedAt: string;
+  raw: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Fixed service-role read of the Stripe row that Supabase just committed.
+ * Duplicate and stale webhook deliveries use this current row for D1 repair,
+ * rather than replaying the older delivery as though it were authoritative.
+ */
+export async function stripeSubscriptionReplica(
+  externalSubscriptionId: string,
+): Promise<StripeSubscriptionReplica | null> {
+  if (!externalSubscriptionId || externalSubscriptionId.length > 255) return null;
+  try {
+    const res = await request(
+      "/rest/v1/subscriptions?provider=eq.stripe" +
+        `&external_subscription_id=eq.${encodeURIComponent(externalSubscriptionId)}` +
+        "&select=id,user_id,status,tier,external_customer_id,external_subscription_id," +
+        "external_price_id,current_period_end,cancel_at_period_end,provider_event_at," +
+        "verified_at,raw,created_at,updated_at&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Record<string, unknown>[];
+    const row = Array.isArray(rows) ? rows[0] : null;
+    const required = [
+      row?.id,
+      row?.user_id,
+      row?.status,
+      row?.tier,
+      row?.external_subscription_id,
+      row?.verified_at,
+      row?.created_at,
+      row?.updated_at,
+    ];
+    if (!row || required.some((value) => typeof value !== "string" || value.length === 0)) {
+      return null;
+    }
+    const optional = (value: unknown) => typeof value === "string" && value.length > 0 ? value : null;
+    return {
+      id: row.id as string,
+      userId: row.user_id as string,
+      status: row.status as string,
+      tier: row.tier as string,
+      customerId: optional(row.external_customer_id),
+      subscriptionId: row.external_subscription_id as string,
+      priceId: optional(row.external_price_id),
+      currentPeriodEnd: optional(row.current_period_end),
+      cancelAtPeriodEnd: row.cancel_at_period_end === true,
+      providerEventAt: optional(row.provider_event_at),
+      verifiedAt: row.verified_at as string,
+      raw: row.raw,
+      createdAt: row.created_at as string,
+      updatedAt: row.updated_at as string,
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -253,6 +453,10 @@ export async function uploadAvatar(
         apikey: config.serviceRoleKey,
         Authorization: `Bearer ${config.serviceRoleKey}`,
         "Content-Type": contentType,
+        // Every upload gets a new random path, so this object is immutable.
+        // Let the browser/CDN reuse it instead of downloading the avatar again
+        // on every page while its signed URL remains valid.
+        "Cache-Control": "max-age=31536000, immutable",
         "x-upsert": "true",
       },
       body,
@@ -338,9 +542,33 @@ export async function deleteAccount(userId: string, avatarPath: string | null): 
       method: "DELETE",
       asServiceRole: true,
     });
-    return res.ok;
+    // Repeating an account deletion is idempotent. A 404 confirms the same
+    // terminal state as a successful DELETE and is not a cleanup failure.
+    return res.ok || res.status === 404;
   } catch {
     return false;
+  }
+}
+
+export type SupabaseAuthUserState = "exists" | "deleted" | "unknown";
+
+/**
+ * Owner-only recovery probe for an account DELETE whose network result was
+ * ambiguous. A 404 is the only non-success response that proves the identity
+ * no longer exists; every other failure remains unknown and must fail closed.
+ */
+export async function supabaseAuthUserState(userId: string): Promise<SupabaseAuthUserState> {
+  if (!userId || userId.length > 80) return "unknown";
+  try {
+    const res = await request(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+      method: "GET",
+      asServiceRole: true,
+    });
+    if (res.ok) return "exists";
+    if (res.status === 404) return "deleted";
+    return "unknown";
+  } catch {
+    return "unknown";
   }
 }
 
@@ -398,36 +626,95 @@ export async function getProgressSnapshots(userId: string): Promise<ProgressSnap
   });
 }
 
+export type ProgressSnapshotCasResult =
+  | { status: "committed"; at: string }
+  | { status: "conflict" }
+  | { status: "unavailable" };
+
 /**
- * Writes one snapshot, replacing whatever was there.
+ * Atomically compare and replace one to three progress snapshots.
  *
- * Replacing rather than appending is safe only because the caller merges
- * first: sync.ts reads the account, merges it with the browser, and writes the
- * union back. A client that wrote its raw local state here would overwrite the
- * other device — which is the exact harm ACCOUNTS.md threat 5 is about.
+ * The database function takes a per-user transaction lock before comparing
+ * the expected payloads. A second device that raced the route therefore gets
+ * `conflict`; the route re-reads, merges that device's work, and retries. The
+ * function also writes the whole submitted set in one transaction, so a
+ * provider failure cannot commit just one of the three sync keys.
  */
-export async function putProgressSnapshot(
+export async function compareAndSwapProgressSnapshots(
   userId: string,
-  storeKey: string,
-  payload: unknown,
-  clientUpdatedAt: string,
-): Promise<boolean> {
-  if (!isProgressKey(storeKey)) return false;
+  expected: ProgressSnapshotExpectation[],
+  snapshots: ProgressSnapshotMutation[],
+): Promise<ProgressSnapshotCasResult> {
   try {
-    const res = await request("/rest/v1/progress_snapshots?on_conflict=user_id,store_key", {
-      method: "POST",
-      asServiceRole: true,
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({
-        user_id: userId,
-        store_key: storeKey,
-        payload,
-        client_updated_at: clientUpdatedAt,
-      }),
+    const response = await rpc<unknown>("compare_and_swap_progress_snapshots", {
+      p_user_id: userId,
+      p_expected: expected,
+      p_snapshots: snapshots,
     });
-    return res.ok;
+    const committedAt = typeof response === "string"
+      ? response
+      : Array.isArray(response)
+        && typeof (response[0] as { compare_and_swap_progress_snapshots?: unknown } | undefined)
+          ?.compare_and_swap_progress_snapshots === "string"
+          ? (response[0] as { compare_and_swap_progress_snapshots: string })
+              .compare_and_swap_progress_snapshots
+          : response === null
+            || (Array.isArray(response)
+              && (response[0] as { compare_and_swap_progress_snapshots?: unknown } | undefined)
+                ?.compare_and_swap_progress_snapshots === null)
+              ? null
+              : undefined;
+    if (committedAt === null) return { status: "conflict" };
+    if (typeof committedAt !== "string" || !Number.isFinite(Date.parse(committedAt))) {
+      return { status: "unavailable" };
+    }
+    return { status: "committed", at: committedAt };
   } catch {
-    return false;
+    return { status: "unavailable" };
+  }
+}
+
+export type OrganizationHistoryClearPolicy =
+  | "allowed"
+  | "restricted"
+  | "not-installed"
+  | "unavailable";
+
+/**
+ * Whether this learner currently belongs to an organization as a student.
+ *
+ * This is deliberately a fixed, server-only query rather than trusting the
+ * client portal response. It is used at the progress write boundary, where a
+ * hidden button is not access control. `not-installed` is distinct from a
+ * database outage: before the organization migration exists there cannot be
+ * an organization membership to protect, while an unexpected failure must
+ * not be treated as permission to delete.
+ */
+export async function organizationHistoryClearPolicy(
+  userId: string,
+): Promise<OrganizationHistoryClearPolicy> {
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/organization_memberships?user_id=eq.${encodeURIComponent(userId)}` +
+        "&role=eq.student&status=in.(active,leave_requested,suspended)&select=id&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return "unavailable";
+  }
+
+  // PostgREST returns 404 when a relation is absent from the schema cache.
+  // That is the pre-migration state, not an outage or an authorization result.
+  if (res.status === 404) return "not-installed";
+  if (!res.ok) return "unavailable";
+
+  try {
+    const rows = (await res.json()) as unknown;
+    if (!Array.isArray(rows)) return "unavailable";
+    return rows.length > 0 ? "restricted" : "allowed";
+  } catch {
+    return "unavailable";
   }
 }
 
@@ -679,6 +966,8 @@ export async function signUpWithPassword(
 export interface AuthedUser {
   id: string;
   email: string | null;
+  /** Supabase Auth registration time; application databases only mirror it. */
+  createdAt?: string | null;
 }
 
 /**
@@ -708,7 +997,11 @@ export async function userFromAccessToken(token: string): Promise<AuthedUser | n
   } catch {
     return null;
   }
-  const user = body as { id?: unknown; email?: unknown };
+  const user = body as { id?: unknown; email?: unknown; created_at?: unknown };
   if (typeof user.id !== "string" || user.id.length === 0) return null;
-  return { id: user.id, email: typeof user.email === "string" ? user.email : null };
+  return {
+    id: user.id,
+    email: typeof user.email === "string" ? user.email : null,
+    createdAt: typeof user.created_at === "string" ? user.created_at : null,
+  };
 }

@@ -156,9 +156,9 @@ export default function AdminOverviewCharts({
           type="button"
           onClick={openChooser}
           aria-haspopup="dialog"
-          className="rounded-xl border border-slate-200 bg-surface px-2.5 py-1.5 text-[11px] font-medium text-slate-600 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+          className="liquid-glass rounded-full border border-slate-200 bg-surface px-3 py-1.5 text-[11px] font-medium text-indigo-700 hover:text-indigo-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
         >
-          Customize
+          Customise
         </button>
       </div>
 
@@ -171,9 +171,9 @@ export default function AdminOverviewCharts({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-surface/70 px-4 py-5 text-center">
+        <div className="card rounded-2xl border border-dashed border-slate-300 bg-surface/70 px-4 py-5 text-center">
           <p className="text-sm font-medium text-slate-700">No overview charts selected</p>
-          <p className="mt-1 text-xs text-slate-500">Use Customize to add one or two.</p>
+          <p className="mt-1 text-xs text-slate-500">Use Customise to add one or two.</p>
         </div>
       )}
 
@@ -191,12 +191,12 @@ export default function AdminOverviewCharts({
             aria-labelledby="admin-chart-chooser-title"
             aria-describedby="admin-chart-chooser-description"
             tabIndex={-1}
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-surface p-4 shadow-xl focus:outline-none sm:p-5"
+            className="liquid-glass max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-[var(--radius-2xl)] border border-slate-200 bg-surface p-4 shadow-xl focus:outline-none sm:p-5"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 id="admin-chart-chooser-title" className="text-base font-semibold text-slate-900">
-                  Customize overview
+                  Customise overview
                 </h2>
                 <p
                   id="admin-chart-chooser-description"
@@ -209,7 +209,7 @@ export default function AdminOverviewCharts({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close chart chooser"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xl leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+                className="liquid-glass flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-xl leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
               >
                 ×
               </button>
@@ -285,7 +285,7 @@ function ChartSlot({
   ];
 
   return (
-    <fieldset className="rounded-2xl border border-slate-200 p-3">
+    <fieldset className="card rounded-2xl border border-slate-200 p-3">
       <legend className="px-1 text-xs font-semibold text-slate-700">{title}</legend>
       <div className="space-y-1.5">
         {choices.map((choice) => {
@@ -296,7 +296,7 @@ function ChartSlot({
               key={choice.id}
               className={`flex cursor-pointer gap-2.5 rounded-xl border px-3 py-2 transition-colors ${
                 checked
-                  ? "border-amber-400 bg-amber-50/70"
+                  ? "border-indigo-400 bg-indigo-50/70"
                   : "border-transparent hover:border-slate-200 hover:bg-slate-50"
               } ${disabled ? "cursor-not-allowed opacity-45" : ""}`}
             >
@@ -307,7 +307,7 @@ function ChartSlot({
                 checked={checked}
                 disabled={disabled}
                 onChange={() => onChoose(choice.id)}
-                className="mt-0.5 accent-amber-600"
+                className="mt-0.5 accent-indigo-600"
               />
               <span className="min-w-0">
                 <span className="block text-[13px] font-medium text-slate-800">{choice.label}</span>
@@ -325,7 +325,7 @@ function ChartSlot({
 
 function UnavailableChart({ label }: { label: string }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-surface px-4 py-10 text-center">
+    <section className="card rounded-2xl border border-slate-200 bg-surface px-4 py-10 text-center">
       <p className="text-sm font-medium text-slate-700">{label}</p>
       <p className="mt-1 text-xs leading-5 text-slate-400">This figure could not be read just now.</p>
     </section>

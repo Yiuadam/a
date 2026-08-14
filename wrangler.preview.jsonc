@@ -1,0 +1,57 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bandup-data-preview",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-12",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Synthetic identities are accepted only on the dedicated custom domain.
+  // Do not publish a second workers.dev hostname that could bypass that gate.
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "organization-preview.bandup.life",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "keep_vars": true,
+  "vars": {
+    "ORGANIZATION_UI_PREVIEW": "1",
+    "CLOUDFLARE_DATA_MODE": "supabase",
+    "ORGANIZATION_DATA_MODE": "cloudflare",
+    "ADMIN_EMAILS": "admin@preview.bandup.invalid"
+  },
+  "d1_databases": [
+    {
+      "binding": "BANDUP_DB",
+      "database_name": "bandup-organization-ui-preview",
+      "database_id": "51bd6252-6e46-4037-825e-7a2853d109c3",
+      "preview_database_id": "51bd6252-6e46-4037-825e-7a2853d109c3",
+      "migrations_dir": "cloudflare/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BANDUP_FILES",
+      "bucket_name": "bandup-organization-ui-preview"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "ratelimits": [
+    {
+      "name": "AUDIO_GENERATION_RATE_LIMITER",
+      "namespace_id": "99042001",
+      "simple": { "limit": 2, "period": 60 }
+    },
+    {
+      "name": "MODEL_FETCH_RATE_LIMITER",
+      "namespace_id": "99042002",
+      "simple": { "limit": 12, "period": 60 }
+    }
+  ]
+}

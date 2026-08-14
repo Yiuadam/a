@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, there are no cookies or trackers, and card details never reach our servers.",
 };
 
-const LAST_UPDATED = "12 August 2026";
+const LAST_UPDATED = "13 August 2026";
 
 /* The learner keys plus the owner's one local dashboard preference. */
 const STORED = [
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
             "An account is optional. Signed out — which is the default, and how the app ships today — nothing identifies you and nothing is held about you.",
             "Signed out, your progress lives only in the tab you have open and is gone when you close it. Signed in, it is kept on your account so it follows you between devices.",
             "No cookies, no analytics, no advertising and no third-party trackers.",
-            "Your writing and your speaking transcript are sent for marking when you ask for it, and are not stored afterwards.",
+            "Your writing and speaking transcript are sent for marking when you ask. Signed out, they disappear with the tab; signed in, completed feedback can be stored in your private history so you can revisit it.",
             "BandUp keeps technical AI-cost records — the feature, model, token counts, calculated cost, request ID and time — but never the words sent or received, your name, email or account ID.",
             "BandUp never uploads audio from your microphone and never saves it as a file.",
             "On the web you can choose to have your speech transcribed on your own device, so the audio never leaves it at all. The recogniser built into your browser or phone is still the default.",
@@ -160,10 +160,12 @@ export default function PrivacyPage() {
           What leaves your device
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Four features need a model to think about your English, and those are the only times
+          Five features need a model to think about your English, and those are the only times
           anything you write is sent anywhere. Each one goes to BandUp&rsquo;s server, which
           passes it to Anthropic&rsquo;s API for the answer and sends that answer back to you.
-          BandUp writes none of the words sent or received to a database or a log.
+          The marking request itself is not written to a server log. If you are signed in and
+          save your completed practice, its feedback record can include the essay or speaking
+          transcript so your history can be reopened later.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           To measure what the AI actually costs, BandUp keeps a separate technical receipt for
@@ -304,8 +306,9 @@ export default function PrivacyPage() {
             "Your email address, so the account can be recovered if you lose access to Google or Apple.",
             "A count of AI requests over the last thirty days, so each feature's allowance can be applied. It records that a request happened and to which feature — never what you wrote, said or were told.",
             "A one-way hash of the internet address the request came from, so that one address cannot spend an unlimited amount of AI by making accounts. It is salted and cannot be turned back into an address, and it is used for nothing else — not location, not advertising, not analytics.",
-            "A copy of your study progress, if you choose to sync it, so a new device can pick up where the last one left off.",
-            "Anything you choose to put on your account page: a display name, a profile picture, and optionally your date of birth. All of it is optional, all of it can be cleared, and the account works exactly the same if you leave it empty.",
+            "A copy of your completed study progress when you use an account, so your other devices can pick up where you left off.",
+            "For completed writing and speaking practice, the saved history can include your essay or transcript and the feedback, so you can revisit the original sitting.",
+            "Your unique username. You can choose it or ask BandUp to generate a random, non-identifying suggestion. A display name can be added later. A profile picture and date of birth remain optional.",
           ].map((line) => (
             <li key={line} className="flex gap-3 text-[15px] leading-7 text-slate-700">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
@@ -331,9 +334,11 @@ export default function PrivacyPage() {
           rather than from a permanent address.
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
-          Account data is stored with Supabase, who host the database on our behalf. Their
-          servers may be in a different country from yours, which is true of almost any hosted
-          service and is worth saying rather than leaving you to assume otherwise.
+          Authentication and the core account record are stored with Supabase. Organisation
+          workspaces and their private notification inboxes are stored in Cloudflare D1; larger
+          private organisation files can be stored in Cloudflare R2. These providers host the
+          service on our behalf and their servers may be in a different country from yours,
+          which is worth saying rather than leaving you to assume otherwise.
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
           Questions about any of this, or a request about your data, go to{" "}
@@ -352,6 +357,48 @@ export default function PrivacyPage() {
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Sessions are kept in your device&rsquo;s own storage rather than in a cookie, which is
           why signing in still sets none.
+        </p>
+      </section>
+
+      <section className="card">
+        <h2 className="heading-rule text-base font-semibold text-slate-900">
+          Organisations, teachers and shared progress
+        </h2>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          If you join a school or other organisation in BandUp, that workspace stores your
+          membership, role, teacher assignment and requests to join, leave or change access.
+          Work completed after joining is shared with that organisation. Sharing work from
+          before joining is a separate choice and, while you remain a student member, changing
+          it uses an approval request.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Assigned teachers can see only their assigned students. Organisation managers can see
+          members and student history in their own organisation. That history can include scores,
+          answers, feedback, essays and speaking transcripts. BandUp administrators can access
+          organisation records when needed to approve, secure or support the service. Other
+          learners cannot see them.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Your private notification inbox records typed events such as an assigned task, new
+          teacher feedback, a completed assignment, an invitation or a membership request. Each
+          item stores the organisation and event reference, who caused it when relevant, its time
+          and whether you have read it. It does not copy the teacher&rsquo;s feedback text, an essay,
+          a speaking transcript or an email address. The app only returns inbox items to their
+          recipient. Closing your account deletes notifications received by you; if you caused an
+          item kept in somebody else&rsquo;s inbox, your identity is removed from that item.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          An active, suspended or leaving student member cannot clear their history. Teachers may
+          archive an assigned student&rsquo;s organisation view; managers may permanently remove an
+          attempt from that organisation only, with a recorded reason. Neither action deletes the
+          learner&rsquo;s original account record. Joining, decisions, assignments and removals create
+          an audit record so permissions and data changes can be investigated.
+        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          After an approved departure, the former student can change consent without organisation
+          approval. Closing the BandUp account deletes the learner-owned source records; minimal
+          security audit and organisation-removal records can remain where required to establish
+          what an administrator did, without keeping the essay or transcript in those records.
         </p>
       </section>
 

@@ -3,7 +3,7 @@ import { accountsEnabled, adminEmails, adminUsername, isAdminEmail } from "@/lib
 import { getSessionUser } from "@/lib/auth/session";
 import { rpcDiagnostic, supabaseConfigured } from "@/lib/auth/supabase";
 import { withCors } from "@/lib/http/cors";
-import { LIMITS_SCHEMA_VERSION, USAGE_WINDOW_SECONDS, limitsForDatabase } from "@/lib/usage/limits";
+import { LIMITS_SCHEMA_VERSION, USAGE_WINDOW_SECONDS } from "@/lib/usage/limits";
 import { hasApiKey } from "@/lib/anthropic";
 import { stripeDiagnostic } from "@/lib/billing/stripe";
 import { stripeConfigured } from "@/lib/billing/env";
@@ -31,11 +31,10 @@ import { stripeConfigured } from "@/lib/billing/env";
   ---------------------------------------------------------------------------
   What it costs to run
 
-  One real call to `check_and_record_usage`, which records one usage row
-  against the owner's own account. That is the point — a probe that avoided the
-  failing call could not tell you whether the failing call works. The owner has
-  no allowance to spend, so the row costs nothing but a line in the meter, and
-  the response says so rather than leaving it to be discovered.
+  Nothing in the usage meter. This route is loaded automatically by the admin
+  console, so a diagnostic that writes a real usage event turns page views into
+  apparent learner demand. `usage_limits_schema` verifies the deployed meter
+  shape without changing the figures the same console is trying to explain.
 
   ---------------------------------------------------------------------------
   What it deliberately does not do
@@ -208,24 +207,6 @@ async function handleGET(req: Request) {
       : schema.ok
         ? `answers ${schema.detail.trim()}, but this build sends ${LIMITS_SCHEMA_VERSION} — apply supabase/migrations/0012_route_limits.sql`
         : `${schema.status}: ${schema.detail} — apply supabase/migrations/0012_route_limits.sql, or every paid tier is refused all AI`,
-  );
-
-  const meter = await rpcDiagnostic("check_and_record_usage", {
-    p_user_id: user.id,
-    p_ip_hash: null,
-    p_route: "chat",
-    p_window_seconds: USAGE_WINDOW_SECONDS,
-    p_limits: limitsForDatabase(),
-  });
-  add(
-    "check_and_record_usage (route 'chat')",
-    meter.ok,
-    meter.ok
-      ? "answers — one usage row was recorded against your account by this check"
-      : `${meter.status}: ${meter.detail}` +
-        (/usage_events_route_check|violates check constraint/i.test(meter.detail)
-          ? " — apply supabase/migrations/0007_chat_route.sql"
-          : ""),
   );
 
   /*

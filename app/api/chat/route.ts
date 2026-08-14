@@ -177,16 +177,10 @@ async function handlePOST(req: Request) {
     It also means a refused free request never touches usage_events, so the
     tutor cannot burn a learner's allowance on answers they will not receive.
 
-    Both run before the model and before the body is parsed. The guards read
-    headers only, so nothing below is affected by their having run first — and
-    running them first is what makes a meter a meter rather than a report.
+    Both run before the model. The body is validated first so malformed input
+    is reported as malformed input and never becomes an "allowed AI check" in
+    the owner's figures.
   */
-  const unentitled = await requireFeature(req, "tutor-chat");
-  if (unentitled) return unentitled;
-
-  const denied = await checkAiUsage(req, "chat");
-  if (denied) return denied;
-
   let body: unknown;
   try {
     body = await req.json();
@@ -229,6 +223,11 @@ async function handlePOST(req: Request) {
     )
     .slice(-MAX_HISTORY)
     .map((t) => ({ role: t.role, text: t.text.slice(0, MAX_HISTORY_CHARS) }));
+
+  const unentitled = await requireFeature(req, "tutor-chat");
+  if (unentitled) return unentitled;
+  const denied = await checkAiUsage(req, "chat");
+  if (denied) return denied;
 
   /*
     Why the conversation is rendered into a single user message rather than

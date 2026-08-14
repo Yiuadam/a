@@ -1,6 +1,12 @@
 "use client";
 
 import { isNative } from "./native";
+import { installKokoroAssetFetchProxy } from "./kokoro-fetch-proxy";
+import {
+  playWithLookahead,
+  speechPhrases,
+  trimSpeechSilence,
+} from "./speaking/audio-pipeline";
 
 /*
   Natural examiner speech
@@ -23,6 +29,12 @@ import { isNative } from "./native";
 const EXAMINER_VOICE = "bf_emma";
 const SAMPLE_RATE = 24_000;
 const LOAD_TIMEOUT_MS = 45_000;
+const FIRST_AUDIO_TIMEOUT_MS = 8_000;
+// Browser speech normally gets the first chance.  When it cannot start, this
+// keeps the recovery path responsive without making a learner stare at a
+// model download indefinitely. The original load is intentionally allowed to
+// continue in the background, so a later replay can use it.
+const RECOVERY_WAIT_TIMEOUT_MS = LOAD_TIMEOUT_MS;
 
 interface RawAudio {
   audio: Float32Array;
@@ -44,6 +56,14 @@ interface KokoroModule {
   };
 }
 
+/**
+ * `unavailable` means no neural audio was heard and the device voice may take
+ * over. `cancelled` is deliberately separate: replaying a cancelled prompt
+ * through another engine can make an old question speak after the learner has
+ * moved on.
+ */
+export type NaturalSpeechResult = "completed" | "unavailable" | "cancelled";
+
 const KOKORO_RUNTIME_URL = "/vendor/kokoro/kokoro.web.js";
 
 let backend: KokoroEngine | null = null;
@@ -55,8 +75,28 @@ let finishPlayback: (() => void) | null = null;
 let unavailable = false;
 let generation = 0;
 
+/**
+ * Reading this synchronously lets the browser voice start in the same click
+ * task when the larger local model is still loading. Waiting merely to learn
+ * that there is no neural backend can make Safari and embedded browsers drop
+ * the first audible utterance as no longer user initiated.
+ */
+export function naturalExaminerVoiceReady(): boolean {
+  return backend !== null && !unavailable;
+}
+
+/** True while a natural examiner prompt is generating or playing. */
+export function naturalExaminerVoiceBusy(): boolean {
+  return activeAbort !== null || activeSource !== null;
+}
+
+/** Whether this browser can run the built-in WebAudio examiner at all. */
+export function naturalExaminerVoiceSupported(): boolean {
+  return typeof window !== "undefined" && !isNative() && "AudioContext" in window;
+}
+
 function wakeAudio(): AudioContext | null {
-  if (typeof window === "undefined" || isNative() || !("AudioContext" in window)) return null;
+  if (!naturalExaminerVoiceSupported()) return null;
   try {
     audioContext ??= new AudioContext({ latencyHint: "interactive", sampleRate: SAMPLE_RATE });
     // Called synchronously from the Start button. This preserves the browser's
@@ -79,6 +119,10 @@ export async function prepareNaturalExaminerVoice(): Promise<boolean> {
     let timedOut = false;
     let timer = 0;
     try {
+      // The static runtime has a Hugging Face host compiled into it. Install
+      // this before importing so every model/voice request uses the exact,
+      // same-origin allowlist on networks that block that host.
+      installKokoroAssetFetchProxy();
       // webpackIgnore keeps this URL out of the server/Worker graph. The file
       // is pinned in public/vendor/kokoro and is reviewed with the repository.
       const { KokoroTTS: Kokoro } = (await import(
@@ -120,63 +164,161 @@ export async function prepareNaturalExaminerVoice(): Promise<boolean> {
   return loading;
 }
 
-function play(samples: Float32Array, sequence: number): Promise<void> {
+/**
+ * Wait for a previously primed natural voice to become ready, no longer than
+ * the model loader's own bound.
+ *
+ * Call `prepareNaturalExaminerVoice()` in the button handler that begins the
+ * interaction: that synchronously resumes WebAudio while the model loads.
+ * A later browser-TTS failure can then await this helper without losing the
+ * user gesture. Timing out here does not poison the background load or mark
+ * the engine unavailable; the next explicit replay may find it ready.
+ */
+export async function waitForNaturalExaminerVoice(
+  timeoutMs = RECOVERY_WAIT_TIMEOUT_MS,
+): Promise<boolean> {
+  if (naturalExaminerVoiceReady()) return true;
+  if (!naturalExaminerVoiceSupported() || unavailable) return false;
+
+  const preparation = prepareNaturalExaminerVoice();
+  const boundedTimeout = Math.max(0, Math.min(timeoutMs, RECOVERY_WAIT_TIMEOUT_MS));
+  if (boundedTimeout === 0) return false;
+
+  let timer = 0;
+  try {
+    return await Promise.race([
+      preparation,
+      new Promise<false>((resolve) => {
+        timer = window.setTimeout(() => resolve(false), boundedTimeout);
+      }),
+    ]);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+async function play(
+  samples: Float32Array,
+  sequence: number,
+  onStart: () => void,
+): Promise<boolean> {
   const context = wakeAudio();
-  if (!context || sequence !== generation) return Promise.resolve();
+  if (!context || samples.length === 0 || sequence !== generation) return false;
+
+  try {
+    if (context.state === "suspended") await context.resume();
+  } catch {
+    return false;
+  }
+  if (context.state !== "running" || sequence !== generation) return false;
 
   return new Promise((resolve) => {
     let finished = false;
-    const done = () => {
+    let timer = 0;
+    const done = (played: boolean) => {
       if (finished) return;
       finished = true;
-      if (finishPlayback === done) finishPlayback = null;
+      window.clearTimeout(timer);
+      if (finishPlayback === cancel) finishPlayback = null;
       if (activeSource === source) activeSource = null;
-      resolve();
+      resolve(played);
     };
+    const cancel = () => done(false);
 
     const buffer = context.createBuffer(1, samples.length, SAMPLE_RATE);
     buffer.getChannelData(0).set(samples);
     const source = context.createBufferSource();
     source.buffer = buffer;
     source.connect(context.destination);
-    source.onended = done;
+    source.onended = () => done(true);
     activeSource = source;
-    finishPlayback = done;
+    finishPlayback = cancel;
     source.start();
+    onStart();
+    /* A suspended or buggy audio graph must not strand the interview forever.
+       The buffer duration is known, so three seconds beyond it is a generous
+       completion deadline rather than an arbitrary speech cutoff. */
+    timer = window.setTimeout(() => {
+      done(false);
+      try {
+        source.stop();
+      } catch {
+        // Already stopped between the timeout and cleanup.
+      }
+    }, Math.max(5_000, (samples.length / SAMPLE_RATE) * 1_000 + 3_000));
   });
 }
 
 /**
  * Speak with the local neural examiner.
  *
- * Returns false only when the caller should transparently fall back to the
- * browser voice. Cancellation counts as handled and must never restart the
- * sentence through a fallback voice after the learner has left the page.
+ * A caller may transparently fall back only for `unavailable`. Cancellation
+ * must never restart the sentence through a fallback voice after the learner
+ * has left the page, and only `completed` means every phrase was played.
  */
-export async function speakNaturalExaminer(text: string, rate = 1): Promise<boolean> {
-  if (!backend || unavailable) return false;
+export async function speakNaturalExaminer(
+  text: string,
+  rate = 1,
+): Promise<NaturalSpeechResult> {
+  if (!backend || unavailable) return "unavailable";
+  const phrases = speechPhrases(text);
+  if (phrases.length === 0) return "unavailable";
   const sequence = ++generation;
   cancelActiveAudio(false);
   const abort = new AbortController();
   activeAbort = abort;
 
   try {
-    for await (const chunk of backend.stream(text, {
+    const stream = backend.stream(phrases.join("\n"), {
       voice: EXAMINER_VOICE,
       speed: Math.max(0.85, Math.min(1.1, rate)),
-      // Examiner prompts are short. One chunk avoids an artificial pause while
-      // the next sentence is generated.
-      split_pattern: /$^/,
-    })) {
-      if (abort.signal.aborted || sequence !== generation) return true;
-      await play(chunk.audio.audio, sequence);
+      split_pattern: /\n+/,
+    });
+    let firstAudioStarted = false;
+    let playbackCompleted = true;
+    let resolveFirstAudio!: (started: boolean) => void;
+    const firstAudio = new Promise<boolean>((resolve) => {
+      resolveFirstAudio = resolve;
+    });
+    const playback = playWithLookahead(
+      stream,
+      async (chunk) => {
+        const played = await play(trimSpeechSilence(chunk.audio.audio, SAMPLE_RATE), sequence, () => {
+          if (firstAudioStarted) return;
+          firstAudioStarted = true;
+          resolveFirstAudio(true);
+        });
+        playbackCompleted = playbackCompleted && played;
+      },
+      () => !abort.signal.aborted && sequence === generation,
+    ).then(() => {
+      if (!firstAudioStarted) resolveFirstAudio(false);
+    });
+    const started = await Promise.race([
+      firstAudio,
+      new Promise<false>((resolve) => window.setTimeout(() => resolve(false), FIRST_AUDIO_TIMEOUT_MS)),
+    ]);
+    if (abort.signal.aborted || sequence !== generation) return "cancelled";
+    if (!started) {
+      unavailable = true;
+      backend = null;
+      cancelActiveAudio();
+      void playback.catch(() => {});
+      return "unavailable";
     }
-    return true;
+    await playback;
+    if (abort.signal.aborted || sequence !== generation) return "cancelled";
+    if (!playbackCompleted) {
+      unavailable = true;
+      backend = null;
+      return "unavailable";
+    }
+    return "completed";
   } catch {
-    if (abort.signal.aborted || sequence !== generation) return true;
+    if (abort.signal.aborted || sequence !== generation) return "cancelled";
     unavailable = true;
     backend = null;
-    return false;
+    return "unavailable";
   } finally {
     if (activeAbort === abort) activeAbort = null;
   }

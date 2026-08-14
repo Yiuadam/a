@@ -622,11 +622,11 @@ export function formatPrice(amountMinor: number, currency: string): string {
     that ends in a chargeback.
   */
   const major = toMajor(amountMinor, currency);
-  const decimals = minorPerUnit(currency) === 1 ? 0 : 2;
+  const decimals = 2;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currency.toUpperCase(),
-    minimumFractionDigits: Number.isInteger(major) ? 0 : decimals,
+    minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(major);
 }

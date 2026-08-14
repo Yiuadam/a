@@ -4,15 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:glass": "node scripts/dev-glass-lab.mjs",
+    "dev:live": "node scripts/dev-live.mjs",
+    "types": "wrangler types",
+    "prebuild": "npm run types",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "build:mobile": "node scripts/build-mobile.mjs",
     "ios:sync": "npm run build:mobile && npx cap sync ios",
     "ios:open": "npx cap open ios",
-    "cf:build": "opennextjs-cloudflare build",
+    "cf:build": "npm run types && opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare deploy",
+    "migration:production": "bash scripts/run-production-cloudflare-migration.sh",
     "test": "node --test 'tests/*.test.mjs'"
   },
   "dependencies": {

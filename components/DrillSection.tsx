@@ -6,6 +6,8 @@ import ExplainText from "@/components/ExplainText";
 import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
 import NewBadge from "@/components/NewBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import styles from "./DrillSection.module.css";
 import { drillNeedsNewBadge } from "@/lib/completion-badges";
 import {
   drillLimit,
@@ -45,12 +47,18 @@ export default function DrillSection({
   title,
   intro,
   topics,
+  compact = false,
+  compactColumns = 4,
 }: {
   /** Which list this is, for what a lock says out loud. */
   kind: DrillKind;
   title: string;
   intro: string;
   topics: DrillTopic[];
+  /** A denser, route-opt-in chooser and two-column desktop lesson workspace. */
+  compact?: boolean;
+  /** Grammar can opt into five desktop columns without a shared global rule. */
+  compactColumns?: 4 | 5;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const scores = useSyncExternalStore(subscribeDrills, drillScores, getServerDrillScores);
@@ -74,8 +82,42 @@ export default function DrillSection({
   const openIndex = ordered.findIndex((t) => t.id === openId);
   const topic =
     openIndex >= 0 && (limit === null || openIndex < limit) ? ordered[openIndex] : null;
+  const done = topics.filter((t) => scores[t.id]).length;
 
   if (topic) {
+    if (compact) {
+      return (
+        <div
+          className={styles.compactWorkspace}
+          data-drill-compact="true"
+          data-drill-workspace
+        >
+          <section className={styles.compactLesson} data-lookupable>
+            <div className={styles.compactLessonHeader}>
+              <h1 className={`font-semibold text-slate-900 ${styles.compactLessonTitle}`}>{topic.title}</h1>
+              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                {topic.level}
+              </span>
+            </div>
+            <p className={`text-slate-600 ${styles.compactLessonSummary}`}>{topic.summary}</p>
+            <ul className={`space-y-1.5 ${styles.compactLessonPoints}`}>
+              {topic.points.map((point, i) => (
+                <li key={i} className={`flex text-slate-700 ${styles.compactLessonPoint}`}>
+                  <span aria-hidden className="mt-[3px] shrink-0 text-indigo-500">
+                    →
+                  </span>
+                  <ExplainText text={point} />
+                </li>
+              ))}
+            </ul>
+          </section>
+          <div className={styles.compactExercise}>
+            <Drill topic={topic} onExit={() => setOpenId(null)} />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <div className="card" data-lookupable>
@@ -89,7 +131,7 @@ export default function DrillSection({
           <ul className="mt-3 space-y-1.5">
             {topic.points.map((point, i) => (
               <li key={i} className="flex gap-2 text-sm leading-6 text-slate-700">
-                <span aria-hidden className="mt-[3px] shrink-0 text-amber-500">
+                <span aria-hidden className="mt-[3px] shrink-0 text-indigo-500">
                   →
                 </span>
                 <ExplainText text={point} />
@@ -102,20 +144,45 @@ export default function DrillSection({
     );
   }
 
-  const done = topics.filter((t) => scores[t.id]).length;
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-[26px] font-semibold text-slate-900">{title}</h1>
-        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">{intro}</p>
-        <p className="mt-2 text-xs text-slate-400">
+    <div
+      className={compact ? styles.compactIndex : "space-y-6"}
+      data-drill-compact={compact ? "true" : undefined}
+    >
+      <div className={compact ? styles.compactHeader : undefined}>
+        {compact ? (
+          <div className={styles.compactHeaderTop}>
+            <h1 className={`font-semibold text-slate-900 ${styles.compactHeading}`}>{title}</h1>
+            <span className={styles.compactProgress}>
+              {done > 0 ? `${done} of ${topics.length} practised` : `${topics.length} topics`}
+            </span>
+          </div>
+        ) : (
+          <h1 className="text-[26px] font-semibold text-slate-900">{title}</h1>
+        )}
+        <p
+          className={
+            compact
+              ? `text-slate-600 ${styles.compactIntro}`
+              : "mt-1 max-w-2xl text-sm leading-6 text-slate-600"
+          }
+        >
+          {intro}
+        </p>
+        <p className={compact ? styles.compactNote : "mt-2 text-xs text-slate-400"}>
           There is no clock and no band score here. Take as long as you like.
           {done > 0 ? ` You have practised ${done} of ${topics.length} topics.` : ""}
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div
+        className={
+          compact
+            ? `${styles.compactGrid} ${compactColumns === 5 ? styles.compactGridFive : ""}`
+            : "grid gap-4 sm:grid-cols-2"
+        }
+        data-drill-topic-index={compact ? "true" : undefined}
+      >
         {ordered.map((t, i) => {
           const score = scores[t.id];
           const pct = score ? Math.round((score.correct / score.total) * 100) : null;
@@ -124,9 +191,11 @@ export default function DrillSection({
 
           const inner = (
             <>
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="min-w-0 font-semibold text-slate-900">{t.title}</h2>
-                <div className="flex shrink-0 items-center gap-1.5">
+              <div className={compact ? styles.compactCardHeader : "flex items-start justify-between gap-3"}>
+                <h2 className={compact ? styles.compactCardTitle : "min-w-0 font-semibold text-slate-900"}>
+                  {t.title}
+                </h2>
+                <div className={compact ? "items-center" : "flex shrink-0 items-center gap-1.5"}>
                   <NewBadge show={drillNeedsNewBadge(scores, t.id)} />
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
                     {t.level}
@@ -139,10 +208,10 @@ export default function DrillSection({
                 prose per card turned that choice into a page of reading —
                 for an audience whose English is the thing being taught.
               */}
-              <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-slate-600">
+              <p className={compact ? styles.compactSummary : "mt-1.5 line-clamp-2 text-sm leading-6 text-slate-600"}>
                 {firstSentence(t.summary)}
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <div className={compact ? `flex flex-wrap items-center ${styles.compactMeta}` : "mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500"}>
                 <span className="rounded bg-slate-100 px-2 py-0.5">
                   {t.questions.length} questions
                 </span>
@@ -180,7 +249,12 @@ export default function DrillSection({
           */
           if (access.pending) {
             return (
-              <div key={t.id} className="card cursor-wait opacity-60" aria-busy="true">
+              <div
+                key={t.id}
+                className={`${compact ? styles.compactCard : "card"} relative cursor-wait opacity-60`}
+                aria-busy="true"
+              >
+                <LoadingIndicator label="Checking access…" className="absolute right-3 top-3 text-sm text-indigo-600" textClassName="sr-only" />
                 {inner}
               </div>
             );
@@ -194,7 +268,7 @@ export default function DrillSection({
                 fill
                 label={`${t.title}, a ${kind} topic`}
               >
-                <div className="card h-full">{inner}</div>
+                <div className={`${compact ? `${styles.compactCard} h-full` : "card h-full"}`}>{inner}</div>
               </LockedCard>
             );
           }
@@ -204,14 +278,20 @@ export default function DrillSection({
               key={t.id}
               type="button"
               onClick={() => setOpenId(t.id)}
-              className="card block w-full text-left transition-all hover:-translate-y-0.5 hover:border-indigo-300"
+              className={`${compact ? styles.compactCard : "card"} block w-full text-left transition-all hover:-translate-y-0.5 hover:border-indigo-300`}
             >
               {inner}
             </button>
           );
         })}
 
-        <MoreComing what={`${kind} topics`} />
+        {compact ? (
+          <div className={styles.compactMoreCell} data-drill-more-coming>
+            <MoreComing what={`${kind} topics`} className={styles.compactMore} />
+          </div>
+        ) : (
+          <MoreComing what={`${kind} topics`} />
+        )}
       </div>
     </div>
   );

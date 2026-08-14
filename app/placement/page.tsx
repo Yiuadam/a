@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import Review, { type ReviewItem } from "@/components/Review";
 import Timer from "@/components/Timer";
+import GlassSelect from "@/components/GlassSelect";
 import placementData from "@/data/placement.json";
 import { placementAdvice } from "@/lib/advice";
 import { LEVELS, SKILLS } from "@/lib/band";
@@ -39,7 +40,7 @@ function DifficultyMeter({ level }: { level: CEFRLevel }) {
       {LEVELS.map((_, i) => (
         <span
           key={i}
-          className={`h-1.5 w-3 rounded-full ${i < filled ? "bg-amber-400" : "bg-slate-200"}`}
+          className={`h-1.5 w-3 rounded-full ${i < filled ? "bg-indigo-400" : "bg-slate-200"}`}
         />
       ))}
     </span>
@@ -242,18 +243,14 @@ export default function PlacementPage() {
             <label className="text-sm text-slate-700" htmlFor="target">
               Target band
             </label>
-            <select
-              id="target"
-              className="input !py-2"
-              value={target}
-              onChange={(e) => setTarget(Number(e.target.value))}
-            >
-              {[5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
+            <GlassSelect
+              label="Target band"
+              value={String(target)}
+              options={[5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map((band) => ({ value: String(band), label: String(band) }))}
+              onValueChange={(value) => setTarget(Number(value))}
+              compact
+              className="w-24"
+            />
             <Link href="/plan" className="btn-primary" onClick={() => setTargetBand(target)}>
               Build my study plan
             </Link>
@@ -374,7 +371,7 @@ export default function PlacementPage() {
           <DifficultyMeter level={current.level} />
         </span>
         {accuracyMode ? (
-          <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
+          <span className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-800">
             Accuracy mode
           </span>
         ) : (

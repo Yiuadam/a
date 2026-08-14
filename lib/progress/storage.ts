@@ -54,6 +54,16 @@
   never there costs one miss.
 */
 const migrated = new Set<string>();
+const UPDATED_PREFIX = "bandup.progress-updated.v1:";
+
+function updatedKey(key: string): string {
+  return `${UPDATED_PREFIX}${key}`;
+}
+
+function validStamp(value: string | null): string | null {
+  if (!value) return null;
+  return Number.isFinite(Date.parse(value)) ? value : null;
+}
 
 function migrateOnce(key: string): void {
   if (migrated.has(key)) return;
@@ -63,8 +73,11 @@ function migrateOnce(key: string): void {
     if (old === null) return;
     if (window.sessionStorage.getItem(key) === null) {
       window.sessionStorage.setItem(key, old);
+      const oldStamp = validStamp(window.localStorage.getItem(updatedKey(key)));
+      window.sessionStorage.setItem(updatedKey(key), oldStamp ?? new Date().toISOString());
     }
     window.localStorage.removeItem(key);
+    window.localStorage.removeItem(updatedKey(key));
   } catch {
     /* Storage blocked entirely. Nothing to move, nothing to clean up. */
   }
@@ -83,11 +96,37 @@ export function readLearnerItem(key: string): string | null {
   }
 }
 
+/**
+ * When this device last changed a learner-data key.
+ *
+ * This is deliberately separate from the JSON payload. It lets account sync
+ * compare a local scalar with the account's scalar without pretending that an
+ * old tab became newer merely because sync happened to run just now.
+ */
+export function learnerItemUpdatedAt(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    migrateOnce(key);
+    return validStamp(window.sessionStorage.getItem(updatedKey(key)));
+  } catch {
+    return null;
+  }
+}
+
 /** Writes a learner-data key. Failure is survivable and deliberately silent. */
-export function writeLearnerItem(key: string, value: string): void {
+export function writeLearnerItem(
+  key: string,
+  value: string,
+  options: { clientUpdatedAt?: string | null } = {},
+): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(key, value);
+    const stamp = Object.prototype.hasOwnProperty.call(options, "clientUpdatedAt")
+      ? validStamp(options.clientUpdatedAt ?? null)
+      : new Date().toISOString();
+    if (stamp) window.sessionStorage.setItem(updatedKey(key), stamp);
+    else window.sessionStorage.removeItem(updatedKey(key));
   } catch {
     /* Full, or blocked. The caller keeps its in-memory copy either way. */
   }
@@ -98,7 +137,9 @@ export function removeLearnerItem(key: string): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.removeItem(key);
+    window.sessionStorage.removeItem(updatedKey(key));
     window.localStorage.removeItem(key);
+    window.localStorage.removeItem(updatedKey(key));
   } catch {
     /* Nothing to do. */
   }

@@ -44,5 +44,13 @@ export function logInternal(where: string, err: unknown): void {
 }
 
 export function safeJsonError(message: string, status: number): NextResponse {
-  return NextResponse.json({ error: message }, { status });
+  return NextResponse.json(
+    { error: message },
+    {
+      status,
+      // Account and organization routes may carry identity-specific state.
+      // Error responses need the same shared-cache protection as successes.
+      headers: { "Cache-Control": "private, no-store, max-age=0" },
+    },
+  );
 }

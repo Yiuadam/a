@@ -4,8 +4,11 @@ import { isNative, nativeSTT, nativeTTS } from "./native";
 import {
   cancelNaturalExaminerVoice,
   disposeNaturalExaminerVoice,
+  naturalExaminerVoiceBusy,
+  naturalExaminerVoiceReady,
   prepareNaturalExaminerVoice,
   speakNaturalExaminer,
+  waitForNaturalExaminerVoice,
 } from "./neural-speech";
 import { DEFAULT_LOCAL_MODEL, LOCAL_MODELS, type LocalModelId } from "./transcribe";
 
@@ -306,10 +309,6 @@ export function toSentences(text: string): string[] {
 let speechSequence = 0;
 let finishBrowserUtterance: (() => void) | null = null;
 
-function pause(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
-}
-
 async function browserVoices(): Promise<SpeechSynthesisVoice[]> {
   const immediate = rankedEnglishVoices();
   if (immediate.length > 0 || typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -335,61 +334,229 @@ function speakBrowserLine(
   text: string,
   voice: SpeechSynthesisVoice | undefined,
   rate: number,
-): Promise<void> {
+): Promise<"completed" | "not-started" | "interrupted"> {
   return new Promise((resolve) => {
     let finished = false;
-    const done = () => {
+    let started = false;
+    let startTimer = 0;
+    let completionTimer = 0;
+    const done = (result: "completed" | "not-started" | "interrupted") => {
       if (finished) return;
       finished = true;
-      if (finishBrowserUtterance === done) finishBrowserUtterance = null;
-      resolve();
+      window.clearTimeout(startTimer);
+      window.clearTimeout(completionTimer);
+      if (finishBrowserUtterance === cancel) finishBrowserUtterance = null;
+      resolve(result);
     };
-    finishBrowserUtterance = done;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = rate;
-    utterance.pitch = 0.98;
-    utterance.lang = "en-GB";
-    if (voice) utterance.voice = voice;
-    utterance.onend = done;
-    utterance.onerror = done;
-    window.speechSynthesis.speak(utterance);
+    const cancel = () => done("interrupted");
+    finishBrowserUtterance = cancel;
+    try {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = rate;
+      utterance.pitch = 0.98;
+      utterance.lang = "en-GB";
+      if (voice) utterance.voice = voice;
+      utterance.onstart = () => {
+        started = true;
+        window.clearTimeout(startTimer);
+        completionTimer = window.setTimeout(() => {
+          // Resolve before cancelling: Safari may synchronously emit `end`
+          // from cancel(), and that must not turn a timed-out line into a
+          // successful one.
+          done("interrupted");
+          window.speechSynthesis.cancel();
+        }, Math.min(25_000, Math.max(6_000, 3_000 + text.length * 120)));
+      };
+      // Some engines emit `end` for an utterance they never audibly started.
+      // That is not a completed examiner question.
+      utterance.onend = () => done(started ? "completed" : "not-started");
+      utterance.onerror = () => done(started ? "interrupted" : "not-started");
+      /* Chrome can accept an utterance but emit neither start, end nor error.
+         Install this before enqueueing so a synchronous `start` can clear it. */
+      startTimer = window.setTimeout(() => {
+        done("not-started");
+        window.speechSynthesis.cancel();
+      }, 2_500);
+      window.speechSynthesis.resume();
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      done("not-started");
+    }
   });
 }
 
-/** Speak a line of text; resolves when finished (or immediately if unsupported). */
-export async function speak(text: string, rate = 1): Promise<void> {
+/**
+ * A cloud/browser voice can be listed even when it cannot play on the current
+ * connection. Try it first for quality, then a genuinely local English voice,
+ * then the browser default. Only a line that never started is retried, so an
+ * interrupted audible sentence is never spoken twice.
+ */
+function browserVoiceCandidates(
+  voices: SpeechSynthesisVoice[],
+): (SpeechSynthesisVoice | undefined)[] {
+  const preferred = voices[0];
+  const local = voices.find((voice) => voice.localService && voice !== preferred);
+  const candidates: (SpeechSynthesisVoice | undefined)[] = [];
+  if (preferred) candidates.push(preferred);
+  if (local) candidates.push(local);
+  candidates.push(undefined);
+  return candidates;
+}
+
+function candidatesForLine(
+  workingVoice: { value: SpeechSynthesisVoice | undefined } | null,
+  fallback: (SpeechSynthesisVoice | undefined)[],
+): (SpeechSynthesisVoice | undefined)[] {
+  return workingVoice === null ? fallback : [workingVoice.value];
+}
+
+/**
+ * Start the first fallback utterance before awaiting `voiceschanged`.
+ *
+ * Safari and embedded browsers can report an empty voice list just after a
+ * user taps Start. The former implementation waited up to 400 ms for that
+ * list, which meant the first real `speechSynthesis.speak()` happened outside
+ * the user interaction and could be silently refused. The browser default is
+ * safe to ask for immediately; delayed voice discovery is only a retry when
+ * that first direct attempt never starts.
+ */
+async function speakBrowserPrompt(
+  lines: string[],
+  rate: number,
+  sequence: number,
+): Promise<"completed" | "not-started" | "interrupted"> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return "not-started";
+
+  // Resolve the old job as cancelled before the platform has a chance to emit
+  // a synchronous `end` event for it. Both calls run before the first await,
+  // keeping the replacement utterance in the original click task.
+  finishBrowserUtterance?.();
+  window.speechSynthesis.cancel();
+
+  const immediateCandidates = browserVoiceCandidates(rankedEnglishVoices());
+  let workingVoice: { value: SpeechSynthesisVoice | undefined } | null = null;
+
+  for (let i = 0; i < lines.length && sequence === speechSequence; i += 1) {
+    const tried = new Set<SpeechSynthesisVoice | undefined>();
+    let completed = false;
+    let interrupted = false;
+
+    const tryCandidates = async (candidates: (SpeechSynthesisVoice | undefined)[]) => {
+      for (const voice of candidates) {
+        if (tried.has(voice) || sequence !== speechSequence) continue;
+        tried.add(voice);
+        /* One rate for the whole prompt. This alternated 0.97/0.94 by sentence
+           index, so an examiner speeding up and slowing down every sentence was
+           the intended effect; what it actually produces is a 3% speed change
+           at each full stop, which is heard as the delivery being unsteady
+           rather than as natural variation. Real prosodic variation lives
+           inside a sentence, not between consecutive ones. */
+        const result = await speakBrowserLine(lines[i], voice, rate * 0.96);
+        if (sequence !== speechSequence) return;
+        if (result === "completed") {
+          workingVoice = { value: voice };
+          completed = true;
+          return;
+        }
+        if (result === "interrupted") {
+          interrupted = true;
+          return;
+        }
+      }
+    };
+
+    // This invokes `speechSynthesis.speak()` synchronously for the first line
+    // even when `getVoices()` has not populated yet.
+    await tryCandidates(candidatesForLine(workingVoice, immediateCandidates));
+    if (sequence !== speechSequence || interrupted) return "interrupted";
+
+    if (!completed) {
+      // A device may expose voices just after the immediate default failed.
+      // Waiting is acceptable now: the direct attempt already had its chance
+      // in the user gesture, and this is a recovery path rather than the only
+      // way an examiner question can start.
+      await tryCandidates(browserVoiceCandidates(await browserVoices()));
+    }
+    if (sequence !== speechSequence || interrupted) return "interrupted";
+    if (!completed) {
+      // Once a previous sentence has reached a listener, replaying the whole
+      // prompt through another engine would repeat part of an exam question.
+      return i === 0 ? "not-started" : "interrupted";
+    }
+    /* No added gap between sentences. Each sentence is already a separate
+       utterance, so the engine's own stop and start is the pause; 60ms was
+       being spent on top of a silence that was there anyway, which is why
+       consecutive sentences of one question sounded further apart than the
+       full stop between them warrants. */
+  }
+  return sequence === speechSequence ? "completed" : "interrupted";
+}
+
+/** Preserve the Start button's audio permission across asynchronous setup. */
+export function primeSpeechPlayback(): void {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  try {
+    window.speechSynthesis.resume();
+    const primer = new SpeechSynthesisUtterance(".");
+    primer.volume = 0;
+    primer.rate = 10;
+    window.speechSynthesis.speak(primer);
+  } catch {
+    // Neural/native speech may still work; the caller handles final failure.
+  }
+}
+
+/** Speak a prompt and return true only after every sentence has completed. */
+export async function speak(text: string, rate = 1): Promise<boolean> {
   const sequence = ++speechSequence;
   const lines = toSentences(text);
-  if (lines.length === 0) return;
-  const tts = await nativeTTS();
-  if (tts) {
-    for (let i = 0; i < lines.length && sequence === speechSequence; i += 1) {
-      try {
-        await tts.speak({
-          text: lines[i],
-          lang: "en-GB",
-          rate: rate * (i % 2 === 0 ? 0.97 : 0.94),
-          pitch: 0.98,
-        });
-      } catch {
-        // A failed line should never strand the interview.
+  if (lines.length === 0) return false;
+  if (isNative()) {
+    const tts = await nativeTTS();
+    if (sequence !== speechSequence) return false;
+    if (tts) {
+      for (let i = 0; i < lines.length && sequence === speechSequence; i += 1) {
+        try {
+          await tts.speak({
+            text: lines[i],
+            lang: "en-GB",
+            // One rate for the whole prompt, for the reason given on the
+            // browser path above: alternating it by sentence index is heard as
+            // unsteadiness, not as expression.
+            rate: rate * 0.96,
+            pitch: 0.98,
+          });
+        } catch {
+          return false;
+        }
+        // The iOS bridge resolves a cancelled utterance, so sequence identity is
+        // what distinguishes a completed line from `stop()` resolving it.
+        if (sequence !== speechSequence) return false;
       }
+      return sequence === speechSequence;
     }
-    return;
   }
   // The speaking page prepares Kokoro from its Start button. If it is ready,
   // prefer that consistent British neural voice over whichever system voice
-  // this particular browser happens to expose.
-  if (await speakNaturalExaminer(text, rate)) return;
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  // this particular browser happens to expose. Do not await an unavailable
+  // model on the first question: the direct browser fallback needs to begin
+  // while the Start click is still a trusted user interaction.
+  const naturalResult = naturalExaminerVoiceReady()
+    ? await speakNaturalExaminer(text, rate)
+    : "unavailable";
+  if (sequence !== speechSequence || naturalResult === "cancelled") return false;
+  if (naturalResult === "completed") return true;
+  const browserResult = await speakBrowserPrompt(lines, rate, sequence);
+  if (sequence !== speechSequence || browserResult === "interrupted") return false;
+  if (browserResult === "completed") return true;
 
-  window.speechSynthesis.cancel();
-  finishBrowserUtterance?.();
-  const [voice] = await browserVoices();
-  for (let i = 0; i < lines.length && sequence === speechSequence; i += 1) {
-    await speakBrowserLine(lines[i], voice, rate * (i % 2 === 0 ? 0.97 : 0.94));
-    if (i + 1 < lines.length && sequence === speechSequence) await pause(140);
-  }
+  // `prepareNaturalExaminerVoice` was kicked off in the Start button handler.
+  // The browser only reaches this branch when its very first sentence never
+  // started, so the full prompt has not been heard and it is safe to retry it
+  // once through the already user-gesture-primed WebAudio voice.
+  if (!(await waitForNaturalExaminerVoice()) || sequence !== speechSequence) return false;
+  const recovered = await speakNaturalExaminer(text, rate);
+  return sequence === speechSequence && recovered === "completed";
 }
 
 export function cancelSpeech(): void {
@@ -402,4 +569,9 @@ export function cancelSpeech(): void {
   }
 }
 
-export { disposeNaturalExaminerVoice, prepareNaturalExaminerVoice };
+export {
+  disposeNaturalExaminerVoice,
+  naturalExaminerVoiceBusy,
+  prepareNaturalExaminerVoice,
+  waitForNaturalExaminerVoice,
+};

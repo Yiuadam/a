@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "What BandUp promises, what it does not, and the one thing that matters most: a band estimate here is not an IELTS result.",
 };
 
-const LAST_UPDATED = "9 August 2026";
+const LAST_UPDATED = "12 August 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -116,6 +116,29 @@ export default function TermsPage() {
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Please do not automate requests, share an account to multiply the allowance, or use
           the AI features for anything other than preparing for an English exam.
+        </p>
+      </Section>
+
+      <Section title="Organisations and shared learning records">
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          An organisation workspace can include owners, managers, teachers and students.
+          Teachers see assigned students only; managers manage their own organisation; BandUp
+          administrators can approve and manage organisations across the service. An invitation
+          must be accepted by the account it was addressed to.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          A student asks to leave and an organisation manager approves or rejects the request.
+          Work completed after joining is shared during membership. Sharing earlier history is a
+          separate choice; changing access while membership is active also uses an approval
+          request. These controls exist so neither a learner nor a teacher can silently change an
+          organisation&rsquo;s records.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Teachers may archive the organisation&rsquo;s view of an assigned student&rsquo;s attempt.
+          Managers may permanently remove an attempt from that organisation with a recorded
+          reason. Neither action deletes the learner&rsquo;s original BandUp record. Attempts to evade
+          these permissions, view unassigned students, or use invitations for another person are
+          prohibited.
         </p>
       </Section>
 

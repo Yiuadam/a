@@ -14,7 +14,7 @@
     slate  = surfaces and text, lightest to darkest
     indigo = the accent
     emerald / rose = correct / incorrect
-    amber  = highlights and hints
+    amber  = warnings and caution
   In the dark theme the slate ramp is inverted, which is why `text-slate-900`
   still means "the strongest text colour" everywhere.
 
@@ -114,16 +114,17 @@
 html[data-theme="light"] {
   color-scheme: light;
 
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-600: #475569;
-  --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #0f172a;
+  /* Neutral daylight paper: white first, with grey used only for hierarchy. */
+  --color-slate-50: #ffffff;
+  --color-slate-100: #f7f7f8;
+  --color-slate-200: #e9eaec;
+  --color-slate-300: #d5d7da;
+  --color-slate-400: #70737a;
+  --color-slate-500: #60646b;
+  --color-slate-600: #53575e;
+  --color-slate-700: #3a3d43;
+  --color-slate-800: #26282d;
+  --color-slate-900: #16171a;
 
   --color-indigo-50: #eef2ff;
   --color-indigo-100: #e0e7ff;
@@ -163,13 +164,13 @@ html[data-theme="light"] {
   --color-purple-100: #f3e8ff;
   --color-purple-700: #7e22ce;
 
-  --color-surface: #f5f6f8;
+  --color-surface: #ffffff;
   --color-accent-fg: #ffffff;
-  --color-background: #e8ebef;
-  --color-foreground: #0f172a;
+  --color-background: #fafafa;
+  --color-foreground: #16171a;
 
-  --wash-one: rgba(92, 101, 121, 0.1);
-  --wash-two: rgba(112, 126, 139, 0.08);
+  --wash-one: rgba(255, 255, 255, 0);
+  --wash-two: rgba(148, 151, 158, 0.025);
 }
 
 /* ---------------------------------------------------------------- Dark --- */
@@ -258,6 +259,10 @@ body {
   --glass-specular: rgba(255, 255, 255, 0.48);
   --glass-shadow: rgba(42, 31, 24, 0.1);
   --glass-blur: 24px;
+  /* One decorative/navigation icon ink across every control. The token, not
+     each component, changes with the active colour theme. Semantic success,
+     warning and error marks intentionally keep their own status colours. */
+  --app-icon-color: var(--color-indigo-600);
   background:
     radial-gradient(58rem 38rem at 8% -8%, var(--wash-one), transparent 62%),
     radial-gradient(50rem 34rem at 92% 2%, var(--wash-two), transparent 64%),
@@ -295,16 +300,46 @@ body[data-viewport-locked] {
   overflow: hidden;
 }
 
+/*
+  Plan tasks live in a short vertical scroller. A refractive rim may extend a
+  few pixels while its control follows a fine pointer; clipping at the exact
+  edge of that scroller made the rim look sliced off at the first, last and
+  side-most task. Keep the real scroll boundary, but put a small paint gutter
+  *inside* it.
+
+  The negative margin and matching padding deliberately cancel in normal
+  flow: task text keeps its old width and the list keeps its 9.5rem reading
+  area. The physical scrollport is just wider/taller by the gutter, giving a
+  decorative layer room to settle without changing the link's hit target or
+  allowing horizontal page overflow. This is scoped to plan tasks; navigation
+  and other intentionally clipped windows retain their own boundaries.
+*/
+.plan-task-list {
+  --plan-task-lens-overscan: 0.5rem;
+  box-sizing: border-box;
+  max-height: calc(9.5rem + var(--plan-task-lens-overscan) + var(--plan-task-lens-overscan));
+  margin: calc(0px - var(--plan-task-lens-overscan));
+  padding: var(--plan-task-lens-overscan);
+  /* This preserves the old `pr-1` clearance for the scrollbar. */
+  padding-right: calc(var(--plan-task-lens-overscan) + 0.25rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-padding-block: var(--plan-task-lens-overscan);
+}
+
 .practice-result-page {
   margin-inline: var(--page-window-gutter);
   padding-top: var(--page-window-gutter);
 }
 
 html[data-theme="light"] body {
-  --glass-fill: rgba(255, 255, 255, 0.14);
-  --glass-fill-strong: rgba(255, 255, 255, 0.23);
-  --glass-edge-dark: rgba(30, 41, 59, 0.09);
-  --glass-shadow: rgba(30, 41, 59, 0.09);
+  --glass-fill: rgba(255, 255, 255, 0.66);
+  --glass-fill-strong: rgba(255, 255, 255, 0.86);
+  --glass-edge: rgba(22, 23, 26, 0.075);
+  --glass-highlight: rgba(255, 255, 255, 0.98);
+  --glass-edge-dark: rgba(22, 23, 26, 0.055);
+  --glass-specular: rgba(255, 255, 255, 0.96);
+  --glass-shadow: rgba(22, 23, 26, 0.065);
 }
 
 html[data-theme="dark"] body {
@@ -315,6 +350,7 @@ html[data-theme="dark"] body {
   --glass-edge-dark: rgba(0, 0, 0, 0.2);
   --glass-specular: rgba(255, 255, 255, 0.18);
   --glass-shadow: rgba(0, 0, 0, 0.18);
+  --app-icon-color: var(--color-indigo-700);
   background: #111113;
   background-attachment: fixed;
 }
@@ -354,6 +390,20 @@ html[data-theme="dark"] body {
 }
 
 /*
+  Compact organization pickers sit over dense dashboard data. Keep the page's
+  colour visible, but blur it far enough that names and controls underneath
+  cannot compete with the active choice list.
+*/
+.liquid-glass.organization-picker-popover {
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(48px) saturate(76%) brightness(101%);
+  backdrop-filter: blur(48px) saturate(76%) brightness(101%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 10px 28px color-mix(in srgb, var(--glass-shadow) 72%, transparent);
+}
+
+/*
   The homepage prototype uses the refraction engine from liquid-glass-react,
   not its visual decoration. The package's two tint layers, moving highlight
   rims, text shadow and heavy drop shadow are hidden here; only its SVG
@@ -389,8 +439,34 @@ html[data-theme="dark"] .premade-glass {
 }
 
 .refractive-glass-layer > div:not(.refractive-glass-core),
-.refractive-glass-layer > span {
+.refractive-glass-layer:not([data-interactive]) > span {
   display: none !important;
+}
+
+/* The installed liquid-glass-react package computes its edge refraction from
+   the actual pixels behind the control. Only opt-in, fine-pointer surfaces
+   expose its live directional rim; touch/mobile and reduced-motion users keep
+   the cheaper CSS backdrop glass below. Safari and Firefox retain that CSS
+   fallback when SVG displacement is only partially supported. */
+.refractive-glass-layer[data-interactive] {
+  opacity: 0.94;
+}
+
+.refractive-glass-layer[data-interactive] > span {
+  display: block !important;
+  opacity: 0.42 !important;
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .refractive-glass-layer[data-interactive] > span {
+    display: none !important;
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .refractive-glass-layer {
+    display: none;
+  }
 }
 
 .refractive-glass-core {
@@ -418,6 +494,113 @@ html[data-theme="dark"] .premade-glass {
   z-index: 1;
 }
 
+.app-icon-color,
+.app-icon-control {
+  color: var(--app-icon-color);
+}
+
+.app-icon-control:hover {
+  color: var(--app-icon-color);
+}
+
+/* A floating inbox needs more optical separation than an ordinary card: its
+   labels must not visually merge with the page it overlaps. It remains
+   translucent and refractive, but the stronger blur removes readable shapes
+   from the background before the notification text is painted. */
+.notification-popover {
+  isolation: isolate;
+  overflow: hidden;
+  contain: paint;
+  clip-path: inset(0 round var(--radius-xl));
+  /* Keep one glass boundary, but give the reading surface enough density that
+     page dividers and labels underneath cannot draw a second, false line
+     through the popover. The background is still translucent; the stronger
+     blur supplies the optical depth instead of another nested window. */
+  background-color: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  background-image:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-surface) 6%, transparent),
+      transparent
+    );
+  -webkit-backdrop-filter: blur(52px) saturate(92%) brightness(102%);
+  backdrop-filter: blur(52px) saturate(92%) brightness(102%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 14px 36px color-mix(in srgb, var(--glass-shadow) 82%, transparent);
+}
+
+html[data-theme="dark"] .liquid-glass.notification-popover {
+  background-color: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  background-image:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-surface) 5%, transparent),
+      transparent
+    );
+  -webkit-backdrop-filter: blur(52px) saturate(88%) brightness(105%);
+  backdrop-filter: blur(52px) saturate(88%) brightness(105%);
+}
+
+/* Notification actions are tiny, information-dense text. General glass/accent
+   colours can become optically similar after dark-theme translucency is
+   composited, so these roles use deliberately high-contrast pairings. The
+   attention capsule stays neutral and clearly bounded, while metadata and the
+   CTA remain visibly separate from the dark card without becoming pure white. */
+html[data-theme="dark"] .notification-row-copy {
+  color: #e5e7eb;
+}
+
+html[data-theme="dark"] .notification-row-meta {
+  color: #d1d5db;
+}
+
+html[data-theme="dark"] .notification-attention {
+  border: 1px solid #e5e7eb;
+  background: #d1d5db;
+  color: #111113;
+}
+
+html[data-theme="dark"] .notification-action {
+  color: #e0e7ff;
+}
+
+/* On phones the bell is not the rightmost header control: the account and
+   theme controls follow it. A popover right-aligned to that bell therefore
+   runs off the left side of a narrow viewport. NotificationBell publishes the
+   visible viewport geometry before paint; use it only below the `sm`
+   breakpoint to keep equal safe-area-aware gutters without changing the
+   desktop anchor. */
+@media (max-width: 39.999rem) {
+  [data-notification-bell-root] > .notification-popover {
+    right: auto;
+    left: calc(var(--notification-mobile-left, 0px) + max(8px, env(safe-area-inset-left)));
+    width: calc(
+      var(--notification-mobile-width, 100vw)
+      - max(8px, env(safe-area-inset-left))
+      - max(8px, env(safe-area-inset-right))
+    );
+    max-width: none;
+  }
+}
+
+/* Fingers need a 44px target even though the visible controls are otherwise
+   as compact as the theme switcher. Touch and reduced-motion devices also use
+   an immediate selector move and skip the compositor reservation. */
+@media (hover: none), (pointer: coarse) {
+  .notification-filter-option,
+  .notification-compact-action {
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-filter-selector {
+    transition: none;
+    will-change: auto;
+  }
+}
+
 /*
   Google owns the sign-in button inside its cross-origin iframe, so its fill,
   logo and type remain untouched. BandUp owns the surrounding material: the
@@ -439,10 +622,33 @@ html[data-theme="dark"] .premade-glass {
   background: color-mix(in srgb, var(--glass-fill-strong) 28%, transparent);
 }
 
+.google-signin-viewport {
+  width: 100%;
+  min-width: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  clip-path: inset(0 round 999px);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
 .google-signin-host > div,
 .google-signin-host iframe {
-  max-width: 100% !important;
-  border-radius: 19px !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: 40px !important;
+  border-radius: 999px !important;
+}
+
+.google-signin-host,
+.google-signin-host > div,
+.google-signin-host iframe {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden !important;
+  clip-path: inset(0.5px round 999px);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 html[data-theme="dark"] .google-signin-glass {
@@ -450,40 +656,99 @@ html[data-theme="dark"] .google-signin-glass {
 }
 
 .nav-paper {
+  isolation: isolate;
+  overflow-x: hidden;
+  overflow-y: auto;
   background:
+    linear-gradient(color-mix(in srgb, var(--color-background) 72%, transparent), color-mix(in srgb, var(--color-background) 72%, transparent)),
     radial-gradient(50rem 32rem at 14% 0%, var(--wash-one), transparent 62%),
-    radial-gradient(44rem 30rem at 88% 8%, var(--wash-two), transparent 64%),
-    var(--color-background);
-  animation: glass-menu-open 340ms cubic-bezier(0.2, 0.82, 0.2, 1);
+    radial-gradient(44rem 30rem at 88% 8%, var(--wash-two), transparent 64%);
+  -webkit-backdrop-filter: blur(42px) saturate(112%) brightness(102%);
+  backdrop-filter: blur(42px) saturate(112%) brightness(102%);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.nav-paper > .refractive-glass-layer {
+  /* The panel already starts below the header. A second fixed header inset
+     moved this layer down by another row, so the package's full-surface rim
+     appeared as a horizontal line through the navigation cards (and as a
+     vertical line at the viewport edge). Fill the panel itself instead. */
+  position: absolute;
+  inset: -1px;
+  border-radius: 0;
+  opacity: 0.55;
+}
+
+/* LiquidGlass adds two decorative edge spans around each interactive lens.
+   They are useful on buttons, but a viewport-sized lens turns them into page
+   dividers behind the menu cards. The warp layer remains active, so the menu
+   keeps its live background refraction without the false outer window. */
+.nav-paper > .refractive-glass-layer[data-interactive] > span {
+  display: none !important;
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .nav-paper > .refractive-glass-layer {
+    display: none;
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .nav-paper {
+    background: var(--color-background);
+  }
 }
 
 /*
-  backdrop-filter creates a containing block for fixed descendants. The open
-  menu is one of those descendants, so the header temporarily keeps the same
-  optical edge without the filter; otherwise the full-screen panel is trapped
-  inside the header's 60px box.
+  `backdrop-filter` creates a containing block for fixed descendants. The
+  expanded menu must stay fixed to the viewport, not become a strip inside the
+  header, so the open header cannot own its filter directly. Its decorative
+  `::before` layer owns the same normal liquid-glass material instead. A
+  sibling filter does not contain the menu, while the visual fill, blur, rim
+  and shadow remain precisely where the closed header paints them.
 */
 .nav-open-header {
+  /* A small non-filtering base keeps the bar visibly glassy in engines that
+     occasionally skip backdrop filtering on pseudo-elements. The actual blur
+     still belongs to ::before, so the fixed navigation sheet remains
+     viewport-relative. */
+  isolation: isolate;
   border-color: var(--glass-edge);
-  background: var(--glass-fill-strong);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  background: color-mix(in srgb, var(--glass-fill) 45%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 45%, transparent),
+    0 1px 3px color-mix(in srgb, var(--glass-shadow) 45%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.nav-open-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+  background: var(--glass-fill);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 3px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
+}
+
+/* The material belongs below the real controls. The fixed navigation panel
+   has its own higher stacking level and therefore still expands over the
+   viewport exactly as it did before the header gained its glass layer. */
+.nav-open-header > :not(.nav-paper) {
+  position: relative;
+  z-index: 1;
 }
 
 /* With viewport-fit=cover, the header surface continues behind an iPhone's
    status area instead of leaving a white strip above the navigation row. */
 .site-header {
   padding-top: env(safe-area-inset-top);
-}
-
-@keyframes glass-menu-open {
-  from {
-    opacity: 0;
-    transform: translateY(-0.25rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /*
@@ -493,7 +758,7 @@ html[data-theme="dark"] .google-signin-glass {
 */
 .theme-toggle-base {
   border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
-  background: color-mix(in srgb, var(--color-slate-200) 82%, var(--color-background));
+  background: color-mix(in srgb, var(--color-surface) 48%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 1px 2px rgba(0, 0, 0, 0.08);
@@ -505,6 +770,43 @@ html[data-theme="dark"] .google-signin-glass {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* The inbox filter is the compact two-stop version of the theme control. One
+   physical lens moves between All and Unread; the buttons themselves remain
+   transparent, so switching does not mount or repaint two glass surfaces. */
+.notification-filter-base {
+  flex: 0 1 15rem;
+  width: min(100%, 15rem);
+  border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 48%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.notification-filter-selector {
+  position: absolute;
+  inset-block: 0.25rem;
+  left: 0.25rem;
+  width: calc((100% - 0.5rem) / 2);
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  pointer-events: none;
+  background: var(--glass-fill-strong);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  transform: translate3d(calc(var(--notification-filter-index) * 100%), 0, 0);
+  transition: transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
+  will-change: transform;
+}
+
+.notification-filter-option,
+.notification-compact-action {
+  min-height: 2.25rem;
 }
 
 .interval-toggle-selector {
@@ -551,9 +853,193 @@ html[data-theme="dark"] .google-signin-glass {
   transform: translate3d(calc(var(--theme-index) * 1.875rem), 0, 0);
 }
 
-/* A restrained magnetic response shared by cards and buttons. The page keeps
-   its geometry because individual translate/scale never participate in
-   layout; only the painted surface follows the pointer by a few pixels. */
+/* The organization sections use the same single flowing lens as the theme
+   control. Hover, keyboard focus and a touch drag preview the destination;
+   release or click commits it. */
+.organization-view-tabs {
+  border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
+  background: color-mix(in srgb, var(--color-slate-200) 82%, var(--color-background));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.organization-view-selector {
+  position: absolute;
+  inset-block: 0.25rem;
+  left: 0.25rem;
+  width: calc((100% - 0.5rem) / var(--organization-view-count, 3));
+  border: 1px solid var(--glass-edge);
+  border-radius: calc(var(--radius-xl) - 0.25rem);
+  pointer-events: none;
+  background: var(--glass-fill-strong);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  transform: translate3d(calc(var(--organization-view-index) * 100%), 0, 0);
+  transition: transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
+  will-change: transform;
+}
+
+.organization-view-tabs[data-unselected] .organization-view-selector {
+  opacity: 0;
+}
+
+/* Team pairing is a full-page working view, so the section itself must not
+   spend a second rounded window around the actual teacher groups. The inner
+   group cards keep the glass hierarchy and use a deliberately tighter inset. */
+.organization-team-pairings-page.card.card {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.organization-team-pairings-page.card.card:focus-within {
+  border-color: transparent;
+}
+
+.organization-team-pairing-group.card.card {
+  padding: 0.75rem !important;
+}
+
+@media (max-width: 39.999rem) {
+  .organization-team-pairings-page > div:first-child > div:first-child > p {
+    display: none;
+  }
+
+  .organization-team-pairing-grid {
+    gap: 0.5rem;
+  }
+
+  .organization-team-pairing-group.card.card {
+    padding: 0.625rem !important;
+  }
+
+  .organization-team-pairing-identity > div {
+    gap: 0.5rem;
+  }
+
+  .organization-team-pairing-identity > div > img,
+  .organization-team-pairing-identity > div > span:first-child {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.75rem;
+  }
+
+  .organization-team-pairing-identity > div > span:last-child > span:first-child {
+    font-size: 0.8125rem;
+    line-height: 1rem;
+  }
+
+  .organization-team-pairing-identity > div > span:last-child > span:last-child {
+    font-size: 0.6875rem;
+    line-height: 0.875rem;
+  }
+
+  .organization-team-pairing-member .organization-status-pill {
+    padding: 0.1875rem 0.5rem;
+    font-size: 0.625rem;
+  }
+
+  .organization-team-pairing-manage > summary {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+  }
+}
+
+/* The workspace summary becomes a compact breadcrumb once a dashboard card
+   opens. Collapsing a real grid row lets the glass reform without measuring a
+   magic pixel height, so long organization names remain safe and fully shown. */
+.organization-membership-summary {
+  transition:
+    padding-block 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 220ms ease,
+    box-shadow 280ms ease;
+}
+
+.organization-membership-details {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    grid-template-rows 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 180ms ease,
+    translate 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.organization-membership-details > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.organization-membership-summary[data-compact] {
+  padding-block: 0.55rem !important;
+}
+
+.organization-membership-summary[data-compact] .organization-membership-details {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  translate: 0 -0.25rem;
+  pointer-events: none;
+}
+
+/* The workspace picker belongs to the organisation-name card, directly below
+   its settings control. The compact trigger avoids turning the right action
+   rail into a second card, while the shared GlassSelect popover keeps every
+   organisation name readable on phones and fully keyboard operable. */
+.organization-membership-actions {
+  width: min(15rem, 44vw);
+}
+
+.organization-membership-actions:not(:has(.organization-workspace-switcher)) {
+  width: auto;
+}
+
+.organization-membership-actions > button {
+  justify-self: end;
+}
+
+.organization-settings-button[aria-current="page"] {
+  color: var(--color-indigo-700);
+  border-color: color-mix(in srgb, var(--color-indigo-500) 52%, var(--glass-edge));
+  background: color-mix(in srgb, var(--color-indigo-100) 52%, var(--glass-fill-strong));
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 2px color-mix(in srgb, var(--color-indigo-500) 18%, transparent),
+    0 1px 2px var(--glass-shadow);
+}
+
+.organization-workspace-switcher {
+  width: 100%;
+}
+
+.organization-workspace-switcher > div > button {
+  border-radius: 9999px;
+  min-height: 2rem;
+}
+
+@media (max-width: 639px) {
+  .organization-membership-actions {
+    width: min(10.5rem, 46vw);
+  }
+
+  .organization-workspace-switcher > div > button {
+    padding-inline: 0.65rem;
+    font-size: 0.6875rem;
+  }
+}
+
+/* A restrained magnetic response shared by selected glass controls. The
+   control itself is deliberately stationary: its words, icon, hit target and
+   focus outline must not chase the pointer. Only the already-separate,
+   decorative refraction layer moves and stretches by a few pixels. */
 [data-pointer-attract-ready] {
   --pointer-drift-x: 0px;
   --pointer-drift-y: 0px;
@@ -561,31 +1047,36 @@ html[data-theme="dark"] .google-signin-glass {
   --pointer-stretch-y: 1;
   --pointer-origin-x: 50%;
   --pointer-origin-y: 50%;
+}
+
+[data-pointer-attract-ready] > .refractive-glass-layer {
   translate: var(--pointer-drift-x) var(--pointer-drift-y);
   scale: var(--pointer-stretch-x) var(--pointer-stretch-y);
   transform-origin: var(--pointer-origin-x) var(--pointer-origin-y);
-  transition-property: translate, scale, border-color, background-color, box-shadow, color, opacity;
-  transition-duration: 420ms, 420ms, 180ms, 180ms, 240ms, 180ms, 180ms;
+  transition-property: translate, scale;
+  transition-duration: 420ms, 420ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   will-change: translate, scale;
 }
 
-[data-pointer-attract-ready][data-pointer-attracting] {
+[data-pointer-attract-ready][data-pointer-attracting] > .refractive-glass-layer {
   /* Track the pointer almost immediately. Longer easing here reads as input
      lag because every pointer frame starts another transition. */
-  transition-duration: 28ms, 36ms, 180ms, 180ms, 240ms, 180ms, 180ms;
-  transition-timing-function:
-    linear,
-    linear,
-    cubic-bezier(0.16, 1, 0.3, 1),
-    cubic-bezier(0.16, 1, 0.3, 1),
-    cubic-bezier(0.16, 1, 0.3, 1),
-    cubic-bezier(0.16, 1, 0.3, 1),
-    cubic-bezier(0.16, 1, 0.3, 1);
+  transition-duration: 28ms, 36ms;
+  transition-timing-function: linear, linear;
 }
 
-[data-pointer-attract-ready][data-pointer-attract-touch] {
-  transition-duration: 24ms, 32ms, 180ms, 180ms, 240ms, 180ms, 180ms;
+/* While the lens is stretching, it is the only painted edge. Leaving the
+   semantic button's normal border in place creates a second, static ring
+   beneath it (especially noticeable on round icon controls). The hit target
+   and keyboard focus geometry remain on the button; only its base rim fades
+   until the lens comes to rest. */
+[data-pointer-attract-ready][data-pointer-attracting] {
+  border-color: transparent;
+}
+
+[data-pointer-attract-ready][data-pointer-attract-touch] > .refractive-glass-layer {
+  transition-duration: 24ms, 32ms;
 }
 
 .pointer-attract-glass {
@@ -601,6 +1092,14 @@ html[data-theme="dark"] .google-signin-glass {
 .pointer-attract-glass:hover {
   border-color: var(--glass-specular);
   background: var(--glass-fill-strong);
+}
+
+/* This comes after the hover recipe because an actively stretching lens is
+   naturally hovered. Keep the semantic control's paint out of the way so the
+   moving decorative rim is the only visible boundary. */
+.pointer-attract-glass[data-pointer-attracting] {
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .panel-toggle-base {
@@ -699,7 +1198,10 @@ html[data-theme="dark"] .google-signin-glass {
 .dashboard-screen > .grid {
   min-height: 0;
   flex: 1;
-  overflow: hidden;
+  /* The homepage now follows normal document flow. Keep this flex child's
+     overflow visible so its final Grammar/Vocabulary row contributes to the
+     page height instead of being clipped at the old one-screen boundary. */
+  overflow: visible;
 }
 
 .dashboard-card-blurb-short {
@@ -722,8 +1224,7 @@ html[data-theme="dark"] .google-signin-glass {
   .dashboard-card-blurb-short {
     display: inline;
   }
-  .dashboard-screen > section:first-child {
-    flex-wrap: nowrap;
+  .dashboard-hero {
     padding: 0.7rem !important;
   }
   .dashboard-placement-button {
@@ -733,6 +1234,16 @@ html[data-theme="dark"] .google-signin-glass {
   }
   .dashboard-screen .space-y-4 > :not(:last-child) {
     margin-block-end: 0.55rem;
+  }
+}
+
+/* Immediately above the phone breakpoint the cards remain two-up, but should
+   not jump back to the roomy desktop inset. Keeping their contents compact
+   avoids a 480/481px height cliff without hiding a destination. */
+@media (min-width: 481px) and (max-width: 639px) {
+  .dashboard-screen .dashboard-skill-card.card {
+    padding-block: 0.6rem !important;
+    padding-inline: 1rem !important;
   }
 }
 
@@ -751,12 +1262,10 @@ html[data-theme="dark"] .google-signin-glass {
     gap: 0.45rem;
   }
   /*
-    The dashboard's second row is the remaining viewport, not a document.
-    Let its two sections divide that exact space 2:1 (four practice rows, two
-    study rows). Previously their content height won, the parent clipped its
-    overflow, and Chrome drew only the top half of Vocabulary above the
-    footer. These nested grids shrink together instead of sacrificing the last
-    destination.
+    Four practice rows and two study rows share one compact grid contract on a
+    phone. The page itself owns vertical scrolling; these nested grids keep
+    every row in flow so Vocabulary adds to the document height instead of
+    disappearing behind the footer.
   */
   .dashboard-screen > .grid {
     overflow: visible;
@@ -789,16 +1298,16 @@ html[data-theme="dark"] .google-signin-glass {
     text-align: center;
     white-space: nowrap;
   }
-  .dashboard-screen > section:first-child {
+  .dashboard-hero {
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
   }
-  .dashboard-screen > section:first-child > .premade-glass-content:first-of-type {
+  .dashboard-hero > .premade-glass-content:first-of-type {
     flex-basis: auto;
     text-align: center;
   }
-  .dashboard-screen > section:first-child > .premade-glass-content:last-child {
+  .dashboard-hero-actions {
     width: 100%;
     justify-content: center;
   }
@@ -873,14 +1382,14 @@ html[data-theme="dark"] .google-signin-glass {
   }
 }
 
-/* The original iPhone SE height has far less vertical room. Keep the cards
-   larger than before, but contract them enough that the final row is never
-   clipped by the one-screen dashboard. */
+/* The original iPhone SE height has far less room. Tighten empty space, but
+   keep the normal card-height floor: the document can scroll and no longer
+   needs to sacrifice a destination to fit one screen. */
 @media (max-width: 480px) and (max-height: 620px) {
   .dashboard-screen {
     gap: 0.25rem;
   }
-  .dashboard-screen > section:first-child {
+  .dashboard-hero {
     gap: 0.25rem;
     padding: 0.35rem !important;
   }
@@ -893,9 +1402,6 @@ html[data-theme="dark"] .google-signin-glass {
   }
   .dashboard-screen .space-y-4 > :not(:last-child) {
     margin-block-end: 0.35rem;
-  }
-  .dashboard-skill-card {
-    min-height: 2.4rem;
   }
   .dashboard-screen .dashboard-skill-card.card {
     padding-block: 0.2rem !important;
@@ -1480,6 +1986,20 @@ body::before {
     padding-left: var(--window-text-inset) !important;
     padding-right: var(--window-text-inset) !important;
   }
+
+  .organization-team-pairings-page.card.card {
+    padding: 0 !important;
+  }
+
+  .organization-team-pairing-group.card.card {
+    padding: 0.75rem !important;
+  }
+
+  @media (max-width: 39.999rem) {
+    .organization-team-pairing-group.card.card {
+      padding: 0.625rem !important;
+    }
+  }
 }
 
 /* Generous radii, soft shadows and roomy padding do most of the "cosy" work. */
@@ -1544,10 +2064,10 @@ a.card.card:hover {
   background: color-mix(in srgb, var(--glass-fill-strong) 88%, white 12%);
 }
 
-/* Checkout is the only warm-filled action: a soft yellow-orange, light enough
-   to feel inviting but muted enough to stay within BandUp's calm palette. */
-.btn-primary.pricing-subscribe-button,
-html[data-theme="dark"] .btn-primary.pricing-subscribe-button {
+/* Warm keeps its softer checkout accent. Light and Dark override it below so
+   checkout remains part of the same indigo/glass interaction system as the
+   rest of the site instead of introducing an isolated orange action. */
+.btn-primary.pricing-subscribe-button {
   color: #2a2118;
   border-color: #a9763d;
   background: #c28f52;
@@ -1556,10 +2076,25 @@ html[data-theme="dark"] .btn-primary.pricing-subscribe-button {
     0 1px 2px var(--glass-shadow);
 }
 
-.btn-primary.pricing-subscribe-button:hover:not(:disabled),
-html[data-theme="dark"] .btn-primary.pricing-subscribe-button:hover:not(:disabled) {
+.btn-primary.pricing-subscribe-button:hover:not(:disabled) {
   border-color: #b08047;
   background: #ca995d;
+}
+
+html[data-theme="light"] .btn-primary.pricing-subscribe-button,
+html[data-theme="dark"] .btn-primary.pricing-subscribe-button {
+  color: var(--color-indigo-800);
+  border-color: color-mix(in srgb, var(--color-indigo-500) 58%, var(--glass-edge));
+  background: color-mix(in srgb, var(--color-indigo-100) 62%, var(--glass-fill-strong));
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+}
+
+html[data-theme="light"] .btn-primary.pricing-subscribe-button:hover:not(:disabled),
+html[data-theme="dark"] .btn-primary.pricing-subscribe-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-indigo-500) 76%, var(--glass-specular));
+  background: color-mix(in srgb, var(--color-indigo-200) 66%, var(--glass-fill-strong));
 }
 
 .btn-secondary {
@@ -1663,105 +2198,15 @@ textarea {
   width: 2.25rem;
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-indigo-500), var(--color-amber-400));
-}
-
-/*
-  The topic index on Grammar and Vocabulary, made dense.
-
-  Both pages render through <DrillSection>, which this change does not own, so
-  the density it needs is applied from the outside: the page wraps it in
-  `.drill-dense` and every rule here reaches the topic index only. `> div >
-  .grid` is the grid of topic buttons, and `> div > div:not([class])` is the
-  heading block above it — the open-topic view puts a `.card` in that position
-  instead, which is why the attribute selector is doing real work rather than
-  being decoration.
-
-  Nothing is hidden. Ten grammar topics across five columns are the same ten
-  topics; the one-sentence excerpt under each title is the excerpt it always
-  was, and the whole note is on the topic itself, one tap away.
-*/
-.drill-dense > div > div:not([class]) h1 {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-}
-.drill-dense > div > .grid {
-  gap: 0.625rem;
-  margin-top: 0.75rem;
-}
-.drill-dense > div > .grid > .card {
-  padding: 0.75rem;
-}
-.drill-dense > div > .grid > .card h2 {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-}
-.drill-dense > div > .grid > .card > p {
-  margin-top: 0.25rem;
-}
-.drill-dense > div > .grid > .card > div:last-child {
-  margin-top: 0.375rem;
-}
-/* One line of the excerpt on a phone, two once there is room for two. */
-@media (max-width: 639px) {
-  /*
-    Topic indexes are two-row horizontal decks on phones. Every grammar or
-    vocabulary topic stays reachable, but the page no longer becomes ten
-    vertically stacked cards before the learner can choose one.
-  */
-  .drill-dense > div > .grid {
-    grid-template-columns: none;
-    grid-template-rows: repeat(2, minmax(0, auto));
-    grid-auto-columns: min(82vw, 20rem);
-    grid-auto-flow: column;
-    margin-inline: -1.25rem;
-    padding: 0.125rem 1.25rem 0.5rem;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scroll-padding-inline: 1.25rem;
-    scroll-snap-type: inline mandatory;
-    scrollbar-width: none;
-  }
-
-  .drill-dense > div > .grid::-webkit-scrollbar {
-    display: none;
-  }
-
-  .drill-dense > div > .grid > * {
-    min-width: 0;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-
-  .drill-dense > div > .grid > .card > p {
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-  }
-}
-@media (min-width: 1024px) {
-  .drill-dense > div > .grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-/*
-  The column count is chosen so the topics land in exactly two rows on a
-  laptop: ten grammar topics across five, eight vocabulary topics across four.
-  Wider cards wrap fewer titles, so the wrong count is both emptier and taller.
-*/
-@media (min-width: 1280px) {
-  .drill-dense > div > .grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .drill-dense-5 > div > .grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
+  background: linear-gradient(90deg, var(--color-indigo-400), var(--color-indigo-600));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-pointer-attract-ready] {
+  [data-pointer-attract-ready] > .refractive-glass-layer {
     translate: none;
     scale: none;
     transition: none;
+    will-change: auto;
   }
 
   a.card,
@@ -1771,9 +2216,6 @@ textarea {
   .btn-primary:hover:not(:disabled),
   a.card:hover {
     transform: none;
-  }
-  .nav-paper {
-    animation: none;
   }
   .liquid-glass,
   .card,
@@ -1898,7 +2340,9 @@ textarea {
   .input,
   .theme-toggle-selector,
   .interval-toggle-selector,
+  .notification-filter-selector,
   .panel-toggle-selector,
+  .organization-view-selector,
   .speaking-engine-selector,
   .nav-primary-selector,
   .nav-menu-selector,
@@ -2106,26 +2550,51 @@ html[data-theme="dark"] .card:focus-within {
 }
 
 html[data-theme="dark"] .nav-paper {
-  background: var(--color-background);
+  background: color-mix(in srgb, var(--color-background) 86%, transparent);
+  -webkit-backdrop-filter: blur(42px) saturate(106%) brightness(105%);
+  backdrop-filter: blur(42px) saturate(106%) brightness(105%);
 }
 
 html[data-theme="dark"] .nav-open-header {
-  border-color: var(--glass-edge);
-  background: rgba(20, 20, 23, 0.56);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  background: color-mix(in srgb, var(--glass-fill) 45%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 45%, transparent),
+    0 1px 2px color-mix(in srgb, var(--glass-shadow) 45%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Mirror the dark `.liquid-glass` recipe rather than the stronger menu
+   surface: the opened bar should look indistinguishable from the closed bar. */
+html[data-theme="dark"] .nav-open-header::before {
+  background: var(--glass-fill);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(105%) brightness(106%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(105%) brightness(106%);
 }
 
 html[data-theme="dark"] .theme-toggle-base,
 html[data-theme="dark"] .interval-toggle-base,
-html[data-theme="dark"] .panel-toggle-base {
+html[data-theme="dark"] .notification-filter-base,
+html[data-theme="dark"] .panel-toggle-base,
+html[data-theme="dark"] .organization-view-tabs {
   border-color: rgba(255, 255, 255, 0.1);
   background: #1b1b1e;
   box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
 }
 
+html[data-theme="dark"] .theme-toggle-base,
+html[data-theme="dark"] .notification-filter-base {
+  background: color-mix(in srgb, var(--color-surface) 46%, transparent);
+}
+
 html[data-theme="dark"] .theme-toggle-selector,
 html[data-theme="dark"] .interval-toggle-selector,
+html[data-theme="dark"] .notification-filter-selector,
 html[data-theme="dark"] .panel-toggle-selector,
+html[data-theme="dark"] .organization-view-selector,
 html[data-theme="dark"] .speaking-engine-selector,
 html[data-theme="dark"] .nav-primary-selector,
 html[data-theme="dark"] .nav-menu-selector {
@@ -2134,6 +2603,14 @@ html[data-theme="dark"] .nav-menu-selector {
   box-shadow: inset 0 1px 0 var(--glass-highlight);
   -webkit-backdrop-filter: blur(18px) saturate(105%) brightness(106%);
   backdrop-filter: blur(18px) saturate(105%) brightness(106%);
+}
+
+/* Yellow warning ink loses definition through a dark, refractive card. Keep
+   the meaning in the label while using a neutral high-contrast capsule. */
+html[data-theme="dark"] .organization-status-pill[data-tone="warn"] {
+  border-color: #e5e7eb;
+  background: #d1d5db;
+  color: #111113;
 }
 
 html[data-theme="dark"] a.card:hover {
@@ -2186,4 +2663,209 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
   -webkit-backdrop-filter: blur(24px) saturate(105%) brightness(106%);
   backdrop-filter: blur(24px) saturate(105%) brightness(106%);
+}
+
+/* ---------------------------------------------------------------------------
+   Adaptive background reflection
+
+   Every card/window already samples the real page pixels with backdrop-filter.
+   The delegated PointerAttraction engine adds this directional specular wash
+   to only the one visible surface beneath a fine pointer. It changes two CSS
+   variables at most ~30 times per second; all other and off-screen cards stay
+   compositor-only and receive no JavaScript work. This is a background layer,
+   not another element, so popovers may extend beyond their parent cards and no
+   extra outline/window can appear around them.
+--------------------------------------------------------------------------- */
+.card[data-glass-reflecting],
+.liquid-glass[data-glass-reflecting],
+.premade-glass[data-glass-reflecting] {
+  background-image:
+    radial-gradient(
+      ellipse 72% 62% at var(--glass-reflection-x, 50%) var(--glass-reflection-y, 0%),
+      color-mix(in srgb, var(--glass-specular) 38%, transparent) 0%,
+      color-mix(in srgb, var(--glass-highlight) 13%, transparent) 34%,
+      transparent 72%
+    ),
+    linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--glass-highlight) 8%, transparent),
+      transparent 42%,
+      color-mix(in srgb, var(--glass-edge-dark) 5%, transparent)
+    );
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+/* Coarse pointers do not have a persistent cursor to drive a reflection.
+   Phones keep real backdrop sampling at a lower blur radius, while the SVG
+   displacement and JS highlight remain off. This materially lowers fill-rate
+   and battery use without replacing glass with an opaque card. */
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  body {
+    --glass-blur: 16px;
+  }
+
+  .card[data-glass-reflecting],
+  .liquid-glass[data-glass-reflecting],
+  .premade-glass[data-glass-reflecting] {
+    background-image: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Glass lab: enhanced optics (NEXT_PUBLIC_GLASS_LAB)
+
+   Everything under [data-optics="enhanced"] is reachable only through the
+   data-optics attribute that components/RefractiveGlassLayer.tsx writes, and
+   it can only write "enhanced" when the app was built with
+   NEXT_PUBLIC_GLASS_LAB=1 (see lib/glass-lab.ts). Next.js substitutes that
+   check at build time, so a production build made without the variable never
+   emits the attribute at all. These rules still ship in the stylesheet, but
+   with nothing to match they are inert weight rather than a hidden feature
+   waiting to be switched on at runtime. That is what makes it safe to leave
+   the experiment in the tree while the decision is still open on whether the
+   look belongs in production.
+
+   The rim it adds is not a new interaction. It reads the same
+   --glass-reflection-x/--glass-reflection-y custom properties that the
+   delegated PointerAttraction engine already writes on the parent glass
+   surface for the adaptive background reflection above, so turning this on
+   costs no new listener and no new JavaScript — only extra paint work on the
+   one surface a fine pointer already happens to be over. And like every other
+   refractive layer this is aria-hidden and pointer-events: none, so it moves
+   no semantic content: the button or tab underneath keeps exactly the label,
+   link and focus outline it already had.
+--------------------------------------------------------------------------- */
+/* The rim needs a strength of its own. --glass-specular is tuned to be a fill
+   tint — 0.18 alpha in dark — so a 1px ring mixed from it is invisible at any
+   mix ratio, which is exactly what the first attempt here produced. These two
+   variables give the rim its own per-theme value without touching a token any
+   other rule depends on. */
+.refractive-glass-layer[data-optics="enhanced"] {
+  --glass-rim-lit: rgba(255, 255, 255, 0.92);
+  --glass-rim-shade: rgba(28, 22, 17, 0.3);
+  opacity: 0.74;
+}
+
+/* Dark needs the lit edge pulled back and the shaded edge pushed further, or
+   the rim reads as a drawn border rather than light falling on a surface. */
+html[data-theme="dark"] .refractive-glass-layer[data-optics="enhanced"] {
+  --glass-rim-lit: rgba(255, 255, 255, 0.58);
+  --glass-rim-shade: rgba(0, 0, 0, 0.55);
+}
+
+.refractive-glass-layer[data-optics="enhanced"][data-interactive] {
+  opacity: 0.86;
+}
+
+/* The layer clips its own children, so scaling the lens slightly deepens the
+   warp without letting it escape the card's shape. Scaling the layer itself
+   would grow its box instead, and `scale` rather than `transform` because the
+   package owns the core's transform for centring. */
+.refractive-glass-layer[data-optics="enhanced"] > .refractive-glass-core {
+  scale: 1.015;
+}
+
+/* Two full-box radial gradients are painted here, but the mask keeps only the
+   thin ring that `padding` carves out between the border-box and content-box
+   layers below — the standard "gradient border" technique. That is what turns
+   two corner-to-corner gradients into a narrow specular rim traced around the
+   surface, rather than a wash across its whole face.
+
+   `inset: 1px` rather than 0 because the layer itself sits at inset: -1px to
+   overscan the card's hairline. Drawing the ring on the layer's own edge put
+   it a pixel outside the card, where the card's overflow: hidden clipped most
+   of it away; measured against a rim-removed control, pulling it back inside
+   recovered about half the pixels the rim was supposed to be painting. */
+.refractive-glass-layer[data-optics="enhanced"]::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  padding: 1.25px;
+  background:
+    radial-gradient(
+      circle at var(--glass-reflection-x, 50%) var(--glass-reflection-y, 0%),
+      var(--glass-rim-lit) 0%,
+      color-mix(in srgb, var(--glass-rim-lit) 45%, transparent) 24%,
+      transparent 56%
+    ),
+    radial-gradient(
+      circle at calc(100% - var(--glass-reflection-x, 50%)) calc(100% - var(--glass-reflection-y, 0%)),
+      var(--glass-rim-shade) 0%,
+      transparent 52%
+    );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* A ruled test backdrop, for the lab only.
+
+   Refraction is only visible in what it bends, and BandUp's own background is
+   two broad radial washes without a straight edge anywhere in them — which is
+   why the lens read as almost nothing in the first screenshots of it. A grid
+   of hairlines gives the displacement map something to distort, so the warp,
+   the rim and the pointer's effect on both can be judged rather than guessed.
+
+   This is the body's own background-image rather than a pseudo-element, and
+   that is not a stylistic preference. A `z-index: -1` pseudo-element paints
+   with the negative-z step of the root stacking context, which happens before
+   in-flow block backgrounds — so body's own opaque colour covers it, as the
+   ambient wash in body::before is also covered. A background-image on body
+   paints above body's background-colour and below every descendant, which is
+   exactly the layer a test backdrop wants. `fixed` matches the wash, so the
+   rules stay put while the page scrolls over them. */
+body[data-glass-lab] {
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, var(--glass-edge-dark) 85%, transparent) 0 1px,
+      transparent 1px 24px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--glass-edge-dark) 85%, transparent) 0 1px,
+      transparent 1px 24px
+    );
+  background-attachment: fixed;
+}
+
+/* Dark's --glass-edge-dark is very nearly the page colour, so the same recipe
+   would rule the page in invisible ink. The selector also has to out-specify
+   `html[data-theme="dark"] body`, whose `background` shorthand would otherwise
+   reset the image whatever the source order. */
+html[data-theme="dark"] body[data-glass-lab] {
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.075) 0 1px,
+      transparent 1px 24px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.075) 0 1px,
+      transparent 1px 24px
+    );
+  background-attachment: fixed;
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  .refractive-glass-layer[data-optics="enhanced"]::after {
+    display: none;
+  }
+
+  .refractive-glass-layer[data-optics="enhanced"] > .refractive-glass-core {
+    scale: 1;
+  }
+}
+
+/* The selection lookup trigger is a fixed annotation of the selected word.
+   Unlike interactive glass controls, it deliberately has no pointer-driven
+   translation, scale or transition: it must stay where the selection put it
+   while the learner moves their pointer over to press it. */
+.lookup-selection-pill {
+  translate: -50% calc(-100% - 0.5rem);
 }

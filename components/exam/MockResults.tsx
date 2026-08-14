@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import BandBadge from "@/components/BandBadge";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import Review from "@/components/Review";
 import { postJSON } from "@/lib/api";
 import { bandLabel } from "@/lib/band";
@@ -196,7 +197,7 @@ export default function MockResults({
   if (grading || session.marks === null) {
     return (
       <div className="card mx-auto max-w-xl space-y-3 py-10 text-center">
-        <h1 className="text-[22px] font-semibold text-slate-900">Marking your exam</h1>
+        <h1 className="text-[22px] font-semibold text-slate-900"><LoadingIndicator label="Marking your exam" /></h1>
         <p className="text-sm leading-6 text-slate-600">
           Listening and Reading are marked already. The examiner is reading both writing tasks —
           this takes a few seconds.

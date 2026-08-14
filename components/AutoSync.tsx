@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { getServerSnapshot, getSnapshot, subscribe } from "@/lib/account";
 import { PROGRESS_WRITE_EVENT } from "@/lib/progress/events";
-import { scheduleSync } from "@/lib/progress/autosync";
+import {
+  cancelScheduledSync,
+  flushProgressSync,
+  scheduleSync,
+} from "@/lib/progress/autosync";
 
 /*
   Mounted once in the root layout; renders nothing.
@@ -20,17 +25,31 @@ import { scheduleSync } from "@/lib/progress/autosync";
   is inert for the majority who never make an account.
 */
 export default function AutoSync() {
-  useEffect(() => {
-    scheduleSync(1500);
+  const session = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const accessToken = session?.accessToken ?? null;
 
+  useEffect(() => {
+    // This catches client-side Google/OAuth completion as well as a full-page
+    // password sign-in. A session transition must not wait for navigation,
+    // another practice write or a visibility change before merging devices.
+    if (accessToken) flushProgressSync();
+    else cancelScheduledSync();
+  }, [accessToken]);
+
+  useEffect(() => {
     const onWrite = () => scheduleSync();
     const onVisible = () => {
-      if (document.visibilityState === "visible") scheduleSync(1000);
+      // Hidden: make one last attempt before background throttling. Visible:
+      // immediately reconcile anything another device changed meanwhile.
+      flushProgressSync();
     };
+    const onOnline = () => flushProgressSync();
     window.addEventListener(PROGRESS_WRITE_EVENT, onWrite);
+    window.addEventListener("online", onOnline);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.removeEventListener(PROGRESS_WRITE_EVENT, onWrite);
+      window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);

@@ -5,6 +5,7 @@ import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { signInWithPassword, signUpWithPassword, supabaseConfigured } from "@/lib/auth/supabase";
 import { clientIp } from "@/lib/usage/ip";
 import { withCors } from "@/lib/http/cors";
+import { emailForLearnerUsername } from "@/lib/cloudflare/data-router";
 
 /*
   Signing in with an email address and a password — and, for the owner, with a
@@ -118,7 +119,8 @@ async function handlePOST(req: Request) {
     no second identity space to keep in step. Null means a name nobody here
     knows — answered as a wrong password, not as "no such user".
   */
-  const email = emailForIdentifier(identifier);
+  const email = emailForIdentifier(identifier)
+    ?? (!signingUp && !identifier.includes("@") ? await emailForLearnerUsername(identifier) : null);
   if (!email) return safeJsonError(WRONG, 401);
 
   if (signingUp) {

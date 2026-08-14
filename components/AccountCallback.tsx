@@ -4,6 +4,8 @@ import { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { errorFromFragment, saveSession, sessionFromFragment } from "@/lib/account";
+import { consumeAuthReturnPath } from "@/lib/auth/return-path";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 /*
   Where Supabase drops the browser after a provider — or a recovery link — has
@@ -57,7 +59,7 @@ export default function AccountCallback() {
     if (session) {
       saveSession(session);
       window.history.replaceState(null, "", window.location.pathname);
-      router.replace("/account/");
+      router.replace(consumeAuthReturnPath("/"));
       return;
     }
 
@@ -78,7 +80,7 @@ export default function AccountCallback() {
     <div className="space-y-10">
       <div className="max-w-xl space-y-2">
         <h1 className="text-[26px] font-semibold text-slate-900">
-          {failure ? "That didn’t work" : "Signing you in…"}
+          {failure ? "That didn’t work" : <LoadingIndicator label="Signing you in…" />}
         </h1>
         {failure ? (
           <>

@@ -96,7 +96,7 @@ export default function FinanceTrendChart({
 
   return (
     <section
-      className={`${styles.root} ${tone === "positive" ? styles.positive : tone === "negative" ? styles.negative : ""}`}
+      className={`${styles.root} card ${tone === "positive" ? styles.positive : tone === "negative" ? styles.negative : ""}`}
       aria-labelledby={`${id}-heading`}
     >
       <header className={styles.header}>
@@ -217,6 +217,7 @@ export function money(value: number, currency: string): string {
   return new Intl.NumberFormat("en", {
     style: "currency",
     currency: currency.toUpperCase(),
-    maximumFractionDigits: 8,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(finite(value));
 }

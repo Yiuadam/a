@@ -38,6 +38,10 @@ export interface AccountStatus {
 /** What /api/account/profile returns, and what a PATCH to it answers with. */
 export interface ProfileFields {
   displayName: string | null;
+  username: string | null;
+  /** False only when the organization replica is known to need a retry. */
+  organizationUsernameReady?: boolean | null;
+  accountKind: import("@/lib/auth/account-identity").AccountKind | null;
   birthDate: string | null;
   avatarUrl: string | null;
   email: string | null;

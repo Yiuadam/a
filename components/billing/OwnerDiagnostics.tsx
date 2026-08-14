@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 
@@ -49,7 +50,7 @@ export default function OwnerDiagnostics() {
        screen, and the screen's title already says what it is. */
     <section className="card border-amber-300 bg-amber-50/50">
       <button type="button" onClick={run} disabled={busy} className="btn-secondary w-full">
-        {busy ? "Checking…" : "Run the check"}
+        {busy ? <LoadingIndicator label="Checking…" announce={false} /> : "Run the check"}
       </button>
 
       {error && (

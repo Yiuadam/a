@@ -7,6 +7,8 @@ import AvatarEditor from "./AvatarEditor";
 import { MAX_SOURCE_BYTES } from "./condense";
 import { publishProfileUpdate } from "./profileEvents";
 import type { ProfileFields } from "./types";
+import AccountIdentityForm from "./AccountIdentityForm";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 /*
   Who the learner is: their picture, their name, their date of birth, and the
@@ -20,20 +22,15 @@ import type { ProfileFields } from "./types";
   means a learner looking for either can find it, and it means neither section
   has to hedge its heading to cover the other.
 
-  All of it is optional and the copy says so rather than implying it, because
-  none of it does anything: no page reads a birthday, and the app works
-  identically for an account holding nothing but an id. A form that looks
-  required when it is not collects data nobody meant to give.
+  Every account has a username. The display name can be finished later, so the
+  reminder remains visible without locking somebody out. The picture and
+  birthday are optional, and no profile field grants organization access.
 */
 
 export default function ProfileSection({ sessionEmail }: { sessionEmail: string | null }) {
   const [profile, setProfile] = useState<ProfileFields | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "saving" | "error">("loading");
-  const [saved, setSaved] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-
-  const [name, setName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
 
   /*
     The file waiting to be framed. Holding the File rather than a boolean is
@@ -54,8 +51,6 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
       .then((body) => {
         if (!alive) return;
         setProfile(body);
-        setName(body.displayName ?? "");
-        setBirthDate(body.birthDate ?? "");
         setState("ready");
       })
       .catch(() => {
@@ -66,33 +61,6 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
     };
   }, []);
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    setState("saving");
-    setProblem(null);
-    setSaved(false);
-    try {
-      const res = await authedFetch(apiUrl("/api/account/profile"), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: name, birthDate }),
-      });
-      const body = (await res.json()) as ProfileFields & { error?: string };
-      if (!res.ok) {
-        setProblem(body.error ?? "That didn't save. Please try again.");
-        setState("ready");
-        return;
-      }
-      setProfile(body);
-      publishProfileUpdate(body);
-      setSaved(true);
-      setState("ready");
-    } catch {
-      setProblem("That didn't save. Please try again.");
-      setState("ready");
-    }
-  }
-
   function pickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     // Clearing the input lets the same file be chosen twice running, which is
@@ -101,7 +69,6 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
     if (!file) return;
 
     setProblem(null);
-    setSaved(false);
 
     /*
       Checked here as well as inside the editor, so that a file which is never
@@ -140,7 +107,8 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
       authority: the route names the stored object itself, from the session
       user's id, and decides the type from the file's first bytes.
     */
-    form.append("avatar", picture, "avatar.jpg");
+    const extension = picture.type === "image/webp" ? "webp" : "jpg";
+    form.append("avatar", picture, `avatar.${extension}`);
     try {
       const res = await authedFetch(apiUrl("/api/account/avatar"), { method: "POST", body: form });
       const body = (await res.json()) as { avatarUrl?: string | null; error?: string };
@@ -176,7 +144,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
   if (state === "loading") {
     return (
       <section className="card">
-        <p className="text-sm text-slate-500">Loading your details…</p>
+        <p className="text-sm text-slate-500"><LoadingIndicator label="Loading your details…" /></p>
       </section>
     );
   }
@@ -194,14 +162,18 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
 
   const busy = state === "saving";
   const email = profile?.email ?? sessionEmail;
-  const initial = (name || email || "?").trim().charAt(0).toUpperCase();
+  const initial = (profile?.displayName || email || "?").trim().charAt(0).toUpperCase();
   const hasPicture = Boolean(profile?.avatarUrl);
 
   return (
     <section className="account-profile-card card">
       <p className="account-profile-intro text-[14px] leading-6 text-slate-600">
-        Optional and private. Nothing here is shown to other learners.
+        Your display name and username identify this BandUp account. Your photo and date of birth stay optional.
       </p>
+
+      <div className="mt-4 rounded-[var(--radius-xl)] border border-slate-200/70 bg-surface/25 p-3.5">
+        <AccountIdentityForm />
+      </div>
 
       <div className="account-profile-photo mt-4 flex items-center gap-4">
         {/*
@@ -225,6 +197,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
               alt=""
               width={64}
               height={64}
+              decoding="async"
               className="h-16 w-16 rounded-full border border-slate-200 object-cover transition-opacity group-hover:opacity-80"
             />
           ) : (
@@ -282,37 +255,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
         Any phone photo up to 10 MB; BandUp shrinks it before uploading.
       </p>
 
-      <form onSubmit={save} className="account-profile-form mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="p-name" className="text-sm font-medium text-slate-700">
-            Display name
-          </label>
-          <input
-            id="p-name"
-            className="input"
-            maxLength={60}
-            placeholder="What we should call you"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="p-dob" className="text-sm font-medium text-slate-700">
-            Date of birth <span className="font-normal text-slate-500">(optional)</span>
-          </label>
-          <input
-            id="p-dob"
-            type="date"
-            className="input"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-          />
-          <p className="account-profile-field-note text-xs leading-5 text-slate-500">
-            Only used to confirm you are 13 or over.
-          </p>
-        </div>
-
+      <div className="account-profile-form mt-4 grid gap-3 sm:grid-cols-2">
         {/*
           The address is shown and not edited. It is the one field on this card
           that is not the learner's to change here: it comes from whichever
@@ -334,18 +277,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
             {problem}
           </p>
         )}
-        {saved && !problem && (
-          <p className="text-[15px] leading-7 text-emerald-800 sm:col-span-2">Saved.</p>
-        )}
-
-        <button
-          type="submit"
-          className="account-profile-save btn-primary w-full sm:col-span-2 sm:w-auto sm:justify-self-end"
-          disabled={busy}
-        >
-          {busy ? "Saving…" : "Save details"}
-        </button>
-      </form>
+      </div>
 
       {pending && <AvatarEditor file={pending} onCancel={cancelEditor} onUse={upload} />}
     </section>
