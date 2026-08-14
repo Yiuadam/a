@@ -309,10 +309,6 @@ export function toSentences(text: string): string[] {
 let speechSequence = 0;
 let finishBrowserUtterance: (() => void) | null = null;
 
-function pause(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
-}
-
 async function browserVoices(): Promise<SpeechSynthesisVoice[]> {
   const immediate = rankedEnglishVoices();
   if (immediate.length > 0 || typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -449,11 +445,13 @@ async function speakBrowserPrompt(
       for (const voice of candidates) {
         if (tried.has(voice) || sequence !== speechSequence) continue;
         tried.add(voice);
-        const result = await speakBrowserLine(
-          lines[i],
-          voice,
-          rate * (i % 2 === 0 ? 0.97 : 0.94),
-        );
+        /* One rate for the whole prompt. This alternated 0.97/0.94 by sentence
+           index, so an examiner speeding up and slowing down every sentence was
+           the intended effect; what it actually produces is a 3% speed change
+           at each full stop, which is heard as the delivery being unsteady
+           rather than as natural variation. Real prosodic variation lives
+           inside a sentence, not between consecutive ones. */
+        const result = await speakBrowserLine(lines[i], voice, rate * 0.96);
         if (sequence !== speechSequence) return;
         if (result === "completed") {
           workingVoice = { value: voice };
@@ -485,7 +483,11 @@ async function speakBrowserPrompt(
       // prompt through another engine would repeat part of an exam question.
       return i === 0 ? "not-started" : "interrupted";
     }
-    if (i + 1 < lines.length && sequence === speechSequence) await pause(60);
+    /* No added gap between sentences. Each sentence is already a separate
+       utterance, so the engine's own stop and start is the pause; 60ms was
+       being spent on top of a silence that was there anyway, which is why
+       consecutive sentences of one question sounded further apart than the
+       full stop between them warrants. */
   }
   return sequence === speechSequence ? "completed" : "interrupted";
 }
@@ -518,7 +520,10 @@ export async function speak(text: string, rate = 1): Promise<boolean> {
           await tts.speak({
             text: lines[i],
             lang: "en-GB",
-            rate: rate * (i % 2 === 0 ? 0.97 : 0.94),
+            // One rate for the whole prompt, for the reason given on the
+            // browser path above: alternating it by sentence index is heard as
+            // unsteadiness, not as expression.
+            rate: rate * 0.96,
             pitch: 0.98,
           });
         } catch {
