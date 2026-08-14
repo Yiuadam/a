@@ -24,42 +24,65 @@ if (!branch || branch === "HEAD") {
   process.exit(1);
 }
 
-let paused = false;
+/*
+  Why a remembered reason rather than a paused flag: the first version of this
+  latched itself off the moment it saw anything it would not act on, and then
+  stayed off after the situation cleared — which looks exactly like the tool
+  working, right up until you notice the page has stopped changing. So it keeps
+  checking every tick and only speaks when the reason changes, which keeps the
+  log quiet without ever letting it go quietly dead.
+*/
+let notice = null;
+
+function stand(reason, ...lines) {
+  if (notice !== reason) {
+    console.log("");
+    for (const line of lines) console.log(`  ${line}`);
+    console.log("");
+    notice = reason;
+  }
+}
 
 function check() {
-  if (paused) return;
-
   const fetched = git("fetch", "origin", branch);
   if (fetched.status !== 0) return; // Offline or a transient failure; try again next tick.
 
   const local = out("rev-parse", "HEAD");
   const remote = out("rev-parse", `origin/${branch}`);
-  if (!remote || local === remote) return;
+  if (!remote || local === remote) {
+    notice = null;
+    return;
+  }
 
   /* Behind and clean is the only case worth acting on. Anything else is the
      developer's own state, and silently moving it would be unforgivable. */
   const dirty = out("status", "--porcelain");
   if (dirty) {
-    console.log(`\n  ${remote.slice(0, 7)} is on the branch, but you have uncommitted changes.`);
-    console.log("  Not touching them. Commit or stash, and this will pick it up.\n");
-    paused = true;
+    stand(
+      "dirty",
+      `${remote.slice(0, 7)} is on the branch, but you have uncommitted changes.`,
+      "Not touching them. Commit or stash and this will pick it up.",
+    );
     return;
   }
 
   const ahead = out("rev-list", "--count", `origin/${branch}..HEAD`);
   if (ahead !== "0") {
-    console.log(`\n  Your branch has ${ahead} commit(s) the remote does not. Not fast-forwarding.\n`);
-    paused = true;
+    stand(
+      "ahead",
+      `Your branch has ${ahead} commit(s) the remote does not, so this will not`,
+      "fast-forward. Push them and it will carry on.",
+    );
     return;
   }
 
   const subjects = out("log", "--oneline", `HEAD..origin/${branch}`).split("\n").filter(Boolean);
   const pulled = git("merge", "--ff-only", `origin/${branch}`);
   if (pulled.status !== 0) {
-    console.log(`\n  Could not fast-forward: ${pulled.stderr?.trim()}\n`);
-    paused = true;
+    stand("blocked", `Could not fast-forward: ${pulled.stderr?.trim()}`);
     return;
   }
+  notice = null;
 
   console.log(`\n  Pulled ${subjects.length} new commit(s):`);
   for (const line of subjects.reverse()) console.log(`    ${line}`);
