@@ -11,6 +11,19 @@
   user and sitting routes that a static iOS bundle cannot generate, and it is
   intentionally available only on the canonical website.
 
+  app/organization/students is excluded for the same kind of reason, though
+  the screens themselves are not owner-only: `[id]` and `[attemptId]` are
+  inherently dynamic segments, and `output: export` refuses to build a
+  dynamic route that has no `generateStaticParams()` to enumerate it — there
+  is no fixed list of students to enumerate, since any organisation's roster
+  has to work without a rebuild. app/organization/student and
+  app/organization/student/sitting serve the same two screens from a query
+  string instead, with no dynamic segment in the route at all, so they build
+  and ship in the excluded tree's place. The website is unaffected: it keeps
+  serving the path routes this excludes, because they are not moved aside for
+  its own build. See lib/organizations/student-links.ts, which is what builds
+  the right form of link for whichever bundle is running.
+
   The billing pages go with it, for a different reason. Apple requires digital
   content used inside an iOS app to be sold through In-App Purchase and takes
   30% of it; BandUp's answer is that the iOS app sells nothing, so there is
@@ -32,6 +45,7 @@ const stash = join(root, ".mobile-stash");
 const EXCLUDED = [
   join("app", "api"),
   join("app", "admin"),
+  join("app", "organization", "students"),
   join("app", "pricing"),
   join("app", "billing"),
 ];

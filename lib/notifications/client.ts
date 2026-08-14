@@ -2,6 +2,7 @@
 
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import { normaliseStudentHref } from "@/lib/organizations/student-links";
 import {
   organizationPreviewRequestHeaders,
   type OrganizationLivePreviewRole,
@@ -229,7 +230,14 @@ export function notificationActionDestination(
   previewRole: OrganizationLivePreviewRole | null | undefined,
 ): string | null {
   const path = safeNotificationActionPath(actionPath);
-  return path ? notificationPathForPreview(path, previewRole) : null;
+  // lib/cloudflare/notifications.ts builds an `assignment_completed` link as
+  // an `/organization/students/<id>/sittings/<attemptId>` path, correctly for
+  // the website — the only route that exists there. The iOS bundle has no
+  // such route (see lib/organizations/student-links.ts), so the path is
+  // rewritten to the query form here, at the point it becomes a real `href`,
+  // rather than teaching the server-side builder about the platform reading
+  // its output.
+  return path ? normaliseStudentHref(notificationPathForPreview(path, previewRole)) : null;
 }
 
 function readNotification(value: unknown): AccountNotification | null {

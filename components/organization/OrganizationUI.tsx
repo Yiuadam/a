@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { studentHistoryHref } from "@/lib/organizations/student-links";
 
 export function GlassSection({
   title,
@@ -119,7 +120,7 @@ export function StudentLink({
 }) {
   return (
     <Link
-      href={`/organization/students/${encodeURIComponent(id)}${previewRole ? `?preview=${previewRole}` : ""}`}
+      href={studentHistoryHref(id, { previewRole })}
       className={`card block min-w-0 max-w-full !rounded-[var(--radius-lg)] !px-3.5 !py-3 active:translate-y-px ${className}`}
     >
       {children}

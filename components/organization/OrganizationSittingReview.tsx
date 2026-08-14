@@ -10,6 +10,7 @@ import {
   organizationPreviewRequestHeaders,
   type OrganizationLivePreviewRole,
 } from "@/lib/organizations/preview-client";
+import { studentHistoryHref } from "@/lib/organizations/student-links";
 import type { StudentHistory, StudentHistoryAttempt } from "@/lib/organizations/types";
 
 export default function OrganizationSittingReview({
@@ -67,17 +68,17 @@ export default function OrganizationSittingReview({
     [attemptId, history],
   );
   const result = attempt ? organizationAttemptResult(attempt) : null;
+  const previewRoleParam = previewRole ?? (previewHistory ? "manager" : null);
   const backParams = new URLSearchParams();
   if (organizationId) backParams.set("organization", organizationId);
   if (fromAssignmentDirectory) {
     backParams.set("section", "assignment-directory");
     backParams.set("student", studentId);
   }
-  if (previewRole) backParams.set("preview", previewRole);
-  else if (previewHistory) backParams.set("preview", "manager");
+  if (previewRoleParam) backParams.set("preview", previewRoleParam);
   const backHref = fromAssignmentDirectory
     ? `/organization?${backParams.toString()}`
-    : `/organization/students/${encodeURIComponent(studentId)}${backParams.size ? `?${backParams.toString()}` : ""}`;
+    : studentHistoryHref(studentId, { organizationId, previewRole: previewRoleParam });
   const backLabel = fromAssignmentDirectory ? "Back to assignments" : "Back to student";
 
   if (loading) return <div className="card mx-auto max-w-xl text-sm text-slate-500"><LoadingIndicator label="Loading sitting…" /></div>;

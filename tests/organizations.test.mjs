@@ -344,9 +344,16 @@ test("isolated preview drill-downs preserve the selected actor role", () => {
   const portal = readFileSync(join(process.cwd(), "components", "organization", "OrganizationPortal.tsx"), "utf8");
   const links = readFileSync(join(process.cwd(), "components", "organization", "OrganizationUI.tsx"), "utf8");
   const history = readFileSync(join(process.cwd(), "components", "organization", "StudentHistoryPage.tsx"), "utf8");
+  const studentLinks = readFileSync(join(process.cwd(), "lib", "organizations", "student-links.ts"), "utf8");
   assert.match(portal, /previewRole=\{preview \|\| previewRole \? "teacher" : null\}/);
-  assert.match(links, /`\?preview=\$\{previewRole\}`/);
-  assert.match(history, /destinationParams\.set\("preview", previewRole\)/);
+  /* The drill-down URL is now built by lib/organizations/student-links.ts, so
+     the guarantee has two halves and both are worth holding: the caller still
+     hands the role over, and the helper still serialises it as `preview`.
+     Asserting only the first would keep passing if the helper quietly dropped
+     it, which is the exact regression this test exists to catch. */
+  assert.match(links, /studentHistoryHref\(id, \{ previewRole \}\)/);
+  assert.match(studentLinks, /params\.set\("preview", opts\.previewRole\)/);
+  assert.match(history, /destinationParams\.set\("preview", previewRoleParam\)/);
   assert.doesNotMatch(links, /preview \? "\?preview=manager"/);
 });
 
@@ -538,7 +545,14 @@ test("practice assignments use responsive master-detail records with exact compl
   assert.match(ui, /Student assignments/);
   assert.match(ui, /selected\.assignments\.map/);
   assert.match(ui, /completedAttemptId && organizationId/);
-  assert.match(ui, /resultParams\.set\("from", "assignment-directory"\)/);
+  /* Same split as the preview-role test above: the caller passes `from`, and
+     student-links.ts is what turns it into a query parameter. Both halves are
+     asserted so neither can drop it alone. */
+  assert.match(ui, /from: "assignment-directory"/);
+  assert.match(
+    readFileSync(join(process.cwd(), "lib", "organizations", "student-links.ts"), "utf8"),
+    /params\.set\("from", opts\.from\)/,
+  );
   assert.match(ui, /section", "assignment-directory"/);
   assert.match(ui, /url\.searchParams\.set\("student", selected\)/);
   assert.match(ui, /btn-secondary !hidden[\s\S]*sm:!inline-flex/);

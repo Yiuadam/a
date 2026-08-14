@@ -30,6 +30,7 @@ import {
   organizationPreviewRequestHeaders,
   type OrganizationLivePreviewRole,
 } from "@/lib/organizations/preview-client";
+import { sittingReviewHref } from "@/lib/organizations/student-links";
 import {
   EmptyState,
   GlassSection,
@@ -1538,13 +1539,12 @@ function AssignmentDesktopWorkspace({
   if (sortedStudents.length === 0) return null;
 
   const taskCard = (assignment: NonNullable<Portal["practiceAssignments"]>[number]) => {
-    const resultParams = new URLSearchParams();
-    if (organizationId) resultParams.set("organization", organizationId);
-    resultParams.set("from", "assignment-directory");
-    if (previewRole) resultParams.set("preview", previewRole);
     const resultHref = assignment.completedAttemptId && organizationId
-      ? `/organization/students/${encodeURIComponent(assignment.studentUserId)}/sittings/${encodeURIComponent(assignment.completedAttemptId)}`
-        + `?${resultParams.toString()}`
+      ? sittingReviewHref(assignment.studentUserId, assignment.completedAttemptId, {
+          organizationId,
+          from: "assignment-directory",
+          previewRole,
+        })
       : null;
     const body = (
       <>
@@ -1699,13 +1699,12 @@ function AssignmentDirectory({
       {selected ? (
         <div className="grid gap-2 sm:grid-cols-2">
           {selected.assignments.map((assignment) => {
-            const resultParams = new URLSearchParams();
-            if (organizationId) resultParams.set("organization", organizationId);
-            resultParams.set("from", "assignment-directory");
-            if (previewRole) resultParams.set("preview", previewRole);
             const resultHref = assignment.completedAttemptId && organizationId
-              ? `/organization/students/${encodeURIComponent(assignment.studentUserId)}/sittings/${encodeURIComponent(assignment.completedAttemptId)}`
-                + `?${resultParams.toString()}`
+              ? sittingReviewHref(assignment.studentUserId, assignment.completedAttemptId, {
+                  organizationId,
+                  from: "assignment-directory",
+                  previewRole,
+                })
               : null;
             const body = (
               <>

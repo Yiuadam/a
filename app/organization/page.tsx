@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import OrganizationPortal from "@/components/organization/OrganizationPortal";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 import { organizationPreviewRole as livePreviewRole } from "@/lib/organizations/preview-auth";
 import { organizationRolePreview, type OrganizationPreviewRole } from "@/lib/organizations/preview";
+import OrganizationQueryShell from "./OrganizationQueryShell";
 
 export const metadata: Metadata = {
   title: "Organisation — BandUp",
@@ -22,6 +25,25 @@ export default async function OrganizationPage({
     student?: string | string[];
   }>;
 }) {
+  /*
+    The iOS bundle is `output: export`: no server ever runs, so a Server
+    Component here cannot await `searchParams`. Nor would it gain anything
+    from doing so — the isolated D1 preview and localhost UI preview below
+    both depend on things a shipped static bundle never has (a server env
+    var, `next dev`), so previewRole always resolves to null on iOS anyway.
+    ./OrganizationQueryShell.tsx reads the same routing state with
+    useSearchParams() instead. IS_MOBILE_BUILD is a build-time constant, so
+    this returns before `searchParams` is ever touched and the route stays
+    static; the website keeps the server-rendered read below, unchanged.
+  */
+  if (IS_MOBILE_BUILD) {
+    return (
+      <Suspense fallback={null}>
+        <OrganizationQueryShell />
+      </Suspense>
+    );
+  }
+
   const query = await searchParams;
   const rawPreview = query.preview;
   const preview = typeof rawPreview === "string" ? rawPreview : null;

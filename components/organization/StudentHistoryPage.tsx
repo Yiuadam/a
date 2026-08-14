@@ -8,6 +8,7 @@ import { apiUrl } from "@/lib/api";
 import { teacherFeedbackPayload } from "@/lib/organizations/action-payloads";
 import { buildReview } from "@/lib/review";
 import type { OrganizationAction, StudentHistory } from "@/lib/organizations/types";
+import { sittingReviewHref } from "@/lib/organizations/student-links";
 import {
   organizationPreviewRequestHeaders,
   type OrganizationLivePreviewRole,
@@ -207,9 +208,9 @@ export default function StudentHistoryPage({
   const visibleAttempts = history
     ? organizationAttemptsForSkill(history.attempts, selectedSkill)
     : [];
+  const previewRoleParam = previewRole ?? (preview ? "manager" : null);
   const destinationParams = new URLSearchParams();
-  if (previewRole) destinationParams.set("preview", previewRole);
-  else if (preview) destinationParams.set("preview", "manager");
+  if (previewRoleParam) destinationParams.set("preview", previewRoleParam);
   if (organizationId) destinationParams.set("organization", organizationId);
   const previewQuery = destinationParams.size ? `?${destinationParams.toString()}` : "";
 
@@ -290,7 +291,7 @@ export default function StudentHistoryPage({
                     />
                     <div className="mt-3">
                       <Link
-                        href={`/organization/students/${encodeURIComponent(studentId)}/sittings/${encodeURIComponent(attempt.id)}${previewQuery}`}
+                        href={sittingReviewHref(studentId, attempt.id, { organizationId, previewRole: previewRoleParam })}
                         className="btn-primary !px-3 !py-2 text-xs"
                       >
                         Open sitting
