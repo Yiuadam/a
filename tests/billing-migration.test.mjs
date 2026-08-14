@@ -29,6 +29,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { SUPABASE_STUB } from "./supabase-stub.mjs";
 
 /** The newest Postgres in the usual Debian/Ubuntu location. */
 function findPostgresBin() {
@@ -77,24 +78,6 @@ function makeRunner(bin, dir) {
   so the parts of the schema this test does not own are faked just far enough
   for the parts it does own to be real.
 */
-const SUPABASE_STUB = `
-create extension if not exists pgcrypto;
-do $$ begin
-  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
-  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
-  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
-end $$;
-create schema if not exists auth;
-create table if not exists auth.users (
-  id uuid primary key default gen_random_uuid(),
-  email text,
-  created_at timestamptz not null default now()
-);
-create or replace function auth.uid() returns uuid language sql stable as $$
-  select nullif(current_setting('request.jwt.claims', true)::json ->> 'sub', '')::uuid;
-$$;
-grant usage on schema public, auth to anon, authenticated, service_role;
-`;
 
 /** Brings a cluster up, or returns the reason it could not. */
 function provision() {
