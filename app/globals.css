@@ -2802,6 +2802,56 @@ html[data-theme="dark"] .refractive-glass-layer[data-optics="enhanced"] {
   pointer-events: none;
 }
 
+/* A ruled test backdrop, for the lab only.
+
+   Refraction is only visible in what it bends, and BandUp's own background is
+   two broad radial washes without a straight edge anywhere in them — which is
+   why the lens read as almost nothing in the first screenshots of it. A grid
+   of hairlines gives the displacement map something to distort, so the warp,
+   the rim and the pointer's effect on both can be judged rather than guessed.
+
+   This is the body's own background-image rather than a pseudo-element, and
+   that is not a stylistic preference. A `z-index: -1` pseudo-element paints
+   with the negative-z step of the root stacking context, which happens before
+   in-flow block backgrounds — so body's own opaque colour covers it, as the
+   ambient wash in body::before is also covered. A background-image on body
+   paints above body's background-colour and below every descendant, which is
+   exactly the layer a test backdrop wants. `fixed` matches the wash, so the
+   rules stay put while the page scrolls over them. */
+body[data-glass-lab] {
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, var(--glass-edge-dark) 85%, transparent) 0 1px,
+      transparent 1px 24px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--glass-edge-dark) 85%, transparent) 0 1px,
+      transparent 1px 24px
+    );
+  background-attachment: fixed;
+}
+
+/* Dark's --glass-edge-dark is very nearly the page colour, so the same recipe
+   would rule the page in invisible ink. The selector also has to out-specify
+   `html[data-theme="dark"] body`, whose `background` shorthand would otherwise
+   reset the image whatever the source order. */
+html[data-theme="dark"] body[data-glass-lab] {
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.075) 0 1px,
+      transparent 1px 24px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.075) 0 1px,
+      transparent 1px 24px
+    );
+  background-attachment: fixed;
+}
+
 @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   .refractive-glass-layer[data-optics="enhanced"]::after {
     display: none;

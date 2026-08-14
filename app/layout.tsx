@@ -8,6 +8,7 @@ import AppMain from "@/components/AppMain";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import PointerAttraction from "@/components/PointerAttraction";
+import { GLASS_LAB } from "@/lib/glass-lab";
 import AccountProfileProvider from "@/components/account/AccountProfileProvider";
 import RequiredAccountGate from "@/components/account/RequiredAccountGate";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
@@ -101,7 +102,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         here, because `min-` height still lets the body grow to its content. See
         components/TutorChat.tsx, which needed a real cap.
       */}
-      <body className="flex min-h-dvh flex-col">
+      {/*
+        The lab's ruled backdrop, and only the lab's: a refraction can only be
+        seen bending something, and BandUp's own washes are broad gradients
+        with no straight edge anywhere in them. GLASS_LAB is substituted at
+        build time, so a production build renders this attribute as absent
+        rather than as an empty one.
+      */}
+      <body className="flex min-h-dvh flex-col" data-glass-lab={GLASS_LAB ? "" : undefined}>
         {/*
           Closed for maintenance: the app is replaced rather than covered.
 

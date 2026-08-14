@@ -104,3 +104,30 @@ test("the enhanced variant is pure CSS: the package's frozen pointer and cornerR
   assert.match(layer, /mouseOffset=\{STILL_POINTER\}/);
   assert.doesNotMatch(layer, /mode=(?:"shader"|'shader')/);
 });
+
+test("the ruled test backdrop only exists when the layout is built with the flag", () => {
+  const layout = read("app", "layout.tsx");
+  /* The attribute has to be undefined rather than false when the flag is off:
+     `data-glass-lab={false}` would still render an attribute in some React
+     versions, and an empty one is exactly what the CSS matches. */
+  assert.match(layout, /data-glass-lab=\{GLASS_LAB \? "" : undefined\}/);
+  assert.match(layout, /import \{ GLASS_LAB \} from "@\/lib\/glass-lab";/);
+
+  const css = read("app", "globals.css");
+  assert.match(css, /body\[data-glass-lab\] \{/);
+  assert.match(css, /html\[data-theme="dark"\] body\[data-glass-lab\] \{/);
+  /* Painted as the body's own background-image, because a negative-z
+     pseudo-element is covered by the body's opaque background colour. */
+  assert.doesNotMatch(css, /body\[data-glass-lab\]::after/);
+});
+
+test("the Worker's generated types are produced by the build rather than assumed to exist", () => {
+  const pkg = JSON.parse(read("package.json"));
+  assert.equal(pkg.scripts.types, "wrangler types");
+  /* CI runs `npm run build` before `cf:build`, and the preview workflow runs
+     only `cf:build`. Both have to generate the types or one of them fails on a
+     clean checkout, which is exactly how this branch first went red. */
+  assert.match(pkg.scripts.prebuild, /npm run types/);
+  assert.match(pkg.scripts["cf:build"], /npm run types/);
+  assert.match(read(".gitignore"), /^worker-configuration\.d\.ts$/m);
+});
