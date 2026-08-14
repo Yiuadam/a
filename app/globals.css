@@ -2736,8 +2736,22 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
    no semantic content: the button or tab underneath keeps exactly the label,
    link and focus outline it already had.
 --------------------------------------------------------------------------- */
+/* The rim needs a strength of its own. --glass-specular is tuned to be a fill
+   tint — 0.18 alpha in dark — so a 1px ring mixed from it is invisible at any
+   mix ratio, which is exactly what the first attempt here produced. These two
+   variables give the rim its own per-theme value without touching a token any
+   other rule depends on. */
 .refractive-glass-layer[data-optics="enhanced"] {
+  --glass-rim-lit: rgba(255, 255, 255, 0.92);
+  --glass-rim-shade: rgba(28, 22, 17, 0.3);
   opacity: 0.74;
+}
+
+/* Dark needs the lit edge pulled back and the shaded edge pushed further, or
+   the rim reads as a drawn border rather than light falling on a surface. */
+html[data-theme="dark"] .refractive-glass-layer[data-optics="enhanced"] {
+  --glass-rim-lit: rgba(255, 255, 255, 0.58);
+  --glass-rim-shade: rgba(0, 0, 0, 0.55);
 }
 
 .refractive-glass-layer[data-optics="enhanced"][data-interactive] {
@@ -2753,26 +2767,32 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
 }
 
 /* Two full-box radial gradients are painted here, but the mask keeps only the
-   1px ring that `padding: 1px` carves out between the border-box and
-   content-box layers below — the standard "gradient border" technique. That
-   is what turns two corner-to-corner gradients into a narrow specular rim
-   traced around the surface, rather than a wash across its whole face. */
+   thin ring that `padding` carves out between the border-box and content-box
+   layers below — the standard "gradient border" technique. That is what turns
+   two corner-to-corner gradients into a narrow specular rim traced around the
+   surface, rather than a wash across its whole face.
+
+   `inset: 1px` rather than 0 because the layer itself sits at inset: -1px to
+   overscan the card's hairline. Drawing the ring on the layer's own edge put
+   it a pixel outside the card, where the card's overflow: hidden clipped most
+   of it away; measured against a rim-removed control, pulling it back inside
+   recovered about half the pixels the rim was supposed to be painting. */
 .refractive-glass-layer[data-optics="enhanced"]::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 1px;
   border-radius: inherit;
-  padding: 1px;
+  padding: 1.25px;
   background:
     radial-gradient(
       circle at var(--glass-reflection-x, 50%) var(--glass-reflection-y, 0%),
-      color-mix(in srgb, var(--glass-specular) 92%, transparent) 0%,
-      color-mix(in srgb, var(--glass-specular) 30%, transparent) 26%,
-      transparent 58%
+      var(--glass-rim-lit) 0%,
+      color-mix(in srgb, var(--glass-rim-lit) 45%, transparent) 24%,
+      transparent 56%
     ),
     radial-gradient(
       circle at calc(100% - var(--glass-reflection-x, 50%)) calc(100% - var(--glass-reflection-y, 0%)),
-      color-mix(in srgb, var(--glass-edge-dark) 78%, transparent) 0%,
+      var(--glass-rim-shade) 0%,
       transparent 52%
     );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
