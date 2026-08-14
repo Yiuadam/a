@@ -170,7 +170,7 @@ function PlacementHero() {
       </div>
       <div className="dashboard-hero-actions premade-glass-content flex shrink-0 flex-wrap items-center gap-2">
         <IntentPrefetchLink href="/placement" className="dashboard-placement-button btn-primary premade-glass shrink-0 whitespace-nowrap">
-          <RefractiveGlassLayer radius={16} interactive />
+          <RefractiveGlassLayer radius={16} interactive optics="enhanced" />
           <span className="premade-glass-content">Start the 5-minute test</span>
         </IntentPrefetchLink>
       </div>

@@ -803,7 +803,7 @@ function OrganizationViewTabs({
         if (!dragging.current) setPreviewIndex(null);
       }}
     >
-      <RefractiveGlassLayer radius={18} interactive />
+      <RefractiveGlassLayer radius={18} interactive optics="enhanced" />
       <span className="organization-view-selector" aria-hidden="true" />
       {options.map(([id, label, count], index) => (
         <button

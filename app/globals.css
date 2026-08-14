@@ -2712,6 +2712,86 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Glass lab: enhanced optics (NEXT_PUBLIC_GLASS_LAB)
+
+   Everything under [data-optics="enhanced"] is reachable only through the
+   data-optics attribute that components/RefractiveGlassLayer.tsx writes, and
+   it can only write "enhanced" when the app was built with
+   NEXT_PUBLIC_GLASS_LAB=1 (see lib/glass-lab.ts). Next.js substitutes that
+   check at build time, so a production build made without the variable never
+   emits the attribute at all. These rules still ship in the stylesheet, but
+   with nothing to match they are inert weight rather than a hidden feature
+   waiting to be switched on at runtime. That is what makes it safe to leave
+   the experiment in the tree while the decision is still open on whether the
+   look belongs in production.
+
+   The rim it adds is not a new interaction. It reads the same
+   --glass-reflection-x/--glass-reflection-y custom properties that the
+   delegated PointerAttraction engine already writes on the parent glass
+   surface for the adaptive background reflection above, so turning this on
+   costs no new listener and no new JavaScript — only extra paint work on the
+   one surface a fine pointer already happens to be over. And like every other
+   refractive layer this is aria-hidden and pointer-events: none, so it moves
+   no semantic content: the button or tab underneath keeps exactly the label,
+   link and focus outline it already had.
+--------------------------------------------------------------------------- */
+.refractive-glass-layer[data-optics="enhanced"] {
+  opacity: 0.74;
+}
+
+.refractive-glass-layer[data-optics="enhanced"][data-interactive] {
+  opacity: 0.86;
+}
+
+/* The layer clips its own children, so scaling the lens slightly deepens the
+   warp without letting it escape the card's shape. Scaling the layer itself
+   would grow its box instead, and `scale` rather than `transform` because the
+   package owns the core's transform for centring. */
+.refractive-glass-layer[data-optics="enhanced"] > .refractive-glass-core {
+  scale: 1.015;
+}
+
+/* Two full-box radial gradients are painted here, but the mask keeps only the
+   1px ring that `padding: 1px` carves out between the border-box and
+   content-box layers below — the standard "gradient border" technique. That
+   is what turns two corner-to-corner gradients into a narrow specular rim
+   traced around the surface, rather than a wash across its whole face. */
+.refractive-glass-layer[data-optics="enhanced"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background:
+    radial-gradient(
+      circle at var(--glass-reflection-x, 50%) var(--glass-reflection-y, 0%),
+      color-mix(in srgb, var(--glass-specular) 92%, transparent) 0%,
+      color-mix(in srgb, var(--glass-specular) 30%, transparent) 26%,
+      transparent 58%
+    ),
+    radial-gradient(
+      circle at calc(100% - var(--glass-reflection-x, 50%)) calc(100% - var(--glass-reflection-y, 0%)),
+      color-mix(in srgb, var(--glass-edge-dark) 78%, transparent) 0%,
+      transparent 52%
+    );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  .refractive-glass-layer[data-optics="enhanced"]::after {
+    display: none;
+  }
+
+  .refractive-glass-layer[data-optics="enhanced"] > .refractive-glass-core {
+    scale: 1;
+  }
+}
+
 /* The selection lookup trigger is a fixed annotation of the selected word.
    Unlike interactive glass controls, it deliberately has no pointer-driven
    translation, scale or transition: it must stay where the selection put it
