@@ -69,6 +69,19 @@ interface SyncOptions {
     only replaced in step 4, after a successful PUT.
   */
   clearHistoryAt?: string;
+  /*
+    A separate, independent tombstone for placement — deliberately not folded
+    into clearHistoryAt. "Clear all history"
+    (components/history/ClearHistoryButton.tsx) sets clearHistoryAt alone and
+    must not touch placement; "clear this device"
+    (components/account/ClearDeviceSection.tsx, via clearSyncedProgress below)
+    is the only caller that sets both together. Without a tombstone of its
+    own, a cleared placement survives untouched on the account and the very
+    next ordinary sync downloads it straight back — placement merges by its
+    own date, independently of historyClearedAt, which is correct for an
+    unrelated profile edit but was exactly wrong for a device clear.
+  */
+  clearPlacementAt?: string;
 }
 
 function readLocal(key: StoreKey): unknown {
@@ -187,15 +200,25 @@ async function syncProgressWithOptions(
     foreignOwner ? null : learnerItemUpdatedAt(key);
 
   const storedLocalProfile = localValue("ielts-prep-v1");
-  const localProfile = options.clearHistoryAt
+  const storedLocalProfileObject = storedLocalProfile && typeof storedLocalProfile === "object"
+    && !Array.isArray(storedLocalProfile)
+    ? (storedLocalProfile as Record<string, unknown>)
+    : {};
+  /*
+    Two independent hypothetical edits can each be requested here, and
+    deliberately do not imply one another — see the SyncOptions comments
+    above. "Clear this device" sets both together; "Clear all history" only
+    ever sets clearHistoryAt, so it never touches placement below.
+  */
+  const localProfile = options.clearHistoryAt || options.clearPlacementAt
     ? {
-        ...(storedLocalProfile && typeof storedLocalProfile === "object"
-          && !Array.isArray(storedLocalProfile)
-          ? storedLocalProfile
+        ...storedLocalProfileObject,
+        ...(options.clearHistoryAt
+          ? { results: [], mockReports: [], historyClearedAt: options.clearHistoryAt }
           : {}),
-        results: [],
-        mockReports: [],
-        historyClearedAt: options.clearHistoryAt,
+        ...(options.clearPlacementAt
+          ? { placement: undefined, placementClearedAt: options.clearPlacementAt }
+          : {}),
       }
     : storedLocalProfile;
   const localPayload: Record<StoreKey, unknown> = {
@@ -205,6 +228,7 @@ async function syncProgressWithOptions(
   };
   const localStamps: Record<StoreKey, string | null> = {
     "ielts-prep-v1": options.clearHistoryAt
+      ?? options.clearPlacementAt
       ?? localStamp("ielts-prep-v1"),
     "bandup.drills.v1": localStamp("bandup.drills.v1"),
     "bandup.lookups.v1": localStamp("bandup.lookups.v1"),
@@ -281,12 +305,13 @@ async function syncProgressWithOptions(
         falling through to step 4 and writing it locally can only add to this
         device's copy, never remove from it.
 
-        A history clear is the one case that must keep returning immediately.
-        `accepted` still holds the *hypothetical* cleared profile built in step
-        2, and this device's real history must not be replaced by that unless
-        the account actually accepted the clear — see the guard below step 4.
+        A history or placement clear is the one case that must keep returning
+        immediately. `accepted` still holds the *hypothetical* cleared profile
+        built in step 2, and this device's real history or placement must not
+        be replaced by that unless the account actually accepted the clear —
+        see the guard below step 4.
       */
-      if (options.clearHistoryAt) return { status: "unavailable" };
+      if (options.clearHistoryAt || options.clearPlacementAt) return { status: "unavailable" };
     } else {
       const response = (await res.json()) as {
         at?: string;
@@ -332,7 +357,7 @@ async function syncProgressWithOptions(
     history, leave the browser untouched too instead of presenting a clear
     that the next sync would immediately undo.
   */
-  if (options.clearHistoryAt && historyProtected) {
+  if ((options.clearHistoryAt || options.clearPlacementAt) && historyProtected) {
     return { status: "restricted" };
   }
 
@@ -459,7 +484,9 @@ export async function syncProgress(): Promise<SyncOutcome> {
 export async function clearSyncedProgress(
   at = new Date().toISOString(),
 ): Promise<ClearSyncedProgressOutcome> {
-  const outcome = await syncProgressWithOptions({ clearHistoryAt: at });
+  // "Clear this device" clears both tombstones together — see the
+  // SyncOptions comments above for why they are not the same option.
+  const outcome = await syncProgressWithOptions({ clearHistoryAt: at, clearPlacementAt: at });
   rememberSyncHealth(outcome);
   return outcome;
 }

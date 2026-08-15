@@ -26,6 +26,13 @@ export function preserveOrganizationStudentHistory(
   const protectedIncoming = {
     ...next,
     historyClearedAt: previous.historyClearedAt,
+    /*
+      The device-clear button that could submit a new placementClearedAt is
+      already hidden for a restricted student (useHistoryClearPolicy), so
+      this matters only against a client bypassing it — but a bypass must not
+      be able to erase placement any more than it can erase results.
+    */
+    placementClearedAt: previous.placementClearedAt,
   };
   return mergeProfiles(
     protectedIncoming as Partial<Profile>,
@@ -47,5 +54,7 @@ export function restoreAcceptedOrganizationHistory(
     results: protectedProfile.results as Profile["results"],
     mockReports: protectedProfile.mockReports as Profile["mockReports"],
     historyClearedAt: protectedProfile.historyClearedAt as Profile["historyClearedAt"],
+    placement: protectedProfile.placement as Profile["placement"],
+    placementClearedAt: protectedProfile.placementClearedAt as Profile["placementClearedAt"],
   };
 }

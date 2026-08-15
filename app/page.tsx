@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import BandBadge from "@/components/BandBadge";
 import { useProfile } from "@/lib/hooks";
+import { isValidPlacement } from "@/lib/placement";
 import { newestFirst, seriesFor } from "@/lib/results";
 import LockedCard from "@/components/LockedCard";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
@@ -354,7 +355,7 @@ export default function Dashboard() {
       */}
       {organization ? (
         <OrganisationHero organization={organization} />
-      ) : placement ? (
+      ) : isValidPlacement(placement) ? (
         <ScoreTrendOverview placement={placement} results={profile.results} />
       ) : (
         <PlacementHero />

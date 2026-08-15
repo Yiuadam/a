@@ -430,6 +430,123 @@ test("an accepted account clear writes the tombstone locally only after the PUT"
   assert.deepEqual(localProfile.results, []);
 });
 
+test("an accepted account clear also uploads and locally writes the placement tombstone", async () => {
+  const placement = { band: 6, date: "2026-08-13T11:00:00.000Z" };
+  perTab.set(PROFILE_KEY, JSON.stringify({ placement, results: [], genTests: [] }));
+  remoteSnapshots = [{
+    storeKey: PROFILE_KEY,
+    payload: { placement, results: [], genTests: [] },
+    clientUpdatedAt: "2026-08-13T11:00:00.000Z",
+  }];
+  const clearedAt = "2026-08-13T12:06:00.000Z";
+
+  const outcome = await clearSyncedProgress(clearedAt);
+
+  assert.equal(outcome.status, "done");
+  const uploadedProfile = uploadedSnapshots.find((snapshot) => snapshot.storeKey === PROFILE_KEY)
+    .payload;
+  assert.equal(uploadedProfile.placement, undefined, "the placement must be part of what is uploaded as cleared");
+  assert.equal(uploadedProfile.placementClearedAt, clearedAt);
+  const localProfile = JSON.parse(perTab.get(PROFILE_KEY));
+  assert.equal(localProfile.placement, undefined);
+  assert.equal(localProfile.placementClearedAt, clearedAt);
+});
+
+test("a device clear is not resurrected by the next ordinary sync", async () => {
+  /*
+    The confirmed production bug, reproduced end to end: the owner used
+    "clear everything saved on this device", and the dashboard still showed a
+    placement band afterwards. clearSyncedProgress only ever promised to clear
+    *history* (results, mock reports) — a genuine placement rode along
+    unchanged into the account, so the very next ordinary sync (the one
+    components/AutoSync.tsx fires "on load" after the reload this button
+    triggers) downloaded it straight back into the freshly wiped tab.
+  */
+  const genuinePlacement = { band: 6.5, date: "2026-08-10T10:00:00.000Z" };
+  const oldSitting = {
+    module: "reading",
+    testId: "reading-before-clear",
+    testTitle: "A sitting that should be cleared",
+    band: 6,
+    date: "2026-08-11T12:00:00.000Z",
+  };
+  perTab.set(PROFILE_KEY, JSON.stringify({
+    placement: genuinePlacement,
+    results: [oldSitting],
+    genTests: [],
+  }));
+  remoteSnapshots = [{
+    storeKey: PROFILE_KEY,
+    payload: { placement: genuinePlacement, results: [oldSitting], genTests: [] },
+    clientUpdatedAt: "2026-08-11T12:00:00.000Z",
+  }];
+
+  const clearedAt = "2026-08-14T09:00:00.000Z";
+  const clearOutcome = await clearSyncedProgress(clearedAt);
+  assert.equal(clearOutcome.status, "done");
+
+  // What "Yes, clear it" actually does once the account confirms the clear:
+  // components/account/ClearDeviceSection.tsx wipes this tab's storage
+  // outright (window.sessionStorage.clear()), not a targeted key removal.
+  perTab.clear();
+
+  // The reload that follows fires an ordinary sync — no clear option
+  // involved, exactly like any other device pulling the account down.
+  const resyncOutcome = await syncProgress();
+  assert.equal(resyncOutcome.status, "done");
+
+  const afterResync = JSON.parse(perTab.get(PROFILE_KEY));
+  assert.equal(
+    afterResync.placement,
+    undefined,
+    "a cleared placement must not be resurrected by the very next ordinary sync",
+  );
+  assert.deepEqual(afterResync.results, []);
+});
+
+test("a genuine placement sat after a clear still reaches this device on the next sync", async () => {
+  // Requirement 3, at the full sync level rather than the pure-merge level:
+  // clearing is the only thing that may remove a placement, and the fix must
+  // not cost a learner a real result taken on another device afterwards.
+  const oldPlacement = { band: 6, date: "2026-08-01T10:00:00.000Z" };
+  perTab.set(PROFILE_KEY, JSON.stringify({ placement: oldPlacement, results: [], genTests: [] }));
+  remoteSnapshots = [{
+    storeKey: PROFILE_KEY,
+    payload: { placement: oldPlacement, results: [], genTests: [] },
+    clientUpdatedAt: "2026-08-01T10:00:00.000Z",
+  }];
+
+  const clearedAt = "2026-08-14T09:00:00.000Z";
+  await clearSyncedProgress(clearedAt);
+  perTab.clear();
+  await syncProgress();
+  assert.equal(
+    JSON.parse(perTab.get(PROFILE_KEY)).placement,
+    undefined,
+    "sanity check: the clear took effect exactly as in the test above",
+  );
+
+  // A different device sits the test again, after the clear, and syncs first.
+  const newPlacement = { band: 7, date: "2026-08-14T11:00:00.000Z" };
+  remoteSnapshots = remoteSnapshots.map((snapshot) => (
+    snapshot.storeKey === PROFILE_KEY
+      ? {
+          ...snapshot,
+          payload: { ...snapshot.payload, placement: newPlacement },
+          clientUpdatedAt: "2026-08-14T11:00:00.000Z",
+        }
+      : snapshot
+  ));
+
+  const finalOutcome = await syncProgress();
+  assert.equal(finalOutcome.status, "done");
+  assert.equal(
+    JSON.parse(perTab.get(PROFILE_KEY)).placement.band,
+    7,
+    "a placement sat on another device after the clear must still arrive here",
+  );
+});
+
 test("signed-out work is adopted by the first account that signs in, and the sync stamps the owner", async () => {
   // Nobody has claimed this tab's progress yet: the intended feature this fix
   // must not break is that it still gets adopted by whoever signs in first.

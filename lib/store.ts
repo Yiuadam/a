@@ -45,6 +45,7 @@ function read(): Profile {
       results: parsed.results ?? [],
       mockReports: parsed.mockReports ?? [],
       historyClearedAt: parsed.historyClearedAt,
+      placementClearedAt: parsed.placementClearedAt,
       deletedGenTests: parsed.deletedGenTests ?? {},
       genTests: parsed.genTests ?? [],
     };
