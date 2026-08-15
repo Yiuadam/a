@@ -20,13 +20,41 @@
   a token that expires in an hour rather than a fortnight.
 
   ---------------------------------------------------------------------------
-  What signing out does not do
+  What signing out touches, and why that is no longer the same for both paths
 
-  It does not touch the study profile. `ielts-prep-v1`, the drills and the
-  saved words stay exactly where they are. Signing out is not deleting, and a
-  learner who signs out to hand the laptop back should not discover that a
-  month of practice went with the session (ACCOUNTS.md, threat 5).
+  `clearSession` is unchanged: it still leaves the study profile alone.
+  `ielts-prep-v1`, the drills and the saved words stay exactly where they are,
+  because this is the path an expired refresh token takes, not a choice the
+  learner made — the same person is still sitting at the same tab, and losing
+  in-progress work to a silent token refresh would be its own bug (ACCOUNTS.md,
+  threat 5).
+
+  `signOutSession` — the button someone presses on purpose — now clears the
+  study profile too, which the first version of this file deliberately did
+  not. That version reasoned "signing out is not deleting" and left local
+  progress in place; what it missed is that sessionStorage recorded no owner,
+  so the next person to sign in on the same tab inherited whatever was sitting
+  there regardless of whose it was. That is a confirmed leak, not a
+  theoretical one — see lib/progress/storage.ts for the marker that now
+  records ownership and lib/progress/sync.ts for where a mismatched owner is
+  refused. Clearing outright on sign-out is the belt to that braces, and it
+  costs the person leaving nothing: the account, not the tab, has been the
+  durable copy since sync shipped, so signing back in fetches the same
+  practice straight back.
 */
+
+/*
+  The only import in this file, and worth explaining why it is safe. This
+  module has no React in it and is not itself a component, but it has always
+  been "use client" — every function here reads `window` directly, and
+  nothing server-side has ever imported it (grepping the API routes for it
+  finds nothing). lib/progress/storage.ts is the same shape: also "use
+  client", also guarded on `typeof window === "undefined"` in every export, so
+  it is already safe wherever this file already is. And the dependency only
+  runs one way — storage.ts imports nothing, so there is no cycle to create by
+  reaching into it from here.
+*/
+import { clearProgressStore } from "@/lib/progress/storage";
 
 /*
   Exported so components/account/ClearDeviceSection.tsx can keep it. That file
@@ -156,6 +184,35 @@ export function signOutSession(): boolean {
   }
   cache = SIGNED_OUT;
   emit();
+
+  /*
+    Ordering is deliberate, and the token above goes first. This function's
+    contract, established in the doc comment above, is about one thing only —
+    can the token be removed — and nothing below this line may change what
+    `true` or `false` means to a caller that has only read that contract. So
+    the progress clear happens after the sign-out is already final, as a
+    best-effort second step whose own failure is swallowed rather than
+    reported through this function's return value.
+
+    The alternative ordering — clearing progress first — would let a storage
+    failure there abort a sign-out that was otherwise able to happen,
+    leaving someone stuck signed in against their own explicit choice because
+    of trouble with data that only matters to whoever uses this tab *next*.
+    Clearing after does carry a real cost: if this throws, the token is gone
+    but the previous account's progress is still sitting here, which is the
+    exact leak this function exists to help close. That is accepted as the
+    better of two bad outcomes — a storage failure here is rare, and stale
+    progress left behind by one is corrected by this same function the next
+    time anyone signs out of this tab, or by lib/progress/sync.ts's owner
+    check the moment anyone next signs in and syncs. Refusing a sign-out the
+    person explicitly asked for has no equivalent later fix.
+  */
+  try {
+    clearProgressStore();
+  } catch {
+    // See above: a failure here must not be reported as a failed sign-out.
+  }
+
   return true;
 }
 
@@ -227,6 +284,42 @@ export async function authedFetch(
   const headers = new Headers(init.headers);
   if (session) headers.set("Authorization", `Bearer ${session.accessToken}`);
   return fetch(input, { ...init, headers });
+}
+
+/**
+ * The account id carried in the current session's access token, or null.
+ *
+ * Supabase issues a JWT, and a JWT's payload is only base64 — this reads it
+ * without ever checking the signature, which is a different thing from
+ * `userFromAccessToken` in lib/auth/supabase.ts, and deliberately so. That
+ * function decides whether a request may happen at all, so it must never take
+ * a client's word for anything and always asks the issuer instead: a token is
+ * base64 anyone can write, and only Supabase can say a given one is real.
+ * This function answers something smaller and later: once a request carrying
+ * this exact token has already been *answered* — a 200 from the account, not
+ * a 401 — which account it was answered for, so lib/progress/sync.ts can
+ * label locally-held progress with an id the issuer has, by that point,
+ * already vouched for. A forged or corrupted token cannot turn this into a
+ * leak: it fails to authenticate, and the 401 branch in sync.ts returns
+ * before this value is ever consulted. Anything this cannot parse — a
+ * malformed token, or a non-JWT string, which is what every stand-in access
+ * token in this codebase's own tests is — simply returns null, which
+ * sync.ts already treats as "no local owner recorded", the same safe default
+ * it used before this function existed.
+ */
+export function currentAccountId(): string | null {
+  const session = getSnapshot();
+  if (!session) return null;
+  const segments = session.accessToken.split(".");
+  if (segments.length !== 3) return null;
+  try {
+    const payload = segments[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
+    const claims = JSON.parse(atob(padded)) as { sub?: unknown };
+    return typeof claims.sub === "string" && claims.sub.length > 0 ? claims.sub : null;
+  } catch {
+    return null;
+  }
 }
 
 /*

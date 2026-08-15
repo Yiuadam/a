@@ -1,11 +1,15 @@
 "use client";
 
-import { authedFetch } from "@/lib/account";
+import { authedFetch, currentAccountId } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { mergeProfiles, mergeDrillScores, mergeLookups } from "./merge";
 import {
   learnerItemUpdatedAt,
+  PROGRESS_KEYS as KEYS,
+  progressOwner,
   readLearnerItem,
+  setProgressOwner,
+  type ProgressKey as StoreKey,
   writeLearnerItem,
 } from "./storage";
 import { restoreAcceptedOrganizationHistory } from "@/lib/organizations/history-policy";
@@ -32,9 +36,13 @@ import { restoreAcceptedOrganizationHistory } from "@/lib/organizations/history-
   file returns a result instead of throwing.
 */
 
-/** The keys that sync. Mirrors the CHECK constraint in the schema. */
-const KEYS = ["ielts-prep-v1", "bandup.drills.v1", "bandup.lookups.v1"] as const;
-type StoreKey = (typeof KEYS)[number];
+/*
+  The keys that sync are PROGRESS_KEYS from ./storage, imported above as KEYS
+  (and its type as StoreKey) so the rest of this file reads unchanged. That
+  file is now the one place the three key names are written down — mirroring
+  the CHECK constraint in the schema, as before — so that what syncs and what
+  a device-clear or a sign-out wipes cannot quietly name different keys.
+*/
 
 /** Where the last successful sync is remembered, so it can be shown. */
 const SYNCED_AT = "bandup.sync.v1";
@@ -125,6 +133,12 @@ function newestStamp(left: string | null, right: string | null): string | null {
  * Safe to call more than once, and safe to call on a device with nothing on
  * it: merging an empty browser with a full account yields the full account,
  * and merging a full browser with an empty account yields the browser.
+ *
+ * Also safe to call when this browser's progress belongs to a *different*
+ * account than the one now signed in. That local data is discarded rather
+ * than merged or uploaded — this tab ends up holding the newly signed-in
+ * account's own copy instead, exactly as if it had never held anything. See
+ * the owner marker in lib/progress/storage.ts.
  */
 async function syncProgressWithOptions(
   options: SyncOptions = {},
@@ -146,7 +160,33 @@ async function syncProgressWithOptions(
   const bySnapshotKey = new Map(remote.map((s) => [s.storeKey, s]));
 
   // --- 2. merge ------------------------------------------------------------
-  const storedLocalProfile = readLocal("ielts-prep-v1");
+  /*
+    Whose work is sitting in this tab, and does it match who just signed in?
+
+      owner absent/null   — signed-out work, free to be adopted exactly as
+                             before this fix. The real feature this must not
+                             break.
+      owner === this id   — an ordinary returning sync. Unchanged.
+      owner is a different id — a different account's leftovers are sitting
+                             here. This is the confirmed leak: none of it may
+                             take part in the merge below, be uploaded to this
+                             account, or be written back to this tab.
+
+    `localValue`/`localStamp` make the third case true everywhere below by
+    making a foreign tab look, to every line that follows, exactly like a tab
+    that has never held anything — this file's own merge functions already
+    promise that an empty local unioned with a full account yields the full
+    account (see the doc comment above), so a foreign owner needs no bespoke
+    discard path of its own.
+  */
+  const signedInAccountId = currentAccountId();
+  const owner = progressOwner();
+  const foreignOwner = owner !== null && owner !== signedInAccountId;
+  const localValue = (key: StoreKey): unknown => (foreignOwner ? null : readLocal(key));
+  const localStamp = (key: StoreKey): string | null =>
+    foreignOwner ? null : learnerItemUpdatedAt(key);
+
+  const storedLocalProfile = localValue("ielts-prep-v1");
   const localProfile = options.clearHistoryAt
     ? {
         ...(storedLocalProfile && typeof storedLocalProfile === "object"
@@ -160,14 +200,14 @@ async function syncProgressWithOptions(
     : storedLocalProfile;
   const localPayload: Record<StoreKey, unknown> = {
     "ielts-prep-v1": localProfile,
-    "bandup.drills.v1": readLocal("bandup.drills.v1"),
-    "bandup.lookups.v1": readLocal("bandup.lookups.v1"),
+    "bandup.drills.v1": localValue("bandup.drills.v1"),
+    "bandup.lookups.v1": localValue("bandup.lookups.v1"),
   };
   const localStamps: Record<StoreKey, string | null> = {
     "ielts-prep-v1": options.clearHistoryAt
-      ?? learnerItemUpdatedAt("ielts-prep-v1"),
-    "bandup.drills.v1": learnerItemUpdatedAt("bandup.drills.v1"),
-    "bandup.lookups.v1": learnerItemUpdatedAt("bandup.lookups.v1"),
+      ?? localStamp("ielts-prep-v1"),
+    "bandup.drills.v1": localStamp("bandup.drills.v1"),
+    "bandup.lookups.v1": localStamp("bandup.lookups.v1"),
   };
 
   const profile = mergeProfiles(
@@ -311,25 +351,33 @@ async function syncProgressWithOptions(
     Merge once more with the *current* working copy before touching storage.
     The next scheduled pass uploads these late changes; this pass merely makes
     sure downloading the account can never undo them locally.
+
+    `localValue`/`localStamp` still guard this re-read for a foreign owner,
+    and deliberately: a write that raced in during this round trip belongs to
+    whoever the owner marker said this tab belonged to when it happened, and
+    that is the same account already being discarded above. Re-reading actual
+    sessionStorage here for that case would let it back in through the one
+    door left open for "late changes", which defeats the point of discarding
+    it in step 2.
   */
   const latest: Record<StoreKey, unknown> = {
     "ielts-prep-v1": mergeProfiles(
       (historyProtected
         ? restoreAcceptedOrganizationHistory(
-            readLocal("ielts-prep-v1"),
+            localValue("ielts-prep-v1"),
             accepted["ielts-prep-v1"].payload,
           )
-        : readLocal("ielts-prep-v1")) as never,
+        : localValue("ielts-prep-v1")) as never,
       accepted["ielts-prep-v1"].payload as never,
-      stampNumber(learnerItemUpdatedAt("ielts-prep-v1")),
+      stampNumber(localStamp("ielts-prep-v1")),
       stampOf(accepted["ielts-prep-v1"]),
     ),
     "bandup.drills.v1": mergeDrillScores(
-      readLocal("bandup.drills.v1") as never,
+      localValue("bandup.drills.v1") as never,
       accepted["bandup.drills.v1"].payload as never,
     ),
     "bandup.lookups.v1": mergeLookups(
-      readLocal("bandup.lookups.v1") as never,
+      localValue("bandup.lookups.v1") as never,
       accepted["bandup.lookups.v1"].payload as never,
     ),
   };
@@ -337,9 +385,28 @@ async function syncProgressWithOptions(
     writeLocal(
       key,
       latest[key],
-      newestStamp(learnerItemUpdatedAt(key), accepted[key].clientUpdatedAt),
+      newestStamp(localStamp(key), accepted[key].clientUpdatedAt),
     );
   }
+  /*
+    Every branch that reaches this line — adopting signed-out work for the
+    first time, an ordinary same-account sync, or a foreign owner's leftovers
+    just discarded above — ends with this tab holding data the signed-in
+    account is entitled to see, which makes this the one place that also
+    needs to say whose it now is. Stamping it here, right next to the loop
+    that already funnels every progress write for this call, means the marker
+    cannot fall out of step with what was actually written the way a copy of
+    this call pasted at each early return above could.
+
+    This runs even when `at` is still null — an unconfirmed PUT, see step 3 —
+    because the merge just written locally is already a superset of what this
+    tab had, built from a GET that did succeed and did prove which account
+    this is. Waiting for a confirmed PUT before marking ownership would leave
+    every device stuck behind production's currently-failing write RPC
+    unmarked indefinitely (see commit 7df422e), which is exactly the gap a
+    second account signing into the same browser could still walk through.
+  */
+  setProgressOwner(signedInAccountId);
   // Only a confirmed write earns a "last synced" time. A PUT that failed
   // reaches this point too now (see step 3), and must not claim a sync that
   // did not happen — that is what the account page reads to say a device is

@@ -48,18 +48,34 @@ function stableContentHash(text: string): string {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
-function splitLongTurn(text: string): string[] {
+export function splitLongTurn(text: string): string[] {
   const parts: string[] = [];
   let remaining = text.trim();
   while (remaining.length > MAX_AURA_AUDIO_CHARS) {
+    // Search the whole reachable window (everything a chunk could possibly
+    // hold under the cap) for the last completed sentence in it, and use
+    // that regardless of how much shorter than the cap it leaves this chunk.
+    // A short chunk is inaudible to a listener; a boundary planted mid
+    // sentence is not.
     const window = remaining.slice(0, MAX_AURA_AUDIO_CHARS + 1);
     const sentenceBreak = Math.max(
       window.lastIndexOf(". "),
       window.lastIndexOf("? "),
       window.lastIndexOf("! "),
     );
-    const wordBreak = window.lastIndexOf(" ");
-    const end = sentenceBreak > 0 ? sentenceBreak + 1 : wordBreak > 0 ? wordBreak : MAX_AURA_AUDIO_CHARS;
+    let end: number;
+    if (sentenceBreak !== -1) {
+      end = sentenceBreak + 1;
+    } else {
+      // Only reached when nothing from here to the character cap ends a
+      // sentence at all — in practice, one spoken sentence longer on its own
+      // than Aura accepts in a single request. There is then no sentence
+      // boundary left to cut on, so a word break is accepted as the sole
+      // remaining option; every other split above always lands on a
+      // completed sentence instead.
+      const wordBreak = window.lastIndexOf(" ");
+      end = wordBreak > 0 ? wordBreak : MAX_AURA_AUDIO_CHARS;
+    }
     parts.push(remaining.slice(0, end).trim());
     remaining = remaining.slice(end).trimStart();
   }

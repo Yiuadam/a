@@ -81,10 +81,26 @@ function ListeningTestPageRunner() {
   const playingRef = useRef(false);
   const playbackRunRef = useRef(0);
   const nativeAudioRunRef = useRef(0);
+  // Two elements, alternately active and standby, so a turn boundary never
+  // has to tear down and rebuild a decode pipeline: whichever element is not
+  // currently playing sits ready with the next part already loaded (see
+  // nativeAudioActiveRef and primeNativeAudioBuffer below).
   const nativeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const nativeAudioBufferRef = useRef<HTMLAudioElement | null>(null);
+  // Whichever of the two elements above is presently the one actually
+  // playing. Every native-audio DOM event below is ignored unless it fired
+  // on this exact element, so a stray/late event from the other element —
+  // silently buffering, never played — can never resurrect playback or move
+  // the part index. This is the same kind of protection the run-token guards
+  // already give against a superseded run, applied to "which of the two
+  // elements gets to speak" instead of "which run gets to speak".
+  const nativeAudioActiveRef = useRef<HTMLAudioElement | null>(null);
   const nativeAudioPartRef = useRef(0);
   const nativeAudioPartCountRef = useRef(1);
   const nativeAudioFromRef = useRef(0);
+  // The part index already assigned and load()ed on whichever element is not
+  // currently active, or -1 if nothing is queued there yet.
+  const nativeAudioBufferedPartRef = useRef(-1);
   const prefetchedNativeAudioPartsRef = useRef(new Set<number>());
   const rateRef = useRef(1);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
@@ -159,14 +175,16 @@ function ListeningTestPageRunner() {
 
   useEffect(() => {
     // The player does not exist on the chooser screen, so capture the actual
-    // element only after the test workspace mounts. This avoids leaving media
-    // running if the learner returns to the chooser or navigates away.
-    const media = nativeAudioRef.current;
+    // elements only after the test workspace mounts. This avoids leaving
+    // media running if the learner returns to the chooser or navigates away.
+    const elements = [nativeAudioRef.current, nativeAudioBufferRef.current];
     return () => {
-      if (!media) return;
-      media.pause();
-      media.removeAttribute("src");
-      media.load();
+      for (const media of elements) {
+        if (!media) continue;
+        media.pause();
+        media.removeAttribute("src");
+        media.load();
+      }
     };
   }, [started]);
 
@@ -315,9 +333,11 @@ function ListeningTestPageRunner() {
       nativeAudioRunRef.current = 0;
       nativeAudioPartRef.current = 0;
       nativeAudioPartCountRef.current = 1;
+      nativeAudioBufferedPartRef.current = -1;
+      nativeAudioActiveRef.current = null;
       prefetchedNativeAudioPartsRef.current.clear();
-      const media = nativeAudioRef.current;
-      if (media) {
+      for (const media of [nativeAudioRef.current, nativeAudioBufferRef.current]) {
+        if (!media) continue;
         media.pause();
         media.removeAttribute("src");
         media.load();
@@ -350,10 +370,49 @@ function ListeningTestPageRunner() {
     [isBundledTest, serverAudioParts.length, test],
   );
 
+  // Given one of the two native-audio elements (or null), returns the other.
+  // Stable across renders — it only reads the two element refs, never a
+  // reactive value — so it is safe for other callbacks below to depend on.
+  const otherNativeAudioElement = useCallback(
+    (element: HTMLAudioElement | null) =>
+      element === nativeAudioRef.current ? nativeAudioBufferRef.current : nativeAudioRef.current,
+    [],
+  );
+
+  const primeNativeAudioBuffer = useCallback(
+    (run: number, activePart: number) => {
+      if (!test || nativeAudioRunRef.current !== run) return;
+      const nextPart = activePart + 1;
+      if (nextPart >= serverAudioParts.length) return;
+      if (nativeAudioBufferedPartRef.current === nextPart) return;
+      const standby = otherNativeAudioElement(nativeAudioActiveRef.current);
+      if (!standby) return;
+      try {
+        standby.pause();
+        standby.currentTime = 0;
+        // Unlike the active element, this one benefits from preloading: it
+        // is decoding a part nobody can hear yet, precisely so the eventual
+        // switch to it is silent. `preload="none"` in the JSX below is right
+        // for an element sitting idle; this overrides it for exactly as long
+        // as this element is the one standing by.
+        standby.preload = "auto";
+        standby.src = apiUrl(bundledListeningAudioUrl(test.id, nextPart));
+        standby.load();
+        nativeAudioBufferedPartRef.current = nextPart;
+      } catch {
+        // A failed preload of the part after this one is not a playback
+        // failure — the audible part is unaffected. Just stop believing the
+        // next part is ready, so playNativeAudioPart loads it cold instead
+        // of handing play() to an element that never finished loading.
+        nativeAudioBufferedPartRef.current = -1;
+      }
+    },
+    [otherNativeAudioElement, serverAudioParts.length, test],
+  );
+
   const playNativeAudioPart = useCallback(
     (run: number, from: number, part: number) => {
-      const media = nativeAudioRef.current;
-      if (!test || !isBundledTest || !media || part < 0 || part >= serverAudioParts.length) {
+      if (!test || !isBundledTest || part < 0 || part >= serverAudioParts.length) {
         startBrowserAudio(run, from);
         return;
       }
@@ -371,6 +430,32 @@ function ListeningTestPageRunner() {
       setAudioDuration(0);
       setAudioPartIndex(part);
 
+      // The element standing by already has this exact part decoded whenever
+      // playback is advancing turn by turn in order: hand it play() directly
+      // rather than reassigning `src`, because that reassignment is exactly
+      // the decode-pipeline teardown/rebuild this second element exists to
+      // avoid. Anything else — the first part of a run, a retry, a replay
+      // from the start — has no ready buffer, so it falls through below and
+      // loads cold, same as before this player had two elements.
+      const standby = otherNativeAudioElement(nativeAudioActiveRef.current);
+      if (nativeAudioBufferedPartRef.current === part && standby) {
+        nativeAudioActiveRef.current = standby;
+        nativeAudioBufferedPartRef.current = -1;
+        try {
+          void standby.play().catch(() => fallbackFromNativeAudio(run, from));
+        } catch {
+          fallbackFromNativeAudio(run, from);
+        }
+        primeNativeAudioBuffer(run, part);
+        return;
+      }
+
+      const media = nativeAudioActiveRef.current ?? nativeAudioRef.current;
+      nativeAudioActiveRef.current = media;
+      if (!media) {
+        startBrowserAudio(run, from);
+        return;
+      }
       try {
         media.pause();
         media.currentTime = 0;
@@ -383,8 +468,17 @@ function ListeningTestPageRunner() {
       } catch {
         fallbackFromNativeAudio(run, from);
       }
+      primeNativeAudioBuffer(run, part);
     },
-    [fallbackFromNativeAudio, isBundledTest, serverAudioParts.length, startBrowserAudio, test],
+    [
+      fallbackFromNativeAudio,
+      isBundledTest,
+      otherNativeAudioElement,
+      primeNativeAudioBuffer,
+      serverAudioParts.length,
+      startBrowserAudio,
+      test,
+    ],
   );
 
   const startNativeAudio = useCallback(
@@ -404,9 +498,14 @@ function ListeningTestPageRunner() {
       nativeAudioPartRef.current = 0;
       nativeAudioPartCountRef.current = 1;
       nativeAudioFromRef.current = from;
+      nativeAudioBufferedPartRef.current = -1;
+      // Starting fresh always begins on nativeAudioRef (see playNativeAudioPart):
+      // clearing this means a retry or replay can never mistake a stale
+      // element left over from a previous run for an already-primed buffer.
+      nativeAudioActiveRef.current = null;
       prefetchedNativeAudioPartsRef.current.clear();
-      const media = nativeAudioRef.current;
-      if (media) {
+      for (const media of [nativeAudioRef.current, nativeAudioBufferRef.current]) {
+        if (!media) continue;
         media.pause();
         media.removeAttribute("src");
         media.load();
@@ -436,10 +535,12 @@ function ListeningTestPageRunner() {
     nativeAudioRunRef.current = 0;
     nativeAudioPartRef.current = 0;
     nativeAudioPartCountRef.current = 1;
+    nativeAudioBufferedPartRef.current = -1;
+    nativeAudioActiveRef.current = null;
     prefetchedNativeAudioPartsRef.current.clear();
     playingRef.current = false;
-    const media = nativeAudioRef.current;
-    if (media) {
+    for (const media of [nativeAudioRef.current, nativeAudioBufferRef.current]) {
+      if (!media) continue;
       media.pause();
       media.removeAttribute("src");
       media.load();
@@ -660,6 +761,23 @@ function ListeningTestPageRunner() {
         </div>
       }
     >
+      {/*
+        Two elements, not one. While one plays the current part, the other
+        sits standing by with the next part already assigned and load()ed
+        (see primeNativeAudioBuffer), so the `ended` handler below only ever
+        has to call play() on an element that is already decoding — never
+        reassign `src` on the critical path, which is the decode-pipeline
+        teardown/rebuild that used to leave an audible, variable-length gap
+        at every turn boundary.
+
+        Both elements carry the full set of handlers because either one can
+        be active or standby at any moment depending on parity. Each handler
+        still opens with the existing run-token guard — a stale or superseded
+        run must stay harmless exactly as it always has — and now also checks
+        that the event fired on nativeAudioActiveRef.current specifically, so
+        a late event from the silently-buffering element can never resurrect
+        playback or move the part index.
+      */}
       <audio
         ref={nativeAudioRef}
         data-listening-native-audio
@@ -668,12 +786,14 @@ function ListeningTestPageRunner() {
         onLoadedMetadata={(event) => {
           const run = nativeAudioRunRef.current;
           if (!run || run !== playbackRunRef.current) return;
+          if (event.currentTarget !== nativeAudioActiveRef.current) return;
           const duration = event.currentTarget.duration;
           if (Number.isFinite(duration) && duration > 0) setAudioDuration(duration);
         }}
         onPlaying={() => {
           const run = nativeAudioRunRef.current;
           if (!run || run !== playbackRunRef.current) return;
+          if (nativeAudioRef.current !== nativeAudioActiveRef.current) return;
           playingRef.current = true;
           setPlaying(true);
           setPlaybackStarted(true);
@@ -684,6 +804,7 @@ function ListeningTestPageRunner() {
         onTimeUpdate={(event) => {
           const run = nativeAudioRunRef.current;
           if (!run || run !== playbackRunRef.current) return;
+          if (event.currentTarget !== nativeAudioActiveRef.current) return;
           const { currentTime, duration } = event.currentTarget;
           if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) return;
           setAudioCurrentTime(currentTime);
@@ -700,10 +821,11 @@ function ListeningTestPageRunner() {
         onEnded={(event) => {
           const run = nativeAudioRunRef.current;
           if (!run || run !== playbackRunRef.current) return;
+          if (event.currentTarget !== nativeAudioActiveRef.current) return;
           const nextPart = nativeAudioPartRef.current + 1;
           if (nextPart < nativeAudioPartCountRef.current) {
-            // Long reviewed papers are stored as Aura-safe MP3 parts. Keep
-            // the same native player alive and advance before browser speech
+            // The other element already has this next part buffered, so this
+            // hands off rather than loading — advance before browser speech
             // is considered, so the full recording remains a media playlist.
             playNativeAudioPart(run, nativeAudioFromRef.current, nextPart);
             return;
@@ -725,6 +847,94 @@ function ListeningTestPageRunner() {
         onError={() => {
           const run = nativeAudioRunRef.current;
           if (!run || run !== playbackRunRef.current) return;
+          if (nativeAudioRef.current !== nativeAudioActiveRef.current) {
+            // The element that failed is standing by, not playing: the
+            // audible part is unaffected. Stop believing the next part is
+            // ready, so the following turn loads it fresh instead of handing
+            // play() to an element that never finished loading.
+            nativeAudioBufferedPartRef.current = -1;
+            return;
+          }
+          fallbackFromNativeAudio(run, 0);
+        }}
+      />
+      <audio
+        ref={nativeAudioBufferRef}
+        data-listening-native-audio-buffer
+        preload="none"
+        aria-hidden="true"
+        onLoadedMetadata={(event) => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          if (event.currentTarget !== nativeAudioActiveRef.current) return;
+          const duration = event.currentTarget.duration;
+          if (Number.isFinite(duration) && duration > 0) setAudioDuration(duration);
+        }}
+        onPlaying={() => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          if (nativeAudioBufferRef.current !== nativeAudioActiveRef.current) return;
+          playingRef.current = true;
+          setPlaying(true);
+          setPlaybackStarted(true);
+          setUsingServerAudio(true);
+          setPlaybackError(null);
+          prefetchNativeAudioParts(nativeAudioPartRef.current);
+        }}
+        onTimeUpdate={(event) => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          if (event.currentTarget !== nativeAudioActiveRef.current) return;
+          const { currentTime, duration } = event.currentTarget;
+          if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) return;
+          setAudioCurrentTime(currentTime);
+          setAudioDuration(duration);
+          const partProgress = nativeAudioPartRef.current + currentTime / duration;
+          const paperProgress = partProgress / nativeAudioPartCountRef.current;
+          const turn = Math.min(
+            test.script.length,
+            Math.max(1, Math.ceil(paperProgress * test.script.length)),
+          );
+          setPlaybackTurn(turn);
+          setTurnIndex(Math.min(test.script.length - 1, turn - 1));
+        }}
+        onEnded={(event) => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          if (event.currentTarget !== nativeAudioActiveRef.current) return;
+          const nextPart = nativeAudioPartRef.current + 1;
+          if (nextPart < nativeAudioPartCountRef.current) {
+            // The other element already has this next part buffered, so this
+            // hands off rather than loading — advance before browser speech
+            // is considered, so the full recording remains a media playlist.
+            playNativeAudioPart(run, nativeAudioFromRef.current, nextPart);
+            return;
+          }
+          nativeAudioRunRef.current = 0;
+          playingRef.current = false;
+          setPlaying(false);
+          setPlaybackStarted(false);
+          setUsingServerAudio(false);
+          setUsingBuiltInAudio(false);
+          setFinishedAudio(true);
+          setTurnIndex(-1);
+          setPlaybackTurn(test.script.length);
+          if (Number.isFinite(event.currentTarget.duration)) {
+            setAudioDuration(event.currentTarget.duration);
+            setAudioCurrentTime(event.currentTarget.duration);
+          }
+        }}
+        onError={() => {
+          const run = nativeAudioRunRef.current;
+          if (!run || run !== playbackRunRef.current) return;
+          if (nativeAudioBufferRef.current !== nativeAudioActiveRef.current) {
+            // The element that failed is standing by, not playing: the
+            // audible part is unaffected. Stop believing the next part is
+            // ready, so the following turn loads it fresh instead of handing
+            // play() to an element that never finished loading.
+            nativeAudioBufferedPartRef.current = -1;
+            return;
+          }
           fallbackFromNativeAudio(run, 0);
         }}
       />

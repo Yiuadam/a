@@ -940,6 +940,18 @@ export async function createWalletCheckoutSession(args: {
       mode: "payment",
       "managed_payments[enabled]": "false",
       "payment_method_types[0]": args.method,
+      /*
+        WeChat Pay refuses a Checkout Session outright without this: "WeChat Pay
+        requires payment_method_options[wechat_pay][client] to be set to web".
+        It is asking which surface will show the QR code, and a hosted Checkout
+        page is always the web one — there is no branch to make here, but the
+        parameter is still mandatory, so its absence failed every WeChat session
+        with a 400 before the buyer saw anything. Alipay has no equivalent
+        requirement and must not be sent one.
+      */
+      ...(args.method === "wechat_pay"
+        ? { "payment_method_options[wechat_pay][client]": "web" }
+        : {}),
       "line_items[0][price_data][currency]": plan.currency,
       "line_items[0][price_data][unit_amount]": plan.amountMinor,
       "line_items[0][price_data][product_data][name]":

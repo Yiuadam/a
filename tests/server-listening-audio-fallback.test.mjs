@@ -168,6 +168,78 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
   }
 });
 
+test("splitLongTurn keeps a sentence whole whenever the remaining text contains one, and only breaks on a word when it genuinely cannot", async () => {
+  const audio = await delivery();
+  const { splitLongTurn, MAX_AURA_AUDIO_CHARS } = audio;
+
+  // A long run of ordinary short sentences. Every join between chunks is
+  // required to land on a completed sentence — that guarantee is the whole
+  // point of the fix, so a future script edit can never silently reopen a
+  // mid-sentence audio boundary here.
+  const sentence = "This is one reviewed sentence about the harbour museum. ";
+  const manySentences = sentence.repeat(120).trim();
+  assert.ok(manySentences.length > MAX_AURA_AUDIO_CHARS * 2, "fixture must force more than one split");
+  const parts = splitLongTurn(manySentences);
+  assert.ok(parts.length > 2, "a long run of short sentences must produce several chunks");
+  for (const part of parts.slice(0, -1)) {
+    assert.match(part, /[.?!]$/, "every chunk but the last must end exactly where a sentence ends");
+  }
+  for (const part of parts) {
+    assert.ok(part.length > 0, "an empty chunk would create a silent gap");
+    assert.ok(part.length <= MAX_AURA_AUDIO_CHARS, "every chunk must respect Aura's character cap");
+  }
+  assert.equal(
+    parts.join(" ").replace(/\s+/gu, " ").trim(),
+    manySentences.replace(/\s+/gu, " ").trim(),
+    "splitting must not drop or duplicate a single reviewed word",
+  );
+
+  // A single spoken sentence longer than the cap has no sentence end to
+  // split on at all. This is the one case a mid-sentence word break is
+  // accepted, and only because the cap leaves no alternative; it must still
+  // terminate rather than loop, and still respect the cap on every chunk.
+  const oneGiantSentence = `${"word ".repeat(500).trim()} done`;
+  assert.ok(oneGiantSentence.length > MAX_AURA_AUDIO_CHARS, "fixture must exceed the cap on its own");
+  assert.doesNotMatch(oneGiantSentence, /[.?!]/, "fixture must contain no sentence end at all");
+  const singleSentenceParts = splitLongTurn(oneGiantSentence);
+  assert.ok(singleSentenceParts.length > 1, "an over-cap single sentence must still be split to terminate");
+  for (const part of singleSentenceParts) {
+    assert.ok(part.length > 0);
+    assert.ok(part.length <= MAX_AURA_AUDIO_CHARS, "the word-break fallback must still respect the cap");
+  }
+  assert.equal(
+    singleSentenceParts.join(" ").replace(/\s+/gu, " ").trim(),
+    oneGiantSentence.replace(/\s+/gu, " ").trim(),
+  );
+
+  // The most extreme version of the same case: no word break either. The
+  // loop must still make progress and terminate, cutting hard at the cap.
+  const noBreaksAtAll = "a".repeat(MAX_AURA_AUDIO_CHARS * 2 + 137);
+  const hardCutParts = splitLongTurn(noBreaksAtAll);
+  assert.ok(hardCutParts.length > 1);
+  for (const part of hardCutParts) {
+    assert.ok(part.length > 0);
+    assert.ok(part.length <= MAX_AURA_AUDIO_CHARS);
+  }
+  assert.equal(hardCutParts.join(""), noBreaksAtAll, "a hard cut must not drop or duplicate characters");
+
+  // The two reviewed lecture turns that are actually long enough to split
+  // today: every join between their MP3 parts must land on a completed
+  // sentence, exactly like the synthetic case above.
+  for (const id of ["listening-8", "listening-11"]) {
+    const resolved = audio.bundledListeningAudio(id);
+    const longTurnParts = resolved.parts.filter((part) => part.turnIndex === 0);
+    assert.ok(longTurnParts.length > 1, `${id} turn 1 is expected to still need splitting`);
+    for (const part of longTurnParts.slice(0, -1)) {
+      assert.match(
+        part.text,
+        /[.?!]$/,
+        `${id} turn 1 must never hand Aura a chunk that ends mid-sentence`,
+      );
+    }
+  }
+});
+
 test("R2 byte range parsing is exact, supports resumable audio, and rejects ambiguous ranges", async () => {
   const { parseSingleRange } = await delivery();
 
@@ -302,6 +374,105 @@ test("listening plays exact native dialogue turns in order, only prefetches near
     "the player may prefetch only after the current exact dialogue turn has begun",
   );
   assert.match(page, /data-listening-native-audio[\s\S]*?preload="none"/);
+});
+
+/*
+  page.tsx is a client component built around a hand-rolled media state
+  machine, not a pure function — there is no harness in this suite that
+  mounts React and drives real <audio> elements. The rest of this file's
+  native-audio coverage already reads page.tsx as source rather than
+  executing it, so the two tests below do the same for double buffering:
+  they assert on the structure of the code (two elements, the buffer primed
+  ahead of `ended`, the run-token guard preserved on both) rather than on
+  emitted DOM events.
+*/
+test("listening's native player double-buffers two media elements and primes the next part before ended can fire", () => {
+  const page = readFileSync(listeningPagePath, "utf8");
+
+  // Two <audio> elements, not one: the point of double-buffering is that the
+  // element about to play a part is never the one whose `src` just changed.
+  assert.match(page, /const nativeAudioRef = useRef<HTMLAudioElement/);
+  assert.match(page, /const nativeAudioBufferRef = useRef<HTMLAudioElement/);
+  assert.equal(
+    (page.match(/<audio\b/g) ?? []).length,
+    2,
+    "the listening player must render exactly two native <audio> elements",
+  );
+  assert.match(page, /ref=\{nativeAudioRef\}/);
+  assert.match(page, /ref=\{nativeAudioBufferRef\}/);
+
+  // playNativeAudioPart is the single place that both starts a part cold and
+  // hands off to one already buffered on the standby element — it must
+  // consult which part is already buffered before deciding it can avoid
+  // reassigning `src` (the decode-pipeline rebuild double buffering exists to
+  // dodge), and it must play() the standby element directly when it can.
+  const player = sourceFrom(page, "const playNativeAudioPart");
+  assert.match(player, /nativeAudioBufferedPartRef\.current === part/);
+  assert.match(player, /standby\.play\(\)/);
+  assert.match(player, /primeNativeAudioBuffer\(run, part\)/);
+
+  // The next part is assigned and load()ed onto the standby element from
+  // inside playNativeAudioPart, i.e. as soon as the current part starts —
+  // strictly before that part's own `ended` event can possibly fire.
+  const idxPlay = player.search(/media\.play\(\)|standby\.play\(\)/);
+  const idxPrime = player.indexOf("primeNativeAudioBuffer(run, part);", idxPlay);
+  assert.ok(
+    idxPlay >= 0 && idxPrime > idxPlay,
+    "the next part must be queued on the standby element right after the current one starts playing",
+  );
+
+  const primer = sourceFrom(page, "const primeNativeAudioBuffer");
+  assert.match(primer, /standby\.src = apiUrl\(bundledListeningAudioUrl\(test\.id, nextPart\)\)/);
+  assert.match(primer, /standby\.load\(\)/);
+  assert.match(primer, /nativeAudioBufferedPartRef\.current = nextPart/);
+
+  // The buffered element is allowed to preload; the JSX default of
+  // preload="none" is only right for an element with nothing queued.
+  assert.match(primer, /standby\.preload = "auto"/);
+  assert.match(page, /data-listening-native-audio-buffer[\s\S]*?preload="none"/);
+});
+
+test("every native-audio DOM event still honours the run-token guard on both elements, and a stale element cannot resurrect playback", () => {
+  const page = readFileSync(listeningPagePath, "utf8");
+
+  // The run-token guard that already protected the single element must keep
+  // gating every handler unchanged — a cancelled or superseded run stays
+  // inert exactly as it did before double buffering existed — and now on
+  // both elements, so ten guards (five handlers times two elements) in total.
+  const guard = /const run = nativeAudioRunRef\.current;\s*\n\s*if \(!run \|\| run !== playbackRunRef\.current\) return;/g;
+  assert.equal(
+    (page.match(guard) ?? []).length,
+    10,
+    "both <audio> elements need the unchanged run-token guard on all five handlers",
+  );
+
+  // Double buffering adds a second element that can also fire events, so the
+  // run-token guard alone is not sufficient: a stale or standby element must
+  // not be able to advance the part index or resurrect playback either. Every
+  // handler also checks identity against whichever element is presently
+  // authoritative, using whichever form of the element already sits in scope
+  // (the event's own currentTarget where the handler is shared, this
+  // element's own ref where the handler is a zero-argument closure).
+  assert.match(page, /event\.currentTarget !== nativeAudioActiveRef\.current/);
+  assert.match(page, /nativeAudioRef\.current !== nativeAudioActiveRef\.current/);
+  assert.match(page, /nativeAudioBufferRef\.current !== nativeAudioActiveRef\.current/);
+  assert.ok(
+    (page.match(/nativeAudioActiveRef\.current/g) ?? []).length >= 10,
+    "every one of the ten handlers must consult the active-element identity, not only the run token",
+  );
+
+  // A fresh start, a stop, and the native/browser fallback path all forget
+  // which element was active and what the standby held, so a new run can
+  // never mistake a previous run's buffered element or part for its own.
+  for (const marker of ["const startAudio", "const stopAudio", "const fallbackFromNativeAudio"]) {
+    const scope = sourceFrom(page, marker).slice(0, 1_200);
+    assert.match(scope, /nativeAudioActiveRef\.current = null/, `${marker} must forget the active element`);
+    assert.match(
+      scope,
+      /nativeAudioBufferedPartRef\.current = -1/,
+      `${marker} must forget what the standby element was holding`,
+    );
+  }
 });
 
 function canonicalExaminerInterviews() {

@@ -995,7 +995,12 @@ html[data-theme="dark"] .google-signin-glass {
    rail into a second card, while the shared GlassSelect popover keeps every
    organisation name readable on phones and fully keyboard operable. */
 .organization-membership-actions {
-  width: min(15rem, 44vw);
+  /* A cap rather than a fixed width. Pinning the rail open meant the switcher
+     was drawn at its full width whatever it held, so a short organisation name
+     sat in a pill several times its own length. The cap still stops a long
+     name pushing the view tabs sideways. */
+  width: auto;
+  max-width: min(15rem, 44vw);
 }
 
 .organization-membership-actions:not(:has(.organization-workspace-switcher)) {
@@ -1017,17 +1022,29 @@ html[data-theme="dark"] .google-signin-glass {
 }
 
 .organization-workspace-switcher {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  justify-self: end;
 }
 
 .organization-workspace-switcher > div > button {
   border-radius: 9999px;
-  min-height: 2rem;
+  /*
+    The switcher sits beside the view tabs and should read as their sibling
+    rather than as a larger control of its own. That bar is a p-1 container
+    around min-h-9 buttons, so 2.25rem plus its 0.5rem of padding is the
+    height being matched here; at 2rem the switcher was visibly the odd one
+    out. The width now follows the organisation name instead of the rail.
+  */
+  min-height: 2.75rem;
+  width: auto;
+  max-width: 100%;
 }
 
 @media (max-width: 639px) {
   .organization-membership-actions {
-    width: min(10.5rem, 46vw);
+    width: auto;
+    max-width: min(10.5rem, 46vw);
   }
 
   .organization-workspace-switcher > div > button {

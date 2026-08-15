@@ -382,7 +382,16 @@ async function mirrorDurably(
   let bindings: BandUpCloudflareBindings;
   try {
     bindings = await requireBandUpCloudflareBindings();
-  } catch {
+  } catch (error) {
+    /* The one failure here that used to be silent, and the most misleading of
+       them: without a D1 or R2 binding every mirror returns false while the
+       two logs below never fire, so the reader concludes the write itself
+       failed and goes looking in the wrong place entirely. */
+    console.error(JSON.stringify({
+      message: "cloudflare replica bindings unavailable",
+      operation: task.operation,
+      error: error instanceof Error ? error.message : String(error),
+    }));
     return false;
   }
 
