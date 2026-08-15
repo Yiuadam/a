@@ -16,6 +16,7 @@ export const CARD_ICON_NAMES = [
   "practice",
   "organization",
   "home",
+  "lookups",
 ] as const;
 
 export type CardIconName = (typeof CARD_ICON_NAMES)[number];
@@ -116,6 +117,22 @@ const GLYPHS: Record<CardIconName, ReactNode> = {
       <circle cx="18.5" cy="10" r="2.2" />
       <path d="M6.2 19c.5-3.8 2.6-5.8 5.8-5.8s5.3 2 5.8 5.8" />
       <path d="M1.8 18c.3-2.7 1.7-4.2 4-4.2M22.2 18c-.3-2.7-1.7-4.2-4-4.2" />
+    </>
+  ),
+  /*
+    Saved words, for components/history/LookupHistoryCard.tsx.
+
+    That card drew its own 16px glyph — a filled book with its page lines
+    knocked out in --glass-fill-strong — and at that size the knockout closed
+    up and the whole thing read as a solid block rather than a book. It is the
+    only icon in the app that was drawn filled; every other one is a stroked
+    24px path, which is why every other one survives being small. Redrawn to
+    match: an open book, two strokes, no fill to collapse.
+  */
+  lookups: (
+    <>
+      <path d="M12 7.4C10.2 5.9 7.8 5.2 4.5 5.4v11.4c3.3-.2 5.7.5 7.5 2 1.8-1.5 4.2-2.2 7.5-2V5.4c-3.3-.2-5.7.5-7.5 2z" />
+      <path d="M12 7.4v11.4" />
     </>
   ),
   home: (

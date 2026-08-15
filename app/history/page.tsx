@@ -323,33 +323,44 @@ export default function HistoryPage() {
               page, so however many sittings there are, the four panels above
               stay on screen.
             */}
-            <div className="max-h-[16rem] overflow-y-auto rounded-2xl border border-slate-200">
+            {/*
+              rounded-xl rather than rounded-2xl, and px-5 rather than px-3.
+
+              A 2rem corner against a 12px cell inset put the first row's date
+              and its Feedback link inside the curve — measured at a 13px gap
+              against a 32px radius, which is what made the text look like it
+              was touching the edge. The rows are deliberately full-bleed, so
+              the hover highlight reaches the sides; that means the clearance
+              has to come from the cells, and the corner has to be small
+              enough for a cell inset to clear it.
+            */}
+            <div className="max-h-[16rem] overflow-y-auto rounded-xl border border-slate-200">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-3 py-2 font-medium">Date</th>
-                    <th className="px-3 py-2 font-medium">Module</th>
-                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Test</th>
-                    <th className="px-3 py-2 text-right font-medium">Score</th>
-                    <th className="px-3 py-2 text-right font-medium">Band</th>
-                    <th className="px-3 py-2 text-right font-medium">Feedback</th>
+                    <th className="py-2 pl-5 pr-3 font-medium">Date</th>
+                    <th className="px-4 py-2 font-medium">Module</th>
+                    <th className="hidden px-4 py-2 font-medium sm:table-cell">Test</th>
+                    <th className="px-4 py-2 text-right font-medium">Score</th>
+                    <th className="px-4 py-2 text-right font-medium">Band</th>
+                    <th className="py-2 pl-3 pr-5 text-right font-medium">Feedback</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-surface">
                   {results.map((r, i) => (
                     <tr key={`${r.testId}-${r.date}-${i}`}>
-                      <td className="whitespace-nowrap px-3 py-2 text-slate-600">{fmtDate(r.date)}</td>
-                      <td className="px-3 py-2 capitalize text-slate-800">{r.module}</td>
-                      <td className="hidden max-w-[16rem] truncate px-3 py-2 text-slate-600 sm:table-cell">
+                      <td className="whitespace-nowrap py-2 pl-5 pr-3 text-slate-600">{fmtDate(r.date)}</td>
+                      <td className="px-4 py-2 capitalize text-slate-800">{r.module}</td>
+                      <td className="hidden max-w-[16rem] truncate px-4 py-2 text-slate-600 sm:table-cell">
                         {r.testTitle}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-slate-600">
+                      <td className="px-4 py-2 text-right tabular-nums text-slate-600">
                         {r.raw !== undefined && r.total !== undefined ? `${r.raw}/${r.total}` : "—"}
                       </td>
-                      <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900">
+                      <td className="px-4 py-2 text-right font-semibold tabular-nums text-slate-900">
                         {r.band}
                       </td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="py-2 pl-3 pr-5 text-right">
                         {r.review ? (
                           <Link
                             href={`/history/result?module=${encodeURIComponent(r.module)}&test=${encodeURIComponent(r.testId)}&date=${encodeURIComponent(r.date)}`}
