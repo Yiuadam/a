@@ -626,6 +626,42 @@ export async function getProgressSnapshots(userId: string): Promise<ProgressSnap
   });
 }
 
+/**
+ * Delete named progress rows for one learner, rather than emptying them.
+ *
+ * A plain PostgREST delete, not an RPC: there is no compare-and-swap to do
+ * here. The caller has already committed the emptied, tombstoned payload
+ * through compare_and_swap_progress_snapshots above, so a row that another
+ * device rewrote in the meantime is a row holding work that postdates the
+ * clear — and the tombstone on the profile, which this deliberately never
+ * touches, is what decides whether that work survives. Deleting by user and
+ * store key alone is therefore correct and idempotent: a row already gone
+ * deletes cleanly.
+ *
+ * `isProgressKey` is applied here rather than trusted from the caller. This
+ * builds a filter from its argument, and the one thing that must never be
+ * possible is a key from a request body widening it.
+ */
+export async function deleteProgressSnapshots(
+  userId: string,
+  storeKeys: string[],
+): Promise<boolean> {
+  const keys = storeKeys.filter(isProgressKey);
+  if (keys.length !== storeKeys.length) return false;
+  if (keys.length === 0) return true;
+  const inList = keys.map((key) => `"${encodeURIComponent(key)}"`).join(",");
+  try {
+    const res = await request(
+      `/rest/v1/progress_snapshots?user_id=eq.${encodeURIComponent(userId)}` +
+        `&store_key=in.(${inList})`,
+      { method: "DELETE", asServiceRole: true },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export type ProgressSnapshotCasResult =
   | { status: "committed"; at: string }
   | { status: "conflict" }

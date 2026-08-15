@@ -150,6 +150,22 @@ function survivesPlacementClear(
   return stamp !== null && stamp > clearedAt;
 }
 
+/**
+ * Whether a dated item — a drill score, a saved word — survives a clear
+ * tombstone: no tombstone in effect, or a valid date strictly after it. The
+ * same reasoning as survivesPlacementClear above applies to an undated item:
+ * it cannot prove it was created after the clear, so while a clear is in
+ * effect it is treated the same as one from before it. Unlike
+ * survivesPlacementClear this does not itself judge absence — it is only
+ * ever asked about an item a caller already has in hand, so there is nothing
+ * here that needs a `== null` case of its own.
+ */
+function survivesClear(at: unknown, clearedAt: number | null): boolean {
+  if (clearedAt === null) return true;
+  const iso = validIso(at);
+  return iso !== undefined && Date.parse(iso) > clearedAt;
+}
+
 function mergePlacement(
   local: Profile["placement"] | null | undefined,
   remote: Profile["placement"] | null | undefined,
@@ -187,6 +203,18 @@ export function mergeProfiles(
   const remoteIsNewer = newer(remoteAt, localAt);
   const historyClearedAt = latestIso(a.historyClearedAt, b.historyClearedAt);
   const placementClearedAt = latestIso(a.placementClearedAt, b.placementClearedAt);
+  /*
+    drillsClearedAt and lookupsClearedAt live on this profile even though the
+    scores and words they govern do not (see the doc comments on lib/types.ts's
+    Profile) — this is the one document both devices always merge, so it is
+    where the two tombstones can be found and combined the same way
+    historyClearedAt and placementClearedAt already are. Callers merging the
+    other two synced documents — lib/progress/sync.ts and
+    lib/progress/server-snapshots.ts — read the values back off the profile
+    this function returns and hand them to mergeDrillScores/mergeLookups.
+  */
+  const drillsClearedAt = latestIso(a.drillsClearedAt, b.drillsClearedAt);
+  const lookupsClearedAt = latestIso(a.lookupsClearedAt, b.lookupsClearedAt);
 
   /*
     Every attempt from both devices, newest first. Sorting matters beyond
@@ -236,13 +264,16 @@ export function mergeProfiles(
     the test cannot erase one that did, and a later target-band or plan change
     cannot hide a newer placement received from another browser.
 
-    placementClearedAt is the one deliberate exception, set only by "clear
-    this device" (components/account/ClearDeviceSection.tsx). It is its own
-    tombstone, independent of historyClearedAt, because "Clear all history"
-    (components/history/ClearHistoryButton.tsx) must not take placement down
-    with it. A placement dated at or before the tombstone is treated as
-    cleared; one dated after it — a genuine re-sit, on any device — merges in
-    exactly as before.
+    placementClearedAt is the one deliberate exception: a tombstone, independent
+    of historyClearedAt, that both "Clear all history"
+    (components/history/ClearHistoryButton.tsx) and "clear this device"
+    (components/account/ClearDeviceSection.tsx) now set. They were originally
+    split so history could go without placement; the owner has since asked
+    that either control remove everything a learner owns, so both set every
+    tombstone on this profile together and neither is narrower than the
+    other any more. A placement dated at or before the tombstone is treated
+    as cleared; one dated after it — a genuine re-sit, on any device — merges
+    in exactly as before.
   */
   const placement = mergePlacement(
     a.placement,
@@ -283,6 +314,8 @@ export function mergeProfiles(
     mockReports,
     historyClearedAt,
     placementClearedAt,
+    drillsClearedAt,
+    lookupsClearedAt,
     deletedGenTests,
     genTests,
   };
@@ -302,15 +335,27 @@ export interface DrillScore {
  * would make syncing behave differently from not syncing — and a learner who
  * saw a score they had just beaten downwards get restored would rightly
  * consider it a bug.
+ *
+ * `clearedAt` is the drill-clearing tombstone (Profile.drillsClearedAt,
+ * mergeProfiles above) as an epoch, or null while none is in effect. A topic
+ * is dropped once its chosen (later-wins) score fails to survive it — see
+ * survivesClear — which is what stops a stale score on a device that missed
+ * the clear from riding back in on its next sync.
  */
 export function mergeDrillScores(
   local: Record<string, DrillScore> | null | undefined,
   remote: Record<string, DrillScore> | null | undefined,
+  clearedAt: number | null = null,
 ): Record<string, DrillScore> {
   const out: Record<string, DrillScore> = { ...(local ?? {}) };
   for (const [key, score] of Object.entries(remote ?? {})) {
     const mine = out[key];
     if (!mine || String(score?.at ?? "") > String(mine.at ?? "")) out[key] = score;
+  }
+  if (clearedAt !== null) {
+    for (const [key, score] of Object.entries(out)) {
+      if (!survivesClear(score?.at, clearedAt)) delete out[key];
+    }
   }
   return out;
 }
@@ -378,10 +423,20 @@ function lookupIsFavourite(value: unknown): boolean {
   return lookupRecord(value)?.favourite === true;
 }
 
+/**
+ * `clearedAt` is the saved-word tombstone (Profile.lookupsClearedAt,
+ * mergeProfiles above) as an epoch, or null while none is in effect. A word
+ * is dropped once its merged entry fails to survive it — judged on `at`, the
+ * word's own lookup date, deliberately not `favouriteUpdatedAt`: a clear
+ * empties the learner's lookup history, and a pin recorded against a word
+ * looked up before the clear is not a reason to keep the word, any more than
+ * a re-attempted drill topic is kept for a score recorded before it.
+ */
 export function mergeLookups<T>(
   local: Record<string, T> | null | undefined,
   remote: Record<string, T> | null | undefined,
   limit = 300,
+  clearedAt: number | null = null,
 ): Record<string, T> {
   const merged: Record<string, T> = { ...(remote ?? {}) };
   for (const [key, localEntry] of Object.entries(local ?? {})) {
@@ -389,6 +444,12 @@ export function mergeLookups<T>(
     merged[key] = remoteEntry === undefined
       ? localEntry
       : mergeLookupEntry(localEntry, remoteEntry);
+  }
+
+  if (clearedAt !== null) {
+    for (const [key, value] of Object.entries(merged)) {
+      if (!survivesClear(lookupRecord(value)?.at, clearedAt)) delete merged[key];
+    }
   }
 
   const entries = Object.entries(merged);

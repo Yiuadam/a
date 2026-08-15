@@ -401,16 +401,41 @@ export interface Profile {
    */
   historyClearedAt?: string;
   /**
-   * A placement deletion tombstone, kept deliberately separate from
-   * historyClearedAt: "Clear all history"
-   * (components/history/ClearHistoryButton.tsx) clears results and mock
-   * reports only and must not touch placement, while "clear this device"
-   * (components/account/ClearDeviceSection.tsx) clears both together. A
-   * placement dated at or before this instant is treated as cleared when an
-   * older device or account snapshot syncs again; one dated after it — a
-   * genuine re-sit — still merges in normally.
+   * A placement deletion tombstone, kept as its own field rather than folded
+   * into historyClearedAt because a placement is not a row in `results`: it
+   * has to be found, cleared and restored by the code that reads it
+   * (mergePlacement in lib/progress/merge.ts) rather than by a filter over an
+   * array. Both "Clear all history" (components/history/ClearHistoryButton.tsx)
+   * and "clear this device" (components/account/ClearDeviceSection.tsx) set
+   * this alongside historyClearedAt now — the two clears were deliberately
+   * split when this field was introduced, precisely so history could go
+   * without placement; the owner has since asked that either control remove
+   * everything a learner owns, so both now set every tombstone on this
+   * profile together. A placement dated at or before this instant is treated
+   * as cleared when an older device or account snapshot syncs again; one
+   * dated after it — a genuine re-sit — still merges in normally.
    */
   placementClearedAt?: string;
+  /**
+   * A drill-score deletion tombstone. Drill scores themselves live in the
+   * separate `bandup.drills.v1` snapshot (lib/drills.ts), not in this
+   * profile, so there is nowhere on that flat `{ [topicId]: DrillScore }`
+   * record to keep a mark that must outlive every score being emptied from
+   * it. This profile carries the mark instead: mergeDrillScores
+   * (lib/progress/merge.ts) is handed this value — parsed and compared —
+   * wherever it is called, so a score dated at or before it is treated as
+   * cleared even though the score and the tombstone live in different synced
+   * documents. Set by the same two controls, and in the same instant, as
+   * historyClearedAt and placementClearedAt above.
+   */
+  drillsClearedAt?: string;
+  /**
+   * A saved-word deletion tombstone, the same shape as drillsClearedAt and
+   * for the same reason: lookups live in `bandup.lookups.v1`
+   * (lib/lookups.ts), so mergeLookups is handed this value rather than
+   * finding it on its own document.
+   */
+  lookupsClearedAt?: string;
   /**
    * Generated-paper deletion tombstones, keyed by the paper id.
    *

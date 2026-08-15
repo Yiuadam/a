@@ -7,8 +7,10 @@ import type {
   PlacementResult,
   Profile,
 } from "./types";
+import { clearDrillScores } from "./drills";
+import { clearLookups } from "./lookups";
 import { PROGRESS_WRITE_EVENT } from "./progress/events";
-import { readLearnerItem, writeLearnerItem } from "./progress/storage";
+import { clearMockExamSession, readLearnerItem, writeLearnerItem } from "./progress/storage";
 
 const KEY = "ielts-prep-v1";
 
@@ -46,6 +48,8 @@ function read(): Profile {
       mockReports: parsed.mockReports ?? [],
       historyClearedAt: parsed.historyClearedAt,
       placementClearedAt: parsed.placementClearedAt,
+      drillsClearedAt: parsed.drillsClearedAt,
+      lookupsClearedAt: parsed.lookupsClearedAt,
       deletedGenTests: parsed.deletedGenTests ?? {},
       genTests: parsed.genTests ?? [],
     };
@@ -154,19 +158,54 @@ export function addMockReport(report: MockExamReport): Profile {
 }
 
 /**
- * Clears the score archive without letting another device restore it.
+ * Clears everything this device holds of a learner's own — every saved
+ * score, the placement, the drill scores and the saved words — without
+ * letting another device restore any of it.
  *
- * Empty arrays alone are not enough because account sync unions both copies.
- * The timestamp is a tombstone: mergeProfiles discards any sitting completed
- * before it, whichever device submits that sitting later.
+ * This used to clear only the score archive, and components/history/
+ * ClearHistoryButton.tsx ("Clear all history") was deliberately the narrow
+ * one of the app's two clears, built so the placement — and the study plan
+ * built on it — survived it. The owner has since asked that either clear
+ * remove everything a learner owns, so this now matches "clear this device"
+ * (components/account/ClearDeviceSection.tsx, via clearSyncedProgress) in
+ * what it takes down, and the two differ only in mechanism: this one commits
+ * straight to the working copy in this tab, where clearSyncedProgress asks
+ * the account first and only writes here once it agrees.
+ *
+ * Empty values alone are not enough because account sync unions every
+ * device's copy. Each field below has its own tombstone — historyClearedAt,
+ * placementClearedAt, drillsClearedAt, lookupsClearedAt — because results,
+ * the placement, drill scores and saved words are four separately-synced
+ * records with no one stamp that could cover all of them (see the doc
+ * comments on Profile in lib/types.ts). mergeProfiles, mergeDrillScores and
+ * mergeLookups (lib/progress/merge.ts) each discard anything dated at or
+ * before its tombstone, whichever device submits it later. All four share
+ * this one instant rather than each taking its own `new Date()`, so nothing
+ * timed in the gap between them can land on the wrong side of two clocks.
+ *
+ * Drill scores and saved words live in their own synced records
+ * (bandup.drills.v1, bandup.lookups.v1), not in this profile, so clearing
+ * them is delegated to the modules that own them rather than reached into
+ * from here — see lib/drills.ts's clearDrillScores and lib/lookups.ts's
+ * clearLookups. The in-progress mock exam is cleared alongside them for the
+ * same reason it must be: it is not itself synced progress, but it is still
+ * something this learner owns on this device, and a clear that left a paper
+ * resumable for the next person on a shared machine would not be a clear.
  */
 export function clearHistory(at = new Date().toISOString()): Profile {
   const p = getSnapshot();
+  clearDrillScores();
+  clearLookups();
+  clearMockExamSession();
   return commit({
     ...p,
     results: [],
     mockReports: [],
     historyClearedAt: at,
+    placement: undefined,
+    placementClearedAt: at,
+    drillsClearedAt: at,
+    lookupsClearedAt: at,
   });
 }
 

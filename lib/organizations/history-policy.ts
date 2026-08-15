@@ -27,12 +27,16 @@ export function preserveOrganizationStudentHistory(
     ...next,
     historyClearedAt: previous.historyClearedAt,
     /*
-      The device-clear button that could submit a new placementClearedAt is
-      already hidden for a restricted student (useHistoryClearPolicy), so
-      this matters only against a client bypassing it — but a bypass must not
-      be able to erase placement any more than it can erase results.
+      The device-clear button that could submit a new placementClearedAt (and,
+      alongside it, drillsClearedAt and lookupsClearedAt) is already hidden
+      for a restricted student (useHistoryClearPolicy), so this matters only
+      against a client bypassing it — but a bypass must not be able to erase
+      placement, drill scores or saved words any more than it can erase
+      results.
     */
     placementClearedAt: previous.placementClearedAt,
+    drillsClearedAt: previous.drillsClearedAt,
+    lookupsClearedAt: previous.lookupsClearedAt,
   };
   return mergeProfiles(
     protectedIncoming as Partial<Profile>,
@@ -42,7 +46,15 @@ export function preserveOrganizationStudentHistory(
   );
 }
 
-/** Replace only the protected archive fields in a tab's newer working copy. */
+/**
+ * Replace only the protected archive fields in a tab's newer working copy.
+ *
+ * drillsClearedAt and lookupsClearedAt are included here for the same reason
+ * placementClearedAt is: this profile is the one place all three tombstones
+ * live (see lib/types.ts), so restoring the account's protected profile after
+ * a restricted sync must restore its tombstones too, or a later merge on this
+ * device would compare against ones that were never actually accepted.
+ */
 export function restoreAcceptedOrganizationHistory(
   current: unknown,
   accepted: unknown,
@@ -56,5 +68,7 @@ export function restoreAcceptedOrganizationHistory(
     historyClearedAt: protectedProfile.historyClearedAt as Profile["historyClearedAt"],
     placement: protectedProfile.placement as Profile["placement"],
     placementClearedAt: protectedProfile.placementClearedAt as Profile["placementClearedAt"],
+    drillsClearedAt: protectedProfile.drillsClearedAt as Profile["drillsClearedAt"],
+    lookupsClearedAt: protectedProfile.lookupsClearedAt as Profile["lookupsClearedAt"],
   };
 }

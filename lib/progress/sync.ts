@@ -4,6 +4,7 @@ import { authedFetch, currentAccountId } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { mergeProfiles, mergeDrillScores, mergeLookups } from "./merge";
 import {
+  clearMockExamSession,
   learnerItemUpdatedAt,
   PROGRESS_KEYS as KEYS,
   progressOwner,
@@ -55,7 +56,19 @@ const SYNCED_AT = "bandup.sync.v1";
 const SYNC_FAILED = "bandup.sync-failed.v1";
 
 export type SyncOutcome =
-  | { status: "done"; at: string }
+  | {
+      status: "done";
+      at: string;
+      /*
+        Whether the account also deleted the underlying progress rows outright,
+        rather than merely accepting an emptied/tombstoned payload for them.
+        Only ever present when this outcome came from clearSyncedProgress with
+        deleteRowsAfterClear set — an ordinary sync never asks for deletion, so
+        this stays absent for it, exactly as before this field existed. See the
+        SyncOptions comment below and app/api/account/progress/route.ts.
+      */
+      rowsDeleted?: boolean;
+    }
   | { status: "signed-out" }
   | { status: "unavailable" };
 
@@ -70,18 +83,36 @@ interface SyncOptions {
   */
   clearHistoryAt?: string;
   /*
-    A separate, independent tombstone for placement — deliberately not folded
-    into clearHistoryAt. "Clear all history"
-    (components/history/ClearHistoryButton.tsx) sets clearHistoryAt alone and
-    must not touch placement; "clear this device"
-    (components/account/ClearDeviceSection.tsx, via clearSyncedProgress below)
-    is the only caller that sets both together. Without a tombstone of its
-    own, a cleared placement survives untouched on the account and the very
-    next ordinary sync downloads it straight back — placement merges by its
-    own date, independently of historyClearedAt, which is correct for an
-    unrelated profile edit but was exactly wrong for a device clear.
+    Four more tombstones, one per separately-synced record, none of them
+    folded into clearHistoryAt or into each other. clearSyncedProgress below
+    is currently the only caller, and it sets every one of these together —
+    but they stay four separate fields rather than one boolean, matching how
+    they are carried from here on: as four separate fields on the profile
+    (placementClearedAt, drillsClearedAt, lookupsClearedAt — see
+    lib/types.ts) or, for history, as the emptying of results and mockReports
+    themselves. Without a tombstone of its own, a cleared record survives
+    untouched on the account and the very next ordinary sync downloads it
+    straight back — each of these merges independently of the others, which
+    is correct for an unrelated edit to just one of them but was exactly
+    wrong for a device clear, first noticed for placement (commit e21c544)
+    and now fixed the same way for drills and lookups.
   */
   clearPlacementAt?: string;
+  /** Drill scores (bandup.drills.v1) — see clearPlacementAt above. */
+  clearDrillsAt?: string;
+  /** Saved words (bandup.lookups.v1) — see clearPlacementAt above. */
+  clearLookupsAt?: string;
+  /*
+    Asks the account to delete the drills and lookups rows outright once the
+    emptied/tombstoned profile above has been accepted, rather than leave
+    them present-but-empty. Deliberately not extended to the profile row
+    itself: that row is where placementClearedAt/drillsClearedAt/
+    lookupsClearedAt actually live (lib/types.ts), and deleting it would
+    delete the very tombstones that stop a device which has not synced since
+    the clear from re-uploading its stale copy the next time it does — see
+    the WHY note on deleteLearnerProgressRows in lib/cloudflare/data-router.ts.
+  */
+  deleteRowsAfterClear?: boolean;
 }
 
 function readLocal(key: StoreKey): unknown {
@@ -138,6 +169,21 @@ function newestStamp(left: string | null, right: string | null): string | null {
   if (leftTime === null) return rightTime === null ? null : right;
   if (rightTime === null) return left;
   return rightTime > leftTime ? right : left;
+}
+
+/**
+ * Whether any of the four clear tombstones was asked for.
+ *
+ * One predicate rather than a four-way `||` repeated at each of its call
+ * sites below, so the day a fifth tombstone is added there is exactly one
+ * place that has to learn about it rather than several that could each learn
+ * about it differently.
+ */
+function isClearRequest(options: SyncOptions): boolean {
+  return Boolean(
+    options.clearHistoryAt || options.clearPlacementAt
+      || options.clearDrillsAt || options.clearLookupsAt,
+  );
 }
 
 /**
@@ -205,12 +251,16 @@ async function syncProgressWithOptions(
     ? (storedLocalProfile as Record<string, unknown>)
     : {};
   /*
-    Two independent hypothetical edits can each be requested here, and
+    Four independent hypothetical edits can each be requested here, and
     deliberately do not imply one another — see the SyncOptions comments
-    above. "Clear this device" sets both together; "Clear all history" only
-    ever sets clearHistoryAt, so it never touches placement below.
+    above. "Clear this device" sets all four together; "Clear all history"
+    (components/history/ClearHistoryButton.tsx) never sets any of them at
+    all, because it commits the real thing straight to sessionStorage via
+    lib/store.ts's clearHistory before calling the ordinary, option-free
+    syncProgress — so nothing here needs to build a hypothetical for that
+    button, only read back what it already wrote.
   */
-  const localProfile = options.clearHistoryAt || options.clearPlacementAt
+  const localProfile = isClearRequest(options)
     ? {
         ...storedLocalProfileObject,
         ...(options.clearHistoryAt
@@ -219,19 +269,26 @@ async function syncProgressWithOptions(
         ...(options.clearPlacementAt
           ? { placement: undefined, placementClearedAt: options.clearPlacementAt }
           : {}),
+        ...(options.clearDrillsAt ? { drillsClearedAt: options.clearDrillsAt } : {}),
+        ...(options.clearLookupsAt ? { lookupsClearedAt: options.clearLookupsAt } : {}),
       }
     : storedLocalProfile;
   const localPayload: Record<StoreKey, unknown> = {
     "ielts-prep-v1": localProfile,
-    "bandup.drills.v1": localValue("bandup.drills.v1"),
-    "bandup.lookups.v1": localValue("bandup.lookups.v1"),
+    // Emptied the same hypothetical way as results/mockReports/placement
+    // above: the real bandup.drills.v1/bandup.lookups.v1 keys are not
+    // touched until step 4 accepts the account's answer.
+    "bandup.drills.v1": options.clearDrillsAt ? {} : localValue("bandup.drills.v1"),
+    "bandup.lookups.v1": options.clearLookupsAt ? {} : localValue("bandup.lookups.v1"),
   };
   const localStamps: Record<StoreKey, string | null> = {
     "ielts-prep-v1": options.clearHistoryAt
       ?? options.clearPlacementAt
+      ?? options.clearDrillsAt
+      ?? options.clearLookupsAt
       ?? localStamp("ielts-prep-v1"),
-    "bandup.drills.v1": localStamp("bandup.drills.v1"),
-    "bandup.lookups.v1": localStamp("bandup.lookups.v1"),
+    "bandup.drills.v1": options.clearDrillsAt ?? localStamp("bandup.drills.v1"),
+    "bandup.lookups.v1": options.clearLookupsAt ?? localStamp("bandup.lookups.v1"),
   };
 
   const profile = mergeProfiles(
@@ -240,13 +297,25 @@ async function syncProgressWithOptions(
     stampNumber(localStamps["ielts-prep-v1"]),
     stampOf(bySnapshotKey.get("ielts-prep-v1")),
   );
+  /*
+    mergeProfiles above has already combined this device's and the account's
+    drillsClearedAt/lookupsClearedAt (lib/progress/merge.ts) — read the
+    answer back off its result rather than recomputing it, so the drills and
+    lookups merges below are gated by the exact same tombstone the profile
+    itself now carries.
+  */
+  const drillsClearedAt = stampNumber(profile.drillsClearedAt ?? null);
+  const lookupsClearedAt = stampNumber(profile.lookupsClearedAt ?? null);
   const drills = mergeDrillScores(
     localPayload["bandup.drills.v1"] as never,
     bySnapshotKey.get("bandup.drills.v1")?.payload as never,
+    drillsClearedAt,
   );
   const lookups = mergeLookups(
     localPayload["bandup.lookups.v1"] as never,
     bySnapshotKey.get("bandup.lookups.v1")?.payload as never,
+    300,
+    lookupsClearedAt,
   );
 
   const merged: Record<StoreKey, unknown> = {
@@ -282,16 +351,41 @@ async function syncProgressWithOptions(
     }]),
   ) as Record<StoreKey, Snapshot>;
   let historyProtected = false;
+  /*
+    Whether the account deleted the underlying rows as well as accepting the
+    emptied ones. Only ever true for a clear that asked for it; a route that
+    could not delete says so, and this stays false, which is the caller's cue
+    that the clear degraded to the emptied-row behaviour rather than failed.
+  */
+  let rowsDeleted = false;
   try {
     const res = await authedFetch(apiUrl("/api/account/progress"), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
+      /*
+        The four tombstones ride up inside the profile payload rather than as
+        fields of their own on this body. They are part of the profile — that
+        is the whole point of Profile.drillsClearedAt and
+        Profile.lookupsClearedAt existing (lib/types.ts) — and mergeProfiles
+        above has already folded this device's into whatever the account
+        held, so `merged["ielts-prep-v1"]` is exactly the set of tombstones
+        being asserted. app/api/account/progress/route.ts reads them back off
+        that merged profile and applies them to the drills and lookups rows,
+        which is what stops the account's second merge handing back the
+        scores and words this device just emptied.
+
+        deleteRows is the one thing that cannot ride on a payload, because it
+        is a request about the rows rather than about their contents. The
+        route honours it only after its own compare-and-swap has committed,
+        and never for a protected organisation student.
+      */
       body: JSON.stringify({
         snapshots: KEYS.map((storeKey) => ({
           storeKey,
           payload: merged[storeKey],
           clientUpdatedAt: mergedStamps[storeKey],
         })),
+        ...(options.deleteRowsAfterClear ? { deleteRows: true } : {}),
       }),
     });
     if (res.status === 401) return { status: "signed-out" };
@@ -305,18 +399,21 @@ async function syncProgressWithOptions(
         falling through to step 4 and writing it locally can only add to this
         device's copy, never remove from it.
 
-        A history or placement clear is the one case that must keep returning
-        immediately. `accepted` still holds the *hypothetical* cleared profile
-        built in step 2, and this device's real history or placement must not
-        be replaced by that unless the account actually accepted the clear —
-        see the guard below step 4.
+        A clear is the one case that must keep returning immediately.
+        `accepted` still holds the *hypothetical* cleared profile built in
+        step 2, and this device's real history, placement, drill scores and
+        saved words must not be replaced by that unless the account actually
+        accepted the clear — see the guard below step 4. isClearRequest
+        covers all four tombstones, so a clear that only carried the two new
+        ones would be guarded exactly as the original two are.
       */
-      if (options.clearHistoryAt || options.clearPlacementAt) return { status: "unavailable" };
+      if (isClearRequest(options)) return { status: "unavailable" };
     } else {
       const response = (await res.json()) as {
         at?: string;
         snapshots?: { storeKey?: unknown; payload?: unknown; clientUpdatedAt?: unknown }[];
         historyProtected?: unknown;
+        rowsDeleted?: unknown;
       };
       // Bound to its own const, rather than read back off `at` below: `at` is
       // now `string | null` for the failure path above, and a closure is not
@@ -324,6 +421,7 @@ async function syncProgressWithOptions(
       const confirmedAt = response.at ?? new Date().toISOString();
       at = confirmedAt;
       historyProtected = response.historyProtected === true;
+      rowsDeleted = response.rowsDeleted === true;
       if (Array.isArray(response.snapshots)) {
         const serverAccepted = new Map<StoreKey, Snapshot>(
           response.snapshots.flatMap((snapshot) =>
@@ -357,7 +455,7 @@ async function syncProgressWithOptions(
     history, leave the browser untouched too instead of presenting a clear
     that the next sync would immediately undo.
   */
-  if ((options.clearHistoryAt || options.clearPlacementAt) && historyProtected) {
+  if (isClearRequest(options) && historyProtected) {
     return { status: "restricted" };
   }
 
@@ -385,6 +483,19 @@ async function syncProgressWithOptions(
     door left open for "late changes", which defeats the point of discarding
     it in step 2.
   */
+  /*
+    The same two tombstones step 2 read off the first merge, re-read off what
+    the account actually accepted. Without them this last merge would union
+    the emptied drills and lookups with the copies still sitting in this tab
+    and put every cleared score and word straight back — this device undoing
+    its own clear one line after the account agreed to it.
+  */
+  const acceptedProfile = accepted["ielts-prep-v1"].payload as {
+    drillsClearedAt?: string;
+    lookupsClearedAt?: string;
+  } | null;
+  const acceptedDrillsClearedAt = stampNumber(acceptedProfile?.drillsClearedAt ?? null);
+  const acceptedLookupsClearedAt = stampNumber(acceptedProfile?.lookupsClearedAt ?? null);
   const latest: Record<StoreKey, unknown> = {
     "ielts-prep-v1": mergeProfiles(
       (historyProtected
@@ -400,10 +511,13 @@ async function syncProgressWithOptions(
     "bandup.drills.v1": mergeDrillScores(
       localValue("bandup.drills.v1") as never,
       accepted["bandup.drills.v1"].payload as never,
+      acceptedDrillsClearedAt,
     ),
     "bandup.lookups.v1": mergeLookups(
       localValue("bandup.lookups.v1") as never,
       accepted["bandup.lookups.v1"].payload as never,
+      300,
+      acceptedLookupsClearedAt,
     ),
   };
   for (const key of KEYS) {
@@ -413,6 +527,20 @@ async function syncProgressWithOptions(
       newestStamp(localStamp(key), accepted[key].clientUpdatedAt),
     );
   }
+  /*
+    The in-progress mock exam, dropped here and only here on this path:
+    after the account has accepted the clear, alongside the writes that
+    commit it locally.
+
+    It is not one of KEYS — a half-finished paper is not synced progress, and
+    nothing above uploads it. But it is the one piece of learner work another
+    person at this browser could not merely read but *continue*, so a clear
+    that left it resumable would not be a clear. Doing it here rather than in
+    components/account/ClearDeviceSection.tsx, which goes on to wipe the whole
+    origin anyway, is what keeps it true when that wipe is the part that
+    fails: storage can be full or blocked, and this has already run.
+  */
+  if (isClearRequest(options)) clearMockExamSession();
   /*
     Every branch that reaches this line — adopting signed-out work for the
     first time, an ordinary same-account sync, or a foreign owner's leftovers
@@ -461,7 +589,9 @@ async function syncProgressWithOptions(
   // A failed PUT falls all the way through to here now, with `at` left null —
   // see the WHY comment in step 3. The merge has been written locally either
   // way; only the reported status differs.
-  return at ? { status: "done", at } : { status: "unavailable" };
+  return at
+    ? { status: "done", at, ...(options.deleteRowsAfterClear ? { rowsDeleted } : {}) }
+    : { status: "unavailable" };
 }
 
 export async function syncProgress(): Promise<SyncOutcome> {
@@ -484,9 +614,27 @@ export async function syncProgress(): Promise<SyncOutcome> {
 export async function clearSyncedProgress(
   at = new Date().toISOString(),
 ): Promise<ClearSyncedProgressOutcome> {
-  // "Clear this device" clears both tombstones together — see the
-  // SyncOptions comments above for why they are not the same option.
-  const outcome = await syncProgressWithOptions({ clearHistoryAt: at, clearPlacementAt: at });
+  /*
+    "Clear this device" sets all four tombstones together, at one instant —
+    see the SyncOptions comments above for why they remain four options and
+    not one. Sharing the instant rather than taking a `new Date()` per
+    tombstone is what stops a record written during the clear landing on the
+    cleared side of one stamp and the surviving side of another.
+
+    deleteRowsAfterClear asks the account to drop the emptied drills and
+    lookups rows outright once it has accepted this. It is a request, not a
+    condition: an account that accepts the clear but cannot delete the rows
+    still returns "done", with rowsDeleted false, because the rows are empty
+    and tombstoned either way and telling a learner nothing was cleared would
+    be the false half of a true story.
+  */
+  const outcome = await syncProgressWithOptions({
+    clearHistoryAt: at,
+    clearPlacementAt: at,
+    clearDrillsAt: at,
+    clearLookupsAt: at,
+    deleteRowsAfterClear: true,
+  });
   rememberSyncHealth(outcome);
   return outcome;
 }

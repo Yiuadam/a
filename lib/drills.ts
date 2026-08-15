@@ -122,3 +122,28 @@ export function recordDrill(topicId: string, correct: number, total: number): vo
   window.dispatchEvent(new Event(PROGRESS_WRITE_EVENT));
   for (const listener of listeners) listener();
 }
+
+/**
+ * Forgets every locally-held drill score, for "Clear all history"
+ * (components/history/ClearHistoryButton.tsx, via lib/store.ts's
+ * clearHistory) and "clear this device"
+ * (components/account/ClearDeviceSection.tsx).
+ *
+ * This only empties the record; it does not itself write a tombstone. The
+ * tombstone that stops a synced score reappearing on the next account sync —
+ * drillsClearedAt — lives on the learner's profile (lib/types.ts) rather than
+ * here, because this record is a flat `{ [topicId]: DrillScore }` with
+ * nowhere of its own to keep a mark that must outlive the scores it is
+ * emptying. lib/store.ts's clearHistory sets that mark on the profile in the
+ * same breath it calls this.
+ */
+export function clearDrillScores(): void {
+  cache = EMPTY;
+  try {
+    writeLearnerItem(KEY, JSON.stringify(EMPTY));
+  } catch {
+    // Storage can be full or blocked — keep the in-memory copy.
+  }
+  window.dispatchEvent(new Event(PROGRESS_WRITE_EVENT));
+  for (const listener of listeners) listener();
+}
