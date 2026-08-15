@@ -272,6 +272,35 @@ export async function claimLearnerUsername(
 }
 
 /**
+ * Re-attempt the username copy into D1 after it has been found behind.
+ *
+ * The claim above reports a failed replica rather than throwing, because the
+ * authoritative write has already succeeded and refusing the learner over a
+ * copy would be the wrong trade — see the note at that call site in
+ * app/api/account/profile/route.ts. Something still has to close the gap, and
+ * this is it: the profile read calls it whenever it notices the replica is
+ * not ready, which makes an outage self-healing the next time the learner
+ * opens any page that loads their profile.
+ *
+ * Best effort by construction. It answers false rather than throwing, because
+ * every caller is a repair running after a response has already been sent.
+ */
+export async function repairLearnerUsernameReplica(
+  user: SessionUser,
+  username: string | null,
+): Promise<boolean> {
+  if (!username || !cloudflareProfileReplicaEnabled()) return false;
+  if (cloudflareDataMode() === "cloudflare") return false;
+  const stored = await getSupabaseLearnerProfile(user.id).catch(() => null);
+  if (!stored?.updatedAt) return false;
+  try {
+    return await replicateUsernameDurably(user, username, stored.updatedAt);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Keep organization-facing profile fields current during and after cutover.
  * A Cloudflare organization mode requests this replica independently of the
  * learner-data mode. A failure is reported separately so a durable Supabase

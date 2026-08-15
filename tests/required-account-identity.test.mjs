@@ -52,7 +52,15 @@ test("the notification and skippable setup gate share one account profile", () =
   assert.match(layout, /<RequiredAccountGate>/);
   assert.match(header, /<HeaderNotificationBell/);
   assert.match(gate, /accountUsernameReady\(profile\)/);
-  assert.match(gate, /organizationUsernameReady !== false/);
+  /*
+    The gate deliberately no longer waits on the organisation-search replica.
+    A learner whose profile saved was being held on the setup screen because a
+    copy into D1 had not landed, with "Do this later" running through the same
+    failing path — an account nobody could finish creating. The username itself
+    is still required.
+  */
+  assert.doesNotMatch(gate, /organizationUsernameReady/);
+  assert.match(gate, /accountUsernameReady\(profile\)/);
   assert.match(gate, /phase === "loading"/);
   assert.match(gate, /\/account\/onboarding\?returnTo=/);
   const form = readFileSync(join(process.cwd(), "components", "account", "AccountIdentityForm.tsx"), "utf8");
@@ -82,7 +90,14 @@ test("skipping claims a username server-side and mirrors it for organization sea
   assert.match(route, /input\.deferSetup === true/);
   assert.match(route, /attempt < \(generated \? 10 : 1\)/);
   assert.match(route, /claimLearnerUsername/);
-  assert.match(route, /organisation search is still syncing/);
+  /*
+    The write no longer refuses over a failed replica; the read repairs it.
+    Both halves are asserted, because either alone would leave a learner
+    either blocked or permanently unfindable in organisation search.
+  */
+  assert.doesNotMatch(route, /organisation search is still syncing/);
+  assert.match(route, /repairLearnerUsernameReplica\(auth\.user, body\.username\)/);
+  assert.match(router, /export async function repairLearnerUsernameReplica/);
   assert.match(router, /claimSupabaseUsername/);
   assert.match(router, /replicateUsernameDurably/);
   assert.match(router, /replicateAccountIdentityDurably/);

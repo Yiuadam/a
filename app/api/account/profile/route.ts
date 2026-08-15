@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
 import {
   supabaseConfigured,
@@ -15,6 +15,7 @@ import {
   setLearnerAccountIdentity,
   claimLearnerUsername,
   learnerUsernameReplicaReady,
+  repairLearnerUsernameReplica,
 } from "@/lib/cloudflare/data-router";
 import { cloudflareAvatarUrl } from "@/lib/cloudflare/avatar-delivery";
 import { adminUsername } from "@/lib/auth/env";
@@ -137,6 +138,31 @@ async function handleGET(req: Request) {
     logInternal("account/profile GET", new Error("profile read failed"));
     return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
+  /*
+    A read is also the repair.
+
+    organizationUsernameReady is false when D1's `usernames` table does not
+    match the authoritative copy, which is what organisation search reads. The
+    write paths no longer refuse a learner over that — see the notes on the
+    PATCH branches — so something has to close the gap instead, and this is
+    it: every page that loads a profile gives the copy another attempt. An
+    outage that used to strand an account now heals on the learner's next
+    visit.
+
+    After the response, and never awaited into it. A repair that failed must
+    not turn a working profile read into an error.
+  */
+  if (body.organizationUsernameReady === false) {
+    after(async () => {
+      const repaired = await repairLearnerUsernameReplica(auth.user, body.username);
+      if (!repaired) {
+        logInternal(
+          "account/profile username replica repair",
+          new Error("organisation username replica is still behind after a repair attempt"),
+        );
+      }
+    });
+  }
   return NextResponse.json(body);
 }
 
@@ -208,12 +234,28 @@ async function handlePATCH(req: Request) {
         logInternal("account/profile deferred username PATCH", new Error(result.status));
         return safeJsonError(MESSAGES.accountUnavailable, 503);
       }
+      /*
+        A failed replica is logged and carried, never returned as an error.
+
+        The username is claimed at this point — the authoritative write has
+        already succeeded. What has not happened is the copy into D1's
+        `usernames` table, which is what organisation search reads because
+        organisation features run on Cloudflare. That copy failing means a
+        brand-new learner is briefly not findable by username inside an
+        organisation. It used to mean nobody could finish creating an account
+        at all: this returned 503, RequiredAccountGate holds anyone whose
+        organizationUsernameReady is false, and "Do this later" ran through
+        this same branch — so a learner had no way past the setup screen and
+        the "please try again" was only true if the failure was transient.
+
+        The progress route already made the opposite call for the same
+        trade-off, treating organisation sync as "additive rather than a new
+        failure mode" and repairing on the next read. This now matches it: the
+        read in `present` below re-attempts replication whenever it finds the
+        replica behind.
+      */
       if (result.cloudflareReplica === false) {
         logInternal("account/profile deferred username PATCH", new Error("Cloudflare username replication failed"));
-        return safeJsonError(
-          "Your username is saved, but organisation search is still syncing. Please try again.",
-          503,
-        );
       }
       const updated = await present(req, auth.user).catch(() => null);
       return NextResponse.json(updated ?? { username: checked.username });
@@ -276,12 +318,11 @@ async function handlePATCH(req: Request) {
       logInternal("account/profile identity PATCH", new Error(result.status));
       return safeJsonError(MESSAGES.accountUnavailable, 503);
     }
+    // Same reasoning as the deferred path above: the profile is saved, only
+    // the organisation-search copy is behind, and that is not a reason to
+    // refuse somebody an account.
     if (result.cloudflareReplica === false) {
       logInternal("account/profile identity PATCH", new Error("Cloudflare profile replication failed"));
-      return safeJsonError(
-        "Your profile is saved, but organisation search is still syncing. Please try again.",
-        503,
-      );
     }
     const updated = await present(req, auth.user).catch(() => null);
     return NextResponse.json(updated ?? { ok: true });
