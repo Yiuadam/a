@@ -22,7 +22,7 @@ export default function ClearHistoryButton() {
     setMessage(
       outcome.status === "unavailable"
         ? "Cleared here. Account sync will retry automatically."
-        : "History cleared. Only new sittings will be saved.",
+        : "Cleared. Nothing is saved but what you do from now on.",
     );
   }
 
@@ -51,8 +51,19 @@ export default function ClearHistoryButton() {
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-xl)] border border-rose-200 bg-rose-50/70 px-3 py-2">
+      {/*
+        This used to say "every saved practice score, review and mock report",
+        which was true of the narrow clear this button once was. It now takes
+        the placement result and the study plan built on it, the saved words
+        and the drill scores as well, and leaves no unfinished paper behind —
+        so the old sentence would have been an undercount of an irreversible
+        thing, which is the worst direction for this particular sentence to
+        be wrong in.
+      */}
       <span className="text-xs leading-5 text-rose-900">
-        Delete every saved practice score, review and mock report? This cannot be undone.
+        Delete everything saved: practice scores, reviews, mock reports, your placement result
+        and study plan, saved words, drill progress and any exam in progress? This cannot be
+        undone.
       </span>
       <button
         type="button"

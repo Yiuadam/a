@@ -791,6 +791,34 @@ export async function compareAndSwapCloudflareProgressSnapshots(
 }
 
 /**
+ * Delete named progress rows for one learner in D1.
+ *
+ * The R2 body a deleted row pointed at is deliberately left alone. Those
+ * objects are immutable and content-addressed, so the same bytes can be
+ * shared by another row or another learner's identical payload, and deleting
+ * one out from under a live pointer would turn a cleared record into a broken
+ * one. lib/cloudflare/organization-attempt-objects.ts already owns
+ * unreferenced-object collection; this stays a pointer delete.
+ *
+ * Idempotent: a row that is already gone deletes cleanly, which is what makes
+ * this safe for the caller to retry on a later clear.
+ */
+export async function deleteCloudflareProgressSnapshots(
+  user: SessionUser,
+  storeKeys: string[],
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<boolean> {
+  if (storeKeys.length === 0) return true;
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  const placeholders = storeKeys.map(() => "?").join(", ");
+  const result = await bindings.db.prepare(`
+    DELETE FROM progress_snapshots
+     WHERE user_id = ? AND store_key IN (${placeholders})
+  `).bind(user.id, ...storeKeys).run();
+  return result.success === true;
+}
+
+/**
  * Mirror one committed Supabase batch without allowing a delayed older
  * request to overwrite a newer D1 replica.
  */

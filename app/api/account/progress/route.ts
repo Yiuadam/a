@@ -10,6 +10,7 @@ import { cloudflareHistoryClearAllowed } from "@/lib/cloudflare/organizations";
 import {
   getLearnerProgressSnapshots,
   compareAndSwapLearnerProgressSnapshots,
+  deleteLearnerProgressRows,
 } from "@/lib/cloudflare/data-router";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
@@ -24,7 +25,12 @@ import {
   enqueueCloudflareOrganizationAttemptSync,
 } from "@/lib/cloudflare/organization-attempt-outbox";
 import { reconcileOrganizationAttemptObjects } from "@/lib/cloudflare/organization-attempt-objects";
-import { mergeProgressSnapshotPayload } from "@/lib/progress/server-snapshots";
+import {
+  mergeProgressSnapshotPayload,
+  progressClearTombstones,
+} from "@/lib/progress/server-snapshots";
+
+type ClearTombstones = ReturnType<typeof progressClearTombstones>;
 
 /*
   Reading and writing a signed-in learner's synced progress.
@@ -240,7 +246,7 @@ async function handlePUT(req: Request) {
         clientUpdatedAt: previous?.clientUpdatedAt ?? null,
       };
     });
-    const merged = submittedSnapshots.map((entry) => {
+    const mergeOne = (entry: SubmittedProgressSnapshot, tombstones?: ClearTombstones) => {
       const previous = existingByKey.get(entry.storeKey);
       const submittedAt = entry.clientUpdatedAt
         ? Date.parse(entry.clientUpdatedAt)
@@ -257,9 +263,38 @@ async function handlePUT(req: Request) {
           submittedAt,
           storedAt,
           restrictedHistory,
+          tombstones,
         ),
       };
-    });
+    };
+    /*
+      The profile goes first, alone, because the other two keys depend on its
+      answer. drillsClearedAt and lookupsClearedAt are submitted on the
+      profile but govern bandup.drills.v1 and bandup.lookups.v1 (lib/types.ts
+      explains why they cannot live on the records they govern), so those two
+      merges cannot be run until this one has decided which tombstones were
+      actually accepted — which, for a restricted organisation student, is
+      none of the submitted ones.
+
+      When this PUT carries no profile at all — nothing in the client does
+      that today, but the route accepts any one to three keys — the account's
+      own stored profile answers instead, so a device that uploads only its
+      drills still has a clear from another device applied to them.
+    */
+    const submittedProfile = submittedSnapshots.find(
+      (entry) => entry.storeKey === "ielts-prep-v1",
+    );
+    const mergedProfile = submittedProfile ? mergeOne(submittedProfile) : null;
+    const tombstones = progressClearTombstones(
+      mergedProfile
+        ? mergedProfile.payload
+        : existingByKey.get("ielts-prep-v1")?.payload,
+    );
+    const merged = submittedSnapshots.map((entry) => (
+      entry === submittedProfile && mergedProfile
+        ? mergedProfile
+        : mergeOne(entry, tombstones)
+    ));
     const write = await compareAndSwapLearnerProgressSnapshots(
       auth.user,
       expected,
@@ -290,6 +325,68 @@ async function handlePUT(req: Request) {
   }
 
   const written = acceptedSnapshots.length;
+
+  /*
+    Deleting the rows a clear just emptied.
+
+    An emptied row is not the same as no row. "Delete everything" that leaves
+    `{}` sitting in the account under this learner's id is a promise half
+    kept: the data is gone but the record of them having had it is not, and
+    on an app heading for the App Store that is the difference between a
+    deletion and a redaction.
+
+    Three rules hold this in place, and each is load-bearing:
+
+      Only after the account accepted the clear. This runs below the
+        compare-and-swap loop, which has by now committed the emptied,
+        tombstoned payload; a delete that ran before it could take a row the
+        write then failed to replace, which is data loss dressed as a
+        feature.
+
+      Never for a protected organisation student. restrictedHistory means
+        the merge above deliberately kept their history, so there is nothing
+        here that was cleared and nothing to delete. Without this line a
+        student's bypassed clear would be refused by the merge and then
+        granted by the delete.
+
+      Never the profile row. That row is where historyClearedAt,
+        placementClearedAt, drillsClearedAt and lookupsClearedAt now live
+        (lib/types.ts). Deleting it would delete the tombstones themselves,
+        and the next sync from a device that had not heard about the clear
+        would re-upload its stale copy into an account with nothing left to
+        refuse it — a delete that undoes itself. Those two rows carry no
+        tombstone of their own, so they can go outright.
+
+    A failure here is reported, not raised. The rows are already empty and
+    already tombstoned, which is exactly the behaviour that shipped before
+    this existed; turning that into a 503 would tell a learner nothing was
+    cleared when in truth almost all of it was. `rowsDeleted: false` says
+    which of the two happened without pretending either way.
+  */
+  const deleteRows = (body as { deleteRows?: unknown })?.deleteRows === true;
+  const deletableRows = ["bandup.drills.v1", "bandup.lookups.v1"] as const;
+  let rowsDeleted = false;
+  if (deleteRows && !restrictedHistory) {
+    rowsDeleted = await deleteLearnerProgressRows(auth.user, [...deletableRows])
+      .catch(() => false);
+    if (!rowsDeleted) {
+      logInternal(
+        "account/progress row delete",
+        new Error("cleared progress rows could not be deleted; emptied rows remain"),
+      );
+    }
+    // Whatever survives in the account is what the client must be told it
+    // has, or its local merge in step 4 works from a payload the account
+    // never held. A successful delete leaves nothing, so the accepted
+    // snapshots for those keys are emptied to match.
+    if (rowsDeleted) {
+      acceptedSnapshots = acceptedSnapshots.map((entry) => (
+        (deletableRows as readonly string[]).includes(entry.storeKey)
+          ? { ...entry, payload: {} }
+          : entry
+      ));
+    }
+  }
 
   /*
     The learner snapshot is the primary write and remains completely usable if
@@ -422,6 +519,7 @@ async function handlePUT(req: Request) {
     at: stamp,
     snapshots: acceptedSnapshots,
     historyProtected: restrictedHistory,
+    rowsDeleted,
     organizationSync,
   });
 }

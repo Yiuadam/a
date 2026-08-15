@@ -8,6 +8,7 @@ import {
   claimUsername as claimSupabaseUsername,
   emailForUsername as emailForSupabaseUsername,
   compareAndSwapProgressSnapshots,
+  deleteProgressSnapshots as deleteSupabaseProgressSnapshots,
   type Profile,
   type ProgressSnapshot,
 } from "@/lib/auth/supabase";
@@ -22,6 +23,7 @@ import {
   emailForCloudflareUsername,
   cloudflareUsernameMatches,
   compareAndSwapCloudflareProgressSnapshots,
+  deleteCloudflareProgressSnapshots,
 } from "./learner-data";
 import {
   replicateAccountIdentityDurably,
@@ -305,6 +307,46 @@ export async function getLearnerProgressSnapshots(
     }
   }
   return getSupabaseProgressSnapshots(user.id);
+}
+
+/**
+ * Delete progress rows outright, rather than leaving them present and empty.
+ *
+ * Used by app/api/account/progress/route.ts once a clear has been committed,
+ * and only for the rows that carry no clear tombstone of their own — see the
+ * WHY note at that call site for why the profile row is never among them.
+ *
+ * True only if every authority that holds a copy dropped them. In dual mode
+ * that deliberately includes the D1 replica: a row left behind there is a
+ * copy of the learner's cleared work still sitting in a second provider, and
+ * reporting success for it would be the same half-kept promise the emptied
+ * row was. The caller degrades to the emptied-row behaviour on false, so an
+ * honest false costs a learner nothing beyond a row that is already empty.
+ */
+export async function deleteLearnerProgressRows(
+  user: SessionUser,
+  storeKeys: string[],
+): Promise<boolean> {
+  if (storeKeys.length === 0) return true;
+  const mode = cloudflareDataMode();
+  if (mode === "cloudflare") {
+    try {
+      return await deleteCloudflareProgressSnapshots(user, storeKeys);
+    } catch {
+      return false;
+    }
+  }
+
+  const primary = await deleteSupabaseProgressSnapshots(user.id, storeKeys);
+  if (mode !== "dual") return primary;
+
+  let replica = false;
+  try {
+    replica = await deleteCloudflareProgressSnapshots(user, storeKeys);
+  } catch {
+    replica = false;
+  }
+  return primary && replica;
 }
 
 /**

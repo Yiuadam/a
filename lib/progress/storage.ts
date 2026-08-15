@@ -185,6 +185,45 @@ export const PROGRESS_KEYS = ["ielts-prep-v1", "bandup.drills.v1", "bandup.looku
 export type ProgressKey = (typeof PROGRESS_KEYS)[number];
 
 /*
+  The in-progress mock exam, which is learner work but not synced progress.
+
+  It is deliberately not in PROGRESS_KEYS: that list is what account sync
+  uploads, and a half-finished paper is a thing you are doing on this device,
+  not a record of what you have done. But everything below that empties a
+  learner's work has to take it too, and for a reason the list above cannot
+  express — a sitting left resumable on a shared machine is the next person
+  resuming *your* exam.
+
+  The literal lives here, at the storage layer, rather than in lib/exam/mock.ts
+  where it is used most. mock.ts already imports this module, so this is the
+  one direction that can be imported from all three of its clearers —
+  lib/store.ts's clearHistory, lib/progress/sync.ts's accepted device clear,
+  and clearProgressStore below — without a cycle, and without any of them
+  pulling the exam content bundle (the question banks, lib/tests,
+  data/writing-tasks.json) in behind it.
+*/
+export const MOCK_EXAM_KEY = "bandup-mock-exam-v1";
+
+/**
+ * Forgets any in-progress mock exam on this device.
+ *
+ * The storage event is what makes this visible without a reload: lib/exam/mock
+ * .ts holds the sitting in a module-level cache for `useSyncExternalStore`,
+ * and a write that goes around that cache is invisible to it until something
+ * says to look again — the same trick the progress stores already use.
+ */
+export function clearMockExamSession(): void {
+  removeLearnerItem(MOCK_EXAM_KEY);
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new StorageEvent("storage", { key: MOCK_EXAM_KEY }));
+  } catch {
+    /* Older or stubbed environments without StorageEvent. The key is gone
+       either way, which is the part that matters for the next person here. */
+  }
+}
+
+/*
   Which account, if any, the progress above belongs to. An ordinary
   learner-data key, deliberately: it should live, migrate and clear exactly
   like the progress it describes, on the same "gone when the tab closes"
@@ -229,8 +268,17 @@ export function setProgressOwner(userId: string | null): void {
  * list — but it is exactly what a sign-out needs (lib/account.ts): everything
  * this tab knows about a learner's work, gone, without also touching the
  * theme or speech preferences a device-clear is careful to keep.
+ *
+ * The in-progress mock exam goes with it. Signing out is the clearest possible
+ * statement that the next person at this browser is not you, and a paper left
+ * resumable across that boundary is the one piece of learner work that another
+ * person can not merely read but continue — under your name, into your next
+ * report, if they sign back in as you never having noticed. It is not in
+ * PROGRESS_KEYS because it is not synced (see MOCK_EXAM_KEY above), so it has
+ * to be named separately here.
  */
 export function clearProgressStore(): void {
   for (const key of PROGRESS_KEYS) removeLearnerItem(key);
   removeLearnerItem(OWNER_KEY);
+  clearMockExamSession();
 }

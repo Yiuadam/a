@@ -1,7 +1,12 @@
 import { isCorrect, rawToBand, roundToHalf } from "@/lib/band";
 import { flatQuestions, toGroups } from "@/lib/questions";
 import { LISTENING_TESTS, READING_TESTS } from "@/lib/tests";
-import { readLearnerItem, removeLearnerItem, writeLearnerItem } from "@/lib/progress/storage";
+import {
+  MOCK_EXAM_KEY,
+  readLearnerItem,
+  removeLearnerItem,
+  writeLearnerItem,
+} from "@/lib/progress/storage";
 import writingData from "@/data/writing-tasks.json";
 import type {
   ListeningTest,
@@ -365,7 +370,19 @@ export function overallFrom(marks: Omit<MockMarks, "overall" | "unmarked">): Moc
 // you walked out of one.
 // ---------------------------------------------------------------------------
 
-const KEY = "bandup-mock-exam-v1";
+/*
+  Imported rather than spelled here, where it used to live.
+
+  Three separate things now have to be able to drop this key — "Clear all
+  history", an accepted "clear this device", and signing out — and none of
+  them can import this module: it pulls the whole exam content bundle (the
+  question banks, lib/tests, data/writing-tasks.json) in behind it, and
+  lib/store.ts, which needs it, is imported by nearly every page that touches
+  progress. Keeping the literal at the storage layer they all already import
+  means there is one of it rather than four, and a rename cannot leave a
+  clearer quietly pointing at a key nothing writes any more.
+*/
+const KEY = MOCK_EXAM_KEY;
 
 /*
   Exposed as an external store, the same way lib/store.ts exposes the profile.
@@ -380,7 +397,32 @@ const KEY = "bandup-mock-exam-v1";
 let cache: MockSession | null | undefined;
 const listeners = new Set<() => void>();
 
+/*
+  A clear can now come from outside this module — clearMockExamSession in
+  lib/progress/storage.ts, called by the two clears and by signing out. Those
+  callers cannot import this file (see the note on KEY above), so they remove
+  the key and announce it; this is the other half, turning that announcement
+  back into an invalidated cache and a repaint. Without it a learner who
+  cleared while a sitting was open would still see the paper in this tab,
+  which is exactly the state the clear was supposed to end.
+
+  Attached once, on the first subscriber, so a server render and a module
+  loaded purely for `composeMock` never touch `window`.
+*/
+let watchingStorage = false;
+
+function watchExternalClears(): void {
+  if (watchingStorage || typeof window === "undefined") return;
+  watchingStorage = true;
+  window.addEventListener("storage", (event: StorageEvent) => {
+    if (event.key !== null && event.key !== KEY) return;
+    cache = undefined;
+    for (const l of listeners) l();
+  });
+}
+
 export function subscribeSession(onChange: () => void): () => void {
+  watchExternalClears();
   listeners.add(onChange);
   return () => {
     listeners.delete(onChange);

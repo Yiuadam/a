@@ -24,8 +24,9 @@ import { useHistoryClearPolicy } from "@/lib/organizations/useHistoryClearPolicy
 
     It is not "delete my account". That is a separate, server-side thing and it
       lives further down this page. This one clears this device and, while
-      signed in, the synced practice-history copy so it cannot immediately
-      return. The identity and profile remain.
+      signed in, the synced copy of everything the learner owns — sittings,
+      placement, drill scores, saved words — so none of it can immediately
+      return from another device. The identity and profile remain.
 
     It is not silent. A signed-in learner whose progress is synced will get it
       back from the server on the next load, and being surprised by that is
@@ -138,8 +139,8 @@ export default function ClearDeviceSection() {
         which is what makes moving them legitimate.
       */}
       <p className="text-[14px] leading-6 text-slate-600">
-        Clears your placement result, practice scores, study plan, saved words and drill progress
-        from this browser, straight away.
+        Clears your placement result, practice scores, study plan, saved words, drill progress and
+        any exam in progress from this browser, straight away.
       </p>
 
       {!armed ? (
@@ -149,13 +150,24 @@ export default function ClearDeviceSection() {
       ) : (
         <div className="mt-3 space-y-2 rounded-xl bg-rose-50 px-3 py-3">
           <p className="text-[14px] leading-6 text-rose-900">
-            Clear everything saved in this browser? This cannot be undone here. Your theme and your
-            sign-in are kept.
+            Clear everything saved in this browser, including any exam in progress? This cannot be
+            undone here. Your theme and your sign-in are kept.
           </p>
+          {/*
+            This used to promise only that "old sittings will not return",
+            because only sittings had a tombstone and the placement, the
+            drill scores and the saved words genuinely did come back on the
+            next sync. All four are cleared on the account now, and the
+            drill and saved-word records are deleted from it outright rather
+            than left empty — so the sentence can finally say the whole
+            thing instead of the one part that happened to be true.
+          */}
           {session ? (
             <p className="text-[13px] leading-5 text-rose-800/80">
-              This is not your account. BandUp clears the synced practice history first, so old
-              sittings will not return. Your sign-in and account profile remain.
+              This is not your account. BandUp clears the synced copy first — sittings, placement,
+              drill scores and saved words — and deletes the drill and saved-word records from
+              your account rather than emptying them, so none of it returns on another device.
+              Your sign-in and account profile remain.
             </p>
           ) : (
             <p className="text-[13px] leading-5 text-rose-800/80">

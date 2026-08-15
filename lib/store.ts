@@ -10,27 +10,11 @@ import type {
 import { clearDrillScores } from "./drills";
 import { clearLookups } from "./lookups";
 import { PROGRESS_WRITE_EVENT } from "./progress/events";
-import { readLearnerItem, removeLearnerItem, writeLearnerItem } from "./progress/storage";
+import { clearMockExamSession, readLearnerItem, writeLearnerItem } from "./progress/storage";
 
 const KEY = "ielts-prep-v1";
 
 const EMPTY: Profile = Object.freeze({ results: [], genTests: [] }) as Profile;
-
-/*
-  The in-progress mock exam's storage key, duplicated from lib/exam/mock.ts
-  rather than imported from it.
-
-  That file already imports readLearnerItem/writeLearnerItem/removeLearnerItem
-  from ./progress/storage, so importing it back from here — or from
-  ./progress/storage itself, which is where clearHistory's sibling
-  clearProgressStore lives — would be a cycle. It would also drag the whole
-  exam content bundle (the question banks, lib/tests, data/writing-tasks.json)
-  into this file's bundle, which today is small and imported by nearly every
-  page that touches a learner's progress. A repeated string constant costs far
-  less than either of those; tests/mock-exam.test.mjs asserts the two literals
-  stay equal, so a rename of the real key cannot drift from this one silently.
-*/
-const MOCK_EXAM_KEY = "bandup-mock-exam-v1";
 
 /*
   The profile lives in sessionStorage — see lib/progress/storage.ts for why.
@@ -212,7 +196,7 @@ export function clearHistory(at = new Date().toISOString()): Profile {
   const p = getSnapshot();
   clearDrillScores();
   clearLookups();
-  removeLearnerItem(MOCK_EXAM_KEY);
+  clearMockExamSession();
   return commit({
     ...p,
     results: [],
