@@ -694,7 +694,7 @@ test("organisation creation is immediate and carries no application or review UI
   assert.doesNotMatch(ui, /ApplicationList|hasOpenApplication|withdraw_application|decide_application|portal\.applications/);
   assert.doesNotMatch(forms, /submit_application|Submit application/);
   assert.match(forms, /"create_organization"/);
-  assert.match(forms, /Create organisation/);
+  assert.match(forms, /title="Create an organisation"/);
 });
 
 test("organization attempt normalization retains detailed reviews but refuses malformed rows", () => {
@@ -781,7 +781,7 @@ test("organization creation does not collect or store a free-text purpose", () =
   assert.doesNotMatch(commands, /text\(payload\.purpose|APPLICATION_PURPOSE/);
 });
 
-test("creating an organization stays behind a compact optional card", () => {
+test("the create card is open, and is the same shell as the join card beside it", () => {
   const forms = readFileSync(
     join(process.cwd(), "components/organization/OrganizationForms.tsx"),
     "utf8",
@@ -791,12 +791,29 @@ test("creating an organization stays behind a compact optional card", () => {
     "utf8",
   );
 
-  assert.match(forms, /<details[\s\S]*data-organization-create/);
-  assert.match(forms, /<summary[\s\S]*Create an organisation[\s\S]*For people who run a school or teaching team\./);
-  assert.match(forms, /group-open:rotate-90/);
-  // The grid now stretches (the CSS grid default) instead of items-start, so
-  // the create card can match the join card's height; this still asserts
-  // the same two-up grid layout, just without the alignment override.
+  /*
+    It used to be a <details> behind a "Create" disclosure, which made sense
+    while the form was four fields deep. With one field it did not: the grid
+    stretches both cards to a common height, so a collapsed card next to the
+    join card was a heading and then a large panel of nothing, hiding
+    something smaller than the control hiding it.
+  */
+  const create = forms.slice(forms.indexOf("export function OrganizationCreateForm"));
+  assert.doesNotMatch(create, /<details|<summary|group-open:rotate-90/);
+  assert.match(create, /data-organization-create/);
+
+  /*
+    Same shell as its sibling, which is what actually keeps the two cards the
+    same size — matching padding, radius and header, from one component rather
+    than two that have to be kept in step by hand.
+  */
+  assert.match(create, /<GlassSection/);
+  const joinForm = forms.slice(
+    forms.indexOf("export function JoinOrganizationForm"),
+    forms.indexOf("export function OrganizationCreateForm"),
+  );
+  assert.match(joinForm, /<GlassSection/, "the join card must be the shell the create card matches");
+
   assert.match(portal, /grid gap-4 lg:grid-cols-2/);
   assert.match(portal, /<OrganizationCreateForm act=\{act\} busy=\{busy\} \/>/);
   assert.doesNotMatch(portal, /Applications are not available for this account\./);
