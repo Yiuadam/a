@@ -2391,11 +2391,14 @@ function MemberRolePicker({
   organizationId,
   disabled,
   act,
+  compact = false,
 }: {
   member: NonNullable<Portal["members"]>[number];
   organizationId: string | null;
   disabled: boolean;
   act: Act;
+  /** The card-level pill: same control, sized to sit beside a name rather than fill a row. */
+  compact?: boolean;
 }) {
   // Both managers and owners may set any of these three roles on a non-owner
   // member — the server enforces the actual boundary (an owner is untouchable
@@ -2407,13 +2410,16 @@ function MemberRolePicker({
     { value: "manager", label: "Manager" },
   ];
   return (
-    <div className="min-w-0">
+    <div className={compact ? "shrink-0" : "min-w-0"}>
       <GlassSelect
         label={`Role for ${member.displayName ?? member.email ?? "member"}`}
         placeholder="Choose role"
         value={member.role}
         options={options}
         disabled={disabled}
+        compact={compact}
+        minMenuWidth={compact ? 112 : 128}
+        className={compact ? "!w-auto" : undefined}
         onValueChange={(role) => {
           if (!organizationId || role === member.role) return;
           void act("change_member_role", {
@@ -2462,11 +2468,14 @@ function MemberManagement({ member, organizationId, act, busy, compact = false }
   compact?: boolean;
 }) {
   if (member.role === "owner") return null;
+  // The role change now lives on the card itself, as its own pill button —
+  // it is the frequent action and the owner wants it in view, not behind a
+  // disclosure. Suspend and remove stay here because they are destructive
+  // and rare, which is exactly what a details/summary should be hiding.
   return (
     <details className={`${compact ? "organization-team-pairing-manage mt-1 px-2 py-1" : "mt-2 px-2.5 py-2"} rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/20`}>
-      <summary className="cursor-pointer text-xs font-semibold text-slate-600">Manage member</summary>
-      <div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
-        <MemberRolePicker member={member} organizationId={organizationId} act={act} disabled={busy} />
+      <summary className="cursor-pointer text-xs font-semibold text-slate-600">Suspend or remove member</summary>
+      <div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
         <button type="button" className={memberActionClass} disabled={busy} onClick={() => {
           if (!organizationId) return;
           void act(member.status === "suspended" ? "restore_member" : "suspend_member", memberActionPayload(organizationId, member.userId));
@@ -2562,7 +2571,11 @@ function TeamGroups({ members, assignments, organizationId, act, busy }: {
             <div key={leader.userId} className="rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
               <div className="flex min-w-0 items-center justify-between gap-2">
                 <span className="min-w-0 flex-1"><Person name={leader.displayName} email={leader.email} avatarUrl={leader.avatarUrl} /></span>
-                <StatusPill>{titleCase(leader.role)}</StatusPill>
+                {leader.role === "manager" ? (
+                  <MemberRolePicker member={leader} organizationId={organizationId} act={act} disabled={busy} compact />
+                ) : (
+                  <StatusPill>{titleCase(leader.role)}</StatusPill>
+                )}
               </div>
               {leader.role === "manager" && (
                 <MemberManagement member={leader} organizationId={organizationId} act={act} busy={busy} compact />
@@ -2577,7 +2590,7 @@ function TeamGroups({ members, assignments, organizationId, act, busy }: {
         <section key={teacher.userId} className="organization-team-pairing-group card min-w-0 !rounded-[var(--radius-xl)]">
           <div className="flex items-center justify-between gap-2">
             <span className="organization-team-pairing-identity min-w-0 flex-1"><Person name={teacher.displayName} email={teacher.email} avatarUrl={teacher.avatarUrl} /></span>
-            <StatusPill>Teacher</StatusPill>
+            <MemberRolePicker member={teacher} organizationId={organizationId} act={act} disabled={busy} compact />
           </div>
           <MemberManagement member={teacher} organizationId={organizationId} act={act} busy={busy} compact />
           <div className="organization-team-pairing-members mt-1.5 space-y-1.5 border-t border-slate-200/60 pt-1.5 sm:max-h-80 sm:overflow-y-auto sm:overscroll-contain sm:pr-0.5">
@@ -2586,7 +2599,11 @@ function TeamGroups({ members, assignments, organizationId, act, busy }: {
                 <div className="flex min-w-0 items-center justify-between gap-2">
                   <span className="organization-team-pairing-identity min-w-0 flex-1"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></span>
                   <span className="flex shrink-0 items-center gap-1.5">
+                    <MemberRolePicker member={student} organizationId={organizationId} act={act} disabled={busy} compact />
                     <StatusPill tone={student.status === "active" ? "good" : "warn"}>{titleCase(student.status)}</StatusPill>
+                    {!student.shareFutureHistory && !student.sharePreJoinHistory && (
+                      <StatusPill tone="plain">Not sharing yet</StatusPill>
+                    )}
                     {pendingUnassign === `${teacher.userId}:${student.userId}` && (
                       <>
                         <span role="status" className="text-[10px] font-semibold text-rose-700">Confirm?</span>
@@ -2637,7 +2654,15 @@ function TeamGroups({ members, assignments, organizationId, act, busy }: {
           <h3 className="text-sm font-semibold text-slate-900">Unassigned students</h3>
           <div className="organization-team-pairing-members mt-1.5 space-y-1.5 sm:max-h-80 sm:overflow-y-auto sm:overscroll-contain sm:pr-0.5">{unassigned.map((student) => (
             <div key={student.userId} className="organization-team-pairing-member rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
-              <span className="organization-team-pairing-identity block min-w-0"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></span>
+              <span className="organization-team-pairing-identity flex min-w-0 items-center justify-between gap-2">
+                <Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} />
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <MemberRolePicker member={student} organizationId={organizationId} act={act} disabled={busy} compact />
+                  {!student.shareFutureHistory && !student.sharePreJoinHistory && (
+                    <StatusPill tone="plain">Not sharing yet</StatusPill>
+                  )}
+                </span>
+              </span>
               <MemberManagement member={student} organizationId={organizationId} act={act} busy={busy} compact />
             </div>
           ))}</div>

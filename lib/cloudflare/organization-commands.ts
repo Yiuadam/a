@@ -1050,9 +1050,6 @@ async function executeCommand(
       // point of this change — but making somebody an owner still needs an
       // owner or platformAdmin, same as it always has.
       if (requestedRole === "owner" && !platformAdmin && actorRole !== "owner") fail("Invalid role.");
-      if (requestedRole === "student" && target.role !== "student") {
-        conflict("Invite this person as a student so they can accept history sharing first.");
-      }
       if (requestedRole === "student" && !(await studentEligible(db, targetId))) fail("The student needs an eligible plan or seat.");
     }
     if (action === "restore_member" && target.status !== "suspended") {
@@ -1064,8 +1061,17 @@ async function executeCommand(
     const response = { ok: true } as const;
     const statements: D1PreparedStatement[] = [
       action === "change_member_role"
-        ? db.prepare("UPDATE organization_memberships SET role = ?, updated_at = ? WHERE id = ?")
-          .bind(requestedRole, now, target.id)
+        ? (requestedRole === "student" && target.role !== "student"
+          // Somebody converted into a student never gave the consent that
+          // request_to_join collects from a learner joining as one, so the
+          // conversion must not surface any history they had not agreed to
+          // share. A member who was already a student keeps whatever sharing
+          // they had — this only resets consent nobody actually gave.
+          ? db.prepare(`UPDATE organization_memberships
+              SET role = ?, share_future_history = 0, share_pre_join_history = 0, updated_at = ?
+              WHERE id = ?`).bind(requestedRole, now, target.id)
+          : db.prepare("UPDATE organization_memberships SET role = ?, updated_at = ? WHERE id = ?")
+            .bind(requestedRole, now, target.id))
         : db.prepare(`UPDATE organization_memberships SET status = ?,
             joined_at = CASE WHEN ? = 'active' THEN coalesce(joined_at, ?) ELSE joined_at END,
             removed_at = CASE WHEN ? = 'removed' THEN ? ELSE removed_at END,
