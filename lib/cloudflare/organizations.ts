@@ -607,7 +607,7 @@ export async function cloudflareOrganizationPortal(
   const active = activeOrganization(memberships, organizations, selectedOrganizationId ?? null, platformAdmin);
   const canManage = active && (platformAdmin || active.role === "manager" || active.role === "owner");
   const canTeach = active && (canManage || active.role === "teacher");
-  const [members, requests, students, assignments, practiceAssignments, recentFeedback] = active ? await Promise.all([
+  const [members, requests, students, assignments, practiceAssignments, recentFeedback, joinCodeRow] = active ? await Promise.all([
     canManage ? membersFor(db, active.id) : Promise.resolve(null),
     canManage ? requestsFor(db, active.id)
       : active.role === "teacher" ? requestsFor(db, active.id, user.id)
@@ -616,7 +616,14 @@ export async function cloudflareOrganizationPortal(
     canManage ? assignmentsFor(db, active.id) : Promise.resolve(null),
     practiceAssignmentsFor(db, active.id, user.id, active.role, platformAdmin),
     recentFeedbackFor(db, active.id, user.id, active.role, platformAdmin),
-  ]) : [null, null, null, null, null, null];
+    // The join code is only ever fetched for someone who can already manage
+    // the organisation — a teacher or student must never see it, so this
+    // query does not even run for them.
+    canManage
+      ? db.prepare("SELECT join_code FROM organizations WHERE id = ?").bind(active.id).first<{ join_code: string | null }>()
+      : Promise.resolve(null),
+  ]) : [null, null, null, null, null, null, null];
+  const joinCode = joinCodeRow?.join_code ?? null;
   const seatClock = now();
   const hasSeat = await db.prepare(`
     SELECT 1 AS ok
@@ -654,6 +661,7 @@ export async function cloudflareOrganizationPortal(
     memberships,
     organizations,
     members,
+    joinCode,
     requests,
     students,
     assignments,

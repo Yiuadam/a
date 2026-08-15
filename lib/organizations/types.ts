@@ -157,6 +157,8 @@ export interface OrganizationPortal {
   memberships: OrganizationMembership[];
   organizations: OrganizationSummary[] | null;
   members: OrganizationMember[] | null;
+  /** Only present for someone who can manage the active organisation — never for a teacher or student. */
+  joinCode: string | null;
   requests: OrganizationRequest[] | null;
   students: StudentProgressSummary[] | null;
   assignments: TeacherAssignment[] | null;

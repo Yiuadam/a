@@ -40,6 +40,7 @@ export function managerOrganizationPreview(): OrganizationPortal {
       leaveRequestStatus: null,
     }],
     organizations: null,
+    joinCode: "harbourdemo1234",
     members: [
       {
         membershipId: "40000000-0000-4000-8000-000000000001",
@@ -206,6 +207,7 @@ export function organizationRolePreview(role: OrganizationPreviewRole): Organiza
       memberships: [],
       organizations: null,
       members: null,
+      joinCode: null,
       requests: null,
       students: null,
       assignments: null,
@@ -262,6 +264,7 @@ export function organizationRolePreview(role: OrganizationPreviewRole): Organiza
         },
       ],
       members: null,
+      joinCode: null,
       requests: null,
       students: source.students?.filter((student) => assignedStudentIds.has(student.userId)) ?? [],
       assignments: null,
@@ -314,6 +317,7 @@ export function organizationRolePreview(role: OrganizationPreviewRole): Organiza
       }]),
     ],
     members: null,
+    joinCode: null,
     requests: null,
     students: null,
     assignments: null,

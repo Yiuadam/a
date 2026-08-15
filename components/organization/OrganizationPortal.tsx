@@ -2256,6 +2256,9 @@ function ManagerArea({
                   previewRole={previewRole}
                 />
               </div>
+              <div className="mt-3">
+                <JoinCodeCard joinCode={portal.joinCode} />
+              </div>
               {invitations.length > 0 && (
                 <div className="mt-3 rounded-xl border border-slate-200/70 bg-surface/20 px-3">
                   {invitations.map((invitation) => (
@@ -2319,8 +2322,6 @@ function ManagerArea({
               members={filteredMembers}
               assignments={teamAssignments}
               organizationId={organizationId}
-              actorRole={actorRole}
-              platformAdmin={portal.actor.platformAdmin}
               act={act}
               busy={busy}
             />
@@ -2388,20 +2389,22 @@ function invitationToken(): string {
 function MemberRolePicker({
   member,
   organizationId,
-  allowManager,
   disabled,
   act,
 }: {
   member: NonNullable<Portal["members"]>[number];
   organizationId: string | null;
-  allowManager: boolean;
   disabled: boolean;
   act: Act;
 }) {
+  // Both managers and owners may set any of these three roles on a non-owner
+  // member — the server enforces the actual boundary (an owner is untouchable
+  // here regardless, and only an owner or platformAdmin may grant "owner",
+  // which is why that option never appears in this list at all).
   const options = [
     { value: "student", label: "Student" },
     { value: "teacher", label: "Teacher" },
-    ...(allowManager ? [{ value: "manager", label: "Manager" }] : []),
+    { value: "manager", label: "Manager" },
   ];
   return (
     <div className="min-w-0">
@@ -2451,11 +2454,9 @@ function ManagerPeopleActions({
   );
 }
 
-function MemberManagement({ member, organizationId, actorRole, platformAdmin, act, busy, compact = false }: {
+function MemberManagement({ member, organizationId, act, busy, compact = false }: {
   member: NonNullable<Portal["members"]>[number];
   organizationId: string | null;
-  actorRole: "manager" | "owner";
-  platformAdmin: boolean;
   act: Act;
   busy: boolean;
   compact?: boolean;
@@ -2465,7 +2466,7 @@ function MemberManagement({ member, organizationId, actorRole, platformAdmin, ac
     <details className={`${compact ? "organization-team-pairing-manage mt-1 px-2 py-1" : "mt-2 px-2.5 py-2"} rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/20`}>
       <summary className="cursor-pointer text-xs font-semibold text-slate-600">Manage member</summary>
       <div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
-        <MemberRolePicker member={member} organizationId={organizationId} allowManager={actorRole === "owner" || platformAdmin} disabled={busy || (actorRole === "manager" && member.role === "manager")} act={act} />
+        <MemberRolePicker member={member} organizationId={organizationId} act={act} disabled={busy} />
         <button type="button" className={memberActionClass} disabled={busy} onClick={() => {
           if (!organizationId) return;
           void act(member.status === "suspended" ? "restore_member" : "suspend_member", memberActionPayload(organizationId, member.userId));
@@ -2511,12 +2512,10 @@ function TeamDirectoryCard({
   );
 }
 
-function TeamGroups({ members, assignments, organizationId, actorRole, platformAdmin, act, busy }: {
+function TeamGroups({ members, assignments, organizationId, act, busy }: {
   members: NonNullable<Portal["members"]>;
   assignments: NonNullable<Portal["assignments"]>;
   organizationId: string | null;
-  actorRole: "manager" | "owner";
-  platformAdmin: boolean;
   act: Act;
   busy: boolean;
 }) {
@@ -2543,7 +2542,7 @@ function TeamGroups({ members, assignments, organizationId, actorRole, platformA
             <span className="organization-team-pairing-identity min-w-0 flex-1"><Person name={teacher.displayName} email={teacher.email} avatarUrl={teacher.avatarUrl} /></span>
             <StatusPill>Teacher</StatusPill>
           </div>
-          <MemberManagement member={teacher} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} compact />
+          <MemberManagement member={teacher} organizationId={organizationId} act={act} busy={busy} compact />
           <div className="organization-team-pairing-members mt-1.5 space-y-1.5 border-t border-slate-200/60 pt-1.5 sm:max-h-80 sm:overflow-y-auto sm:overscroll-contain sm:pr-0.5">
             {groupStudents.length ? groupStudents.map((student) => (
               <div key={student.userId} className="organization-team-pairing-member rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
@@ -2590,7 +2589,7 @@ function TeamGroups({ members, assignments, organizationId, actorRole, platformA
                     </button>
                   </span>
                 </div>
-                <MemberManagement member={student} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} compact />
+                <MemberManagement member={student} organizationId={organizationId} act={act} busy={busy} compact />
               </div>
             )) : <p className="text-xs text-slate-500">No students assigned.</p>}
           </div>
@@ -2602,10 +2601,67 @@ function TeamGroups({ members, assignments, organizationId, actorRole, platformA
           <div className="organization-team-pairing-members mt-1.5 space-y-1.5 sm:max-h-80 sm:overflow-y-auto sm:overscroll-contain sm:pr-0.5">{unassigned.map((student) => (
             <div key={student.userId} className="organization-team-pairing-member rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
               <span className="organization-team-pairing-identity block min-w-0"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></span>
-              <MemberManagement member={student} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} compact />
+              <MemberManagement member={student} organizationId={organizationId} act={act} busy={busy} compact />
             </div>
           ))}</div>
         </section>
+      )}
+    </div>
+  );
+}
+
+function JoinCodeCard({ joinCode }: { joinCode: string | null }) {
+  const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const codeRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = window.setTimeout(() => setCopied(false), 2_000);
+    return () => window.clearTimeout(timeout);
+  }, [copied]);
+  useEffect(() => {
+    if (!copyFailed) return;
+    codeRef.current?.select();
+  }, [copyFailed]);
+  return (
+    <div className="rounded-xl border border-slate-200/70 bg-surface/25 p-2.5 sm:p-3">
+      <span className="mb-1 block text-xs font-semibold text-slate-600">Join code</span>
+      <p className="mb-2 text-xs leading-4 text-slate-500">
+        Anyone with this code can ask to join. It still comes to you as a request — sharing the code does not add them until you approve it.
+      </p>
+      {joinCode ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <input ref={codeRef} aria-label="Organisation join code" readOnly value={joinCode} className="input min-h-9 min-w-0 flex-1 rounded-lg border border-slate-300 bg-surface/60 px-2.5 font-mono text-xs text-slate-700" />
+          <button
+            type="button"
+            className="btn-secondary min-h-9 !px-3 text-xs"
+            /*
+              The clipboard can refuse — an insecure context, a denied
+              permission, an in-app browser without the API at all — and an
+              unhandled rejection here would leave the button saying nothing
+              while the manager thinks they have the code. On a refusal the
+              code is selected instead, so copying by hand is one keystroke
+              rather than a careful drag across a monospace string.
+            */
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(joinCode);
+                setCopied(true);
+              } catch {
+                setCopyFailed(true);
+              }
+            }}
+          >
+            {copied ? "Copied" : "Copy code"}
+          </button>
+          {copyFailed && (
+            <span role="status" className="w-full text-xs leading-4 text-slate-500">
+              This browser would not let BandUp copy for you. The code is selected — copy it yourself.
+            </span>
+          )}
+        </div>
+      ) : (
+        <EmptyState>No join code is on record for this organisation.</EmptyState>
       )}
     </div>
   );

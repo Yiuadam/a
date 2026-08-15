@@ -1043,13 +1043,13 @@ async function executeCommand(
     const target = await member(db, orgId, targetId);
     if (!canManage(actorRole, platformAdmin) || !target) forbidden();
     if (target.role === "owner" && !platformAdmin) fail("Only BandUp can manage an owner.");
-    if (actorRole === "manager" && (target.role === "manager" || target.role === "owner") && !platformAdmin) {
-      fail("A manager cannot manage peers or owners.");
-    }
     let requestedRole: OrganizationRole | null = null;
     if (action === "change_member_role") {
       requestedRole = role(payload.role, true);
-      if ((requestedRole === "manager" || requestedRole === "owner") && !platformAdmin && actorRole !== "owner") fail("Invalid role.");
+      // A manager may promote to and act on other managers now — that is the
+      // point of this change — but making somebody an owner still needs an
+      // owner or platformAdmin, same as it always has.
+      if (requestedRole === "owner" && !platformAdmin && actorRole !== "owner") fail("Invalid role.");
       if (requestedRole === "student" && target.role !== "student") {
         conflict("Invite this person as a student so they can accept history sharing first.");
       }
