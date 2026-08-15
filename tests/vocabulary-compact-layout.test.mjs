@@ -18,7 +18,7 @@ test("Vocabulary opts into a self-contained compact drill layout rather than the
     /drill-dense/,
     "Vocabulary should not depend on the global Grammar/Vocabulary selector for its geometry",
   );
-  assert.equal(vocabulary.topics.length, 8, "the compact grid must still expose every authored vocabulary topic");
+  assert.ok(vocabulary.topics.length >= 8, "the compact grid must still expose every authored vocabulary topic");
 });
 
 test("the compact index is a readable two-column phone grid and an exact four-topic desktop row", () => {

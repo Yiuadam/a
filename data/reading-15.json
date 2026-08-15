@@ -1,0 +1,145 @@
+{
+  "id": "reading-15",
+  "title": "Taming the Horse",
+  "topic": "The domestication of the horse and its effects on early human societies",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 20,
+  "passage": "Of all the animals humans have brought under their control, few have changed the course of history as thoroughly as the horse. Cattle and sheep provided meat, milk and wool, and dogs assisted with hunting, but none of these animals altered how quickly people, goods and armies could move across land. The horse did exactly that, and the transformation it produced can be traced through archaeology, genetics and the written record left by the societies that first learned to ride.\n\nPinpointing exactly when and where horses were first domesticated has proved difficult, because unlike sheep or cattle, an early domesticated horse looks almost identical to a wild one in its bones. Archaeologists have therefore had to rely on indirect evidence. One of the clearest early signals comes from the Botai culture of the Central Asian steppe, in what is now northern Kazakhstan, around five and a half thousand years ago. Excavations there uncovered horse teeth showing a distinctive pattern of wear consistent with a bit, the metal or bone bar placed in a horse's mouth to allow a rider to steer it. Pottery from the same sites contains chemical traces of mare's milk, suggesting the Botai people were milking horses as well as riding them, a practice that requires an animal to be tolerant enough of human handling to be led and controlled repeatedly.\n\nRecent genetic research has complicated this picture in an interesting way. For years, the Botai horses were widely assumed to be the direct ancestors of the modern domestic horse, but DNA analysis published in 2018 showed that Botai horses are actually more closely related to Przewalski's horse, a wild species that survives today only in a small population reintroduced to Mongolia, than to any modern domestic breed. This finding suggests that horse domestication may have happened more than once, in more than one place, and that the population that eventually gave rise to nearly all modern domestic horses has not yet been conclusively identified. A study published in 2021 pointed instead to the Volga-Don region, near the Caspian Sea, as the likely origin of the genetic lineage that spread and eventually replaced almost all other domestic horse populations across Europe and Asia within a few centuries, an unusually rapid replacement whose cause is still debated.\n\nWhatever its precise origin, once domestication became established its consequences were dramatic. A person on foot might cover thirty or forty kilometres in a long day; a rider on horseback could cover more than double that distance and arrive far less exhausted. This difference transformed trade, since goods that had previously moved at walking pace, carried on human backs or pulled by oxen, could now travel faster and in greater volume. It transformed warfare even more decisively. Societies with access to horses could raid, retreat and strike again before an enemy on foot had time to organise a defence, and the mounted warrior became, for thousands of years afterward, one of the most feared and effective figures on any battlefield. The chariot, an early application of horse power to warfare and ceremony, appeared across the ancient Near East and Egypt not long after domestication spread, pulled by horses bred and trained specifically for speed rather than for milk or meat.\n\nThe horse also reshaped how information travelled. Before mechanised transport, a message carried by a rider on a fast horse, changing to fresh mounts at intervals along the route, could cross a continent in days rather than the weeks a message on foot would require. The Mongol Empire in the thirteenth century built one of history's most effective examples of this system, maintaining relay stations roughly a day's ride apart across an empire that stretched from China to Eastern Europe, allowing messages and orders to move at a speed no rival power could match. Historians generally regard this network as a significant factor in how the Mongols were able to govern such an enormous and geographically scattered territory.\n\nBy the twentieth century, the horse's role in warfare, transport and communication had been almost entirely displaced by mechanised alternatives: trains, cars, aircraft and telegraph wires accomplished the same tasks faster and, eventually, more cheaply. Yet the horse did not disappear from human life. It persists today in sport, in ceremony, and in agricultural work in regions where mechanised equipment remains impractical or unaffordable. Perhaps more strikingly, the vocabulary the horse left behind has outlasted its practical use by a wide margin: engines are still rated in horsepower, and a sudden burst of speed is still, in many languages, described using words that trace back to the animal that first taught humans what rapid, sustained movement across land could feel like.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "It is easier to identify early domesticated horses from their bones than early domesticated sheep or cattle.",
+          "answer": "FALSE",
+          "explanation": "The passage says an early domesticated horse \"looks almost identical to a wild one in its bones\", unlike sheep or cattle, which implies the opposite is true, so FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Pottery from Botai sites contained chemical traces suggesting horses were milked there.",
+          "answer": "TRUE",
+          "explanation": "Paragraph 2 gives this exact finding: chemical traces of mare's milk in Botai pottery, which the passage says suggests milking. The statement paraphrases 'chemical traces' as 'chemical traces suggesting', so TRUE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "Genetic research published in 2018 confirmed that Botai horses are the direct ancestors of all modern domestic horses.",
+          "answer": "FALSE",
+          "explanation": "The 2018 DNA analysis showed Botai horses are more closely related to Przewalski's horse than to modern domestic breeds, contradicting the statement, so FALSE."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "The Przewalski's horse population in Mongolia was reintroduced using animals bred in European zoos.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage says Przewalski's horse \"survives today only in a small population reintroduced to Mongolia\", but never says where the reintroduced animals came from, so NOT GIVEN."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "The Mongol relay system used stations spaced roughly a week's ride apart.",
+          "answer": "FALSE",
+          "explanation": "The passage says the stations were \"roughly a day's ride apart\", not a week, so FALSE."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "What kind of evidence first suggested horses were ridden at Botai sites?",
+          "options": [
+            "Cave paintings showing riders on horseback.",
+            "A pattern of tooth wear consistent with the use of a bit.",
+            "Written records describing horse riding.",
+            "Saddle fragments found in graves."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 2 names tooth wear consistent with a bit as the first clear signal at Botai, matching option B. Cave paintings, written records and saddles are not mentioned anywhere in the passage."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What did the 2021 genetic study suggest?",
+          "options": [
+            "That domestication began simultaneously in several unrelated regions.",
+            "That the Volga-Don region was the likely source of the lineage behind nearly all modern domestic horses.",
+            "That Przewalski's horse is the ancestor of most modern breeds.",
+            "That horse domestication happened later than previously believed."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 3 names the Volga-Don region as the likely origin the 2021 study points to, matching option B directly. The other options describe claims about the 2018 study or Przewalski's horse, not the 2021 one."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "According to the passage, how did horses change warfare?",
+          "options": [
+            "By making chariots unnecessary.",
+            "By allowing societies to raid and retreat faster than infantry could respond.",
+            "By reducing the need for organised armies altogether.",
+            "By making battles shorter but more frequent."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 4 explains that mounted societies could raid and retreat faster than infantry could respond, which is option B. Chariots and army size are mentioned but not as the main way horses changed warfare."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What do historians generally believe about the Mongol relay station system?",
+          "options": [
+            "It was primarily used for trade rather than governance.",
+            "It was a significant factor in the Mongols' ability to govern a huge territory.",
+            "It was less effective than earlier Chinese messaging systems.",
+            "It was abandoned before the empire reached its greatest size."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 5 states this view directly, calling the relay network a significant factor in Mongol governance, which matches option B. Trade, comparison to China, and early abandonment are never mentioned."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "One of the earliest signals of domestication comes from the ___ culture of Central Asia.",
+          "answer": "Botai",
+          "maxWords": 2,
+          "explanation": "Paragraph 2 names the Botai culture right after 'comes from', which is where the passage first introduces the archaeological evidence the question asks about."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "The ___, an early application of horse power, appeared in the ancient Near East and Egypt soon after domestication spread.",
+          "answer": "chariot",
+          "maxWords": 2,
+          "explanation": "Paragraph 4 opens the sentence about the Near East and Egypt with the word 'chariot', which is exactly what the gap is asking for."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "The Mongol Empire maintained ___ roughly a day's ride apart to speed up communication.",
+          "answer": "relay stations",
+          "maxWords": 2,
+          "explanation": "Paragraph 5 names 'relay stations' as what the Mongols maintained a day's ride apart, matching both the gap and the phrase 'a day's ride apart' already given in the question."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "Engines today are still rated in units of ___.",
+          "answer": "horsepower",
+          "maxWords": 2,
+          "explanation": "The final sentence names 'horsepower' as the unit engines are rated in, which is the word the passage's own vocabulary example gives us to copy."
+        }
+      ]
+    }
+  ]
+}

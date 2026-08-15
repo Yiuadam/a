@@ -1,0 +1,131 @@
+{
+  "id": "listening-21",
+  "title": "Radio Announcement: Bramley Farmers' Market",
+  "context": "A presenter on a local community radio station announces details of an upcoming farmers' market.",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 12,
+  "speakers": [
+    "Presenter"
+  ],
+  "script": [
+    { "speaker": "Presenter", "text": "And now for some local news. Bramley Farmers' Market is returning to the town square this month, and organisers say it will be the biggest one yet." },
+    { "speaker": "Presenter", "text": "The market normally runs on the last Saturday of the month, but this time, because of the town's summer festival, it's been moved forward to the third Saturday instead." },
+    { "speaker": "Presenter", "text": "It opens at nine a.m. and organisers say to expect over forty stalls this year, up from around twenty-five last year, selling everything from fresh vegetables to homemade bread." },
+    { "speaker": "Presenter", "text": "Entry to the market is free, though of course you'll want to bring some cash, as a lot of the smaller stallholders don't take card payments." },
+    { "speaker": "Presenter", "text": "One new addition this year is a small stage in the corner of the square, where local musicians will perform between eleven and one, so do stick around after your shopping." },
+    { "speaker": "Presenter", "text": "If you're driving, the usual advice is to park at the multi-storey on Fern Street, but I'm told that's actually closed for repairs this month, so instead the council is opening the school car park on Barton Road for market visitors." },
+    { "speaker": "Presenter", "text": "That car park will be free until midday, and then a small charge of two pounds applies for the rest of the day." },
+    { "speaker": "Presenter", "text": "For anyone who can't make it in person, a few of the regular stallholders, including the cheese stall and the honey stall, are now taking online orders for local delivery, and you'll find links to both on our website." },
+    { "speaker": "Presenter", "text": "Organisers are also looking for volunteers to help set up the stalls early in the morning, and in return you'll get a free hot drink and a bacon roll from the café van." },
+    { "speaker": "Presenter", "text": "If you'd like to volunteer, just turn up at seven thirty on the day, right by the fountain in the square, where the organiser will be waiting with a list." },
+    { "speaker": "Presenter", "text": "Dogs are welcome at the market this year, on a lead, though organisers ask that you keep them away from the food stalls specifically, out of respect for other shoppers." },
+    { "speaker": "Presenter", "text": "There's also a small children's area this time, with face painting and a short puppet show, which should keep younger visitors entertained while the adults browse the stalls." },
+    { "speaker": "Presenter", "text": "If the weather turns bad, don't worry — the market has a wet-weather plan, and stalls will simply move under the covered market hall next to the square rather than being cancelled." },
+    { "speaker": "Presenter", "text": "That's Bramley Farmers' Market, the third Saturday of this month, from nine until two. More local news after the break." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN THREE WORDS for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "This month, the market is being held on the ___ Saturday",
+          "answer": "third",
+          "maxWords": 1,
+          "explanation": "The last Saturday is the usual date, but the summer festival means it's \"moved forward to the third Saturday instead.\""
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Expected number of stalls this year: over ___",
+          "answer": "40",
+          "maxWords": 1,
+          "explanation": "Twenty-five stalls attended last year, but organisers \"expect over forty stalls this year,\" showing clear growth."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Visitors should bring cash because many stallholders don't accept ___",
+          "answer": "card payments",
+          "maxWords": 2,
+          "explanation": "Entry is free, but the presenter warns \"a lot of the smaller stallholders don't take card payments,\" so cash is needed for purchases."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "New addition this year: a small ___ for local musicians",
+          "answer": "stage",
+          "maxWords": 1,
+          "explanation": "The presenter announces \"a small stage in the corner of the square, where local musicians will perform between eleven and one.\""
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Visitors should now park at the school car park on ___",
+          "answer": "Barton Road",
+          "maxWords": 2,
+          "explanation": "The Fern Street multi-storey is closed for repairs, so \"the council is opening the school car park on Barton Road for market visitors\" instead."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Parking charge after midday: £___",
+          "answer": "2",
+          "maxWords": 1,
+          "explanation": "The car park is free until midday, and then \"a small charge of two pounds applies for the rest of the day.\""
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Volunteers should arrive at the fountain at: ___",
+          "answer": "seven thirty",
+          "maxWords": 2,
+          "explanation": "The presenter instructs volunteers to \"turn up at seven thirty on the day, right by the fountain in the square.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Why has the market's usual car park changed this month?",
+          "options": [
+            "it is too small for the extra stalls",
+            "it is closed for repairs",
+            "it now charges a fee all day"
+          ],
+          "answer": 1,
+          "explanation": "The presenter explains the Fern Street multi-storey is \"actually closed for repairs this month,\" which is why the school car park is being used instead."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Which stallholders are mentioned as offering online orders for delivery?",
+          "options": [
+            "the vegetable stall and the bread stall",
+            "the cheese stall and the honey stall",
+            "the café van and the music stage"
+          ],
+          "answer": 1,
+          "explanation": "The presenter names \"the cheese stall and the honey stall\" as now taking online orders, with links available on the station's website."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What do volunteers receive in return for helping set up?",
+          "options": [
+            "free entry to the music stage",
+            "a free hot drink and a bacon roll",
+            "a discount at the cheese stall"
+          ],
+          "answer": 1,
+          "explanation": "Volunteers are told \"you'll get a free hot drink and a bacon roll from the café van\" in return for their early morning help."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "id": "reading-17",
+  "title": "Reading by Touch: The Story of Braille",
+  "topic": "The invention and adoption of the braille reading system for blind people",
+  "difficulty": "medium",
+  "level": "B2",
+  "timeMinutes": 20,
+  "passage": "A\nBefore the nineteenth century, blind people who wished to read had few practical options. A handful of institutions experimented with embossed Roman letters, ordinary print raised slightly above the page so that a fingertip could trace their outline. The method was earnest but flawed: the curves and strokes that make printed letters legible to the eye are poorly suited to touch, which distinguishes shapes far less precisely than sight does. Reading a single page this way could take a painstaking length of time, and writing was scarcely possible at all, since producing raised letters by hand required specialist equipment few blind people had access to.\n\nB\nThe breakthrough came from an unlikely source: a military communication system never intended for the blind at all. In 1815, a French army officer named Charles Barbier developed a code called 'night writing', intended to let soldiers pass messages in darkness without needing a light that might reveal their position to the enemy. Barbier's system used raised dots arranged in patterns that could be read by touch alone. The French army rejected it as too complex for battlefield use, but Barbier later demonstrated the idea at a school for blind children in Paris, where a young student saw its potential immediately, even though Barbier's own version remained cumbersome and difficult to master.\n\nC\nThat student was Louis Braille, who had been blinded in an accident at the age of three after a tool in his father's workshop slipped and injured his eye, with infection later spreading to the other. Braille enrolled at the Royal Institute for Blind Youth in Paris, one of the very few schools of its kind in Europe, and encountered Barbier's system there as a teenager. Recognising its potential while also seeing its flaws, Braille spent several years refining it, reducing Barbier's twelve-dot cell to a compact six-dot arrangement that could be recognised under a single fingertip without needing to shift position. By 1824, when he was only fifteen years old, Braille had developed a workable version of the system that today carries his name.\n\nD\nThe elegance of Braille's six-dot cell lies in its simplicity. Arranged in two columns of three, the dots can be raised or left flat in sixty-four possible combinations, more than enough to represent the letters of the alphabet, numbers, punctuation and, in more advanced forms, whole common words and syllables abbreviated to save space. Because the system relies on combinations of a fixed small grid rather than the complex curves of printed letters, it can be read considerably faster by a practised finger than any of the embossed-letter systems that preceded it. Braille himself continued refining the code throughout his life, extending it to represent mathematical notation and musical scores, applications that embossed Roman letters had never managed convincingly.\n\nE\nAcceptance of Braille's system was far slower than its technical merits might suggest. The Royal Institute itself did not officially adopt it until 1854, two years after Braille's death from tuberculosis at the age of forty-three, and other countries took even longer to follow. Sighted teachers and administrators, many of whom had invested years mastering embossed-letter methods, were reluctant to adopt an unfamiliar system that they themselves could not read without training, and some worried, without much evidence, that dot-based reading might somehow be inferior to letter-shaped reading. Braille lived to see his system used by his fellow students but not to see it formally recognised, a pattern common enough in the history of invention that it has become almost a cliché, though no less bitter for the person who lived through it.\n\nF\nBy the early twentieth century, braille had spread across much of the world and had been adapted for dozens of languages, each requiring its own arrangement of the six-dot cell to represent the sounds and characters of that language efficiently. Specialised writing tools followed: the braille slate and stylus allowed a blind writer to punch dots into paper by hand, while the Perkins Brailler, developed in the 1950s, worked more like a mechanical typewriter, striking dot patterns onto the page with a set of keys corresponding to the six dot positions. Braille libraries and publishing houses grew up to translate mainstream texts, though the physical bulk of braille books, considerably larger than their printed equivalents because raised dots cannot be printed as densely as ink, always limited how much could be produced and stored.\n\nG\nDigital technology has since transformed braille without displacing it. Refreshable braille displays, electromechanical devices that raise and lower pins to form braille characters in real time, allow a blind computer or smartphone user to read digital text by touch, updating line by line as the user scrolls, without any of the bulk of a physical book. Screen-reading software that converts text to speech has, for some tasks, reduced reliance on braille altogether, prompting periodic concern among educators that literacy in braille itself, as opposed to listening comprehension, is declining among blind children who grow up with audio alternatives readily available. Advocates for braille literacy argue that listening and reading are not interchangeable skills, and that the ability to read braille remains closely linked to educational and employment outcomes in ways that audio access alone does not replicate, a debate that echoes, in an updated form, the very question Braille himself set out to answer two centuries ago: what does it actually mean to read.",
+  "questions": [
+    {
+      "instruction": "The passage has seven paragraphs, A–G. Choose the correct heading for each of paragraphs B–F from the list of headings below. There are more headings than paragraphs, so you will not use them all.",
+      "sharedOptions": [
+        { "key": "i", "text": "A military code repurposed for a different audience" },
+        { "key": "ii", "text": "The limits of raised-letter reading before braille" },
+        { "key": "iii", "text": "A young inventor refines an imperfect idea" },
+        { "key": "iv", "text": "Resistance from those already trained in older methods" },
+        { "key": "v", "text": "Why the six-dot design succeeded technically" },
+        { "key": "vi", "text": "Tools and translations that carried braille worldwide" },
+        { "key": "vii", "text": "A digital-age debate about reading and listening" },
+        { "key": "viii", "text": "Government funding for schools for the blind" }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "Paragraph B",
+          "answer": "i",
+          "explanation": "Paragraph B describes Barbier's 'night writing', a military communication code, later shown to blind students — a code repurposed for a different audience."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "Paragraph C",
+          "answer": "iii",
+          "explanation": "Paragraph C follows the teenage Louis Braille as he reduces Barbier's twelve-dot cell to six dots — a young inventor refining an imperfect idea."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "Paragraph D",
+          "answer": "v",
+          "explanation": "Paragraph D explains why the six-dot cell works technically: sixty-four combinations, fast reading, and extension to mathematics and music."
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "Paragraph E",
+          "answer": "iv",
+          "explanation": "Paragraph E is about the slow official adoption of braille and the reluctance of sighted teachers already trained in embossed-letter methods."
+        },
+        {
+          "id": "q5",
+          "type": "matching",
+          "prompt": "Paragraph F",
+          "answer": "vi",
+          "explanation": "Paragraph F describes the slate and stylus, the Perkins Brailler, and braille libraries and publishing houses spreading the system worldwide."
+        }
+      ]
+    },
+    {
+      "instruction": "Do the following statements agree with the claims of the writer? Write YES if the statement agrees with the writer's views, NO if it contradicts them, or NOT GIVEN if it is impossible to say what the writer thinks.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "ynng",
+          "statement": "Embossed Roman letters were poorly suited to reading by touch because touch distinguishes shapes less precisely than sight.",
+          "answer": "YES",
+          "explanation": "Paragraph A gives exactly this reason for why embossed letters failed: touch distinguishes shapes less precisely than sight. Since the writer states it as fact rather than someone else's opinion, it counts as YES."
+        },
+        {
+          "id": "q7",
+          "type": "ynng",
+          "statement": "The concerns that dot-based reading might be inferior to letter-shaped reading were well supported by evidence.",
+          "answer": "NO",
+          "explanation": "The writer says some administrators worried braille might be inferior \"without much evidence\", explicitly rejecting the idea that the concern was well supported, so NO."
+        },
+        {
+          "id": "q8",
+          "type": "ynng",
+          "statement": "Braille's students at the Royal Institute found his system harder to learn than embossed Roman letters.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage says Braille's fellow students used his system, and implies it was faster to read once learned, but it never compares how hard the two systems were to learn, so NOT GIVEN."
+        },
+        {
+          "id": "q9",
+          "type": "ynng",
+          "statement": "Braille lived to see his system formally adopted by the institution where he studied.",
+          "answer": "NO",
+          "explanation": "The Institute adopted the system \"two years after Braille's death\", so he did not live to see formal adoption — the writer states this directly."
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the questions below using NO MORE THAN THREE WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "short-answer",
+          "question": "What was Charles Barbier's code originally designed to allow soldiers to do?",
+          "answer": "pass messages",
+          "maxWords": 3,
+          "explanation": "Paragraph B says the code was intended to let soldiers pass messages, so the answer is the verb-plus-object phrase 'pass messages', kept short enough for the three-word limit."
+        },
+        {
+          "id": "q11",
+          "type": "short-answer",
+          "question": "How many dots did Barbier's original cell contain, before Braille reduced it?",
+          "answer": "twelve",
+          "maxWords": 3,
+          "explanation": "Paragraph C says Braille reduced 'Barbier's twelve-dot cell' to six dots, so the number before Braille's change was twelve."
+        },
+        {
+          "id": "q12",
+          "type": "short-answer",
+          "question": "What disease caused Louis Braille's death?",
+          "answer": "tuberculosis",
+          "maxWords": 3,
+          "explanation": "Paragraph E names the disease directly: tuberculosis. It appears right before the mention of his age at death, which the question also references."
+        },
+        {
+          "id": "q13",
+          "type": "short-answer",
+          "question": "What kind of device raises and lowers pins to form braille characters from digital text?",
+          "answer": "refreshable braille displays",
+          "maxWords": 3,
+          "explanation": "Paragraph G names the device and immediately defines it as raising and lowering pins to form characters — the question's wording is copied from that definition, so the device name is the answer."
+        }
+      ]
+    }
+  ]
+}

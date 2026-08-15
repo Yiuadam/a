@@ -168,6 +168,8 @@ export interface ReadingTest {
   title: string;
   topic: string;
   difficulty: string;
+  /** CEFR level, judged on the passage's actual language demand — not derived from `difficulty`. */
+  level: CEFRLevel;
   timeMinutes: number;
   passage: string;
   questions: QuestionSet;
@@ -183,6 +185,8 @@ export interface ListeningTest {
   title: string;
   context: string;
   difficulty: string;
+  /** CEFR level, judged on the script's actual language demand — not derived from `difficulty`. */
+  level: CEFRLevel;
   timeMinutes: number;
   speakers: string[];
   script: ScriptTurn[];
@@ -196,6 +200,8 @@ export interface WritingTask {
   task: 1 | 2;
   variant: "academic" | "general";
   title: string;
+  /** CEFR level, judged on the demand of the prompt itself. */
+  level: CEFRLevel;
   prompt: string;
   /*
     Academic Task 1 presents data one of two ways. A table is the data
@@ -222,12 +228,16 @@ export interface WritingTasksData {
 
 export interface SpeakingPart1Topic {
   topic: string;
+  /** CEFR level of the questions asked under this topic. */
+  level: CEFRLevel;
   questions: string[];
 }
 
 export interface SpeakingCueCard {
   id: string;
   topic: string;
+  /** CEFR level of the extended talk this cue card asks for. */
+  level: CEFRLevel;
   cueCard: string;
   bullets: string[];
   followUp: string[];
@@ -235,6 +245,8 @@ export interface SpeakingCueCard {
 
 export interface SpeakingPart3Set {
   topic: string;
+  /** CEFR level of the discussion questions in this set. */
+  level: CEFRLevel;
   questions: string[];
 }
 

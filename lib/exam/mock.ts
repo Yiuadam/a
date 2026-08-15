@@ -103,6 +103,23 @@ export const LISTENING_PART: Record<string, 1 | 2 | 3 | 4> = {
   "listening-2": 4, // lecture: the history of timekeeping
   "listening-4": 4, // lecture: what museums choose to keep
   "listening-11": 4, // lecture: how coral reefs recover
+  /*
+    The ten papers added alongside the CEFR levelling, classified by the same
+    rule as the eleven above: which of the four IELTS listening contexts the
+    script actually is, not how hard it is. A paper missing from this map can
+    never appear in a sitting, which is why the test that guards it names the
+    ids rather than counting them.
+  */
+  "listening-12": 1, // hiring a car, at a counter
+  "listening-16": 1, // booking rooms for a party, by phone
+  "listening-20": 1, // cancelling a gym membership, in person
+  "listening-13": 2, // one speaker: lost property announcement
+  "listening-17": 2, // one speaker: museum audio guide
+  "listening-21": 2, // one speaker: farmers' market radio announcement
+  "listening-14": 3, // four speakers planning a recycling project
+  "listening-18": 3, // three speakers choosing a dissertation topic
+  "listening-15": 4, // lecture: urban beekeeping
+  "listening-19": 4, // lecture: the global coffee trade
 };
 
 const WRITING_TASKS: WritingTask[] = (writingData as WritingTasksData).tasks;

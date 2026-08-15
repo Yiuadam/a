@@ -1,0 +1,155 @@
+{
+  "id": "listening-12",
+  "title": "Renting a Car for the Weekend",
+  "context": "A customer visits a car hire branch to arrange a short weekend rental.",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 12,
+  "speakers": [
+    "Agent",
+    "Customer"
+  ],
+  "script": [
+    { "speaker": "Agent", "text": "Good afternoon, welcome to Roadway Car Hire. How can I help you today?" },
+    { "speaker": "Customer", "text": "Hi there. I'd like to hire a car for the weekend, please." },
+    { "speaker": "Agent", "text": "No problem at all. Can I take your name first?" },
+    { "speaker": "Customer", "text": "Yes, it's Tom Whitlock." },
+    { "speaker": "Agent", "text": "Could you spell your surname for me?" },
+    { "speaker": "Customer", "text": "Sure, it's W-H-I-T-L-O-C-K. Whitlock." },
+    { "speaker": "Agent", "text": "W-H-I-T-L-O-C-K. Thank you. Could I also get a contact number, in case we need to reach you?" },
+    { "speaker": "Customer", "text": "Yes, it's 07892 445561." },
+    { "speaker": "Agent", "text": "Let me read that back to you. 07892 445561." },
+    { "speaker": "Customer", "text": "That's correct." },
+    { "speaker": "Agent", "text": "Great. Now, what sort of car were you looking for?" },
+    { "speaker": "Customer", "text": "I was going to ask for an economy car, but actually there'll be four of us with luggage, so maybe a compact would be better." },
+    { "speaker": "Agent", "text": "A compact car then, good choice, there's more boot space than the economy model." },
+    { "speaker": "Customer", "text": "Yes, that's what I thought." },
+    { "speaker": "Agent", "text": "And when would you like to pick it up?" },
+    { "speaker": "Customer", "text": "I was planning to collect it on Friday afternoon, but my train's been delayed, so let's make that Saturday morning instead." },
+    { "speaker": "Agent", "text": "Saturday morning, no trouble at all. And how many days will you need it for?" },
+    { "speaker": "Customer", "text": "Three days, so I'll bring it back on Monday." },
+    { "speaker": "Agent", "text": "Right, three days. Our daily rate for a compact is 35 pounds a day, so that works out at 105 pounds in total." },
+    { "speaker": "Customer", "text": "105 pounds, okay, that's fine." },
+    { "speaker": "Agent", "text": "There's also a refundable deposit, which covers the insurance excess. That's 150 pounds, taken from your card when you collect the car, and returned once it's brought back undamaged." },
+    { "speaker": "Customer", "text": "150 pounds deposit, got it." },
+    { "speaker": "Agent", "text": "Now, will you be the only driver, or would you like to add someone else?" },
+    { "speaker": "Customer", "text": "My wife might drive as well, actually, so let's add her." },
+    { "speaker": "Agent", "text": "That's fine. An extra driver is 8 pounds per day." },
+    { "speaker": "Customer", "text": "Okay, that's worth it for the flexibility." },
+    { "speaker": "Agent", "text": "Which branch would you like to collect the car from? We have one at the airport and one in the town centre." },
+    { "speaker": "Customer", "text": "The airport one's out of my way. I'll come to the town centre branch." },
+    { "speaker": "Agent", "text": "Good, that's on Church Street. When you arrive, please bring your driving licence and the credit card you booked with." },
+    { "speaker": "Customer", "text": "Driving licence and the card, understood." },
+    { "speaker": "Agent", "text": "Just to mention the fuel policy as well — the car is given to you with a full tank, and we ask you to return it full too, rather than paying our refuelling charge." },
+    { "speaker": "Customer", "text": "Full to full, no problem, I'll fill it up on the way back." },
+    { "speaker": "Agent", "text": "There's also a mileage limit of 100 miles a day included in the price. Anything over that is charged at 20 pence a mile." },
+    { "speaker": "Customer", "text": "That should be plenty for what we're doing." },
+    { "speaker": "Agent", "text": "One more thing — please have the car back by six in the evening on the day you return it, or a late fee applies." },
+    { "speaker": "Customer", "text": "Six pm on Monday, noted. Thanks very much for your help." },
+    { "speaker": "Agent", "text": "You're welcome. See you Saturday morning, Tom." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Customer's surname: ___",
+          "answer": "Whitlock",
+          "maxWords": 1,
+          "explanation": "The customer spells the name aloud: W-H-I-T-L-O-C-K. Spelling out loud in IELTS listening is almost always the cue that this is an answer worth writing down exactly."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Contact number: ___",
+          "answer": "07892 445561",
+          "maxWords": 2,
+          "explanation": "The number is given once and then read back by the agent for confirmation. Use the read-back to check your digits rather than trusting only the first time you hear them."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Type of car booked: a ___ car",
+          "answer": "compact",
+          "maxWords": 1,
+          "explanation": "He first says economy, then corrects himself with \"actually ... maybe a compact would be better.\" The word before the correction is a distractor, not the answer."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Day the car will be collected: ___",
+          "answer": "Saturday",
+          "maxWords": 1,
+          "explanation": "Friday is mentioned first as the original plan, but the delayed train means he changes it: \"let's make that Saturday morning instead.\" Take the corrected version."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Total cost for three days: £___",
+          "answer": "105",
+          "maxWords": 1,
+          "explanation": "35 pounds a day is the daily rate, but the question asks for the total, which the agent states directly as \"105 pounds in total.\""
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Refundable deposit: £___",
+          "answer": "150",
+          "maxWords": 1,
+          "explanation": "The deposit covering the insurance excess is stated as \"150 pounds\", separate from the 105-pound rental cost mentioned just before it."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Extra driver charge: £___ per day",
+          "answer": "8",
+          "maxWords": 1,
+          "explanation": "Once the customer agrees to add his wife as a second driver, the agent states the charge: \"an extra driver is 8 pounds per day.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Which branch will the customer collect the car from?",
+          "options": [
+            "the airport branch",
+            "the town centre branch",
+            "a home delivery service"
+          ],
+          "answer": 1,
+          "explanation": "He says the airport branch is \"out of my way\" and chooses the town centre branch instead, which the agent confirms is on Church Street."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "How must the customer return the car's fuel tank?",
+          "options": [
+            "half full",
+            "empty",
+            "full"
+          ],
+          "answer": 2,
+          "explanation": "The agent explains the policy is \"full to full\": the car is given full and must be returned full to avoid the refuelling charge."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What happens if the customer drives more than 100 miles in a day?",
+          "options": [
+            "an extra charge per mile applies",
+            "the deposit is not returned",
+            "nothing, mileage is unlimited"
+          ],
+          "answer": 0,
+          "explanation": "The agent states that mileage over the 100-mile daily limit \"is charged at 20 pence a mile\", ruling out both other options."
+        }
+      ]
+    }
+  ]
+}

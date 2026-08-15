@@ -5,6 +5,7 @@
       "task": 1,
       "variant": "academic",
       "title": "Household internet access in four countries",
+      "level": "B2",
       "prompt": "The table below shows the percentage of households with internet access in four countries between 2005 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
       "dataTable": {
         "title": "Percentage of households with internet access, 2005-2020",
@@ -54,6 +55,7 @@
       "task": 1,
       "variant": "academic",
       "title": "Water consumption by sector",
+      "level": "B2",
       "prompt": "The table below shows water consumption in millions of cubic metres by three sectors in one region of Australia in 1990, 2005 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
       "dataTable": {
         "title": "Water consumption by sector (millions of cubic metres)",
@@ -96,6 +98,7 @@
       "task": 1,
       "variant": "general",
       "title": "Letter about a lost item on a train",
+      "level": "B1",
       "prompt": "You recently travelled by train and left a bag on board when you got off at your station. Write a letter to the train company. In your letter: • describe the bag and its contents • explain when and where you left it • say what you would like the company to do",
       "minWords": 150,
       "timeMinutes": 20
@@ -105,6 +108,7 @@
       "task": 2,
       "variant": "academic",
       "title": "Remote working (opinion)",
+      "level": "B2",
       "prompt": "In many countries, an increasing number of employees are working from home rather than travelling to a workplace. Some people believe this trend benefits both workers and society as a whole. To what extent do you agree or disagree?",
       "minWords": 250,
       "timeMinutes": 40
@@ -114,6 +118,7 @@
       "task": 2,
       "variant": "academic",
       "title": "University purpose (discussion)",
+      "level": "C1",
       "prompt": "Some people think the main purpose of a university education is to prepare students for employment, while others believe universities should focus on developing knowledge and ideas for their own sake. Discuss both views and give your own opinion.",
       "minWords": 250,
       "timeMinutes": 40
@@ -123,6 +128,7 @@
       "task": 2,
       "variant": "academic",
       "title": "Urban traffic congestion (problem-solution)",
+      "level": "B2",
       "prompt": "Traffic congestion in many cities around the world is becoming increasingly severe. What problems does this cause for individuals and society? What measures could governments take to address this situation?",
       "minWords": 250,
       "timeMinutes": 40
@@ -132,6 +138,7 @@
       "task": 2,
       "variant": "academic",
       "title": "Declining interest in cooking (two-part question)",
+      "level": "B2",
       "prompt": "In some countries, people are spending less time preparing meals at home and are relying more on ready-made food. Why is this happening? Do you think this is a positive or negative development?",
       "minWords": 250,
       "timeMinutes": 40
@@ -141,6 +148,7 @@
       "task": 1,
       "variant": "academic",
       "title": "Household recycling rates in three cities",
+      "level": "B2",
       "prompt": "The line graph below shows the percentage of household waste recycled in three cities between 2005 and 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "chart": {
         "kind": "line",
@@ -196,6 +204,7 @@
       "task": 1,
       "variant": "academic",
       "title": "How adults spent their leisure time",
+      "level": "B2",
       "prompt": "The bar chart below shows the average number of hours per week that adults in one country spent on four leisure activities in 2005 and 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "chart": {
         "kind": "bar",
@@ -239,6 +248,7 @@
       "task": 1,
       "variant": "academic",
       "title": "Where a university's income came from",
+      "level": "B2",
       "prompt": "The pie chart below shows the sources of income for a university in a single academic year.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "chart": {
         "kind": "pie",
@@ -272,6 +282,7 @@
       "task": 1,
       "variant": "academic",
       "title": "What four countries generated their electricity from",
+      "level": "B2",
       "prompt": "The chart below shows the proportion of electricity generated from four sources in four countries in 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "chart": {
         "kind": "bar",
@@ -333,6 +344,7 @@
       "task": 1,
       "variant": "academic",
       "title": "Visitors to a coastal town across the year",
+      "level": "B2",
       "prompt": "The line graph below shows the number of visitors to a coastal town in each month of one year, divided between day visitors and overnight visitors.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "chart": {
         "kind": "line",
@@ -399,6 +411,7 @@
       "task": 1,
       "variant": "academic",
       "title": "Age of first-time home buyers",
+      "level": "B2",
       "prompt": "The bar chart below shows the average age of first-time home buyers in five regions in 2000 and 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "chart": {
         "kind": "bar",
@@ -446,6 +459,7 @@
       "task": 2,
       "variant": "academic",
       "title": "Working from home (advantages and disadvantages)",
+      "level": "B2",
       "prompt": "In many countries a large proportion of office work is now done from home rather than in a workplace.\n\nDo the advantages of this development outweigh the disadvantages?\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
       "minWords": 250,
       "timeMinutes": 40
@@ -455,6 +469,7 @@
       "task": 2,
       "variant": "academic",
       "title": "Museums: entertainment or education",
+      "level": "B2",
       "prompt": "Some people believe that the main purpose of museums is to entertain visitors. Others argue that museums exist above all to educate.\n\nDiscuss both views and give your own opinion.\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
       "minWords": 250,
       "timeMinutes": 40
@@ -464,6 +479,7 @@
       "task": 2,
       "variant": "academic",
       "title": "Ageing populations (problem and solution)",
+      "level": "C1",
       "prompt": "In many countries people are living considerably longer, and the proportion of the population over sixty-five is rising.\n\nWhat problems does this cause, and what measures could governments take to address them?\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
       "minWords": 250,
       "timeMinutes": 40
@@ -473,6 +489,7 @@
       "task": 2,
       "variant": "academic",
       "title": "Free public transport (opinion)",
+      "level": "B2",
       "prompt": "Some people think that public transport should be free for everyone, paid for through taxation.\n\nTo what extent do you agree or disagree?\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
       "minWords": 250,
       "timeMinutes": 40
@@ -482,6 +499,7 @@
       "task": 1,
       "variant": "general",
       "title": "Letter about a delayed order",
+      "level": "B1",
       "prompt": "You ordered a piece of equipment from an online shop six weeks ago and it has still not arrived. You have contacted the shop twice and received no reply.\n\nWrite a letter to the shop's customer service manager. In your letter:\n\n- explain what you ordered and when\n- describe the attempts you have made to contact the company\n- say what you would like them to do\n\nWrite at least 150 words. Begin your letter 'Dear Sir or Madam,'.",
       "minWords": 150,
       "timeMinutes": 20
@@ -491,6 +509,7 @@
       "task": 1,
       "variant": "general",
       "title": "Letter recommending a colleague",
+      "level": "B2",
       "prompt": "A colleague you have worked with for several years is applying for a job at another organisation, and has asked you to write a reference.\n\nWrite a letter to the hiring manager. In your letter:\n\n- explain how you know the person and for how long\n- describe their strengths, with an example\n- say why you think they suit the role\n\nWrite at least 150 words. Begin your letter 'Dear Sir or Madam,'.",
       "minWords": 150,
       "timeMinutes": 20
@@ -500,9 +519,194 @@
       "task": 1,
       "variant": "general",
       "title": "Letter asking a neighbour for help",
+      "level": "B1",
       "prompt": "You are going to be away from home for a month and would like a neighbour to look after your flat while you are gone.\n\nWrite a letter to your neighbour. In your letter:\n\n- explain why you will be away\n- describe what you would like them to do\n- offer to do something for them in return\n\nWrite at least 150 words. Begin your letter in an appropriate way.",
       "minWords": 150,
       "timeMinutes": 20
+    },
+    {
+      "id": "w21",
+      "task": 1,
+      "variant": "academic",
+      "level": "B1",
+      "title": "Weekly exercise by age group",
+      "prompt": "The bar chart below shows the average number of hours per week that people in three age groups spent on physical exercise in one country in 2024.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "bar",
+        "layout": "grouped",
+        "title": "Average weekly exercise hours by age group, 2024",
+        "unit": "hours per week",
+        "xLabel": "Age group",
+        "yLabel": "Hours per week",
+        "categories": [
+          "16-30",
+          "31-50",
+          "51-70"
+        ],
+        "series": [
+          {
+            "name": "Men",
+            "values": [
+              5.4,
+              3.6,
+              4.1
+            ]
+          },
+          {
+            "name": "Women",
+            "values": [
+              4.8,
+              3.2,
+              4.5
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w22",
+      "task": 1,
+      "variant": "academic",
+      "level": "B1",
+      "title": "Public library membership in three towns",
+      "prompt": "The table below shows the number of registered public library members, per 1,000 residents, in three towns in 2000, 2012 and 2024. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+      "dataTable": {
+        "title": "Registered library members per 1,000 residents",
+        "headers": [
+          "Year",
+          "Elmswood",
+          "Fenbridge",
+          "Garton"
+        ],
+        "rows": [
+          [
+            "2000",
+            "210",
+            "340",
+            "180"
+          ],
+          [
+            "2012",
+            "165",
+            "290",
+            "205"
+          ],
+          [
+            "2024",
+            "120",
+            "260",
+            "240"
+          ]
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w23",
+      "task": 1,
+      "variant": "academic",
+      "level": "B2",
+      "title": "How a household's monthly budget was spent",
+      "prompt": "The pie chart below shows how an average household in one country divided its monthly spending across five categories in 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "pie",
+        "title": "Average household monthly spending by category (%)",
+        "unit": "%",
+        "categories": [
+          "Housing",
+          "Food",
+          "Transport",
+          "Leisure",
+          "Savings and other"
+        ],
+        "series": [
+          {
+            "name": "Share of spending",
+            "values": [
+              34,
+              21,
+              14,
+              12,
+              19
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w24",
+      "task": 1,
+      "variant": "general",
+      "level": "A2",
+      "title": "Letter cancelling a gym membership",
+      "prompt": "You joined a gym six months ago but you no longer have time to go. You want to cancel your membership.\n\nWrite a letter to the gym manager. In your letter:\n\n- say when you joined and why you are writing\n- explain why you want to cancel\n- ask what you need to do next\n\nWrite at least 150 words. Begin your letter 'Dear Sir or Madam,'.",
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w25",
+      "task": 2,
+      "variant": "academic",
+      "level": "B1",
+      "title": "Homework for school children (opinion)",
+      "prompt": "Some people believe that school children should be given homework every day, while others think children should be free to relax after school. To what extent do you agree or disagree?",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w26",
+      "task": 2,
+      "variant": "academic",
+      "level": "B2",
+      "title": "Living in a city or the countryside (discussion)",
+      "prompt": "Some people prefer to live in a big city, while others believe life in the countryside is better. Discuss both views and give your own opinion.",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w27",
+      "task": 2,
+      "variant": "academic",
+      "level": "B2",
+      "title": "Single-use plastic packaging (problem-solution)",
+      "prompt": "Many everyday products are now sold wrapped in single-use plastic packaging, and this packaging often ends up as waste. What problems does this cause, and what measures could governments and manufacturers take to reduce them?",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w28",
+      "task": 2,
+      "variant": "academic",
+      "level": "B1",
+      "title": "Keeping pets (two-part question)",
+      "prompt": "In many countries, more and more people are choosing to keep pets in their homes. Why do you think this is happening? Do you think this is a positive or negative development?",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w29",
+      "task": 2,
+      "variant": "academic",
+      "level": "B2",
+      "title": "Shopping online (advantages and disadvantages)",
+      "prompt": "An increasing number of people now buy most of their goods online rather than in physical shops.\n\nDo the advantages of this development outweigh the disadvantages?\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+      "minWords": 250,
+      "timeMinutes": 40
+    },
+    {
+      "id": "w30",
+      "task": 2,
+      "variant": "academic",
+      "level": "C1",
+      "title": "Government funding for the arts (opinion)",
+      "prompt": "Some people believe that governments should spend public money supporting museums, theatres and other arts organisations. Others think this money would be better spent elsewhere, such as on healthcare or education. To what extent do you agree or disagree?",
+      "minWords": 250,
+      "timeMinutes": 40
     }
   ]
 }

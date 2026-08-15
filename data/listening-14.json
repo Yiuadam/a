@@ -1,0 +1,151 @@
+{
+  "id": "listening-14",
+  "title": "Planning a Campus Recycling Project",
+  "context": "A tutor and three students discuss how to organise a student project promoting recycling on campus.",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 12,
+  "speakers": [
+    "Tutor",
+    "Priya",
+    "Sam",
+    "Malik"
+  ],
+  "script": [
+    { "speaker": "Tutor", "text": "Right, thanks for coming in. So today we need to plan the recycling awareness project for the student union. Who wants to start?" },
+    { "speaker": "Priya", "text": "I can start. I think the main aim should be getting more students to use the recycling bins properly, because at the moment loads of recycling ends up in general waste." },
+    { "speaker": "Sam", "text": "Yeah, I agree. Although, actually, maybe the aim should be broader than that — reducing waste overall, not just sorting it better." },
+    { "speaker": "Malik", "text": "I think Priya's right, though. If we make the aim too broad, we won't finish anything in the time we've got." },
+    { "speaker": "Tutor", "text": "Good point, Malik. Let's keep it focused, then — the project's main aim will be improving recycling behaviour, not tackling all waste." },
+    { "speaker": "Priya", "text": "Great, that's clearer for planning." },
+    { "speaker": "Tutor", "text": "Now, how do you want to reach students? Posters, a stall, social media?" },
+    { "speaker": "Sam", "text": "I was going to suggest posters around the library, but that's already been done twice this year and people just walk past them now." },
+    { "speaker": "Malik", "text": "What about a stall in the main hall? We could hand out information and maybe do a little quiz." },
+    { "speaker": "Priya", "text": "A stall sounds good, but running it for a whole week would need too many volunteers. What if we just did one day, but made it really eye-catching?" },
+    { "speaker": "Tutor", "text": "I like that. One strong day rather than a weak week. So the plan is a single information stall in the main hall." },
+    { "speaker": "Sam", "text": "Fine by me. Should we still do something online as well, though, to reach students who don't walk through the main hall?" },
+    { "speaker": "Malik", "text": "Good idea. We could film a short video showing what actually happens to items in each bin." },
+    { "speaker": "Tutor", "text": "Yes, let's add a short video, posted on the student union page, alongside the stall." },
+    { "speaker": "Priya", "text": "When should we run the stall? I was thinking next month, but that clashes with exams." },
+    { "speaker": "Sam", "text": "True. What about the week after exams finish, once people are more relaxed?" },
+    { "speaker": "Malik", "text": "Actually, a lot of students leave campus right after exams. Maybe the first week back next term would get a bigger audience." },
+    { "speaker": "Tutor", "text": "That makes sense. Let's set the date for the first week of next term, rather than the week after exams." },
+    { "speaker": "Priya", "text": "Okay, first week of next term it is." },
+    { "speaker": "Tutor", "text": "Now, budget. The student union can offer us seventy pounds for materials." },
+    { "speaker": "Sam", "text": "That should cover the printing and some small prizes for the quiz." },
+    { "speaker": "Malik", "text": "Should we ask for more, in case we want better prizes?" },
+    { "speaker": "Tutor", "text": "We could ask, but honestly seventy pounds should be plenty if we keep the prizes simple, like reusable water bottles rather than anything expensive." },
+    { "speaker": "Priya", "text": "Agreed, let's keep the budget as it is." },
+    { "speaker": "Tutor", "text": "Good. Now, who's going to be responsible for what? Priya, could you design the quiz questions?" },
+    { "speaker": "Priya", "text": "Sure, I can do that." },
+    { "speaker": "Tutor", "text": "Sam, would you take charge of filming the video?" },
+    { "speaker": "Sam", "text": "Happy to, yes." },
+    { "speaker": "Tutor", "text": "And Malik, could you book the space in the main hall and arrange the table and chairs?" },
+    { "speaker": "Malik", "text": "No problem, I'll email the events office this week." },
+    { "speaker": "Tutor", "text": "Perfect. Let's meet again in two weeks to check progress. Thanks, everyone." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN THREE WORDS for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Agreed main aim of the project: improving ___",
+          "answer": "recycling behaviour",
+          "maxWords": 2,
+          "explanation": "Sam suggests a broader aim of reducing waste overall, but Malik and the tutor narrow it back down: \"the project's main aim will be improving recycling behaviour.\""
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Chosen way to reach students in person: an information ___",
+          "answer": "stall",
+          "maxWords": 1,
+          "explanation": "Posters are rejected as already overused, and the group settles on \"a single information stall in the main hall\" instead of a week-long stall."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Online addition to the plan: a short ___",
+          "answer": "video",
+          "maxWords": 1,
+          "explanation": "Sam raises reaching students online, and Malik proposes filming \"a short video showing what actually happens to items in each bin,\" which the tutor confirms adding."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "The video will be posted on the: ___",
+          "answer": "student union page",
+          "maxWords": 3,
+          "explanation": "The tutor confirms the video will be \"posted on the student union page, alongside the stall,\" giving the exact location for this answer."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Chosen timing for the stall: the first week of ___",
+          "answer": "next term",
+          "maxWords": 2,
+          "explanation": "Next month is rejected for clashing with exams and the week after exams is rejected because students leave campus; the group settles on \"the first week of next term.\""
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Budget offered by the student union: £___",
+          "answer": "70",
+          "maxWords": 1,
+          "explanation": "The tutor states the union \"can offer us seventy pounds for materials,\" and the group agrees this is enough if prizes stay simple."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Type of prize suggested for the quiz: reusable ___",
+          "answer": "water bottles",
+          "maxWords": 2,
+          "explanation": "The tutor proposes keeping prizes \"simple, like reusable water bottles rather than anything expensive,\" ruling out costlier prize ideas."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Why does the group decide against a week-long stall?",
+          "options": [
+            "it would need too many volunteers",
+            "the main hall is not available that long",
+            "students would get bored of it"
+          ],
+          "answer": 0,
+          "explanation": "Priya says running a stall \"for a whole week would need too many volunteers,\" which is why they choose one strong day instead."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Who will be responsible for designing the quiz questions?",
+          "options": [
+            "Sam",
+            "Malik",
+            "Priya"
+          ],
+          "answer": 2,
+          "explanation": "The tutor asks \"Priya, could you design the quiz questions?\" and she agrees, while Sam takes the video and Malik books the room."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What is Malik's task before the next meeting?",
+          "options": [
+            "filming a video",
+            "booking the space and arranging furniture",
+            "designing quiz questions"
+          ],
+          "answer": 1,
+          "explanation": "The tutor asks Malik to \"book the space in the main hall and arrange the table and chairs,\" and he agrees to email the events office."
+        }
+      ]
+    }
+  ]
+}

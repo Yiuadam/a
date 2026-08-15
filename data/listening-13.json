@@ -1,0 +1,132 @@
+{
+  "id": "listening-13",
+  "title": "Lost Property Office Message",
+  "context": "A recorded answerphone message at a train station's lost property office explains how to collect an item.",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 12,
+  "speakers": [
+    "Recorded Message"
+  ],
+  "script": [
+    { "speaker": "Recorded Message", "text": "You have reached the Lost Property Office at Ashford Station. Our office is currently closed, but please listen to this message carefully, as it explains how to collect an item that has been found." },
+    { "speaker": "Recorded Message", "text": "Our opening hours are Monday to Friday, nine a.m. until five p.m. We are closed on Saturdays and Sundays, so please do not travel to the station expecting to collect an item at the weekend." },
+    { "speaker": "Recorded Message", "text": "If you have lost an item on a train or on the platform, the first thing to do is fill in an online lost item form. This tells us what the item looks like and where you think you lost it." },
+    { "speaker": "Recorded Message", "text": "Once we locate a matching item, we will give it a reference number. If you are calling about an item you have already reported, your reference number will begin with the letters L, P, followed by a number. For example, LP-4487." },
+    { "speaker": "Recorded Message", "text": "To collect your item in person, please bring some form of photo identification, such as a passport or a driving licence, along with your reference number." },
+    { "speaker": "Recorded Message", "text": "There is a small handling fee for storing items. This used to be three pounds, but it has now gone up to five pounds per item. However, the first forty-eight hours of storage are free, so if you collect your item quickly there may be no charge at all." },
+    { "speaker": "Recorded Message", "text": "Please note that items are only kept in our office for ninety days. After that time, unclaimed items are passed on to a local charity, so we do encourage you to collect anything valuable as soon as possible." },
+    { "speaker": "Recorded Message", "text": "As an example of what is currently being held, a black rucksack was found on platform two, left on a train from Dover. If this sounds like something you may have lost, please quote the reference number LP-4487 when you contact us." },
+    { "speaker": "Recorded Message", "text": "Our office is located at Unit three, Station Approach, next to the ticket barriers, not the main entrance, where the old office used to be." },
+    { "speaker": "Recorded Message", "text": "If you would like to speak to a member of staff directly, our telephone number is oh one two three three, five five two, oh one nine. Lines are open during our usual office hours." },
+    { "speaker": "Recorded Message", "text": "A few other common items are also waiting to be collected at the moment, including several umbrellas, a pair of reading glasses, and two mobile phones, both of which have been switched off and kept safe in our secure cabinet." },
+    { "speaker": "Recorded Message", "text": "If your item is particularly valuable, such as a laptop or jewellery, please mention this when you contact us, as these items are kept separately and may need extra identification before they can be released to you." },
+    { "speaker": "Recorded Message", "text": "We are sometimes asked whether items can be posted out instead of collected in person. Unfortunately, for security reasons, we are only able to do this for small, low-value items, and a postage charge will apply on top of the usual handling fee." },
+    { "speaker": "Recorded Message", "text": "Please also remember that if you lost something on a bus rather than a train, this office cannot help you, as bus companies run their own separate lost property service in the town centre." },
+    { "speaker": "Recorded Message", "text": "Thank you for calling Ashford Station Lost Property. We hope to help you find your item soon. Goodbye." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Office opening hours: Monday to Friday, nine a.m. to ___",
+          "answer": "five p.m.",
+          "maxWords": 2,
+          "explanation": "The message states the office is open \"nine a.m. until five p.m.\" and closed at weekends, so five p.m. is the closing time being asked for."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "First step when an item is lost: fill in an online ___",
+          "answer": "lost item form",
+          "maxWords": 3,
+          "explanation": "The message says the first thing to do is \"fill in an online lost item form\" — this precedes and enables everything else described."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Document needed to collect an item: photo ___",
+          "answer": "identification",
+          "maxWords": 1,
+          "explanation": "Collecting in person requires \"some form of photo identification, such as a passport or a driving licence\"; identification is the general term asked for."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Current handling fee per item: £___",
+          "answer": "5",
+          "maxWords": 1,
+          "explanation": "Three pounds is named as the old fee before it changed; the message corrects this to \"it has now gone up to five pounds per item\", which is the current fee."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Free storage period: the first ___ hours",
+          "answer": "forty-eight",
+          "maxWords": 1,
+          "explanation": "The message says \"the first forty-eight hours of storage are free\", meaning quick collection can avoid the five-pound fee entirely."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Unclaimed items are kept for: ___ days",
+          "answer": "90",
+          "maxWords": 1,
+          "explanation": "Items are held for \"ninety days\" before being passed to charity, spoken as a number word that satisfies the digit key 90."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "New office location: Unit 3, ___",
+          "answer": "Station Approach",
+          "maxWords": 2,
+          "explanation": "The office address is given as \"Unit three, Station Approach\", explicitly distinguished from the old office near the main entrance."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What has recently been found on platform two?",
+          "options": [
+            "a black rucksack",
+            "a passport",
+            "a driving licence"
+          ],
+          "answer": 0,
+          "explanation": "The message gives an example of a current item: \"a black rucksack was found on platform two, left on a train from Dover.\" The other two options are documents needed to collect an item, not items themselves."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Where exactly is the lost property office now located?",
+          "options": [
+            "at the main entrance",
+            "next to the ticket barriers",
+            "on platform two"
+          ],
+          "answer": 1,
+          "explanation": "The message specifies the office is \"next to the ticket barriers, not the main entrance, where the old office used to be\" — a direct correction of the old location."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What eventually happens to items that are never collected?",
+          "options": [
+            "they are destroyed",
+            "they are sold at the station",
+            "they are given to charity"
+          ],
+          "answer": 2,
+          "explanation": "After ninety days, \"unclaimed items are passed on to a local charity\", which rules out destruction or resale."
+        }
+      ]
+    }
+  ]
+}

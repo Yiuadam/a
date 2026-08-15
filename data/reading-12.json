@@ -1,0 +1,145 @@
+{
+  "id": "reading-12",
+  "title": "Honeybees and the Business of Pollination",
+  "topic": "The role of managed honeybees in farming and the risks they face",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 18,
+  "passage": "Most people think of honey when they think of bees, but for modern farming the more important product is not honey at all. It is pollination, the transfer of pollen from one flower to another so that a plant can produce fruit or seed. Many crops that people eat every day, including apples, almonds, strawberries and blueberries, depend heavily on insects to carry pollen between flowers, and the honeybee is by far the most useful insect for this job.\n\nA honeybee is well suited to pollination almost by accident. While searching for nectar to bring back to its hive, a bee brushes against the pollen-producing part of a flower, and grains of pollen stick to the fine hairs covering its body. When the bee visits the next flower, some of that pollen rubs off onto the new flower's female parts, allowing fertilisation to occur. A single bee may visit several hundred flowers in one day, which makes a hive of tens of thousands of bees an extremely efficient pollination machine.\n\nBecause of this, farmers with large fields of a single crop often cannot rely on wild insects alone. A field of almond trees stretching for kilometres in every direction offers too many flowers, opening for too short a time, for local wild bees to manage. To solve this problem, an entire industry has grown up around renting honeybees. Beekeepers load thousands of hives onto trucks and drive them to farms just as the crop begins to flower, leave the bees there for a few weeks, and then move on to the next farm whose crop is flowering. In some regions, this movement of hives happens on a huge scale, with millions of colonies transported across a country each spring.\n\nThis rented-pollination system works well when the bees are healthy, but honeybee health has become a serious worry over the last twenty years. Beekeepers in several countries have reported unusually high losses of colonies, sometimes losing a third or more of their hives in a single winter. Several causes appear to be involved together rather than any single one acting alone. A tiny parasite called the varroa mite attaches itself to bees and spreads viruses between them. Farming practices that reduce the variety of flowers available, such as replacing wildflower meadows with a single crop, leave bees with a narrower diet. Certain pesticides, particularly a group called neonicotinoids, have been shown in research to affect bees' ability to navigate back to their hive.\n\nThe economic value of pollination is difficult to calculate exactly, but researchers who have attempted it place it in the hundreds of billions of dollars each year worldwide, once the full range of pollinated crops is counted. This figure is not simply the value of honey sold; it is an estimate of what farmers would lose if pollination stopped happening at its current scale. For some crops, such as almonds, there is effectively no substitute for insect pollination at all, since the trees cannot easily be pollinated by wind or by hand across such large areas.\n\nHand pollination has, in fact, been tried in places where wild and managed bee populations have collapsed. In parts of China, workers have climbed apple and pear trees carrying pots of pollen and small brushes, touching each flower individually to fertilise it by hand. The method works, but it is extremely slow and expensive compared with a hive of bees doing the same task automatically and for free. Few farmers regard hand pollination as a real long-term solution; most see it as evidence of what happens once natural pollination has already failed.\n\nGovernments and researchers have responded to the decline in bee health in several ways. Some countries have restricted or banned the use of neonicotinoid pesticides on flowering crops. Conservation groups have encouraged farmers to leave strips of wildflowers around the edges of fields, giving bees a more varied diet and a place to nest away from the crop itself. Breeding programmes are attempting to produce bees that resist the varroa mite more successfully. None of these measures alone is expected to solve the problem completely, but together they aim to keep the pollination system that so much of modern agriculture quietly depends upon from breaking down.\n\nWhat is clear is that the honeybee, an insect most people encounter only briefly in a garden or a park, sits at the centre of a much larger and more fragile system. The apples and almonds sold in a supermarket carry, hidden inside their price, the labour of an insect whose health is now closely watched by an industry that cannot function without it.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "Honey is the most economically important product bees provide to modern farming.",
+          "answer": "FALSE",
+          "explanation": "The passage says \"for modern farming the more important product is not honey at all\" but pollination. The statement claims the opposite, so FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Pollen sticks to a bee's body because of the fine hairs covering it.",
+          "answer": "TRUE",
+          "explanation": "Paragraph 2 gives the exact reason: pollen sticks to the fine hairs on a bee's body. The statement restates this cause-and-effect, so TRUE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "Wild bees are usually sufficient to pollinate very large single-crop fields.",
+          "answer": "FALSE",
+          "explanation": "The passage says such fields offer \"too many flowers, opening for too short a time, for local wild bees to manage\" — the opposite of sufficient, so FALSE."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "The varroa mite kills bees directly through its bite.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage says the mite \"spreads viruses between them\", but never says it kills bees directly through its bite. NOT GIVEN."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Hand pollination is generally seen as a permanent replacement for bees.",
+          "answer": "FALSE",
+          "explanation": "Paragraph 6 says almost the opposite of the statement: few farmers see hand pollination as a real long-term solution. Because the passage directly denies this, the answer is FALSE, not NOT GIVEN."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "Why do beekeepers move hives from farm to farm?",
+          "options": [
+            "To collect different types of honey for sale.",
+            "To follow crops as they come into flower at different times.",
+            "Because bees cannot survive in one location for long.",
+            "Because government regulations require it."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 3 describes beekeepers driving hives to a farm as its crop flowers, then moving to the next farm whose crop is flowering next — this is option B, not honey collection or survival."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "According to the passage, what group of factors is believed to cause colony losses?",
+          "options": [
+            "A single virus that affects only certain bee species.",
+            "Several causes acting together, including parasites, diet and pesticides.",
+            "Cold winters alone, unrelated to farming practices.",
+            "Overcrowding of hives during transport."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 4 says several causes act together, then lists the mite, reduced flower variety and pesticides — exactly the combination option B describes, ruling out the single-cause options A, C and D."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What does the passage say about the economic value placed on pollination?",
+          "options": [
+            "It is calculated solely from honey sales.",
+            "It is an estimate of the loss farmers would face without insect pollination.",
+            "It has been precisely measured by international agreement.",
+            "It applies only to almond farming."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 5 says the figure is an estimate of the loss farmers would face without pollination, and directly rules out option A by saying it is 'not simply the value of honey sold'."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Why is hand pollination in China mentioned in the passage?",
+          "options": [
+            "To show a practical, low-cost solution other regions should copy.",
+            "To illustrate what happens once natural pollination has already broken down.",
+            "To argue that bees are no longer needed for apple and pear trees.",
+            "To describe a government-funded research programme."
+          ],
+          "answer": 1,
+          "explanation": "The text says most people \"see it as evidence of what happens once natural pollination has already failed\", not as a solution to copy."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "A tiny parasite called the ___ attaches itself to bees and spreads viruses.",
+          "answer": "varroa mite",
+          "maxWords": 2,
+          "explanation": "Paragraph 4 names the parasite directly after the words 'a tiny parasite called', so 'varroa mite' fills the gap and stays within the two-word limit."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "A group of pesticides called ___ have been shown to affect bees' navigation.",
+          "answer": "neonicotinoids",
+          "maxWords": 2,
+          "explanation": "Paragraph 4 names this pesticide group right after 'a group called', which is the same phrasing the question uses, so the answer is 'neonicotinoids'."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "Conservation groups encourage farmers to leave strips of ___ around field edges.",
+          "answer": "wildflowers",
+          "maxWords": 2,
+          "explanation": "Paragraph 7 says conservation groups encourage exactly this: strips of wildflowers at field edges, which gives the missing word."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "Breeding programmes aim to produce bees that resist the ___ more successfully.",
+          "answer": "varroa mite",
+          "maxWords": 2,
+          "explanation": "Paragraph 7 names the same parasite as q10, the varroa mite, as the target of the breeding programmes described here."
+        }
+      ]
+    }
+  ]
+}

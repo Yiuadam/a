@@ -1,0 +1,128 @@
+{
+  "id": "listening-17",
+  "title": "Welcome to Harborne Museum",
+  "context": "A recorded welcome talk introduces visitors to a local history museum and explains how to find their way around.",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 12,
+  "speakers": [
+    "Guide"
+  ],
+  "script": [
+    { "speaker": "Guide", "text": "Welcome to Harborne Museum, and thank you for picking up an audio guide. Before you start exploring, let me quickly explain how the museum is organised, so you don't miss anything." },
+    { "speaker": "Guide", "text": "The museum has three floors. The ground floor covers the town's early history, from its beginnings as a small fishing village right up to the arrival of the railway. The first floor, upstairs, is dedicated to the industrial period, when the town's population grew rapidly because of the new textile mills. And the second floor, right at the top, is our temporary exhibition space, which changes every few months." },
+    { "speaker": "Guide", "text": "I should mention that the current temporary exhibition was originally going to be about local shipbuilding, but that's been postponed until next year. Instead, the second floor currently holds an exhibition on wartime life in the town, which runs until the end of this year." },
+    { "speaker": "Guide", "text": "As you move around, look out for the small blue numbers on the wall beside certain objects. These correspond to numbered stops on this audio guide — just press the matching number on your handset to hear more." },
+    { "speaker": "Guide", "text": "One object not to miss is on the ground floor: a wooden fishing boat, over two hundred years old, which was actually found buried in mud near the old harbour rather than kept above ground the whole time, which is part of why it survived so well." },
+    { "speaker": "Guide", "text": "If you get hungry, the café is on the ground floor, near the main entrance, and serves light lunches until three p.m. After that, only drinks and cakes are available, so do plan your lunch break accordingly." },
+    { "speaker": "Guide", "text": "Toilets are located on every floor, but the accessible toilet is only on the ground floor, next to the cloakroom." },
+    { "speaker": "Guide", "text": "Photography is welcome throughout the museum, but please don't use flash near the textile exhibits on the first floor, as the strong light can damage the fabric over time." },
+    { "speaker": "Guide", "text": "The museum shop is on the ground floor as well, close to the exit, and sells books, postcards, and replicas of some of the smaller objects on display." },
+    { "speaker": "Guide", "text": "We close at five p.m. on weekdays, but stay open later, until seven p.m., on Thursdays, to give people who work during the day a chance to visit after their working hours." },
+    { "speaker": "Guide", "text": "That's everything you need to get started. Enjoy your visit, and remember, if you have any questions at all, our staff in green jackets are happy to help throughout the museum." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN THREE WORDS for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "First floor topic: the ___ period",
+          "answer": "industrial",
+          "maxWords": 1,
+          "explanation": "The guide explains the first floor \"is dedicated to the industrial period, when the town's population grew rapidly because of the new textile mills.\""
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Current temporary exhibition topic: ___ life in the town",
+          "answer": "wartime",
+          "maxWords": 1,
+          "explanation": "A shipbuilding exhibition was planned but postponed; instead, the second floor \"currently holds an exhibition on wartime life in the town.\""
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Small blue numbers correspond to numbered ___ on the audio guide",
+          "answer": "stops",
+          "maxWords": 1,
+          "explanation": "The guide says the blue numbers \"correspond to numbered stops on this audio guide,\" and you press the matching number to hear more."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "The fishing boat was found buried in ___ near the old harbour",
+          "answer": "mud",
+          "maxWords": 1,
+          "explanation": "The boat \"was actually found buried in mud near the old harbour,\" which is explained as part of why it survived so well."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "The café serves light lunches until: ___",
+          "answer": "three p.m.",
+          "maxWords": 2,
+          "explanation": "The guide specifies lunches are served \"until three p.m.,\" after which only drinks and cakes are available."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "The accessible toilet is located on the ground floor, next to the ___",
+          "answer": "cloakroom",
+          "maxWords": 1,
+          "explanation": "While toilets exist on every floor, the guide clarifies the accessible one \"is only on the ground floor, next to the cloakroom.\""
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Museum closing time on Thursdays: ___",
+          "answer": "seven p.m.",
+          "maxWords": 2,
+          "explanation": "The museum closes at five p.m. on weekdays generally, but the guide corrects this for one day: \"stay open later, until seven p.m., on Thursdays.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What does the ground floor mainly cover?",
+          "options": [
+            "the industrial period",
+            "the town's early history up to the railway",
+            "wartime life in the town"
+          ],
+          "answer": 1,
+          "explanation": "The ground floor covers \"the town's early history, from its beginnings as a small fishing village right up to the arrival of the railway.\""
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Why should visitors avoid using flash photography on the first floor?",
+          "options": [
+            "it disturbs other visitors",
+            "it can damage the textile exhibits over time",
+            "photography is banned there completely"
+          ],
+          "answer": 1,
+          "explanation": "Photography is allowed throughout, but flash near the textile exhibits is discouraged because \"the strong light can damage the fabric over time.\""
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "How can a visitor identify a staff member who can answer questions?",
+          "options": [
+            "they wear green jackets",
+            "they stand near the museum shop",
+            "they carry an audio guide handset"
+          ],
+          "answer": 0,
+          "explanation": "The guide closes by saying \"our staff in green jackets are happy to help throughout the museum,\" identifying them by their clothing."
+        }
+      ]
+    }
+  ]
+}

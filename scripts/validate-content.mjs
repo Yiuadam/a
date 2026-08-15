@@ -16,6 +16,22 @@ const DATA = join(process.cwd(), "data");
 const problems = [];
 const fail = (file, message) => problems.push(`${file}: ${message}`);
 
+// Mirrors lib/band.ts's LEVELS — kept as a literal here because the validator
+// only imports node:fs and must not reach into app code to get it.
+const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
+
+/*
+  Every piece of practice content now carries a CEFR level alongside its
+  difficulty, so a learner can place it on the same scale their placement
+  result already speaks. A missing or bogus level is as unshippable as a
+  missing explanation.
+*/
+function checkLevel(file, item, label) {
+  if (!CEFR_LEVELS.includes(item?.level)) {
+    fail(file, `${label} has an unknown CEFR level: ${item?.level}`);
+  }
+}
+
 function load(name) {
   try {
     return JSON.parse(readFileSync(join(DATA, name), "utf8"));
@@ -340,6 +356,7 @@ for (const name of readingPapers) {
   if (words < 600 || words > 1100) {
     fail(name, `passage is ${words} words; IELTS passages run roughly 700-1000`);
   }
+  checkLevel(name, test, "the paper");
   checkQuestions(name, test.questions, test.passage, 13);
 }
 
@@ -358,6 +375,7 @@ for (const name of listeningPapers) {
       fail(name, `script uses speaker "${turn.speaker}" which is not declared`);
     }
   }
+  checkLevel(name, test, "the paper");
   checkQuestions(name, test.questions, script, 10);
 }
 
@@ -369,6 +387,7 @@ if (writing) {
   for (const task of tasks) {
     if (![1, 2].includes(task.task)) fail("writing-tasks.json", `${task.id} has an invalid task number`);
     if (!task.prompt || !task.title) fail("writing-tasks.json", `${task.id} is missing a prompt or title`);
+    checkLevel("writing-tasks.json", task, task.id ?? "a task");
     if (task.task === 1 && task.variant === "academic" && !task.dataTable && !task.chart) {
       fail("writing-tasks.json", `${task.id} is an academic Task 1 with no data to describe`);
     }
@@ -495,11 +514,15 @@ if (speaking) {
       fail("speaking-topics.json", `${part} is empty`);
     }
   }
+  for (const topic of speaking.part1 ?? []) {
+    checkLevel("speaking-topics.json", topic, `part 1 topic "${topic.topic}"`);
+  }
   for (const card of speaking.part2 ?? []) {
     if (!card.cueCard) fail("speaking-topics.json", `${card.id} has no cue card`);
     if ((card.bullets ?? []).length !== 4) {
       fail("speaking-topics.json", `${card.id} needs exactly four bullet points`);
     }
+    checkLevel("speaking-topics.json", card, card.id ?? "a cue card");
   }
   // Part 3 extends the Part 2 topic, so every set needs a card to follow.
   const cardTopics = new Set((speaking.part2 ?? []).map((c) => c.topic));
@@ -507,6 +530,7 @@ if (speaking) {
     if (!cardTopics.has(set.topic)) {
       fail("speaking-topics.json", `part 3 topic "${set.topic}" has no matching cue card`);
     }
+    checkLevel("speaking-topics.json", set, `part 3 topic "${set.topic}"`);
   }
 }
 

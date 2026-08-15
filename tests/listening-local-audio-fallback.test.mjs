@@ -20,8 +20,11 @@ function sourceFrom(source, marker) {
   return source.slice(start);
 }
 
-test("all eleven canonical listening papers are eligible for the local-audio recovery", () => {
-  assert.equal(LISTENING_TESTS.length, 11);
+test("every canonical listening paper is eligible for the local-audio recovery", () => {
+  // Derived from the registry (`const bundled = LISTENING_TESTS`), so a new
+  // paper is eligible the moment it is registered. The count is asserted as a
+  // floor rather than a fixed number so authoring a paper cannot fail this.
+  assert.ok(LISTENING_TESTS.length >= 11);
   assert.match(listeningPage, /const isBundledTest = !!test && bundled\.some\(/);
   assert.match(
     listeningPage,

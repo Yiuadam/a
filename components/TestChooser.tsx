@@ -138,6 +138,10 @@ export default function TestChooser({
                   </>
                 ) : (
                   <>
+                    {/* CEFR code first, since it's the scale the placement result already speaks —
+                        and never lower-cased or capitalised, "B1" is not "b1" title-cased back up. */}
+                    <span>{objectiveTest?.level}</span>
+                    <span aria-hidden>·</span>
                     <span className="capitalize">{objectiveTest?.difficulty}</span>
                     <span aria-hidden>·</span>
                     <span>{objectiveTest ? questionCount(objectiveTest.questions) : 0} questions</span>

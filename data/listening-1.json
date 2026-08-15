@@ -3,6 +3,7 @@
   "title": "Booking a Badminton Class",
   "context": "A caller phones a leisure centre to book a place in a community badminton class.",
   "difficulty": "medium",
+  "level": "A2",
   "timeMinutes": 12,
   "speakers": [
     "Receptionist",
