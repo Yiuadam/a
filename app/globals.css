@@ -998,9 +998,13 @@ html[data-theme="dark"] .google-signin-glass {
   /* A cap rather than a fixed width. Pinning the rail open meant the switcher
      was drawn at its full width whatever it held, so a short organisation name
      sat in a pill several times its own length. The cap still stops a long
-     name pushing the view tabs sideways. */
+     name pushing the view tabs sideways.
+
+     Roomier than it was because this is now a row, not a stack: the settings
+     button and the switcher sit side by side on the same line as the view
+     tabs, so the cap has to hold both rather than the widest of the two. */
   width: auto;
-  max-width: min(15rem, 44vw);
+  max-width: min(21rem, 52vw);
 }
 
 .organization-membership-actions:not(:has(.organization-workspace-switcher)) {
@@ -1023,8 +1027,10 @@ html[data-theme="dark"] .google-signin-glass {
 
 .organization-workspace-switcher {
   width: auto;
+  /* min-width: 0 so a long organisation name shrinks inside the flex row
+     rather than pushing the settings button off the end of it. */
+  min-width: 0;
   max-width: 100%;
-  justify-self: end;
 }
 
 .organization-workspace-switcher > div > button {
@@ -1044,7 +1050,7 @@ html[data-theme="dark"] .google-signin-glass {
 @media (max-width: 639px) {
   .organization-membership-actions {
     width: auto;
-    max-width: min(10.5rem, 46vw);
+    max-width: min(15rem, 58vw);
   }
 
   .organization-workspace-switcher > div > button {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
+import CardIcon from "@/components/CardIcon";
 import {
   type Definition,
   favouriteWords,
@@ -76,10 +77,7 @@ export default function LookupHistoryCard({ compact = false }: LookupHistoryCard
         <span className="min-w-0">
           <span className="flex items-center gap-2">
             <span aria-hidden className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-800">
-              <svg viewBox="0 0 16 16" className="h-4 w-4 fill-current">
-                <path d="M3 2.25h7.1A2.9 2.9 0 0 1 13 5.15v8.6H5.9A2.9 2.9 0 0 0 3 16z" />
-                <path d="M1 2.25h1.25v13.5H1zM5.9 4h5.25v1.1H5.9zm0 2.5h5.25v1.1H5.9zm0 2.5h3.65v1.1H5.9z" fill="var(--glass-fill-strong)" />
-              </svg>
+              <CardIcon name="lookups" size={18} className="!text-current" />
             </span>
             <span className="text-base font-semibold text-slate-900">Lookup history</span>
           </span>

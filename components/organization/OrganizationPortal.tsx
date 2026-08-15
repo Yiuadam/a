@@ -570,7 +570,7 @@ function AdminWorkspaceSummary({
           <OrganizationViewTabs portal={portal} view={view} onOpen={onOpenView} />
         </div>
 
-        <div className="organization-membership-actions col-start-2 row-start-1 grid justify-items-end gap-1.5 lg:col-start-3">
+        <div className="organization-membership-actions col-start-2 row-start-1 flex items-center justify-end gap-2 lg:col-start-3">
           <OrganizationSettingsButton selected={settingsSelected} onClick={() => onOpenView("settings")} />
           <AdminOrganizationSwitcher
             organizations={portal.organizations ?? []}
@@ -714,13 +714,13 @@ function OrganizationSettingsButton({
   return (
     <button
       type="button"
-      className="organization-settings-button liquid-glass premade-glass relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-slate-200/75 bg-surface/45 shadow-sm transition-colors hover:bg-surface/70"
+      className="organization-settings-button liquid-glass premade-glass relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-slate-200/75 bg-surface/45 shadow-sm transition-colors hover:bg-surface/70"
       aria-label="Open organisation settings"
       aria-current={selected ? "page" : undefined}
       title="Organisation settings"
       onClick={onClick}
     >
-      <RefractiveGlassLayer radius={18} interactive />
+      <RefractiveGlassLayer radius={22} interactive />
       <CardIcon name="gear" size={18} className="relative z-10" />
     </button>
   );
@@ -895,7 +895,7 @@ function MembershipSummary({
           </div>
         )}
 
-        <div className="organization-membership-actions col-start-2 row-start-1 grid justify-items-end gap-1.5 lg:col-start-3">
+        <div className="organization-membership-actions col-start-2 row-start-1 flex items-center justify-end gap-2 lg:col-start-3">
           {(managerWorkspace || (membership.role === "student" && membership.status === "active")) && onOpenSettings && (
             <OrganizationSettingsButton selected={managerView === "settings"} onClick={onOpenSettings} />
           )}
