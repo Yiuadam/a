@@ -154,50 +154,53 @@ export function OrganizationCreateForm({ act, busy }: { act: Act; busy: boolean 
   const [form, setForm] = useState({ organizationName: "" });
   const set = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
+  /*
+    A plain section, the same GlassSection its sibling uses, rather than the
+    collapsed disclosure this was.
+
+    Collapsing made sense when the form was four fields deep and the card sat
+    behind an "Apply" toggle. With one field it never did: the grid
+    stretches both cards to a common height, so a collapsed card next to the
+    join card was a title, a caption and then a large panel of nothing — and
+    the thing it was hiding was smaller than the control used to hide it.
+
+    Both cards now come from the same component, which is also what keeps them
+    the same size: matching padding, matching radius, matching header, and one
+    place to change if any of that moves.
+  */
   return (
-    // This card sits beside JoinOrganizationForm in a two-up grid that the
-    // parent now stretches to equal height, and h-full is what lets this
-    // card take up that stretched cell instead of shrink-wrapping its own,
-    // shorter content.
-    <details
-      className="card group min-w-0 max-w-full h-full !rounded-[var(--radius-xl)] !p-0"
-      data-organization-create
+    <GlassSection
+      title="Create an organisation"
+      lead="For people who run a school or teaching team. You become its owner immediately, with nothing to wait for."
     >
-      <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 sm:px-4 [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0">
-          <span className="block text-[16px] font-semibold tracking-tight text-slate-900 sm:text-[17px]">
-            Create an organisation
-          </span>
-          <span className="mt-0.5 block text-[12px] leading-4 text-slate-500">
-            For people who run a school or teaching team.
-          </span>
-        </span>
-        <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-indigo-700">
-          <span>Create</span>
-          <span aria-hidden="true" className="text-base leading-none transition-transform group-open:rotate-90">›</span>
-        </span>
-      </summary>
-      <div className="border-t border-slate-200/65 px-3.5 pb-3.5 pt-3 sm:px-4 sm:pb-4">
-        <p className="mb-3 text-[12px] leading-4 text-slate-600 sm:text-[13px]">
-          Set up your organisation now. You become its owner immediately, with nothing to wait for.
-        </p>
-        <form
-          className="grid gap-3"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            await act("create_organization", form);
-          }}
+      <form
+        className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+        data-organization-create
+        onSubmit={async (event) => {
+          event.preventDefault();
+          await act("create_organization", form);
+        }}
+      >
+        <Field label="Organisation name">
+          <input
+            className={inputClass}
+            required
+            minLength={2}
+            maxLength={120}
+            autoComplete="organization"
+            placeholder="Your school or teaching team"
+            value={form.organizationName}
+            onChange={(e) => set("organizationName", e.target.value)}
+          />
+        </Field>
+        <button
+          type="submit"
+          className="btn-primary min-h-11 !rounded-[var(--radius-lg)] !px-4"
+          disabled={busy || form.organizationName.trim().length < 2}
         >
-          <Field label="Organisation name">
-            <input className={inputClass} required minLength={2} maxLength={120} value={form.organizationName} onChange={(e) => set("organizationName", e.target.value)} />
-          </Field>
-          <div>
-            <button type="submit" className="btn-primary" disabled={busy}>
-              Create organisation
-            </button>
-          </div>
-        </form>
-      </div>
-    </details>
+          Create
+        </button>
+      </form>
+    </GlassSection>
   );
 }
