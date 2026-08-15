@@ -21,8 +21,22 @@ export default function RequiredAccountGate({ children }: { children: React.Reac
   const { phase, profile } = useAccountProfile();
   const allowed = ALWAYS_REACHABLE.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   const waiting = phase === "loading" && !allowed;
-  const usernameReady = accountUsernameReady(profile)
-    && profile?.organizationUsernameReady !== false;
+  /*
+    A username is required to continue. Its copy reaching D1 is not.
+
+    The organisation-search readiness flag is false while that replica is
+    behind, and it used to be part of the same condition — so a learner
+    whose profile had saved perfectly was still held on the setup screen,
+    with "Do this later" running through the same failing path and no way
+    past it. A replica that is behind means a brand-new learner is briefly
+    not findable by username inside an organisation. It should never have
+    meant they could not have an account.
+
+    The read in app/api/account/profile/route.ts now re-attempts the copy
+    every time a profile loads, so this resolves itself rather than needing
+    a person to be stuck until it does.
+  */
+  const usernameReady = accountUsernameReady(profile);
   const blocked = phase === "ready" && !usernameReady && !allowed;
 
   useEffect(() => {

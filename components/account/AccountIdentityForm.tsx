@@ -55,11 +55,15 @@ function IdentityFields({ profile, onboarding }: { profile: ProfileFields; onboa
 
   async function doLater() {
     if (busy) return;
-    if (
-      profile.username
-      && username === profile.username
-      && profile.organizationUsernameReady !== false
-    ) {
+    /*
+      An unchanged username is an exit, whether or not its organisation-search
+      copy has caught up. The replica condition used to be part of this test,
+      which meant "Do this later" re-submitted into the very path that was
+      failing and returned the learner to this screen with an error. The copy
+      is repaired on the next profile read now, so there is nothing here worth
+      holding somebody for.
+    */
+    if (profile.username && username === profile.username) {
       router.replace(returnDestination());
       router.refresh();
       return;
