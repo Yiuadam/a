@@ -1062,13 +1062,30 @@ async function executeCommand(
     const statements: D1PreparedStatement[] = [
       action === "change_member_role"
         ? (requestedRole === "student" && target.role !== "student"
-          // Somebody converted into a student never gave the consent that
-          // request_to_join collects from a learner joining as one, so the
-          // conversion must not surface any history they had not agreed to
-          // share. A member who was already a student keeps whatever sharing
-          // they had — this only resets consent nobody actually gave.
+          /*
+            A converted student starts on the same footing as one who joined:
+            future history shared, pre-join history not.
+
+            Those are the values every other path already writes — creating an
+            organisation (owner), an approved join request, and an accepted
+            invitation all insert `1, 0`. Setting them here means a member who
+            is made a student is in exactly the state they would have been in
+            had they joined as one, rather than in a third state of their own
+            where a teacher sees nothing and nobody can tell why.
+
+            The owner asked for this deliberately, and it is worth being
+            plain about what it means: somebody who joined as a teacher and is
+            later made a student begins sharing the practice they do from that
+            moment, without being asked again. What it does NOT do is reach
+            backwards — share_pre_join_history stays 0, exactly as it does for
+            an ordinary joiner, so work done before they were a student is
+            still theirs alone until they say otherwise.
+
+            A member who was already a student keeps whatever sharing they had;
+            this branch only runs when the role is actually changing.
+          */
           ? db.prepare(`UPDATE organization_memberships
-              SET role = ?, share_future_history = 0, share_pre_join_history = 0, updated_at = ?
+              SET role = ?, share_future_history = 1, share_pre_join_history = 0, updated_at = ?
               WHERE id = ?`).bind(requestedRole, now, target.id)
           : db.prepare("UPDATE organization_memberships SET role = ?, updated_at = ? WHERE id = ?")
             .bind(requestedRole, now, target.id))

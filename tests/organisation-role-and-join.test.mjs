@@ -58,6 +58,7 @@ function runtimeD1(database) {
 
 const now = "2026-08-15T04:00:00.000Z";
 const earlier = "2026-08-01T04:00:00.000Z";
+const later = "2026-08-20T04:00:00.000Z";
 
 // Every id below is a distinct valid v4-shaped UUID so the id() validator in
 // organization-commands.ts accepts it without complaint.
@@ -131,9 +132,14 @@ function fixture() {
       ?, ?
     )
   `);
-  // teacher2's attempt was submitted before today's conversion, so it is
-  // exactly the practice history a converted member never consented to share.
+  /*
+    Two attempts for teacher2, on either side of the day they joined. A
+    converted student shares future history and not pre-join history — the
+    same split every ordinary joiner gets — so the earlier one must stay
+    private and the later one must surface.
+  */
   insertAttempt.run("74000000-0000-4000-8000-000000000001", ids.teacher2, earlier, now, now);
+  insertAttempt.run("74000000-0000-4000-8000-000000000002", ids.teacher2, later, now, now);
 
   return {
     database,
@@ -171,7 +177,7 @@ test("a manager can change a teacher into a student", async () => {
   }
 });
 
-test("converting a teacher to student clears both sharing flags", async () => {
+test("a converted student starts sharing exactly as a joining student does", async () => {
   const context = fixture();
   try {
     await commands.cloudflareOrganizationCommand(
@@ -182,14 +188,14 @@ test("converting a teacher to student clears both sharing flags", async () => {
     const row = context.database.prepare(
       "SELECT share_future_history, share_pre_join_history FROM organization_memberships WHERE organization_id = ? AND user_id = ?",
     ).get(ids.organization, ids.teacher2);
-    assert.equal(row.share_future_history, 0);
+    assert.equal(row.share_future_history, 1);
     assert.equal(row.share_pre_join_history, 0);
   } finally {
     context.database.close();
   }
 });
 
-test("a teacher assigned to the converted student sees none of their attempts, through the real visibility query", async () => {
+test("a converted student's work is shared from the day they joined, and not before it", async () => {
   const context = fixture();
   try {
     await commands.cloudflareOrganizationCommand(
@@ -212,8 +218,14 @@ test("a teacher assigned to the converted student sees none of their attempts, t
     );
     const seen = teacherPortal.students?.find((student) => student.userId === ids.teacher2);
     assert.ok(seen, "the converted student must still appear on the roster");
-    assert.equal(seen.completedAttempts, 0, "an attempt submitted before consent must not surface");
-    assert.equal(seen.lastActiveAt, null);
+    /*
+      One of teacher2's two attempts predates their membership and one follows
+      it. Exactly the later one counts: converting somebody to a student shares
+      what they do from the day they joined onward, and never reaches back into
+      the practice they did before the organisation existed for them.
+    */
+    assert.equal(seen.completedAttempts, 1, "work from after joining is shared");
+    assert.equal(seen.lastActiveAt, later, "and it is the later attempt, not the earlier one");
   } finally {
     context.database.close();
   }
