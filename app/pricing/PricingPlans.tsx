@@ -21,6 +21,7 @@ import {
   isPaidTier,
   perMonthEquivalent,
   plansForTier,
+  walletCurrency,
   type BillingInterval,
   type PlanId,
   type Tier,
@@ -185,7 +186,19 @@ function Price({
   );
 }
 
-export default function PricingPlans({ children }: { children?: ReactNode }) {
+export default function PricingPlans({
+  children,
+  initialCurrency,
+}: {
+  children?: ReactNode;
+  /**
+   * The reader's currency as the server already resolved it from their
+   * address, so the first paint carries the right money rather than the base
+   * currency corrected a round trip later. Null in the static iOS export,
+   * where there is no request to read — see lib/billing/region.ts.
+   */
+  initialCurrency?: string | null;
+}) {
   const account = useTier();
   const [interval, setInterval] = useState<BillingInterval>("month");
   const [config, setConfig] = useState<BillingConfig | null>(null);
@@ -270,16 +283,27 @@ export default function PricingPlans({ children }: { children?: ReactNode }) {
   const currentTier = account.tier;
   const checkoutOpen = configPhase === "ready" && config?.checkout === true;
   /*
-    The reader's currency, resolved server-side from their address. Falls back
-    to the base currency while the config is still loading, so the cards draw a
-    real price immediately rather than a dash that becomes a number.
+    The reader's currency, resolved server-side from their address — and now
+    known before this component ever mounts, because the page read it while
+    rendering and handed it down (lib/billing/region.ts).
+
+    That ordering is the whole point. This used to be `config?.currency ??
+    base`, so every reader in the world was shown Hong Kong dollars until a
+    round trip completed and then watched the number change. A price is not
+    something to get provisionally right: somebody in London read HK$4.90, and
+    somebody whose request failed went on reading it.
+
+    The config answer still wins when it arrives, because it comes from the
+    same server and costs nothing to prefer. The base currency remains at the
+    end of the chain for the static iOS export, which has no request to read
+    and so genuinely does not know until it asks.
   */
-  const currency = config?.currency ?? PLANS["plus-monthly"].currency;
+  const currency = config?.currency ?? initialCurrency ?? PLANS["plus-monthly"].currency;
 
   return (
-    <div className="pricing-plans space-y-2 sm:space-y-6">
+    <div className="pricing-plans space-y-2 sm:space-y-4">
       <div className="pricing-heading-row flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold leading-10 text-slate-900 sm:text-[26px]">
+        <h1 className="text-2xl font-semibold leading-8 text-slate-900 sm:text-[26px]">
           Plans
         </h1>
         <IntervalToggle value={interval} onChange={setInterval} />
@@ -293,14 +317,6 @@ export default function PricingPlans({ children }: { children?: ReactNode }) {
           className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-700"
         >
           {error}
-        </p>
-      )}
-
-      {account.phase === "ready" && account.accountsEnabled && account.signedIn && (
-        <p className="pricing-account-status text-right text-sm text-slate-500">
-          {currentTier === "admin"
-            ? "This account has no limits."
-            : `You're on ${TIERS[currentTier ?? "free"].name}.`}
         </p>
       )}
 
@@ -371,6 +387,7 @@ export default function PricingPlans({ children }: { children?: ReactNode }) {
                     configPhase={configPhase}
                     account={account}
                     busy={busy}
+                    currency={currency}
                     onStart={start}
                   />
                 )}
@@ -379,6 +396,23 @@ export default function PricingPlans({ children }: { children?: ReactNode }) {
           );
         })}
       </div>
+
+      {/*
+        Which plan you are on, below the deck rather than above it.
+
+        It was a line of its own between the heading and the cards, and it cost
+        about forty pixels there — enough, on a 1280x800 laptop, to push the
+        payment buttons off the bottom of the screen. It is not needed before
+        the cards anyway: the card you are on already wears a "Your plan" pill,
+        which says the same thing in the place you are looking.
+      */}
+      {account.phase === "ready" && account.accountsEnabled && account.signedIn && (
+        <p className="pricing-account-status text-right text-sm text-slate-500">
+          {currentTier === "admin"
+            ? "This account has no limits."
+            : `You're on ${TIERS[currentTier ?? "free"].name}.`}
+        </p>
+      )}
     </div>
   );
 }
@@ -419,6 +453,7 @@ function PaidAction({
   configPhase,
   account,
   busy,
+  currency,
   onStart,
 }: {
   isCurrent: boolean;
@@ -428,6 +463,8 @@ function PaidAction({
   configPhase: ConfigPhase;
   account: ReturnType<typeof useTier>;
   busy: boolean;
+  /** The reader's own currency, so the small print agrees with the big price. */
+  currency: string;
   onStart: (path: string, body?: unknown) => void;
 }) {
   /*
@@ -533,66 +570,93 @@ function PaidAction({
     Four facts, in the order somebody needs them: what it costs, how often,
     that it keeps going, and how to make it stop.
   */
+  const plan = PLANS[planId];
+  const period = plan.interval === "year" ? "year" : "month";
+  const cardPrice = formatPrice(amountIn(plan, currency), currency);
+  /*
+    What the wallet will charge, which is not always what the card charges.
+    Neither Alipay nor WeChat Pay accepts every currency the catalogue prices
+    in, so `walletCurrency` falls back to the base one where they do not — and
+    the sentence below then quotes the figure that will actually appear on
+    Stripe's page rather than the one this card happens to be showing.
+  */
+  const walletIn = walletCurrency(plan, currency);
+  const walletPrice = formatPrice(amountIn(plan, walletIn), walletIn);
+
   return (
     <div className="flex flex-col gap-2">
+      {/*
+        All of the small print, then both buttons, in that order.
+
+        The print stays above the buttons for the reason it always did — every
+        card in the row has to end on a button or the row looks broken, and the
+        renewal terms have to be in visual proximity to the control that agrees
+        to them. What changed is that there is now one block of print rather
+        than one above the card button and another wedged between the two, so
+        the buttons sit together and both are reachable without scrolling.
+      */}
+      <p className="text-xs leading-5 text-slate-500">
+        {planOffered && (
+          <>
+            {cardPrice} every {period} by card, renewing automatically until you cancel — cancel
+            any time from your billing page.{" "}
+          </>
+        )}
+        {walletOffered && (
+          <>
+            Alipay and WeChat Pay charge {walletPrice} once, for {plan.interval === "year" ? "one year" : "one month"},
+            and do not renew.{" "}
+          </>
+        )}
+        See the{" "}
+        <Link href="/terms" className="underline underline-offset-2 hover:text-slate-700">
+          terms
+        </Link>
+        .
+      </p>
+
       {planOffered && (
-        <>
-          <p className="text-xs leading-5 text-slate-500">
-            {formatPrice(PLANS[planId].amountMinor, PLANS[planId].currency)} every{" "}
-            {PLANS[planId].interval === "year" ? "year" : "month"}, renewing automatically until
-            you cancel. Cancel any time from your billing page. See the{" "}
-            <Link href="/terms" className="underline underline-offset-2 hover:text-slate-700">
-              terms
-            </Link>
-            .
-          </p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onStart("/api/billing/checkout", { plan: planId })}
-            className="pricing-subscribe-button btn-primary w-full"
-          >
-            {busy ? <LoadingIndicator label="Opening checkout…" announce={false} /> : "Subscribe by card"}
-          </button>
-        </>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onStart("/api/billing/checkout", { plan: planId })}
+          className="pricing-subscribe-button btn-primary w-full"
+        >
+          {busy ? <LoadingIndicator label="Opening checkout…" announce={false} /> : "Subscribe by card"}
+        </button>
       )}
 
       {walletOffered && (
-        <div className={planOffered ? "mt-2 border-t border-slate-300/70 pt-3" : ""}>
-          <p className="mb-2 text-xs leading-5 text-slate-500">
-            Alipay or WeChat Pay charges{" "}
-            {formatPrice(PLANS[planId].amountMinor, PLANS[planId].currency)} once for{" "}
-            {PLANS[planId].interval === "year" ? "one year" : "one month"} of prepaid access. It
-            does not renew automatically.
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                onStart("/api/billing/wallet-checkout", {
-                  plan: planId,
-                  method: "wechat_pay",
-                })
-              }
-              className="btn-secondary min-w-0 px-2"
-            >
-              WeChat Pay
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                onStart("/api/billing/wallet-checkout", {
-                  plan: planId,
-                  method: "alipay",
-                })
-              }
-              className="btn-secondary min-w-0 px-2"
-            >
-              Alipay
-            </button>
-          </div>
+        <div>
+          {/*
+            One button for both wallets, where there were two.
+
+            They were two because the old Checkout Session named a single
+            payment method. It does not have to: a Session can list both, and
+            then Stripe's own page offers the choice — on the screen where the
+            buyer can see each one's logo and, for WeChat, the QR code. Asking
+            them to commit to a wallet before they have left this page was
+            asking the question in the wrong place, and it cost a whole row of
+            the card, which is what pushed these buttons off the bottom of the
+            screen.
+
+            It cannot swallow the card button as well. A card sale is a
+            subscription that renews and a wallet sale is a single prepaid
+            payment; Stripe models those as different Session modes, so one
+            Session cannot be both. They sit next to each other instead.
+          */}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onStart("/api/billing/wallet-checkout", { plan: planId })}
+            className="pricing-wallet-button btn-secondary w-full"
+          >
+            {busy ? (
+              <LoadingIndicator label="Opening checkout…" announce={false} />
+            ) : (
+              "Pay once with Alipay or WeChat Pay"
+            )}
+          </button>
         </div>
       )}
     </div>
