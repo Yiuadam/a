@@ -329,3 +329,46 @@ test("demoting to student is still refused, with the history-sharing reason, eve
     context.database.close();
   }
 });
+
+/*
+  The roster has to show the people the commands above can act on.
+
+  The command layer is only half of "a manager can remove the manager role".
+  The team grid used to render teachers and students and nothing else, which
+  was harmless while only an owner could appoint a manager — but the moment a
+  manager can, promoting somebody made them vanish from the roster, and no
+  screen anywhere could demote them again. The grant worked and the removal
+  was unreachable.
+
+  Asserted against the source because this is a rendering rule in a component
+  that needs a signed-in portal to mount. It is a weaker check than the
+  behavioural ones above and is written that way deliberately, rather than
+  left out because it was awkward to reach.
+*/
+test("owners and managers are rendered in the roster, or the demotion has no button", () => {
+  const portal = readFileSync(
+    join(process.cwd(), "components", "organization", "OrganizationPortal.tsx"),
+    "utf8",
+  );
+  const groups = portal.slice(portal.indexOf("function TeamGroups"), portal.indexOf("function JoinCodeCard"));
+
+  assert.match(
+    groups,
+    /const leaders = members\.filter\(\(member\) => member\.role === "manager" \|\| member\.role === "owner"\)/,
+    "managers and the owner must be selected out of the member list",
+  );
+  assert.match(groups, /Owners and managers/, "and given a visible section of their own");
+
+  // Management controls against a manager, and deliberately none against an
+  // owner — the server refuses every one of those, and a button that always
+  // fails is worse than no button.
+  assert.match(
+    groups,
+    /leader\.role === "manager" && \(\s*<MemberManagement/,
+    "a manager row must carry the controls that demote it",
+  );
+
+  // The empty state has to account for the new group too, or an organisation
+  // with only an owner reads as empty.
+  assert.doesNotMatch(groups, /No teachers or students are visible/);
+});

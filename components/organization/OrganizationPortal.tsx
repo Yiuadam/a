@@ -2522,6 +2522,22 @@ function TeamGroups({ members, assignments, organizationId, act, busy }: {
   const [pendingUnassign, setPendingUnassign] = useState<string | null>(null);
   const teachers = members.filter((member) => member.role === "teacher");
   const students = members.filter((member) => member.role === "student");
+  /*
+    Managers and the owner are listed too, and this is not cosmetic.
+
+    This grid used to render teachers and students only, which was fine while
+    only an owner could appoint a manager. Now that a manager can, leaving
+    them out would mean promoting somebody to manager made them *disappear*
+    from the roster, with nothing anywhere able to demote them again — the
+    grant would work and the removal would be unreachable, which is half a
+    feature and the wrong half.
+
+    The owner appears for a different reason: so that a manager can see who
+    they are. No controls are drawn against them, because the server refuses
+    every one of them anyway ("Only BandUp can manage an owner"), and a button
+    that always fails is worse than no button.
+  */
+  const leaders = members.filter((member) => member.role === "manager" || member.role === "owner");
   const assignedIds = new Set(assignments.map((assignment) => assignment.studentUserId));
   const groups = teachers.map((teacher) => ({
     teacher,
@@ -2533,8 +2549,29 @@ function TeamGroups({ members, assignments, organizationId, act, busy }: {
     const timeout = window.setTimeout(() => setPendingUnassign(null), 6_000);
     return () => window.clearTimeout(timeout);
   }, [pendingUnassign]);
-  if (groups.length === 0 && unassigned.length === 0) return <EmptyState>No teachers or students are visible.</EmptyState>;
+  if (groups.length === 0 && unassigned.length === 0 && leaders.length === 0) {
+    return <EmptyState>Nobody is visible in this organisation yet.</EmptyState>;
+  }
   return (
+    <>
+    {leaders.length > 0 && (
+      <section className="card mt-1.5 min-w-0 !rounded-[var(--radius-xl)]">
+        <h4 className="mb-1.5 text-xs font-semibold text-slate-600">Owners and managers</h4>
+        <div className="space-y-1.5">
+          {leaders.map((leader) => (
+            <div key={leader.userId} className="rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <span className="min-w-0 flex-1"><Person name={leader.displayName} email={leader.email} avatarUrl={leader.avatarUrl} /></span>
+                <StatusPill>{titleCase(leader.role)}</StatusPill>
+              </div>
+              {leader.role === "manager" && (
+                <MemberManagement member={leader} organizationId={organizationId} act={act} busy={busy} compact />
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
     <div className="organization-team-pairing-grid mt-1.5 grid gap-2 lg:grid-cols-2">
       {groups.map(({ teacher, students: groupStudents }) => (
         <section key={teacher.userId} className="organization-team-pairing-group card min-w-0 !rounded-[var(--radius-xl)]">
@@ -2607,6 +2644,7 @@ function TeamGroups({ members, assignments, organizationId, act, busy }: {
         </section>
       )}
     </div>
+    </>
   );
 }
 
