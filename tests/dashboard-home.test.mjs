@@ -77,7 +77,20 @@ test("the small homepage response is validated before it becomes a link", () => 
 test("the homepage uses organisation, score-trend, then placement priority", () => {
   const source = readFileSync(join(process.cwd(), "app", "page.tsx"), "utf8");
   assert.match(source, /organization \? \([\s\S]*?<OrganisationHero/);
-  assert.match(source, /\) : placement \? \([\s\S]*?<ScoreTrendOverview/);
+  /*
+    This assertion used to match a bare `placement ? (`, which was the actual
+    production bug: any truthy object — including an empty or malformed one —
+    took this branch and rendered a "Placement band" line and badge from
+    whatever was in it. A missing/zero band happens to display as exactly
+    "1", the floor every band-clamping formula in this codebase shares (see
+    lib/band.ts), which reads as a genuine low score rather than the absence
+    of one. The guard now requires isValidPlacement — a real band on the 1-9
+    scale and a parseable date — so a malformed or emptied-out placement
+    record can never pass this check. See lib/placement.ts and
+    tests/placement-adaptive.test.mjs for the guard itself.
+  */
+  assert.match(source, /\) : isValidPlacement\(placement\) \? \([\s\S]*?<ScoreTrendOverview/);
+  assert.match(source, /import \{ isValidPlacement \} from "@\/lib\/placement";/);
   assert.match(source, /<PlacementHero \/>/);
   assert.match(source, /TREND_MODULES\.map/);
   assert.match(source, /href=\{`\/history\?module=\$\{module\}`\}/);

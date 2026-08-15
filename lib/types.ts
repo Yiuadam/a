@@ -401,6 +401,17 @@ export interface Profile {
    */
   historyClearedAt?: string;
   /**
+   * A placement deletion tombstone, kept deliberately separate from
+   * historyClearedAt: "Clear all history"
+   * (components/history/ClearHistoryButton.tsx) clears results and mock
+   * reports only and must not touch placement, while "clear this device"
+   * (components/account/ClearDeviceSection.tsx) clears both together. A
+   * placement dated at or before this instant is treated as cleared when an
+   * older device or account snapshot syncs again; one dated after it — a
+   * genuine re-sit — still merges in normally.
+   */
+  placementClearedAt?: string;
+  /**
    * Generated-paper deletion tombstones, keyed by the paper id.
    *
    * Removing an item from `genTests` is ambiguous during a two-device merge:

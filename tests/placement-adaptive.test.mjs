@@ -109,3 +109,46 @@ test("the reported interval comes from posterior quantiles and contains the esti
   assert.ok(high >= estimate);
   assert.ok(high > low, "a short placement test must not claim zero uncertainty");
 });
+
+test("isValidPlacement requires a real band on the 1-9 scale and a parseable date", () => {
+  const valid = { band: 6.5, date: "2026-08-01T10:00:00.000Z", bySkill: {}, byLevel: {} };
+  assert.equal(placement.isValidPlacement(valid), true);
+
+  assert.equal(placement.isValidPlacement(null), false);
+  assert.equal(placement.isValidPlacement(undefined), false);
+  assert.equal(
+    placement.isValidPlacement({}),
+    false,
+    "an empty-but-truthy object must not pass as a genuine placement",
+  );
+  assert.equal(
+    placement.isValidPlacement({ date: "2026-08-01T10:00:00.000Z" }),
+    false,
+    "a missing band must not be treated as a real placement",
+  );
+  assert.equal(
+    placement.isValidPlacement({ band: 0, date: "2026-08-01T10:00:00.000Z" }),
+    false,
+    "band 0 is below the floor of the real 1-9 scale — this is the exact shape of the production bug",
+  );
+  assert.equal(placement.isValidPlacement({ band: 10, date: "2026-08-01T10:00:00.000Z" }), false);
+  assert.equal(
+    placement.isValidPlacement({ band: Number.NaN, date: "2026-08-01T10:00:00.000Z" }),
+    false,
+  );
+  assert.equal(
+    placement.isValidPlacement({ band: "6", date: "2026-08-01T10:00:00.000Z" }),
+    false,
+    "a stringly-typed band must not pass",
+  );
+  assert.equal(
+    placement.isValidPlacement({ band: 6, date: "not-a-date" }),
+    false,
+    "an unparseable date must not be treated as a real placement",
+  );
+  assert.equal(
+    placement.isValidPlacement({ band: 6 }),
+    false,
+    "a missing date must not be treated as a real placement",
+  );
+});

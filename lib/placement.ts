@@ -398,3 +398,29 @@ export function finishAdaptive(state: AdaptiveState): PlacementResult {
     byLevel,
   };
 }
+
+/**
+ * Whether a placement record is real enough to show: a band actually on the
+ * 1-9 IELTS scale, and a date that parses.
+ *
+ * A truthy-but-empty or malformed placement object must never be mistaken for
+ * a genuine sitting. This guards app/page.tsx's dashboard, which used to
+ * decide what to render with a bare `placement ? ... : ...` — truthy enough
+ * for any object, including one with no real band in it — and a missing band
+ * happened to display as exactly "1", the floor every band-clamping formula
+ * in this codebase shares, which reads as a real (if poor) score rather than
+ * the absence of one.
+ */
+export function isValidPlacement(
+  value: PlacementResult | null | undefined,
+): value is PlacementResult {
+  return (
+    value != null
+    && typeof value.band === "number"
+    && Number.isFinite(value.band)
+    && value.band >= 1
+    && value.band <= 9
+    && typeof value.date === "string"
+    && Number.isFinite(Date.parse(value.date))
+  );
+}

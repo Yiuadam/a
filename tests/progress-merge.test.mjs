@@ -162,6 +162,59 @@ test("a device that never sat the placement cannot erase one that did", () => {
   assert.equal(mergeProfiles(local, remote, NEW, OLD).placement.band, 7);
 });
 
+/*
+  The confirmed production bug: "clear this device" wiped the tab, but the
+  account's placement was never told to go, so the very next ordinary sync
+  downloaded it straight back — placement merges independently of results by
+  design (the test above), and that design has no opinion about a device
+  clear at all. placementClearedAt is the fix: its own tombstone, so a clear
+  can finally say so.
+*/
+test("a placement-clear tombstone stops an older snapshot restoring the cleared placement", () => {
+  const clearedAt = "2026-08-14T09:00:00.000Z";
+  const stale = { placement: { band: 6, date: "2026-08-01T10:00:00.000Z" }, results: [] };
+  const cleared = { placement: undefined, placementClearedAt: clearedAt, results: [] };
+
+  const merged = mergeProfiles(stale, cleared, NEW, OLD);
+  assert.equal(merged.placement, undefined, "the pre-clear placement must not survive the merge");
+  assert.equal(merged.placementClearedAt, clearedAt);
+
+  // Order must not matter: the same result whichever side is "local".
+  const reversed = mergeProfiles(cleared, stale, OLD, NEW);
+  assert.equal(reversed.placement, undefined);
+});
+
+test("a placement sat again after a clear still merges in normally", () => {
+  // Requirement 3: clearing is the only thing that may remove a placement,
+  // and it must never cost a learner a real one. A learner who clears their
+  // laptop and then genuinely re-sits the test on their phone must still see
+  // the new result everywhere — the tombstone must not become permanent.
+  const clearedAt = "2026-08-14T09:00:00.000Z";
+  const cleared = { placementClearedAt: clearedAt, results: [] };
+  const freshlyRetaken = {
+    placement: { band: 6.5, date: "2026-08-14T10:00:00.000Z" }, // after the clear
+    results: [],
+  };
+
+  const merged = mergeProfiles(cleared, freshlyRetaken, OLD, NEW);
+  assert.equal(merged.placement.band, 6.5);
+  assert.equal(merged.placementClearedAt, clearedAt, "the tombstone itself is kept, just no longer suppresses anything");
+});
+
+test("placementClearedAt is independent of historyClearedAt: clearing history alone leaves placement alone", () => {
+  // components/history/ClearHistoryButton.tsx clears scores and mock reports
+  // only; it must never take the placement (and the study plan built on it)
+  // down with it.
+  const local = {
+    placement: { band: 6, date: "2026-08-01T10:00:00.000Z" },
+    historyClearedAt: "2026-08-14T09:00:00.000Z",
+    results: [],
+  };
+  const remote = { results: [] };
+  const merged = mergeProfiles(local, remote, NEW, OLD);
+  assert.equal(merged.placement.band, 6, "a history-only clear must not be read as a placement clear too");
+});
+
 test("an unset target band does not overwrite one that is set", () => {
   const merged = mergeProfiles({ results: [] }, { targetBand: 7, results: [] }, NEW, OLD);
   assert.equal(merged.targetBand, 7);

@@ -132,18 +132,39 @@ function placementStamp(placement: Profile["placement"] | null | undefined): num
   return date ? Date.parse(date) : null;
 }
 
+/**
+ * Whether a placement survives a placement-clear tombstone: present, and
+ * (while a clear is in effect) dated strictly after it. An undated placement
+ * cannot prove it was earned after the clear, so a clear in effect treats it
+ * the same as one from before it. With no clear in effect this is simply
+ * "is there a placement here at all", so it changes nothing about the
+ * ordinary cross-device case below.
+ */
+function survivesPlacementClear(
+  placement: Profile["placement"] | null | undefined,
+  clearedAt: number | null,
+): boolean {
+  if (placement == null) return false;
+  if (clearedAt === null) return true;
+  const stamp = placementStamp(placement);
+  return stamp !== null && stamp > clearedAt;
+}
+
 function mergePlacement(
   local: Profile["placement"] | null | undefined,
   remote: Profile["placement"] | null | undefined,
+  clearedAt: number | null,
 ): Profile["placement"] | undefined {
-  if (local == null) return remote ?? undefined;
-  if (remote == null) return local;
+  const localOk = survivesPlacementClear(local, clearedAt) ? local : null;
+  const remoteOk = survivesPlacementClear(remote, clearedAt) ? remote : null;
+  if (localOk == null) return remoteOk ?? undefined;
+  if (remoteOk == null) return localOk;
 
-  const localStamp = placementStamp(local);
-  const remoteStamp = placementStamp(remote);
-  if (localStamp === null) return remoteStamp === null ? local : remote;
-  if (remoteStamp === null) return local;
-  return remoteStamp > localStamp ? remote : local;
+  const localStamp = placementStamp(localOk);
+  const remoteStamp = placementStamp(remoteOk);
+  if (localStamp === null) return remoteStamp === null ? localOk : remoteOk;
+  if (remoteStamp === null) return localOk;
+  return remoteStamp > localStamp ? remoteOk : localOk;
 }
 
 /**
@@ -165,6 +186,7 @@ export function mergeProfiles(
   const b = remote ?? {};
   const remoteIsNewer = newer(remoteAt, localAt);
   const historyClearedAt = latestIso(a.historyClearedAt, b.historyClearedAt);
+  const placementClearedAt = latestIso(a.placementClearedAt, b.placementClearedAt);
 
   /*
     Every attempt from both devices, newest first. Sorting matters beyond
@@ -213,8 +235,20 @@ export function mergeProfiles(
     A placement is its own dated learner result. A device that has never sat
     the test cannot erase one that did, and a later target-band or plan change
     cannot hide a newer placement received from another browser.
+
+    placementClearedAt is the one deliberate exception, set only by "clear
+    this device" (components/account/ClearDeviceSection.tsx). It is its own
+    tombstone, independent of historyClearedAt, because "Clear all history"
+    (components/history/ClearHistoryButton.tsx) must not take placement down
+    with it. A placement dated at or before the tombstone is treated as
+    cleared; one dated after it — a genuine re-sit, on any device — merges in
+    exactly as before.
   */
-  const placement = mergePlacement(a.placement, b.placement);
+  const placement = mergePlacement(
+    a.placement,
+    b.placement,
+    placementClearedAt ? Date.parse(placementClearedAt) : null,
+  );
   const targetBand = remoteIsNewer
     ? (b.targetBand ?? a.targetBand)
     : (a.targetBand ?? b.targetBand);
@@ -248,6 +282,7 @@ export function mergeProfiles(
     results,
     mockReports,
     historyClearedAt,
+    placementClearedAt,
     deletedGenTests,
     genTests,
   };
