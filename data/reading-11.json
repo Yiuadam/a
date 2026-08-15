@@ -1,0 +1,145 @@
+{
+  "id": "reading-11",
+  "title": "The Umbrella: A Short History of Staying Dry",
+  "topic": "The invention and spread of the umbrella as a practical tool",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 18,
+  "passage": "The umbrella looks like a very simple object, but it took thousands of years to reach the shape we know today. The earliest umbrellas were not made to keep off rain at all. In ancient Egypt, China and Persia, servants held large fans of feathers or leaves above kings and important people to give them shade from the sun. A shadow, in these societies, was a sign of status. Only someone rich or powerful could afford to have another person stand beside them all day just to block the sunlight. For this reason, the word 'umbrella' comes from the Latin word 'umbra', which means shade, not rain.\n\nChina is usually credited with the first umbrellas that could also handle rain. By around two thousand years ago, Chinese craftsmen were making folding frames of bamboo and covering them with oiled paper or silk. The oil made the paper waterproof, so the same object that gave shade on a sunny day could also be opened during a shower. This double use was clever, and it spread slowly along trade routes into India, the Middle East and eventually Europe.\n\nFor a long time, Europeans treated the umbrella mainly as a woman's fashion accessory, used for sun protection rather than rain. Men who carried one in the rain, in cities such as London in the eighteenth century, were sometimes laughed at in the street, because carrying a covered stick suggested a man was too weak to get wet. This attitude changed largely because of one determined Englishman, Jonas Hanway. Hanway carried an umbrella publicly through London for around thirty years, ignoring the insults and the occasional thrown object, until the habit slowly became acceptable for men too. By the time he died in 1786, umbrellas were common enough that his name became linked with them in popular memory.\n\nThe biggest change to the umbrella's design came much later, in the nineteenth century, with the switch from wooden ribs to steel ones. Wooden ribs were heavy and could snap in strong wind. Steel ribs, first patented by Samuel Fox in 1852, were thinner, lighter and far more flexible, which meant an umbrella could bend in a gust and spring back instead of breaking. This single change made umbrellas cheap enough for almost anyone to own one, and it is still the basic technology inside most umbrellas sold today.\n\nModern umbrellas fall into a small number of families. The classic long umbrella, with a curved wooden or plastic handle, is designed to be carried like a walking stick and opened with a firm push. The folding umbrella, small enough to fit in a bag, became possible once engineers worked out how to make a telescopic shaft that slides in on itself. A third type, the golf umbrella, is built extra wide and extra strong for people who need to shelter more than one person, or who face very high winds on an open golf course.\n\nDesigners have tried for decades to solve the umbrella's oldest weakness: strong wind. A gust can turn an ordinary umbrella inside out in a second, snapping ribs that then have to be thrown away. Several recent designs address this directly. Some umbrellas now have vents cut into the canopy, small gaps that let wind pass through the fabric instead of pushing against it like a sail. Others use a double-canopy structure, with two layers of fabric that work together to release pressure in a storm. These umbrellas are more expensive, but owners report that they survive weather that would destroy a traditional model within minutes.\n\nDespite its age, the umbrella has not been replaced by any newer invention, which is unusual for such an old piece of technology. Raincoats keep the body dry but not the head, and they must be worn before it starts raining. An umbrella can be opened the moment the first drop falls, requires no special clothing underneath, and can be shared between two people standing close together. It remains, in short, a strangely difficult problem to improve upon: a design that reached something close to its final form more than a century and a half ago, and has needed only small adjustments ever since.\n\nOne thing has not changed at all. People still lose umbrellas constantly, leaving them on trains, in restaurants and under office desks. Transport companies in large cities report collecting thousands of forgotten umbrellas every single year, most of which are never claimed. For an object designed to protect its owner, the umbrella has always had a habit of being forgotten the moment the sky turns blue again.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "The earliest umbrellas were designed mainly to protect people from rain.",
+          "answer": "FALSE",
+          "explanation": "The passage says the earliest umbrellas gave shade from the sun, and that the word 'umbrella' comes from a word meaning shade, \"not rain\". So FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Chinese craftsmen made umbrella covers waterproof by adding oil to the paper.",
+          "answer": "TRUE",
+          "explanation": "Paragraph 2 says the oil made the paper waterproof, so the statement matches the passage word for word. That is why the answer is TRUE, not just similar to TRUE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "Jonas Hanway was praised by other Londoners as soon as he began carrying an umbrella.",
+          "answer": "FALSE",
+          "explanation": "The passage says he was \"sometimes laughed at\" and faced \"the occasional thrown object\" — the opposite of being praised at once, so FALSE."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Samuel Fox invented the folding umbrella.",
+          "answer": "NOT GIVEN",
+          "explanation": "Samuel Fox is linked to steel ribs, patented in 1852. The folding umbrella is discussed later but no inventor is named for it, so NOT GIVEN."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Umbrellas with vents let wind pass through the canopy instead of pushing against it.",
+          "answer": "TRUE",
+          "explanation": "The vents paragraph near the end describes exactly this: gaps that let wind pass through instead of pushing on the fabric. The statement is a close paraphrase of that sentence, so TRUE."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "Why was carrying a shade-giving fan a sign of status in ancient societies?",
+          "options": [
+            "Fans were extremely expensive to build.",
+            "Only rich people could pay for a servant to hold one all day.",
+            "Fans were only given to religious leaders.",
+            "They protected people from insects as well as sun."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 1 gives the reason directly: only a rich person could pay a servant to stand there all day. Options A, C and D are never mentioned, so B is the only one the passage supports."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What was the main advantage of steel ribs over wooden ones?",
+          "options": [
+            "They were cheaper to produce in China.",
+            "They could bend in wind and spring back instead of breaking.",
+            "They made umbrellas waterproof for the first time.",
+            "They allowed umbrellas to fold into a bag."
+          ],
+          "answer": 1,
+          "explanation": "Steel ribs \"could bend in a gust and spring back instead of breaking\", unlike wooden ribs, which \"could snap in strong wind\"."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "According to the passage, why has the umbrella not been replaced by newer technology?",
+          "options": [
+            "It is the cheapest form of rain protection available.",
+            "It can be opened instantly and shared, unlike a raincoat.",
+            "Governments require citizens to carry one.",
+            "No company has tried to design an alternative."
+          ],
+          "answer": 1,
+          "explanation": "The passage contrasts umbrellas with raincoats: an umbrella \"can be opened the moment the first drop falls\" and \"can be shared between two people\", while a raincoat must be worn in advance and does not cover the head."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What does the final paragraph say about lost umbrellas?",
+          "options": [
+            "Most lost umbrellas are eventually claimed by their owners.",
+            "Transport companies destroy umbrellas that are left behind.",
+            "Large numbers of umbrellas are left on transport and never collected.",
+            "Losing umbrellas became less common after steel ribs were introduced."
+          ],
+          "answer": 2,
+          "explanation": "The last paragraph says transport companies collect thousands of forgotten umbrellas each year and that most are never claimed — this matches option C directly and rules out A, which says the opposite."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN ONE WORD from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "The word 'umbrella' comes from a Latin word meaning ___.",
+          "answer": "shade",
+          "maxWords": 1,
+          "explanation": "The opening paragraph explains the word's origin: 'umbra' means shade. The sentence in the question is a direct copy of this part of the passage, so the missing word is 'shade'."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "Early Chinese umbrella frames were made of ___.",
+          "answer": "bamboo",
+          "maxWords": 1,
+          "explanation": "Paragraph 2 names the material used for the frame: bamboo. The paper and silk mentioned in the same sentence covered the frame, so they cannot be the answer to a question about what the frame itself was made of."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "The golf umbrella is built wide and strong to shelter more than one person, or for use on an open golf course in high ___.",
+          "answer": "winds",
+          "maxWords": 1,
+          "explanation": "\"Who face very high winds on an open golf course.\" The blank needs the exact plural form used in the passage."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "Some modern umbrellas use a double-canopy structure with two layers of ___ that release pressure in a storm.",
+          "answer": "fabric",
+          "maxWords": 1,
+          "explanation": "The sentence about double-canopy umbrellas names 'fabric' as the material used in the two layers, which fills the gap and satisfies the one-word limit."
+        }
+      ]
+    }
+  ]
+}

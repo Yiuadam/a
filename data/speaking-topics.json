@@ -2,6 +2,7 @@
   "part1": [
     {
       "topic": "Home",
+      "level": "A2",
       "questions": [
         "Do you live in a house or an apartment?",
         "What is your favourite room in your home? Why?",
@@ -12,6 +13,7 @@
     },
     {
       "topic": "Work/Study",
+      "level": "A2",
       "questions": [
         "Do you work or are you a student?",
         "What do you enjoy most about your work or studies?",
@@ -22,6 +24,7 @@
     },
     {
       "topic": "Hobbies",
+      "level": "A2",
       "questions": [
         "What do you like to do in your free time?",
         "Have your hobbies changed since you were a child?",
@@ -31,6 +34,7 @@
     },
     {
       "topic": "Food",
+      "level": "A2",
       "questions": [
         "What kind of food do you like to eat?",
         "Do you prefer eating at home or eating out? Why?",
@@ -41,6 +45,7 @@
     },
     {
       "topic": "Travel",
+      "level": "A2",
       "questions": [
         "Do you enjoy travelling?",
         "What is the most interesting place you have visited?",
@@ -50,6 +55,7 @@
     },
     {
       "topic": "Technology",
+      "level": "A2",
       "questions": [
         "How often do you use the internet?",
         "What do you mainly use your mobile phone for?",
@@ -57,12 +63,46 @@
         "Did you use computers when you were at primary school?",
         "Do you ever try to spend time away from screens?"
       ]
+    },
+    {
+      "topic": "Weather",
+      "level": "A1",
+      "questions": [
+        "What is the weather like where you live today?",
+        "What is your favourite season? Why?",
+        "Do you prefer hot weather or cold weather?",
+        "Does the weather change how you feel?",
+        "What clothes do you wear when it is cold?"
+      ]
+    },
+    {
+      "topic": "Music",
+      "level": "A2",
+      "questions": [
+        "What kind of music do you like listening to?",
+        "Do you play a musical instrument?",
+        "Did you listen to music as a child?",
+        "Do you prefer listening to music alone or with friends?",
+        "Is live music popular in your country?"
+      ]
+    },
+    {
+      "topic": "Neighbourhood",
+      "level": "A2",
+      "questions": [
+        "Can you describe the area where you live?",
+        "Do you know your neighbours well?",
+        "What facilities are there near your home?",
+        "Has your neighbourhood changed much in recent years?",
+        "Would you like to live somewhere else in the future?"
+      ]
     }
   ],
   "part2": [
     {
       "id": "c1",
       "topic": "An inspiring person",
+      "level": "B1",
       "cueCard": "Describe a person who has influenced you in an important way.",
       "bullets": [
         "who this person is",
@@ -78,6 +118,7 @@
     {
       "id": "c2",
       "topic": "A memorable place",
+      "level": "B1",
       "cueCard": "Describe a place you visited that made a strong impression on you.",
       "bullets": [
         "where this place is",
@@ -93,6 +134,7 @@
     {
       "id": "c3",
       "topic": "A special object",
+      "level": "B1",
       "cueCard": "Describe an object you own that is important to you.",
       "bullets": [
         "what the object is",
@@ -108,6 +150,7 @@
     {
       "id": "c4",
       "topic": "A memorable event",
+      "level": "B1",
       "cueCard": "Describe a celebration or event that you particularly enjoyed.",
       "bullets": [
         "what the event was",
@@ -123,6 +166,7 @@
     {
       "id": "c5",
       "topic": "A skill or activity",
+      "level": "B1",
       "cueCard": "Describe a skill or activity you learned that has been useful to you.",
       "bullets": [
         "what the skill or activity is",
@@ -138,6 +182,7 @@
     {
       "id": "c6",
       "topic": "Films and media",
+      "level": "B1",
       "cueCard": "Describe a film or television programme that you found particularly interesting.",
       "bullets": [
         "what it was about",
@@ -149,11 +194,76 @@
         "Have you watched it more than once?",
         "Do you usually watch this kind of programme?"
       ]
+    },
+    {
+      "id": "c7",
+      "topic": "A useful piece of technology",
+      "level": "B1",
+      "cueCard": "Describe a piece of technology that you find useful in your daily life.",
+      "bullets": [
+        "what the piece of technology is",
+        "when you started using it",
+        "how you use it",
+        "and explain why you find it useful"
+      ],
+      "followUp": [
+        "Could you manage without it?",
+        "Is there a newer version of it you would like to have?"
+      ]
+    },
+    {
+      "id": "c8",
+      "topic": "A journey you remember",
+      "level": "B1",
+      "cueCard": "Describe a journey that you remember well.",
+      "bullets": [
+        "where you went",
+        "how you travelled",
+        "who you went with",
+        "and explain why you remember this journey"
+      ],
+      "followUp": [
+        "Do you prefer long journeys or short ones?",
+        "What do you usually do to pass the time during a journey?"
+      ]
+    },
+    {
+      "id": "c9",
+      "topic": "A book you enjoyed",
+      "level": "B1",
+      "cueCard": "Describe a book that you enjoyed reading.",
+      "bullets": [
+        "what the book was about",
+        "when you read it",
+        "why you decided to read it",
+        "and explain why you enjoyed it"
+      ],
+      "followUp": [
+        "Do you read more or less than you used to?",
+        "Would you recommend this book to other people?"
+      ]
+    },
+    {
+      "id": "c10",
+      "topic": "A change you made in your life",
+      "level": "B2",
+      "cueCard": "Describe a change you made that had a positive effect on your life.",
+      "bullets": [
+        "what the change was",
+        "when you made it",
+        "why you decided to make it",
+        "and explain how it had a positive effect on you"
+      ],
+      "followUp": [
+        "Was it difficult to make this change?",
+        "Do you think people generally find change easy or difficult?"
+      ]
     }
   ],
   "part3": [
     {
       "topic": "An inspiring person",
+      "level": "B2",
       "questions": [
         "What qualities do you think make someone a good role model for young people?",
         "Do you think celebrities have too much influence on society today?",
@@ -164,6 +274,7 @@
     },
     {
       "topic": "A memorable place",
+      "level": "B2",
       "questions": [
         "Why do you think some places attract far more tourists than others?",
         "What are the advantages and disadvantages of tourism for a local community?",
@@ -174,6 +285,7 @@
     },
     {
       "topic": "A special object",
+      "level": "B2",
       "questions": [
         "Why do people become emotionally attached to certain possessions?",
         "Do you think modern society encourages people to buy more than they need?",
@@ -184,6 +296,7 @@
     },
     {
       "topic": "A memorable event",
+      "level": "B2",
       "questions": [
         "Why are traditional celebrations important to a society?",
         "Do you think festivals have become too commercialised in recent years?",
@@ -194,6 +307,7 @@
     },
     {
       "topic": "A skill or activity",
+      "level": "B2",
       "questions": [
         "Which skills do you think will be most important for people in the future?",
         "Is it easier to learn new skills as a child or as an adult? Why?",
@@ -204,12 +318,57 @@
     },
     {
       "topic": "Films and media",
+      "level": "B2",
       "questions": [
         "How do films and television influence people's views of other countries?",
         "Do you think streaming services will completely replace cinemas one day?",
         "Should there be stricter controls on what children can watch?",
         "In what ways can films be used for education as well as entertainment?",
         "Why do you think some films become internationally successful while others do not?"
+      ]
+    },
+    {
+      "topic": "A useful piece of technology",
+      "level": "B2",
+      "questions": [
+        "How has technology changed the way people communicate with each other?",
+        "Do you think older people find it harder to adapt to new technology than younger people?",
+        "What are the disadvantages of relying too heavily on technology in everyday life?",
+        "Should schools teach children how to use technology from a young age?",
+        "How might technology change the way people work in the future?"
+      ]
+    },
+    {
+      "topic": "A journey you remember",
+      "level": "B2",
+      "questions": [
+        "Why do you think travel has become more affordable for ordinary people?",
+        "What can people learn from travelling to other countries?",
+        "Do you think tourism benefits local economies more than it harms local environments?",
+        "How do you think transport will change in the next few decades?",
+        "Is it more valuable to travel for pleasure or for work? Why?"
+      ]
+    },
+    {
+      "topic": "A book you enjoyed",
+      "level": "C1",
+      "questions": [
+        "Do you think reading habits have changed since digital devices became common?",
+        "What benefits does reading fiction offer that other forms of entertainment do not?",
+        "Should schools require students to read certain books, or let them choose freely?",
+        "Do you think books will remain as influential in the future as they have been in the past?",
+        "How does the popularity of a book differ from its literary quality?"
+      ]
+    },
+    {
+      "topic": "A change you made in your life",
+      "level": "B2",
+      "questions": [
+        "Why do you think some people find change harder than others?",
+        "Is it better to plan a big change carefully or to decide quickly?",
+        "How does the attitude to changing career differ between older and younger people?",
+        "Do you think people change more because they want to or because they have to?",
+        "What role should a government play in helping people who lose their work to change?"
       ]
     }
   ]

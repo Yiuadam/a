@@ -1,0 +1,145 @@
+{
+  "id": "reading-18",
+  "title": "Coral Bleaching and the Limits of Recovery",
+  "topic": "The biology of coral bleaching and the prospects for reef survival under warming oceans",
+  "difficulty": "medium",
+  "level": "B2",
+  "timeMinutes": 20,
+  "passage": "Coral reefs occupy less than one percent of the ocean floor yet support roughly a quarter of all known marine species, a disproportion so large that reefs are often described as the rainforests of the sea. That comparison, though vivid, understates something important: unlike a rainforest, whose individual trees are themselves the organism providing structure, a coral reef's living architecture depends on a partnership between two entirely different kinds of organism, and it is the fragility of that partnership that now threatens reefs worldwide.\n\nA coral polyp, the tiny animal that builds the reef, is only part of the story. Living inside the polyp's tissue, in numbers that can reach millions per square centimetre, are microscopic algae called zooxanthellae. The relationship is mutually beneficial under normal conditions: the algae photosynthesise, using sunlight to produce sugars that supply most of the coral's energy, while the coral provides the algae with shelter and with carbon dioxide and other compounds the algae need. The algae also give coral its vivid colour; a healthy reef's reds, greens and purples come almost entirely from its resident algae rather than from the coral animal itself, which is largely translucent.\n\nThis partnership is remarkably sensitive to temperature. When water warms even slightly above a coral's normal tolerance, typically by only one or two degrees Celsius sustained over several weeks, the relationship breaks down. The exact biochemical trigger is still debated, but the outcome is consistent: the coral expels its algae, and with them its colour, exposing the white calcium carbonate skeleton beneath the now-transparent tissue. This is the process known as bleaching, and the name is more literal than it might first appear, since a bleached reef genuinely turns white, or occasionally a pale, sickly hue, almost overnight across enormous areas.\n\nBleaching itself is not immediately fatal. A bleached coral is alive but starving, since it has lost the algae that supplied most of its energy, and it survives on reserves that dwindle rapidly. If water temperatures return to normal within a matter of weeks, many corals can recruit new algae and recover their colour and function largely intact. If elevated temperatures persist for longer, however, the coral's energy reserves are exhausted before recovery becomes possible, and the polyp dies, leaving only its bare skeleton, which is then rapidly colonised by algae of an entirely different, unhelpful kind and by other opportunistic organisms that prevent the reef from rebuilding on its own.\n\nThe frequency of bleaching events has increased sharply in recent decades, tracking closely with rising ocean temperatures associated with global climate change. Australia's Great Barrier Reef, the largest coral reef system in the world, experienced mass bleaching events in 1998, 2002, 2016, 2017, 2020 and 2022, a pattern that marine biologists find more alarming than any single event in isolation. Reefs have always possessed some capacity to recover from occasional, isolated stress, given enough time between disturbances for damaged coral to regrow and for the ecosystem to stabilise. What has changed is the interval between events, which has in several cases become shorter than the years a reef typically needs to recover fully, meaning some reefs are now experiencing renewed stress before they have finished healing from the last episode.\n\nNot all coral species and locations respond identically, and this variation has become a significant focus of current research. Some coral species host algae strains that tolerate higher temperatures than others, and reefs in naturally warmer or more variable waters, such as certain reef flats in the Persian Gulf, have demonstrated resilience to heat levels that would devastate reefs elsewhere, suggesting that some corals carry an inherited or acquired tolerance worth studying closely. Researchers have begun deliberately cross-breeding heat-tolerant coral strains and exposing coral larvae to controlled thermal stress in laboratory settings, hoping to identify or cultivate populations better equipped to survive the warmer oceans that are now considered largely unavoidable even under optimistic emissions scenarios.\n\nOther interventions attempt to buy reefs more time rather than change their underlying biology. Shading structures deployed over vulnerable reef sections during heatwaves, though impractical at any large scale, have shown some capacity to reduce local bleaching in trial deployments. Coral gardening, in which fragments of resilient coral are grown in nurseries and later transplanted onto damaged sections of reef, has expanded considerably over the past decade, though scientists are candid that such efforts remain a supplement to reducing emissions rather than a substitute for it, given the modest area any nursery programme can realistically restore compared with the scale of a major reef system.\n\nWhat unites nearly all serious research in this field is a shared, somewhat uncomfortable conclusion: local interventions, however well designed, cannot outrun a warming ocean if warming continues unchecked. Coral gardening and selective breeding may preserve genetic diversity and buy vulnerable reefs valuable additional years, but marine biologists are largely united in describing these measures as complements to reducing global emissions rather than alternatives to it. The fate of the world's coral reefs, in other words, will ultimately be decided less in a nursery tank than in the broader trajectory of the climate itself.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "A coral polyp's colour comes mainly from the coral animal itself rather than from algae.",
+          "answer": "FALSE",
+          "explanation": "Paragraph 2 says colour comes almost entirely from the algae, not the coral, which is 'largely translucent'. The statement says the reverse, so FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Most bleaching events recorded on the Great Barrier Reef have occurred during the southern hemisphere winter.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage lists years in which mass bleaching occurred but never states the season in which these events happened, so NOT GIVEN."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "A bleached coral is already dead at the moment it turns white.",
+          "answer": "FALSE",
+          "explanation": "Paragraph 4 opens by saying bleaching is not immediately fatal and that a bleached coral is alive but starving — the direct opposite of the statement, so FALSE."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Some reefs in the Persian Gulf have shown resilience to heat levels that would harm reefs elsewhere.",
+          "answer": "TRUE",
+          "explanation": "Paragraph 6 names Persian Gulf reef flats as an example of reefs that resist heat that would devastate others. The statement matches this exactly, so TRUE."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Coral gardening alone is considered sufficient to save the world's reef systems.",
+          "answer": "FALSE",
+          "explanation": "The passage says such efforts \"remain a supplement to reducing emissions rather than a substitute for it\", directly contradicting the idea that it is sufficient alone."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "What role do zooxanthellae normally play for coral, according to the passage?",
+          "options": [
+            "They protect coral from predators.",
+            "They photosynthesise and supply most of the coral's energy.",
+            "They build the calcium carbonate skeleton.",
+            "They regulate the temperature of the surrounding water."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 2 gives this as the algae's normal role: photosynthesising to supply the coral's energy, matching option B. The skeleton is built by the coral itself, not the algae, which rules out option C."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What determines whether a bleached coral eventually dies?",
+          "options": [
+            "Whether temperatures return to normal before its energy reserves run out.",
+            "Whether it is located in the Great Barrier Reef or elsewhere.",
+            "Whether its skeleton is colonised by new algae immediately.",
+            "The depth of water in which the coral lives."
+          ],
+          "answer": 0,
+          "explanation": "Paragraph 4 contrasts two outcomes: recovery if temperatures normalise within weeks, or death if energy reserves run out first. This matches option A; the other options are never given as the deciding factor."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Why do marine biologists find the repeated Great Barrier Reef bleaching events particularly alarming?",
+          "options": [
+            "Because each event has been larger in area than the last.",
+            "Because the interval between events has become shorter than the recovery time reefs need.",
+            "Because no bleaching had occurred there before 1998.",
+            "Because government funding for monitoring has decreased."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 5 explains the real worry is the shrinking gap between bleaching events compared to recovery time, matching option B. Event size, first occurrence and funding are never mentioned as reasons for alarm."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What is the passage's overall conclusion about local interventions such as coral gardening?",
+          "options": [
+            "They are ultimately more effective than reducing global emissions.",
+            "They are complementary measures that cannot substitute for cutting emissions.",
+            "They have been shown to be ineffective and should be discontinued.",
+            "They work only in the Persian Gulf."
+          ],
+          "answer": 1,
+          "explanation": "The final paragraph states this conclusion directly: interventions are complements to cutting emissions, not alternatives to it, matching option B and ruling out A and C, which claim the opposite."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "Coral reefs are often described as the ___ of the sea.",
+          "answer": "rainforests",
+          "maxWords": 2,
+          "explanation": "The opening sentence names this comparison directly: reefs described as the rainforests of the sea, which fills the gap."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "After bleaching, a coral's bare skeleton is rapidly colonised by algae of an unhelpful kind and other ___ organisms.",
+          "answer": "opportunistic",
+          "maxWords": 2,
+          "explanation": "Paragraph 4 uses the word 'opportunistic' to describe these organisms, placed right before 'organisms' in the same way the question sentence is structured."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "Researchers have begun deliberately cross-breeding ___ coral strains.",
+          "answer": "heat-tolerant",
+          "maxWords": 2,
+          "explanation": "Paragraph 6 uses this exact phrase, 'heat-tolerant', to describe the coral strains researchers cross-breed, matching the gap in the question."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "In coral gardening, fragments of resilient coral are grown in ___ before being transplanted.",
+          "answer": "nurseries",
+          "maxWords": 2,
+          "explanation": "Paragraph 7 says coral fragments are grown in nurseries before transplanting, which is the word the gap is asking for."
+        }
+      ]
+    }
+  ]
+}

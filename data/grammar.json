@@ -2059,6 +2059,306 @@
           "explanation": "\"Evidence\" is uncountable, and \"little\" without \"a\" stresses that there is hardly any."
         }
       ]
+    },
+    {
+      "id": "reported-speech",
+      "title": "Reported speech: tense shifts",
+      "level": "B1",
+      "summary": "When you report what someone said, the tense usually shifts one step back into the past, and time and place words change too. This is where a lot of writing and speaking errors come from.",
+      "points": [
+        "Present tenses shift one step back: am/is/are → was/were, present perfect → past perfect.",
+        "Modals shift too: will → would, can → could, must (obligation) → had to.",
+        "Time and place words change: tomorrow → the next day, this → that, here → there.",
+        "Reported yes/no questions use \"if\" or \"whether\" and normal statement word order."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "She said, \"I am tired.\" She said (that) she ___ tired.", "options": ["is", "was", "has been", "be"], "answer": 1, "explanation": "Present becomes past in reported speech after a past reporting verb (\"said\"). \"Am\" shifts back to \"was\"."},
+        {"id": "q2", "prompt": "\"I will call you,\" he said. He said he ___ call me.", "options": ["will", "would", "can", "shall"], "answer": 1, "explanation": "\"Will\" shifts to \"would\" in reported speech after a past reporting verb."},
+        {"id": "q3", "prompt": "\"I have finished,\" she said. She said she ___ finished.", "options": ["has", "have", "had", "was"], "answer": 2, "explanation": "Present perfect shifts to past perfect (had + past participle) in reported speech."},
+        {"id": "q4", "prompt": "\"We are leaving now,\" they said. They said they ___ leaving then.", "options": ["are", "were", "have been", "be"], "answer": 1, "explanation": "Present continuous shifts to past continuous, and \"now\" also changes to \"then\"."},
+        {"id": "q5", "prompt": "\"I can swim,\" he said. He said he ___ swim.", "options": ["can", "could", "might", "may"], "answer": 1, "explanation": "\"Can\" shifts to \"could\" in reported speech."},
+        {"id": "q6", "prompt": "\"I must leave early,\" he said. He said he ___ leave early.", "options": ["must", "had to", "would", "should"], "answer": 1, "explanation": "\"Must\" expressing obligation usually shifts to \"had to\" in reported speech."},
+        {"id": "q7", "prompt": "\"Don't touch that,\" she told him. She told him ___ touch that.", "options": ["to not", "not to", "don't", "no to"], "answer": 1, "explanation": "A negative imperative reports as \"told him not to\" + infinitive."},
+        {"id": "q8", "prompt": "\"Where do you live?\" she asked me. She asked me where ___.", "options": ["do I live", "I lived", "did I live", "I live"], "answer": 1, "explanation": "Reported questions use statement word order, with no do/does/did, and the tense shifts back: \"I lived\"."},
+        {"id": "q9", "prompt": "\"Can you help me?\" he asked. He asked ___ help him.", "options": ["if I can", "if I could", "could I", "can I"], "answer": 1, "explanation": "Reported yes/no questions use \"if\" or \"whether\", and \"can\" shifts to \"could\"."},
+        {"id": "q10", "prompt": "\"I'll see you tomorrow,\" she said. She said she would see me ___.", "options": ["tomorrow", "the next day", "today", "that day"], "answer": 1, "explanation": "\"Tomorrow\", reported on a different day, becomes \"the next day\"."},
+        {"id": "q11", "prompt": "\"This is delicious,\" she said. Retelling the story later, he said she had said ___ was delicious.", "options": ["this", "that", "it", "these"], "answer": 1, "explanation": "When retelling later, away from the original moment, \"this\" typically shifts to \"that\"."},
+        {"id": "q12", "prompt": "He said, \"I am going to buy a car.\" He said he ___ going to buy a car.", "options": ["is", "was", "has been", "will be"], "answer": 1, "explanation": "\"Am\" shifts to \"was\" — the present tense moves one step back into the past."},
+        {"id": "q13", "prompt": "\"I have never been to Spain,\" she said. She said she ___ never been to Spain.", "options": ["has", "had", "have", "was"], "answer": 1, "explanation": "Present perfect shifts to past perfect: \"had never been\"."},
+        {"id": "q14", "prompt": "\"You should apologise,\" she told him. She told him he ___ apologise.", "options": ["should", "would", "must", "will"], "answer": 0, "explanation": "\"Should\" stays the same in reported speech — it is already a distanced, hypothetical form."},
+        {"id": "q15", "prompt": "\"I'm working on it now,\" he said. He said he ___ on it then.", "options": ["is working", "was working", "worked", "has worked"], "answer": 1, "explanation": "Present continuous becomes past continuous, and \"now\" becomes \"then\"."},
+        {"id": "q16", "prompt": "\"I had already eaten,\" she said. She said she ___ already eaten.", "options": ["has", "had", "was", "would have"], "answer": 1, "explanation": "Past perfect stays the same in reported speech — it is already the most \"back\" tense available."}
+      ]
+    },
+    {
+      "id": "subject-verb-agreement",
+      "title": "Subject–verb agreement with long subjects",
+      "level": "B2",
+      "summary": "The verb has to agree with its true subject, not with whatever noun happens to sit closest to it. Long subjects with phrases in the middle are where this goes wrong most often.",
+      "points": [
+        "The verb agrees with the head noun of the subject, not with a noun in a phrase between them.",
+        "\"Each\", \"every\" and \"neither\" take a singular verb, even before something that looks plural.",
+        "\"The number of\" is singular; \"a number of\" is plural.",
+        "Collective nouns like team, family and government usually take a singular verb in careful written English."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "The list of items ___ on the table.", "options": ["is", "are", "were", "have been"], "answer": 0, "explanation": "The subject is \"the list\" (singular); \"of items\" only describes it. Ignore the noun inside the prepositional phrase."},
+        {"id": "q2", "prompt": "Each of the students ___ a laptop.", "options": ["have", "has", "having", "are having"], "answer": 1, "explanation": "\"Each of\" takes a singular verb, even though \"students\" is plural — \"each\" is the true subject."},
+        {"id": "q3", "prompt": "The number of accidents ___ fallen this year.", "options": ["have", "has", "having", "were"], "answer": 1, "explanation": "\"The number of\" is treated as singular. Compare \"a number of accidents have fallen\", which is plural."},
+        {"id": "q4", "prompt": "A number of complaints ___ been received.", "options": ["has", "have", "having", "was"], "answer": 1, "explanation": "\"A number of\" behaves as a plural quantifier and takes a plural verb."},
+        {"id": "q5", "prompt": "Neither of the answers ___ correct.", "options": ["are", "is", "were", "have been"], "answer": 1, "explanation": "\"Neither of\" takes a singular verb in careful written English, even though it refers to two things."},
+        {"id": "q6", "prompt": "The results of the survey ___ surprising.", "options": ["is", "was", "are", "has been"], "answer": 2, "explanation": "The head noun is \"results\" (plural); \"of the survey\" is just a modifier, so the verb must be plural."},
+        {"id": "q7", "prompt": "My family ___ planning a trip together.", "options": ["is", "are", "being", "have"], "answer": 0, "explanation": "\"Family\" is a collective noun and takes a singular verb when treated as one unit, the standard choice in written English."},
+        {"id": "q8", "prompt": "The committee ___ meeting on Friday.", "options": ["is", "are", "being", "have"], "answer": 0, "explanation": "In careful written English a collective noun like \"committee\" takes a singular verb when it acts as one body."},
+        {"id": "q9", "prompt": "Everyone in the room ___ aware of the risk.", "options": ["are", "is", "were", "have been"], "answer": 1, "explanation": "\"Everyone\" is always singular, whatever comes after it."},
+        {"id": "q10", "prompt": "The information in these reports ___ out of date.", "options": ["are", "is", "were", "have been"], "answer": 1, "explanation": "\"Information\" is uncountable and singular; \"reports\" sits inside a modifying phrase and does not control the verb."},
+        {"id": "q11", "prompt": "Neither the manager nor the assistants ___ available today.", "options": ["is", "are", "was", "has been"], "answer": 1, "explanation": "When a subject joined by \"nor\" has a plural noun closest to the verb, the verb agrees with that closer noun."},
+        {"id": "q12", "prompt": "Either the players or the coach ___ to blame.", "options": ["are", "is", "were", "have been"], "answer": 1, "explanation": "With \"either… or\", the verb agrees with the noun nearest to it — \"the coach\" (singular)."},
+        {"id": "q13", "prompt": "The cost of the repairs ___ higher than expected.", "options": ["were", "are", "was", "have been"], "answer": 2, "explanation": "The subject is \"the cost\" (singular); \"of the repairs\" only describes which cost."},
+        {"id": "q14", "prompt": "A range of options ___ available to applicants.", "options": ["is", "are", "was", "has been"], "answer": 1, "explanation": "\"A range of options\" is treated as plural because attention is on the individual options, not the range itself."},
+        {"id": "q15", "prompt": "The police ___ investigating the incident.", "options": ["is", "are", "was", "has been"], "answer": 1, "explanation": "\"Police\" is always grammatically plural in English, unlike most collective nouns."},
+        {"id": "q16", "prompt": "One of the biggest problems ___ a lack of funding.", "options": ["are", "is", "were", "have been"], "answer": 1, "explanation": "\"One\" is the true subject and is singular; \"of the biggest problems\" only narrows down which one."}
+      ]
+    },
+    {
+      "id": "comparatives-superlatives",
+      "title": "Comparative and superlative structures",
+      "level": "A2",
+      "summary": "Comparing two things or picking out the top of a group follows fixed patterns based on how long the adjective is, plus a handful of irregular words to memorise.",
+      "points": [
+        "One-syllable adjectives add -er/-est: tall, taller, tallest.",
+        "Adjectives ending consonant + y change y to i: happy, happier, happiest.",
+        "Adjectives of two or more syllables usually take more/most instead: more careful, most careful.",
+        "Comparing two things uses \"than\"; comparing three or more uses \"the\" + superlative."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "This bag is ___ than that one.", "options": ["heavy", "heavier", "more heavy", "heaviest"], "answer": 1, "explanation": "One-syllable adjectives add -er to compare two things: heavy → heavier."},
+        {"id": "q2", "prompt": "She is ___ student in the class.", "options": ["the most clever", "the cleverest", "cleverer", "more clever"], "answer": 1, "explanation": "Short adjectives take -est for the superlative, and the superlative needs \"the\" because it compares three or more."},
+        {"id": "q3", "prompt": "This exam was ___ than the last one.", "options": ["more difficult", "difficulter", "most difficult", "difficult"], "answer": 0, "explanation": "Adjectives of two or more syllables like \"difficult\" use \"more\" rather than an -er ending."},
+        {"id": "q4", "prompt": "He is ___ than his brother.", "options": ["taller", "more tall", "tallest", "the tallest"], "answer": 0, "explanation": "One-syllable adjectives add -er, and comparing two people needs \"than\", not \"the\"."},
+        {"id": "q5", "prompt": "This is ___ city I have ever visited.", "options": ["more beautiful", "the most beautiful", "beautifuller", "most beautiful"], "answer": 1, "explanation": "A superlative comparing this city with all others needs \"the\" plus \"most\" for a longer adjective."},
+        {"id": "q6", "prompt": "The weather today is ___ than yesterday.", "options": ["badder", "worse", "more bad", "worst"], "answer": 1, "explanation": "\"Bad\" has an irregular comparative: bad, worse, worst."},
+        {"id": "q7", "prompt": "This is by far ___ solution.", "options": ["simple", "more simple", "the simplest", "simpler"], "answer": 2, "explanation": "\"By far\" signals a superlative — the strongest of all options — so it needs \"the simplest\"."},
+        {"id": "q8", "prompt": "She runs ___ than I do.", "options": ["fast", "faster", "more fast", "fastest"], "answer": 1, "explanation": "One-syllable adverbs add -er for comparisons between two."},
+        {"id": "q9", "prompt": "This laptop is ___ expensive as that one.", "options": ["as", "so", "than", "more"], "answer": 0, "explanation": "Equal comparisons use \"as + adjective + as\", not \"than\"."},
+        {"id": "q10", "prompt": "The city has become ___ crowded over the years.", "options": ["increasing", "increasingly", "more increasingly", "increased"], "answer": 1, "explanation": "\"Increasingly\" is the adverb used before an adjective to show a gradual comparative change over time."},
+        {"id": "q11", "prompt": "This route is ___ than I expected.", "options": ["far shorter", "farer short", "more short", "shortest"], "answer": 0, "explanation": "\"Far\" can strengthen a comparative: \"far shorter\" means much shorter. \"Farer\" is not a word."},
+        {"id": "q12", "prompt": "Which sentence is correct?", "options": ["She is more happier now.", "She is happier now.", "She is happiest now than before.", "She is more happy now."], "answer": 1, "explanation": "\"Happy\" ends consonant + y, so the comparative is \"happier\" — never doubled with \"more\" as well."},
+        {"id": "q13", "prompt": "The more you practise, ___ you become.", "options": ["better", "the better", "best", "the best"], "answer": 1, "explanation": "The double comparative pattern needs \"the\" in both halves: \"The more..., the better...\"."},
+        {"id": "q14", "prompt": "This is one of ___ buildings in the city.", "options": ["tall", "taller", "the tallest", "more tall"], "answer": 2, "explanation": "\"One of the + superlative + plural noun\" is a fixed pattern for something among the top group."},
+        {"id": "q15", "prompt": "Her second novel was ___ than her first.", "options": ["gooder", "best", "better", "more good"], "answer": 2, "explanation": "\"Good\" has an irregular comparative: good, better, best."},
+        {"id": "q16", "prompt": "This model is slightly ___ than the previous one.", "options": ["more efficient", "efficienter", "most efficient", "efficient"], "answer": 0, "explanation": "\"Efficient\" has three syllables, so it takes \"more\" rather than an -er ending."}
+      ]
+    },
+    {
+      "id": "embedded-questions",
+      "title": "Embedded and indirect questions",
+      "level": "B2",
+      "summary": "When a question sits inside a bigger sentence, it stops behaving like a question. The word order reverts to a normal statement, which trips up even confident speakers.",
+      "points": [
+        "Inside a bigger sentence, a question loses its question word order: statement order returns.",
+        "Do not use do/does/did in an embedded question.",
+        "For yes/no questions, embed with \"if\" or \"whether\".",
+        "Keep the question mark only if the whole sentence is still a direct question."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "Could you tell me ___?", "options": ["where is the station", "where the station is", "is the station where", "where's the station"], "answer": 1, "explanation": "Inside \"could you tell me\", the question reverts to statement order: subject before verb."},
+        {"id": "q2", "prompt": "I wonder ___ this seat is taken.", "options": ["is", "if", "does", "what"], "answer": 1, "explanation": "A yes/no question embedded in a statement needs \"if\" or \"whether\", not the original question form."},
+        {"id": "q3", "prompt": "Do you know ___ he lives?", "options": ["does", "where does", "where", "that where"], "answer": 2, "explanation": "The embedded question drops \"does\" and simply becomes \"where he lives\"."},
+        {"id": "q4", "prompt": "I'm not sure ___ she is coming.", "options": ["is", "whether", "does", "what"], "answer": 1, "explanation": "\"Whether\" introduces an embedded yes/no question, just like \"if\"."},
+        {"id": "q5", "prompt": "She asked me ___ I had finished.", "options": ["had I", "if I had", "did I have", "have I"], "answer": 1, "explanation": "A reported yes/no question uses \"if\" plus statement word order: \"if I had finished\"."},
+        {"id": "q6", "prompt": "Can you tell me ___ the museum opens?", "options": ["what time does", "what time", "does what time", "time what"], "answer": 1, "explanation": "Statement word order returns inside the embedded question: \"what time the museum opens\"."},
+        {"id": "q7", "prompt": "I have no idea ___.", "options": ["what does he want", "what he wants", "does he want what", "what want he"], "answer": 1, "explanation": "After \"I have no idea\", the clause follows statement order and keeps the present tense if the fact is still true."},
+        {"id": "q8", "prompt": "Nobody knows ___ the keys are.", "options": ["where are", "where", "are where", "is where"], "answer": 1, "explanation": "The embedded question needs statement order: \"where the keys are\", not \"where are the keys\"."},
+        {"id": "q9", "prompt": "I'd like to know ___ this happened.", "options": ["why did", "why", "did why", "why does"], "answer": 1, "explanation": "\"Why\" plus statement order — \"why this happened\" — with no \"did\" inserted."},
+        {"id": "q10", "prompt": "Could you explain ___?", "options": ["how does it work", "how it works", "how works it", "does it work how"], "answer": 1, "explanation": "Embedded questions never use \"does\"; the subject comes before the verb: \"how it works\"."},
+        {"id": "q11", "prompt": "I'm curious ___ she said yes.", "options": ["why did", "whether", "why", "if why"], "answer": 2, "explanation": "\"Why\" introduces the embedded question directly, with statement order and no auxiliary \"did\"."},
+        {"id": "q12", "prompt": "Let me know ___ you need any help.", "options": ["whether", "what", "why does", "how does"], "answer": 0, "explanation": "A yes/no embedded question needs \"whether\" (or \"if\")."},
+        {"id": "q13", "prompt": "He couldn't remember ___ he had left his keys.", "options": ["did he leave", "where", "where did", "where he had left"], "answer": 3, "explanation": "The whole clause, including subject, auxiliary and verb, keeps statement order: \"where he had left\"."},
+        {"id": "q14", "prompt": "Which sentence is correct?", "options": ["I don't know what does she want.", "I don't know what she wants.", "I don't know does she want what.", "I don't know what she want."], "answer": 1, "explanation": "The embedded clause needs statement order and correct subject–verb agreement: \"what she wants\"."},
+        {"id": "q15", "prompt": "I asked her ___ the report by Friday.", "options": ["could she finish", "if she could finish", "if could she finish", "she could finish if"], "answer": 1, "explanation": "A reported yes/no question needs \"if\" plus statement order."},
+        {"id": "q16", "prompt": "Can you tell me ___?", "options": ["who is that man", "who that man is", "is who that man", "that man who is"], "answer": 1, "explanation": "The embedded question drops normal question inversion: \"who that man is\"."}
+      ]
+    },
+    {
+      "id": "question-formation",
+      "title": "Forming questions",
+      "level": "A2",
+      "summary": "Direct questions in English move a verb before the subject. Which verb moves — and whether \"do\" needs to be added — depends on what auxiliary is already there.",
+      "points": [
+        "Yes/no questions move the auxiliary or \"be\" before the subject.",
+        "With no other auxiliary present in present or past simple, add do/does/did.",
+        "Question words go before the auxiliary: what, where, when, why, who, how.",
+        "Questions about the subject itself do not use do/does/did: \"Who called you?\""
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "___ you like tea?", "options": ["Do", "Does", "Are", "Did"], "answer": 0, "explanation": "\"You\" in the present simple needs \"do\" as the auxiliary, since there is no other auxiliary verb."},
+        {"id": "q2", "prompt": "___ she work in this building?", "options": ["Do", "Is", "Does", "Did"], "answer": 2, "explanation": "\"She\" is third person singular, so the present simple auxiliary is \"does\"."},
+        {"id": "q3", "prompt": "Which is correct?", "options": ["Where you are going?", "Where are you going?", "Where you going are?", "Are where you going?"], "answer": 1, "explanation": "In a \"be\" question, \"be\" moves before the subject: \"are you going\"."},
+        {"id": "q4", "prompt": "___ called you last night?", "options": ["Who did", "Who", "Did who", "Whom did"], "answer": 1, "explanation": "When the question word asks about the subject itself, no \"did\" is needed: \"Who called you?\""},
+        {"id": "q5", "prompt": "___ did you buy that jacket?", "options": ["Where", "Where did", "Did where", "Is where"], "answer": 0, "explanation": "The question word \"where\" comes first, followed by the normal auxiliary \"did\" and the subject."},
+        {"id": "q6", "prompt": "Which is correct?", "options": ["How many languages does she speak?", "How many languages she does speak?", "How many languages speaks she?", "Does how many languages she speak?"], "answer": 0, "explanation": "The auxiliary \"does\" comes right after the question phrase and before the subject."},
+        {"id": "q7", "prompt": "___ you finished your homework yet?", "options": ["Do", "Have", "Did", "Are"], "answer": 1, "explanation": "A present perfect question needs \"have\"/\"has\" before the subject, not \"do\"."},
+        {"id": "q8", "prompt": "___ is your favourite type of music?", "options": ["Which", "What", "Who", "Whose"], "answer": 1, "explanation": "\"What\" asks about an open choice from an unlimited set; \"which\" is used when the options are limited or specified, such as choosing between two named types."},
+        {"id": "q9", "prompt": "___ book is this — yours or mine?", "options": ["What", "Which", "Whose", "Who"], "answer": 1, "explanation": "\"Which\" is used when the choice is between a limited, known set of options — here, two people."},
+        {"id": "q10", "prompt": "___ car is parked outside?", "options": ["Who's", "Whose", "Who", "Which is"], "answer": 1, "explanation": "\"Whose\" asks about possession. \"Who's\" is a contraction of \"who is\" and means something different."},
+        {"id": "q11", "prompt": "___ does this word mean?", "options": ["What", "Which", "Who", "Whose"], "answer": 0, "explanation": "\"What\" asks for a definition or an open answer; \"which\" would suggest choosing from known options."},
+        {"id": "q12", "prompt": "Which question is correctly formed?", "options": ["You have how many brothers?", "How many brothers do you have?", "How many brothers you have?", "Do you have how many brothers?"], "answer": 1, "explanation": "The question word phrase comes first, then the auxiliary \"do\", then the subject and main verb."},
+        {"id": "q13", "prompt": "___ the shops close on Sundays?", "options": ["Do", "Does", "Is", "Are"], "answer": 0, "explanation": "\"The shops\" is plural, so the present simple auxiliary is \"do\"."},
+        {"id": "q14", "prompt": "___ happened to your arm?", "options": ["What did", "What", "Did what", "What does"], "answer": 1, "explanation": "When \"what\" is the subject of the question (what happened), no extra auxiliary is added."},
+        {"id": "q15", "prompt": "Which is correct?", "options": ["Isn't she coming tonight?", "Doesn't she is coming tonight?", "Is she not is coming tonight?", "Not is she coming tonight?"], "answer": 0, "explanation": "A negative question with \"be\" simply contracts \"is\" and \"not\" and moves the whole form before the subject."},
+        {"id": "q16", "prompt": "___ long have you lived here?", "options": ["What", "How", "Since", "For"], "answer": 1, "explanation": "\"How long\" is the fixed question phrase for duration."}
+      ]
+    },
+    {
+      "id": "verb-prepositions",
+      "title": "Prepositions after common verbs",
+      "level": "B2",
+      "summary": "Many verbs are followed by a fixed preposition that does not translate logically from another language. The preposition can even change the meaning of the verb.",
+      "points": [
+        "Many verbs are followed by a fixed preposition that has to be learned, not guessed.",
+        "The preposition can change the meaning: agree with a person, agree on a plan, agree to a proposal.",
+        "Learn the verb and its preposition together as one unit.",
+        "A preposition is always followed by a noun or -ing form, never a bare infinitive."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "She apologised ___ being late.", "options": ["for", "of", "about", "to"], "answer": 0, "explanation": "\"Apologise for\" a thing you did wrong. \"Apologise to\" is used before the person you are apologising to."},
+        {"id": "q2", "prompt": "He is responsible ___ the whole project.", "options": ["of", "for", "with", "on"], "answer": 1, "explanation": "\"Responsible for\" is the fixed pairing in English, even though other languages often use a different preposition here."},
+        {"id": "q3", "prompt": "The results depend ___ the weather.", "options": ["of", "from", "on", "to"], "answer": 2, "explanation": "\"Depend on\" is fixed. \"Depend of\" and \"depend from\" do not exist in standard English."},
+        {"id": "q4", "prompt": "She's good ___ solving problems quickly.", "options": ["in", "at", "on", "for"], "answer": 1, "explanation": "\"Good at\" is the fixed pairing for skills and abilities."},
+        {"id": "q5", "prompt": "We're looking forward ___ the results.", "options": ["to", "for", "on", "at"], "answer": 0, "explanation": "\"Look forward to\" is fixed, and the \"to\" here is a preposition, so it is followed by -ing, not a bare verb."},
+        {"id": "q6", "prompt": "I don't agree ___ your explanation.", "options": ["to", "with", "at", "on"], "answer": 1, "explanation": "\"Agree with\" a person or an idea. \"Agree to\" is used for a plan or proposal, and \"agree on\" for something decided jointly."},
+        {"id": "q7", "prompt": "They accused him ___ lying.", "options": ["for", "of", "about", "with"], "answer": 1, "explanation": "\"Accuse someone of\" doing something is the fixed pattern."},
+        {"id": "q8", "prompt": "She succeeded ___ persuading them.", "options": ["to", "in", "at", "on"], "answer": 1, "explanation": "\"Succeed in\" doing something is the standard pairing."},
+        {"id": "q9", "prompt": "He complained ___ the noise.", "options": ["for", "about", "of", "on"], "answer": 1, "explanation": "\"Complain about\" a problem is standard. \"Complain of\" exists but is used mainly for symptoms of illness."},
+        {"id": "q10", "prompt": "The company invested heavily ___ new technology.", "options": ["on", "in", "at", "for"], "answer": 1, "explanation": "\"Invest in\" something is the fixed collocation."},
+        {"id": "q11", "prompt": "I congratulated her ___ passing the exam.", "options": ["for", "on", "about", "to"], "answer": 1, "explanation": "\"Congratulate someone on\" an achievement is fixed."},
+        {"id": "q12", "prompt": "She insisted ___ paying for dinner.", "options": ["on", "for", "to", "at"], "answer": 0, "explanation": "\"Insist on\" is the fixed pairing in English; the verb that follows it must take the -ing form."},
+        {"id": "q13", "prompt": "We're relying ___ your support.", "options": ["on", "in", "for", "with"], "answer": 0, "explanation": "\"Rely on\" is the fixed pairing in English; no other preposition follows this verb correctly."},
+        {"id": "q14", "prompt": "He is capable ___ great things.", "options": ["of", "for", "to", "with"], "answer": 0, "explanation": "\"Capable of\" doing something is the fixed pairing."},
+        {"id": "q15", "prompt": "This project ___ several stages.", "options": ["consists of", "consists in", "consists on", "consists to"], "answer": 0, "explanation": "\"Consist of\" means to be made up of parts. It is the only correct preposition here."},
+        {"id": "q16", "prompt": "They participated ___ the discussion.", "options": ["on", "in", "at", "to"], "answer": 1, "explanation": "\"Participate in\" an activity is the fixed pairing."}
+      ]
+    },
+    {
+      "id": "future-forms",
+      "title": "Talking about the future",
+      "level": "A2",
+      "summary": "English has no single future tense — the choice of form signals whether something is a plan, a spontaneous decision, a fixed arrangement or a timetable.",
+      "points": [
+        "\"Going to\" for a plan already decided, or a prediction with present evidence.",
+        "\"Will\" for a decision made at the moment of speaking, an offer, or a general prediction.",
+        "Present continuous for a fixed future arrangement, usually with a time already set.",
+        "Present simple for a timetabled or scheduled event, like a train or a class."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "Look at those clouds! It ___ rain.", "options": ["will", "is going to", "is", "would"], "answer": 1, "explanation": "\"Going to\" is used for a prediction based on present evidence — here, the clouds."},
+        {"id": "q2", "prompt": "I'm hungry. I think I ___ get a sandwich.", "options": ["am going to", "will", "am getting", "get"], "answer": 1, "explanation": "\"Will\" expresses a decision made at the moment of speaking, not planned before."},
+        {"id": "q3", "prompt": "The train ___ at 9.15 tomorrow.", "options": ["is leaving", "leaves", "will leave", "is going to leave"], "answer": 1, "explanation": "Present simple is used for a fixed timetable, like a train, flight or class schedule."},
+        {"id": "q4", "prompt": "We ___ dinner with the Smiths on Saturday. It's already arranged.", "options": ["are having", "will have", "are going to having", "have"], "answer": 0, "explanation": "Present continuous describes a fixed arrangement with another person, already agreed and set in the diary."},
+        {"id": "q5", "prompt": "A: The phone's ringing. B: I ___ get it.", "options": ["am going to", "will", "am getting", "get"], "answer": 1, "explanation": "\"Will\" is used for a spontaneous offer made at the moment of speaking."},
+        {"id": "q6", "prompt": "She's studied for months — I'm sure she ___ pass.", "options": ["is going to", "will", "is passing", "passes"], "answer": 1, "explanation": "\"Will\" is used here for a confident prediction based on general belief, not visible present evidence."},
+        {"id": "q7", "prompt": "I ___ the dentist at 10am tomorrow; I booked it last week.", "options": ["see", "am seeing", "will see", "would see"], "answer": 1, "explanation": "Present continuous is used for a personal appointment already fixed and booked, like this dentist visit."},
+        {"id": "q8", "prompt": "According to the plan, the new store ___ next month.", "options": ["opens", "is opening", "will open", "is going to open"], "answer": 3, "explanation": "\"Going to\" fits a plan that has already been decided, which is exactly what \"according to the plan\" signals."},
+        {"id": "q9", "prompt": "What time ___ the film start?", "options": ["does", "is", "will", "is going to"], "answer": 0, "explanation": "Timetabled events like film showings use the present simple."},
+        {"id": "q10", "prompt": "Careful, that glass is right on the edge — it ___ fall!", "options": ["will", "is going to", "is falling", "falls"], "answer": 1, "explanation": "\"Going to\" is used for a prediction with visible evidence right now, like the glass on the edge."},
+        {"id": "q11", "prompt": "I promise I ___ call you as soon as I land.", "options": ["am going to", "will", "am calling", "call"], "answer": 1, "explanation": "\"Will\" is used for promises made at the moment of speaking."},
+        {"id": "q12", "prompt": "This time next year, she ___ at university.", "options": ["studies", "is going to study", "will be studying", "is studying"], "answer": 2, "explanation": "The future continuous describes an action in progress at a specific point in the future."},
+        {"id": "q13", "prompt": "We ___ to the coast this weekend — the tickets are already booked.", "options": ["go", "are going", "will go", "would go"], "answer": 1, "explanation": "Present continuous is used for a fixed, already-arranged plan, shown here by the booked tickets."},
+        {"id": "q14", "prompt": "I think prices ___ rise again next year.", "options": ["are going to", "will", "are rising", "rise"], "answer": 1, "explanation": "\"Will\" is the natural choice for a general opinion or prediction about the future without present evidence."},
+        {"id": "q15", "prompt": "By 2030, most cars ___ electric.", "options": ["will be", "are being", "are going to being", "will"], "answer": 0, "explanation": "\"Will\" plus the base form is used for long-range predictions about the state of things."},
+        {"id": "q16", "prompt": "She's packed her bags — she ___ leave tonight.", "options": ["will", "is going to", "is leaving is going", "would"], "answer": 1, "explanation": "The packed bags are present evidence for a plan already decided, which calls for \"going to\"."}
+      ]
+    },
+    {
+      "id": "used-to-would",
+      "title": "used to and would for past habits",
+      "level": "B1",
+      "summary": "Both describe repeated things from the past that no longer happen, but only one of them can describe a past state — the difference trips up even confident learners.",
+      "points": [
+        "\"Used to\" describes a past habit or state that is no longer true.",
+        "\"Would\" also describes repeated past actions, but never a past state (never \"would be\", \"would have\").",
+        "Both need a base verb after them: used to live, would visit.",
+        "\"Be used to\" and \"get used to\" mean something completely different — being accustomed to something now."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "I ___ play football every weekend when I was younger.", "options": ["used to", "would use to", "use to", "am used to"], "answer": 0, "explanation": "\"Used to\" + base verb describes a repeated past habit that has stopped."},
+        {"id": "q2", "prompt": "My grandfather ___ tell us stories by the fire every evening.", "options": ["was used to", "would", "used", "is used to"], "answer": 1, "explanation": "\"Would\" can describe a repeated past action, just like \"used to\". Note it needs a base verb after it."},
+        {"id": "q3", "prompt": "There ___ be a cinema on this street, but it closed years ago.", "options": ["would", "used to", "was used to", "will"], "answer": 1, "explanation": "For a past state, not a repeated action, only \"used to\" works — \"would\" cannot describe a state like existence."},
+        {"id": "q4", "prompt": "She's lived in Berlin for years now, so she ___ the cold winters.", "options": ["used to", "is used to", "would", "will"], "answer": 1, "explanation": "\"Be used to\" means accustomed to something in the present — a completely different meaning from \"used to do\"."},
+        {"id": "q5", "prompt": "It took him months to ___ working night shifts.", "options": ["use to", "get used to", "used to", "be use to"], "answer": 1, "explanation": "\"Get used to\" means gradually become accustomed to something, and it takes -ing after it."},
+        {"id": "q6", "prompt": "We ___ go camping every summer as children.", "options": ["would", "was used to", "use to", "are used to"], "answer": 0, "explanation": "\"Would\" fits a repeated childhood activity, and it is the only correctly formed option here."},
+        {"id": "q7", "prompt": "I ___ hate vegetables, but now I love them.", "options": ["would", "used to", "use to", "am used to"], "answer": 1, "explanation": "This describes a past state (hating vegetables) that has changed, so only \"used to\" works, not \"would\"."},
+        {"id": "q8", "prompt": "When we were kids, we ___ walk to school together every day.", "options": ["would", "was used to", "use to", "are used to"], "answer": 0, "explanation": "\"Would\" describes a repeated past action."},
+        {"id": "q9", "prompt": "She ___ own a small bakery before she retired.", "options": ["would", "used to", "use to", "is used to"], "answer": 1, "explanation": "Owning a bakery is a state, not a repeated action, so only \"used to\" is possible."},
+        {"id": "q10", "prompt": "After a few weeks, he ___ the noise of the city.", "options": ["used to", "was used to", "got used to", "would get used to"], "answer": 2, "explanation": "\"Got used to\" describes the process of becoming accustomed, completed in the past."},
+        {"id": "q11", "prompt": "Which sentence is correct?", "options": ["I would have a bike when I was young.", "I used to have a bike when I was young.", "I would used to have a bike.", "I use to had a bike."], "answer": 1, "explanation": "Having a bike is a past state, so \"used to\" is required rather than \"would\"."},
+        {"id": "q12", "prompt": "They ___ visit their grandparents every Sunday.", "options": ["would", "was used to", "use to", "are used to"], "answer": 0, "explanation": "\"Would\" fits a regularly repeated past visit."},
+        {"id": "q13", "prompt": "I'm still not ___ getting up this early.", "options": ["used to", "use to", "would", "will"], "answer": 0, "explanation": "\"Not used to\" describes something you still find unfamiliar in the present."},
+        {"id": "q14", "prompt": "This town ___ be much quieter before the new road was built.", "options": ["would", "used to", "use to", "is used to"], "answer": 1, "explanation": "Describing a general past state of the town calls for \"used to\", not \"would\"."},
+        {"id": "q15", "prompt": "He ___ complain about the coffee every single morning.", "options": ["would", "was used to", "use to", "is used to"], "answer": 0, "explanation": "A repeated, habitual action in the past can be described with \"would\"."},
+        {"id": "q16", "prompt": "Have you ___ living without a car yet?", "options": ["used to", "get used to", "got used to", "would get used to"], "answer": 2, "explanation": "\"Have you got used to\" asks whether the process of adjustment is complete."}
+      ]
+    },
+    {
+      "id": "tag-questions",
+      "title": "Tag questions",
+      "level": "B1",
+      "summary": "A tag question checks or confirms information by adding a short question to the end of a statement. The tag always flips the polarity of the main clause.",
+      "points": [
+        "A positive statement takes a negative tag; a negative statement takes a positive tag.",
+        "The tag repeats the auxiliary verb from the main clause, or adds do/does/did if there is none.",
+        "\"I am\" has the irregular tag \"aren't I\".",
+        "After \"Let's\", the tag is always \"shall we\"."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "You're coming to the party, ___?", "options": ["are you", "aren't you", "don't you", "do you"], "answer": 1, "explanation": "A positive statement takes a negative tag, and the tag repeats \"are\" from \"you're\"."},
+        {"id": "q2", "prompt": "She doesn't like coffee, ___?", "options": ["does she", "doesn't she", "is she", "isn't she"], "answer": 0, "explanation": "A negative statement takes a positive tag, matching the auxiliary \"does\"."},
+        {"id": "q3", "prompt": "I'm right, ___?", "options": ["am I not", "aren't I", "are I not", "amn't I"], "answer": 1, "explanation": "\"Aren't I\" is the standard irregular tag used after \"I am\" in a positive statement."},
+        {"id": "q4", "prompt": "Let's go for a walk, ___?", "options": ["won't we", "do we", "shall we", "will we"], "answer": 2, "explanation": "\"Let's\" always takes the fixed tag \"shall we\", regardless of the rest of the sentence."},
+        {"id": "q5", "prompt": "They've finished the project, ___?", "options": ["haven't they", "have they", "don't they", "didn't they"], "answer": 0, "explanation": "The tag repeats the auxiliary \"have\" from the main clause, and turns negative because the statement is positive."},
+        {"id": "q6", "prompt": "He can't swim, ___?", "options": ["can't he", "can he", "does he", "doesn't he"], "answer": 1, "explanation": "A negative statement takes a positive tag, repeating the modal \"can\"."},
+        {"id": "q7", "prompt": "You didn't call her, ___?", "options": ["did you", "didn't you", "do you", "don't you"], "answer": 0, "explanation": "A negative statement takes a positive tag, matching the auxiliary \"did\"."},
+        {"id": "q8", "prompt": "Close the door, ___?", "options": ["will you", "won't you", "shall you", "do you"], "answer": 0, "explanation": "After an imperative, \"will you\" is the standard tag, used as a soft request."},
+        {"id": "q9", "prompt": "Nobody called, ___?", "options": ["did they", "didn't they", "do they", "don't they"], "answer": 0, "explanation": "\"Nobody\" is treated as negative, so it takes a positive tag: \"did they\"."},
+        {"id": "q10", "prompt": "You'd rather stay home, ___?", "options": ["would you", "wouldn't you", "had you", "hadn't you"], "answer": 1, "explanation": "The tag repeats \"'d\" as \"would\", and since the statement is positive, the tag turns negative."},
+        {"id": "q11", "prompt": "There's a problem, ___?", "options": ["isn't it", "isn't there", "is there", "aren't there"], "answer": 1, "explanation": "When the subject is \"there\", the tag must also use \"there\", not \"it\"."},
+        {"id": "q12", "prompt": "She'll be here soon, ___?", "options": ["won't she", "will she", "does she", "isn't she"], "answer": 0, "explanation": "The tag repeats the auxiliary \"will\" and turns negative, since the statement is positive."},
+        {"id": "q13", "prompt": "Nothing went wrong, ___?", "options": ["did it", "didn't it", "does it", "will it"], "answer": 0, "explanation": "\"Nothing\" counts as negative, so the tag is positive: \"did it\"."},
+        {"id": "q14", "prompt": "You've never been to Rome, ___?", "options": ["haven't you", "have you", "did you", "don't you"], "answer": 1, "explanation": "\"Never\" makes the statement negative in meaning, so the tag is positive: \"have you\"."},
+        {"id": "q15", "prompt": "We should leave now, ___?", "options": ["should we", "shouldn't we", "must we", "mustn't we"], "answer": 1, "explanation": "The tag repeats the modal \"should\" and turns negative, since the statement is positive."},
+        {"id": "q16", "prompt": "I don't need to sign here, ___?", "options": ["do I", "don't I", "need I", "needn't I"], "answer": 0, "explanation": "The tag repeats the auxiliary \"do\" from the negative statement and turns positive."}
+      ]
+    },
+    {
+      "id": "ing-ed-adjectives",
+      "title": "-ing and -ed adjectives",
+      "level": "B2",
+      "summary": "These two adjective forms come from the same verb but describe opposite roles: one causes a feeling, the other experiences it. Mixing them up changes who is doing what to whom.",
+      "points": [
+        "The -ing adjective describes the thing or person that causes the feeling: a boring film.",
+        "The -ed adjective describes the person who experiences the feeling: I was bored.",
+        "Never say \"I am boring\" to mean you feel bored — it means you cause boredom in others.",
+        "The same rule applies to interesting/interested, exciting/excited, confusing/confused, and many more pairs."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "The lecture was so ___ that half the class fell asleep.", "options": ["bored", "boring", "bore", "bores"], "answer": 1, "explanation": "The lecture causes the feeling, so it takes the -ing form: \"boring\"."},
+        {"id": "q2", "prompt": "I was really ___ by the ending of the film.", "options": ["surprising", "surprise", "surprised", "surprises"], "answer": 2, "explanation": "The person experiencing the feeling takes the -ed form: \"surprised\"."},
+        {"id": "q3", "prompt": "This is a very ___ result.", "options": ["confused", "confusing", "confuse", "confusion"], "answer": 1, "explanation": "The result causes confusion in the reader, so it takes the -ing form."},
+        {"id": "q4", "prompt": "After the long flight, everyone felt ___.", "options": ["exhausting", "exhaust", "exhausted", "exhaustion"], "answer": 2, "explanation": "The passengers experience tiredness, so the -ed form is needed: \"exhausted\"."},
+        {"id": "q5", "prompt": "Which sentence is correct?", "options": ["I am boring of this job.", "I am bored of this job.", "This job is bored.", "I bored of this job."], "answer": 1, "explanation": "The person feels the boredom, so \"bored\" (-ed) is correct. \"I am boring\" would mean you cause boredom in others."},
+        {"id": "q6", "prompt": "The news was ___ — nobody could believe it.", "options": ["shocked", "shocking", "shock", "shocks"], "answer": 1, "explanation": "The news causes the shock, so it takes the -ing form."},
+        {"id": "q7", "prompt": "She felt ___ after reading the results.", "options": ["disappointing", "disappoint", "disappointed", "disappointment"], "answer": 2, "explanation": "She experiences the feeling, so the -ed adjective is needed."},
+        {"id": "q8", "prompt": "It was a ___ experience — I'll never forget it.", "options": ["terrified", "terrifying", "terrify", "terror"], "answer": 1, "explanation": "The experience causes fear, so it takes the -ing form."},
+        {"id": "q9", "prompt": "The children were ___ by the fireworks.", "options": ["amazing", "amaze", "amazed", "amazement"], "answer": 2, "explanation": "The children experience amazement, so the -ed form fits."},
+        {"id": "q10", "prompt": "This puzzle is quite ___.", "options": ["interested", "interesting", "interest", "interests"], "answer": 1, "explanation": "The puzzle causes interest, so it takes the -ing form."},
+        {"id": "q11", "prompt": "I felt ___ when nobody replied to my message.", "options": ["annoying", "annoy", "annoyed", "annoyance"], "answer": 2, "explanation": "The speaker experiences the feeling of annoyance, so the -ed form is correct."},
+        {"id": "q12", "prompt": "The match was extremely ___.", "options": ["excited", "exciting", "excite", "excitement"], "answer": 1, "explanation": "The match causes excitement in the fans, so it takes the -ing form."},
+        {"id": "q13", "prompt": "He looked ___ when he heard the news.", "options": ["worrying", "worry", "worried", "worries"], "answer": 2, "explanation": "He is the person who feels worried, so the -ed form is correct."},
+        {"id": "q14", "prompt": "That was one of the most ___ books I've ever read.", "options": ["fascinated", "fascinating", "fascinate", "fascination"], "answer": 1, "explanation": "The book causes fascination in the reader, so it takes the -ing form."},
+        {"id": "q15", "prompt": "I'm ___ in how this machine works.", "options": ["interested", "interesting", "interest", "interests"], "answer": 0, "explanation": "The speaker feels interest, so the -ed form is needed here — \"interested in\" is also a fixed collocation."},
+        {"id": "q16", "prompt": "The traffic this morning was ___.", "options": ["frustrated", "frustrating", "frustrate", "frustration"], "answer": 1, "explanation": "The traffic causes frustration in drivers, so it takes the -ing form."}
+      ]
     }
   ]
 }

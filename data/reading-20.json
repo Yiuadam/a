@@ -1,0 +1,145 @@
+{
+  "id": "reading-20",
+  "title": "Cooperation Without Enforcement: Lessons from Game Theory",
+  "topic": "How repeated interaction and reciprocity sustain cooperation without central enforcement",
+  "difficulty": "hard",
+  "level": "C1",
+  "timeMinutes": 20,
+  "passage": "The prisoner's dilemma occupies an outsized place in the social sciences for a simple reason: it captures, in an almost embarrassingly minimal form, a tension that pervades human affairs far beyond the interrogation-room scenario that gives the game its name. Two individuals, unable to communicate, must each decide independently whether to cooperate with or betray the other. If both cooperate, both receive a moderate reward. If both betray, both receive a worse outcome than mutual cooperation, but not the worst possible one. If one betrays while the other cooperates, the betrayer receives the largest individual payoff available while the cooperator receives the smallest. The dilemma is that betrayal is the individually rational choice regardless of what the other player does, and yet if both players reason this way, both end up worse off than had they cooperated. Rational self-interest, applied consistently by both parties, produces a jointly inferior outcome.\n\nFor a single, one-off encounter between players who will never interact again, game theory offers little comfort to the cooperatively minded: betrayal genuinely is the dominant strategy, in the technical sense that it yields a better or equal outcome than cooperation regardless of the other player's choice. The picture changes substantially, however, once the game is repeated an indefinite number of times between the same two players, a variant known as the iterated prisoner's dilemma. Here, a player's choice in any given round can be conditioned on the other's behaviour in previous rounds, which opens the door to strategies built around reciprocity rather than pure, static self-interest.\n\nIn the early 1980s, the political scientist Robert Axelrod organised a now-celebrated tournament in which researchers submitted computer programs, each embodying a distinct strategy, to compete against one another across many rounds of the iterated prisoner's dilemma. Sophisticated entries employed elaborate strategies attempting to model and exploit the tendencies of their opponents. The tournament's winner, submitted by the mathematical psychologist Anatol Rapoport, was startlingly simple by comparison: a strategy called tit-for-tat, which cooperates on the first move and thereafter simply repeats whatever the opponent did on the previous round. Axelrod's subsequent analysis attributed tit-for-tat's success to a specific cluster of properties: it is 'nice', in that it is never the first to betray; it is 'retaliatory', promptly punishing betrayal rather than tolerating exploitation; it is 'forgiving', reverting to cooperation immediately once the opponent does, rather than sustaining a grudge; and it is 'clear', its predictable pattern allowing an opponent to recognise quickly that cooperation, once established, will be reciprocated rather than exploited.\n\nThe striking implication Axelrod drew was that cooperation among self-interested agents does not require central enforcement, altruism or even communication to emerge and stabilise; it can arise purely from the structure of repeated interaction and the strategic logic of reciprocity, provided the same parties expect to meet again with reasonable frequency and cannot be certain when the interaction will end. This last condition matters more than it might appear. If both players know with certainty which round is the final one, the logic of the single-shot dilemma reasserts itself for that final round, since there is no future interaction left to protect through cooperation; and because both players can anticipate this, the same reasoning is argued, at least in the theoretical ideal, to unravel backward through every preceding round as well, a phenomenon known as backward induction. In practice, this theoretical unravelling is observed only partially, since real players rarely reason with the flawless, common knowledge of rationality the argument formally requires, but the theoretical result nonetheless clarifies why an uncertain or indefinite time horizon, rather than a known endpoint, is what genuinely sustains cooperation in these models.\n\nBiologists were quick to recognise that this framework illuminated puzzles well beyond human strategic behaviour. Robert Trivers had, in fact, anticipated much of the logic in his 1971 theory of reciprocal altruism, developed independently of and prior to Axelrod's tournament, proposing that animals could evolve to help non-relatives, provided the relationship was sufficiently long-lasting and repeated for the help to be reciprocated reliably over time. Vampire bats, which regurgitate blood to share with roost-mates who failed to feed on a given night, do so preferentially for bats that have previously shared with them, and researchers studying the colonies have found that bats which persistently fail to reciprocate are eventually excluded from future sharing by their former partners, a pattern strikingly similar to tit-for-tat's retaliatory response to betrayal, arrived at through evolutionary rather than deliberate strategic reasoning.\n\nSubsequent research has substantially qualified Axelrod's original finding, and it would be a mistake to treat tit-for-tat as a definitively optimal strategy under all conditions. In environments with noise, where a cooperative move is occasionally misread as a betrayal due to error or misperception, rigid tit-for-tat can trigger destructive cycles of mutual retaliation from which strict reciprocity struggles to recover, since a single misread signal locks both players into a punishing spiral, neither willing to be the first to cooperate again after what each perceives as an unprovoked betrayal. Later tournaments found that a strategy dubbed 'generous tit-for-tat', which occasionally cooperates even after the opponent has just defected, outperforms strict tit-for-tat precisely in these noisy, error-prone environments, since it can break the retaliatory spiral that strict reciprocity gets trapped in.\n\nWhat endures from this body of research is not any single optimal strategy, since evidently none exists across every possible environment, but the more general and durable insight that cooperation between self-interested parties, whether human institutions or evolving species, is not merely an ethical aspiration imposed from outside a system but can emerge as a stable strategic equilibrium from within it, given the right structural conditions of repetition, reciprocity and an uncertain horizon. The prisoner's dilemma, deliberately stripped of every complicating real-world detail, illustrates a mechanism sophisticated enough to help explain phenomena as different as international trade agreements and the feeding habits of bats.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "In a single, one-off prisoner's dilemma, cooperation is the strategy that guarantees the best individual outcome.",
+          "answer": "FALSE",
+          "explanation": "\"Betrayal genuinely is the dominant strategy\" in a one-off game, which contradicts the statement that cooperation is best, so FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Tit-for-tat was the most structurally complicated strategy submitted to Axelrod's tournament.",
+          "answer": "FALSE",
+          "explanation": "The passage says tit-for-tat \"was startlingly simple by comparison\" to \"sophisticated entries\" with \"elaborate strategies\", the opposite of most complicated, so FALSE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "Most of the programs submitted to Axelrod's tournament were written by professional computer scientists.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage says \"researchers submitted computer programs\" but never describes their professional backgrounds in detail, so it is impossible to say what proportion were computer scientists specifically. NOT GIVEN."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Robert Trivers developed his theory of reciprocal altruism after Axelrod's tournament and was directly inspired by it.",
+          "answer": "FALSE",
+          "explanation": "Trivers's 1971 theory was \"developed independently of and prior to Axelrod's tournament\", which took place in the early 1980s. FALSE."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Vampire bats that consistently fail to share blood are eventually excluded from future sharing.",
+          "answer": "TRUE",
+          "explanation": "Paragraph 5 states this directly: bats that persistently fail to share blood are excluded from future sharing. The statement matches this exactly, so TRUE."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "According to the passage, what makes the iterated version of the prisoner's dilemma different from the one-off version?",
+          "options": [
+            "The payoffs for mutual cooperation are larger in the iterated version.",
+            "Players can condition their choices on the other's behaviour in previous rounds.",
+            "Betrayal is no longer possible once the game is repeated.",
+            "The iterated version allows direct communication between players."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 2 gives this as the key difference: repeated play lets a choice depend on the opponent's earlier moves, matching option B. The other options describe things the passage never claims about the iterated game."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "Which property of tit-for-tat refers to its returning to cooperation as soon as the opponent does?",
+          "options": [
+            "Nice",
+            "Retaliatory",
+            "Forgiving",
+            "Clear"
+          ],
+          "answer": 2,
+          "explanation": "Paragraph 3 names four properties of tit-for-tat and defines 'forgiving' as exactly this behaviour: returning to cooperation right after the opponent does, which distinguishes it from 'retaliatory' (punishing betrayal) and 'nice' (never betraying first)."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Why can strict tit-for-tat perform poorly in a 'noisy' environment?",
+          "options": [
+            "Because noise prevents players from ever cooperating in the first round.",
+            "Because a misread cooperative move can trigger a destructive cycle of mutual retaliation.",
+            "Because noisy environments always favour betrayal from the outset.",
+            "Because tit-for-tat cannot be programmed to handle repeated rounds."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 6 explains this failure mode: one misread cooperative move triggers a spiral of mutual retaliation, matching option B. The other options describe things the passage never says about noisy environments."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What is the passage's overall conclusion about cooperation among self-interested agents?",
+          "options": [
+            "It requires an external authority to enforce agreements.",
+            "It can emerge as a stable strategic equilibrium given repetition, reciprocity and an uncertain time horizon.",
+            "It is only observed in evolved biological species, not in human institutions.",
+            "Tit-for-tat is now considered the single optimal strategy in all conditions."
+          ],
+          "answer": 1,
+          "explanation": "The final paragraph states cooperation \"can emerge as a stable strategic equilibrium from within it, given the right structural conditions of repetition, reciprocity and an uncertain horizon\", and explicitly denies any single optimal strategy exists."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "The winning strategy in Axelrod's tournament was submitted by ___.",
+          "answer": "Anatol Rapoport",
+          "maxWords": 2,
+          "explanation": "Paragraph 3 names the winner's submitter right after 'submitted by', giving the person's name for the gap."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "If both players know which round is the final one, the logic of the ___ dilemma reasserts itself for that round.",
+          "answer": "single-shot",
+          "maxWords": 2,
+          "explanation": "Paragraph 4 uses this exact phrase, 'single-shot', to name the dilemma whose logic returns on a known final round, which is the term the gap needs."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "Vampire bats regurgitate blood to share with ___ who failed to feed on a given night.",
+          "answer": "roost-mates",
+          "maxWords": 2,
+          "explanation": "Paragraph 5 names 'roost-mates' as who bats share blood with, right after the verb 'share with' that the question sentence also uses."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "A strategy dubbed '___' outperforms strict tit-for-tat in noisy environments.",
+          "answer": "generous tit-for-tat",
+          "maxWords": 2,
+          "explanation": "The requested completion refers to the strategy named in the passage: \"a strategy dubbed 'generous tit-for-tat', which occasionally cooperates even after the opponent has just defected\"."
+        }
+      ]
+    }
+  ]
+}

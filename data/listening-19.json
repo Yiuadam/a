@@ -1,0 +1,129 @@
+{
+  "id": "listening-19",
+  "title": "The Global Coffee Trade",
+  "context": "A university lecturer traces how coffee moved from a regional crop to a global commodity, and the economic tensions this created.",
+  "difficulty": "hard",
+  "level": "C1",
+  "timeMinutes": 12,
+  "speakers": [
+    "Lecturer"
+  ],
+  "script": [
+    { "speaker": "Lecturer", "text": "This morning I want to trace the economic history of coffee, because it's a rare example of a crop whose journey from local curiosity to global commodity is extremely well documented." },
+    { "speaker": "Lecturer", "text": "For centuries, coffee cultivation was tightly controlled by the region where it originated, and exported only as roasted or otherwise treated beans, precisely so that rival growers elsewhere could not simply plant the seeds themselves and start competing." },
+    { "speaker": "Lecturer", "text": "That control eventually broke down, not through some dramatic single event, but gradually, as travellers managed to smuggle viable seedlings out under the noses of the authorities. Once coffee could be grown in new colonial territories with suitable climates, the original monopoly was effectively finished." },
+    { "speaker": "Lecturer", "text": "What followed was a rapid expansion of coffee cultivation across several continents, largely driven by colonial economic policy rather than by local demand. Plantation owners could grow coffee more cheaply where labour was forced or poorly paid, which is an uncomfortable but essential part of this history." },
+    { "speaker": "Lecturer", "text": "By the twentieth century, coffee had become one of the most heavily traded commodities on earth, and this scale brought a new problem entirely: price volatility. When too many countries produced too much coffee in a good growing year, prices could collapse, devastating smaller farmers who had no way to absorb the loss." },
+    { "speaker": "Lecturer", "text": "One attempt to manage this volatility was an international agreement establishing export quotas, essentially limiting how much each producing country could sell in a given year, in order to keep global prices at a level that avoided the worst collapses." },
+    { "speaker": "Lecturer", "text": "This quota system worked reasonably well for a period, but it eventually collapsed when the two largest producing nations couldn't agree on new quota figures, and once that agreement fell apart, prices swung far more wildly than before, and stayed unpredictable for years afterward." },
+    { "speaker": "Lecturer", "text": "In the years since, a different approach has gained ground: rather than governments controlling supply, various certification schemes now aim to guarantee farmers a minimum price directly, regardless of what the wider commodity market is doing that year." },
+    { "speaker": "Lecturer", "text": "Critics of certification schemes argue they only reach a small fraction of farmers and that certified coffee still sells at a premium mainly because of what it signals to consumers, rather than because production actually costs proportionally more." },
+    { "speaker": "Lecturer", "text": "Supporters counter that even a partial, imperfect solution is preferable to leaving smaller farmers entirely exposed to a commodity market they have essentially no power to influence." },
+    { "speaker": "Lecturer", "text": "What's striking, looking back across this whole history, is how consistently the people actually growing the crop have had the least control over its price, from the earliest smuggled seedlings right through to today's certification debates." },
+    { "speaker": "Lecturer", "text": "For next week's seminar, I'd like you to read the assigned case study on one certification scheme and come prepared to argue both sides of that debate, regardless of which side you personally find more convincing." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN THREE WORDS for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Coffee was originally exported only as roasted beans so rival growers could not simply ___ the seeds",
+          "answer": "plant",
+          "maxWords": 1,
+          "explanation": "The lecturer explains beans were exported treated \"precisely so that rival growers elsewhere could not simply plant the seeds themselves and start competing.\""
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "The original monopoly ended when travellers managed to ___ viable seedlings",
+          "answer": "smuggle",
+          "maxWords": 1,
+          "explanation": "Control broke down gradually \"as travellers managed to smuggle viable seedlings out under the noses of the authorities.\""
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Expansion of cultivation was largely driven by colonial economic ___ rather than local demand",
+          "answer": "policy",
+          "maxWords": 1,
+          "explanation": "The lecturer states expansion was \"largely driven by colonial economic policy rather than by local demand,\" not consumer interest."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "The new problem created by twentieth-century scale was price ___",
+          "answer": "volatility",
+          "maxWords": 1,
+          "explanation": "The lecturer names this new problem directly: \"this scale brought a new problem entirely: price volatility.\""
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "The international agreement worked through export ___",
+          "answer": "quotas",
+          "maxWords": 1,
+          "explanation": "The agreement is described as \"establishing export quotas, essentially limiting how much each producing country could sell in a given year.\""
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "The quota system collapsed when the two largest producing nations could not agree on new quota ___",
+          "answer": "figures",
+          "maxWords": 1,
+          "explanation": "The system fell apart because the two largest producers \"couldn't agree on new quota figures,\" after which prices swung wildly."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Certification schemes aim to guarantee farmers a minimum ___",
+          "answer": "price",
+          "maxWords": 1,
+          "explanation": "Rather than governments controlling supply, certification schemes \"now aim to guarantee farmers a minimum price directly,\" regardless of the wider market."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "According to the lecture, what allowed coffee cultivation to spread beyond its original region?",
+          "options": [
+            "a formal trade agreement between nations",
+            "seedlings being smuggled out to new colonial territories",
+            "a change in local demand for coffee"
+          ],
+          "answer": 1,
+          "explanation": "The monopoly ended because seedlings were smuggled out and grown \"in new colonial territories with suitable climates,\" not through any formal agreement."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What do critics say about certification schemes?",
+          "options": [
+            "they reach only a small fraction of farmers",
+            "they have completely replaced commodity markets",
+            "they lower prices for consumers"
+          ],
+          "answer": 0,
+          "explanation": "Critics argue the schemes \"only reach a small fraction of farmers\" and that the premium reflects consumer signalling rather than production cost."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What does the lecturer identify as the consistent pattern across coffee's history?",
+          "options": [
+            "prices have always been stable for growers",
+            "growers have had the least control over price",
+            "certification schemes have solved the pricing problem"
+          ],
+          "answer": 1,
+          "explanation": "The lecturer's closing observation is that \"the people actually growing the crop have had the least control over its price\" throughout this whole history."
+        }
+      ]
+    }
+  ]
+}

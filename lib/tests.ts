@@ -8,6 +8,16 @@ import readingSeven from "@/data/reading-7.json";
 import readingEight from "@/data/reading-8.json";
 import readingNine from "@/data/reading-9.json";
 import readingTen from "@/data/reading-10.json";
+import readingEleven from "@/data/reading-11.json";
+import readingTwelve from "@/data/reading-12.json";
+import readingThirteen from "@/data/reading-13.json";
+import readingFourteen from "@/data/reading-14.json";
+import readingFifteen from "@/data/reading-15.json";
+import readingSixteen from "@/data/reading-16.json";
+import readingSeventeen from "@/data/reading-17.json";
+import readingEighteen from "@/data/reading-18.json";
+import readingNineteen from "@/data/reading-19.json";
+import readingTwenty from "@/data/reading-20.json";
 import listeningOne from "@/data/listening-1.json";
 import listeningTwo from "@/data/listening-2.json";
 import listeningThree from "@/data/listening-3.json";
@@ -19,6 +29,16 @@ import listeningEight from "@/data/listening-8.json";
 import listeningNine from "@/data/listening-9.json";
 import listeningTen from "@/data/listening-10.json";
 import listeningEleven from "@/data/listening-11.json";
+import listeningTwelve from "@/data/listening-12.json";
+import listeningThirteen from "@/data/listening-13.json";
+import listeningFourteen from "@/data/listening-14.json";
+import listeningFifteen from "@/data/listening-15.json";
+import listeningSixteen from "@/data/listening-16.json";
+import listeningSeventeen from "@/data/listening-17.json";
+import listeningEighteen from "@/data/listening-18.json";
+import listeningNineteen from "@/data/listening-19.json";
+import listeningTwenty from "@/data/listening-20.json";
+import listeningTwentyOne from "@/data/listening-21.json";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 
 /*
@@ -73,6 +93,16 @@ export const READING_TESTS: ReadingTest[] = byDifficulty([
   readingEight,
   readingNine,
   readingTen,
+  readingEleven,
+  readingTwelve,
+  readingThirteen,
+  readingFourteen,
+  readingFifteen,
+  readingSixteen,
+  readingSeventeen,
+  readingEighteen,
+  readingNineteen,
+  readingTwenty,
 ] as ReadingTest[]);
 
 export const LISTENING_TESTS: ListeningTest[] = byDifficulty([
@@ -87,4 +117,14 @@ export const LISTENING_TESTS: ListeningTest[] = byDifficulty([
   listeningNine,
   listeningTen,
   listeningEleven,
+  listeningTwelve,
+  listeningThirteen,
+  listeningFourteen,
+  listeningFifteen,
+  listeningSixteen,
+  listeningSeventeen,
+  listeningEighteen,
+  listeningNineteen,
+  listeningTwenty,
+  listeningTwentyOne,
 ] as ListeningTest[]);

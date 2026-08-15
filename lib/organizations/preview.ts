@@ -459,6 +459,10 @@ export function managerStudentHistoryPreview(studentId: string): StudentHistory 
               id: "preview-writing-task",
               task: 2,
               variant: "academic",
+              // Required on WritingTask since practice content became
+              // CEFR-levelled. B2 matches the real Task 2 essays it stands in
+              // for in this synthetic preview workspace.
+              level: "B2",
               title: "Remote working",
               prompt: "To what extent do you agree that remote working benefits both employers and employees?",
               minWords: 250,

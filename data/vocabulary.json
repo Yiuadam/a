@@ -569,6 +569,226 @@
           "explanation": "A precise adjective plus a concrete example is what raises the score. Repeating or intensifying \"nice\" adds nothing to lexical resource."
         }
       ]
+    },
+    {
+      "id": "hedging-language",
+      "title": "Hedging and cautious academic language",
+      "level": "C1",
+      "summary": "Hedging softens a claim so it matches the strength of your evidence. Overclaiming what limited evidence shows costs marks just as much as underclaiming what strong evidence shows.",
+      "points": [
+        "Hedging softens a claim so it matches the strength of your evidence.",
+        "Common hedges: may, might, tend to, appear to, seems to, is likely to, to some extent.",
+        "Overclaiming with \"proves\" or \"always\" when evidence is limited costs marks in academic writing.",
+        "A hedge can sit on the verb (may increase) or on the whole claim (it is possible that)."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "The data ___ suggest a link, but further research is needed.", "options": ["clearly", "would", "definitely", "absolutely"], "answer": 1, "explanation": "\"Would\" softens the claim to a cautious possibility, matching evidence that is not yet conclusive."},
+        {"id": "q2", "prompt": "Which sentence is the most appropriately hedged?", "options": ["This proves that diet causes the illness.", "This shows that diet causes the illness.", "This may indicate a link between diet and the illness.", "This means diet causes the illness."], "answer": 2, "explanation": "\"May indicate a link\" matches limited evidence. The others all overclaim certainty the evidence does not support."},
+        {"id": "q3", "prompt": "Smaller classes ___ to improve results, though the effect varies.", "options": ["tend", "always", "definitely", "certainly"], "answer": 0, "explanation": "\"Tend to\" signals a general pattern rather than an absolute rule, which fits the qualification that follows."},
+        {"id": "q4", "prompt": "The policy ___ have contributed to the decline, among other factors.", "options": ["must", "may", "will", "does"], "answer": 1, "explanation": "\"May have\" is a cautious past hedge, appropriate when other factors are also acknowledged."},
+        {"id": "q5", "prompt": "To ___ extent, the results confirm the theory.", "options": ["full", "some", "complete", "entire"], "answer": 1, "explanation": "\"To some extent\" is a fixed hedging phrase meaning partly, not completely."},
+        {"id": "q6", "prompt": "The findings ___ to support the original hypothesis.", "options": ["appear", "absolutely prove", "definitely confirm", "completely establish"], "answer": 0, "explanation": "\"Appear to\" is cautious phrasing; the other options claim more certainty than research findings usually justify."},
+        {"id": "q7", "prompt": "It is ___ that costs will rise further next year.", "options": ["certain", "likely", "definite", "guaranteed"], "answer": 1, "explanation": "\"Likely\" hedges a prediction appropriately. The other words claim near-total certainty about the future."},
+        {"id": "q8", "prompt": "Which is the most cautious way to introduce a claim?", "options": ["It is obvious that…", "It is a fact that…", "It could be argued that…", "Everyone agrees that…"], "answer": 2, "explanation": "\"It could be argued that\" openly frames the claim as one interpretation, leaving room for other views — the hallmark of hedged academic writing."}
+      ]
+    },
+    {
+      "id": "quantity-and-proportion",
+      "title": "Describing quantity and proportion",
+      "level": "B1",
+      "summary": "Task 1 writing lives on this vocabulary. Precise proportion words let you report figures without repeating the same tired phrases.",
+      "points": [
+        "Use \"the majority of\" and \"a minority of\" for most/fewest of a group.",
+        "\"Approximately\", \"roughly\" and \"just over/under\" describe numbers close to, but not exactly, a figure.",
+        "A fraction like \"a quarter of\" or \"two-thirds of\" takes the verb form that matches the noun after \"of\".",
+        "Avoid vague words like \"a lot\" or \"loads\" in formal writing — prefer \"a substantial number\" or \"a considerable proportion\"."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "___ of respondents said they were satisfied with the service.", "options": ["The majority", "The major", "Most part", "A most"], "answer": 0, "explanation": "\"The majority of\" is the standard phrase for describing more than half of a group."},
+        {"id": "q2", "prompt": "Just ___ half of the students passed the test.", "options": ["under", "low", "less", "minus"], "answer": 0, "explanation": "\"Just under\" means slightly less than the figure given — a precise way to describe an approximate proportion."},
+        {"id": "q3", "prompt": "___ of the budget was spent on marketing.", "options": ["A quarter", "A quarter part", "One from four", "A quart"], "answer": 0, "explanation": "\"A quarter of\" is the standard way to express one part in four."},
+        {"id": "q4", "prompt": "Roughly ___ of the population lives in urban areas.", "options": ["two-thirds", "two third", "two-thirds part", "second-thirds"], "answer": 0, "explanation": "Fractions above one are hyphenated and the denominator stays singular: \"two-thirds\"."},
+        {"id": "q5", "prompt": "Which is the most formal way to describe a large amount in an essay?", "options": ["loads of evidence", "a lot of evidence", "a substantial amount of evidence", "tons of evidence"], "answer": 2, "explanation": "\"A substantial amount of\" is precise and formal, unlike the casual alternatives, which suit spoken English better."},
+        {"id": "q6", "prompt": "Only a small ___ of employees opposed the change.", "options": ["minority", "minor", "less", "few number"], "answer": 0, "explanation": "\"A small minority of\" describes a small proportion of a group opposed to something."},
+        {"id": "q7", "prompt": "The figure rose to ___ 3 million by the end of the year.", "options": ["approximately", "near", "close of", "about of"], "answer": 0, "explanation": "\"Approximately\" is the standard formal word for a number that is close to, but not exactly, the one given."},
+        {"id": "q8", "prompt": "___ half of those surveyed had never travelled abroad.", "options": ["Nearly", "Near", "Closely", "Almostly"], "answer": 0, "explanation": "\"Nearly\" is the correct adverb meaning \"almost\". \"Almostly\" is not a word, and \"near\" is not used this way before a fraction."}
+      ]
+    },
+    {
+      "id": "adjective-preposition-collocations",
+      "title": "Adjective + preposition collocations",
+      "level": "B2",
+      "summary": "Adjectives, like verbs, pair with a fixed preposition rather than a logical one. A small shift in preposition can also shift the meaning slightly.",
+      "points": [
+        "Many adjectives pair with one fixed preposition: interested in, afraid of, good at, similar to.",
+        "The preposition can change with a small shift in meaning: married to, angry with a person, angry about a situation.",
+        "After the preposition, use a noun or -ing form, never a bare infinitive.",
+        "Learn these as fixed pairs — they rarely follow a predictable pattern."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "She's always been interested ___ languages.", "options": ["for", "in", "at", "on"], "answer": 1, "explanation": "\"Interested in\" is the fixed pairing for a subject that appeals to someone."},
+        {"id": "q2", "prompt": "I'm not very good ___ remembering names.", "options": ["in", "on", "at", "for"], "answer": 2, "explanation": "\"Good at\" is the standard pairing for skills and abilities."},
+        {"id": "q3", "prompt": "He's afraid ___ spiders.", "options": ["of", "from", "with", "about"], "answer": 0, "explanation": "\"Afraid of\" is the fixed pairing for fears."},
+        {"id": "q4", "prompt": "This design is very similar ___ the last one.", "options": ["with", "to", "from", "as"], "answer": 1, "explanation": "\"Similar to\" is the fixed pairing for comparisons."},
+        {"id": "q5", "prompt": "She was angry ___ her colleague for missing the deadline.", "options": ["about", "with", "of", "for"], "answer": 1, "explanation": "\"Angry with\" is used for a person; \"angry about\" is used for a situation or event."},
+        {"id": "q6", "prompt": "The results are consistent ___ earlier studies.", "options": ["to", "with", "of", "on"], "answer": 1, "explanation": "\"Consistent with\" is the fixed academic pairing meaning \"in agreement with\"."},
+        {"id": "q7", "prompt": "He is capable ___ finishing the task alone.", "options": ["to", "for", "of", "in"], "answer": 2, "explanation": "\"Capable of\" is the fixed pairing in English, and the verb after it takes the -ing form, not the infinitive."},
+        {"id": "q8", "prompt": "I'm not satisfied ___ this explanation.", "options": ["of", "with", "from", "at"], "answer": 1, "explanation": "\"Satisfied with\" is the fixed pairing for an explanation, result or outcome."}
+      ]
+    },
+    {
+      "id": "register-pairs",
+      "title": "Everyday and academic register pairs",
+      "level": "B2",
+      "summary": "Casual and formal English often express the same idea with different words. Matching register to the task — an email versus an essay — is part of what examiners are marking.",
+      "points": [
+        "Many ideas have a casual word and a more formal equivalent: kids/children, get/receive, a lot of/numerous.",
+        "Contractions (don't, it's, can't) belong in speech, not in formal writing.",
+        "Phrasal verbs like \"find out\" often have a formal one-word equivalent: \"determine\".",
+        "Register is about matching the word to the task, not about one word being \"better\" than another."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "Which is the more formal way to say \"kids\"?", "options": ["children", "little ones", "the young", "kiddies"], "answer": 0, "explanation": "\"Children\" is the neutral, formal word. The others are all casual or overly familiar."},
+        {"id": "q2", "prompt": "In a formal essay, \"a lot of people\" is better replaced with:", "options": ["loads of people", "tons of people", "numerous people", "heaps of people"], "answer": 2, "explanation": "\"Numerous\" is the formal equivalent of \"a lot of\" and fits academic writing, unlike the casual alternatives."},
+        {"id": "q3", "prompt": "Which sentence is written in the more formal register?", "options": ["We can't say for sure.", "It cannot be said with certainty.", "We just don't know for sure.", "There's no way to know."], "answer": 1, "explanation": "The formal version avoids the contraction and uses precise, impersonal phrasing."},
+        {"id": "q4", "prompt": "The formal equivalent of \"find out\" is:", "options": ["dig up", "figure out", "determine", "suss out"], "answer": 2, "explanation": "\"Determine\" is the single-word academic equivalent; the others are informal phrasal verbs."},
+        {"id": "q5", "prompt": "Which is the more formal way to say \"get\"?", "options": ["grab", "receive", "pick up", "land"], "answer": 1, "explanation": "\"Receive\" is neutral and formal; the other options are casual synonyms for \"get\"."},
+        {"id": "q6", "prompt": "In academic writing, \"big\" is often better replaced with:", "options": ["massive", "substantial", "huge", "giant"], "answer": 1, "explanation": "\"Substantial\" is precise and formal. The others are informal intensifiers more suited to speech."},
+        {"id": "q7", "prompt": "Which is the more formal version of \"start\"?", "options": ["kick off", "commence", "get going", "set off"], "answer": 1, "explanation": "\"Commence\" is the formal register equivalent of \"start\" used in reports and academic writing."},
+        {"id": "q8", "prompt": "The casual phrase \"sort out a problem\" is best replaced in writing with:", "options": ["resolve a problem", "deal with a problem", "fix a problem", "sort a problem"], "answer": 0, "explanation": "\"Resolve\" is the precise, formal verb for solving a problem in academic or report writing."}
+      ]
+    },
+    {
+      "id": "topic-education",
+      "title": "Education vocabulary",
+      "level": "B1",
+      "summary": "Education comes up constantly in speaking and writing tasks. Precise words for stages, qualifications and money make an answer sound informed rather than vague.",
+      "points": [
+        "Learning happens across stages: primary, secondary, higher education.",
+        "\"Curriculum\" is what is taught; \"syllabus\" is the more detailed content list for one course.",
+        "\"Tuition fees\" are what you pay; a \"scholarship\" or \"grant\" covers some or all of it.",
+        "Distinguish \"teach\" (give lessons) from \"study\" (learn a subject) — a common confusion."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "After finishing secondary school, many students go on to ___ education.", "options": ["higher", "high", "upper", "further-most"], "answer": 0, "explanation": "\"Higher education\" is the standard term for university-level study."},
+        {"id": "q2", "prompt": "She won a ___ that covers all her tuition fees.", "options": ["loan", "scholarship", "tuition", "fee"], "answer": 1, "explanation": "A scholarship is money awarded for merit that does not need to be repaid, unlike a loan."},
+        {"id": "q3", "prompt": "The course ___ covers grammar, writing and speaking skills.", "options": ["syllabus", "curriculum", "timetable", "transcript"], "answer": 0, "explanation": "A \"syllabus\" lists the specific content of one course, while a \"curriculum\" refers to the whole programme of study."},
+        {"id": "q4", "prompt": "He's ___ medicine at university.", "options": ["teaching", "studying", "learning", "lecturing"], "answer": 1, "explanation": "\"Studying\" means learning a subject as a student. \"Teaching\" would mean he gives the lessons."},
+        {"id": "q5", "prompt": "Universities often charge high ___ for international students.", "options": ["tuition fees", "tuitions", "school money", "teaching money"], "answer": 0, "explanation": "\"Tuition fees\" is the standard term for the cost of taking a course."},
+        {"id": "q6", "prompt": "She got a ___ in economics from a top university.", "options": ["certificate", "degree", "diploma paper", "badge"], "answer": 1, "explanation": "\"Degree\" is the standard word for the university qualification awarded after several years of study."},
+        {"id": "q7", "prompt": "Which word means someone doing research for a higher degree?", "options": ["undergraduate", "postgraduate", "graduate", "freshman"], "answer": 1, "explanation": "A \"postgraduate\" studies after already completing a first degree, often towards a master's or doctorate."},
+        {"id": "q8", "prompt": "He failed the module and had to ___ it the following year.", "options": ["resit", "redo again", "restudy", "repeat over"], "answer": 0, "explanation": "\"Resit\" is the standard term for taking an exam or module again after failing."}
+      ]
+    },
+    {
+      "id": "topic-environment",
+      "title": "Environment and sustainability vocabulary",
+      "level": "B2",
+      "summary": "Environmental topics appear regularly in Writing Task 2 and speaking. Precise verbs for harm and protection carry more weight than vague words like \"bad for the planet\".",
+      "points": [
+        "\"Sustainable\" describes something that can continue without running out or causing lasting harm.",
+        "\"Emissions\" are gases released, especially from vehicles and industry; \"carbon footprint\" is the total amount one person or activity produces.",
+        "\"Renewable\" energy comes from sources that do not run out, like solar or wind; \"fossil fuels\" do.",
+        "Verbs of harm and protection: deplete, degrade, conserve, preserve, offset."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "Solar and wind are examples of ___ energy.", "options": ["renewable", "sustainable only", "fossil", "limited"], "answer": 0, "explanation": "\"Renewable\" describes energy sources that naturally replenish, unlike fossil fuels, which are finite."},
+        {"id": "q2", "prompt": "Factories are being urged to cut their carbon ___.", "options": ["footstep", "emissions", "output only", "tracks"], "answer": 1, "explanation": "\"Carbon emissions\" refers to the gases released into the atmosphere, especially carbon dioxide."},
+        {"id": "q3", "prompt": "Overfishing has severely ___ fish stocks in the region.", "options": ["depleted", "preserved", "conserved", "offset"], "answer": 0, "explanation": "\"Deplete\" means to reduce a resource until little is left. \"Preserve\" and \"conserve\" mean the opposite — to protect it."},
+        {"id": "q4", "prompt": "Many companies now try to ___ their emissions by planting trees.", "options": ["offset", "deplete", "degrade", "exhaust"], "answer": 0, "explanation": "\"Offset\" means to balance out one effect, such as emissions, with an equivalent counteracting action."},
+        {"id": "q5", "prompt": "The forest has been badly ___ by illegal logging.", "options": ["conserved", "degraded", "sustained", "preserved"], "answer": 1, "explanation": "\"Degrade\" means to reduce the quality of something, here the forest's condition."},
+        {"id": "q6", "prompt": "A ___ development approach tries to meet current needs without harming future generations.", "options": ["renewable", "sustainable", "fossil", "disposable"], "answer": 1, "explanation": "\"Sustainable\" describes an approach that can continue long-term without depleting resources."},
+        {"id": "q7", "prompt": "The government introduced a scheme to ___ endangered species.", "options": ["exhaust", "deplete", "conserve", "offset"], "answer": 2, "explanation": "\"Conserve\" means to protect something from being lost or damaged, which fits protecting a species."},
+        {"id": "q8", "prompt": "Coal and oil are known as ___ fuels because they cannot be replaced once used.", "options": ["renewable", "fossil", "sustainable", "clean"], "answer": 1, "explanation": "\"Fossil fuels\" formed over millions of years and are not replaceable on a human timescale, unlike renewable sources."}
+      ]
+    },
+    {
+      "id": "giving-opinions",
+      "title": "Giving and softening opinions",
+      "level": "A2",
+      "summary": "Speaking tests reward a range of opinion phrases, not just repeated \"I think\". Softer phrases also let you disagree politely without sounding blunt.",
+      "points": [
+        "Direct opinion phrases: I think, I believe, in my view, as far as I'm concerned.",
+        "Softer phrases for disagreement: I see your point, but…; I'm not sure I agree…",
+        "\"Personally\" adds emphasis that the opinion is your own, not a general fact.",
+        "Overusing \"I think\" sounds repetitive — vary the phrase across a speaking answer."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "Which phrase introduces a personal opinion?", "options": ["It is a fact that", "In my view", "According to the report", "Statistics show"], "answer": 1, "explanation": "\"In my view\" clearly signals a personal opinion rather than a stated fact or reported data."},
+        {"id": "q2", "prompt": "Which is the most polite way to disagree?", "options": ["You're wrong about that.", "That's not true at all.", "I see your point, but I'm not sure I agree.", "No, that's silly."], "answer": 2, "explanation": "This phrase acknowledges the other person's view before disagreeing, which is a polite and natural way to differ."},
+        {"id": "q3", "prompt": "___, I think public transport should be free.", "options": ["Personally", "Personal", "Person", "In person"], "answer": 0, "explanation": "\"Personally\" is the adverb used to introduce a strongly individual opinion."},
+        {"id": "q4", "prompt": "Which phrase best introduces an opinion in a discussion?", "options": ["As far as I'm concerned", "As far as I concern", "As far I'm concerned", "So far I'm concerned"], "answer": 0, "explanation": "\"As far as I'm concerned\" is the correctly formed fixed phrase for introducing a personal viewpoint."},
+        {"id": "q5", "prompt": "To agree strongly with someone, you could say:", "options": ["I couldn't agree more.", "I could agree more.", "I can't agree.", "I couldn't more agree."], "answer": 0, "explanation": "\"I couldn't agree more\" is the fixed idiom for expressing strong agreement."},
+        {"id": "q6", "prompt": "Which phrase suggests you have not fully made up your mind?", "options": ["I'm absolutely certain that…", "I'm inclined to think that…", "There's no doubt that…", "It's obvious that…"], "answer": 1, "explanation": "\"I'm inclined to think\" signals a leaning opinion rather than firm certainty, unlike the other phrases."},
+        {"id": "q7", "prompt": "Which phrase is too informal for a formal speaking test answer?", "options": ["I would say that…", "In my opinion…", "I reckon…", "I believe…"], "answer": 2, "explanation": "\"I reckon\" is casual spoken slang. The other phrases suit a more neutral or formal register."},
+        {"id": "q8", "prompt": "To politely introduce a different opinion, you can say:", "options": ["That's completely wrong.", "I'd have to disagree, actually.", "You clearly don't understand.", "Nobody thinks that."], "answer": 1, "explanation": "This phrase disagrees while staying courteous, unlike the blunt or dismissive alternatives."}
+      ]
+    },
+    {
+      "id": "topic-technology",
+      "title": "Technology vocabulary",
+      "level": "B2",
+      "summary": "Technology topics reward precise verbs for change and precise nouns for devices, rather than the vague \"stuff\" and \"things\" that flatten a Task 2 essay.",
+      "points": [
+        "\"Digital divide\" describes unequal access to technology between groups.",
+        "Verbs for tech change: automate, digitise, streamline, upgrade.",
+        "\"Innovative\" describes something new and original; \"obsolete\" describes something outdated and no longer used.",
+        "Be precise: \"device\" is general, but \"smartphone\", \"tablet\" and \"laptop\" are more exact when the context allows."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "Many routine tasks have now been ___ by software.", "options": ["automated", "digitised", "upgraded", "streamlined"], "answer": 0, "explanation": "\"Automate\" means to make a process run by machine rather than by a person — the standard word for this kind of change."},
+        {"id": "q2", "prompt": "The company plans to ___ its filing system by scanning all paper records.", "options": ["automate", "digitise", "obsolete", "innovate"], "answer": 1, "explanation": "\"Digitise\" means to convert something into digital form, which fits scanning paper records."},
+        {"id": "q3", "prompt": "The ___ between those with internet access and those without remains a serious issue.", "options": ["digital divide", "tech gap only", "online split", "network divide"], "answer": 0, "explanation": "\"Digital divide\" is the fixed term for unequal access to technology between different groups."},
+        {"id": "q4", "prompt": "This model of phone is now considered ___; nobody makes parts for it anymore.", "options": ["innovative", "cutting-edge", "obsolete", "advanced"], "answer": 2, "explanation": "\"Obsolete\" means outdated and no longer in use or supported — the opposite of \"cutting-edge\" or \"innovative\"."},
+        {"id": "q5", "prompt": "The new app is designed to ___ the process of booking appointments.", "options": ["streamline", "obsolete", "digitise fully", "degrade"], "answer": 0, "explanation": "\"Streamline\" means to make a process simpler and more efficient."},
+        {"id": "q6", "prompt": "She works for a highly ___ start-up known for original ideas.", "options": ["obsolete", "innovative", "outdated", "conventional"], "answer": 1, "explanation": "\"Innovative\" describes something new and creatively different, fitting a start-up known for original ideas."},
+        {"id": "q7", "prompt": "Which word best replaces \"device\" when referring specifically to a phone?", "options": ["gadget", "smartphone", "machine", "unit"], "answer": 1, "explanation": "\"Smartphone\" is the precise term; \"device\" is the vaguer, more general word."},
+        {"id": "q8", "prompt": "The company decided to ___ all its computers to the latest software.", "options": ["upgrade", "degrade", "offset", "deplete"], "answer": 0, "explanation": "\"Upgrade\" means to improve something, such as software or hardware, to a newer version."}
+      ]
+    },
+    {
+      "id": "cause-and-effect-language",
+      "title": "Cause, effect and correlation language",
+      "level": "B2",
+      "summary": "Task 2 essays need precise verbs for how one thing leads to another. Confusing cause with correlation, or affect with effect, weakens an argument even when the content is strong.",
+      "points": [
+        "\"Lead to\", \"result in\" and \"give rise to\" all introduce a result; the subject of the verb is the cause.",
+        "\"Stem from\", \"arise from\" and \"be attributed to\" work the other way: the subject is the result, and the cause follows.",
+        "A correlation is not the same as a cause — two things happening together is not proof that one caused the other.",
+        "\"Affect\" is the verb; \"effect\" is usually the noun, seen after \"have an\" or \"the\"."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "Rising fuel prices ___ a sharp increase in public transport use.", "options": ["led to", "stemmed from", "were attributed to", "arose from"], "answer": 0, "explanation": "\"Lead to\" introduces the result that follows the cause; the fuel prices are the cause here, so the effect follows the verb."},
+        {"id": "q2", "prompt": "The rise in obesity ___ changes in diet and lifestyle.", "options": ["has led to", "can be attributed to", "has resulted in", "gives rise to"], "answer": 1, "explanation": "\"Be attributed to\" puts the result first and the cause after; here the obesity (result) is explained by the changes (cause)."},
+        {"id": "q3", "prompt": "Which sentence correctly distinguishes correlation from causation?", "options": ["Ice cream sales and drowning rates rise together, so ice cream causes drowning.", "Ice cream sales and drowning rates rise together, but this does not prove one causes the other.", "Because ice cream sales rise, drowning rates must rise too.", "Ice cream sales prove that drowning rates will increase."], "answer": 1, "explanation": "A correlation shows two things changing together, but it does not on its own prove that one causes the other — a common flaw examiners look for in Task 2 arguments."},
+        {"id": "q4", "prompt": "Poor sleep ___ lower concentration levels the next day.", "options": ["results in", "is attributed to", "stems from", "arises from"], "answer": 0, "explanation": "\"Result in\" introduces the effect after the cause; poor sleep is the cause, so it takes the verb that points forward to the result."},
+        {"id": "q5", "prompt": "The delay ___ a shortage of staff.", "options": ["led to", "gave rise to", "was caused by", "resulted in"], "answer": 2, "explanation": "\"Was caused by\" is passive and puts the result (the delay) first, with the cause introduced afterwards."},
+        {"id": "q6", "prompt": "The weather badly ___ the harvest, and the ___ was a poor yield.", "options": ["affected / effect", "effected / affect", "affected / affection", "effect / affected"], "answer": 0, "explanation": "\"Affect\" is the verb describing the influence; \"effect\" is the noun describing the result of that influence."},
+        {"id": "q7", "prompt": "Which verb best introduces a cause you are not fully certain of?", "options": ["caused", "may have contributed to", "definitely led to", "proved"], "answer": 1, "explanation": "\"May have contributed to\" hedges the claim, useful when a cause is plausible but not proven — exactly the caution academic writing rewards."},
+        {"id": "q8", "prompt": "Economic growth and rising life expectancy often ___, though the exact relationship is complex.", "options": ["correlate", "are caused", "effect", "are affected"], "answer": 0, "explanation": "\"Correlate\" describes two things changing together without claiming that one causes the other."}
+      ]
+    },
+    {
+      "id": "paraphrasing-pairs",
+      "title": "Paraphrasing: everyday and academic synonyms",
+      "level": "B2",
+      "summary": "Reading and Listening test whether you can match an everyday word in the question to its academic equivalent in the passage. Building a mental list of these pairs is the single most useful preparation for both.",
+      "points": [
+        "Passages often use a more formal or precise word for an idea the question states plainly.",
+        "Learn synonym pairs both ways: the everyday word and its academic partner.",
+        "A paraphrase changes the words but keeps the meaning exactly — it is not a looser, related idea.",
+        "Watch for word-form changes too: a verb in the question may appear as a noun in the passage."
+      ],
+      "questions": [
+        {"id": "q1", "prompt": "The question says \"get better\". Which word in a passage most likely paraphrases it?", "options": ["improve", "worsen", "remain", "disappear"], "answer": 0, "explanation": "\"Improve\" means the same as \"get better\" — a direct paraphrase — while the other options mean something different or opposite."},
+        {"id": "q2", "prompt": "Which word means the same as \"show\" in an academic passage?", "options": ["demonstrate", "deny", "ignore", "question"], "answer": 0, "explanation": "\"Demonstrate\" is the formal equivalent of \"show\" — the meaning is the same, only the register changes."},
+        {"id": "q3", "prompt": "The question asks about a \"big change\". Which passage phrase is the closest paraphrase?", "options": ["a significant shift", "a minor adjustment", "a slight variation", "a brief pause"], "answer": 0, "explanation": "\"A significant shift\" matches the size and type of change described as \"big\" in the question; the others describe something smaller or different."},
+        {"id": "q4", "prompt": "Which word pairs with \"start\" as an academic paraphrase?", "options": ["commence", "conclude", "pause", "cancel"], "answer": 0, "explanation": "\"Commence\" is the formal equivalent of \"start\". The others describe different stages of an event."},
+        {"id": "q5", "prompt": "The question says \"most people agree\". Which is the closest paraphrase?", "options": ["there is broad consensus", "opinion is divided", "few people accept", "the matter is disputed"], "answer": 0, "explanation": "\"Broad consensus\" means widespread agreement, matching \"most people agree\" in meaning, not just in topic."},
+        {"id": "q6", "prompt": "Which word means the same as \"enough\" in formal writing?", "options": ["sufficient", "excessive", "minimal", "scarce"], "answer": 0, "explanation": "\"Sufficient\" is the formal paraphrase of \"enough\" — both mean an adequate amount, unlike the other options."},
+        {"id": "q7", "prompt": "The question refers to a \"drop in numbers\". Which passage phrase paraphrases it?", "options": ["a decline in figures", "a rise in figures", "stable figures", "unclear figures"], "answer": 0, "explanation": "\"A decline in figures\" paraphrases \"a drop in numbers\" — same direction of change, different words."},
+        {"id": "q8", "prompt": "Which is a true paraphrase, rather than a related but different idea?", "options": ["\"The policy was postponed\" paraphrased as \"The policy was delayed.\"", "\"The policy was postponed\" paraphrased as \"The policy was cancelled.\"", "\"The policy was postponed\" paraphrased as \"The policy was approved.\"", "\"The policy was postponed\" paraphrased as \"The policy was popular.\""], "answer": 0, "explanation": "\"Delayed\" means exactly the same as \"postponed\". The other options change the meaning rather than just the wording."}
+      ]
     }
   ]
 }

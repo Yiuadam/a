@@ -163,7 +163,13 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
   }
 
   assert.equal(keys.size, partCount, "dialogue turns must never share an MP3 object");
-  for (const badId of ["", "listening-12", "https://example.test/voice.mp3", "../../secret"]) {
+  /*
+    "listening-12" used to sit in this list as an id that could not exist. It
+    exists now, so the negative case needs an id that genuinely never will —
+    the point of the check is that an unapproved id resolves to nothing, not
+    that any particular number is unused.
+  */
+  for (const badId of ["", "listening-999", "https://example.test/voice.mp3", "../../secret"]) {
     assert.equal(audio.bundledListeningAudio(badId), null);
   }
 });

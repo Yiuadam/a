@@ -1,0 +1,145 @@
+{
+  "id": "reading-14",
+  "title": "From Sand to Window: The Making of Glass",
+  "topic": "The chemistry and industrial history of glass manufacturing",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 20,
+  "passage": "Glass occupies an unusual position among the materials people rely on every day. It is rigid enough to hold liquid without leaking and to keep out wind and rain, yet transparent enough that light passes almost straight through it. Few natural materials share both properties, and understanding why glass behaves this way requires looking closely at what actually happens when it is made.\n\nThe basic recipe for glass has changed remarkably little in thousands of years. Ordinary glass is produced by heating silica, usually in the form of sand, until it melts, along with two other ingredients that make the process practical. Soda, typically sodium carbonate, is added because pure silica alone will not melt until it reaches an extremely high temperature, well beyond what early furnaces could sustain. Soda lowers the melting point considerably, but on its own it would produce a glass that dissolves in water, which is useless for almost any purpose. Lime, usually calcium oxide, is therefore added as a third ingredient to stabilise the mixture, giving the finished glass the durability to resist moisture and last for centuries.\n\nWhat happens at the molecular level explains glass's strange behaviour. When silica melts and is then cooled quickly, its atoms do not have time to arrange themselves into the neat, repeating pattern found in a crystal such as quartz. Instead, they freeze in a disordered arrangement, similar in structure to a liquid but rigid like a solid. Scientists therefore describe glass as an amorphous solid, a material that lacks the internal crystal structure of a true solid while behaving mechanically like one. This disordered structure is also the reason light passes through glass so easily: there are no regularly spaced crystal boundaries to scatter it, so a beam of light travels through with very little interruption.\n\nAncient glassmaking was a slow, skilled craft practised in furnaces that reached temperatures difficult to control with any precision. The earliest glass objects, dating back roughly four thousand years, were small beads and decorative items rather than practical containers, since shaping molten glass by hand into a useful vessel was extremely difficult. The breakthrough that transformed glass from a luxury item into an everyday material was the invention of glassblowing, developed in the region of ancient Syria roughly two thousand years ago. By gathering molten glass onto the end of a hollow metal tube and blowing air into it, a craftsman could inflate a bubble of glass into a bottle, cup or bowl far more quickly than by shaping it with tools alone. Glassblowing spread rapidly through the Roman Empire, and for the first time glass containers became affordable enough for ordinary households rather than only the wealthy.\n\nFor window glass specifically, a further problem had to be solved: producing large, flat sheets rather than small rounded vessels. For centuries, window panes were made either by spinning a blob of molten glass rapidly until centrifugal force flattened it into a disc, or by blowing a long cylinder of glass, cutting it open while still warm, and letting it unroll flat. Both methods produced glass of uneven thickness, often with a faint spiral or ripple pattern still visible in old buildings today. This limitation persisted until the twentieth century, when a British engineer named Alastair Pilkington developed the float glass process in the 1950s. In this method, molten glass is poured onto a bath of molten tin and allowed to spread out and cool while floating on the tin's perfectly flat surface. Because tin remains liquid at the temperatures involved and is denser than glass, the glass floats evenly across it, producing sheets of completely uniform thickness without any need for grinding or polishing afterwards. Float glass rapidly became the standard method worldwide and remains, with only minor refinements, the way nearly all flat glass is produced today.\n\nModern glass manufacturing has also branched into specialised varieties designed for particular purposes. Adding small quantities of boron produces borosilicate glass, which expands and contracts far less than ordinary glass when heated or cooled, making it resistant to the cracking that would otherwise occur from sudden temperature changes; this is why laboratory equipment and ovenproof cookware are typically made from it rather than standard soda-lime glass. Toughened glass, used in car windscreens and shower doors, is created by rapidly cooling the surface of a hot glass sheet while the interior cools more slowly, leaving the surface under permanent compression that makes it several times stronger than ordinary glass and causes it to shatter into small, blunt fragments rather than sharp shards if it does eventually break.\n\nDespite these refinements, the fundamental chemistry underlying nearly all commercial glass remains the same three ingredients that were combined in ancient furnaces: silica for structure, soda to lower the melting point, and lime to provide durability. What has changed is not the recipe but the precision with which it can now be controlled, turning a once unpredictable craft into one of the most consistent manufacturing processes in modern industry.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "Glass made only from soda and silica, without lime, dissolves in water.",
+          "answer": "TRUE",
+          "explanation": "Paragraph 2 says soda on its own would dissolve in water, which is why lime is added afterwards for durability. The statement matches this cause, so TRUE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Glass has the same repeating atomic structure as a crystal such as quartz.",
+          "answer": "FALSE",
+          "explanation": "The passage says glass atoms \"freeze in a disordered arrangement\" and lack \"the internal crystal structure of a true solid\", the opposite of the statement, so FALSE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "The earliest glass objects were mainly practical containers for liquid.",
+          "answer": "FALSE",
+          "explanation": "Paragraph 4 says the earliest objects were beads and decorations, not practical containers — the direct opposite of what the statement claims, so FALSE."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Glassblowing spread through the Roman Empire faster than it had spread from Syria to neighbouring regions.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage says glassblowing developed in Syria and later \"spread rapidly through the Roman Empire\", but it gives no comparison of relative speeds between the two stages of spread, so NOT GIVEN."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Alastair Pilkington's float glass process required grinding the finished glass to make it even.",
+          "answer": "FALSE",
+          "explanation": "Float glass produces uniform sheets \"without any need for grinding or polishing afterwards\", contradicting the statement, so FALSE."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "Why is soda added to silica when making glass?",
+          "options": [
+            "To make the glass transparent.",
+            "To lower the temperature needed to melt the silica.",
+            "To give the glass its rigid shape.",
+            "To prevent the glass from shattering."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 2 gives this as soda's job: lowering the melting point, since pure silica needs too much heat to melt alone. That matches option B, while transparency and rigidity are explained elsewhere in the passage, not linked to soda."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "According to the passage, why does light pass through glass so easily?",
+          "options": [
+            "Because glass contains no soda or lime.",
+            "Because its disordered structure has no crystal boundaries to scatter light.",
+            "Because it is heated to very high temperatures during manufacture.",
+            "Because it is thinner than most solid materials."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 3 links glass's disordered structure directly to why light passes through: no crystal boundaries means nothing to scatter the light, matching option B and ruling out the others, which are not given as reasons."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What problem did older methods of making window glass, such as spinning or cylinder-blowing, share?",
+          "options": [
+            "They could not produce transparent glass.",
+            "They produced sheets of uneven thickness.",
+            "They required extremely rare raw materials.",
+            "They could only be used in warm climates."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 5 states this shared weakness directly after describing both older methods: uneven thickness, matching option B rather than the other options, which are never mentioned."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Why is borosilicate glass used for laboratory equipment and ovenproof cookware?",
+          "options": [
+            "It is cheaper to produce than ordinary glass.",
+            "It resists cracking caused by sudden changes in temperature.",
+            "It shatters into blunt fragments rather than sharp shards.",
+            "It is more transparent than soda-lime glass."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 6 gives this reason directly: less expansion and contraction makes borosilicate glass resistant to cracking from sudden heat changes, matching option B. Its shattering pattern (option C) is described separately for toughened glass, not borosilicate."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "Scientists describe glass as an ___ because it lacks a crystal structure.",
+          "answer": "amorphous solid",
+          "maxWords": 2,
+          "explanation": "Paragraph 3 uses the exact term 'amorphous solid' right after 'describe glass as', which fills the gap and matches the reason given in the question."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "Glassblowing was developed roughly two thousand years ago in the region of ancient ___.",
+          "answer": "Syria",
+          "maxWords": 2,
+          "explanation": "Paragraph 4 names the place directly: Syria. The word 'ancient' in the question already appears in the passage, so only the place name is needed to fill the gap."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "In the float glass process, molten glass is poured onto a bath of molten ___.",
+          "answer": "tin",
+          "maxWords": 2,
+          "explanation": "Paragraph 5 names the liquid metal in the bath as tin, right where the question's sentence structure points to."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "Toughened glass has its surface cooled rapidly while the interior cools more slowly, leaving the surface under permanent ___.",
+          "answer": "compression",
+          "maxWords": 2,
+          "explanation": "Paragraph 6 uses the word 'compression' right after 'permanent', which is the same phrase used in the question, so it is the answer to copy."
+        }
+      ]
+    }
+  ]
+}

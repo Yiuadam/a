@@ -490,6 +490,36 @@
       "term": "cue card",
       "short": "The card in Part 2 of the speaking test giving a topic and four points. You get one minute to prepare and speak for up to two.",
       "example": "Cover all four bullets and keep talking."
+    },
+    {
+      "term": "reported speech",
+      "aliases": ["indirect speech", "direct speech"],
+      "short": "Retelling what someone said instead of quoting their exact words. The tense usually shifts one step back into the past.",
+      "example": "\"I am tired,\" she said. → She said she was tired."
+    },
+    {
+      "term": "tag question",
+      "aliases": ["tag questions", "question tag"],
+      "short": "A short question added to the end of a statement to check or confirm it. A positive statement takes a negative tag, and the reverse.",
+      "example": "You're coming, aren't you?"
+    },
+    {
+      "term": "embedded question",
+      "aliases": ["indirect question", "embedded questions"],
+      "short": "A question placed inside a bigger sentence. It loses normal question word order and becomes more like a statement.",
+      "example": "Do you know where he lives? (not where does he live)"
+    },
+    {
+      "term": "quantifier",
+      "aliases": ["quantifiers"],
+      "short": "A word that shows an amount without giving an exact number — much, many, few, several, a number of.",
+      "example": "There isn't much time left."
+    },
+    {
+      "term": "correlation",
+      "aliases": ["correlate", "correlates"],
+      "short": "Two things changing together. On its own this does not prove that one causes the other.",
+      "example": "Ice cream sales and drowning rates rise together, but one does not cause the other."
     }
   ]
 }

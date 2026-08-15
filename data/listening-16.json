@@ -1,0 +1,145 @@
+{
+  "id": "listening-16",
+  "title": "Booking Rooms for a Wedding Party",
+  "context": "A guest phones a hotel to book several rooms for family attending a wedding.",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 12,
+  "speakers": [
+    "Receptionist",
+    "Guest"
+  ],
+  "script": [
+    { "speaker": "Receptionist", "text": "Good afternoon, Millbrook Hall Hotel, this is Grace speaking. How can I help?" },
+    { "speaker": "Guest", "text": "Hi Grace, I'm helping to organise my sister's wedding, and we need to book some rooms for family who are coming from out of town." },
+    { "speaker": "Receptionist", "text": "Of course, congratulations to your sister. Let's get some details. Can I take your name first?" },
+    { "speaker": "Guest", "text": "Yes, it's Elena Costa." },
+    { "speaker": "Receptionist", "text": "Could you spell the surname, please?" },
+    { "speaker": "Guest", "text": "C-O-S-T-A." },
+    { "speaker": "Receptionist", "text": "C-O-S-T-A, thank you. And how many rooms are we talking about?" },
+    { "speaker": "Guest", "text": "We need six rooms altogether, all for the same weekend." },
+    { "speaker": "Receptionist", "text": "Six rooms, understood. Which dates were you thinking of?" },
+    { "speaker": "Guest", "text": "The wedding's on a Saturday, so I thought people would just need Friday and Saturday night, but actually a few relatives want to stay Sunday too, so let's book Friday through to Sunday, three nights." },
+    { "speaker": "Receptionist", "text": "Friday to Sunday, three nights, for all six rooms. Now, what type of rooms would you like? We have standard doubles, and we also have family rooms that sleep up to four." },
+    { "speaker": "Guest", "text": "Most of the family are couples, so standard doubles for four of the rooms, but two of the rooms need to be family rooms, because my aunt is bringing her two children." },
+    { "speaker": "Receptionist", "text": "Understood — four standard doubles and two family rooms. The standard doubles are 95 pounds a night, and the family rooms are 130 pounds a night." },
+    { "speaker": "Guest", "text": "That sounds reasonable. Is breakfast included?" },
+    { "speaker": "Receptionist", "text": "It isn't included as standard, but you can add it for an extra 12 pounds per person per night, which most wedding groups do choose." },
+    { "speaker": "Guest", "text": "Let's add breakfast for everyone then, that'll be easier on the day." },
+    { "speaker": "Receptionist", "text": "No problem, I'll note that against all six rooms. Now, since this is a group booking, we can hold the rooms with a smaller deposit than usual. Normally it's fifty per cent, but for wedding groups it's just twenty per cent of the total." },
+    { "speaker": "Guest", "text": "That's helpful, thank you." },
+    { "speaker": "Receptionist", "text": "The deposit needs to be paid within seven days to confirm the booking, otherwise the rooms go back on general sale." },
+    { "speaker": "Guest", "text": "Understood, I'll sort that this week. One more thing — is there parking for guests?" },
+    { "speaker": "Receptionist", "text": "There is, and it's free for hotel guests, but please let reception know your car registration numbers when you check in, or the barrier won't lift for you." },
+    { "speaker": "Guest", "text": "Good to know, I'll pass that on to everyone." },
+    { "speaker": "Receptionist", "text": "And finally, check-in on the Friday is from three p.m., though if any guests are travelling a long way, we can usually store luggage earlier and let them explore the grounds while they wait." },
+    { "speaker": "Guest", "text": "That's really helpful, some of them have a long drive." },
+    { "speaker": "Receptionist", "text": "I'll email you a confirmation with all six room numbers once the deposit is received." },
+    { "speaker": "Guest", "text": "Perfect, thank you so much for your help, Grace." },
+    { "speaker": "Receptionist", "text": "You're welcome, and congratulations again to your sister." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Name of person making the booking: Elena ___",
+          "answer": "Costa",
+          "maxWords": 1,
+          "explanation": "The guest spells her surname aloud: C-O-S-T-A. A spelled name is almost always required as a written answer."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Total number of rooms booked: ___",
+          "answer": "6",
+          "maxWords": 1,
+          "explanation": "The guest states directly \"we need six rooms altogether,\" which is confirmed again later as \"all six rooms.\""
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Number of nights booked: ___",
+          "answer": "three",
+          "maxWords": 1,
+          "explanation": "Friday and Saturday night was the first plan, but extra relatives staying Sunday mean the booking becomes \"Friday through to Sunday, three nights.\""
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Number of family rooms booked: ___",
+          "answer": "two",
+          "maxWords": 1,
+          "explanation": "The guest says \"two of the rooms need to be family rooms,\" for her aunt and her aunt's two children, while the remaining four are standard doubles."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Price per night for a family room: £___",
+          "answer": "130",
+          "maxWords": 1,
+          "explanation": "The receptionist gives two prices in one sentence; the standard double is 95 pounds and the family room is stated as \"130 pounds a night.\""
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Extra cost for breakfast: £___ per person per night",
+          "answer": "12",
+          "maxWords": 1,
+          "explanation": "Breakfast is not included as standard but can be added \"for an extra 12 pounds per person per night,\" which the guest then chooses for everyone."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Deposit required for wedding group bookings: ___ per cent",
+          "answer": "20",
+          "maxWords": 1,
+          "explanation": "Fifty per cent is named as the normal deposit, but the receptionist explains wedding groups pay a reduced rate of \"just twenty per cent of the total.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What must happen for the rooms to stay reserved?",
+          "options": [
+            "the guest list must be finalised",
+            "the deposit must be paid within seven days",
+            "the full balance must be paid immediately"
+          ],
+          "answer": 1,
+          "explanation": "The receptionist warns that \"the deposit needs to be paid within seven days to confirm the booking, otherwise the rooms go back on general sale.\""
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What do guests need to give reception in order to use the car park?",
+          "options": [
+            "their room number",
+            "their car registration number",
+            "a printed parking ticket"
+          ],
+          "answer": 1,
+          "explanation": "Parking is free, but the receptionist says guests must \"let reception know your car registration numbers when you check in, or the barrier won't lift for you.\""
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What can the hotel do for guests who arrive before official check-in time?",
+          "options": [
+            "give them an early room key",
+            "store their luggage and let them explore the grounds",
+            "offer them a discount on breakfast"
+          ],
+          "answer": 1,
+          "explanation": "Check-in is from three p.m., but for guests travelling far, the hotel \"can usually store luggage earlier and let them explore the grounds while they wait.\""
+        }
+      ]
+    }
+  ]
+}

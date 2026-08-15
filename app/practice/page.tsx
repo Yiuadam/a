@@ -115,6 +115,10 @@ export default function PracticePage() {
           {"topic" in t ? t.topic : t.context}
         </p>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+          {/* CEFR code first, since it's the scale the placement result already speaks — and
+              never lower-cased or capitalised, "B1" is not "b1" title-cased back up. */}
+          <span>{t.level}</span>
+          <span aria-hidden>·</span>
           <span className="capitalize">{t.difficulty}</span>
           <span aria-hidden>·</span>
           <span>{questionCount(t.questions)} questions</span>

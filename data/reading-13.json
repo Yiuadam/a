@@ -1,0 +1,145 @@
+{
+  "id": "reading-13",
+  "title": "Salt: The Mineral That Built Trade Routes",
+  "topic": "The historical importance of salt in preservation, trade and taxation",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 20,
+  "passage": "Before refrigeration existed, keeping food edible for months rather than days was one of the most valuable skills a community could possess, and salt was the substance that made it possible. Salt draws water out of meat and fish through a process called osmosis, and the resulting dry, low-moisture environment is inhospitable to the bacteria that cause decay. A side of meat that would rot within a week if left untreated could, once packed in salt, be stored through an entire winter or carried on a long sea voyage. This single property turned an ordinary mineral into one of the most fought-over resources in human history.\n\nBecause salt was so essential yet not evenly distributed across the earth, entire trade networks grew up around moving it from where it occurred naturally to places that had none. Some regions were fortunate enough to have salt lakes that evaporated in the summer heat, leaving crystallised salt on the surface ready to be scraped up. Others relied on rock salt mined from underground deposits left behind by ancient seas that had long since dried out. Coastal communities without either resource often built shallow pans along the shoreline, letting the sun and wind evaporate seawater until only salt crystals remained, a slow process that could nonetheless be repeated indefinitely as long as the sea kept supplying fresh water.\n\nThe Sahara Desert hosted one of history's most demanding salt trade routes. Caravans of camels, sometimes numbering in the thousands, crossed the desert carrying slabs of rock salt mined at remote desert sites southward into West Africa, where salt was scarce but gold was comparatively abundant. At the trading city of Timbuktu, merchants exchanged salt for gold by weight, and for a period the two substances were valued so closely that a traveller's account from the fourteenth century described salt slabs being used almost as currency in their own right. The journey across the desert was dangerous: caravans faced sandstorms, extreme heat, and the constant risk of losing the route entirely in featureless terrain, yet the trade continued for centuries because the rewards on both ends justified the risk.\n\nGovernments quickly recognised that a resource nobody could do without was also a resource nobody could refuse to buy, which made salt an unusually reliable target for taxation. The French monarchy imposed a notorious salt tax known as the gabelle, which required households in many regions to purchase a fixed minimum amount of salt from royal warehouses each year, regardless of whether they needed it. The tax fell disproportionately on the poor, since it applied per household rather than according to income, and resentment over the gabelle became one of the many grievances that fed into the French Revolution in 1789. Similar salt monopolies existed in other countries, including a long-running British tax on salt in colonial India that Mahatma Gandhi deliberately challenged in 1930 by walking to the sea and making salt from seawater himself, an act of civil disobedience that drew international attention to the independence movement.\n\nThe word 'salary' offers a small clue to how deeply salt was woven into economic life. Although historians now debate the precise details, it is widely believed that Roman soldiers received an allowance connected to the purchase of salt, and that this allowance is the origin of the Latin word from which 'salary' eventually descended. Whether or not soldiers were literally paid in salt, as popular retellings sometimes claim, the linguistic link reflects how central the mineral was to everyday economic thinking in the ancient world.\n\nThe arrival of mechanical refrigeration in the late nineteenth and early twentieth centuries removed salt's monopoly on food preservation almost overnight. Refrigerated railway cars and ships meant that meat, fish and dairy products could be kept cold rather than salted, and the elaborate trade networks and taxation systems built around salt gradually lost their central economic importance. Salt did not disappear from the table, but its role narrowed from a matter of survival to a matter of flavour, a change so complete that most people today give the mineral no more thought than they give to any other item on a supermarket shelf.\n\nYet traces of its former importance remain visible for anyone who looks. Several major cities, including Salzburg in Austria, owe both their names and their early wealth to nearby salt deposits. Old salt roads, once busy trade routes, survive as hiking trails and place names across Europe. And the phrase 'worth your salt', still used today to describe someone doing a job competently, is a small linguistic fossil of an age when salt itself was wages, currency and survival, all folded into a single white crystal.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "Salt preserves food by drawing moisture out of it, making it unsuitable for bacteria.",
+          "answer": "TRUE",
+          "explanation": "The opening paragraph explains the mechanism: osmosis removes water, and bacteria cannot survive in the dry result. The statement is a close paraphrase of this, so TRUE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Every region of the world had access to a natural source of salt.",
+          "answer": "FALSE",
+          "explanation": "The passage says salt was \"not evenly distributed across the earth\" and describes trade networks moving it \"to places that had none\", so FALSE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "At Timbuktu, salt and gold were sometimes exchanged by weight.",
+          "answer": "TRUE",
+          "explanation": "Paragraph 3 says this exact thing about Timbuktu: merchants exchanged salt for gold by weight. The word 'sometimes' in the statement is a fair softening of a fact the passage states as normal practice, so TRUE."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "The French gabelle charged households according to their income.",
+          "answer": "FALSE",
+          "explanation": "The tax \"applied per household rather than according to income\", which is the reverse of the statement, so FALSE."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "The gabelle tax was abolished before the French Revolution began.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage says resentment over the gabelle fed into the Revolution of 1789, but never states when or whether the tax was abolished, so NOT GIVEN."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "What method did coastal communities without salt lakes or mines typically use?",
+          "options": [
+            "Importing rock salt from the Sahara by camel caravan.",
+            "Evaporating seawater in shallow pans using sun and wind.",
+            "Boiling seawater over open fires continuously.",
+            "Trading gold for salt with desert merchants."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 2 describes shallow pans evaporating seawater with sun and wind — this is option B. Boiling (option C) and importing rock salt (option A) belong to other parts of the passage, not to coastal communities without lakes or mines."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "Why does the passage describe the gabelle as unusually burdensome for the poor?",
+          "options": [
+            "It was collected only in years of poor harvest.",
+            "It required a fixed purchase per household regardless of income or need.",
+            "It applied only to salt bought for cooking meat.",
+            "It was enforced more strictly in rural areas."
+          ],
+          "answer": 1,
+          "explanation": "The tax \"required households ... to purchase a fixed minimum amount of salt ... regardless of whether they needed it\" and \"applied per household rather than according to income\"."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What did Gandhi do in 1930 in relation to the British salt tax?",
+          "options": [
+            "He organised a boycott of British salt warehouses.",
+            "He walked to the sea and made salt from seawater as an act of protest.",
+            "He negotiated a reduction in the tax with colonial officials.",
+            "He wrote a book criticising the tax."
+          ],
+          "answer": 1,
+          "explanation": "Gandhi \"deliberately challenged\" the tax \"by walking to the sea and making salt from seawater himself, an act of civil disobedience\"."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "According to the passage, what effect did mechanical refrigeration have on salt's importance?",
+          "options": [
+            "It increased demand for salt as a flavouring.",
+            "It had little effect until the mid-twentieth century.",
+            "It ended salt's central role in food preservation, narrowing its use to flavour.",
+            "It made salt more expensive to produce."
+          ],
+          "answer": 2,
+          "explanation": "Refrigeration \"removed salt's monopoly on food preservation almost overnight\", and salt's \"role narrowed from a matter of survival to a matter of flavour\"."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "The French salt tax was known as the ___.",
+          "answer": "gabelle",
+          "maxWords": 2,
+          "explanation": "Paragraph 4 names the tax right after 'known as', the same signal phrase used in the question, giving the answer 'gabelle'."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "Some regions relied on ___ mined from underground deposits.",
+          "answer": "rock salt",
+          "maxWords": 2,
+          "explanation": "Paragraph 2 names the material mined from underground deposits as rock salt, matching the gap directly."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "The city of ___ in Austria owes its name and early wealth to nearby salt deposits.",
+          "answer": "Salzburg",
+          "maxWords": 2,
+          "explanation": "The final paragraph names Salzburg as the city whose name and wealth came from nearby salt — a proper noun, so capitalisation should match the passage."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "The phrase 'worth your salt' is described as a small linguistic ___ of an earlier age.",
+          "answer": "fossil",
+          "maxWords": 2,
+          "explanation": "The last sentence calls this phrase a small linguistic 'fossil', meaning a leftover trace from an earlier time — the exact word needed for the gap."
+        }
+      ]
+    }
+  ]
+}
