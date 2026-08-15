@@ -228,7 +228,7 @@ sees.
 
 **1. Create the products and prices — with the script, not by hand.**
 
-There are six prices and each carries eight currencies, which is fifty-four
+There are six prices and each carries nine other currencies, which is sixty
 amounts to type correctly into a dashboard. Don't. `scripts/stripe-setup.mjs`
 creates all of it from `lib/billing/tiers.ts`, which is the same catalogue the
 pricing page prints and the checkout guard checks against, so the three cannot
@@ -264,12 +264,30 @@ The base prices, for reference:
 | BandUp Plus | `HK$12.90` | `HK$129` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
 | BandUp Pro | `HK$25.90` | `HK$279` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
 
-Each Price also carries USD, EUR, GBP, AUD, CAD, SGD, JPY and INR as
+Each Price also carries USD, EUR, GBP, AUD, CAD, SGD, JPY, INR and CNY as
 `currency_options`, so one Price id charges a Londoner in pounds and a Tokyo
 candidate in yen. Checkout picks by the customer's address; the pricing page
 picks by the same address, so what a reader is shown is what their card is
 charged. Any country not in that list is converted by Stripe from the base
 price.
+
+**Adding a currency later** is the same command and no new ids. Put the amounts
+in `prices` in `lib/billing/tiers.ts`, then:
+
+```
+STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs --dry-run
+STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs
+```
+
+Each existing Price is amended in place — same `price_…` id, same subscribers,
+nothing to re-upload to Cloudflare. Only a change to a *base* amount creates a
+new Price, because `unit_amount` is the one field Stripe will not let anything
+edit.
+
+Run it **before** deploying the code, not after. The checkout guard refuses a
+sale whenever the catalogue names a currency the Stripe Price is missing, so a
+deploy that lands first takes every checkout down until the command catches up.
+`tests/stripe-currency-amendment.test.mjs` holds the amend-in-place behaviour.
 
 Two things the amounts must clear, both enforced by `tests/currency.test.mjs`:
 Stripe refuses a charge under about US$0.50, and every price has to cover what

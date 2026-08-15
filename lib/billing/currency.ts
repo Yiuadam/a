@@ -57,6 +57,13 @@ const HKD_PER_UNIT: Record<string, number> = {
   sgd: 6.061,
   jpy: 0.0513,
   inr: 0.0824,
+  /*
+    1.08 rather than a fresher figure, because that is the number already in
+    lib/admin/finance-fx.ts's reference table — the one the owner chose. Two
+    tables disagreeing about the same currency is how a margin check and a
+    finance report end up telling different stories about the same sale.
+  */
+  cny: 1.08,
 };
 
 /** Hong Kong dollars per unit of `currency`, for checking rather than pricing. */
@@ -124,6 +131,12 @@ const COUNTRY_CURRENCY: Record<string, string> = {
   SG: "sgd",
   JP: "jpy",
   IN: "inr",
+  /*
+    Mainland China only. Hong Kong, Macau and Taiwan have their own money and
+    are matched above or fall through to dollars; CN here means the renminbi,
+    which is also the currency WeChat Pay and Alipay are natively settled in.
+  */
+  CN: "cny",
   ...Object.fromEntries(EURO_AREA.map((c) => [c, "eur"])),
 };
 
