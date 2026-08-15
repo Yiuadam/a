@@ -247,3 +247,23 @@ export function forgetLookup(term: string): void {
   persist(next);
   invalidate(next);
 }
+
+/**
+ * Forgets every locally-held saved word, for "Clear all history"
+ * (components/history/ClearHistoryButton.tsx, via lib/store.ts's
+ * clearHistory) and "clear this device"
+ * (components/account/ClearDeviceSection.tsx).
+ *
+ * This only empties the cache; it does not itself write a tombstone. The
+ * tombstone that stops a synced word reappearing on the next account sync —
+ * lookupsClearedAt — lives on the learner's profile (lib/types.ts) rather
+ * than here, for the same reason a single word's favourite state does not
+ * carry its own deletion mark: this cache is the record being emptied, and a
+ * mark that must outlive it needs somewhere else to live. lib/store.ts's
+ * clearHistory sets that mark on the profile in the same breath it calls
+ * this.
+ */
+export function clearLookups(): void {
+  persist(EMPTY_CACHE);
+  invalidate(EMPTY_CACHE);
+}
