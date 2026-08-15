@@ -139,12 +139,19 @@ export function JoinOrganizationForm({
 }
 
 export function OrganizationCreateForm({ act, busy }: { act: Act; busy: boolean }) {
-  const [form, setForm] = useState({
-    organizationName: "",
-    country: "",
-    contactEmail: "",
-    applicantRole: "",
-  });
+  /*
+    One field, because one field is all that is left to ask for.
+
+    This form used to collect a country, a contact email and the applicant's
+    role, and they were the right questions when a BandUp administrator had to
+    read them and decide. Nobody decides now, and the organisation record has
+    nowhere to put any of them, so all three were being validated and then
+    discarded — four fields of friction guarding nothing, in the middle of the
+    flow the owner asked to make immediate. They are gone rather than kept as
+    optional: an input nothing reads is worse than no input, because it implies
+    someone is reading it.
+  */
+  const [form, setForm] = useState({ organizationName: "" });
   const set = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
   return (
@@ -175,25 +182,16 @@ export function OrganizationCreateForm({ act, busy }: { act: Act; busy: boolean 
           Set up your organisation now. You become its owner immediately, with nothing to wait for.
         </p>
         <form
-          className="grid gap-3 sm:grid-cols-2"
+          className="grid gap-3"
           onSubmit={async (event) => {
             event.preventDefault();
             await act("create_organization", form);
           }}
         >
           <Field label="Organisation name">
-            <input className={inputClass} required maxLength={120} value={form.organizationName} onChange={(e) => set("organizationName", e.target.value)} />
+            <input className={inputClass} required minLength={2} maxLength={120} value={form.organizationName} onChange={(e) => set("organizationName", e.target.value)} />
           </Field>
-          <Field label="Country or region">
-            <input className={inputClass} required maxLength={80} value={form.country} onChange={(e) => set("country", e.target.value)} />
-          </Field>
-          <Field label="Contact email">
-            <input className={inputClass} required type="email" maxLength={254} value={form.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} />
-          </Field>
-          <Field label="Your role">
-            <input className={inputClass} required maxLength={80} placeholder="For example, school director" value={form.applicantRole} onChange={(e) => set("applicantRole", e.target.value)} />
-          </Field>
-          <div className="sm:col-span-2">
+          <div>
             <button type="submit" className="btn-primary" disabled={busy}>
               Create organisation
             </button>

@@ -173,45 +173,47 @@ test("a user can create more than one organisation, with no cap", async () => {
   }
 });
 
-test("create_organization validation matches the retired application form", async () => {
+test("the name is validated, and the retired application's other fields are ignored", async () => {
   const context = fixture();
   try {
     context.database.prepare(`
       INSERT INTO app_users (id, email, role, created_at, updated_at)
       VALUES (?, 'person@example.com', 'user', ?, ?)
     `).run(person, now, now);
-    const base = {
-      organizationName: "Valid Academy",
-      country: "United Kingdom",
-      contactEmail: "director@harbour.example",
-      applicantRole: "School director",
-    };
 
-    await assert.rejects(
-      commands.cloudflareOrganizationCommand(
-        context.user(person, "person"), false, "create_organization",
-        { ...base, organizationName: "A" },
-        "create-organization-bad-name", context.bindings,
-      ),
-      (error) => error instanceof commands.OrganizationCommandError && error.status === 400,
-    );
-    await assert.rejects(
-      commands.cloudflareOrganizationCommand(
-        context.user(person, "person"), false, "create_organization",
-        { ...base, contactEmail: "not-an-email" },
-        "create-organization-bad-email", context.bindings,
-      ),
-      (error) => error instanceof commands.OrganizationCommandError && error.status === 400,
-    );
-    await assert.rejects(
-      commands.cloudflareOrganizationCommand(
-        context.user(person, "person"), false, "create_organization",
-        { ...base, estimatedStudents: 0 },
-        "create-organization-bad-estimate", context.bindings,
-      ),
-      (error) => error instanceof commands.OrganizationCommandError && error.status === 400,
-    );
+    // Too short, and too long. The name is the only thing an organisation
+    // record actually stores, so it is the only thing that can be wrong.
+    for (const [label, organizationName] of [["short", "A"], ["long", "x".repeat(121)]]) {
+      await assert.rejects(
+        commands.cloudflareOrganizationCommand(
+          context.user(person, "person"), false, "create_organization",
+          { organizationName },
+          `create-organization-bad-name-${label}`, context.bindings,
+        ),
+        (error) => error instanceof commands.OrganizationCommandError && error.status === 400,
+        `a ${label} name must be refused`,
+      );
+    }
     assert.equal(count(context.database, "organizations"), 0, "no rejected attempt may leave a row behind");
+
+    /*
+      The country, contact email, applicant role and estimated students the
+      application form used to collect are no longer asked for, and a client
+      that still sends them — an old cached bundle, say — must not be refused
+      over a field that now goes nowhere. Ignored, not validated.
+    */
+    await commands.cloudflareOrganizationCommand(
+      context.user(person, "person"), false, "create_organization",
+      {
+        organizationName: "Harbour Academy",
+        country: "United Kingdom",
+        contactEmail: "not-an-email",
+        applicantRole: "",
+        estimatedStudents: 0,
+      },
+      "create-organization-ignores-retired-fields", context.bindings,
+    );
+    assert.equal(count(context.database, "organizations"), 1, "the stale extra fields must not block creation");
   } finally {
     context.database.close();
   }

@@ -379,22 +379,19 @@ async function executeCommand(
   ) fail("Organisation is not active.");
 
   if (action === "create_organization") {
-    // No platform-admin check: any signed-in user may create an organisation
-    // and becomes its owner immediately. Validation mirrors the retired
-    // application flow exactly, field for field.
+    /*
+      No platform-admin check, and no eligibility check either: any signed-in
+      user may create an organisation and becomes its owner the moment they do.
+      That is the whole of the change — the approval step this replaced was the
+      only thing standing between the two.
+
+      The name is the only thing asked for. The retired application also took a
+      country, a contact email and the applicant's role, and those were the
+      right questions while a person had to read them and decide; with nobody
+      deciding and no column to store them in, validating them here would be
+      rejecting a creation over a field that goes nowhere.
+    */
     const organizationName = text(payload.organizationName, "Organisation name", 2, 120);
-    // Country, contact email, applicant role and estimated students are
-    // validated with the same limits the retired application form used, even
-    // though nothing about creating the organisation itself needs them.
-    text(payload.country, "Country or region", 2, 80);
-    const contactEmail = text(payload.contactEmail, "Contact email", 3, 320).toLowerCase();
-    if (!EMAIL.test(contactEmail)) fail("Invalid contact email.");
-    text(payload.applicantRole, "Applicant role", 2, 80);
-    const estimate = payload.estimatedStudents === null || payload.estimatedStudents === undefined
-      ? null : Number(payload.estimatedStudents);
-    if (estimate !== null && (!Number.isInteger(estimate) || estimate < 1 || estimate > 1_000_000)) {
-      fail("Invalid estimated students.");
-    }
     const createdOrganizationId = crypto.randomUUID();
     const membershipId = crypto.randomUUID();
     const joinCode = crypto.randomUUID().replaceAll("-", "").slice(0, 16);

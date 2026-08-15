@@ -54,30 +54,22 @@ try {
     bindings,
   );
 
-  const submitted = await command(owner, true, "submit_application", {
+  /*
+    One step where there used to be two. Creating an organisation no longer
+    goes through an application and an administrator's decision — any signed-in
+    user creates one and owns it immediately — so the rehearsal creates one the
+    same way a learner now does, and checks the owner membership the command
+    writes alongside it.
+  */
+  const created = await command(owner, false, "create_organization", {
     organizationName: "Runtime Academy",
-    country: "Hong Kong",
-    contactEmail: owner.email,
-    applicantRole: "Owner",
-    estimatedStudents: 50,
   });
-  assert.deepEqual(submitted, { ok: true });
-  const afterSubmit = await organizations.cloudflareOrganizationPortal(owner, true, null, bindings);
-  const applicationId = afterSubmit.applications?.[0]?.id;
-  assert.ok(applicationId);
-  const storedApplication = await bindings.db.prepare(
-    "SELECT purpose FROM organization_applications WHERE id = ?",
-  ).bind(applicationId).first();
-  assert.equal(storedApplication?.purpose, "Organization workspace request.");
-  const approved = await command(owner, true, "decide_application", {
-    applicationId,
-    approve: true,
-    note: "Runtime rehearsal",
-  });
-  assert.deepEqual(approved, { ok: true });
-  const afterApproval = await organizations.cloudflareOrganizationPortal(owner, true, null, bindings);
-  const organizationId = afterApproval.memberships[0]?.organization.id;
-  assert.ok(organizationId);
+  assert.equal(created.ok, true);
+  assert.ok(created.organizationId, "create_organization must answer with the new organisation's id");
+  const afterCreate = await organizations.cloudflareOrganizationPortal(owner, true, null, bindings);
+  const organizationId = afterCreate.memberships[0]?.organization.id;
+  assert.equal(organizationId, created.organizationId);
+  assert.equal(afterCreate.memberships[0]?.role, "owner");
 
   await bindings.db.prepare(`
     INSERT INTO app_users (id, email, role, created_at, updated_at)
