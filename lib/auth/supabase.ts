@@ -1017,21 +1017,48 @@ export interface AuthedUser {
  * the caller then treats the request as anonymous, which is a state the system
  * already has to handle safely.
  */
+/*
+  null means "not signed in"; a throw means "could not find out". The two must
+  never be collapsed into one, because every caller of getSessionUser treats a
+  null user as license to answer with the anonymous/free case — see
+  lib/billing/gate.ts and app/api/account/status/route.ts, both of which grant
+  ANONYMOUS_ENTITLEMENT to a null user and only fail loudly (503, or the
+  usage-metering fail-open switch) when this function throws.
+
+  Before this, a network failure calling GoTrue or a 5xx from it were caught
+  and folded into `return null` alongside a genuinely invalid token, so an
+  outage in Supabase Auth made every signed-in, paying request look identical
+  to a stranger who never signed in: silently downgraded to free, with nothing
+  logged and nothing failing loudly. That is precisely the failure this file's
+  own callers were written to guard against — app/api/billing/checkout/route.ts
+  already wraps this call in a try/catch expecting it to throw — the throw
+  just never happened.
+
+  Only a response GoTrue itself uses to say "this token is not valid" (401,
+  and 403 for a revoked/blocked one) is read as "not signed in". Anything else
+  that goes wrong — the request failing outright, GoTrue answering with a
+  server error, or a 200 whose body cannot be parsed as the user it promised —
+  is a failure to determine identity, not an identity, and is thrown so the
+  caller decides what an unknown answer means rather than being handed one.
+*/
 export async function userFromAccessToken(token: string): Promise<AuthedUser | null> {
   if (!token || token.length > 4096) return null;
   let res: Response;
   try {
     res = await request("/auth/v1/user", { method: "GET", bearer: token });
-  } catch {
-    return null;
+  } catch (err) {
+    throw new SupabaseError(
+      `auth/v1/user unreachable: ${err instanceof Error ? err.name : "unknown"}`,
+    );
   }
-  if (!res.ok) return null;
+  if (res.status === 401 || res.status === 403) return null;
+  if (!res.ok) throw new SupabaseError(`auth/v1/user failed with ${res.status}`);
 
   let body: unknown;
   try {
     body = await res.json();
   } catch {
-    return null;
+    throw new SupabaseError("auth/v1/user returned a body that was not JSON");
   }
   const user = body as { id?: unknown; email?: unknown; created_at?: unknown };
   if (typeof user.id !== "string" || user.id.length === 0) return null;
