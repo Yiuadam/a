@@ -46,14 +46,12 @@ test("the administration overview card opens its dedicated query-backed page", (
 
 test("the dedicated administration page has a labelled heading and Back control", () => {
   const areaStart = portal.indexOf("function PlatformAdminArea");
-  const nextComponent = portal.indexOf("function ApplicationList", areaStart);
-  assert.ok(areaStart >= 0 && nextComponent > areaStart, "platform administration page must exist");
+  assert.ok(areaStart >= 0, "platform administration page must exist");
 
-  const area = portal.slice(areaStart, nextComponent);
+  const area = portal.slice(areaStart);
   assert.match(area, /<section[^>]*aria-labelledby="bandup-administration-title"[^>]*data-platform-administration-page/);
   assert.match(area, /<h2 id="bandup-administration-title"[^>]*>BandUp administration<\/h2>/);
   assert.match(area, /<MobileDashboardBack onBack=\{onBack\} ariaLabel="Back to organisation overview" \/>/);
-  assert.match(area, /title="Organisation applications"/);
   assert.match(area, /title="All organisations"/);
 });
 

@@ -3,7 +3,10 @@ import type { SessionUser } from "@/lib/auth/session";
 import { rpc } from "@/lib/auth/supabase";
 import type { ModuleResult } from "@/lib/types";
 import { organizationDataMode } from "@/lib/cloudflare/bindings";
-import { cloudflareOrganizationCommand } from "@/lib/cloudflare/organization-commands";
+import {
+  cloudflareOrganizationCommand,
+  OrganizationCommandError,
+} from "@/lib/cloudflare/organization-commands";
 import {
   cloudflareOrganizationHomeShortcut,
   cloudflareOrganizationPortal,
@@ -15,8 +18,6 @@ import {
   type HomeOrganizationShortcut,
 } from "@/lib/dashboard-home";
 import type { OrganizationAction } from "./actions";
-
-const APPLICATION_PURPOSE = "Organization workspace request.";
 
 export { organizationAttempts, organizationHistoryClearWatermark } from "./attempt-sync";
 
@@ -75,6 +76,15 @@ export async function organizationCommand(
       idempotencyKey,
     );
   }
+  if (action === "create_organization") {
+    // Cloudflare D1 is the only authority that knows how to create an
+    // organisation outright; the legacy Supabase RPCs never grew an
+    // equivalent because the application/approval flow they implement no
+    // longer exists. Fail loudly rather than silently doing nothing.
+    throw new OrganizationCommandError(
+      "Creating an organisation requires the Cloudflare organisation data mode.",
+    );
+  }
   if (action === "request_to_join" || action === "accept_invitation") {
     return rpc("organization_consent_command", {
       p_actor: user.id,
@@ -131,12 +141,7 @@ export async function organizationCommand(
     p_actor: user.id,
     p_platform_admin: isAdminEmail(user.email),
     p_action: action,
-    // Older Supabase organization schemas keep a non-null `purpose` column.
-    // The product no longer collects this field, so satisfy that private
-    // storage detail without reintroducing it into the application form.
-    p_payload: action === "submit_application"
-      ? { ...payload, purpose: APPLICATION_PURPOSE }
-      : payload,
+    p_payload: payload,
     p_idempotency_key: idempotencyKey,
   });
 }

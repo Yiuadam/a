@@ -79,11 +79,7 @@ export function organizationPreviewPayloadAllowed(
   action: string,
   payload: Record<string, unknown>,
 ): boolean {
-  const email = action === "invite_member"
-    ? payload.email
-    : action === "submit_application"
-      ? payload.contactEmail
-      : undefined;
+  const email = action === "invite_member" ? payload.email : undefined;
   return email === undefined
     || (typeof email === "string" && email.trim().toLowerCase().endsWith("@preview.bandup.invalid"));
 }

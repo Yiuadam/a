@@ -17,12 +17,11 @@ import { ORGANIZATION_PRACTICE_TARGETS } from "@/lib/organizations/practice-assi
 import type {
   OrganizationAction,
   OrganizationActionResponse,
-  OrganizationApplication,
   OrganizationMembership,
   OrganizationPortal as Portal,
   OrganizationRequest,
 } from "@/lib/organizations/types";
-import { OrganizationApplicationForm, JoinOrganizationForm } from "./OrganizationForms";
+import { OrganizationCreateForm, JoinOrganizationForm } from "./OrganizationForms";
 import CardIcon, { type CardIconName } from "@/components/CardIcon";
 import GlassSelect, { FloatingGlassPopover } from "@/components/GlassSelect";
 import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
@@ -370,7 +369,13 @@ export default function OrganizationPortal({
         // panel is based on the same server-authoritative view.
         await load(deletedSelectedOrganization ? null : undefined);
         retryKeys.current.delete(retryFingerprint);
-        setNotice(action === "delete_organization" ? "Organisation deleted." : "Saved.");
+        setNotice(
+          action === "delete_organization"
+            ? "Organisation deleted."
+            : action === "create_organization"
+              ? "Your organisation is ready to use."
+              : "Saved.",
+        );
         return body && "ok" in body && body.ok === true
           ? body as OrganizationActionResponse
           : null;
@@ -466,7 +471,6 @@ export default function OrganizationPortal({
         studentView === "settings" ? (
           <StudentOrganizationSettings
             membership={membership}
-            portal={portal}
             act={act}
             busy={acting}
             onBack={() => openManagerView("overview", true)}
@@ -930,11 +934,6 @@ function MembershipSummary({
 type Act = (action: OrganizationAction, payload: Record<string, unknown>) => Promise<OrganizationActionResponse | null>;
 
 function NoMembership({ portal, act, busy, previewRole }: { portal: Portal; act: Act; busy: boolean; previewRole: OrganizationLivePreviewRole | null }) {
-  const hasOpenApplication = portal.applications?.some((application) =>
-    application.status === "draft"
-      || application.status === "submitted"
-      || application.status === "under_review"
-  ) ?? false;
   return (
     // Stretch (the grid default) rather than items-start: the create card
     // holds less than the join card, and starting both at the same height
@@ -946,50 +945,28 @@ function NoMembership({ portal, act, busy, previewRole }: { portal: Portal; act:
       ) : (
         <GlassSection title="Joining isn’t available"><EmptyState>{portal.eligibility.reason ?? "Your current account is not eligible to join an organisation."}</EmptyState></GlassSection>
       )}
-      {portal.eligibility.canApplyToCreate && !hasOpenApplication && (
-        <OrganizationApplicationForm act={act} busy={busy} />
-      )}
-      {portal.applications && portal.applications.length > 0 && (
-        <GlassSection title="Your applications" className="lg:col-span-2">
-          <ApplicationList applications={portal.applications} act={act} busy={busy} />
-        </GlassSection>
-      )}
+      <OrganizationCreateForm act={act} busy={busy} />
     </div>
   );
 }
 
-// The server has always allowed a member to apply to create a second
-// organisation (see canApplyToCreate), but OrganizationApplicationForm used
-// to render only inside NoMembership, the screen for people with no
-// organisation at all. That meant belonging to one organisation was the one
-// thing that stopped you creating a second, and OrganizationSwitcher only
-// appears once a second membership exists — so the escape from either gate
-// was hidden behind the other. Settings is reachable by everyone who already
-// has a workspace (managers, owners and active students), which makes it the
-// right home for the same form and application list NoMembership already
-// uses.
-function CreateAnotherOrganizationSection({ portal, act, busy }: { portal: Portal; act: Act; busy: boolean }) {
-  const hasOpenApplication = portal.applications?.some((application) =>
-    application.status === "draft"
-      || application.status === "submitted"
-      || application.status === "under_review"
-  ) ?? false;
+// Any signed-in user may create an organisation, at any time — creating one
+// does not require leaving another. OrganizationCreateForm used to render
+// only inside NoMembership, the screen for people with no organisation at
+// all. That meant belonging to one organisation was the one thing that
+// stopped you creating a second, and OrganizationSwitcher only appears once a
+// second membership exists — so the escape from either gate was hidden
+// behind the other. Settings is reachable by everyone who already has a
+// workspace (managers, owners and active students), which makes it the right
+// home for the same form NoMembership already uses.
+function CreateAnotherOrganizationSection({ act, busy }: { act: Act; busy: boolean }) {
   return (
-    <>
-      {portal.eligibility.canApplyToCreate && !hasOpenApplication && (
-        <GlassSection
-          title="Create another organisation"
-          lead="This will not affect the organisation you are already in. Once you belong to more than one, a switcher for moving between them appears in the header."
-        >
-          <OrganizationApplicationForm act={act} busy={busy} />
-        </GlassSection>
-      )}
-      {portal.applications && portal.applications.length > 0 && (
-        <GlassSection title="Your applications">
-          <ApplicationList applications={portal.applications} act={act} busy={busy} />
-        </GlassSection>
-      )}
-    </>
+    <GlassSection
+      title="Create another organisation"
+      lead="This will not affect the organisation you are already in. Once you belong to more than one, a switcher for moving between them appears in the header."
+    >
+      <OrganizationCreateForm act={act} busy={busy} />
+    </GlassSection>
   );
 }
 
@@ -1069,13 +1046,11 @@ function StudentArea({
 
 function StudentOrganizationSettings({
   membership,
-  portal,
   act,
   busy,
   onBack,
 }: {
   membership: OrganizationMembership;
-  portal: Portal;
   act: Act;
   busy: boolean;
   onBack: () => void;
@@ -1145,7 +1120,7 @@ function StudentOrganizationSettings({
         </section>
       </div>
     </GlassSection>
-    <CreateAnotherOrganizationSection portal={portal} act={act} busy={busy} />
+    <CreateAnotherOrganizationSection act={act} busy={busy} />
     </>
   );
 }
@@ -2281,6 +2256,9 @@ function ManagerArea({
                   previewRole={previewRole}
                 />
               </div>
+              <div className="mt-3">
+                <JoinCodeCard joinCode={portal.joinCode} />
+              </div>
               {invitations.length > 0 && (
                 <div className="mt-3 rounded-xl border border-slate-200/70 bg-surface/20 px-3">
                   {invitations.map((invitation) => (
@@ -2344,8 +2322,6 @@ function ManagerArea({
               members={filteredMembers}
               assignments={teamAssignments}
               organizationId={organizationId}
-              actorRole={actorRole}
-              platformAdmin={portal.actor.platformAdmin}
               act={act}
               busy={busy}
             />
@@ -2396,7 +2372,7 @@ function ManagerArea({
             />
           )}
         </GlassSection>
-        <CreateAnotherOrganizationSection portal={portal} act={act} busy={busy} />
+        <CreateAnotherOrganizationSection act={act} busy={busy} />
         </>
       )}
     </div>
@@ -2413,20 +2389,22 @@ function invitationToken(): string {
 function MemberRolePicker({
   member,
   organizationId,
-  allowManager,
   disabled,
   act,
 }: {
   member: NonNullable<Portal["members"]>[number];
   organizationId: string | null;
-  allowManager: boolean;
   disabled: boolean;
   act: Act;
 }) {
+  // Both managers and owners may set any of these three roles on a non-owner
+  // member — the server enforces the actual boundary (an owner is untouchable
+  // here regardless, and only an owner or platformAdmin may grant "owner",
+  // which is why that option never appears in this list at all).
   const options = [
     { value: "student", label: "Student" },
     { value: "teacher", label: "Teacher" },
-    ...(allowManager ? [{ value: "manager", label: "Manager" }] : []),
+    { value: "manager", label: "Manager" },
   ];
   return (
     <div className="min-w-0">
@@ -2476,11 +2454,9 @@ function ManagerPeopleActions({
   );
 }
 
-function MemberManagement({ member, organizationId, actorRole, platformAdmin, act, busy, compact = false }: {
+function MemberManagement({ member, organizationId, act, busy, compact = false }: {
   member: NonNullable<Portal["members"]>[number];
   organizationId: string | null;
-  actorRole: "manager" | "owner";
-  platformAdmin: boolean;
   act: Act;
   busy: boolean;
   compact?: boolean;
@@ -2490,7 +2466,7 @@ function MemberManagement({ member, organizationId, actorRole, platformAdmin, ac
     <details className={`${compact ? "organization-team-pairing-manage mt-1 px-2 py-1" : "mt-2 px-2.5 py-2"} rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/20`}>
       <summary className="cursor-pointer text-xs font-semibold text-slate-600">Manage member</summary>
       <div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
-        <MemberRolePicker member={member} organizationId={organizationId} allowManager={actorRole === "owner" || platformAdmin} disabled={busy || (actorRole === "manager" && member.role === "manager")} act={act} />
+        <MemberRolePicker member={member} organizationId={organizationId} act={act} disabled={busy} />
         <button type="button" className={memberActionClass} disabled={busy} onClick={() => {
           if (!organizationId) return;
           void act(member.status === "suspended" ? "restore_member" : "suspend_member", memberActionPayload(organizationId, member.userId));
@@ -2536,18 +2512,32 @@ function TeamDirectoryCard({
   );
 }
 
-function TeamGroups({ members, assignments, organizationId, actorRole, platformAdmin, act, busy }: {
+function TeamGroups({ members, assignments, organizationId, act, busy }: {
   members: NonNullable<Portal["members"]>;
   assignments: NonNullable<Portal["assignments"]>;
   organizationId: string | null;
-  actorRole: "manager" | "owner";
-  platformAdmin: boolean;
   act: Act;
   busy: boolean;
 }) {
   const [pendingUnassign, setPendingUnassign] = useState<string | null>(null);
   const teachers = members.filter((member) => member.role === "teacher");
   const students = members.filter((member) => member.role === "student");
+  /*
+    Managers and the owner are listed too, and this is not cosmetic.
+
+    This grid used to render teachers and students only, which was fine while
+    only an owner could appoint a manager. Now that a manager can, leaving
+    them out would mean promoting somebody to manager made them *disappear*
+    from the roster, with nothing anywhere able to demote them again — the
+    grant would work and the removal would be unreachable, which is half a
+    feature and the wrong half.
+
+    The owner appears for a different reason: so that a manager can see who
+    they are. No controls are drawn against them, because the server refuses
+    every one of them anyway ("Only BandUp can manage an owner"), and a button
+    that always fails is worse than no button.
+  */
+  const leaders = members.filter((member) => member.role === "manager" || member.role === "owner");
   const assignedIds = new Set(assignments.map((assignment) => assignment.studentUserId));
   const groups = teachers.map((teacher) => ({
     teacher,
@@ -2559,8 +2549,29 @@ function TeamGroups({ members, assignments, organizationId, actorRole, platformA
     const timeout = window.setTimeout(() => setPendingUnassign(null), 6_000);
     return () => window.clearTimeout(timeout);
   }, [pendingUnassign]);
-  if (groups.length === 0 && unassigned.length === 0) return <EmptyState>No teachers or students are visible.</EmptyState>;
+  if (groups.length === 0 && unassigned.length === 0 && leaders.length === 0) {
+    return <EmptyState>Nobody is visible in this organisation yet.</EmptyState>;
+  }
   return (
+    <>
+    {leaders.length > 0 && (
+      <section className="card mt-1.5 min-w-0 !rounded-[var(--radius-xl)]">
+        <h4 className="mb-1.5 text-xs font-semibold text-slate-600">Owners and managers</h4>
+        <div className="space-y-1.5">
+          {leaders.map((leader) => (
+            <div key={leader.userId} className="rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <span className="min-w-0 flex-1"><Person name={leader.displayName} email={leader.email} avatarUrl={leader.avatarUrl} /></span>
+                <StatusPill>{titleCase(leader.role)}</StatusPill>
+              </div>
+              {leader.role === "manager" && (
+                <MemberManagement member={leader} organizationId={organizationId} act={act} busy={busy} compact />
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
     <div className="organization-team-pairing-grid mt-1.5 grid gap-2 lg:grid-cols-2">
       {groups.map(({ teacher, students: groupStudents }) => (
         <section key={teacher.userId} className="organization-team-pairing-group card min-w-0 !rounded-[var(--radius-xl)]">
@@ -2568,7 +2579,7 @@ function TeamGroups({ members, assignments, organizationId, actorRole, platformA
             <span className="organization-team-pairing-identity min-w-0 flex-1"><Person name={teacher.displayName} email={teacher.email} avatarUrl={teacher.avatarUrl} /></span>
             <StatusPill>Teacher</StatusPill>
           </div>
-          <MemberManagement member={teacher} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} compact />
+          <MemberManagement member={teacher} organizationId={organizationId} act={act} busy={busy} compact />
           <div className="organization-team-pairing-members mt-1.5 space-y-1.5 border-t border-slate-200/60 pt-1.5 sm:max-h-80 sm:overflow-y-auto sm:overscroll-contain sm:pr-0.5">
             {groupStudents.length ? groupStudents.map((student) => (
               <div key={student.userId} className="organization-team-pairing-member rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
@@ -2615,7 +2626,7 @@ function TeamGroups({ members, assignments, organizationId, actorRole, platformA
                     </button>
                   </span>
                 </div>
-                <MemberManagement member={student} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} compact />
+                <MemberManagement member={student} organizationId={organizationId} act={act} busy={busy} compact />
               </div>
             )) : <p className="text-xs text-slate-500">No students assigned.</p>}
           </div>
@@ -2627,10 +2638,68 @@ function TeamGroups({ members, assignments, organizationId, actorRole, platformA
           <div className="organization-team-pairing-members mt-1.5 space-y-1.5 sm:max-h-80 sm:overflow-y-auto sm:overscroll-contain sm:pr-0.5">{unassigned.map((student) => (
             <div key={student.userId} className="organization-team-pairing-member rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/25 px-2 py-1.5">
               <span className="organization-team-pairing-identity block min-w-0"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></span>
-              <MemberManagement member={student} organizationId={organizationId} actorRole={actorRole} platformAdmin={platformAdmin} act={act} busy={busy} compact />
+              <MemberManagement member={student} organizationId={organizationId} act={act} busy={busy} compact />
             </div>
           ))}</div>
         </section>
+      )}
+    </div>
+    </>
+  );
+}
+
+function JoinCodeCard({ joinCode }: { joinCode: string | null }) {
+  const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const codeRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = window.setTimeout(() => setCopied(false), 2_000);
+    return () => window.clearTimeout(timeout);
+  }, [copied]);
+  useEffect(() => {
+    if (!copyFailed) return;
+    codeRef.current?.select();
+  }, [copyFailed]);
+  return (
+    <div className="rounded-xl border border-slate-200/70 bg-surface/25 p-2.5 sm:p-3">
+      <span className="mb-1 block text-xs font-semibold text-slate-600">Join code</span>
+      <p className="mb-2 text-xs leading-4 text-slate-500">
+        Anyone with this code can ask to join. It still comes to you as a request — sharing the code does not add them until you approve it.
+      </p>
+      {joinCode ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <input ref={codeRef} aria-label="Organisation join code" readOnly value={joinCode} className="input min-h-9 min-w-0 flex-1 rounded-lg border border-slate-300 bg-surface/60 px-2.5 font-mono text-xs text-slate-700" />
+          <button
+            type="button"
+            className="btn-secondary min-h-9 !px-3 text-xs"
+            /*
+              The clipboard can refuse — an insecure context, a denied
+              permission, an in-app browser without the API at all — and an
+              unhandled rejection here would leave the button saying nothing
+              while the manager thinks they have the code. On a refusal the
+              code is selected instead, so copying by hand is one keystroke
+              rather than a careful drag across a monospace string.
+            */
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(joinCode);
+                setCopied(true);
+              } catch {
+                setCopyFailed(true);
+              }
+            }}
+          >
+            {copied ? "Copied" : "Copy code"}
+          </button>
+          {copyFailed && (
+            <span role="status" className="w-full text-xs leading-4 text-slate-500">
+              This browser would not let BandUp copy for you. The code is selected — copy it yourself.
+            </span>
+          )}
+        </div>
+      ) : (
+        <EmptyState>No join code is on record for this organisation.</EmptyState>
       )}
     </div>
   );
@@ -3169,11 +3238,7 @@ function PlatformAdminCard({
   portal: Portal;
   onOpen: () => void;
 }) {
-  const applications = portal.applications ?? [];
   const organizations = portal.organizations ?? [];
-  const waitingApplications = applications.filter(
-    (application) => application.status === "submitted" || application.status === "under_review",
-  ).length;
   return (
     <button
       type="button"
@@ -3188,13 +3253,10 @@ function PlatformAdminCard({
       <span className="min-w-0 flex-1">
         <strong className="block text-[15px] font-semibold tracking-tight text-slate-900 sm:text-base">BandUp administration</strong>
         <span className="mt-0.5 block text-[11px] leading-4 text-slate-500 sm:text-xs">
-          Review organisation applications and manage every workspace.
+          Manage every organisation workspace.
         </span>
       </span>
       <span className="hidden shrink-0 text-right sm:block">
-        <strong className="block text-xs font-semibold tabular-nums text-slate-700">
-          {waitingApplications} waiting
-        </strong>
         <span className="block text-[10px] text-slate-500">
           {organizations.length} organisation{organizations.length === 1 ? "" : "s"}
         </span>
@@ -3215,7 +3277,6 @@ function PlatformAdminArea({
   busy: boolean;
   onBack: () => void;
 }) {
-  const applications = portal.applications ?? [];
   const organizations = portal.organizations ?? [];
   return (
     <section className="min-w-0 space-y-2" aria-labelledby="bandup-administration-title" data-platform-administration-page>
@@ -3223,13 +3284,10 @@ function PlatformAdminArea({
         <MobileDashboardBack onBack={onBack} ariaLabel="Back to organisation overview" />
         <div className="min-w-0">
           <h2 id="bandup-administration-title" className="text-[19px] font-semibold tracking-tight text-slate-900 sm:text-[22px]">BandUp administration</h2>
-          <p className="mt-0.5 text-xs leading-4 text-slate-600 sm:text-[13px]">Organisation applications and platform-level workspace controls.</p>
+          <p className="mt-0.5 text-xs leading-4 text-slate-600 sm:text-[13px]">Platform-level workspace controls.</p>
         </div>
       </div>
-      <div className="grid min-w-0 gap-2.5 lg:grid-cols-2">
-        <GlassSection title="Organisation applications" lead="Only BandUp administrators can approve creation.">
-          {applications.length === 0 ? <EmptyState>No applications are waiting.</EmptyState> : <div className="space-y-2.5"><ApplicationList applications={applications} admin act={act} busy={busy} /></div>}
-        </GlassSection>
+      <div className="grid min-w-0 gap-2.5">
         <GlassSection title="All organisations" lead="Platform-level status controls.">
           {organizations.length === 0 ? <EmptyState>No organisations have been created.</EmptyState> : (
             <div className="space-y-2.5">{organizations.map((organization) => (
@@ -3272,25 +3330,3 @@ function PlatformAdminArea({
   );
 }
 
-function ApplicationList({ applications, admin = false, act, busy = false }: { applications: OrganizationApplication[]; admin?: boolean; act?: Act; busy?: boolean }) {
-  return (
-    <div className="space-y-2.5">{applications.map((application) => (
-      <div key={application.id} className="rounded-xl border border-slate-200/70 bg-surface/25 px-4 py-3">
-        <div className="flex flex-wrap items-start justify-between gap-2"><span><span className="block text-sm font-semibold text-slate-900">{application.organizationName}</span><span className="block text-xs text-slate-500">{application.country}</span></span><StatusPill tone={application.status === "approved" ? "good" : application.status === "rejected" ? "bad" : "warn"}>{titleCase(application.status)}</StatusPill></div>
-        {admin && act && (application.status === "submitted" || application.status === "under_review") && (
-          <div className="mt-3 flex gap-2"><button type="button" className="btn-primary !px-3 !py-2 text-xs" disabled={busy} onClick={() => void act("decide_application", { applicationId: application.id, approve: true })}>Approve</button><button type="button" className="btn-secondary !px-3 !py-2 text-xs" disabled={busy} onClick={() => void act("decide_application", { applicationId: application.id, approve: false })}>Reject</button></div>
-        )}
-        {!admin && act && (application.status === "draft" || application.status === "submitted" || application.status === "under_review") && (
-          <button
-            type="button"
-            className="btn-secondary mt-3 !px-3 !py-2 text-xs"
-            disabled={busy}
-            onClick={() => void act("withdraw_application", { applicationId: application.id })}
-          >
-            Withdraw application
-          </button>
-        )}
-      </div>
-    ))}</div>
-  );
-}

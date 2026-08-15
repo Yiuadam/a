@@ -7,9 +7,7 @@
  * command set for installations that have not cut over.
  */
 export const ORGANIZATION_ACTIONS = [
-  "submit_application",
-  "withdraw_application",
-  "decide_application",
+  "create_organization",
   "suspend_organization",
   "restore_organization",
   "delete_organization",

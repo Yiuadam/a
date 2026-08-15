@@ -42,13 +42,6 @@ interface MembershipRow {
   joined_at: string | null;
 }
 
-interface ApplicationRow {
-  id: string;
-  applicant_user_id: string;
-  organization_name: string;
-  status: string;
-}
-
 interface OrganizationRow {
   id: string;
   name: string;
@@ -75,10 +68,6 @@ interface ReceiptRow {
 const IDEMPOTENCY = /^[A-Za-z0-9._:-]{12,120}$/;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// The original schema requires this legacy column. Applications no longer ask
-// people for a free-text purpose, so every new row receives the same neutral
-// internal value instead of storing arbitrary text that BandUp does not need.
-const APPLICATION_PURPOSE = "Organization workspace request.";
 
 export type OrganizationCommandErrorCode =
   | "validation"
@@ -330,7 +319,7 @@ async function priorReceipt(
   key: string,
   action: OrganizationAction,
   requestHash: string,
-): Promise<{ invitation?: { requestId: string } } | null> {
+): Promise<{ invitation?: { requestId: string }; organizationId?: string } | null> {
   const row = await db.prepare(`
     SELECT action, request_hash, response_json
       FROM organization_command_receipts
@@ -340,7 +329,7 @@ async function priorReceipt(
   if (row.action !== action || row.request_hash !== requestHash) {
     conflict("That request identifier was already used with different data.");
   }
-  return JSON.parse(row.response_json) as { invitation?: { requestId: string } };
+  return JSON.parse(row.response_json) as { invitation?: { requestId: string }; organizationId?: string };
 }
 
 function receipt(
@@ -349,7 +338,7 @@ function receipt(
   key: string,
   action: OrganizationAction,
   requestHash: string,
-  response: { ok: true; invitation?: { requestId: string } },
+  response: { ok: true; invitation?: { requestId: string }; organizationId?: string },
 ) {
   return db.prepare(`
     INSERT INTO organization_command_receipts (
@@ -378,7 +367,7 @@ async function executeCommand(
   payload: Record<string, unknown>,
   idempotencyKey: string,
   requestHash: string,
-): Promise<{ ok: true; invitation?: { requestId: string } }> {
+): Promise<{ ok: true; invitation?: { requestId: string }; organizationId?: string }> {
   const now = stamp();
   const organizationId = await commandOrganization(db, action, payload);
   if (
@@ -386,105 +375,43 @@ async function executeCommand(
     && action !== "suspend_organization"
     && action !== "restore_organization"
     && action !== "delete_organization"
-    && action !== "decide_application"
     && !(await organizationActive(db, organizationId))
   ) fail("Organisation is not active.");
 
-  if (action === "submit_application") {
+  if (action === "create_organization") {
+    /*
+      No platform-admin check, and no eligibility check either: any signed-in
+      user may create an organisation and becomes its owner the moment they do.
+      That is the whole of the change — the approval step this replaced was the
+      only thing standing between the two.
+
+      The name is the only thing asked for. The retired application also took a
+      country, a contact email and the applicant's role, and those were the
+      right questions while a person had to read them and decide; with nobody
+      deciding and no column to store them in, validating them here would be
+      rejecting a creation over a field that goes nowhere.
+    */
     const organizationName = text(payload.organizationName, "Organisation name", 2, 120);
-    const country = text(payload.country, "Country or region", 2, 80);
-    const contactEmail = text(payload.contactEmail, "Contact email", 3, 320).toLowerCase();
-    const applicantRole = text(payload.applicantRole, "Applicant role", 2, 80);
-    if (!EMAIL.test(contactEmail)) fail("Invalid contact email.");
-    const estimate = payload.estimatedStudents === null || payload.estimatedStudents === undefined
-      ? null : Number(payload.estimatedStudents);
-    if (estimate !== null && (!Number.isInteger(estimate) || estimate < 1 || estimate > 1_000_000)) {
-      fail("Invalid estimated students.");
-    }
-    const applicationId = crypto.randomUUID();
-    const response = { ok: true } as const;
+    const createdOrganizationId = crypto.randomUUID();
+    const membershipId = crypto.randomUUID();
+    const joinCode = crypto.randomUUID().replaceAll("-", "").slice(0, 16);
+    const response = { ok: true, organizationId: createdOrganizationId } as const;
     await runBatch(db, [
       db.prepare(`
-        INSERT INTO organization_applications (
-          id, applicant_user_id, organization_name, purpose, country,
-          contact_email, estimated_students, applicant_role, status,
-          submitted_at, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'submitted', ?, ?, ?)
-      `).bind(
-        applicationId, user.id, organizationName, APPLICATION_PURPOSE, country,
-        contactEmail, estimate, applicantRole, now, now, now,
-      ),
-      audit(db, user.id, action, null, "application", applicationId),
-    ], receipt(db, user.id, idempotencyKey, action, requestHash, response));
-    return response;
-  }
-
-  if (action === "withdraw_application") {
-    const applicationId = id(payload.applicationId, "application");
-    const application = await db.prepare(`
-      SELECT id FROM organization_applications
-       WHERE id = ? AND applicant_user_id = ?
-         AND status IN ('draft', 'submitted', 'under_review')
-    `).bind(applicationId, user.id).first<{ id: string }>();
-    if (!application) fail("Application cannot be withdrawn.");
-    const response = { ok: true } as const;
-    await runBatch(db, [
+        INSERT INTO organizations (
+          id, application_id, name, slug, status, created_by,
+          created_at, updated_at, join_code
+        ) VALUES (?, NULL, ?, NULL, 'active', ?, ?, ?, ?)
+      `).bind(createdOrganizationId, organizationName, user.id, now, now, joinCode),
       db.prepare(`
-        UPDATE organization_applications SET status = 'rejected',
-          review_note = 'Withdrawn by applicant', reviewed_at = ?,
-          reviewed_by = ?, updated_at = ? WHERE id = ?
-      `).bind(now, user.id, now, applicationId),
-      audit(db, user.id, action, null, "application", applicationId),
+        INSERT INTO organization_memberships (
+          id, organization_id, user_id, role, status,
+          share_future_history, share_pre_join_history, joined_at,
+          created_at, updated_at, status_changed_at
+        ) VALUES (?, ?, ?, 'owner', 'active', 1, 0, ?, ?, ?, ?)
+      `).bind(membershipId, createdOrganizationId, user.id, now, now, now, now),
+      audit(db, user.id, action, createdOrganizationId, "organization", createdOrganizationId),
     ], receipt(db, user.id, idempotencyKey, action, requestHash, response));
-    return response;
-  }
-
-  if (action === "decide_application") {
-    if (!platformAdmin) forbidden();
-    const applicationId = id(payload.applicationId, "application");
-    const application = await db.prepare(`
-      SELECT id, applicant_user_id, organization_name, status
-        FROM organization_applications WHERE id = ?
-    `).bind(applicationId).first<ApplicationRow>();
-    if (!application || (application.status !== "submitted" && application.status !== "under_review")) {
-      fail("Application is no longer awaiting review.");
-    }
-    const approve = bool(payload.approve);
-    const note = optionalText(payload.note, 2000);
-    const response = { ok: true } as const;
-    const statements: D1PreparedStatement[] = [
-      db.prepare(`
-        UPDATE organization_applications
-           SET status = ?, reviewed_at = ?, reviewed_by = ?, review_note = ?, updated_at = ?
-         WHERE id = ? AND status IN ('submitted', 'under_review')
-      `).bind(approve ? "approved" : "rejected", now, user.id, note, now, applicationId),
-    ];
-    let createdOrganization: string | null = null;
-    if (approve) {
-      createdOrganization = crypto.randomUUID();
-      const membershipId = crypto.randomUUID();
-      const joinCode = crypto.randomUUID().replaceAll("-", "").slice(0, 16);
-      statements.push(
-        db.prepare(`
-          INSERT INTO organizations (
-            id, application_id, name, slug, status, created_by,
-            created_at, updated_at, join_code
-          ) VALUES (?, ?, ?, NULL, 'active', ?, ?, ?, ?)
-        `).bind(createdOrganization, applicationId, application.organization_name, application.applicant_user_id, now, now, joinCode),
-        db.prepare(`
-          INSERT INTO organization_memberships (
-            id, organization_id, user_id, role, status,
-            share_future_history, share_pre_join_history, joined_at,
-            created_at, updated_at, status_changed_at
-          ) VALUES (?, ?, ?, 'owner', 'active', 1, 0, ?, ?, ?, ?)
-        `).bind(membershipId, createdOrganization, application.applicant_user_id, now, now, now, now),
-      );
-    }
-    statements.push(audit(
-      db, user.id, action, createdOrganization, "application", applicationId,
-      { approved: approve },
-    ));
-    await runBatch(db, statements, receipt(db, user.id, idempotencyKey, action, requestHash, response));
     return response;
   }
 
@@ -1116,13 +1043,13 @@ async function executeCommand(
     const target = await member(db, orgId, targetId);
     if (!canManage(actorRole, platformAdmin) || !target) forbidden();
     if (target.role === "owner" && !platformAdmin) fail("Only BandUp can manage an owner.");
-    if (actorRole === "manager" && (target.role === "manager" || target.role === "owner") && !platformAdmin) {
-      fail("A manager cannot manage peers or owners.");
-    }
     let requestedRole: OrganizationRole | null = null;
     if (action === "change_member_role") {
       requestedRole = role(payload.role, true);
-      if ((requestedRole === "manager" || requestedRole === "owner") && !platformAdmin && actorRole !== "owner") fail("Invalid role.");
+      // A manager may promote to and act on other managers now — that is the
+      // point of this change — but making somebody an owner still needs an
+      // owner or platformAdmin, same as it always has.
+      if (requestedRole === "owner" && !platformAdmin && actorRole !== "owner") fail("Invalid role.");
       if (requestedRole === "student" && target.role !== "student") {
         conflict("Invite this person as a student so they can accept history sharing first.");
       }
