@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
-import { generateUsername } from "@/lib/auth/generated-username";
+import { generateDisplayName, usernameFromEmail } from "@/lib/auth/generated-username";
 import { publishProfileUpdate } from "./profileEvents";
 import { useAccountProfile } from "./AccountProfileProvider";
 import type { ProfileFields } from "./types";
@@ -20,7 +20,22 @@ function IdentityFields({ profile, onboarding }: { profile: ProfileFields; onboa
   const router = useRouter();
   const searchParams = useSearchParams();
   const [displayName, setDisplayName] = useState(profile.displayName ?? "");
-  const [username, setUsername] = useState(profile.username ?? "");
+  /*
+    An account that has never chosen a username starts from its own email
+    address rather than blank — the owner's decision, and the one the server
+    makes too when it has to choose (generatedCandidate in
+    app/api/account/profile/route.ts), so the field shows what saving would
+    actually do rather than leaving a learner to guess.
+
+    Only ever a prefill. A username already chosen is never overwritten, and
+    the field stays editable, which matters more here than usual: a username is
+    public — it appears in the organisation team directory and works as a
+    sign-in alias — so a learner who would rather not publish part of their
+    address can simply type over it before saving.
+  */
+  const [username, setUsername] = useState(
+    profile.username ?? usernameFromEmail(profile.email) ?? "",
+  );
   const [birthDate, setBirthDate] = useState(profile.birthDate ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +47,8 @@ function IdentityFields({ profile, onboarding }: { profile: ProfileFields; onboa
     return requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
   }
 
-  function suggestUsername() {
-    setUsername((current) => generateUsername(current || null));
+  function suggestDisplayName() {
+    setDisplayName((current) => generateDisplayName(current || null));
     setGeneratedSuggestion(true);
     setError(null);
   }
@@ -114,18 +129,29 @@ function IdentityFields({ profile, onboarding }: { profile: ProfileFields; onboa
     <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-slate-700">Display name</span>
-        <input className="input" required maxLength={60} autoComplete="name" placeholder="What we should call you" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+        {/*
+          Generate lives here now rather than on the username. A display name
+          is the field with nothing to satisfy — no shape rule, no uniqueness,
+          no public handle — so an invented one costs a learner nothing and
+          saves them the small awkwardness of naming themselves. The username
+          below no longer needs the button at all: it arrives already filled
+          in from the address they signed in with.
+        */}
+        <div className="relative">
+          <input aria-describedby="account-display-name-help" className="input w-full !pr-28" required maxLength={60} autoComplete="name" placeholder="What we should call you" value={displayName} onChange={(event) => { setDisplayName(event.target.value); setGeneratedSuggestion(false); }} />
+          <button type="button" onClick={suggestDisplayName} className="absolute inset-y-1.5 right-1.5 rounded-full border border-indigo-300/70 bg-indigo-50/75 px-3 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100" aria-label={generatedSuggestion ? "Generate another display name" : "Generate a display name"}>
+            {generatedSuggestion ? "Another" : "Generate"}
+          </button>
+        </div>
+        <span id="account-display-name-help" className="text-xs leading-5 text-slate-500">What other people see. It does not have to be your real name.</span>
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-slate-700">Username</span>
         <div className="relative">
           <span className="pointer-events-none absolute inset-y-0 left-4 grid place-items-center text-slate-400">@</span>
-          <input id="account-username" aria-describedby="account-username-help" className="input w-full !pl-9 !pr-36" required minLength={3} maxLength={30} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,29}" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="your.name" value={username} onChange={(event) => { setUsername(event.target.value.toLowerCase()); setGeneratedSuggestion(false); }} />
-          <button type="button" onClick={suggestUsername} className="absolute inset-y-1.5 right-1.5 rounded-full border border-indigo-300/70 bg-indigo-50/75 px-3 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100" aria-label={generatedSuggestion ? "Generate another username" : "Generate a username"}>
-            {generatedSuggestion ? "Another" : "Generate"}
-          </button>
+          <input id="account-username" aria-describedby="account-username-help" className="input w-full !pl-9" required minLength={3} maxLength={30} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,29}" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="your.name" value={username} onChange={(event) => setUsername(event.target.value.toLowerCase())} />
         </div>
-        <span id="account-username-help" className="text-xs leading-5 text-slate-500">3–30 letters, numbers, dots, dashes or underscores. Generate as many suggestions as you like.</span>
+        <span id="account-username-help" className="text-xs leading-5 text-slate-500">3–30 letters, numbers, dots, dashes or underscores. Taken from your email address — change it if you would rather not use that. Other people can see it.</span>
       </label>
       <label className="flex flex-col gap-1.5 sm:col-span-2 sm:max-w-sm">
         <span className="text-sm font-medium text-slate-700">Date of birth <span className="font-normal text-slate-500">(optional)</span></span>

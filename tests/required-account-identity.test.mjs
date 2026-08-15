@@ -56,13 +56,15 @@ test("the notification and skippable setup gate share one account profile", () =
   assert.match(gate, /phase === "loading"/);
   assert.match(gate, /\/account\/onboarding\?returnTo=/);
   const form = readFileSync(join(process.cwd(), "components", "account", "AccountIdentityForm.tsx"), "utf8");
-  assert.match(form, /Generate another username|Generate a username/);
+  // The Generate button belongs to the display name now, not the username —
+  // the username arrives prefilled from the learner's email address, so there
+  // is nothing left for it to suggest. See tests/username-from-email.test.mjs.
+  assert.match(form, /Generate another display name|Generate a display name/);
+  assert.doesNotMatch(form, /Generate a username|Generate another username/);
   assert.match(form, /Do this later/);
   assert.match(form, /deferSetup: true/);
   assert.match(form, /generateUsername: true/);
   assert.match(form, /If it is empty or unavailable, BandUp safely generates one for you/);
-  assert.match(form, /Generate as many suggestions as you like/);
-  assert.match(form, /Generate another username/);
   assert.doesNotMatch(form, /ACCOUNT_KINDS|account-kind|How will you use BandUp\?|Individual learner|Learning with a school or teacher|Teaching learners/);
   assert.match(form, /JSON\.stringify\(\{ displayName, username, birthDate \}\)/);
   assert.doesNotMatch(form, /JSON\.stringify\(\{ displayName, username, accountKind/);

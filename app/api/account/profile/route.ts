@@ -19,7 +19,7 @@ import {
 import { cloudflareAvatarUrl } from "@/lib/cloudflare/avatar-delivery";
 import { adminUsername } from "@/lib/auth/env";
 import { claimable } from "@/lib/auth/usernames";
-import { generateUsername } from "@/lib/auth/generated-username";
+import { generateUsername, usernameFromEmailAttempt } from "@/lib/auth/generated-username";
 
 /*
   What a learner chooses to tell us about themselves, and how they change it.
@@ -140,6 +140,30 @@ async function handleGET(req: Request) {
   return NextResponse.json(body);
 }
 
+/*
+  Which name to try next when the server is choosing one — "Do this later", an
+  empty username field, or a collision on whatever came before.
+
+  Order matters and is the whole of the owner's request: the learner's own
+  email local part first, then the same with a short numeric suffix so that two
+  people sharing a local part across different providers can both sign up, and
+  only then the non-identifying adjective-noun generator.
+
+  That last step is not a formality. usernameFromEmailAttempt returns null for
+  an address whose local part is reserved ("admin@…"), for one that cannot be
+  made into a valid handle at all, and once the suffixed attempts run out — and
+  in every one of those cases a learner still needs a username. Falling through
+  to the generator is what stops an unusable address becoming an account that
+  cannot finish setup.
+*/
+function generatedCandidate(
+  email: string | null | undefined,
+  attempt: number,
+  previous: string | null,
+): string {
+  return usernameFromEmailAttempt(email, attempt) ?? generateUsername(previous);
+}
+
 async function handlePATCH(req: Request) {
   const auth = await requireUser(req);
   if (auth.error === "off") return NextResponse.json({ error: "Not found." }, { status: 404 });
@@ -158,7 +182,9 @@ async function handlePATCH(req: Request) {
     const generated = input.generateUsername === true || supplied.trim().length === 0;
     let previous: string | null = null;
     for (let attempt = 0; attempt < (generated ? 10 : 1); attempt += 1) {
-      const raw: string = attempt === 0 && supplied.trim() ? supplied : generateUsername(previous);
+      const raw: string = attempt === 0 && supplied.trim()
+        ? supplied
+        : generatedCandidate(auth.user.email, attempt - (supplied.trim() ? 1 : 0), previous);
       const checked = claimable(raw, isAdminEmail(auth.user.email) ? null : adminUsername());
       if (!checked.ok) {
         if (generated) {
