@@ -138,7 +138,7 @@ export function JoinOrganizationForm({
   );
 }
 
-export function OrganizationApplicationForm({ act, busy }: { act: Act; busy: boolean }) {
+export function OrganizationCreateForm({ act, busy }: { act: Act; busy: boolean }) {
   const [form, setForm] = useState({
     organizationName: "",
     country: "",
@@ -154,7 +154,7 @@ export function OrganizationApplicationForm({ act, busy }: { act: Act; busy: boo
     // shorter content.
     <details
       className="card group min-w-0 max-w-full h-full !rounded-[var(--radius-xl)] !p-0"
-      data-organization-application
+      data-organization-create
     >
       <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 sm:px-4 [&::-webkit-details-marker]:hidden">
         <span className="min-w-0">
@@ -166,19 +166,19 @@ export function OrganizationApplicationForm({ act, busy }: { act: Act; busy: boo
           </span>
         </span>
         <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-indigo-700">
-          <span>Apply</span>
+          <span>Create</span>
           <span aria-hidden="true" className="text-base leading-none transition-transform group-open:rotate-90">›</span>
         </span>
       </summary>
       <div className="border-t border-slate-200/65 px-3.5 pb-3.5 pt-3 sm:px-4 sm:pb-4">
         <p className="mb-3 text-[12px] leading-4 text-slate-600 sm:text-[13px]">
-          Send an application to BandUp. Nothing is created until a BandUp administrator approves it.
+          Set up your organisation now. You become its owner immediately, with nothing to wait for.
         </p>
         <form
           className="grid gap-3 sm:grid-cols-2"
           onSubmit={async (event) => {
             event.preventDefault();
-            await act("submit_application", form);
+            await act("create_organization", form);
           }}
         >
           <Field label="Organisation name">
@@ -195,7 +195,7 @@ export function OrganizationApplicationForm({ act, busy }: { act: Act; busy: boo
           </Field>
           <div className="sm:col-span-2">
             <button type="submit" className="btn-primary" disabled={busy}>
-              Submit application
+              Create organisation
             </button>
           </div>
         </form>

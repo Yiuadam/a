@@ -6,7 +6,6 @@ import {
   organizationAttempts,
 } from "@/lib/organizations/attempt-sync";
 import type {
-  OrganizationApplication,
   OrganizationPracticeAssignment,
   OrganizationTeacherFeedback,
   OrganizationMember,
@@ -51,19 +50,6 @@ interface MembershipRow {
   org_created_at: string;
   member_count: number;
   student_count: number;
-}
-
-interface ApplicationRow {
-  id: string;
-  organization_name: string;
-  country: string;
-  contact_email: string;
-  estimated_students: number | null;
-  applicant_role: string;
-  status: OrganizationApplication["status"];
-  submitted_at: string | null;
-  reviewed_at: string | null;
-  review_note: string | null;
 }
 
 interface OrganizationRow {
@@ -298,29 +284,6 @@ function activeOrganization(
       ?? eligibleMemberships[0]
     : eligibleMemberships[0];
   return active ? { id: active.organization.id, role: active.role } : null;
-}
-
-async function applicationsFor(db: Db, userId: string, platformAdmin: boolean) {
-  const list = await rows<ApplicationRow>(db.prepare(`
-    SELECT id, organization_name, country, contact_email,
-           estimated_students, applicant_role, status, submitted_at,
-           reviewed_at, review_note
-      FROM organization_applications
-     ${platformAdmin ? "" : "WHERE applicant_user_id = ?"}
-     ORDER BY created_at DESC
-  `).bind(...(platformAdmin ? [] : [userId])));
-  return list.map((row) => ({
-    id: row.id,
-    organizationName: row.organization_name,
-    country: row.country,
-    contactEmail: row.contact_email,
-    estimatedStudents: row.estimated_students,
-    applicantRole: row.applicant_role,
-    status: row.status,
-    submittedAt: row.submitted_at,
-    reviewedAt: row.reviewed_at,
-    reviewNote: row.review_note,
-  } satisfies OrganizationApplication));
 }
 
 async function membersFor(db: Db, organizationId: string): Promise<OrganizationMember[]> {
@@ -634,10 +597,9 @@ export async function cloudflareOrganizationPortal(
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const { db } = bindings;
   await ensureCloudflareUser(user, bindings);
-  const [tier, memberships, applications, allOrganizationRows, profile] = await Promise.all([
+  const [tier, memberships, allOrganizationRows, profile] = await Promise.all([
     actorTier(db, user, platformAdmin),
     organizationMemberships(db, user.id),
-    applicationsFor(db, user.id, platformAdmin),
     platformAdmin ? organizationRows(db) : Promise.resolve([]),
     db.prepare("SELECT display_name FROM learner_profiles WHERE user_id = ?").bind(user.id).first<{ display_name: string | null }>(),
   ]);
@@ -682,7 +644,6 @@ export async function cloudflareOrganizationPortal(
     },
     eligibility: {
       canJoin: eligible,
-      canApplyToCreate: true,
       reason: eligible ? null : "A Standard, Plus or Pro plan, or an organisation seat, is required to join as a student.",
     },
     canClearOwnHistory: !memberships.some((membership) =>
@@ -691,7 +652,6 @@ export async function cloudflareOrganizationPortal(
     ),
     activeOrganizationId: active?.id ?? null,
     memberships,
-    applications,
     organizations,
     members,
     requests,

@@ -16,12 +16,6 @@ export type MembershipStatus =
   | "removed";
 
 export type RequestStatus = "pending" | "approved" | "rejected" | "cancelled";
-export type OrganizationApplicationStatus =
-  | "draft"
-  | "submitted"
-  | "under_review"
-  | "approved"
-  | "rejected";
 
 export interface OrganizationSummary {
   id: string;
@@ -44,19 +38,6 @@ export interface OrganizationMembership {
   preJoinHistoryRequestStatus: RequestStatus | null;
   futureHistoryRequestStatus: RequestStatus | null;
   leaveRequestStatus: RequestStatus | null;
-}
-
-export interface OrganizationApplication {
-  id: string;
-  organizationName: string;
-  country: string;
-  contactEmail: string;
-  estimatedStudents: number | null;
-  applicantRole: string;
-  status: OrganizationApplicationStatus;
-  submittedAt: string | null;
-  reviewedAt: string | null;
-  reviewNote: string | null;
 }
 
 export interface OrganizationMember {
@@ -161,7 +142,6 @@ export interface OrganizationActor {
 
 export interface OrganizationEligibility {
   canJoin: boolean;
-  canApplyToCreate: boolean;
   reason: string | null;
 }
 
@@ -175,7 +155,6 @@ export interface OrganizationPortal {
   canClearOwnHistory: boolean;
   activeOrganizationId: string | null;
   memberships: OrganizationMembership[];
-  applications: OrganizationApplication[] | null;
   organizations: OrganizationSummary[] | null;
   members: OrganizationMember[] | null;
   requests: OrganizationRequest[] | null;
@@ -198,6 +177,8 @@ export interface OrganizationActionResponse {
   portal?: OrganizationPortal;
   /** Present only after creating an invitation; the token never comes back. */
   invitation?: { requestId: string };
+  /** Present only after create_organization; the new organisation's id. */
+  organizationId?: string;
 }
 
 export interface OrganizationUserSearchResult {

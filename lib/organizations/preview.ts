@@ -24,7 +24,7 @@ export function managerOrganizationPreview(): OrganizationPortal {
       tier: "pro",
       platformAdmin: false,
     },
-    eligibility: { canJoin: true, canApplyToCreate: true, reason: null },
+    eligibility: { canJoin: true, reason: null },
     canClearOwnHistory: true,
     activeOrganizationId: organization.id,
     memberships: [{
@@ -39,7 +39,6 @@ export function managerOrganizationPreview(): OrganizationPortal {
       futureHistoryRequestStatus: null,
       leaveRequestStatus: null,
     }],
-    applications: [],
     organizations: null,
     members: [
       {
@@ -262,7 +261,6 @@ export function organizationRolePreview(role: OrganizationPreviewRole): Organiza
           leaveRequestStatus: null,
         },
       ],
-      applications: [],
       members: null,
       requests: null,
       students: source.students?.filter((student) => assignedStudentIds.has(student.userId)) ?? [],
@@ -315,7 +313,6 @@ export function organizationRolePreview(role: OrganizationPreviewRole): Organiza
         leaveRequestStatus: null,
       }]),
     ],
-    applications: [],
     members: null,
     requests: null,
     students: null,

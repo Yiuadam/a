@@ -331,9 +331,6 @@ test("the shared role preview refuses real email addresses", () => {
   assert.equal(previewAuth.organizationPreviewPayloadAllowed("invite_member", {
     email: "real.person@example.com",
   }), false);
-  assert.equal(previewAuth.organizationPreviewPayloadAllowed("submit_application", {
-    contactEmail: "real.person@example.com",
-  }), false);
   assert.equal(previewAuth.organizationPreviewPayloadAllowed("assign_teacher", {}), true);
   const route = readFileSync(join(process.cwd(), "app/api/organization/route.ts"), "utf8");
   assert.match(route, /organizationPreviewPayloadAllowed/);
@@ -685,14 +682,19 @@ test("dark organization warning pills use a neutral high-contrast capsule", () =
   assert.match(css, /color: #111113/);
 });
 
-test("organization applicants can withdraw a pending application from the UI", () => {
+test("organisation creation is immediate and carries no application or review UI", () => {
   const ui = readFileSync(
     join(process.cwd(), "components", "organization", "OrganizationPortal.tsx"),
     "utf8",
   );
-  assert.match(ui, /<ApplicationList applications=\{portal\.applications\} act=\{act\} busy=\{busy\}/);
-  assert.match(ui, /"withdraw_application", \{ applicationId: application\.id \}/);
-  assert.match(ui, /Withdraw application/);
+  const forms = readFileSync(
+    join(process.cwd(), "components", "organization", "OrganizationForms.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(ui, /ApplicationList|hasOpenApplication|withdraw_application|decide_application|portal\.applications/);
+  assert.doesNotMatch(forms, /submit_application|Submit application/);
+  assert.match(forms, /"create_organization"/);
+  assert.match(forms, /Create organisation/);
 });
 
 test("organization attempt normalization retains detailed reviews but refuses malformed rows", () => {
@@ -760,7 +762,7 @@ test("organization endpoints are private, bounded, idempotent and database-autho
   assert.match(bridge, /p_platform_admin/);
 });
 
-test("organization applications do not collect or display a free-text purpose", () => {
+test("organization creation does not collect or store a free-text purpose", () => {
   const forms = readFileSync(
     join(process.cwd(), "components/organization/OrganizationForms.tsx"),
     "utf8",
@@ -773,26 +775,10 @@ test("organization applications do not collect or display a free-text purpose", 
     join(process.cwd(), "lib/cloudflare/organization-commands.ts"),
     "utf8",
   );
-  const bridge = readFileSync(
-    join(process.cwd(), "lib/organizations/server.ts"),
-    "utf8",
-  );
-  const types = readFileSync(
-    join(process.cwd(), "lib/organizations/types.ts"),
-    "utf8",
-  );
-  const compatibilityMigration = readFileSync(
-    join(process.cwd(), "supabase/migrations/0023_organization_application_without_purpose.sql"),
-    "utf8",
-  );
 
   assert.doesNotMatch(forms, /label="Purpose"|form\.purpose|payload\.purpose/);
   assert.doesNotMatch(portal, /application\.purpose/);
-  assert.doesNotMatch(types, /interface OrganizationApplication[\s\S]{0,300}\n\s+purpose:/);
-  assert.doesNotMatch(commands, /text\(payload\.purpose/);
-  assert.match(commands, /APPLICATION_PURPOSE = "Organization workspace request\."/);
-  assert.match(bridge, /action === "submit_application"[\s\S]*purpose: APPLICATION_PURPOSE/);
-  assert.match(compatibilityMigration, /organization_applications_neutral_purpose/);
+  assert.doesNotMatch(commands, /text\(payload\.purpose|APPLICATION_PURPOSE/);
 });
 
 test("creating an organization stays behind a compact optional card", () => {
@@ -805,15 +791,14 @@ test("creating an organization stays behind a compact optional card", () => {
     "utf8",
   );
 
-  assert.match(forms, /<details[\s\S]*data-organization-application/);
+  assert.match(forms, /<details[\s\S]*data-organization-create/);
   assert.match(forms, /<summary[\s\S]*Create an organisation[\s\S]*For people who run a school or teaching team\./);
   assert.match(forms, /group-open:rotate-90/);
   // The grid now stretches (the CSS grid default) instead of items-start, so
   // the create card can match the join card's height; this still asserts
   // the same two-up grid layout, just without the alignment override.
   assert.match(portal, /grid gap-4 lg:grid-cols-2/);
-  assert.match(portal, /const hasOpenApplication = portal\.applications\?\.some/);
-  assert.match(portal, /portal\.eligibility\.canApplyToCreate && !hasOpenApplication && \([\s\S]*<OrganizationApplicationForm/);
+  assert.match(portal, /<OrganizationCreateForm act=\{act\} busy=\{busy\} \/>/);
   assert.doesNotMatch(portal, /Applications are not available for this account\./);
 });
 

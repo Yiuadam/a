@@ -17,12 +17,11 @@ import { ORGANIZATION_PRACTICE_TARGETS } from "@/lib/organizations/practice-assi
 import type {
   OrganizationAction,
   OrganizationActionResponse,
-  OrganizationApplication,
   OrganizationMembership,
   OrganizationPortal as Portal,
   OrganizationRequest,
 } from "@/lib/organizations/types";
-import { OrganizationApplicationForm, JoinOrganizationForm } from "./OrganizationForms";
+import { OrganizationCreateForm, JoinOrganizationForm } from "./OrganizationForms";
 import CardIcon, { type CardIconName } from "@/components/CardIcon";
 import GlassSelect, { FloatingGlassPopover } from "@/components/GlassSelect";
 import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
@@ -370,7 +369,13 @@ export default function OrganizationPortal({
         // panel is based on the same server-authoritative view.
         await load(deletedSelectedOrganization ? null : undefined);
         retryKeys.current.delete(retryFingerprint);
-        setNotice(action === "delete_organization" ? "Organisation deleted." : "Saved.");
+        setNotice(
+          action === "delete_organization"
+            ? "Organisation deleted."
+            : action === "create_organization"
+              ? "Your organisation is ready to use."
+              : "Saved.",
+        );
         return body && "ok" in body && body.ok === true
           ? body as OrganizationActionResponse
           : null;
@@ -466,7 +471,6 @@ export default function OrganizationPortal({
         studentView === "settings" ? (
           <StudentOrganizationSettings
             membership={membership}
-            portal={portal}
             act={act}
             busy={acting}
             onBack={() => openManagerView("overview", true)}
@@ -930,11 +934,6 @@ function MembershipSummary({
 type Act = (action: OrganizationAction, payload: Record<string, unknown>) => Promise<OrganizationActionResponse | null>;
 
 function NoMembership({ portal, act, busy, previewRole }: { portal: Portal; act: Act; busy: boolean; previewRole: OrganizationLivePreviewRole | null }) {
-  const hasOpenApplication = portal.applications?.some((application) =>
-    application.status === "draft"
-      || application.status === "submitted"
-      || application.status === "under_review"
-  ) ?? false;
   return (
     // Stretch (the grid default) rather than items-start: the create card
     // holds less than the join card, and starting both at the same height
@@ -946,50 +945,28 @@ function NoMembership({ portal, act, busy, previewRole }: { portal: Portal; act:
       ) : (
         <GlassSection title="Joining isn’t available"><EmptyState>{portal.eligibility.reason ?? "Your current account is not eligible to join an organisation."}</EmptyState></GlassSection>
       )}
-      {portal.eligibility.canApplyToCreate && !hasOpenApplication && (
-        <OrganizationApplicationForm act={act} busy={busy} />
-      )}
-      {portal.applications && portal.applications.length > 0 && (
-        <GlassSection title="Your applications" className="lg:col-span-2">
-          <ApplicationList applications={portal.applications} act={act} busy={busy} />
-        </GlassSection>
-      )}
+      <OrganizationCreateForm act={act} busy={busy} />
     </div>
   );
 }
 
-// The server has always allowed a member to apply to create a second
-// organisation (see canApplyToCreate), but OrganizationApplicationForm used
-// to render only inside NoMembership, the screen for people with no
-// organisation at all. That meant belonging to one organisation was the one
-// thing that stopped you creating a second, and OrganizationSwitcher only
-// appears once a second membership exists — so the escape from either gate
-// was hidden behind the other. Settings is reachable by everyone who already
-// has a workspace (managers, owners and active students), which makes it the
-// right home for the same form and application list NoMembership already
-// uses.
-function CreateAnotherOrganizationSection({ portal, act, busy }: { portal: Portal; act: Act; busy: boolean }) {
-  const hasOpenApplication = portal.applications?.some((application) =>
-    application.status === "draft"
-      || application.status === "submitted"
-      || application.status === "under_review"
-  ) ?? false;
+// Any signed-in user may create an organisation, at any time — creating one
+// does not require leaving another. OrganizationCreateForm used to render
+// only inside NoMembership, the screen for people with no organisation at
+// all. That meant belonging to one organisation was the one thing that
+// stopped you creating a second, and OrganizationSwitcher only appears once a
+// second membership exists — so the escape from either gate was hidden
+// behind the other. Settings is reachable by everyone who already has a
+// workspace (managers, owners and active students), which makes it the right
+// home for the same form NoMembership already uses.
+function CreateAnotherOrganizationSection({ act, busy }: { act: Act; busy: boolean }) {
   return (
-    <>
-      {portal.eligibility.canApplyToCreate && !hasOpenApplication && (
-        <GlassSection
-          title="Create another organisation"
-          lead="This will not affect the organisation you are already in. Once you belong to more than one, a switcher for moving between them appears in the header."
-        >
-          <OrganizationApplicationForm act={act} busy={busy} />
-        </GlassSection>
-      )}
-      {portal.applications && portal.applications.length > 0 && (
-        <GlassSection title="Your applications">
-          <ApplicationList applications={portal.applications} act={act} busy={busy} />
-        </GlassSection>
-      )}
-    </>
+    <GlassSection
+      title="Create another organisation"
+      lead="This will not affect the organisation you are already in. Once you belong to more than one, a switcher for moving between them appears in the header."
+    >
+      <OrganizationCreateForm act={act} busy={busy} />
+    </GlassSection>
   );
 }
 
@@ -1069,13 +1046,11 @@ function StudentArea({
 
 function StudentOrganizationSettings({
   membership,
-  portal,
   act,
   busy,
   onBack,
 }: {
   membership: OrganizationMembership;
-  portal: Portal;
   act: Act;
   busy: boolean;
   onBack: () => void;
@@ -1145,7 +1120,7 @@ function StudentOrganizationSettings({
         </section>
       </div>
     </GlassSection>
-    <CreateAnotherOrganizationSection portal={portal} act={act} busy={busy} />
+    <CreateAnotherOrganizationSection act={act} busy={busy} />
     </>
   );
 }
@@ -2396,7 +2371,7 @@ function ManagerArea({
             />
           )}
         </GlassSection>
-        <CreateAnotherOrganizationSection portal={portal} act={act} busy={busy} />
+        <CreateAnotherOrganizationSection act={act} busy={busy} />
         </>
       )}
     </div>
@@ -3169,11 +3144,7 @@ function PlatformAdminCard({
   portal: Portal;
   onOpen: () => void;
 }) {
-  const applications = portal.applications ?? [];
   const organizations = portal.organizations ?? [];
-  const waitingApplications = applications.filter(
-    (application) => application.status === "submitted" || application.status === "under_review",
-  ).length;
   return (
     <button
       type="button"
@@ -3188,13 +3159,10 @@ function PlatformAdminCard({
       <span className="min-w-0 flex-1">
         <strong className="block text-[15px] font-semibold tracking-tight text-slate-900 sm:text-base">BandUp administration</strong>
         <span className="mt-0.5 block text-[11px] leading-4 text-slate-500 sm:text-xs">
-          Review organisation applications and manage every workspace.
+          Manage every organisation workspace.
         </span>
       </span>
       <span className="hidden shrink-0 text-right sm:block">
-        <strong className="block text-xs font-semibold tabular-nums text-slate-700">
-          {waitingApplications} waiting
-        </strong>
         <span className="block text-[10px] text-slate-500">
           {organizations.length} organisation{organizations.length === 1 ? "" : "s"}
         </span>
@@ -3215,7 +3183,6 @@ function PlatformAdminArea({
   busy: boolean;
   onBack: () => void;
 }) {
-  const applications = portal.applications ?? [];
   const organizations = portal.organizations ?? [];
   return (
     <section className="min-w-0 space-y-2" aria-labelledby="bandup-administration-title" data-platform-administration-page>
@@ -3223,13 +3190,10 @@ function PlatformAdminArea({
         <MobileDashboardBack onBack={onBack} ariaLabel="Back to organisation overview" />
         <div className="min-w-0">
           <h2 id="bandup-administration-title" className="text-[19px] font-semibold tracking-tight text-slate-900 sm:text-[22px]">BandUp administration</h2>
-          <p className="mt-0.5 text-xs leading-4 text-slate-600 sm:text-[13px]">Organisation applications and platform-level workspace controls.</p>
+          <p className="mt-0.5 text-xs leading-4 text-slate-600 sm:text-[13px]">Platform-level workspace controls.</p>
         </div>
       </div>
-      <div className="grid min-w-0 gap-2.5 lg:grid-cols-2">
-        <GlassSection title="Organisation applications" lead="Only BandUp administrators can approve creation.">
-          {applications.length === 0 ? <EmptyState>No applications are waiting.</EmptyState> : <div className="space-y-2.5"><ApplicationList applications={applications} admin act={act} busy={busy} /></div>}
-        </GlassSection>
+      <div className="grid min-w-0 gap-2.5">
         <GlassSection title="All organisations" lead="Platform-level status controls.">
           {organizations.length === 0 ? <EmptyState>No organisations have been created.</EmptyState> : (
             <div className="space-y-2.5">{organizations.map((organization) => (
@@ -3272,25 +3236,3 @@ function PlatformAdminArea({
   );
 }
 
-function ApplicationList({ applications, admin = false, act, busy = false }: { applications: OrganizationApplication[]; admin?: boolean; act?: Act; busy?: boolean }) {
-  return (
-    <div className="space-y-2.5">{applications.map((application) => (
-      <div key={application.id} className="rounded-xl border border-slate-200/70 bg-surface/25 px-4 py-3">
-        <div className="flex flex-wrap items-start justify-between gap-2"><span><span className="block text-sm font-semibold text-slate-900">{application.organizationName}</span><span className="block text-xs text-slate-500">{application.country}</span></span><StatusPill tone={application.status === "approved" ? "good" : application.status === "rejected" ? "bad" : "warn"}>{titleCase(application.status)}</StatusPill></div>
-        {admin && act && (application.status === "submitted" || application.status === "under_review") && (
-          <div className="mt-3 flex gap-2"><button type="button" className="btn-primary !px-3 !py-2 text-xs" disabled={busy} onClick={() => void act("decide_application", { applicationId: application.id, approve: true })}>Approve</button><button type="button" className="btn-secondary !px-3 !py-2 text-xs" disabled={busy} onClick={() => void act("decide_application", { applicationId: application.id, approve: false })}>Reject</button></div>
-        )}
-        {!admin && act && (application.status === "draft" || application.status === "submitted" || application.status === "under_review") && (
-          <button
-            type="button"
-            className="btn-secondary mt-3 !px-3 !py-2 text-xs"
-            disabled={busy}
-            onClick={() => void act("withdraw_application", { applicationId: application.id })}
-          >
-            Withdraw application
-          </button>
-        )}
-      </div>
-    ))}</div>
-  );
-}
