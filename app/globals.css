@@ -26,8 +26,22 @@
   --color-slate-100: #f3ece3;
   --color-slate-200: #e7ddd1;
   --color-slate-300: #d6c9b8;
-  --color-slate-400: #a2968a;
-  --color-slate-500: #857a6e;
+  /*
+    Both of these used to fail WCAG AA against this theme's own ground
+    (#fbf7f2): 400 measured 2.71:1 and 500 measured 3.93:1, where body text
+    needs 4.5:1. That is not a matter of taste — the owner pointed at a line
+    of 400 text they could barely read, and there were 65 uses of it and 271
+    of 500 across the app.
+
+    Fixed here rather than in 84 component files, because these two steps are
+    a text palette: the whole app has exactly one non-text use of either (a
+    1px dot separator). Darkening the token fixes every usage at once, in
+    every theme, and cannot miss one. The ramp stays ordered and its steps
+    stay distinguishable — 4.91, 5.44, 5.95 — so secondary text is still
+    quieter than primary, just readable.
+  */
+  --color-slate-400: #746b5f;
+  --color-slate-500: #6d6459;
   --color-slate-600: #675e55;
   --color-slate-700: #4f473f;
   --color-slate-800: #3a342e;
@@ -182,7 +196,9 @@ html[data-theme="dark"] {
   --color-slate-100: #1d1d20;
   --color-slate-200: #29292d;
   --color-slate-300: #3a3a40;
-  --color-slate-400: #73737b;
+  /* 4.01:1 against this theme's #111113 ground, so it failed the same rule
+     from the other direction. Lifted to 5.51:1, still the dimmest step. */
+  --color-slate-400: #8a8a92;
   --color-slate-500: #9898a0;
   --color-slate-600: #b5b5bc;
   --color-slate-700: #d0d0d5;
