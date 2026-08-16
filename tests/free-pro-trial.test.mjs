@@ -64,3 +64,83 @@ test("the trial ships no migration of its own", () => {
   const named = migrations.filter((file) => /promo/i.test(file));
   assert.deepEqual(named, [], "the widening ALTER is run by hand, not shipped as a migration");
 });
+
+/*
+  Telling a paying subscriber that the thing they pay for is currently free.
+
+  The owner chose to tell them and let them decide, rather than cancelling or
+  refunding on their behalf. That choice only means anything if the sentence
+  actually reaches them, so what is pinned here is that it draws for a payer,
+  that it does not draw for anyone holding Pro without paying, and that it says
+  the awkward part — that they may cancel and take the trial instead.
+
+  Every assertion below runs against the source with comments stripped. An
+  earlier test in this repository passed against a comment quoting the code it
+  was meant to be checking, which is worth not repeating.
+*/
+
+/** The file's code, without comments or string-free prose to match by accident. */
+function code(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+}
+
+const notice = readFileSync(
+  join(root, "components", "billing", "PayingWhileFreeNotice.tsx"),
+  "utf8",
+);
+const billingPage = readFileSync(join(root, "app", "billing", "page.tsx"), "utf8");
+
+test("a signed-out reader is never told they are paying", async () => {
+  // No database is reachable in this test, so a false here also proves the
+  // signed-out path answers without asking one.
+  assert.equal(await promo.payingWhileFree(null, null), false);
+  assert.equal(await promo.payingWhileFree(null, "someone@example.com"), false);
+});
+
+test("only a paying provider triggers the notice, not a role or a grant", () => {
+  const source = code(readFileSync(join(root, "lib", "billing", "promo.ts"), "utf8"));
+  /*
+    An admin holds Pro by role and a trialist by promo grant. Neither is being
+    charged, so neither is owed an apology for being charged.
+  */
+  assert.match(source, /entitlement\.source !== "stripe" && entitlement\.source !== "apple"/);
+  assert.doesNotMatch(source, /source === "role"/);
+});
+
+test("the notice says they may cancel and take the trial instead", () => {
+  /*
+    Whitespace-normalised: JSX wraps a sentence wherever the line runs long, so
+    matching the raw file would pin the line breaks rather than the words.
+  */
+  const words = notice.replace(/\s+/g, " ");
+  assert.match(words, /cancel your subscription and take the free trial instead/);
+  assert.match(words, /not required/);
+  // The same promise the poster makes, so the two pages cannot drift apart.
+  assert.match(words, /may be cancelled at any time in the future/);
+});
+
+test("the notice cannot be dismissed", () => {
+  const source = code(notice);
+  /*
+    Unlike the poster. An offer nobody wants should stop asking; a disclosure
+    that stays true should keep saying so until it stops being true.
+  */
+  assert.doesNotMatch(source, /localStorage/);
+  assert.doesNotMatch(source, /dismiss/i);
+});
+
+test("the notice is mounted on the billing page", () => {
+  const source = code(billingPage);
+  assert.match(source, /import PayingWhileFreeNotice from "@\/components\/billing\/PayingWhileFreeNotice"/);
+  assert.match(source, /<PayingWhileFreeNotice \/>/);
+});
+
+test("the offer route answers the paying question without a second round trip", () => {
+  const source = code(route);
+  // Asked only when there is nothing to offer: the two are mutually exclusive.
+  assert.match(source, /offer\.offered\s*\?\s*false\s*:\s*await payingWhileFree/);
+  // Every exit from GET carries the field, including the failure path.
+  const returns = source.match(/NextResponse\.json\(\{ offered[^}]*\}\)/g) ?? [];
+  assert.ok(returns.length >= 3, `expected every GET exit to answer, saw ${returns.length}`);
+  for (const line of returns) assert.match(line, /payingWhileFree/);
+});

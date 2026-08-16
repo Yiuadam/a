@@ -114,6 +114,42 @@ export async function promoOfferFor(
   return { offered: true, reason: "offered" };
 }
 
+/**
+ * Whether this account is paying for something that is, at this moment, free.
+ *
+ * The trial creates a fairness problem the trial itself cannot solve: somebody
+ * who subscribed last month is paying for Pro while a new account is given it.
+ * They will find out. The only question is whether they find out from us or by
+ * accident, and the second one is the one that reads as sharp practice.
+ *
+ * So a subscriber is told, on the page where they would go to cancel. Nothing
+ * is cancelled for them and no refund is offered — the owner's decision — but
+ * the fact is not hidden, and the sentence says plainly that they may cancel and
+ * take the trial instead.
+ *
+ * Note what is *not* checked: `promoSubscriptionExists`. A subscriber has not
+ * been offered the trial, so they have no promo row, and looking for one would
+ * only cost a query to learn something already known.
+ */
+export async function payingWhileFree(
+  userId: string | null,
+  email: string | null,
+): Promise<boolean> {
+  assertServerOnly(MODULE);
+  if (!userId) return false;
+
+  const entitlement = await resolveEntitlement(userId, email);
+  /*
+    Paid, rather than merely Pro. An admin holds their tier by role and a
+    trialist by promo grant; neither is paying, so neither is owed this. The
+    source is the provider `resolve_entitlement` reports, so this is exactly
+    "somebody is being charged for this account".
+  */
+  if (entitlement.source !== "stripe" && entitlement.source !== "apple") return false;
+
+  return promoWriteSupported();
+}
+
 export type AcceptOutcome =
   | "granted"
   /** Pro already, by subscription, by role, or by a trial still standing. */

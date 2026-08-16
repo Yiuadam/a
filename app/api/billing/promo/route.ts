@@ -3,7 +3,7 @@ import { accountsEnabled } from "@/lib/auth/env";
 import { supabaseConfigured } from "@/lib/auth/supabase";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
-import { acceptPromo, promoOfferFor } from "@/lib/billing/promo";
+import { acceptPromo, payingWhileFree, promoOfferFor } from "@/lib/billing/promo";
 import { withCors } from "@/lib/http/cors";
 
 /*
@@ -34,19 +34,32 @@ const PROMO_MESSAGES = {
 
 async function handleGET(req: Request) {
   if (!accountsEnabled() || !supabaseConfigured()) {
-    return NextResponse.json({ offered: false });
+    return NextResponse.json({ offered: false, payingWhileFree: false });
   }
   try {
     const user = await getSessionUser(req);
     const offer = await promoOfferFor(user?.id ?? null, user?.email ?? null);
-    return NextResponse.json({ offered: offer.offered });
+    /*
+      Only asked when there is nothing to offer. The two are mutually exclusive
+      by construction — a subscriber is `already-pro` or on a paid tier, so is
+      never offered the trial — and skipping the query on the common path keeps
+      the poster's request to one round trip.
+
+      This tells the caller something about their own account that they already
+      know: that they are paying. It reveals nothing about anybody else, and no
+      more about the trial than the poster does.
+    */
+    const paying = offer.offered
+      ? false
+      : await payingWhileFree(user?.id ?? null, user?.email ?? null);
+    return NextResponse.json({ offered: offer.offered, payingWhileFree: paying });
   } catch (err) {
     /*
       An unreachable database hides the poster rather than showing one that
       cannot be accepted. Nothing a learner relies on depends on this route.
     */
     logInternal("billing/promo/offer", err);
-    return NextResponse.json({ offered: false });
+    return NextResponse.json({ offered: false, payingWhileFree: false });
   }
 }
 
