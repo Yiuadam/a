@@ -326,7 +326,7 @@ export default function LookupProvider({ children }: { children: React.ReactNode
                 )}
                 <p className="text-[15px] leading-7 text-slate-800">{panel.definition.short}</p>
                 {panel.definition.example && (
-                  <p className="rounded-lg bg-indigo-50 px-3 py-2 text-sm italic leading-6 text-indigo-800">
+                  <p className="text-inset-compact rounded-lg bg-indigo-50 py-2 text-sm italic leading-6 text-indigo-800">
                     {panel.definition.example}
                   </p>
                 )}

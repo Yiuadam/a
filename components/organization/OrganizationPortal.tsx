@@ -999,7 +999,7 @@ function StudentArea({
         ) : (
           <div className="space-y-2">
             {practice.map((assignment) => (
-              <div key={assignment.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2.5 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/30 px-3 py-2.5">
+              <div key={assignment.id} className="text-inset-compact flex min-w-0 flex-wrap items-center justify-between gap-2.5 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/30 py-2.5">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-semibold text-slate-900">{assignment.title}</p>
@@ -1030,7 +1030,7 @@ function StudentArea({
                 ref={item.attemptId === focusedAttemptId ? focusedFeedbackRef : undefined}
                 tabIndex={item.attemptId === focusedAttemptId ? -1 : undefined}
                 data-notification-target={item.attemptId === focusedAttemptId ? "teacher-feedback" : undefined}
-                className={`scroll-mt-24 rounded-[var(--radius-lg)] border px-3 py-2.5 outline-none transition-colors ${item.attemptId === focusedAttemptId ? "border-indigo-300 bg-indigo-50/55 ring-2 ring-indigo-300/45" : "border-slate-200/70 bg-surface/30"}`}
+                className={`text-inset-compact scroll-mt-24 rounded-[var(--radius-lg)] border py-2.5 outline-none transition-colors ${item.attemptId === focusedAttemptId ? "border-indigo-300 bg-indigo-50/55 ring-2 ring-indigo-300/45" : "border-slate-200/70 bg-surface/30"}`}
               >
                 {item.attemptId === focusedAttemptId && <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-indigo-800">New teacher feedback</p>}
                 <p className="text-xs leading-5 text-slate-700">{item.message}</p>
@@ -3087,7 +3087,7 @@ function RequestRow({
       ref={targetRef}
       tabIndex={highlighted ? -1 : undefined}
       data-notification-target={highlighted ? "organization-request" : undefined}
-      className={`scroll-mt-24 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/25 px-3 py-2.5 outline-none transition-colors ${highlighted ? "!border-indigo-300/75 !bg-indigo-50/55 !px-4 !py-4 ring-2 ring-inset ring-indigo-300/55 sm:!px-5" : ""}`}
+      className={`text-inset-compact scroll-mt-24 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/25 py-2.5 outline-none transition-colors ${highlighted ? "!border-indigo-300/75 !bg-indigo-50/55 !px-4 !py-4 ring-2 ring-inset ring-indigo-300/55 sm:!px-5" : ""}`}
     >
       {highlighted && <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-indigo-800">Needs your attention</p>}
       <div className="flex flex-wrap items-start justify-between gap-2">

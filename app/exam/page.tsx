@@ -205,7 +205,7 @@ export default function ExamPage() {
     case "speaking":
       return (
         <div className="mx-auto max-w-3xl space-y-3">
-          <p className="rounded-lg bg-indigo-50 px-3 py-2 text-sm leading-6 text-indigo-800">
+          <p className="text-inset-compact rounded-lg bg-indigo-50 py-2 text-sm leading-6 text-indigo-800">
             Last module. The examiner speaks, you answer out loud, and your band for the whole
             sitting appears when the interview ends.
           </p>
