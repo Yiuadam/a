@@ -1,11 +1,16 @@
 -- ---------------------------------------------------------------------------
--- Compare the mirror at the precision it can actually carry.
+-- Compare the mirror by value, not by spelling.
+--
+-- SUPERSEDES supabase/parity-millisecond-precision.sql, which this file was
+-- renamed from. If you have already run that one, run this one too: it repeats
+-- the timestamp fix unchanged and adds the money fix below. Running it twice is
+-- harmless; every statement is `create or replace`.
 --
 -- This is NOT in `migrations/`, and `supabase db push` will not run it. Paste
--- it into the SQL editor. It replaces two existing functions in place and
--- creates nothing new: it adds no table, alters no row, and reads nothing it
--- did not already read. Running it changes how parity is *measured*, and
--- nothing about what is stored.
+-- it into the SQL editor. It replaces two existing functions in place and adds
+-- one small pure helper used only by them: it adds no table, alters no row,
+-- and reads nothing it did not already read. Running it changes how parity is
+-- *measured*, and nothing about what is stored.
 --
 -- ---------------------------------------------------------------------------
 -- What was wrong
@@ -39,6 +44,13 @@
 -- Ordering wants every digit available; equality wants only the digits both
 -- sides hold.
 --
+-- Second, `cost_usd` is no longer hashed as `::text`. Postgres renders a
+-- numeric at its declared scale (`0.050000000`) while D1 holds what
+-- usdFromNanodollars wrote (`0.05`), so all three ai_cost_events rows compared
+-- as different for their punctuation. A new helper,
+-- cloudflare_migration_money_field, reduces the source to the same minimal
+-- spelling the application already writes.
+--
 -- The Worker half of this change ships in the same pull request, so run this
 -- when that deploys. Running it early makes the source three digits while the
 -- target is still padded to six, which reports the same domains as differing
@@ -48,6 +60,42 @@
 -- To undo, re-run migration 0029 and supabase/row-drift-rpc.sql from the
 -- revision before this change; both are `create or replace`.
 -- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- The money helper, added by this file.
+--
+-- Postgres renders a numeric at its declared scale, so five cents is
+-- 0.050000000. D1 holds what usdFromNanodollars wrote, which strips trailing
+-- zeros, so the same five cents is 0.05. Same money, different spelling,
+-- different hash -- and all three ai_cost_events rows reported as different
+-- because of it.
+--
+-- The application already decided what the canonical spelling is, and it is
+-- the minimal one: usdFromNanodollars builds the string from bigint
+-- nanodollars, exactly, with no float to round. So the source is brought to
+-- the target's spelling rather than the reverse.
+--
+-- Written with regexp rather than trim_scale() so it does not depend on the
+-- server version, and so what it does is legible here rather than in a manual.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.cloudflare_migration_money_field(p_value numeric)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select case
+    when p_value is null then null
+    -- '0.050000000' -> '0.05'; '5.000000000' -> '5'; '-0.000' -> '0'.
+    when regexp_replace(regexp_replace(p_value::text, '(\.[0-9]*?)0+$', '\1'), '\.$', '') = '-0'
+      then '0'
+    else regexp_replace(regexp_replace(p_value::text, '(\.[0-9]*?)0+$', '\1'), '\.$', '')
+  end;
+$$;
+
+revoke all on function public.cloudflare_migration_money_field(numeric)
+  from public, anon, authenticated;
 
 create or replace function public.cloudflare_migration_source_fingerprints()
 returns table (domain text, row_count bigint, fingerprint text)
@@ -129,7 +177,7 @@ as $$
              || public.cloudflare_migration_fingerprint_field(e.cache_creation_5m_input_tokens::text) || '|'
              || public.cloudflare_migration_fingerprint_field(e.cache_creation_1h_input_tokens::text) || '|'
              || public.cloudflare_migration_fingerprint_field(e.cache_read_input_tokens::text) || '|'
-             || public.cloudflare_migration_fingerprint_field(e.cost_usd::text) || '|'
+             || public.cloudflare_migration_fingerprint_field(public.cloudflare_migration_money_field(e.cost_usd)) || '|'
              || public.cloudflare_migration_fingerprint_field(
                   to_char(e.occurred_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) || '|'
              || public.cloudflare_migration_fingerprint_field(
@@ -309,7 +357,7 @@ begin
                    || public.cloudflare_migration_fingerprint_field(e.cache_creation_5m_input_tokens::text) || '|'
                    || public.cloudflare_migration_fingerprint_field(e.cache_creation_1h_input_tokens::text) || '|'
                    || public.cloudflare_migration_fingerprint_field(e.cache_read_input_tokens::text) || '|'
-                   || public.cloudflare_migration_fingerprint_field(e.cost_usd::text) || '|'
+                   || public.cloudflare_migration_fingerprint_field(public.cloudflare_migration_money_field(e.cost_usd)) || '|'
                    || public.cloudflare_migration_fingerprint_field(
                         to_char(e.occurred_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) || '|'
                    || public.cloudflare_migration_fingerprint_field(

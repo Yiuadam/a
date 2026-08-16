@@ -101,7 +101,7 @@ test("no SQL still hashes microseconds", () => {
   }
   /*
     Migration 0029 is expected here and only here: it has been applied, its text
-    is the record of what was applied, and parity-millisecond-precision.sql
+    is the record of what was applied, and parity-canonical-evidence.sql
     replaces its functions. Anything else in this list is a new place where the
     six-digit comparison has come back.
   */
@@ -110,7 +110,7 @@ test("no SQL still hashes microseconds", () => {
 
 test("the replacement SQL renders every timestamp the same way", () => {
   const source = sqlCode(
-    readFileSync(join(root, "supabase", "parity-millisecond-precision.sql"), "utf8"),
+    readFileSync(join(root, "supabase", "parity-canonical-evidence.sql"), "utf8"),
   );
   // Eleven timestamps in each of the two functions it replaces.
   assert.equal((source.match(/HH24:MI:SS\.MS"Z"/g) ?? []).length, 22);
@@ -146,4 +146,90 @@ test("the two sides agree on a real Postgres timestamp", async () => {
 
   assert.equal(targetEvidence, sourceEvidence);
   assert.equal(sourceEvidence, "2026-08-08T14:14:06.673Z");
+});
+
+/*
+  Money is compared by value, not by spelling.
+
+  The same fault as the timestamps, one column across, and found the same way:
+  all three ai_cost_events rows reported as different while holding the correct
+  amount. Postgres renders a numeric at its declared scale; the value written
+  to D1 comes from usdFromNanodollars, which strips trailing zeros.
+*/
+
+const money = (await import(
+  pathToFileURL(join(root, "lib", "cloudflare", "parity-money.ts")).href
+)).parityMoney;
+
+const cost = await import(pathToFileURL(join(root, "lib", "ai", "cost-tracking.ts")).href);
+
+test("the money normaliser strips trailing zeros and nothing else", () => {
+  assert.equal(money("0.050000000"), "0.05");
+  assert.equal(money("0.05"), "0.05");
+  assert.equal(money("5.000000000"), "5");
+  assert.equal(money("0.000000000"), "0");
+  assert.equal(money("0.000000001"), "0.000000001");
+  assert.equal(money("12"), "12");
+});
+
+test("it does not invent a difference out of a signed zero", () => {
+  assert.equal(money("-0.000000000"), "0");
+  assert.equal(money("-0.050000000"), "-0.05");
+});
+
+test("it leaves anything it does not recognise alone", () => {
+  /*
+    Returned untouched rather than guessed at: a value this does not understand
+    should surface as a difference worth looking at, not be quietly reshaped
+    into one that matches.
+  */
+  assert.equal(money("1e-7"), "1e-7");
+  assert.equal(money("$0.05"), "$0.05");
+  assert.equal(money(""), "");
+  assert.equal(money(null), null);
+  assert.equal(money(undefined), null);
+});
+
+test("the canonical spelling is the one the application already writes", () => {
+  /*
+    This is the whole justification for normalising towards the minimal form
+    rather than padding both sides out. usdFromNanodollars is what puts the
+    value in D1, it is exact — bigint nanodollars, no float — and it emits no
+    trailing zeros. If that ever changes, this fails and the SQL helper needs
+    to change with it.
+  */
+  for (const nanodollars of [50_000_000n, 5_000_000_000n, 0n, 1n, 123_456_789n]) {
+    const written = cost.usdFromNanodollars(nanodollars);
+    assert.equal(money(written), written, `${written} is not already canonical`);
+  }
+  assert.equal(cost.usdFromNanodollars(50_000_000n), "0.05");
+});
+
+test("both fingerprint readers normalise cost_usd", () => {
+  for (const file of ["migration-readiness.ts", "domain-drift.ts"]) {
+    const source = code(readFileSync(join(root, "lib", "cloudflare", file), "utf8"));
+    assert.match(source, /money\(row\.cost_usd\)/, `${file} does not normalise cost_usd`);
+    assert.doesNotMatch(
+      source,
+      /row\.cost_usd as string/,
+      `${file} still hashes cost_usd raw`,
+    );
+  }
+});
+
+test("no fingerprint SQL still hashes cost_usd raw", () => {
+  for (const file of ["parity-canonical-evidence.sql", "row-drift-rpc.sql"]) {
+    const source = sqlCode(readFileSync(join(root, "supabase", file), "utf8"));
+    assert.doesNotMatch(source, /fingerprint_field\(e\.cost_usd::text\)/, file);
+    assert.match(source, /cloudflare_migration_money_field\(e\.cost_usd\)/, file);
+  }
+});
+
+test("the two sides agree on the real production amount", () => {
+  /*
+    Postgres answered 0.050000000 and D1 answered 0.05 for ai_cost_events id 1,
+    which is what made all three rows report as drifted.
+  */
+  assert.equal(money("0.050000000"), money("0.05"));
+  assert.equal(money("0.050000000"), "0.05");
 });

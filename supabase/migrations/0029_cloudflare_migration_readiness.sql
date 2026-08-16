@@ -5,7 +5,7 @@
   written because this migration has been applied and its text is the record of
   what was applied.
 
-  supabase/parity-millisecond-precision.sql replaces both functions with `.MS`
+  supabase/parity-canonical-evidence.sql replaces both functions with `.MS`
   and explains why. Run it by hand; it is `create or replace`, so it needs no
   migration. A database rebuilt from migrations alone will have the old
   behaviour until that file is run — worth knowing before standing up a fresh
