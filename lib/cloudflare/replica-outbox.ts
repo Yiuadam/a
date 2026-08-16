@@ -57,12 +57,46 @@ export interface CloudflareReplicaDrainResult {
   dead: number;
 }
 
+/**
+ * One reason, with enough shape for the owner to go and find the rows.
+ *
+ * `detail` is deliberately not the row identity: for the outbox it is the set
+ * of operations, and for object cleanup it is the key namespace with the owner
+ * id and content hash removed. A stuck queue is an operational fact an admin
+ * needs; which learner it belongs to is not, and this report is also read
+ * through the admin UI.
+ */
+export interface CloudflareReplicaFailureGroup {
+  code: string;
+  status: "pending" | "dead";
+  count: number;
+  detail: string[];
+  maxAttempts: number;
+  oldestAt: string | null;
+  oldestAgeSeconds: number | null;
+}
+
 export interface CloudflareReplicaOutboxStatus {
   pending: number;
   dead: number;
   oldestPendingAt: string | null;
   cleanupPending: number;
   cleanupDead: number;
+  /**
+   * The recorded `last_error_code` was written on every failure and read by
+   * nothing, so a stuck mirror looked like a bare count. These two lists are
+   * that column, grouped.
+   */
+  failures: CloudflareReplicaFailureGroup[];
+  cleanupFailures: CloudflareReplicaFailureGroup[];
+  /**
+   * Outbox rows whose subject already has an account-deletion tombstone. The
+   * deletion guard triggers abort every insert and every update on such a row,
+   * so the drain's lease also aborts and the row is skipped in silence: it
+   * never attempts, never records an error and never dies. Counting it is the
+   * only way that shape of stuck row is visible at all.
+   */
+  blockedByAccountDeletion: number;
 }
 
 function iso(nowMs: number): string {
@@ -82,9 +116,39 @@ function retryAt(nowMs: number, attemptsMade: number): string {
   return iso(nowMs + baseSeconds * 1000 + jitterMs);
 }
 
+/*
+  A fixed vocabulary, matched against the message but never built from it.
+
+  `error.name` alone was almost always the literal string "Error": every throw
+  in this file, every D1 constraint failure and every R2 failure share that one
+  name, so the column recorded that something failed and nothing about what.
+  The message is where the difference lives, and the message is also where a
+  provider's own text lives — so it is matched, not stored. Anything unrecognised
+  stays `replica_error`, and the full message is left to the server-side log.
+*/
+const ERROR_PATTERNS: Array<[RegExp, string]> = [
+  [/account deletion is (already )?in progress/i, "account_deletion_in_progress"],
+  [/executor returned false/i, "executor_rejected"],
+  [/object is missing/i, "object_missing"],
+  [/checksum mismatch/i, "checksum_mismatch"],
+  [/has no content/i, "payload_empty"],
+  [/exceeds the storage limit/i, "payload_too_large"],
+  [/invalid storage namespace/i, "invalid_namespace"],
+  [/invalid .*(payload|identity|body)/i, "invalid_payload"],
+  [/subject mismatch/i, "subject_mismatch"],
+  [/no such (table|column)/i, "d1_missing_schema"],
+  [/(CHECK|UNIQUE|NOT NULL|FOREIGN KEY) constraint/i, "d1_constraint"],
+  [/RAISE\(ABORT\)|abort due to/i, "d1_abort"],
+  [/D1_ERROR|database is locked|SQLITE_/i, "d1_error"],
+  [/network connection lost|internal error|timed out|too many subrequests/i, "transient"],
+];
+
 function errorCode(error: unknown): string {
-  const value = error instanceof Error ? error.name : "replica_error";
-  return value.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80) || "replica_error";
+  if (!(error instanceof Error)) return "replica_error";
+  const message = String(error.message ?? "");
+  for (const [pattern, code] of ERROR_PATTERNS) if (pattern.test(message)) return code;
+  const name = error.name && error.name !== "Error" ? error.name : "replica_error";
+  return name.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80) || "replica_error";
 }
 
 function stored(row: ReplicaOutboxRow): StoredJson {
@@ -416,9 +480,79 @@ export async function drainCloudflareReplicaOutbox(
   return { selected: due.results.length, succeeded, failed, dead };
 }
 
+const FAILURE_SAMPLE_LIMIT = 250;
+const MAX_DETAIL = 8;
+
+interface FailureRow {
+  status: string;
+  attempts_made: number;
+  last_error_code: string | null;
+  last_attempt_at: string | null;
+  created_at: string;
+  detail: string;
+}
+
+/**
+ * `private/progress/ielts-prep-v1/<user>/<sha>.json` becomes
+ * `private/progress/ielts-prep-v1`. The owner id and the content hash are the
+ * two trailing segments, and neither belongs in an operational report.
+ */
+function objectKeyNamespace(objectKey: string): string {
+  const segments = objectKey.split("/");
+  return segments.length <= 3 ? objectKey : segments.slice(0, -2).join("/");
+}
+
+function groupFailures(rows: FailureRow[], nowMs: number): CloudflareReplicaFailureGroup[] {
+  const groups = new Map<string, CloudflareReplicaFailureGroup & { details: Set<string> }>();
+  for (const row of rows) {
+    const status = row.status === "dead" ? "dead" as const : "pending" as const;
+    // A pending row that has never been attempted is not a failure; it is
+    // simply waiting, and reporting it as one would hide the real reasons.
+    if (status === "pending" && Number(row.attempts_made) === 0 && !row.last_error_code) continue;
+    const code = row.last_error_code || "unrecorded";
+    const key = `${status}:${code}`;
+    const at = row.last_attempt_at ?? row.created_at ?? null;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.count += 1;
+      existing.maxAttempts = Math.max(existing.maxAttempts, Number(row.attempts_made));
+      if (at && (!existing.oldestAt || at < existing.oldestAt)) existing.oldestAt = at;
+      existing.details.add(row.detail);
+      continue;
+    }
+    groups.set(key, {
+      code,
+      status,
+      count: 1,
+      detail: [],
+      details: new Set([row.detail]),
+      maxAttempts: Number(row.attempts_made),
+      oldestAt: at,
+      oldestAgeSeconds: null,
+    });
+  }
+  return [...groups.values()]
+    .map((group) => {
+      const parsed = group.oldestAt ? Date.parse(group.oldestAt) : Number.NaN;
+      return {
+        code: group.code,
+        status: group.status,
+        count: group.count,
+        detail: [...group.details].sort().slice(0, MAX_DETAIL),
+        maxAttempts: group.maxAttempts,
+        oldestAt: group.oldestAt,
+        oldestAgeSeconds: Number.isFinite(parsed)
+          ? Math.max(0, Math.round((nowMs - parsed) / 1000))
+          : null,
+      };
+    })
+    .sort((left, right) => right.count - left.count || left.code.localeCompare(right.code));
+}
+
 /** Operator/parity evidence. Dead rows deliberately remain visible. */
 export async function cloudflareReplicaOutboxStatus(
   bindings: BandUpCloudflareBindings,
+  nowMs: number = Date.now(),
 ): Promise<CloudflareReplicaOutboxStatus> {
   const row = await bindings.db.prepare(`
     SELECT
@@ -433,12 +567,40 @@ export async function cloudflareReplicaOutboxStatus(
       sum(CASE WHEN status = 'dead' THEN 1 ELSE 0 END) AS dead
     FROM cloudflare_replica_object_cleanup
   `).first<{ pending: number | null; dead: number | null }>();
+
+  const taskRows = await bindings.db.prepare(`
+    SELECT status, attempts_made, last_error_code, last_attempt_at, created_at,
+           operation AS detail
+      FROM cloudflare_replica_outbox
+     ORDER BY created_at LIMIT ?
+  `).bind(FAILURE_SAMPLE_LIMIT).all<FailureRow>();
+  const cleanupRows = await bindings.db.prepare(`
+    SELECT status, attempts_made, last_error_code, last_attempt_at, created_at,
+           object_key AS detail
+      FROM cloudflare_replica_object_cleanup
+     ORDER BY created_at LIMIT ?
+  `).bind(FAILURE_SAMPLE_LIMIT).all<FailureRow>();
+  const blocked = await bindings.db.prepare(`
+    SELECT count(*) AS blocked
+      FROM cloudflare_replica_outbox AS o
+      JOIN account_deletion_tombstones AS t ON t.user_id = o.subject_user_id
+  `).first<{ blocked: number | null }>().catch(() => null);
+
   return {
     pending: Number(row?.pending ?? 0),
     dead: Number(row?.dead ?? 0),
     oldestPendingAt: row?.oldest_pending_at ?? null,
     cleanupPending: Number(cleanup?.pending ?? 0),
     cleanupDead: Number(cleanup?.dead ?? 0),
+    failures: groupFailures(taskRows.results, nowMs),
+    cleanupFailures: groupFailures(
+      cleanupRows.results.map((cleanupRow) => ({
+        ...cleanupRow,
+        detail: objectKeyNamespace(cleanupRow.detail),
+      })),
+      nowMs,
+    ),
+    blockedByAccountDeletion: Number(blocked?.blocked ?? 0),
   };
 }
 

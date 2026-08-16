@@ -344,3 +344,96 @@ test("all Supabase-authoritative dual writers use the durable replay bridge", ()
   assert.match(sourceClock, /set search_path = ''/);
   assert.match(sourceClock, /revoke all on function public\.claim_username/);
 });
+
+test("a stuck queue reports the classified reason, its age and where to look", async () => {
+  const context = fixture();
+  const item = {
+    taskId: "ai-cost:901",
+    operation: "ai_cost_event",
+    subjectUserId: null,
+    sourceUpdatedAt: "2026-08-14T10:00:00.000Z",
+    payload: { id: "901" },
+  };
+  await outbox.enqueueCloudflareReplicaTask(item, context.bindings, 1_000);
+  // The message classifies; error.name is "Error" for every throw in this
+  // pipeline, which is exactly why the recorded code used to say nothing.
+  const execute = async () => { throw new Error("Cloudflare object is missing"); };
+  await outbox.drainCloudflareReplicaOutbox(execute, context.bindings, { nowMs: 2_000 });
+
+  const key = `private/progress/ielts-prep-v1/${USER.id}/${"a".repeat(64)}.json`;
+  await outbox.enqueueCloudflareObjectCleanup(context.bindings, key, USER.id, 1_000);
+  context.bindings.files.delete = async () => { throw new Error("Network connection lost"); };
+  for (let attempt = 1; attempt <= outbox.CLOUDFLARE_REPLICA_MAX_ATTEMPTS; attempt += 1) {
+    await outbox.drainCloudflareReplicaObjectCleanup(context.bindings, {
+      nowMs: attempt * 10_000_000,
+    });
+  }
+
+  const status = await outbox.cloudflareReplicaOutboxStatus(context.bindings, 200_000_000);
+  assert.deepEqual(status.failures.map((group) => [group.code, group.status, group.count]), [
+    ["object_missing", "pending", 1],
+  ]);
+  assert.deepEqual(status.failures[0].detail, ["ai_cost_event"]);
+  assert.equal(status.failures[0].maxAttempts, 1);
+  assert.equal(status.failures[0].oldestAgeSeconds, 199_998);
+
+  assert.deepEqual(status.cleanupFailures.map((group) => [group.code, group.status, group.count]), [
+    ["transient", "dead", 1],
+  ]);
+  // The owner id and the content hash are not operational evidence.
+  assert.deepEqual(status.cleanupFailures[0].detail, ["private/progress/ielts-prep-v1"]);
+  assert.equal(status.cleanupFailures[0].detail.join("").includes(USER.id), false);
+  assert.equal(status.cleanupFailures[0].maxAttempts, 12);
+});
+
+test("an outbox row frozen by an account-deletion tombstone is counted rather than skipped in silence", async () => {
+  const context = fixture();
+  const item = task("2026-08-14T10:00:00.000Z", { value: "frozen" });
+  await outbox.enqueueCloudflareReplicaTask(item, context.bindings, 1_000);
+  context.database.prepare(`
+    INSERT INTO account_deletion_tombstones (
+      user_id, operation_id, state, prepared_at, lease_expires_at, updated_at
+    ) VALUES (?, ?, 'prepared', ?, ?, ?)
+  `).run(
+    USER.id,
+    "op-000000000000001",
+    "2026-08-14T10:00:00.000Z",
+    "2026-08-14T11:00:00.000Z",
+    "2026-08-14T10:00:00.000Z",
+  );
+
+  const drained = await outbox.drainCloudflareReplicaOutbox(
+    async () => true,
+    context.bindings,
+    { nowMs: 2_000 },
+  );
+  // The deletion guard aborts the lease UPDATE, so the row is not attempted,
+  // records no reason and never dies: the count is the only evidence there is.
+  assert.equal(drained.selected, 1);
+  assert.equal(drained.succeeded, 0);
+  assert.equal(drained.failed, 0);
+  const status = await outbox.cloudflareReplicaOutboxStatus(context.bindings, 3_000);
+  assert.equal(status.pending, 1);
+  assert.equal(status.blockedByAccountDeletion, 1);
+  assert.deepEqual(status.failures, []);
+});
+
+test("the readiness report and its admin panel name the reason, not only the count", () => {
+  const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const readiness = strip(readFileSync(
+    join(process.cwd(), "lib/cloudflare/migration-readiness.ts"),
+    "utf8",
+  ));
+  const panel = strip(readFileSync(
+    join(process.cwd(), "components/admin/CloudflareMigrationReadiness.tsx"),
+    "utf8",
+  ));
+  assert.match(readiness, /outboxResult\.failures/);
+  assert.match(readiness, /outboxResult\.cleanupFailures/);
+  assert.match(readiness, /blockedByAccountDeletion/);
+  assert.match(panel, /Why the replica queues are stuck/);
+  assert.match(panel, /cleanupFailures/);
+  assert.match(panel, /blockedByAccountDeletion/);
+});
