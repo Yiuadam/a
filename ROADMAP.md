@@ -320,7 +320,7 @@ Set out in `CLAUDE.md` and unchanged: work on a branch, run everything CI runs
 plus a real browser check, push, open a pull request, wait for the checks, merge
 it. Cloudflare deploys `main` automatically, so merging is what makes a change live.
 
-Production is <https://bandup.siksafe-realtime-ai-vision.workers.dev>.
+Production is <https://bandup.life>.
 
 The backlog lives in GitHub issues, one per item above, labelled by milestone.
 This document is the shape of the plan; the issues are the state of it.

@@ -4,7 +4,7 @@
 Cloudflare Workers, at one address that never changes:
 
 ```
-https://bandup.siksafe-realtime-ai-vision.workers.dev
+https://bandup.life
 ```
 
 Nothing to run by hand, ever.
@@ -329,7 +329,7 @@ business case.
 at:
 
 ```
-https://bandup.siksafe-realtime-ai-vision.workers.dev/api/billing/webhook/stripe
+https://bandup.life/api/billing/webhook/stripe
 ```
 
 Subscribe it to these events:
@@ -424,7 +424,7 @@ fails before it is merged rather than when someone tries to deploy.
 The mobile bundle points at whatever API you give it at build time:
 
 ```bash
-NEXT_PUBLIC_API_BASE=https://bandup.siksafe-realtime-ai-vision.workers.dev npm run build:mobile
+NEXT_PUBLIC_API_BASE=https://bandup.life npm run build:mobile
 npx cap sync ios
 ```
 

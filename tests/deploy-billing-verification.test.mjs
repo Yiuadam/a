@@ -27,7 +27,7 @@ function step(name) {
 test("a verification step calls the billing health endpoint against production", () => {
   const verify = step("Verify billing configuration survived the deploy");
   assert.match(verify.run, /\/api\/billing\/health/);
-  assert.match(verify.run, /bandup\.siksafe-realtime-ai-vision\.workers\.dev/);
+  assert.match(verify.run, /bandup\.life/);
 });
 
 test("the verification step comes after the deploy step, in the same job", () => {

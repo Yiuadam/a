@@ -179,7 +179,7 @@ deliberate native routing strategy), update links/deep links, preserve old web
 URLs, then rerun:
 
 ```bash
-NEXT_PUBLIC_API_BASE=https://bandup.siksafe-realtime-ai-vision.workers.dev \
+NEXT_PUBLIC_API_BASE=https://bandup.life \
   npm run build:mobile
 ```
 

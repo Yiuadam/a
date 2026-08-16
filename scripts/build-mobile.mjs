@@ -55,7 +55,7 @@ if (!process.env.NEXT_PUBLIC_API_BASE) {
     "\nNEXT_PUBLIC_API_BASE is not set.\n" +
       "The iOS bundle has no server of its own, so it must call your deployed\n" +
       "API. Set it to your deployment's URL, for example:\n\n" +
-      "  NEXT_PUBLIC_API_BASE=https://bandup.siksafe-realtime-ai-vision.workers.dev npm run build:mobile\n",
+      "  NEXT_PUBLIC_API_BASE=https://bandup.life npm run build:mobile\n",
   );
   process.exit(1);
 }

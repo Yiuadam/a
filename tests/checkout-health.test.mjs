@@ -163,7 +163,7 @@ test("an hourly watch asks the live site, because a key expires without a deploy
   const run = workflow.jobs.check.steps[0].run;
   // The same endpoint as the post-deploy check, not a second implementation.
   assert.match(run, /\/api\/billing\/health/);
-  assert.match(run, /bandup\.siksafe-realtime-ai-vision\.workers\.dev/);
+  assert.match(run, /bandup\.life/);
   // Retried before it wakes anybody, and a genuine failure fails the run —
   // which is what sends the owner an email.
   assert.match(run, /max_attempts/);
