@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { accountsEnabled } from "@/lib/auth/env";
 import { supabaseConfigured } from "@/lib/auth/supabase";
 import { countryFromRequest, currencyForCountry } from "@/lib/billing/currency";
-import { purchasablePlans, stripeWalletConfigured } from "@/lib/billing/env";
+import { purchasablePlans, stripeWalletConfigured, stripeWalletMethods } from "@/lib/billing/env";
 import { withCors } from "@/lib/http/cors";
 
 /*
@@ -50,6 +50,13 @@ async function handleGET(req: Request) {
     plans,
     walletCheckout:
       accountsEnabled() && supabaseConfigured() && stripeWalletConfigured(),
+    /*
+      Which wallets, not merely whether. The button names them, and naming one
+      the account is not approved for is how it came to promise WeChat Pay and
+      then fail on every press — Stripe refuses a Session that lists a method
+      it has not activated, taking Alipay down with it.
+    */
+    walletMethods: stripeWalletConfigured() ? stripeWalletMethods() : [],
     /*
       Always sent, whether or not anything can be bought. The page prints
       prices even when checkout is closed — that is the point of the honest

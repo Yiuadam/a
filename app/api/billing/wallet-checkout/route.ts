@@ -3,7 +3,6 @@ import { accountsEnabled } from "@/lib/auth/env";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
 import { supabaseConfigured } from "@/lib/auth/supabase";
-import { countryFromRequest, currencyForCountry } from "@/lib/billing/currency";
 import { stripeWalletConfigured } from "@/lib/billing/env";
 import { BILLING_MESSAGES } from "@/lib/billing/messages";
 import { createWalletCheckoutSession } from "@/lib/billing/stripe";
@@ -39,23 +38,24 @@ async function handlePOST(req: Request) {
   }
 
   /*
-    Which wallet is no longer asked for: one Session offers both and the buyer
-    chooses on Stripe's page.
+    Neither the wallet nor the currency is asked for.
 
-    The currency is resolved here, from the address Cloudflare resolved, and
-    never from the request body. A caller who could name the currency could
-    name the price — pick the cheapest one in the catalogue and pay that — and
-    a wallet line item is built by this app rather than read off a Stripe
-    Price, so there would be nothing downstream to catch it.
+    The wallet: one Session lists whichever ones this Stripe account is
+    approved for, and the buyer chooses on Stripe's own page.
+
+    The currency: the base one, always. It was briefly resolved from the
+    reader's address, and Stripe refused the Session — which wallet accepts
+    which currency depends on the merchant's account, not only on the published
+    tables. See walletCurrency in lib/billing/tiers.ts. Either way it is never
+    taken from the request body: a caller who could name the currency could
+    name the price, and a wallet line item is built by this app rather than
+    read off a Stripe Price, so nothing downstream would catch it.
   */
-  const currency = currencyForCountry(countryFromRequest(req));
-
   const origin = new URL(req.url).origin;
   try {
     const customerId = await stripeCustomerFor(user.id);
     const url = await createWalletCheckoutSession({
       plan,
-      currency,
       userId: user.id,
       email: user.email,
       customerId,

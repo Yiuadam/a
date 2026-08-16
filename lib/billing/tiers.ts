@@ -409,6 +409,18 @@ export type PlanId = (typeof PLAN_IDS)[number];
 export const WALLET_PAYMENT_METHODS = ["alipay", "wechat_pay"] as const;
 export type WalletPaymentMethod = (typeof WALLET_PAYMENT_METHODS)[number];
 
+/** What a buyer calls it. Used on the button and in Stripe's own metadata. */
+export function walletMethodName(method: WalletPaymentMethod): string {
+  return method === "alipay" ? "Alipay" : "WeChat Pay";
+}
+
+/** "Alipay", or "Alipay or WeChat Pay" — however many are actually offered. */
+export function walletMethodList(methods: readonly WalletPaymentMethod[]): string {
+  const names = methods.map(walletMethodName);
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
+}
+
 export function isWalletPaymentMethod(value: unknown): value is WalletPaymentMethod {
   return (
     typeof value === "string" &&
@@ -671,26 +683,35 @@ export function pricesIn(currency: string): boolean {
 export const PRICED_CURRENCIES: string[] = Object.keys(PLANS["plus-monthly"].prices);
 
 /**
- * The currency a wallet payment can actually be presented in.
+ * The currency a wallet payment is presented in: always the base one.
+ *
+ * ---------------------------------------------------------------------------
+ * This used to try the reader's own currency, and Stripe refused it
  *
  * A subscription reads its amount off a Stripe Price, so Stripe picks the
  * currency from the buyer's address and this app never has to. A wallet
- * payment does not: the line item is built here, so the currency is chosen
- * here — and choosing one the wallets refuse means a Checkout Session that
- * fails after the buyer has pressed the button.
+ * payment does not — the line item is built here — so for a while this
+ * returned the reader's currency whenever the published tables said both
+ * wallets accepted it.
  *
- * Two things must hold: the catalogue has to carry a price somebody chose in
- * it, and both Alipay and WeChat Pay have to accept it. Either failing falls
- * back to the base currency, which satisfies both by definition. The rupee is
- * the case that actually arises — neither wallet takes INR.
+ * The published tables are not the whole story. Which currencies a wallet
+ * accepts depends on the *merchant's* account and country as well as the
+ * method, and Stripe does not degrade when the combination is unsupported; it
+ * refuses the Session outright, after the buyer has pressed the button:
  *
- * The page calls this too, so what it quotes for the wallet is what the wallet
- * will charge, fallback included.
+ *   `payment_method_types` must include at least one payment method supported
+ *   by the default currency `sgd`.
+ *
+ * Singapore dollars, which every table lists Alipay as taking. So the rule is
+ * now the one with evidence behind it: the base currency, which is what this
+ * account has actually been taking wallet payments in.
+ *
+ * `plan` is still the parameter, rather than this being a constant, because
+ * the page calls it to decide what to *quote* — and quoting anything other
+ * than what will be charged is the failure this whole area keeps producing.
  */
-export function walletCurrency(plan: Plan, requested: string): string {
-  const wanted = requested.toLowerCase();
-  if (!pricesIn(wanted) || !walletTakes(wanted)) return plan.currency;
-  return wanted;
+export function walletCurrency(plan: Plan): string {
+  return plan.currency;
 }
 
 /**
