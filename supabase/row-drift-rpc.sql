@@ -11,8 +11,12 @@
 -- What it adds: `cloudflare_migration_source_row_fingerprints(domain, after,
 -- limit)`, a keyset-paged listing of (row key, sha256 of that row's evidence)
 -- for one domain, ordered by key in C collation. The evidence string is exactly
--- the one migration 0029 hashes for the whole-domain fingerprint, so a
+-- the one the whole-domain fingerprint hashes, so a
 -- per-row hash that differs from D1's is a real difference in a stored value.
+--
+-- Depends on supabase/parity-canonical-evidence.sql, which defines
+-- cloudflare_migration_money_field. Run that first, or this function will
+-- error the moment it is asked for the ai_cost_events domain.
 --
 -- No email, display name, payload, transcript or event body leaves this
 -- function. The key is an account id, a username, a store key, a provider
@@ -167,7 +171,7 @@ begin
                    || public.cloudflare_migration_fingerprint_field(e.cache_creation_5m_input_tokens::text) || '|'
                    || public.cloudflare_migration_fingerprint_field(e.cache_creation_1h_input_tokens::text) || '|'
                    || public.cloudflare_migration_fingerprint_field(e.cache_read_input_tokens::text) || '|'
-                   || public.cloudflare_migration_fingerprint_field(e.cost_usd::text) || '|'
+                   || public.cloudflare_migration_fingerprint_field(public.cloudflare_migration_money_field(e.cost_usd)) || '|'
                    || public.cloudflare_migration_fingerprint_field(
                         to_char(e.occurred_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) || '|'
                    || public.cloudflare_migration_fingerprint_field(

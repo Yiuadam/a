@@ -11,6 +11,7 @@ import {
   type CloudflareReplicaOutboxStatus,
 } from "./replica-outbox";
 import { parityClock as clock } from "./source-clock";
+import { parityMoney as money } from "./parity-money";
 
 export const MIGRATION_FINGERPRINT_VERSION = "bandup-application-data-v3";
 
@@ -217,7 +218,7 @@ async function targetFingerprint(
       row.cache_creation_5m_input_tokens as number | null,
       row.cache_creation_1h_input_tokens as number | null,
       row.cache_read_input_tokens as number | null,
-      row.cost_usd as string,
+      money(row.cost_usd),
       clock(row.occurred_at),
       clock(row.recorded_at),
     ]);
