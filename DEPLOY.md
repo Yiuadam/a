@@ -99,6 +99,22 @@ It stores the secret without deploying anything. This will happen every time
 there is an open preview, which is most of the time, so reach for
 `versions secret put` first and keep `secret put` for a quiet repository.
 
+**The same applies to uploading several at once**, which is the form you will
+actually hit, because `scripts/stripe-setup.mjs --out` tells you to run
+`wrangler secret bulk`. With a preview open that is refused with the same
+10215. The bulk command has the same versions variant:
+
+```bash
+npx wrangler versions secret bulk stripe-prices.env
+```
+
+One thing to understand about both: they create a new *version* carrying the
+new values and deploy nothing, so the running site is unchanged until a version
+containing them is deployed. That is usually what you want — set the secrets,
+then deploy — but it does mean a secret can sit uploaded and inert, which looks
+identical to a secret that was never set. If a value appears not to have taken
+effect, check whether anything has been deployed since you set it.
+
 One thing to know before you use it: the workflow builds from `main`, so
 throwing the switch ships whatever is on `main` at that moment — closing the
 site also deploys anything merged since the last deploy. GitHub's dispatch API
