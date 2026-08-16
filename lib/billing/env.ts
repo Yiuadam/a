@@ -1,5 +1,13 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
-import { PLANS, PLAN_IDS, type PlanId, type Tier } from "./tiers";
+import {
+  PLANS,
+  PLAN_IDS,
+  WALLET_PAYMENT_METHODS,
+  isWalletPaymentMethod,
+  type PlanId,
+  type Tier,
+  type WalletPaymentMethod,
+} from "./tiers";
 
 /*
   Every environment variable payments read, in one place, server-side only.
@@ -113,8 +121,44 @@ export function stripeWalletConfigured(): boolean {
   assertServerOnly(MODULE);
   return (
     stripeSecretKey() !== undefined &&
-    process.env["STRIPE_WALLET_PAYMENTS_ENABLED"] === "1"
+    process.env["STRIPE_WALLET_PAYMENTS_ENABLED"] === "1" &&
+    stripeWalletMethods().length > 0
   );
+}
+
+/*
+  Which wallets to actually put on a Checkout Session.
+
+  This is a variable rather than a constant because Stripe decides it, per
+  account, and the app cannot see the decision. Sending a method the account
+  has not been approved for does not degrade — Stripe refuses the whole
+  Session:
+
+    The payment method type provided: wechat_pay is invalid. Please ensure the
+    provided type is activated in your dashboard.
+
+  Which is what happened here. WeChat Pay was listed while it was still
+  awaiting approval, so every wallet payment failed — including Alipay's, once
+  the two were combined onto one Session, because one bad name spoils the whole
+  list.
+
+  Default is Alipay alone, because that is what this account is approved for
+  today. When WeChat Pay is approved, set:
+
+      STRIPE_WALLET_METHODS=alipay,wechat_pay
+
+  and the button relabels itself. Nothing else has to change.
+*/
+export function stripeWalletMethods(): WalletPaymentMethod[] {
+  assertServerOnly(MODULE);
+  const raw = process.env["STRIPE_WALLET_METHODS"];
+  if (!raw) return ["alipay"];
+  const named = raw
+    .split(",")
+    .map((part) => part.trim().toLowerCase())
+    .filter((part): part is WalletPaymentMethod => isWalletPaymentMethod(part));
+  /* Deduplicated and in catalogue order, so the Session is deterministic. */
+  return WALLET_PAYMENT_METHODS.filter((method) => named.includes(method));
 }
 
 /** The plans that can actually be bought right now, in catalogue order. */

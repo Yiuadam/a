@@ -1,6 +1,14 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
-import { stripeSecretKey, stripePriceId } from "./env";
-import { PLANS, TIERS, amountIn, isPaidTier, isPlanId, walletCurrency } from "./tiers";
+import { stripeSecretKey, stripePriceId, stripeWalletMethods } from "./env";
+import {
+  PLANS,
+  TIERS,
+  amountIn,
+  isPaidTier,
+  isPlanId,
+  walletCurrency,
+  walletMethodName,
+} from "./tiers";
 import type { Tier, PlanId } from "./tiers";
 import type { SubscriptionStatus } from "./providers";
 import type { FinancePeriod, StripeFinancialSnapshot } from "@/lib/admin/finance-types";
@@ -508,7 +516,29 @@ async function stripePost(path: string, body: string): Promise<Record<string, un
       ACCOUNTS.md, threat 7.
     */
     const error = (payload as { error?: { message?: unknown; code?: unknown } }).error;
-    const detail = typeof error?.code === "string" ? error.code : String(res.status);
+    /*
+      The message, not just the code — and this cost real time to learn.
+
+      Stripe attaches `code` to errors about a *thing* (`api_key_expired`,
+      `resource_missing`). Errors about a *request* — a parameter it will not
+      accept, a payment method not enabled on the account — carry a `message`
+      and often no code at all. Logging the code alone turned every one of
+      those into "refused: 400", which says only that Stripe said no.
+
+      It happened twice in one morning. A wallet checkout began failing after
+      two payment methods were combined onto one Session, and the log could not
+      say whether that was the pairing, the currency or a parameter; the answer
+      had to be got by replaying the call by hand against the live account.
+
+      Both are logged now. This never reaches the caller — see the note above
+      and ACCOUNTS.md, threat 7 — so there is nothing to leak by being
+      specific, and everything to lose by not being.
+    */
+    const parts = [
+      typeof error?.code === "string" ? error.code : null,
+      typeof error?.message === "string" ? error.message : null,
+    ].filter(Boolean);
+    const detail = parts.length > 0 ? parts.join(": ") : String(res.status);
     throw new StripeError(`${path} refused: ${detail}`);
   }
 
@@ -923,7 +953,6 @@ export async function createCheckoutSession(args: {
  */
 export async function createWalletCheckoutSession(args: {
   plan: PlanId;
-  currency: string;
   userId: string;
   email: string | null;
   customerId: string | null;
@@ -932,8 +961,16 @@ export async function createWalletCheckoutSession(args: {
 }): Promise<string | null> {
   const plan = PLANS[args.plan];
   const duration = plan.interval === "year" ? "1 year" : "1 month";
-  const currency = walletCurrency(plan, args.currency);
+  const currency = walletCurrency(plan);
   const amount = amountIn(plan, currency);
+  /*
+    Only the wallets this account is approved for. Naming one it is not does
+    not drop that wallet from the Session — Stripe refuses the whole Session,
+    so an unapproved WeChat Pay took Alipay down with it. See
+    stripeWalletMethods in lib/billing/env.ts.
+  */
+  const methods = stripeWalletMethods();
+  if (methods.length === 0) throw new StripeError("no wallet payment methods are enabled");
 
   const session = await stripePost(
     "/checkout/sessions",
@@ -946,8 +983,9 @@ export async function createWalletCheckoutSession(args: {
         see what each one looks like. Checkout shows the choice whenever more
         than one method is listed.
       */
-      "payment_method_types[0]": "alipay",
-      "payment_method_types[1]": "wechat_pay",
+      ...Object.fromEntries(
+        methods.map((method, index) => [`payment_method_types[${index}]`, method]),
+      ),
       /*
         WeChat Pay refuses a Checkout Session outright without this: "WeChat Pay
         requires payment_method_options[wechat_pay][client] to be set to web".
@@ -957,7 +995,9 @@ export async function createWalletCheckoutSession(args: {
         with a 400 before the buyer saw anything. Alipay has no equivalent
         requirement and must not be sent one.
       */
-      "payment_method_options[wechat_pay][client]": "web",
+      ...(methods.includes("wechat_pay")
+        ? { "payment_method_options[wechat_pay][client]": "web" }
+        : {}),
       "line_items[0][price_data][currency]": currency,
       "line_items[0][price_data][unit_amount]": amount,
       "line_items[0][price_data][product_data][name]":
@@ -979,7 +1019,7 @@ export async function createWalletCheckoutSession(args: {
         this key; it is here so a human scanning the dashboard can tell a
         prepaid wallet sale from a card subscription at a glance.
       */
-      [`metadata[bandup_payment_method]`]: "Alipay or WeChat Pay",
+      [`metadata[bandup_payment_method]`]: methods.map(walletMethodName).join(" or "),
       [`payment_intent_data[metadata][${USER_METADATA_KEY}]`]: args.userId,
       [`payment_intent_data[metadata][${TIER_METADATA_KEY}]`]: plan.tier,
       [`payment_intent_data[metadata][${PLAN_METADATA_KEY}]`]: args.plan,
