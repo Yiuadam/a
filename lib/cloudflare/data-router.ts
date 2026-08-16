@@ -58,21 +58,49 @@ export async function getLearnerProfile(user: SessionUser): Promise<Profile | nu
   if (cloudflareDataMode() === "cloudflare") {
     return getCloudflareLearnerProfile(user.id);
   }
-  // An authoritative read is also a reconciliation opportunity. The durable
-  // task and target write both carry Supabase's source clock, so a delayed
-  // login can repair a missed mirror without rolling newer D1 data backwards.
-  const profile = await getSupabaseLearnerProfile(user.id);
-  if (profile && cloudflareProfileReplicaEnabled()) {
-    try {
-      if (!(await replicateLearnerProfileDurably(user, profile))) {
-        console.error("[accounts] profile Cloudflare reconciliation: replica verification failed");
-      }
-    } catch (error) {
-      const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      console.error(`[accounts] profile Cloudflare reconciliation: ${detail}`);
+  return getSupabaseLearnerProfile(user.id);
+}
+
+/**
+ * Bring the Cloudflare copy of a profile back into line, if it has drifted.
+ *
+ * An authoritative read is also a reconciliation opportunity: the durable task
+ * and the target write both carry Supabase's source clock, so a delayed login
+ * can repair a missed mirror without rolling newer D1 data backwards.
+ *
+ * ---------------------------------------------------------------------------
+ * Why this is no longer part of the read
+ *
+ * It used to be, inside `getLearnerProfile`, and awaited. It is fourteen D1
+ * statements — six of them the same deletion-tombstone SELECT — and its result
+ * is read by nothing: the function above returned the Supabase profile whether
+ * the mirror succeeded or failed. So every signed-in page load waited on a
+ * chain of database round trips that could not change the answer it was
+ * waiting for.
+ *
+ * The caller now runs it through `after()`, so it happens with the same
+ * reliability and none of the latency. It is deliberately still a *call the
+ * caller makes* rather than a fire-and-forget started here: `after()` only
+ * works inside a request, and a module that quietly assumed one would break
+ * the first time something called it from a script.
+ *
+ * Never throws. A reconciliation that fails must not turn a working profile
+ * read into an error, which is why the try/catch came with it.
+ */
+export async function reconcileLearnerProfileReplica(
+  user: SessionUser,
+  profile: Profile,
+): Promise<void> {
+  if (cloudflareDataMode() === "cloudflare") return;
+  if (!cloudflareProfileReplicaEnabled()) return;
+  try {
+    if (!(await replicateLearnerProfileDurably(user, profile))) {
+      console.error("[accounts] profile Cloudflare reconciliation: replica verification failed");
     }
+  } catch (error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    console.error(`[accounts] profile Cloudflare reconciliation: ${detail}`);
   }
-  return profile;
 }
 
 /** A strict, focused read used only to preserve retired profile metadata. */

@@ -10,6 +10,7 @@ import { withCors } from "@/lib/http/cors";
 import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
 import {
   getLearnerProfile,
+  reconcileLearnerProfileReplica,
   getLearnerAccountKind,
   updateLearnerProfile,
   setLearnerAccountIdentity,
@@ -90,6 +91,15 @@ function cleanDate(value: unknown): string | null | undefined | "too-young" {
 async function present(req: Request, user: { id: string; email: string | null }) {
   const mode = cloudflareDataMode();
   const stored = await getLearnerProfile(user);
+  /*
+    Mirror the profile into Cloudflare after the response, not before it.
+
+    This is fourteen D1 statements whose result nothing here reads, and it used
+    to sit inside the read itself — so every signed-in page load waited on it.
+    See lib/cloudflare/data-router.ts. Same work, same reliability, off the
+    critical path.
+  */
+  if (stored) after(() => reconcileLearnerProfileReplica(user, stored));
   // A newly authenticated user may not have written application data yet.
   // In Cloudflare mode an absent D1 row is an empty optional profile, not a
   // reason to fall back to the old Supabase data authority.
@@ -112,7 +122,18 @@ async function present(req: Request, user: { id: string; email: string | null })
   return {
     displayName: profile.displayName,
     username: profile.username,
-    organizationUsernameReady: await learnerUsernameReplicaReady(user.id, profile.username),
+    /*
+      Not awaited into the response any more.
+
+      It is a three-table D1 join, and grepping every consumer of this field
+      finds a type declaration and a default value — nothing renders it. The
+      one thing that did read it was the repair below, in this same file, which
+      can just as well ask the question itself after the response has gone.
+
+      The key stays, emitting null, because an already-shipped iOS bundle may
+      destructure it and `undefined` is a different shape from `null`.
+    */
+    organizationUsernameReady: null,
     accountKind: profile.accountKind,
     birthDate: profile.birthDate,
     // Supabase Auth is still identity authority after application data moves.
@@ -152,8 +173,15 @@ async function handleGET(req: Request) {
     After the response, and never awaited into it. A repair that failed must
     not turn a working profile read into an error.
   */
-  if (body.organizationUsernameReady === false) {
+  if (body.username) {
     after(async () => {
+      /*
+        The readiness check moved in here with the repair it triggers. It is a
+        three-table join and it was being awaited into the response, where
+        nothing read it — so a learner waited for the answer to a question only
+        the server had a use for.
+      */
+      if (await learnerUsernameReplicaReady(auth.user.id, body.username)) return;
       const repaired = await repairLearnerUsernameReplica(auth.user, body.username);
       if (!repaired) {
         logInternal(
