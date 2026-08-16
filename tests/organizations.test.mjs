@@ -875,12 +875,19 @@ test("accepting one invitation cannot let an older token rewrite the live role",
   assert.match(acceptance, /id <> \?/);
 });
 
+// A manager may convert an existing teacher or manager into a student, and
+// that member then shares on the same terms as anybody who joined as one:
+// future history yes, pre-join history no. The same values every other path
+// writes. What the update still must not do is carry a previous member's
+// sharing forward unexamined, or reach back into work done before they were
+// part of the organisation.
 test("role changes and restores cannot bypass learner consent", () => {
   const commands = readFileSync(
     join(process.cwd(), "lib", "cloudflare", "organization-commands.ts"),
     "utf8",
   );
-  assert.match(commands, /Invite this person as a student so they can accept history sharing first/);
+  assert.match(commands, /requestedRole === "student" && target\.role !== "student"/);
+  assert.match(commands, /share_future_history = 1, share_pre_join_history = 0/);
   assert.match(commands, /target\.status !== "suspended"/);
   assert.match(commands, /former member must accept a new invitation/i);
   assert.match(commands, /change_member_role" && requestedRole !== target\.role/);

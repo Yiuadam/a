@@ -70,6 +70,8 @@ interface MemberRow {
   role: OrganizationRole;
   status: OrganizationMembership["status"];
   joined_at: string | null;
+  share_future_history?: number;
+  share_pre_join_history?: number;
 }
 
 interface RequestRow {
@@ -290,7 +292,8 @@ async function membersFor(db: Db, organizationId: string): Promise<OrganizationM
   const [memberRows, assignmentRows] = await Promise.all([
     rows<MemberRow>(db.prepare(`
       SELECT m.id AS membership_id, m.user_id, p.display_name, u.email,
-             m.role, m.status, m.joined_at
+             m.role, m.status, m.joined_at,
+             m.share_future_history, m.share_pre_join_history
         FROM organization_memberships m
         JOIN app_users u ON u.id = m.user_id
         LEFT JOIN learner_profiles p ON p.user_id = m.user_id
@@ -312,6 +315,8 @@ async function membersFor(db: Db, organizationId: string): Promise<OrganizationM
     role: row.role,
     status: row.status,
     joinedAt: row.joined_at,
+    shareFutureHistory: row.share_future_history === 1,
+    sharePreJoinHistory: row.share_pre_join_history === 1,
     assignedTeacherIds: assignmentRows
       .filter((assignment) => assignment.student_user_id === row.user_id)
       .map((assignment) => assignment.teacher_user_id),

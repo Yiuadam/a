@@ -61,7 +61,26 @@ test("the notification and skippable setup gate share one account profile", () =
   */
   assert.doesNotMatch(gate, /organizationUsernameReady/);
   assert.match(gate, /accountUsernameReady\(profile\)/);
-  assert.match(gate, /phase === "loading"/);
+  /*
+    And it no longer blanks the app while the profile is in flight.
+
+    It used to render a spinner instead of `children` whenever the phase was
+    "loading", which is every signed-in page load: the server sent the page,
+    the browser painted it, and hydration replaced it with "Checking account
+    setup…" until a multi-round-trip request came back. What that bought was
+    hiding one frame of the app from a learner who has no username yet.
+
+    The gate that matters is `blocked`, and it requires a settled answer —
+    `phase === "ready"` — so it acts on knowing rather than on not knowing.
+  */
+  const gateCode = gate.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  assert.match(gateCode, /phase === "ready"/, "the gate must act on a settled profile");
+  assert.doesNotMatch(
+    gateCode,
+    /phase === "loading"/,
+    "a spinner over an already-rendered page is the slowness people report",
+  );
+  assert.doesNotMatch(gateCode, /Checking account setup/);
   assert.match(gate, /\/account\/onboarding\?returnTo=/);
   const form = readFileSync(join(process.cwd(), "components", "account", "AccountIdentityForm.tsx"), "utf8");
   // The Generate button belongs to the display name now, not the username —

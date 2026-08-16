@@ -24,52 +24,75 @@ export function JoinOrganizationForm({
   onRequested?: () => void;
   previewRole?: OrganizationLivePreviewRole | null;
 }) {
-  const [code, setCode] = useState("");
+  // A join code is exactly 16 hex characters — crypto.randomUUID() with the
+  // dashes stripped, cut to length. Anything else is treated as a name. The
+  // check is deliberately a shape test, not a lookup, so it costs nothing to
+  // run on every keystroke's worth of submitted text.
+  const codePattern = /^[0-9a-f]{16}$/;
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Array<{ organizationId: string; name: string }>>([]);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+
+  const searchByName = async (clean: string) => {
+    setSearching(true);
+    setSearchError(null);
+    try {
+      const response = await authedFetch(apiUrl(`/api/organization/search?kind=organization&q=${encodeURIComponent(clean)}`), {
+        cache: "no-store",
+        headers: organizationPreviewRequestHeaders(previewRole),
+      });
+      if (!response.ok) throw new Error("Organisation search is unavailable just now.");
+      const body = await response.json() as OrganizationDiscoveryResponse;
+      setResults(body.kind === "organization" ? body.results : []);
+      setSearched(true);
+    } catch (error) {
+      setResults([]);
+      setSearched(false);
+      setSearchError(error instanceof Error ? error.message : "Organisation search is unavailable just now.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
   return (
-    <GlassSection title={title} lead="Search for your school or learning organisation, then send a join request.">
+    <GlassSection title={title} lead="Search for your school or learning organisation, or enter its join code, then send a join request.">
       <form
         className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
         onSubmit={async (event) => {
           event.preventDefault();
           const clean = query.trim();
           if (clean.length < 2) return;
-          setSearching(true);
-          setSearchError(null);
-          try {
-            const response = await authedFetch(apiUrl(`/api/organization/search?kind=organization&q=${encodeURIComponent(clean)}`), {
-              cache: "no-store",
-              headers: organizationPreviewRequestHeaders(previewRole),
-            });
-            if (!response.ok) throw new Error("Organisation search is unavailable just now.");
-            const body = await response.json() as OrganizationDiscoveryResponse;
-            setResults(body.kind === "organization" ? body.results : []);
-            setSearched(true);
-          } catch (error) {
-            setResults([]);
-            setSearched(false);
-            setSearchError(error instanceof Error ? error.message : "Organisation search is unavailable just now.");
-          } finally {
-            setSearching(false);
+          if (codePattern.test(clean.toLowerCase())) {
+            // Try it as a code first. If nothing has that code, the search
+            // below runs with the same text rather than leaving the person
+            // stranded on a dead end — a 16-character hex name is unlikely,
+            // but not so unlikely that a failed code should just stop here.
+            if (await act("request_to_join", {
+              code: clean,
+              shareFutureHistoryConsent: true,
+            })) {
+              setQuery("");
+              onRequested?.();
+              return;
+            }
           }
+          await searchByName(clean);
         }}
       >
-        <Field label="Organisation name">
+        <Field label="Organisation name or code">
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className={inputClass}
             autoComplete="off"
-            placeholder="Search by name"
+            placeholder="Search by name, or enter a join code"
             minLength={2}
             maxLength={80}
           />
         </Field>
-        <button type="submit" className="btn-secondary min-h-11 !rounded-[var(--radius-lg)] !px-4" disabled={searching || query.trim().length < 2}>
+        <button type="submit" className="btn-secondary min-h-11 !rounded-[var(--radius-lg)] !px-4" disabled={busy || searching || query.trim().length < 2}>
           {searching ? <LoadingIndicator label="Searching…" announce={false} /> : "Search"}
         </button>
       </form>
@@ -102,38 +125,6 @@ export function JoinOrganizationForm({
           ))}
         </div>
       )}
-      <details className="mt-3 rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/15 px-3 py-2">
-        <summary className="cursor-pointer text-xs font-semibold text-slate-600">Have an organisation code?</summary>
-      <form
-        className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          if (!code.trim()) return;
-          if (await act("request_to_join", {
-            code: code.trim(),
-            shareFutureHistoryConsent: true,
-          })) {
-            setCode("");
-            onRequested?.();
-          }
-        }}
-      >
-        <Field label="Organisation code">
-            <input
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              className={inputClass}
-              autoComplete="off"
-              placeholder="Enter code"
-              maxLength={80}
-              required
-            />
-        </Field>
-          <button type="submit" className="btn-primary min-h-11 !rounded-[var(--radius-lg)] !px-4" disabled={busy || !code.trim()}>
-            Use code
-          </button>
-      </form>
-      </details>
     </GlassSection>
   );
 }

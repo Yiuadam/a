@@ -20,7 +20,33 @@ export default function RequiredAccountGate({ children }: { children: React.Reac
   const router = useRouter();
   const { phase, profile } = useAccountProfile();
   const allowed = ALWAYS_REACHABLE.some((path) => pathname === path || pathname.startsWith(`${path}/`));
-  const waiting = phase === "loading" && !allowed;
+  /*
+    ---------------------------------------------------------------------------
+    Why the app is no longer replaced by a spinner while the profile loads
+
+    It used to be. `waiting` was `phase === "loading" && !allowed`, and it sat
+    in the same condition as `blocked` below — so every signed-in page did
+    this: the server sent the real page, the browser painted it, hydration
+    found a session, the phase flipped to "loading", and this component threw
+    the painted page away and rendered "Checking account setup…" until
+    /api/account/profile answered.
+
+    That request is not quick. It reads the user from Supabase Auth, reads the
+    profile, and — in dual mode — awaits a fourteen-statement D1 mirror whose
+    result its own answer never uses. From Hong Kong to Supabase and back,
+    several times, while the learner watches a spinner sit on top of a page
+    that had already arrived.
+
+    So it cost every signed-in page load, and what it bought was avoiding one
+    frame of the app for a learner who has no username yet and is about to be
+    redirected. That is a brand-new account, once. The trade was the wrong way
+    round.
+
+    `blocked` still holds, and it is the real gate: it requires `phase ===
+    "ready"`, so it fires on a settled answer rather than on the absence of
+    one. Nothing here is enforcement in any case — this is a registration step
+    and the server is what enforces it.
+  */
   /*
     A username is required to continue. Its copy reaching D1 is not.
 
@@ -45,10 +71,10 @@ export default function RequiredAccountGate({ children }: { children: React.Reac
     router.replace(`/account/onboarding?returnTo=${encodeURIComponent(returnTo)}`);
   }, [blocked, pathname, router]);
 
-  if (blocked || waiting) {
+  if (blocked) {
     return (
       <main className="grid min-h-[50dvh] place-items-center px-5 py-10" aria-live="polite">
-        <p className="text-sm text-slate-500"><LoadingIndicator label={blocked ? "Opening account setup…" : "Checking account setup…"} /></p>
+        <p className="text-sm text-slate-500"><LoadingIndicator label="Opening account setup…" /></p>
       </main>
     );
   }

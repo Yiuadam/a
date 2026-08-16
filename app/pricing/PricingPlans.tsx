@@ -22,9 +22,11 @@ import {
   perMonthEquivalent,
   plansForTier,
   walletCurrency,
+  walletMethodList,
   type BillingInterval,
   type PlanId,
   type Tier,
+  type WalletPaymentMethod,
 } from "@/lib/billing/tiers";
 
 /*
@@ -64,6 +66,14 @@ interface BillingConfig {
   checkout: boolean;
   /** One-time Alipay and WeChat Pay checkout for prepaid monthly/yearly access. */
   walletCheckout?: boolean;
+  /**
+   * Which wallets this Stripe account is actually approved for.
+   *
+   * Optional, and defaulted to Alipay alone, because an older cached response
+   * will not carry it — and a button that promises a wallet the account cannot
+   * take is exactly the failure this field exists to prevent.
+   */
+  walletMethods?: WalletPaymentMethod[];
   plans: PlanId[];
   /**
    * Which currency to print, resolved from the reader's address by the server.
@@ -333,6 +343,7 @@ export default function PricingPlans({
           const planOffered =
             planId !== null && checkoutOpen && config?.plans.includes(planId) === true;
           const walletOffered = planId !== null && config?.walletCheckout === true;
+          const walletMethods = config?.walletMethods?.length ? config.walletMethods : (["alipay"] as WalletPaymentMethod[]);
           /*
             An admin is marked as being on Pro rather than on a fifth plan
             nobody can buy. The account screen is where "no limits" is
@@ -384,6 +395,7 @@ export default function PricingPlans({
                     planId={planId}
                     planOffered={planOffered}
                     walletOffered={walletOffered}
+                    walletMethods={walletMethods}
                     configPhase={configPhase}
                     account={account}
                     busy={busy}
@@ -450,6 +462,7 @@ function PaidAction({
   planId,
   planOffered,
   walletOffered,
+  walletMethods,
   configPhase,
   account,
   busy,
@@ -460,6 +473,8 @@ function PaidAction({
   planId: PlanId;
   planOffered: boolean;
   walletOffered: boolean;
+  /** The wallets Stripe will actually accept, so the button names only those. */
+  walletMethods: readonly WalletPaymentMethod[];
   configPhase: ConfigPhase;
   account: ReturnType<typeof useTier>;
   busy: boolean;
@@ -574,14 +589,17 @@ function PaidAction({
   const period = plan.interval === "year" ? "year" : "month";
   const cardPrice = formatPrice(amountIn(plan, currency), currency);
   /*
-    What the wallet will charge, which is not always what the card charges.
-    Neither Alipay nor WeChat Pay accepts every currency the catalogue prices
-    in, so `walletCurrency` falls back to the base one where they do not — and
-    the sentence below then quotes the figure that will actually appear on
-    Stripe's page rather than the one this card happens to be showing.
+    What the wallet will charge, which is not what the card charges.
+
+    A wallet payment is always in the base currency: Stripe refuses a Session
+    whose currency the merchant's account has not been approved for with that
+    wallet, and it refused Singapore dollars for Alipay. So this card may quote
+    two currencies — the reader's for the card, Hong Kong dollars for the
+    wallet — and that is honest, where agreeing with itself would not be.
   */
-  const walletIn = walletCurrency(plan, currency);
+  const walletIn = walletCurrency(plan);
   const walletPrice = formatPrice(amountIn(plan, walletIn), walletIn);
+  const walletNames = walletMethodList(walletMethods);
 
   return (
     <div className="flex flex-col gap-2">
@@ -604,8 +622,8 @@ function PaidAction({
         )}
         {walletOffered && (
           <>
-            Alipay and WeChat Pay charge {walletPrice} once, for {plan.interval === "year" ? "one year" : "one month"},
-            and do not renew.{" "}
+            {walletNames} charge{walletMethods.length > 1 ? "" : "s"} {walletPrice} once, for{" "}
+            {plan.interval === "year" ? "one year" : "one month"}, and {walletMethods.length > 1 ? "do" : "does"} not renew.{" "}
           </>
         )}
         See the{" "}
@@ -654,7 +672,7 @@ function PaidAction({
             {busy ? (
               <LoadingIndicator label="Opening checkout…" announce={false} />
             ) : (
-              "Pay once with Alipay or WeChat Pay"
+              `Pay once with ${walletNames}`
             )}
           </button>
         </div>
