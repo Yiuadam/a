@@ -1,4 +1,18 @@
 /*
+  SUPERSEDED IN PART. The timestamps below are rendered with `.US` — six
+  digits — and that is a measurement bug, not a schema one: the mirror carries
+  milliseconds, so a microsecond comparison can never pass. It is left as
+  written because this migration has been applied and its text is the record of
+  what was applied.
+
+  supabase/parity-millisecond-precision.sql replaces both functions with `.MS`
+  and explains why. Run it by hand; it is `create or replace`, so it needs no
+  migration. A database rebuilt from migrations alone will have the old
+  behaviour until that file is run — worth knowing before standing up a fresh
+  environment.
+
+  ---------------------------------------------------------------------------
+
   Exact, privacy-minimised source evidence for the Cloudflare cutover report.
 
   Counts alone can agree while different rows are present. Each domain is
