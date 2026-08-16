@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import CheckoutNotice from "@/components/billing/CheckoutNotice";
+import PayingWhileFreeNotice from "@/components/billing/PayingWhileFreeNotice";
 import billingBlocker from "./state";
 import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { useDrawnTier, useTier } from "@/lib/billing/useTier";
@@ -134,6 +135,14 @@ export default function BillingPage() {
 
       {blocked ?? (
         <>
+          {/*
+            Above the menu, because the menu's first row leads to the page where
+            they would cancel and this is what they need to know before they get
+            there. It draws for nobody but a paying subscriber, and only while
+            the trial is open. See the component.
+          */}
+          <PayingWhileFreeNotice />
+
           <HubMenu items={items} />
 
           <p className="text-[13px] text-slate-500">

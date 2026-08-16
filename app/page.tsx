@@ -7,6 +7,7 @@ import { useProfile } from "@/lib/hooks";
 import { isValidPlacement } from "@/lib/placement";
 import { newestFirst, seriesFor } from "@/lib/results";
 import LockedCard from "@/components/LockedCard";
+import FreeProPoster from "@/components/billing/FreeProPoster";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import type { ModuleName, ModuleResult, PlacementResult } from "@/lib/types";
 import { Icon } from "@/components/Icons";
@@ -348,6 +349,21 @@ export default function Dashboard() {
   const recent = newestFirst(profile.results).slice(0, 6);
   return (
     <div className="dashboard-screen overflow-x-clip px-4 py-3 sm:px-5 sm:py-5">
+      {/*
+        The free Pro trial, offered here rather than as a modal over this page
+        or a card on /pricing.
+
+        Not a modal: the dashboard is where somebody arrives meaning to do
+        something, and a dialogue over it makes them dismiss an offer before
+        they can start. Not /pricing either — the people this is for are
+        precisely the ones who never open the pricing page. A card at the top of
+        the first screen after signing in is seen by everyone, blocks nobody,
+        and takes one tap to be rid of for good.
+
+        It draws nothing at all unless the server says this account is offered
+        the trial, so the usual case is an empty render.
+      */}
+      <FreeProPoster />
       {/*
         One card, one obvious next step — and now one row of it. The welcome
         used to be a paragraph and a 96px band badge stacked above everything

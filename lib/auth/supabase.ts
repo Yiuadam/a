@@ -438,6 +438,146 @@ export async function stripeSubscriptionReplica(
   }
 }
 
+/*
+  ---------------------------------------------------------------------------
+  The promotional Pro trial
+
+  Three fixed operations, in the same spirit as everything else in this file:
+  named, narrow, and impossible to point at another table. A promo row is an
+  ordinary `subscriptions` row with provider 'promo', so `resolve_entitlement`
+  in supabase/migrations/0026 picks it up with no new resolution logic and no
+  second place where an entitlement can be decided.
+*/
+
+const PROMO_PROVIDER = "promo";
+
+/** The all-zero uuid. Not a real account, and cannot become one. */
+const NO_SUCH_USER = "00000000-0000-0000-0000-000000000000";
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+/** What PostgREST said went wrong, as much of it as a decision needs. */
+interface PostgrestFailure {
+  code: string;
+  message: string;
+}
+
+async function failureFrom(res: Response): Promise<PostgrestFailure> {
+  const body = (await res.json().catch(() => null)) as
+    | { code?: unknown; message?: unknown; details?: unknown }
+    | null;
+  const text = [body?.message, body?.details].filter((part) => typeof part === "string").join(" ");
+  return { code: typeof body?.code === "string" ? body.code : "", message: text };
+}
+
+/**
+ * Whether the database will accept a promo subscription row at all.
+ *
+ * `subscriptions_provider_check` in 0001 allows only 'stripe' and 'apple', and
+ * widening it is a hand-run ALTER the owner has to decide to apply. Until they
+ * do, the offer must not be shown — a button that can only fail is worse than
+ * no button — so this asks the database rather than assuming either answer.
+ *
+ * It asks by attempting an insert that cannot succeed: the row names a user id
+ * that does not exist. Postgres evaluates CHECK constraints when the row is
+ * formed and foreign keys afterwards, in an after-trigger, so the two failures
+ * are distinguishable and neither writes anything.
+ *
+ *   23514 on the provider check  the ALTER has not been run
+ *   23503 (foreign key)          the provider was accepted; the ALTER has run
+ *
+ * Anything else is read as "not yet", because the safe direction for an
+ * unrecognised answer is to leave the offer hidden.
+ */
+export async function promoProviderAllowed(): Promise<boolean> {
+  try {
+    const res = await request("/rest/v1/subscriptions", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        user_id: NO_SUCH_USER,
+        provider: PROMO_PROVIDER,
+        status: "active",
+        tier: "pro",
+      }),
+      asServiceRole: true,
+    });
+    /*
+      Not expected: the foreign key should have refused it. If some future
+      schema drops that key, the probe would have written a stray row, so it is
+      removed again rather than left behind.
+    */
+    if (res.ok) {
+      await request(
+        `/rest/v1/subscriptions?user_id=eq.${NO_SUCH_USER}&provider=eq.${PROMO_PROVIDER}`,
+        { method: "DELETE", asServiceRole: true },
+      ).catch(() => undefined);
+      return true;
+    }
+    const failure = await failureFrom(res);
+    if (failure.code === "23503") return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/** Whether this account already holds a promo row. */
+export async function promoSubscriptionExists(userId: string): Promise<boolean> {
+  if (!isUuid(userId)) return false;
+  const res = await request(
+    `/rest/v1/subscriptions?user_id=eq.${userId}&provider=eq.${PROMO_PROVIDER}` +
+      "&select=id&limit=1",
+    { method: "GET", asServiceRole: true },
+  );
+  if (!res.ok) throw new SupabaseError(`promo lookup failed with ${res.status}`);
+  const rows = (await res.json()) as unknown;
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+export type PromoInsertOutcome = "inserted" | "exists" | "unsupported" | "failed";
+
+/**
+ * Writes the promo row: Pro, active, with no period end, so
+ * `resolve_entitlement` treats it as current until somebody changes its status.
+ *
+ * `unsupported` is the honest answer when the provider check has not been
+ * widened yet, and the route turns it into a sentence rather than a 500.
+ */
+export async function insertPromoSubscription(userId: string): Promise<PromoInsertOutcome> {
+  if (!isUuid(userId)) return "failed";
+  try {
+    const res = await request("/rest/v1/subscriptions", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        user_id: userId,
+        provider: PROMO_PROVIDER,
+        status: "active",
+        tier: "pro",
+        current_period_end: null,
+        /*
+          Why the row exists, kept with the row. Every other subscription can be
+          explained by a provider payload; this one can only be explained by us.
+        */
+        raw: { kind: "free-pro-trial", acceptedAt: new Date().toISOString() },
+      }),
+      asServiceRole: true,
+    });
+    if (res.ok) return "inserted";
+    const failure = await failureFrom(res);
+    if (failure.code === "23514" || /subscriptions_provider_check/.test(failure.message)) {
+      return "unsupported";
+    }
+    if (failure.code === "23505") return "exists";
+    return "failed";
+  } catch {
+    return "failed";
+  }
+}
+
 /** Stores an avatar. `path` is always inside the caller's own folder. */
 export async function uploadAvatar(
   path: string,

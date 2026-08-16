@@ -1,0 +1,146 @@
+/*
+  The free Pro trial.
+
+  Three things are worth pinning, and they are the three that would fail
+  silently. Who is offered it: a Pro subscriber or the owner must never be shown
+  an offer of what they already have. What the poster says: the sentence about
+  the trial being able to end is the reason ending it later is fair, so its
+  absence is a defect rather than a copy change. And that nothing in this
+  feature writes a migration — the constraint it depends on is applied by hand.
+*/
+import assert from "node:assert/strict";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { register } from "node:module";
+import { test } from "node:test";
+import { pathToFileURL } from "node:url";
+
+register("./alias-resolve.mjs", import.meta.url);
+
+const root = process.cwd();
+const promo = await import(pathToFileURL(join(root, "lib", "billing", "promo.ts")).href);
+const tiers = await import(pathToFileURL(join(root, "lib", "billing", "tiers.ts")).href);
+
+const poster = readFileSync(join(root, "components", "billing", "FreeProPoster.tsx"), "utf8");
+const route = readFileSync(join(root, "app", "api", "billing", "promo", "route.ts"), "utf8");
+const supabase = readFileSync(join(root, "lib", "auth", "supabase.ts"), "utf8");
+
+test("only tiers below Pro are offered the trial", () => {
+  for (const tier of Object.keys(tiers.TIERS)) {
+    const covered = promo.alreadyCovered(tier);
+    assert.equal(covered, tier === "pro" || tier === "admin", `wrong answer for ${tier}`);
+  }
+});
+
+test("the poster says the trial can end and that nobody is charged", () => {
+  assert.match(poster, /may be cancelled at any time in the future/);
+  assert.match(poster, /back to the free plan/);
+  assert.match(poster, /never be charged without choosing to subscribe/);
+});
+
+test("the poster does not manufacture urgency", () => {
+  for (const pattern of [/\bhurry\b/i, /\blimited time\b/i, /\bends (?:in|soon)\b/i, /\bonly \d+ /i]) {
+    assert.doesNotMatch(poster, pattern, `poster uses pressure: ${pattern}`);
+  }
+});
+
+test("the grant is a Pro subscription row, written only by the server", () => {
+  assert.match(supabase, /provider: PROMO_PROVIDER/);
+  assert.match(supabase, /tier: "pro"/);
+  assert.match(supabase, /status: "active"/);
+  // The tier is fixed in server code. Nothing the client sends chooses it.
+  assert.doesNotMatch(route, /req\.json\(\)/);
+});
+
+test("accepting degrades honestly when the provider constraint is still narrow", () => {
+  assert.match(supabase, /export async function promoProviderAllowed/);
+  assert.match(route, /notOpen/);
+  // 503 with a sentence, never an unhandled throw turning into a 500.
+  assert.match(route, /safeJsonError\(PROMO_MESSAGES\.notOpen, 503\)/);
+});
+
+test("the trial ships no migration of its own", () => {
+  const migrations = readdirSync(join(root, "supabase", "migrations"));
+  const named = migrations.filter((file) => /promo/i.test(file));
+  assert.deepEqual(named, [], "the widening ALTER is run by hand, not shipped as a migration");
+});
+
+/*
+  Telling a paying subscriber that the thing they pay for is currently free.
+
+  The owner chose to tell them and let them decide, rather than cancelling or
+  refunding on their behalf. That choice only means anything if the sentence
+  actually reaches them, so what is pinned here is that it draws for a payer,
+  that it does not draw for anyone holding Pro without paying, and that it says
+  the awkward part — that they may cancel and take the trial instead.
+
+  Every assertion below runs against the source with comments stripped. An
+  earlier test in this repository passed against a comment quoting the code it
+  was meant to be checking, which is worth not repeating.
+*/
+
+/** The file's code, without comments or string-free prose to match by accident. */
+function code(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+}
+
+const notice = readFileSync(
+  join(root, "components", "billing", "PayingWhileFreeNotice.tsx"),
+  "utf8",
+);
+const billingPage = readFileSync(join(root, "app", "billing", "page.tsx"), "utf8");
+
+test("a signed-out reader is never told they are paying", async () => {
+  // No database is reachable in this test, so a false here also proves the
+  // signed-out path answers without asking one.
+  assert.equal(await promo.payingWhileFree(null, null), false);
+  assert.equal(await promo.payingWhileFree(null, "someone@example.com"), false);
+});
+
+test("only a paying provider triggers the notice, not a role or a grant", () => {
+  const source = code(readFileSync(join(root, "lib", "billing", "promo.ts"), "utf8"));
+  /*
+    An admin holds Pro by role and a trialist by promo grant. Neither is being
+    charged, so neither is owed an apology for being charged.
+  */
+  assert.match(source, /entitlement\.source !== "stripe" && entitlement\.source !== "apple"/);
+  assert.doesNotMatch(source, /source === "role"/);
+});
+
+test("the notice says they may cancel and take the trial instead", () => {
+  /*
+    Whitespace-normalised: JSX wraps a sentence wherever the line runs long, so
+    matching the raw file would pin the line breaks rather than the words.
+  */
+  const words = notice.replace(/\s+/g, " ");
+  assert.match(words, /cancel your subscription and take the free trial instead/);
+  assert.match(words, /not required/);
+  // The same promise the poster makes, so the two pages cannot drift apart.
+  assert.match(words, /may be cancelled at any time in the future/);
+});
+
+test("the notice cannot be dismissed", () => {
+  const source = code(notice);
+  /*
+    Unlike the poster. An offer nobody wants should stop asking; a disclosure
+    that stays true should keep saying so until it stops being true.
+  */
+  assert.doesNotMatch(source, /localStorage/);
+  assert.doesNotMatch(source, /dismiss/i);
+});
+
+test("the notice is mounted on the billing page", () => {
+  const source = code(billingPage);
+  assert.match(source, /import PayingWhileFreeNotice from "@\/components\/billing\/PayingWhileFreeNotice"/);
+  assert.match(source, /<PayingWhileFreeNotice \/>/);
+});
+
+test("the offer route answers the paying question without a second round trip", () => {
+  const source = code(route);
+  // Asked only when there is nothing to offer: the two are mutually exclusive.
+  assert.match(source, /offer\.offered\s*\?\s*false\s*:\s*await payingWhileFree/);
+  // Every exit from GET carries the field, including the failure path.
+  const returns = source.match(/NextResponse\.json\(\{ offered[^}]*\}\)/g) ?? [];
+  assert.ok(returns.length >= 3, `expected every GET exit to answer, saw ${returns.length}`);
+  for (const line of returns) assert.match(line, /payingWhileFree/);
+});

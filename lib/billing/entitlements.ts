@@ -31,7 +31,7 @@ export interface Entitlement {
   role: Role;
   tier: Tier;
   /** Where the answer came from: which provider, or why there was none. */
-  source: "anonymous" | "default" | "role" | "stripe" | "apple";
+  source: "anonymous" | "default" | "role" | "stripe" | "apple" | "promo";
   expiresAt: string | null;
 }
 
@@ -71,6 +71,11 @@ function normalise(raw: RawEntitlement | null): Entitlement {
     raw.source === "role" ||
     raw.source === "stripe" ||
     raw.source === "apple" ||
+    // The free Pro trial writes provider 'promo' on the subscription row, and
+    // resolve_entitlement reports the provider as the source. Naming it here
+    // keeps the owner's directory able to say where an entitlement came from
+    // instead of reading every trial as an unexplained "default".
+    raw.source === "promo" ||
     raw.source === "default" ||
     raw.source === "anonymous"
       ? raw.source
