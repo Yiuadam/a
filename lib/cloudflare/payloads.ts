@@ -29,6 +29,41 @@ function safeSegment(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 180);
 }
 
+/*
+  A namespace may be a path of more than one segment, and each segment is
+  sanitised on its own so the separators between them survive.
+
+  This was one call to safeSegment over the whole namespace, and that quietly
+  broke account deletion. The progress writers pass `progress/ielts-prep-v1`
+  (see compareAndSwapCloudflareProgressSnapshots in learner-data.ts), the slash
+  is not in the allowed character class, so the key became
+  `private/progress_ielts-prep-v1/<user>/…`. Nothing looks for that. The
+  deletion sweep lists `private/progress/ielts-prep-v1/` and its two siblings
+  (USER_OBJECT_PREFIXES in account-deletion.ts) and the manifest's CHECK
+  constraint accepts only the same three spellings — so the race-capture insert
+  was rejected, and `INSERT OR IGNORE` swallowed the rejection without a word.
+
+  The effect was worst for the learner with the most to lose. Progress is only
+  written to R2 once it passes 96 KB, which is the account carrying the most
+  essays and speaking transcripts; that copy was never found by deletion, and
+  the privacy page promised it was erased. The rehearsal test missed it because
+  its fixture writes the intended key by hand rather than going through
+  storeJson, so both sides of the comparison agreed with each other and neither
+  agreed with production.
+
+  Splitting on the slash rather than allowing it in safeSegment is deliberate:
+  an empty or dot segment is dropped, so a namespace can still never climb out
+  of `private/` however it is spelled.
+*/
+function safeNamespace(namespace: string): string {
+  const segments = namespace
+    .split("/")
+    .map(safeSegment)
+    .filter((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+  if (segments.length === 0) throw new Error("Invalid storage namespace");
+  return segments.join("/");
+}
+
 async function deletionState(
   bindings: BandUpCloudflareBindings,
   owner: string,
@@ -86,7 +121,7 @@ export async function storeJson(
   }
 
   if (await deletionState(bindings, owner)) throw deletionInProgress();
-  const key = `private/${safeSegment(namespace)}/${safeSegment(owner)}/${digest}.json`;
+  const key = `private/${safeNamespace(namespace)}/${safeSegment(owner)}/${digest}.json`;
   await bindings.files.put(key, bytes, {
     httpMetadata: {
       contentType: "application/json; charset=utf-8",
