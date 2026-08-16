@@ -391,6 +391,19 @@ export async function cloudflareMigrationReadinessReport(
     if (outboxResult.dead > 0) blockers.push(`replica_outbox: ${outboxResult.dead} dead`);
     if (outboxResult.cleanupPending > 0) blockers.push(`replica_object_cleanup: ${outboxResult.cleanupPending} pending`);
     if (outboxResult.cleanupDead > 0) blockers.push(`replica_object_cleanup: ${outboxResult.cleanupDead} dead`);
+    // A count says the mirror is stuck; only the recorded reason says why, and
+    // the owner should not have to open D1 to read it.
+    for (const failure of outboxResult.failures ?? []) {
+      blockers.push(`replica_outbox: ${failure.count} ${failure.status} ${failure.code}`);
+    }
+    for (const failure of outboxResult.cleanupFailures ?? []) {
+      blockers.push(`replica_object_cleanup: ${failure.count} ${failure.status} ${failure.code}`);
+    }
+    if ((outboxResult.blockedByAccountDeletion ?? 0) > 0) {
+      blockers.push(
+        `replica_outbox: ${outboxResult.blockedByAccountDeletion} blocked by account deletion`,
+      );
+    }
   }
   if (unsupportedDomains.length > 0) blockers.push("unsupported application-data domains remain");
 

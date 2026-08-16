@@ -10,6 +10,13 @@ function label(value: string): string {
   return value.replaceAll("_", " ");
 }
 
+function age(seconds: number): string {
+  if (seconds < 90) return `${seconds}s old`;
+  if (seconds < 90 * 60) return `${Math.round(seconds / 60)}m old`;
+  if (seconds < 48 * 3600) return `${Math.round(seconds / 3600)}h old`;
+  return `${Math.round(seconds / 86400)}d old`;
+}
+
 export default function CloudflareMigrationReadiness() {
   const [report, setReport] = useState<CloudflareMigrationReadinessReport | null>(null);
   const [failed, setFailed] = useState(false);
@@ -91,6 +98,35 @@ export default function CloudflareMigrationReadiness() {
               )}
             </div>
           </div>
+
+          {report.outbox && (
+            (report.outbox.failures?.length ?? 0) > 0
+            || (report.outbox.cleanupFailures?.length ?? 0) > 0
+            || (report.outbox.blockedByAccountDeletion ?? 0) > 0
+          ) && (
+            <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/60 px-3 py-3 text-xs text-amber-900">
+              <strong className="block">Why the replica queues are stuck</strong>
+              <ul className="mt-1 space-y-1 leading-5">
+                {(report.outbox.failures ?? []).map((failure) => (
+                  <li key={`task-${failure.status}-${failure.code}`}>
+                    Outbox · {failure.count} {failure.status} · {label(failure.code)} · up to {failure.maxAttempts} attempts · {failure.detail.map(label).join(", ")}
+                    {failure.oldestAgeSeconds !== null && ` · oldest ${age(failure.oldestAgeSeconds)}`}
+                  </li>
+                ))}
+                {(report.outbox.cleanupFailures ?? []).map((failure) => (
+                  <li key={`object-${failure.status}-${failure.code}`}>
+                    Object cleanup · {failure.count} {failure.status} · {label(failure.code)} · up to {failure.maxAttempts} attempts · {failure.detail.join(", ")}
+                    {failure.oldestAgeSeconds !== null && ` · oldest ${age(failure.oldestAgeSeconds)}`}
+                  </li>
+                ))}
+                {(report.outbox.blockedByAccountDeletion ?? 0) > 0 && (
+                  <li>
+                    Outbox · {report.outbox.blockedByAccountDeletion} row(s) whose subject has an account-deletion tombstone. The deletion guard aborts every lease, so these never attempt, never record a reason and never die. Finish or clear that deletion.
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
 
           {report.unsupportedDomains.length > 0 && (
             <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/60 px-3 py-3 text-xs text-amber-900">
