@@ -18,7 +18,7 @@
 */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { register } from "node:module";
@@ -57,13 +57,13 @@ function account(missing, overrides = {}) {
   return { prices };
 }
 
-function run(state) {
+function run(state, args = []) {
   const dir = mkdtempSync(join(tmpdir(), "fake-stripe-"));
   const log = join(dir, "requests.log");
   try {
     const stdout = execFileSync(
       process.execPath,
-      ["--import", "./tests/fake-stripe.mjs", "scripts/stripe-setup.mjs"],
+      ["--import", "./tests/fake-stripe.mjs", "scripts/stripe-setup.mjs", ...args.map((a) => a.replace("{dir}", dir))],
       {
         encoding: "utf8",
         env: {
@@ -74,7 +74,12 @@ function run(state) {
         },
       },
     );
-    return { stdout, requests: readFileSync(log, "utf8").trim().split("\n") };
+    const out = join(dir, "prices.env");
+    return {
+      stdout,
+      requests: readFileSync(log, "utf8").trim().split("\n"),
+      outFile: existsSync(out) ? readFileSync(out, "utf8") : null,
+    };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -115,6 +120,29 @@ test("a base amount that has actually changed still makes a new Price", () => {
   /* And the other five are still amended rather than dragged along with it. */
   assert.equal(requests.filter((r) => /^POST \/prices\/price_/.test(r)).length, PLAN_IDS.length - 1);
   assert.doesNotMatch(stdout, /same six ids as before/);
+});
+
+/*
+  --out must write the file even when no id moved.
+
+  It did not, and that cost the owner an hour. A previous run had minted a new
+  generation of Prices and moved the lookup keys onto it, leaving the Worker's
+  STRIPE_PRICE_* naming the generation before. The next run amended the current
+  Prices in place, correctly said no id had moved, and refused to write the file
+  on that basis — so `wrangler secret bulk` was pointed at a path that did not
+  exist and Cloudflare stayed a currency behind. "No id moved in this run" is
+  not "Cloudflare already has these ids", and this script cannot see the
+  difference.
+*/
+test("--out writes the ids even when every Price was amended in place", () => {
+  const { stdout, outFile } = run(account("cny"), ["--out", "{dir}/prices.env"]);
+
+  assert.ok(outFile, "no file was written, so there was nothing to upload");
+  const lines = outFile.trim().split("\n");
+  assert.equal(lines.length, PLAN_IDS.length);
+  for (const line of lines) assert.match(line, /^STRIPE_PRICE_[A-Z_]+=price_/);
+  assert.match(stdout, /wrangler secret bulk/);
+  assert.doesNotMatch(stdout, /No .* was written/);
 });
 
 test("a run with nothing to do posts nothing at all", () => {

@@ -303,11 +303,26 @@ for (const line of lines) console.log(`  ${line}`);
 */
 const idsMoved = states.some((state) => state === "created" || state === "re-priced");
 
-if (!idsMoved && !DRY) {
+/*
+  "No id moved in this run" is not the same as "Cloudflare already has these
+  ids", and treating them as the same wasted an hour of the owner's morning.
+
+  A previous run had created a new generation of Prices and moved the lookup
+  keys onto it, so the Worker's STRIPE_PRICE_* still named the generation
+  before. This run then amended the *current* Prices in place, correctly
+  reported that no id had moved — and refused to write the --out file on that
+  basis, so `wrangler secret bulk` was pointed at a file that did not exist.
+  Cloudflare stayed on Prices that were now a currency behind.
+
+  So --out always writes. The note below is information about this run; it is
+  not a judgement about what is deployed, which this script cannot see.
+*/
+if (!idsMoved && !DRY && !OUT) {
   console.log(
-    "\nThe same six ids as before — every change was made on the existing Prices,\n" +
-      "so there is nothing to upload to Cloudflare and nothing to redeploy for.\n" +
-      (OUT ? `No ${OUT} was written, for the same reason.\n` : ""),
+    "\nThe same six ids as before — every change was made on the existing Prices.\n" +
+      "If Cloudflare already holds these six ids there is nothing to upload; if you\n" +
+      "are not sure, re-run with `--out stripe-prices.env` and upload them anyway,\n" +
+      "which is harmless when they already match.\n",
   );
 } else if (OUT && !DRY) {
   const { writeFileSync } = await import("node:fs");
