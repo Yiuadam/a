@@ -21,9 +21,19 @@ export const metadata: Metadata = {
     "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, there are no cookies or trackers, and card details never reach our servers.",
 };
 
-const LAST_UPDATED = "13 August 2026";
+const LAST_UPDATED = "16 August 2026";
 
-/* The learner keys plus the owner's one local dashboard preference. */
+/*
+  The learner keys plus the owner's one local dashboard preference.
+
+  The list used to omit the in-progress mock exam, and the paragraph above it
+  used to call the whole set "the five learner entries", all of which were said
+  to sync. Neither was true. Three sync — see PROGRESS_KEYS in
+  lib/progress/storage.ts — the theme and speech choices never leave the
+  browser, and the half-finished exam holds a learner's own essay text while
+  never being uploaded at all. An omission on this page is the same kind of
+  mistake as a false sentence, so the exam is listed here with the rest.
+*/
 const STORED = [
   {
     key: "ielts-prep-v1",
@@ -41,6 +51,10 @@ const STORED = [
   {
     key: "bandup.speech.v1",
     what: "Which speech recogniser you chose for the speaking test, and which model size.",
+  },
+  {
+    key: "bandup-mock-exam-v1",
+    what: "A mock exam you have started but not finished, including anything you have written in it so far. It is held here until you finish, and it is never sent to your account.",
   },
   {
     key: ADMIN_OVERVIEW_STORAGE_KEY,
@@ -124,13 +138,14 @@ export default function PrivacyPage() {
           What is stored, and where
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Signed out, everything BandUp remembers about you lives in the tab you are using and
-          nowhere else. Close the tab or the browser and it is gone; open BandUp again and you
-          start fresh. Nothing is left behind on the machine, which matters most on a shared or
-          borrowed one. Signed in, the five learner entries are kept on your account instead,
-          so they follow you between devices. A sixth, clearly marked below, is only an admin
-          dashboard layout and always stays in that administrator&rsquo;s browser. This is the whole
-          of it:
+          Signed out, everything BandUp remembers about you lives in the browser you are using
+          and nowhere else. Your practice is held in the tab: close it and that work is gone, and
+          you start fresh. Your theme and speech choices are settings rather than work, so they
+          stay in that browser until you clear it. Signed in, three of the entries below — your
+          progress, your drills and your saved words — are kept on your account as well, so they
+          follow you between devices; the rest never leave this browser, including an exam you
+          have started and not finished. The last entry is only an admin dashboard layout and
+          always stays in that administrator&rsquo;s browser. This is the whole of it:
         </p>
         <ul className="mt-4 space-y-3">
           {STORED.map((s) => (
@@ -288,9 +303,10 @@ export default function PrivacyPage() {
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           BandUp can be used entirely signed out, and is by default. The placement test, your
-          study plan, every practice test and both sets of drills work without an account and
-          always will. An account exists to carry that work between your phone and your laptop,
-          and to raise the daily limit on AI feedback.
+          study plan and both sets of drills work without an account and always will, and so do
+          practice papers, with a weekly limit until you pay. An account exists to carry that
+          work between your phone and your laptop. AI feedback needs a Plus or Pro plan: a free
+          account has none of it, and neither does a signed-out visitor.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           You can sign in with Google, with Apple, or with an email address and a password. With
@@ -308,7 +324,7 @@ export default function PrivacyPage() {
             "A one-way hash of the internet address the request came from, so that one address cannot spend an unlimited amount of AI by making accounts. It is salted and cannot be turned back into an address, and it is used for nothing else — not location, not advertising, not analytics.",
             "A copy of your completed study progress when you use an account, so your other devices can pick up where you left off.",
             "For completed writing and speaking practice, the saved history can include your essay or transcript and the feedback, so you can revisit the original sitting.",
-            "Your unique username. You can choose it or ask BandUp to generate a random, non-identifying suggestion. A display name can be added later. A profile picture and date of birth remain optional.",
+            "Your unique username. Unless you change it, it is taken from the part of your email address before the @, and you can also ask BandUp for a random suggestion instead. A username is public — it appears in an organisation's team directory and works as a sign-in name — so type over the suggestion if you would rather not publish part of your address. A display name can be added later. A profile picture and date of birth remain optional.",
           ].map((line) => (
             <li key={line} className="flex gap-3 text-[15px] leading-7 text-slate-700">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
@@ -328,17 +344,28 @@ export default function PrivacyPage() {
           want to do. Any gender already stored has been deleted along with the field.
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
-          Your profile picture is stored privately and is never public. BandUp has no profile
-          pages, no leaderboards and no way for other learners to find you, so the only person
-          who ever sees it is you. It is served through a link that expires after an hour
-          rather than from a permanent address.
+          Your profile picture is stored privately and is never public. The only person who
+          ever sees it is you: no teacher, manager or organisation is ever shown it. There are
+          no profile pages and no leaderboards. It is served through a link that expires after
+          an hour rather than from a permanent address.
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
-          Authentication and the core account record are stored with Supabase. Organisation
-          workspaces and their private notification inboxes are stored in Cloudflare D1; larger
-          private organisation files can be stored in Cloudflare R2. These providers host the
-          service on our behalf and their servers may be in a different country from yours,
-          which is worth saying rather than leaving you to assume otherwise.
+          There is one way another person can find you, and it is worth being exact about.
+          Somebody who owns, manages or teaches in an organisation can look you up by typing
+          your exact username, which is how an invitation reaches the right account. They are
+          shown your username and display name and nothing else. Your username cannot be
+          browsed, listed or searched for by anybody in any other way, and a partial match
+          finds nothing.
+        </p>
+        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+          Authentication and the core account record are stored with Supabase, and a copy of
+          your account, profile, synced practice and usage counts is mirrored to Cloudflare D1.
+          Your profile picture is kept as a private file in Cloudflare R2, and so is any synced
+          practice too large to store alongside the record itself — which for a learner with
+          many essays and speaking transcripts is most of it. Organisation workspaces and their
+          private notification inboxes are stored there too. These providers host the service on
+          our behalf and their servers may be in a different country from yours, which is worth
+          saying rather than leaving you to assume otherwise.
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
           Questions about any of this, or a request about your data, go to{" "}
@@ -348,11 +375,24 @@ export default function PrivacyPage() {
           .
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
-          Signing out ends the session on that device and deletes nothing. To close the account
-          altogether, use <strong>Delete your account</strong> on your account page: it removes
-          your email address, your details, your picture and any synced practice, immediately
-          and permanently. The copy in your own browser stays, because it was never ours to
-          delete — clear that from your browser&rsquo;s settings whenever you like.
+          Signing out ends the session on that device and clears the copy kept there. Nothing is
+          deleted from your account — sign back in and your synced progress comes back — but
+          anything that was never synced does not, including an exam you had started and not
+          finished.
+        </p>
+        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+          To close the account altogether, use <strong>Delete your account</strong> on your
+          account page. Your sign-in is removed straight away, and the stored copies — your email
+          address, your details, your picture and any synced practice — are erased within minutes
+          of it, in both Supabase and Cloudflare. It cannot be undone.
+        </p>
+        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+          The copy in your own browser is separate, and you do not have to go into browser
+          settings to be rid of it. Use <strong>Clear this device</strong> on your account page:
+          it empties this browser and, while you are signed in, the synced copy of the work as
+          well — your sittings, your placement result, your drill scores and your saved words —
+          so none of it comes back from another device. Your account, your sign-in and your
+          profile are untouched.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Sessions are kept in your device&rsquo;s own storage rather than in a cookie, which is
@@ -372,11 +412,17 @@ export default function PrivacyPage() {
           it uses an approval request.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Owners, managers and any teacher you are assigned to can see your email address next to
+          your name. A manager can also change your role, suspend you or remove you from the
+          organisation without a request from you.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Assigned teachers can see only their assigned students. Organisation managers can see
           members and student history in their own organisation. That history can include scores,
           answers, feedback, essays and speaking transcripts. BandUp administrators can access
-          organisation records when needed to approve, secure or support the service. Other
-          learners cannot see them.
+          organisation records when needed to secure or support the service. Other
+          learners cannot see them. Anyone signed in can create an organisation and becomes its
+          owner at once, so an organisation is not something BandUp has checked.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Your private notification inbox records typed events such as an assigned task, new
@@ -395,8 +441,10 @@ export default function PrivacyPage() {
           an audit record so permissions and data changes can be investigated.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          After an approved departure, the former student can change consent without organisation
-          approval. Closing the BandUp account deletes the learner-owned source records; minimal
+          After an approved departure, the former student can change the choice about earlier
+          history without organisation approval. The choice about work completed during
+          membership cannot be changed once the membership has ended, because there is no longer
+          an active membership to change it on. Closing the BandUp account deletes the learner-owned source records; minimal
           security audit and organisation-removal records can remain where required to establish
           what an administrator did, without keeping the essay or transcript in those records.
         </p>
@@ -444,9 +492,17 @@ export default function PrivacyPage() {
           version of this app being breached that exposes your card.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          Stripe tells us only what is needed to know what you have bought: that a subscription
-          started, renewed or ended, which plan it is, and an identifier that links it to your
-          account. That is what the app stores — the plan, the dates, and the identifier.
+          You can also pay once with Alipay or WeChat Pay instead of subscribing. Those details
+          go to the payment provider in the same way and never reach us either.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Stripe tells us what you have bought: that a subscription or a pass started, renewed or
+          ended, which plan it is, and an identifier that links it to your account. That is what
+          the app records. We also keep Stripe&rsquo;s own message about the payment as the
+          receipt for it, which for a completed checkout can include the name and email address
+          you gave Stripe. It is kept privately, and it is kept as the record of money received,
+          which means it outlives the account it came from. Nothing else about your practice
+          does.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Stripe is a separate company and handles your payment information under{" "}
@@ -478,11 +534,14 @@ export default function PrivacyPage() {
         <ul className="mt-4 space-y-3">
           <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
-            In the app: delete BandUp from your device. Its storage goes with it.
+            Easiest, on the web and in the app alike: <strong>Clear this device</strong> on your
+            account page. It empties everything BandUp is keeping in this browser.
           </li>
           <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
-            On the web: clear site data for this site in your browser&rsquo;s settings.
+            On the web you can also clear site data for this site in your browser&rsquo;s
+            settings, and in the app you can delete BandUp from your device. Its storage goes
+            with it.
           </li>
         </ul>
         <p className="mt-4 text-sm leading-6 text-slate-600">

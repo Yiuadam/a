@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "What BandUp promises, what it does not, and the one thing that matters most: a band estimate here is not an IELTS result.",
 };
 
-const LAST_UPDATED = "12 August 2026";
+const LAST_UPDATED = "16 August 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -90,9 +90,9 @@ export default function TermsPage() {
 
       <Section title="Accounts">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          An account is optional — the placement test, your study plan, practice tests and
-          drills all work without one. If you make one, please keep it to yourself and use an
-          email address you control.
+          An account is optional — the placement test, your study plan and every drill work
+          without one, and so do practice papers, with a weekly limit until you pay. If you make
+          an account, please keep it to yourself and use an email address you control.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           BandUp is intended for people aged 13 and over. If you are under 13, please do not
@@ -108,10 +108,23 @@ export default function TermsPage() {
       <Section title="Fair use of the AI features">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Writing feedback, the speaking examiner, the tutor, word lookup and generated tests
-          each cost money to run, so each one carries its own allowance, counted over a rolling
-          thirty days. Running out of one leaves the others untouched, and you can see what is
-          left of each on your billing page. Practice tests, drills and your study plan cost
-          nothing to serve, do not count towards any allowance, and are never limited.
+          each cost money to run, so each one carries its own allowance, counted over two rolling
+          windows at once — seven days and thirty. Running out of one leaves the others
+          untouched, and you can see what is left of each on your billing page.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          There is also a limit on how many AI requests come from a single internet address each
+          week. It is there so that one address cannot spend the whole budget by making accounts,
+          and it is worth knowing about because a whole school or office behind one connection
+          shares it — you can reach it before you reach your own allowance.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Drills and your study plan cost nothing to serve, do not count towards any allowance,
+          and are never limited. Practice papers do not count towards an AI allowance either, but
+          they do have a weekly limit until you pay: signed out you get one reading and one
+          listening paper a week, and a free account gets two of each. Writing and speaking
+          papers are locked in both cases, because neither a visitor nor a free account has the
+          AI that marks them.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Please do not automate requests, share an account to multiply the allowance, or use
@@ -121,10 +134,11 @@ export default function TermsPage() {
 
       <Section title="Organisations and shared learning records">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          An organisation workspace can include owners, managers, teachers and students.
-          Teachers see assigned students only; managers manage their own organisation; BandUp
-          administrators can approve and manage organisations across the service. An invitation
-          must be accepted by the account it was addressed to.
+          An organisation workspace can include owners, managers, teachers and students. Any
+          signed-in person can create one and becomes its owner at once; there is nothing to
+          apply for and nobody approves it. Teachers see assigned students only; managers manage
+          their own organisation; BandUp administrators can suspend or remove an organisation
+          across the service. An invitation must be accepted by the account it was addressed to.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           A student asks to leave and an organisation manager approves or rejects the request.
@@ -132,6 +146,14 @@ export default function TermsPage() {
           separate choice; changing access while membership is active also uses an approval
           request. These controls exist so neither a learner nor a teacher can silently change an
           organisation&rsquo;s records.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Not everything needs your request, and it is fairer to say so than to leave you to find
+          out. A manager can change your role, suspend you or remove you from their organisation
+          without asking you first. Joining as a student needs a paid plan or a seat that
+          organisation provides. And while you are a student member you cannot clear your
+          practice history, because the organisation&rsquo;s record of it is not yours alone to
+          delete.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Teachers may archive the organisation&rsquo;s view of an assigned student&rsquo;s attempt.
@@ -179,10 +201,12 @@ export default function TermsPage() {
       <Section title="Paid access, and how the money works">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           BandUp is free to use, and most of it stays free whatever you do: the placement test,
-          your study plan, the practice papers that ship with the app, and every grammar and
-          vocabulary drill. What paid access buys is the part that costs money to run each
-          time you press the button — the AI examiner, the tutor and word lookup — and, on every
-          paid plan, the whole library of practice papers with no weekly limit.
+          your study plan, some of the practice papers each week, and every grammar and
+          vocabulary drill. What every paid plan buys is the whole library of practice papers
+          with no weekly limit. Plus and Pro add the parts that cost money to run each time you
+          press the button — the AI examiner, the tutor and word lookup. Standard has no AI at
+          all: its reading and listening papers are marked from the answer key, which is exactly
+          as accurate.
         </p>
         <dl className="mt-3 space-y-2">
           {PAID_TIERS.map((id) => {
@@ -203,6 +227,12 @@ export default function TermsPage() {
             );
           })}
         </dl>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          The prices above are in Hong Kong dollars. The plans page shows them in your own
+          currency where we have a price in it, and that is the amount you are charged. An
+          Alipay or WeChat Pay pass is charged in Hong Kong dollars when your currency is one
+          those wallets cannot take.
+        </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           <strong>Card subscriptions renew automatically</strong>, at the same price, on the same
           date each period, until you cancel. <strong>Alipay and WeChat Pay passes do not
@@ -241,9 +271,12 @@ export default function TermsPage() {
 
       <Section title="Cancelling, and getting your money back">
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          <strong>Cancel a card subscription whenever you like</strong>, from the billing page in
-          the app. It is one button — no email, no form, and nobody trying to talk you out of it.
-          A prepaid Alipay or WeChat Pay pass has no future payment to cancel.
+          <strong>Cancel a card subscription whenever you like.</strong> On the web it is one
+          button on your billing page. From the iPhone app, open your billing page on
+          bandup.life, because the app does not carry one. Either way there is no email, no
+          form, and nobody trying to talk you out of it. A prepaid Alipay or WeChat Pay pass has
+          no future payment to cancel; if we refund one, the access it bought ends at the same
+          time.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           Cancelling stops the next charge. You keep the plan you are on until the end of the

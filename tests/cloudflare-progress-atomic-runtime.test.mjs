@@ -167,3 +167,60 @@ test("a database error rolls the Cloudflare batch back rather than partially sav
     0,
   );
 });
+
+/*
+  A progress payload over the 96 KB inline limit goes to R2, and the key it
+  goes to has to be one the deletion sweep can find.
+
+  It was not. The namespace `progress/ielts-prep-v1` was sanitised as a single
+  segment, so the slash became an underscore and the object landed at
+  `private/progress_ielts-prep-v1/<user>/…` — a prefix nothing lists and a
+  spelling the deletion manifest's CHECK constraint rejects, with the rejection
+  swallowed by `INSERT OR IGNORE`. The account with the most essays and
+  transcripts was therefore the one account whose R2 copy survived deletion,
+  against a privacy page that promised the opposite.
+
+  This test writes through the real storeJson path rather than hand-writing the
+  key it hopes for, which is exactly what the earlier deletion rehearsal did and
+  why it agreed with itself while disagreeing with production.
+*/
+test("an oversized progress snapshot lands on a key account deletion can find", async () => {
+  const context = fixture();
+  const puts = [];
+  context.bindings.files.put = async (key) => { puts.push(key); };
+
+  const large = { essays: Array.from({ length: 400 }, (_, index) => ({
+    index,
+    text: "an essay long enough to push this snapshot past the inline limit. ".repeat(6),
+  })) };
+  const result = await learner.compareAndSwapCloudflareProgressSnapshots(
+    context.user,
+    [expected("ielts-prep-v1")],
+    [{ storeKey: "ielts-prep-v1", payload: large }],
+    context.bindings,
+  );
+  assert.equal(result.status, "committed");
+  assert.equal(puts.length, 1, "the payload should have been written to R2");
+
+  const key = puts[0];
+  assert.ok(
+    key.startsWith(`private/progress/ielts-prep-v1/${context.user.id}/`),
+    `key ${key} is outside the prefix account deletion sweeps`,
+  );
+
+  // The same key must also satisfy the deletion manifest, because the race
+  // capture inserts it there and a CHECK violation would pass unnoticed.
+  const stamp = "2026-08-16T10:00:00.000Z";
+  context.database.prepare(`
+    INSERT INTO account_deletion_tombstones (
+      user_id, operation_id, state, prepared_at, lease_expires_at, updated_at
+    ) VALUES (?, 'operation-0000000000', 'prepared', ?, ?, ?)
+  `).run(context.user.id, stamp, stamp, stamp);
+  context.database.prepare(`
+    INSERT INTO account_deletion_objects (user_id, object_key, discovered_at) VALUES (?, ?, ?)
+  `).run(context.user.id, key, stamp);
+  assert.equal(
+    context.database.prepare("SELECT count(*) AS count FROM account_deletion_objects").get().count,
+    1,
+  );
+});
