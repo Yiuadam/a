@@ -3,11 +3,12 @@ import { accountsEnabled } from "@/lib/auth/env";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
 import { supabaseConfigured } from "@/lib/auth/supabase";
+import { countryFromRequest, currencyForCountry } from "@/lib/billing/currency";
 import { stripeWalletConfigured } from "@/lib/billing/env";
 import { BILLING_MESSAGES } from "@/lib/billing/messages";
 import { createWalletCheckoutSession } from "@/lib/billing/stripe";
 import { stripeCustomerFor } from "@/lib/billing/subscriptions";
-import { isPlanId, isWalletPaymentMethod } from "@/lib/billing/tiers";
+import { isPlanId } from "@/lib/billing/tiers";
 import { withCors } from "@/lib/http/cors";
 
 export const dynamic = "force-dynamic";
@@ -33,17 +34,28 @@ async function handlePOST(req: Request) {
     body = null;
   }
   const plan = (body as { plan?: unknown } | null)?.plan;
-  const method = (body as { method?: unknown } | null)?.method;
-  if (!isPlanId(plan) || !isWalletPaymentMethod(method)) {
+  if (!isPlanId(plan)) {
     return NextResponse.json({ error: "That payment choice isn't available." }, { status: 400 });
   }
+
+  /*
+    Which wallet is no longer asked for: one Session offers both and the buyer
+    chooses on Stripe's page.
+
+    The currency is resolved here, from the address Cloudflare resolved, and
+    never from the request body. A caller who could name the currency could
+    name the price — pick the cheapest one in the catalogue and pay that — and
+    a wallet line item is built by this app rather than read off a Stripe
+    Price, so there would be nothing downstream to catch it.
+  */
+  const currency = currencyForCountry(countryFromRequest(req));
 
   const origin = new URL(req.url).origin;
   try {
     const customerId = await stripeCustomerFor(user.id);
     const url = await createWalletCheckoutSession({
       plan,
-      method,
+      currency,
       userId: user.id,
       email: user.email,
       customerId,

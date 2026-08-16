@@ -1,7 +1,7 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { stripeSecretKey, stripePriceId } from "./env";
-import { PLANS, TIERS, isPaidTier, isPlanId } from "./tiers";
-import type { Tier, PlanId, WalletPaymentMethod } from "./tiers";
+import { PLANS, TIERS, amountIn, isPaidTier, isPlanId, walletCurrency } from "./tiers";
+import type { Tier, PlanId } from "./tiers";
 import type { SubscriptionStatus } from "./providers";
 import type { FinancePeriod, StripeFinancialSnapshot } from "@/lib/admin/finance-types";
 import {
@@ -923,7 +923,7 @@ export async function createCheckoutSession(args: {
  */
 export async function createWalletCheckoutSession(args: {
   plan: PlanId;
-  method: WalletPaymentMethod;
+  currency: string;
   userId: string;
   email: string | null;
   customerId: string | null;
@@ -931,15 +931,23 @@ export async function createWalletCheckoutSession(args: {
   cancelUrl: string;
 }): Promise<string | null> {
   const plan = PLANS[args.plan];
-  const methodName = args.method === "alipay" ? "Alipay" : "WeChat Pay";
   const duration = plan.interval === "year" ? "1 year" : "1 month";
+  const currency = walletCurrency(plan, args.currency);
+  const amount = amountIn(plan, currency);
 
   const session = await stripePost(
     "/checkout/sessions",
     form({
       mode: "payment",
       "managed_payments[enabled]": "false",
-      "payment_method_types[0]": args.method,
+      /*
+        Both wallets on one Session, so the page needs one button instead of
+        two and the buyer picks on Stripe's own page — which is where they can
+        see what each one looks like. Checkout shows the choice whenever more
+        than one method is listed.
+      */
+      "payment_method_types[0]": "alipay",
+      "payment_method_types[1]": "wechat_pay",
       /*
         WeChat Pay refuses a Checkout Session outright without this: "WeChat Pay
         requires payment_method_options[wechat_pay][client] to be set to web".
@@ -949,11 +957,9 @@ export async function createWalletCheckoutSession(args: {
         with a 400 before the buyer saw anything. Alipay has no equivalent
         requirement and must not be sent one.
       */
-      ...(args.method === "wechat_pay"
-        ? { "payment_method_options[wechat_pay][client]": "web" }
-        : {}),
-      "line_items[0][price_data][currency]": plan.currency,
-      "line_items[0][price_data][unit_amount]": plan.amountMinor,
+      "payment_method_options[wechat_pay][client]": "web",
+      "line_items[0][price_data][currency]": currency,
+      "line_items[0][price_data][unit_amount]": amount,
       "line_items[0][price_data][product_data][name]":
         `${TIERS[plan.tier].name} — ${duration} prepaid access`,
       "line_items[0][quantity]": 1,
@@ -966,7 +972,14 @@ export async function createWalletCheckoutSession(args: {
       [`metadata[${USER_METADATA_KEY}]`]: args.userId,
       [`metadata[${TIER_METADATA_KEY}]`]: plan.tier,
       [`metadata[${PLAN_METADATA_KEY}]`]: args.plan,
-      [`metadata[bandup_payment_method]`]: methodName,
+      /*
+        Which wallet was used is not known here any more — the buyer chooses it
+        on Stripe's page — and Stripe records the real answer on the
+        PaymentIntent, which is the authority anyway. Nothing in this app reads
+        this key; it is here so a human scanning the dashboard can tell a
+        prepaid wallet sale from a card subscription at a glance.
+      */
+      [`metadata[bandup_payment_method]`]: "Alipay or WeChat Pay",
       [`payment_intent_data[metadata][${USER_METADATA_KEY}]`]: args.userId,
       [`payment_intent_data[metadata][${TIER_METADATA_KEY}]`]: plan.tier,
       [`payment_intent_data[metadata][${PLAN_METADATA_KEY}]`]: args.plan,

@@ -3,7 +3,7 @@ import {
   worstCaseMonthlyCost,
   type CostedRoute,
 } from "@/lib/ai/models";
-import { hkdPerUnit, minorPerUnit, toMajor } from "./currency";
+import { hkdPerUnit, minorPerUnit, toMajor, walletTakes } from "./currency";
 
 /*
   What the tiers are: what each one costs, what it unlocks, and exactly how much
@@ -669,6 +669,29 @@ export function pricesIn(currency: string): boolean {
 
 /** Every currency the catalogue prices in, base first. */
 export const PRICED_CURRENCIES: string[] = Object.keys(PLANS["plus-monthly"].prices);
+
+/**
+ * The currency a wallet payment can actually be presented in.
+ *
+ * A subscription reads its amount off a Stripe Price, so Stripe picks the
+ * currency from the buyer's address and this app never has to. A wallet
+ * payment does not: the line item is built here, so the currency is chosen
+ * here — and choosing one the wallets refuse means a Checkout Session that
+ * fails after the buyer has pressed the button.
+ *
+ * Two things must hold: the catalogue has to carry a price somebody chose in
+ * it, and both Alipay and WeChat Pay have to accept it. Either failing falls
+ * back to the base currency, which satisfies both by definition. The rupee is
+ * the case that actually arises — neither wallet takes INR.
+ *
+ * The page calls this too, so what it quotes for the wallet is what the wallet
+ * will charge, fallback included.
+ */
+export function walletCurrency(plan: Plan, requested: string): string {
+  const wanted = requested.toLowerCase();
+  if (!pricesIn(wanted) || !walletTakes(wanted)) return plan.currency;
+  return wanted;
+}
 
 /**
  * What a yearly plan works out to per month, rounded to the cent.

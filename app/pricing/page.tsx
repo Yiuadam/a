@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import CheckoutNotice from "@/components/billing/CheckoutNotice";
+import { visitorCurrency } from "@/lib/billing/region";
 import PricingPlans from "./PricingPlans";
 
 /*
@@ -35,7 +36,14 @@ const ALWAYS_FREE = [
   "Your progress, synced between devices with a free account",
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  /*
+    Read before anything renders, so the price in the first HTML is the price
+    that reader will be charged. See lib/billing/region.ts for what this costs
+    and why it can be null.
+  */
+  const currency = await visitorCurrency();
+
   return (
     <div className="pricing-page space-y-3 sm:space-y-6">
       {/*
@@ -48,7 +56,7 @@ export default function PricingPage() {
         The notice is passed through the client component so its position stays
         between the shared Plans/interval row and the plan cards.
       */}
-      <PricingPlans>
+      <PricingPlans initialCurrency={currency}>
         <Suspense fallback={null}>
           <CheckoutNotice />
         </Suspense>

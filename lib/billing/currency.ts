@@ -87,6 +87,31 @@ export const ZERO_DECIMAL_CURRENCIES: ReadonlySet<string> = new Set([
   "ugx", "vnd", "vuv", "xaf", "xof", "xpf",
 ]);
 
+/*
+  What Alipay and WeChat Pay will both take.
+
+  A wallet payment is built here rather than picked from a Stripe Price, so
+  this app chooses the currency and has to choose one both wallets accept. The
+  two lists are close but not identical — Alipay adds MYR and NZD, WeChat Pay
+  adds the Nordic currencies and the Swiss franc — and this is the overlap of
+  Stripe's published tables for the two.
+
+  The omission that matters is the rupee: neither wallet takes INR, so an
+  Indian visitor's wallet payment has to fall back to the base currency. That
+  is not a slight; it is the alternative to a Checkout Session Stripe would
+  refuse.
+
+  https://docs.stripe.com/payments/alipay  https://docs.stripe.com/payments/wechat-pay
+*/
+export const WALLET_CURRENCIES: ReadonlySet<string> = new Set([
+  "aud", "cad", "cny", "eur", "gbp", "hkd", "jpy", "sgd", "usd",
+]);
+
+/** Whether a wallet payment can be presented in this currency at all. */
+export function walletTakes(currency: string): boolean {
+  return WALLET_CURRENCIES.has(currency.toLowerCase());
+}
+
 /** How many minor units make one unit of this currency. */
 export function minorPerUnit(currency: string): number {
   return ZERO_DECIMAL_CURRENCIES.has(currency.toLowerCase()) ? 1 : 100;
