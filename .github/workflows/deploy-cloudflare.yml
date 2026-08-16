@@ -86,3 +86,65 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # A deploy that only deletes billing configuration reports success —
+      # that is the whole shape of commit 684183c. keep_vars now stops the
+      # deploy itself from doing that, but a variable can still go missing by
+      # hand in the dashboard, a key can be rotated badly, a Stripe Price can
+      # be archived — and none of those show up anywhere unless something asks.
+      # app/api/billing/health/route.ts asks. It needs no session, so this can
+      # ask it straight after the deploy it is meant to catch, against the site
+      # that is actually live rather than trusting the deploy step's own exit
+      # code.
+      #
+      # Skipped during a maintenance deploy: the site is deliberately serving
+      # the maintenance screen everywhere, this endpoint included, so a check
+      # against it would fail for a reason that has nothing to do with billing.
+      - name: Verify billing configuration survived the deploy
+        if: steps.creds.outputs.ready == 'true' && inputs.maintenance != true
+        run: |
+          url="https://bandup.siksafe-realtime-ai-vision.workers.dev/api/billing/health"
+          attempt=0
+          max_attempts=5
+          delay=5
+          while [ "$attempt" -lt "$max_attempts" ]; do
+            attempt=$((attempt + 1))
+            # Cloudflare needs a moment to finish rolling a new version out, so
+            # an early failure here is retried before it is believed.
+            body="$(curl --silent --show-error --fail-with-body "$url" || true)"
+            ok="$(echo "$body" | node -e '
+              let input = "";
+              process.stdin.on("data", (chunk) => { input += chunk; });
+              process.stdin.on("end", () => {
+                try {
+                  const parsed = JSON.parse(input);
+                  process.stdout.write(parsed.ok === true ? "true" : "false");
+                } catch {
+                  process.stdout.write("false");
+                }
+              });
+            ')"
+            if [ "$ok" = "true" ]; then
+              echo "::notice::Billing configuration verified live."
+              exit 0
+            fi
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              sleep "$delay"
+            fi
+          done
+          echo "::error::Billing health check failed after the deploy — a paid subscription may be silently unable to work. Failed checks:"
+          echo "$body" | node -e '
+            let input = "";
+            process.stdin.on("data", (chunk) => { input += chunk; });
+            process.stdin.on("end", () => {
+              try {
+                const parsed = JSON.parse(input);
+                for (const check of parsed.checks ?? []) {
+                  if (check.ok !== true) console.log(`  - ${check.name}`);
+                }
+              } catch {
+                console.log("  (the response could not be parsed)");
+              }
+            });
+          '
+          exit 1
