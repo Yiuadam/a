@@ -31,6 +31,19 @@
   instead of making a duplicate.
 
   ---------------------------------------------------------------------------
+  Adding a currency
+
+  This is the same command. Put the new amounts in `prices` in
+  lib/billing/tiers.ts, run it, and each existing Price is amended in place —
+  same id, same subscribers, nothing to re-upload to Cloudflare. Only a change
+  to a *base* amount makes a new Price, because that is the one field Stripe
+  will not let anything edit.
+
+  Do it in this order, and not the other one: the checkout guard refuses a sale
+  whenever the catalogue names a currency the Stripe Price is missing, so a
+  deploy that lands before this command has run takes every checkout down.
+
+  ---------------------------------------------------------------------------
   What it will not do
 
   It does not create the webhook endpoint, because that needs a URL and a
@@ -156,26 +169,20 @@ async function priceFor(planId, productId) {
     place, still charging a Londoner in Hong Kong dollars while the page quotes
     pounds — which is the mismatch the whole catalogue exists to prevent.
   */
-  const currenciesMatch = () => {
-    if (match.unit_amount !== plan.amountMinor) return false;
-    if (match.currency !== plan.currency) return false;
+  const baseMatches = () =>
+    match.unit_amount === plan.amountMinor && match.currency === plan.currency;
+
+  /** Which currencies on the Price disagree with the catalogue, named. */
+  const wrongCurrencies = () => {
     const opts = match.currency_options ?? {};
+    const wrong = [];
     for (const [code, amount] of Object.entries(plan.prices)) {
       if (code === plan.currency) continue;
-      if (opts[code]?.unit_amount !== amount) return false;
+      if (opts[code]?.unit_amount !== amount) wrong.push(code);
     }
-    return true;
+    return wrong;
   };
 
-  if (match && currenciesMatch()) {
-    return { price: match, state: "already correct" };
-  }
-  if (DRY) {
-    return {
-      price: { id: "(would create)" },
-      state: match ? `would re-price from ${formatPrice(match.unit_amount, match.currency)}` : "would create",
-    };
-  }
   /*
     One Price, many currencies. `currency_options` is what lets a single Price
     id charge a Londoner in pounds and a Tokyo candidate in yen — Checkout picks
@@ -187,6 +194,40 @@ async function priceFor(planId, productId) {
   for (const [code, amount] of Object.entries(plan.prices)) {
     if (code === plan.currency) continue;
     currencyOptions[`currency_options[${code}][unit_amount]`] = amount;
+  }
+
+  if (match && baseMatches() && wrongCurrencies().length === 0) {
+    return { price: match, state: "already correct" };
+  }
+
+  /*
+    Adding a currency is an amendment, not a re-pricing.
+
+    A Stripe Price is immutable in its `unit_amount`, which is why the branch
+    below creates a new one — but `currency_options` is not: it can be patched
+    onto a Price that already exists, keeping the same id. That distinction is
+    worth the extra branch, because minting six new ids to add one currency
+    would mean six new STRIPE_PRICE_* values to upload to Cloudflare, and a live
+    site whose checkout is broken for the minutes between the two. Patching in
+    place changes nothing the deployment knows about.
+
+    Everybody already subscribed is unaffected either way: they keep being
+    billed the amount they signed up at, in the currency they signed up in.
+  */
+  if (match && baseMatches()) {
+    const added = wrongCurrencies();
+    if (DRY) {
+      return { price: match, state: `would add ${added.join(", ")} to this price` };
+    }
+    const price = await stripe("POST", `/prices/${encodeURIComponent(match.id)}`, currencyOptions);
+    return { price, state: `added ${added.join(", ")}` };
+  }
+
+  if (DRY) {
+    return {
+      price: { id: "(would create)" },
+      state: match ? `would re-price from ${formatPrice(match.unit_amount, match.currency)}` : "would create",
+    };
   }
 
   const price = await stripe("POST", "/prices", {
@@ -217,6 +258,7 @@ console.log(
 );
 
 const lines = [];
+const states = [];
 const seen = new Map();
 
 /*
@@ -240,6 +282,7 @@ for (const planId of PLAN_IDS) {
     }   ${price.id.padEnd(32)} ${state}`,
   );
   lines.push(`${VAR[planId]}=${price.id}`);
+  states.push(state);
 }
 } catch (err) {
   console.error(`\nStripe refused the request:\n  ${err instanceof Error ? err.message : String(err)}\n`);
@@ -253,7 +296,35 @@ for (const planId of PLAN_IDS) {
 console.log(`\n${DRY ? "Nothing was created." : "Done."} The six ids:\n`);
 for (const line of lines) console.log(`  ${line}`);
 
-if (OUT && !DRY) {
+/*
+  Whether anything downstream has to change, said plainly rather than left to be
+  worked out by comparing six ids against what is already in Cloudflare. Adding
+  a currency amends the Prices in place, so the usual answer is "nothing".
+*/
+const idsMoved = states.some((state) => state === "created" || state === "re-priced");
+
+/*
+  "No id moved in this run" is not the same as "Cloudflare already has these
+  ids", and treating them as the same wasted an hour of the owner's morning.
+
+  A previous run had created a new generation of Prices and moved the lookup
+  keys onto it, so the Worker's STRIPE_PRICE_* still named the generation
+  before. This run then amended the *current* Prices in place, correctly
+  reported that no id had moved — and refused to write the --out file on that
+  basis, so `wrangler secret bulk` was pointed at a file that did not exist.
+  Cloudflare stayed on Prices that were now a currency behind.
+
+  So --out always writes. The note below is information about this run; it is
+  not a judgement about what is deployed, which this script cannot see.
+*/
+if (!idsMoved && !DRY && !OUT) {
+  console.log(
+    "\nThe same six ids as before — every change was made on the existing Prices.\n" +
+      "If Cloudflare already holds these six ids there is nothing to upload; if you\n" +
+      "are not sure, re-run with `--out stripe-prices.env` and upload them anyway,\n" +
+      "which is harmless when they already match.\n",
+  );
+} else if (OUT && !DRY) {
   const { writeFileSync } = await import("node:fs");
   writeFileSync(OUT, lines.join("\n") + "\n", "utf8");
   console.log(

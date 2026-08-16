@@ -44,6 +44,14 @@ const { hkdPerUnit, minorPerUnit, toMajor, currencyForCountry, ZERO_DECIMAL_CURR
 const STRIPE_MINIMUM = {
   hkd: 4.0, usd: 0.5, eur: 0.5, gbp: 0.3, aud: 0.5,
   cad: 0.5, sgd: 0.5, jpy: 50, inr: 50,
+  /*
+    Stripe publishes no minimum for CNY — it is a wallet currency rather than
+    one of the card presentment currencies the table covers. 4.00 is the US$0.50
+    floor converted and rounded up, which is the conservative reading: if the
+    real minimum is lower this test is merely strict, and if it is higher the
+    cheapest plan here (¥4.90) still clears it.
+  */
+  cny: 4.0,
 };
 
 /** Worst-case AI cost of one month of a tier, in Hong Kong dollars. */

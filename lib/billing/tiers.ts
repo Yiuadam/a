@@ -463,6 +463,22 @@ export interface Plan {
 
   The yearly prices are ten months' money for twelve months' access, rounded to
   the nearest of the prices people expect to see.
+
+  ---------------------------------------------------------------------------
+  The renminbi, and why it is not simply the Hong Kong price converted
+
+  CNY is the currency WeChat Pay and Alipay settle in, so a mainland candidate
+  paying with either was until now quoted in a currency they do not hold. The
+  figures below are chosen the same way every other local price was — a price
+  that looks like a price where it is read (¥12, ¥120, ¥268), then checked back
+  against the cost in tests/currency.test.mjs — rather than HK$ divided by 1.08.
+
+  One thing about adding a currency here that is not obvious and costs money to
+  learn: `assertPriceMatchesCatalogue` in lib/billing/stripe.ts refuses a
+  checkout whenever this catalogue names a currency the Stripe Price does not
+  carry. So Stripe has to be given the new amounts *before* this file ships, not
+  after — `node scripts/stripe-setup.mjs` is what does it, and it now patches
+  currency_options onto the existing Prices rather than minting new ids.
 */
 export const PLANS: Record<PlanId, Plan> = {
   "standard-monthly": {
@@ -471,7 +487,7 @@ export const PLANS: Record<PlanId, Plan> = {
     interval: "month",
     amountMinor: 490,
     currency: "hkd",
-    prices: { hkd: 490, usd: 69, eur: 69, gbp: 49, aud: 99, cad: 99, sgd: 99, jpy: 100, inr: 5900 },
+    prices: { hkd: 490, usd: 69, eur: 69, gbp: 49, aud: 99, cad: 99, sgd: 99, jpy: 100, inr: 5900, cny: 490 },
   },
   "standard-yearly": {
     id: "standard-yearly",
@@ -479,7 +495,7 @@ export const PLANS: Record<PlanId, Plan> = {
     interval: "year",
     amountMinor: 3900,
     currency: "hkd",
-    prices: { hkd: 3900, usd: 499, eur: 499, gbp: 399, aud: 799, cad: 699, sgd: 699, jpy: 790, inr: 44900 },
+    prices: { hkd: 3900, usd: 499, eur: 499, gbp: 399, aud: 799, cad: 699, sgd: 699, jpy: 790, inr: 44900, cny: 3900 },
   },
   "plus-monthly": {
     id: "plus-monthly",
@@ -487,7 +503,7 @@ export const PLANS: Record<PlanId, Plan> = {
     interval: "month",
     amountMinor: 1290,
     currency: "hkd",
-    prices: { hkd: 1290, usd: 169, eur: 149, gbp: 129, aud: 259, cad: 229, sgd: 219, jpy: 250, inr: 15900 },
+    prices: { hkd: 1290, usd: 169, eur: 149, gbp: 129, aud: 259, cad: 229, sgd: 219, jpy: 250, inr: 15900, cny: 1200 },
   },
   "plus-yearly": {
     id: "plus-yearly",
@@ -495,7 +511,7 @@ export const PLANS: Record<PlanId, Plan> = {
     interval: "year",
     amountMinor: 12900,
     currency: "hkd",
-    prices: { hkd: 12900, usd: 1699, eur: 1499, gbp: 1299, aud: 2599, cad: 2299, sgd: 2199, jpy: 2500, inr: 159900 },
+    prices: { hkd: 12900, usd: 1699, eur: 1499, gbp: 1299, aud: 2599, cad: 2299, sgd: 2199, jpy: 2500, inr: 159900, cny: 12000 },
   },
   "pro-monthly": {
     id: "pro-monthly",
@@ -503,7 +519,7 @@ export const PLANS: Record<PlanId, Plan> = {
     interval: "month",
     amountMinor: 2590,
     currency: "hkd",
-    prices: { hkd: 2590, usd: 329, eur: 299, gbp: 249, aud: 529, cad: 459, sgd: 429, jpy: 520, inr: 31900 },
+    prices: { hkd: 2590, usd: 329, eur: 299, gbp: 249, aud: 529, cad: 459, sgd: 429, jpy: 520, inr: 31900, cny: 2500 },
   },
   "pro-yearly": {
     id: "pro-yearly",
@@ -511,7 +527,7 @@ export const PLANS: Record<PlanId, Plan> = {
     interval: "year",
     amountMinor: 27900,
     currency: "hkd",
-    prices: { hkd: 27900, usd: 3599, eur: 3199, gbp: 2699, aud: 5699, cad: 4999, sgd: 4699, jpy: 5600, inr: 349900 },
+    prices: { hkd: 27900, usd: 3599, eur: 3199, gbp: 2699, aud: 5699, cad: 4999, sgd: 4699, jpy: 5600, inr: 349900, cny: 26800 },
   },
 };
 
