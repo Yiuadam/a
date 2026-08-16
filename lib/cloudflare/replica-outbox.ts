@@ -3,8 +3,21 @@ import { readStoredJson, sha256, storeJson, type StoredJson } from "./payloads";
 import { canonicalCloudflareSourceClock } from "./source-clock";
 
 export const CLOUDFLARE_REPLICA_MAX_ATTEMPTS = 12;
-const MAX_DRAIN = 8;
-const MAX_CLEANUP_DRAIN = 16;
+/*
+  The ceilings a single drain page may ask for.
+
+  These were 8 and 16 while the only thing that ever called a drain was a
+  learner's own request, where a big page would have made somebody's save
+  slower to pay off somebody else's backlog. The scheduled drain in
+  lib/cloudflare/scheduled-replica-drain.ts has no user waiting on it, and a
+  ceiling of 8 there would have meant a backlog draining at the speed of the
+  cron rather than at the speed of the queue. The bounds still exist — an
+  unbounded page is how one poisoned row turns into a 30-second CPU timeout
+  that starves every row behind it — they are simply set for the caller that
+  has time rather than for the caller that does not. Request paths ask for 2.
+*/
+const MAX_DRAIN = 25;
+const MAX_CLEANUP_DRAIN = 50;
 const LEASE_MS = 2 * 60 * 1000;
 const INLINE_PAYLOAD_LIMIT = 512 * 1024;
 const MAX_PAYLOAD_BYTES = 1_900_000;
@@ -80,6 +93,15 @@ export interface CloudflareReplicaOutboxStatus {
   pending: number;
   dead: number;
   oldestPendingAt: string | null;
+  /**
+   * The oldest pending row a drain can actually pick up — the same figure as
+   * `oldestPendingAt` with the deletion-blocked rows left out.
+   *
+   * The health check reads this one rather than `oldestPendingAt`. A row that
+   * can never be leased would otherwise pin the backlog age at "for ever" and
+   * hold the alarm red permanently, which is how an alarm stops being read.
+   */
+  oldestRetryablePendingAt: string | null;
   cleanupPending: number;
   cleanupDead: number;
   /**
@@ -380,6 +402,32 @@ export async function drainCloudflareReplicaObjectCleanup(
   return { selected: due.results.length, succeeded, failed, dead };
 }
 
+/*
+  Rows the deletion guard will never let anybody update, left out of selection.
+
+  `cloudflare_replica_outbox_deletion_update_guard` (migration 0013) aborts
+  every UPDATE on a row whose subject has an account-deletion tombstone — the
+  drain's own lease UPDATE included. Such a row was still being *selected* on
+  every pass: it filled a slot in the page, the lease aborted, the `.catch`
+  swallowed it, and the drain moved on having done nothing. With a page of two
+  that was enough on its own to stop a queue dead, because the same two
+  unusable rows were chosen every time and nothing behind them was ever
+  reached.
+
+  Leaving them out is not hiding them. They are counted by
+  `blockedByAccountDeletion` below, named by the readiness report and shown in
+  the admin panel; what changes is that they no longer consume a drain budget
+  they cannot use. Clearing them is the owner's call — the subject is mid
+  deletion, so the right answer is to finish or abandon that deletion, not to
+  have a background job delete rows out from under it.
+*/
+const NOT_BLOCKED_BY_DELETION = `
+  AND (o.subject_user_id IS NULL OR NOT EXISTS (
+    SELECT 1 FROM account_deletion_tombstones AS t
+     WHERE t.user_id = o.subject_user_id
+  ))
+`;
+
 export type CloudflareReplicaExecutor = (
   task: CloudflareReplicaTask,
   bindings: BandUpCloudflareBindings,
@@ -397,19 +445,20 @@ export async function drainCloudflareReplicaOutbox(
   const nowMs = options.nowMs ?? Date.now();
   const stamp = iso(nowMs);
   const limit = Math.max(1, Math.min(MAX_DRAIN, Math.trunc(options.limit ?? 4)));
-  const subjectFilter = options.subjectUserId ? "AND subject_user_id = ?" : "";
+  const subjectFilter = options.subjectUserId ? "AND o.subject_user_id = ?" : "";
   const values: (string | number)[] = [stamp, stamp];
   if (options.subjectUserId) values.push(options.subjectUserId);
   values.push(limit);
   const due = await bindings.db.prepare(`
-    SELECT task_id, operation, subject_user_id, source_updated_at,
-           payload_inline, payload_object_key, payload_sha256, payload_bytes,
-           generation, attempts_made, updated_at
-      FROM cloudflare_replica_outbox
-     WHERE status = 'pending' AND available_at <= ?
-       AND (lease_expires_at IS NULL OR lease_expires_at <= ?)
+    SELECT o.task_id, o.operation, o.subject_user_id, o.source_updated_at,
+           o.payload_inline, o.payload_object_key, o.payload_sha256,
+           o.payload_bytes, o.generation, o.attempts_made, o.updated_at
+      FROM cloudflare_replica_outbox AS o
+     WHERE o.status = 'pending' AND o.available_at <= ?
+       AND (o.lease_expires_at IS NULL OR o.lease_expires_at <= ?)
        ${subjectFilter}
-     ORDER BY available_at, updated_at LIMIT ?
+       ${NOT_BLOCKED_BY_DELETION}
+     ORDER BY o.available_at, o.updated_at LIMIT ?
   `).bind(...values).all<ReplicaOutboxRow>();
 
   let succeeded = 0;
@@ -556,11 +605,22 @@ export async function cloudflareReplicaOutboxStatus(
 ): Promise<CloudflareReplicaOutboxStatus> {
   const row = await bindings.db.prepare(`
     SELECT
-      sum(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-      sum(CASE WHEN status = 'dead' THEN 1 ELSE 0 END) AS dead,
-      min(CASE WHEN status = 'pending' THEN created_at END) AS oldest_pending_at
-    FROM cloudflare_replica_outbox
-  `).first<{ pending: number | null; dead: number | null; oldest_pending_at: string | null }>();
+      sum(CASE WHEN o.status = 'pending' THEN 1 ELSE 0 END) AS pending,
+      sum(CASE WHEN o.status = 'dead' THEN 1 ELSE 0 END) AS dead,
+      min(CASE WHEN o.status = 'pending' THEN o.created_at END) AS oldest_pending_at,
+      min(CASE WHEN o.status = 'pending' AND (
+            o.subject_user_id IS NULL OR NOT EXISTS (
+              SELECT 1 FROM account_deletion_tombstones AS t
+               WHERE t.user_id = o.subject_user_id
+            )
+          ) THEN o.created_at END) AS oldest_retryable_pending_at
+    FROM cloudflare_replica_outbox AS o
+  `).first<{
+    pending: number | null;
+    dead: number | null;
+    oldest_pending_at: string | null;
+    oldest_retryable_pending_at: string | null;
+  }>();
   const cleanup = await bindings.db.prepare(`
     SELECT
       sum(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
@@ -590,6 +650,7 @@ export async function cloudflareReplicaOutboxStatus(
     pending: Number(row?.pending ?? 0),
     dead: Number(row?.dead ?? 0),
     oldestPendingAt: row?.oldest_pending_at ?? null,
+    oldestRetryablePendingAt: row?.oldest_retryable_pending_at ?? null,
     cleanupPending: Number(cleanup?.pending ?? 0),
     cleanupDead: Number(cleanup?.dead ?? 0),
     failures: groupFailures(taskRows.results, nowMs),
