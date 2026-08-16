@@ -8,6 +8,7 @@ import {
   maintenanceDispatchFailed,
   maintenanceNeedsRetry,
 } from "@/lib/admin/maintenance-toggle";
+import { CHECKOUT_CHECK_NAME } from "@/lib/billing/faults";
 import {
   type Check,
   type MaintenanceState,
@@ -388,6 +389,60 @@ export function ConfigList({ checks, compact = false }: { checks: Check[] | null
           )}
         </ul>
       )}
+    </section>
+  );
+}
+
+/* --------------------------------------------------------- checkout alarm */
+
+/**
+ * The one banner on this console, and it appears only when the site cannot
+ * take money.
+ *
+ * ---------------------------------------------------------------------------
+ * Why a banner rather than another check in the list
+ *
+ * On 16 August it emerged that bandup.life had been unable to take a payment
+ * for an unknown length of time. The Stripe secret key had been rolled and
+ * this Worker was never given the replacement; every checkout failed with
+ * `api_key_expired`. The learner saw "We couldn't start the checkout just
+ * now", which is the right thing to show them and says nothing to anybody
+ * else. The reason existed only in a Worker log. The owner found it by
+ * accident.
+ *
+ * The console already had a configuration list, and a broken key would have
+ * shown up in it as "1 to fix" — the same three words a missing optional
+ * environment variable produces. That is the failure being fixed here. Not
+ * being able to sell anything is not one item in a checklist; it is the only
+ * thing on this page that is losing money for every hour it is true, so it is
+ * drawn across the top, in rose, above the numbers, on both layouts.
+ *
+ * It renders nothing at all when checkout is healthy. A banner that is always
+ * present is furniture, and furniture is invisible.
+ */
+export function CheckoutAlarm({ checks }: { checks: Check[] | null }) {
+  const checkout = checks?.find((c) => c.name === CHECKOUT_CHECK_NAME);
+  if (!checkout || checkout.ok) return null;
+
+  return (
+    <section
+      /*
+        `role="alert"` so a screen reader announces it on arrival rather than
+        leaving it to be found. It is one sentence and it is the reason the
+        page was opened.
+      */
+      role="alert"
+      className="card mb-3 rounded-2xl border border-rose-300 bg-rose-50 p-3.5 sm:p-4"
+    >
+      <p className="text-sm font-semibold text-rose-900">Checkout is failing. Nobody can pay.</p>
+      <p className="mt-1 text-[13px] leading-5 text-rose-800">{checkout.detail}</p>
+      <p className="mt-2 text-[11px] leading-4 text-rose-700">
+        No learner sees any of this — they are told only that checkout could not start, and nothing
+        has been charged. What Stripe itself said is on the configuration screen.{" "}
+        <Link href="/admin/config" className="font-medium underline">
+          Every check
+        </Link>
+      </p>
     </section>
   );
 }

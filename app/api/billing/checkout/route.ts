@@ -4,6 +4,7 @@ import { supabaseConfigured } from "@/lib/auth/supabase";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { stripeConfigured } from "@/lib/billing/env";
+import { logBillingFailure } from "@/lib/billing/faults";
 import { createCheckoutSession } from "@/lib/billing/stripe";
 import { BILLING_MESSAGES } from "@/lib/billing/messages";
 import { isPlanId, PLANS } from "@/lib/billing/tiers";
@@ -53,6 +54,16 @@ async function handlePOST(req: Request) {
     logInternal("billing/checkout/session", err);
     return safeJsonError(BILLING_MESSAGES.checkoutFailed, 503);
   }
+  /*
+    Not signed in is not a fault, and nothing is logged for it.
+
+    Worth saying out loud, because this route now shouts about failures and the
+    worth of shouting depends entirely on what it stays quiet about. A
+    signed-out visitor pressing Subscribe is the flow working: they are told to
+    sign in, they sign in, they buy. Recording that beside "Stripe will not
+    accept our key" is how the second one gets missed, which is precisely what
+    happened. See lib/billing/faults.ts.
+  */
   if (!user) return safeJsonError(BILLING_MESSAGES.signInFirst, 401);
 
   let body: unknown;
@@ -106,14 +117,25 @@ async function handlePOST(req: Request) {
       cancelUrl: `${origin}/pricing?checkout=cancelled`,
     });
   } catch (err) {
-    // Stripe's own error text names the account and the key's mode. It is read
-    // into the log and never returned. ACCOUNTS.md, threat 7.
-    logInternal("billing/checkout", err);
+    /*
+      Stripe's own error text names the account and the key's mode. It is read
+      into the log and never returned. ACCOUNTS.md, threat 7.
+
+      What changed after 16 August is only how loudly it is written down. A
+      refusal no learner could have caused — an expired key, a Price id that
+      names nothing, a payment method the account is not approved for — is
+      logged with the `PAYMENTS-BROKEN` marker, and the owner console's
+      checkout probe is what makes finding that marker unnecessary. The learner
+      reads the same seven words either way.
+    */
+    logBillingFailure("billing/checkout", err);
     return safeJsonError(BILLING_MESSAGES.checkoutFailed, 502);
   }
 
   if (!url) {
-    logInternal("billing/checkout", new Error("Stripe returned a session with no url"));
+    /* Stripe answered 200 and sent no url. Nobody has seen this happen; if it
+       ever does it is ours, and the marker says so. */
+    logBillingFailure("billing/checkout", new Error("Stripe returned a session with no url"));
     return safeJsonError(BILLING_MESSAGES.checkoutFailed, 502);
   }
 
