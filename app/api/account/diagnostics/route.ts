@@ -6,6 +6,8 @@ import { withCors } from "@/lib/http/cors";
 import { LIMITS_SCHEMA_VERSION, USAGE_WINDOW_SECONDS } from "@/lib/usage/limits";
 import { hasApiKey } from "@/lib/anthropic";
 import { stripeDiagnostic } from "@/lib/billing/stripe";
+import { billingHealth } from "@/lib/billing/health";
+import { CHECKOUT_CHECK_NAME } from "@/lib/billing/faults";
 import { stripeConfigured } from "@/lib/billing/env";
 
 /*
@@ -220,8 +222,51 @@ async function handleGET(req: Request) {
     prints what Stripe said.
   */
   if (stripeConfigured()) {
-    const stripe = await stripeDiagnostic();
-    add("Stripe reachable", stripe.ok, stripe.detail);
+    /*
+      The verdict first, from the same aggregation the deploy workflow and the
+      hourly watch call — lib/billing/health.ts. One source of truth for "can
+      anybody buy anything", asked here with an admin session and asked there
+      with none.
+
+      This is the console's answer to 16 August. The site had been unable to
+      take a single payment for an unknown number of days: the Stripe key had
+      been rolled and this Worker never given the replacement, so every
+      checkout died with `api_key_expired`. The learner saw the deliberately
+      vague sentence, the reason sat in a Worker log nobody was tailing, and
+      the owner found it by accident. A red banner across the top of the
+      overview is what that morning was missing — and a failing line in a list
+      of twenty would not have been it, which is why the overview singles this
+      one check out by name.
+    */
+    const health = await billingHealth();
+    const broken = health.checks.filter((c) => !c.ok).map((c) => c.name);
+    add(
+      CHECKOUT_CHECK_NAME,
+      health.ok,
+      health.ok
+        ? "learners can buy — key, prices and Stripe all answering"
+        : `no learner can start a checkout. Failed: ${broken.join(", ")}`,
+    );
+
+    /*
+      And then what Stripe actually said, but only when something is wrong.
+
+      The dashboard can only say "unavailable". An expired key, a restricted
+      key that cannot read subscriptions, a test key against live prices and a
+      network failure all look the same from a tile, and they are four
+      different afternoons. This prints Stripe's own words for them.
+
+      It is asked second, and only on a failure, so a healthy console costs one
+      Stripe call rather than two — `billingHealth` has already made the same
+      cheap request, and repeating it to fill in an explanation nobody needs
+      would be spending the owner's rate limit on good news.
+    */
+    if (!health.ok) {
+      const stripe = await stripeDiagnostic();
+      add("Stripe reachable", stripe.ok, stripe.detail);
+    } else {
+      add("Stripe reachable", true, "answers — the key this Worker holds is accepted");
+    }
   } else {
     add(
       "Stripe configured",

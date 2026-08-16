@@ -1,4 +1,5 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
+import { classifyStripeRefusal, type BillingFault } from "./faults";
 import { stripeSecretKey, stripePriceId } from "./env";
 import { PLANS, TIERS, amountIn, isPaidTier, isPlanId, walletCurrency } from "./tiers";
 import type { Tier, PlanId } from "./tiers";
@@ -56,7 +57,79 @@ const API_BASE = "https://api.stripe.com/v1";
 */
 export const SIGNATURE_TOLERANCE_SECONDS = 300;
 
-export class StripeError extends Error {}
+/**
+ * Something Stripe refused, or something this module refused before asking it.
+ *
+ * It carries the classification as well as the text now. Before, every failure
+ * on the checkout path arrived at the route as one undifferentiated Error, so
+ * the route could do exactly one thing with all of them: log a line and answer
+ * "we couldn't start the checkout just now". That is right for the learner and
+ * it is why an expired secret key went unnoticed for an unknown number of days
+ * — see the header of lib/billing/faults.ts. The fault travels with the error
+ * so the decision about how loud to be is made where the evidence is, once.
+ *
+ * `fault` defaults to "platform" because every throw raised by this module
+ * itself — no key, no Price id configured, a Price whose amount disagrees with
+ * the catalogue — is configuration, and configuration is the owner's.
+ */
+export class StripeError extends Error {
+  readonly status: number | null;
+  readonly code: string | null;
+  readonly fault: BillingFault;
+
+  constructor(
+    message: string,
+    options: { status?: number | null; code?: string | null; fault?: BillingFault } = {},
+  ) {
+    super(message);
+    this.name = "StripeError";
+    this.status = options.status ?? null;
+    this.code = options.code ?? null;
+    this.fault = options.fault ?? "platform";
+  }
+}
+
+/**
+ * Turns a non-2xx Stripe response into the error the rest of the app sees.
+ *
+ * Shared by the POST and the GET helper, which had drifted: the POST path
+ * logged Stripe's message as well as its code, and the GET path still logged
+ * only the code. Reading a Price is how the checkout preflight fails, so the
+ * half that was still terse was the half covering `assertPriceMatchesCatalogue`
+ * — the exact call an expired key fails first.
+ *
+ * Stripe's error messages are written for developers and can name the account,
+ * the key's mode and the object that was refused. They are built for the
+ * server log; the caller is never shown one. ACCOUNTS.md, threat 7.
+ */
+function refusal(path: string, status: number, payload: unknown): StripeError {
+  const error = (payload as { error?: { message?: unknown; code?: unknown } } | null)?.error;
+  /*
+    The message, not just the code — and this cost real time to learn.
+
+    Stripe attaches `code` to errors about a *thing* (`api_key_expired`,
+    `resource_missing`). Errors about a *request* — a parameter it will not
+    accept, a payment method not enabled on the account — carry a `message` and
+    often no code at all. Logging the code alone turned every one of those into
+    "refused: 400", which says only that Stripe said no.
+
+    It happened twice in one morning. A wallet checkout began failing after two
+    payment methods were combined onto one Session, and the log could not say
+    whether that was the pairing, the currency or a parameter; the answer had to
+    be got by replaying the call by hand against the live account.
+
+    Both are logged now, and both feed the classification, because a refusal
+    that carries no code can only be told apart by its message.
+  */
+  const code = typeof error?.code === "string" ? error.code : null;
+  const message = typeof error?.message === "string" ? error.message : null;
+  const detail = [code, message].filter(Boolean).join(": ") || String(status);
+  return new StripeError(`${path} refused: ${detail}`, {
+    status,
+    code,
+    fault: classifyStripeRefusal(status, code, message),
+  });
+}
 
 /* -------------------------------------------------------------------------- */
 /* Signature verification                                                      */
@@ -500,17 +573,7 @@ async function stripePost(path: string, body: string): Promise<Record<string, un
     throw new StripeError(`response from ${path} was not JSON (${res.status})`);
   }
 
-  if (!res.ok) {
-    /*
-      Stripe's error messages are written for developers and can name the
-      account, the key's mode and the object that was refused. The message is
-      built for the server log and the caller is never shown it — see
-      ACCOUNTS.md, threat 7.
-    */
-    const error = (payload as { error?: { message?: unknown; code?: unknown } }).error;
-    const detail = typeof error?.code === "string" ? error.code : String(res.status);
-    throw new StripeError(`${path} refused: ${detail}`);
-  }
+  if (!res.ok) throw refusal(path, res.status, payload);
 
   return payload as Record<string, unknown>;
 }
@@ -539,11 +602,7 @@ async function stripeGet(path: string): Promise<Record<string, unknown>> {
     throw new StripeError(`response from ${path} was not JSON (${res.status})`);
   }
 
-  if (!res.ok) {
-    const error = (payload as { error?: { code?: unknown } }).error;
-    const detail = typeof error?.code === "string" ? error.code : String(res.status);
-    throw new StripeError(`${path} refused: ${detail}`);
-  }
+  if (!res.ok) throw refusal(path, res.status, payload);
 
   return payload as Record<string, unknown>;
 }
@@ -1024,8 +1083,9 @@ export async function createPortalSession(args: {
  * `limit=1` because the answer is not wanted — only whether the question was
  * allowed. It reads nothing and changes nothing.
  *
- * The detail it returns is Stripe's own error code, never the key. It is shown
- * only through the owner-only diagnostics route.
+ * The detail it returns is Stripe's own error code and message, never the key.
+ * It is shown only through the owner-only diagnostics route, and to the
+ * boolean-only health endpoint it answers with nothing but `ok`.
  */
 export async function stripeDiagnostic(): Promise<{ ok: boolean; detail: string }> {
   assertServerOnly(MODULE);

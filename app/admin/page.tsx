@@ -8,7 +8,8 @@ import AdminOverviewCharts, {
 import AdminTrendChart from "@/components/admin/AdminTrendChart";
 import FinanceTrendChart from "@/components/admin/FinanceTrendChart";
 import ConsoleShell, { CONSOLE_NAV, NotFound } from "@/components/admin/ConsoleShell";
-import { ConfigList, SiteSwitch } from "@/components/admin/ConsoleParts";
+import { CheckoutAlarm, ConfigList, SiteSwitch } from "@/components/admin/ConsoleParts";
+import { CHECKOUT_CHECK_NAME } from "@/lib/billing/faults";
 import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { exactMoneyMajor, formatExactMoney } from "@/lib/admin/finance-format";
 import { useFinance } from "@/lib/admin/useFinance";
@@ -84,6 +85,12 @@ export default function AdminPage() {
       : "Stripe is configured but could not be reached."
     : undefined;
   const failing = checks?.filter((c) => !c.ok).length ?? 0;
+  /*
+    Checkout is pulled out of the checklist and named on its own row, because
+    "3 to fix" is what the console said all through the fortnight nobody could
+    buy anything. A row that says "Checkout failing" is a row that gets opened.
+  */
+  const checkoutBroken = checks?.some((c) => c.name === CHECKOUT_CHECK_NAME && !c.ok) ?? false;
   const financeCurrencies = finance?.stripe?.currencies ?? [];
   const financePrimary = financeCurrencies.length === 1 ? financeCurrencies[0] : null;
   const financeEstimate = finance?.hkdEstimate ?? null;
@@ -204,9 +211,11 @@ export default function AdminPage() {
         : n.href === "/admin/config"
           ? checks === null
             ? undefined
-            : failing === 0
-              ? "All passing"
-              : `${failing} to fix`
+            : checkoutBroken
+              ? "Checkout failing"
+              : failing === 0
+                ? "All passing"
+                : `${failing} to fix`
           : n.href === "/admin/finance"
             ? receivedMoney
               ? formatExactMoney(receivedMoney)
@@ -222,6 +231,9 @@ export default function AdminPage() {
 
   return (
     <ConsoleShell title="Overview" lead="Yours alone. Nobody else can reach this page." compact>
+      {/* Above the numbers, on every width, and absent unless it is true. */}
+      <CheckoutAlarm checks={checks} />
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label="Registered accounts"

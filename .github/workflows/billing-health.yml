@@ -1,0 +1,130 @@
+# Ask the live site, every hour, whether anybody can pay.
+#
+# ---------------------------------------------------------------------------
+# The gap this closes
+#
+# The deploy workflow already calls /api/billing/health straight after every
+# deploy and fails the run when billing is not wired up. That catches a deploy
+# that breaks payments. It cannot catch what happened on 16 August, because
+# there was no deploy in it: the Stripe secret key was rolled, this Worker was
+# never given the replacement, and every checkout from that moment on failed
+# with `api_key_expired`. The next deploy might have been weeks away. Nothing
+# else asked. The owner found it by accident while testing something else, and
+# nobody knows how long the site had been unable to take money.
+#
+# A key expires on a calendar, not on a git push. So something has to ask on a
+# calendar too, and this is it: the same endpoint, the same booleans, once an
+# hour, against production.
+#
+# ---------------------------------------------------------------------------
+# Why GitHub Actions rather than a Cloudflare cron trigger
+#
+# wrangler.jsonc has no triggers.crons today, and adding one was the other
+# candidate. A scheduled Worker would be closer to the thing being watched and
+# would need no external service at all — but it can only *notice*. Telling
+# the owner is the entire point of this file, and from inside a Worker the
+# ways to do that are an email provider, a paging service or a chat webhook:
+# a paid third party, or a new secret and a new account to keep alive. A cron
+# Worker that logs "payments are broken" into the same Worker log nobody was
+# tailing would rebuild the original failure with more machinery.
+#
+# A failing scheduled workflow here already reaches a person. GitHub emails the
+# repository owner when a scheduled run fails — that is the default and it
+# needs nothing configured — and the failure is also visible on the Actions
+# tab and in the GitHub mobile app. It costs nothing, it is one file, and it
+# uses the credentials that already exist. If the owner would rather have a
+# push notification than an email, that is a setting in GitHub's own
+# notification preferences rather than a change here.
+#
+# The one honest weakness: this watches production from outside GitHub, so a
+# GitHub outage means an hour or two of not being watched. That is the correct
+# trade against standing up something that has to be paid for and maintained.
+#
+# ---------------------------------------------------------------------------
+# Hourly, and only after three tries
+#
+# Hourly is soon enough — the damage is measured in days, not minutes — and it
+# is 24 requests a day to one endpoint that makes one cheap Stripe call.
+#
+# Three attempts a minute apart before the run is failed, because the failure
+# that matters is a persistent one and a single blip must not email the owner
+# about a payment system that is working. An alarm that cries wolf is one that
+# gets a filter rule written for it, and then it is 16 August again.
+
+name: Billing health
+
+on:
+  schedule:
+    # Not on the hour. Scheduled workflows queue behind everyone else's, and
+    # GitHub delays the popular minutes; :23 is quieter and this run has no
+    # reason to be one of them.
+    - cron: "23 * * * *"
+  # So the owner can ask right now, after rotating a key, without waiting.
+  workflow_dispatch:
+
+# Two of these overlapping would say the same thing twice.
+concurrency:
+  group: billing-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the live site whether billing is wired up
+        run: |
+          url="https://bandup.siksafe-realtime-ai-vision.workers.dev/api/billing/health"
+          attempt=0
+          max_attempts=3
+          delay=60
+          body=""
+          while [ "$attempt" -lt "$max_attempts" ]; do
+            attempt=$((attempt + 1))
+            body="$(curl --silent --show-error --fail-with-body --max-time 30 "$url" || true)"
+            ok="$(echo "$body" | node -e '
+              let input = "";
+              process.stdin.on("data", (chunk) => { input += chunk; });
+              process.stdin.on("end", () => {
+                try {
+                  const parsed = JSON.parse(input);
+                  process.stdout.write(parsed.ok === true ? "true" : "false");
+                } catch {
+                  process.stdout.write("false");
+                }
+              });
+            ')"
+            if [ "$ok" = "true" ]; then
+              echo "::notice::Billing is wired up — a learner can start a checkout."
+              exit 0
+            fi
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "Attempt $attempt says billing is not healthy. Trying again in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          # This message is what lands in the owner's inbox, so it says what is
+          # happening to learners rather than what is happening to a check.
+          echo "::error::bandup.life cannot take a payment. Every learner who presses Subscribe is being told checkout could not start. Failed checks:"
+          echo "$body" | node -e '
+            let input = "";
+            process.stdin.on("data", (chunk) => { input += chunk; });
+            process.stdin.on("end", () => {
+              try {
+                const parsed = JSON.parse(input);
+                const failed = (parsed.checks ?? []).filter((check) => check.ok !== true);
+                if (failed.length === 0) {
+                  console.log("  (the site did not answer at all)");
+                }
+                for (const check of failed) {
+                  console.log(`  - ${check.name}`);
+                }
+              } catch {
+                console.log("  (the site did not answer, or the answer could not be parsed)");
+              }
+            });
+          '
+          echo "The reason behind each failed check is in the owner console at /admin — it is never in this log, because this endpoint is public."
+          exit 1

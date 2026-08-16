@@ -6,6 +6,7 @@ import { supabaseConfigured } from "@/lib/auth/supabase";
 import { countryFromRequest, currencyForCountry } from "@/lib/billing/currency";
 import { stripeWalletConfigured } from "@/lib/billing/env";
 import { BILLING_MESSAGES } from "@/lib/billing/messages";
+import { logBillingFailure } from "@/lib/billing/faults";
 import { createWalletCheckoutSession } from "@/lib/billing/stripe";
 import { stripeCustomerFor } from "@/lib/billing/subscriptions";
 import { isPlanId } from "@/lib/billing/tiers";
@@ -65,7 +66,15 @@ async function handlePOST(req: Request) {
     if (!url) throw new Error("Stripe returned a session with no url");
     return NextResponse.json({ url });
   } catch (err) {
-    logInternal("billing/wallet-checkout", err);
+    /*
+      Same classification as the card route, and it matters more here: the
+      wallets are the half of payments most likely to stop working with nothing
+      in this repository changing, because Alipay and WeChat Pay can be
+      switched off, or left in Stripe's "pending approval", on the account
+      itself. That is invisible from here and total for the buyer, so it is
+      logged as `PAYMENTS-BROKEN` rather than as one more line.
+    */
+    logBillingFailure("billing/wallet-checkout", err);
     return safeJsonError(BILLING_MESSAGES.checkoutFailed, 502);
   }
 }
