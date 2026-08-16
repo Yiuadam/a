@@ -31,7 +31,7 @@ than to a version — so anything done on a preview happens to real data. And a
 database migration is not previewable at all: applying one changes production
 immediately, so say so before asking for one.
 
-Production is <https://bandup.siksafe-realtime-ai-vision.workers.dev>. The URL is
+Production is <https://bandup.life>. The URL is
 permanent; every deployment replaces what is served there. It becomes
 `bandup.life`, which it now is — a DNS change rather than a move, so the
 workers.dev URL still serves the same deployment.

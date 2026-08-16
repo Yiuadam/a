@@ -76,7 +76,7 @@ jobs:
     steps:
       - name: Ask the live site whether billing is wired up
         run: |
-          url="https://bandup.siksafe-realtime-ai-vision.workers.dev/api/billing/health"
+          url="https://bandup.life/api/billing/health"
           attempt=0
           max_attempts=3
           delay=60

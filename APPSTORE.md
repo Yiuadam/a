@@ -26,14 +26,14 @@ Cloudflare dashboard → **Workers & Pages** → **bandup** → **Settings** →
 The production URL is fixed and everything below depends on it:
 
 ```
-https://bandup.siksafe-realtime-ai-vision.workers.dev
+https://bandup.life
 ```
 
 ## Step 2 — Build the iOS project
 
 ```bash
 npm install
-NEXT_PUBLIC_API_BASE=https://bandup.siksafe-realtime-ai-vision.workers.dev npm run build:mobile
+NEXT_PUBLIC_API_BASE=https://bandup.life npm run build:mobile
 npx cap add ios          # first time only
 npx cap sync ios
 npx cap open ios         # opens Xcode
@@ -115,7 +115,7 @@ disclaimer already in the app footer should stay.
 ## Updating the app later
 
 ```bash
-NEXT_PUBLIC_API_BASE=https://bandup.siksafe-realtime-ai-vision.workers.dev npm run build:mobile
+NEXT_PUBLIC_API_BASE=https://bandup.life npm run build:mobile
 npx cap sync ios
 ```
 then archive and upload a build with a higher version number. Changes to the

@@ -95,7 +95,7 @@ already connected to **Cloudflare Workers**, and every push to `main` deploys
 itself to the same permanent address:
 
 ```
-https://bandup.siksafe-realtime-ai-vision.workers.dev
+https://bandup.life
 ```
 
 That URL does not change between deployments, so a bookmark or an App Store

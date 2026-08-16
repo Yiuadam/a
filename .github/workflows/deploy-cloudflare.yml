@@ -103,7 +103,7 @@ jobs:
       - name: Verify billing configuration survived the deploy
         if: steps.creds.outputs.ready == 'true' && inputs.maintenance != true
         run: |
-          url="https://bandup.siksafe-realtime-ai-vision.workers.dev/api/billing/health"
+          url="https://bandup.life/api/billing/health"
           attempt=0
           max_attempts=5
           delay=5
