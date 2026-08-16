@@ -1,0 +1,121 @@
+# Ask the live site, every hour, whether the D1 mirror is still moving.
+#
+# ---------------------------------------------------------------------------
+# The gap this closes
+#
+# CLOUDFLARE_DATA_MODE is `dual`: Supabase is authoritative and every committed
+# learner write is mirrored into D1 and R2 through a queue. On 14 August the
+# mirror stopped being drained. It was found on 16 August, by hand, while
+# looking at something else — twelve progress snapshots, twenty usage events,
+# two cost events, a profile and a username behind, and a queue counter reading
+# "4 pending" the entire time, which is also what a healthy queue about to be
+# drained reads. No deploy was involved, so the post-deploy checks could never
+# have caught it, and nothing else asked.
+#
+# The drain now runs on a Cloudflare cron every five minutes. This file is the
+# other half: the part that notices when it stops. A schedule that silently
+# never fires is indistinguishable from a schedule with nothing to do, and that
+# is precisely the failure being fixed, so it would be absurd to ship the timer
+# without something watching the timer.
+#
+# ---------------------------------------------------------------------------
+# Why this is a copy of billing-health.yml
+#
+# Because it is the same problem and it already has a considered answer there:
+# a scheduled workflow failing is a thing GitHub emails the repository owner
+# about, with nothing to configure, no third party to pay and no secret to keep
+# alive. The long version of that argument is in billing-health.yml and is not
+# repeated here. Two alerting mechanisms would be two things to maintain; this
+# is deliberately the same one.
+#
+# ---------------------------------------------------------------------------
+# What it does and does not fail on
+#
+# /api/replica/health answers with booleans and nothing else — it is
+# unauthenticated, so it may not say how far behind, on which operations or for
+# whom. Two checks: the drain has left a receipt in the last half hour, and the
+# oldest drainable row is under six hours old.
+#
+# Dead-lettered rows, and rows frozen by an account-deletion tombstone, do not
+# fail it. Both exist in production today and both need a person's judgement
+# rather than a retry; an alarm that is red from the day it is installed is one
+# that gets a filter rule written for it, and then the next stall is silent for
+# two days again. Those live on the admin readiness report, which names them.
+
+name: Replica mirror health
+
+on:
+  schedule:
+    # :41, for the reason billing-health.yml picked :23 — the popular minutes
+    # are queued behind everybody else's scheduled runs, and these two should
+    # not be delayed by each other either.
+    - cron: "41 * * * *"
+  # So the owner can ask right now, after a deploy or a repair, without waiting.
+  workflow_dispatch:
+
+concurrency:
+  group: replica-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the live site whether the mirror is still being drained
+        run: |
+          url="https://bandup.life/api/replica/health"
+          attempt=0
+          max_attempts=3
+          delay=60
+          body=""
+          while [ "$attempt" -lt "$max_attempts" ]; do
+            attempt=$((attempt + 1))
+            body="$(curl --silent --show-error --fail-with-body --max-time 30 "$url" || true)"
+            ok="$(echo "$body" | node -e '
+              let input = "";
+              process.stdin.on("data", (chunk) => { input += chunk; });
+              process.stdin.on("end", () => {
+                try {
+                  const parsed = JSON.parse(input);
+                  process.stdout.write(parsed.ok === true ? "true" : "false");
+                } catch {
+                  process.stdout.write("false");
+                }
+              });
+            ')"
+            if [ "$ok" = "true" ]; then
+              echo "::notice::The replica mirror is being drained on schedule."
+              exit 0
+            fi
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "Attempt $attempt says the mirror is not healthy. Trying again in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          # This is what lands in the owner's inbox, so it says what is
+          # happening to the data rather than what is happening to a check.
+          echo "::error::bandup.life is no longer mirroring learner data into D1. Supabase is still authoritative and learners are unaffected today, but the replica is drifting and the migration cannot be cut over while it is. Failed checks:"
+          echo "$body" | node -e '
+            let input = "";
+            process.stdin.on("data", (chunk) => { input += chunk; });
+            process.stdin.on("end", () => {
+              try {
+                const parsed = JSON.parse(input);
+                const failed = (parsed.checks ?? []).filter((check) => check.ok !== true);
+                if (failed.length === 0) {
+                  console.log("  (the site did not answer at all)");
+                }
+                for (const check of failed) {
+                  console.log(`  - ${check.name}`);
+                }
+              } catch {
+                console.log("  (the site did not answer, or the answer could not be parsed)");
+              }
+            });
+          '
+          echo "replica_drain_ran_recently means the five-minute cron trigger has stopped firing — check the Worker's cron events in the Cloudflare dashboard."
+          echo "replica_backlog_within_bound means it is firing but rows are not clearing — the reason for each stuck row is in the owner console at /admin, never in this log, because this endpoint is public."
+          exit 1

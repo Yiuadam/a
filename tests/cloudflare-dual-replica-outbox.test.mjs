@@ -407,14 +407,20 @@ test("an outbox row frozen by an account-deletion tombstone is counted rather th
     context.bindings,
     { nowMs: 2_000 },
   );
-  // The deletion guard aborts the lease UPDATE, so the row is not attempted,
-  // records no reason and never dies: the count is the only evidence there is.
-  assert.equal(drained.selected, 1);
+  /*
+    The deletion guard aborts the lease UPDATE, so the row cannot be attempted,
+    records no reason and never dies. It used to be *selected* on every pass
+    all the same — filling a slot in a page of two, failing silently, and
+    keeping whatever was behind it from ever being reached. It is now left out
+    of selection and counted instead, which is the only evidence there is.
+  */
+  assert.equal(drained.selected, 0);
   assert.equal(drained.succeeded, 0);
   assert.equal(drained.failed, 0);
   const status = await outbox.cloudflareReplicaOutboxStatus(context.bindings, 3_000);
   assert.equal(status.pending, 1);
   assert.equal(status.blockedByAccountDeletion, 1);
+  assert.equal(status.oldestRetryablePendingAt, null);
   assert.deepEqual(status.failures, []);
 });
 
