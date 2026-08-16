@@ -51,6 +51,8 @@ export function managerOrganizationPreview(): OrganizationPortal {
         role: "teacher",
         status: "active",
         joinedAt: "2026-07-06T09:00:00.000Z",
+        shareFutureHistory: false,
+        sharePreJoinHistory: false,
         assignedTeacherIds: [],
       },
       {
@@ -62,6 +64,8 @@ export function managerOrganizationPreview(): OrganizationPortal {
         role: "student",
         status: "active",
         joinedAt: "2026-07-12T09:00:00.000Z",
+        shareFutureHistory: true,
+        sharePreJoinHistory: false,
         assignedTeacherIds: ["50000000-0000-4000-8000-000000000001"],
       },
       {
@@ -73,6 +77,8 @@ export function managerOrganizationPreview(): OrganizationPortal {
         role: "student",
         status: "active",
         joinedAt: "2026-07-18T09:00:00.000Z",
+        shareFutureHistory: true,
+        sharePreJoinHistory: true,
         assignedTeacherIds: ["50000000-0000-4000-8000-000000000001"],
       },
     ],

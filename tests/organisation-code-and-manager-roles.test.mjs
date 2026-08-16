@@ -308,23 +308,24 @@ test("an owner promoting to owner still works, and platformAdmin can too", async
   }
 });
 
-test("demoting to student is still refused, with the history-sharing reason, even for a manager acting on a manager", async () => {
+// Demoting to student used to be refused outright, on the theory that a
+// student always arrives having agreed to history sharing. A manager can now
+// make the change — tests/organisation-role-and-join.test.mjs covers the
+// replacement guarantee: the conversion clears both sharing flags instead of
+// carrying across consent nobody actually gave.
+test("demoting a manager to student now succeeds, since converting a member into a student is allowed", async () => {
   const context = fixture();
   try {
-    await assert.rejects(
-      commands.cloudflareOrganizationCommand(
-        context.user(ids.manager), false, "change_member_role",
-        memberActionPayload({ userId: ids.manager2, role: "student" }),
-        nextKey("demote-to-student"), context.bindings,
-      ),
-      (error) => error instanceof commands.OrganizationCommandError
-        && error.status === 409
-        && error.message === "Invite this person as a student so they can accept history sharing first.",
+    const response = await commands.cloudflareOrganizationCommand(
+      context.user(ids.manager), false, "change_member_role",
+      memberActionPayload({ userId: ids.manager2, role: "student" }),
+      nextKey("demote-to-student"), context.bindings,
     );
+    assert.equal(response.ok, true);
     const row = context.database.prepare(
       "SELECT role FROM organization_memberships WHERE organization_id = ? AND user_id = ?",
     ).get(ids.organization, ids.manager2);
-    assert.equal(row.role, "manager");
+    assert.equal(row.role, "student");
   } finally {
     context.database.close();
   }

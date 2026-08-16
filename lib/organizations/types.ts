@@ -49,6 +49,9 @@ export interface OrganizationMember {
   role: OrganizationRole;
   status: MembershipStatus;
   joinedAt: string | null;
+  /** Whether this member currently shares history with the organisation — never inferred, only ever what request_to_join or a manager's action last set. */
+  shareFutureHistory: boolean;
+  sharePreJoinHistory: boolean;
   assignedTeacherIds: string[];
 }
 
