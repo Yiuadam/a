@@ -1,6 +1,6 @@
 import { rpc } from "@/lib/auth/supabase";
 import type { BandUpCloudflareBindings } from "./bindings";
-import { canonicalCloudflareSourceClock } from "./source-clock";
+import { parityClock as clock } from "./source-clock";
 
 /*
   Naming the rows that are out of parity.
@@ -103,15 +103,6 @@ function field(value: string | number | null): string {
 
 function line(parts: Array<string | number | null>): string {
   return parts.map(field).join("|");
-}
-
-function clock(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  try {
-    return canonicalCloudflareSourceClock(value).replace(/\.(\d{6})\d{3}Z$/, ".$1Z");
-  } catch {
-    return null;
-  }
 }
 
 async function sha256(value: string): Promise<string> {

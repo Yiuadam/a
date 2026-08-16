@@ -10,7 +10,7 @@ import {
   cloudflareReplicaOutboxStatus,
   type CloudflareReplicaOutboxStatus,
 } from "./replica-outbox";
-import { canonicalCloudflareSourceClock } from "./source-clock";
+import { parityClock as clock } from "./source-clock";
 
 export const MIGRATION_FINGERPRINT_VERSION = "bandup-application-data-v3";
 
@@ -108,15 +108,6 @@ function line(parts: Array<string | number | null>): string {
     const value = String(part);
     return `${new TextEncoder().encode(value).byteLength}:${value}`;
   }).join("|");
-}
-
-function clock(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  try {
-    return canonicalCloudflareSourceClock(value).replace(/\.(\d{6})\d{3}Z$/, ".$1Z");
-  } catch {
-    return null;
-  }
 }
 
 async function targetFingerprint(
