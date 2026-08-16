@@ -250,6 +250,15 @@ html {
 body {
   /* Text inside a rounded content window never crosses this invisible rail. */
   --window-text-inset: clamp(1.25rem, calc(0.85rem + 1vw), 1.75rem);
+  /*
+    The same idea one level in. A row nested inside an already-inset card, or
+    a tile in a four-across grid, cannot carry the full rail — 1.75rem on each
+    side of a 12rem tile leaves no room to read in. What it can carry is a
+    floor, and a floor is what was missing: those surfaces had drifted to 10px,
+    12px and 14px with nothing deciding which was right. This is the second
+    rail, and nothing nested crosses it either.
+  */
+  --window-text-inset-compact: clamp(0.875rem, calc(0.75rem + 0.4vw), 1rem);
   --page-window-gutter: clamp(1rem, calc(0.75rem + 1.25vw), 2rem);
   --glass-fill: rgba(255, 255, 255, 0.12);
   --glass-fill-strong: rgba(255, 255, 255, 0.2);
@@ -298,6 +307,10 @@ body[data-viewport-locked] {
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
+  /* The dashed "more on the way" card is the one paper card that is not a
+     .card, so it never picked up the rail its neighbours sit on. It stands in
+     the same grid, so it keeps the same distance from its own edge. */
+  padding-inline: var(--window-text-inset);
 }
 
 /*
@@ -2148,6 +2161,14 @@ body::before {
   padding-right: var(--window-text-inset) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
   backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
+}
+
+/*
+  The nested rail as one class, so a dense row asks for it by name instead of
+  each caller picking its own px-3 and hoping it matches the row next to it.
+*/
+.text-inset-compact {
+  padding-inline: var(--window-text-inset-compact);
 }
 
 /* Cards that are links get a gentle lift, so "clickable" is visible at a glance. */

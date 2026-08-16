@@ -29,7 +29,7 @@ function AssignedPracticeNoticeContent({ className }: { className: string }) {
       tabIndex={-1}
       data-notification-target="assigned-practice"
       data-assignment-id={assignmentId}
-      className={`scroll-mt-24 rounded-[var(--radius-lg)] border border-indigo-300/80 bg-indigo-50/60 px-3 py-2 text-left outline-none ring-2 ring-indigo-300/35 ${className}`}
+      className={`text-inset-compact scroll-mt-24 rounded-[var(--radius-lg)] border border-indigo-300/80 bg-indigo-50/60 py-2 text-left outline-none ring-2 ring-indigo-300/35 ${className}`}
     >
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-indigo-800">
         Teacher assignment

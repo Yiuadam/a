@@ -62,6 +62,9 @@
     inset 0 1px 0 var(--glass-highlight),
     0 1px 3px var(--glass-shadow);
   padding: 0.75rem;
+  /* A tile in a two- or four-across grid is too narrow for the full window
+     rail, but it is not too narrow for the nested one. */
+  padding-inline: var(--window-text-inset-compact);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
   backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
   transition:
@@ -126,13 +129,16 @@
   grid-column: 1 / -1;
 }
 
-.compactMore {
+/* Doubled class only so the block padding here still beats .practice-paper-card
+   in source order; the side inset is deliberately the same full window rail,
+   because this row spans the whole grid rather than sitting in a column. */
+.compactMore.compactMore {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   column-gap: 0.625rem;
   min-height: 0;
-  padding: 0.625rem 0.75rem;
+  padding: 0.625rem var(--window-text-inset);
   text-align: left;
 }
 
@@ -241,7 +247,8 @@
 
   .compactCard {
     min-height: 7.5rem;
-    padding: 0.875rem;
+    /* Block only: the side inset stays on the nested rail set above. */
+    padding-block: 0.875rem;
   }
 
   .compactCardHeader {

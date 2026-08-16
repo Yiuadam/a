@@ -188,7 +188,7 @@ function ReadingTestPageRunner() {
               though it applied to both — next to a button labelled "Exam
               conditions", which is where the contradiction came from.
             */}
-            <p className="mt-2 rounded-lg bg-indigo-50 px-3 py-2 text-left text-sm leading-6 text-indigo-800">
+            <p className="text-inset-compact mt-2 rounded-lg bg-indigo-50 py-2 text-left text-sm leading-6 text-indigo-800">
               {mode === "timed"
                 ? "Like the real exam: you cannot see any answers until you finish. When you finish, you get your band and every explanation."
                 : "You can check one answer at a time and read why it is right. Once you check a question you cannot change it, so your band still means something."}

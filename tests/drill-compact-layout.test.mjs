@@ -102,8 +102,9 @@ test("the compact topic index holds every destination and keeps More Coming slim
   );
   assert.match(
     compactCss,
-    /\.compactMore\s*\{[^}]*min-height:\s*0;[^}]*padding:\s*0\.625rem\s+0\.75rem;[^}]*\}/,
-    "the notice is deliberately shorter than a destination card",
+    /\.compactMore\.compactMore\s*\{[^}]*min-height:\s*0;[^}]*padding:\s*0\.625rem\s+var\(--window-text-inset\);[^}]*\}/,
+    "the notice is deliberately shorter than a destination card, and — spanning "
+      + "the whole row rather than sitting in a column — keeps the full window rail at its sides",
   );
   assert.match(
     compactCss,
