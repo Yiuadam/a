@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import type { CloudflareDomainDriftReport } from "@/lib/cloudflare/domain-drift";
 import type { CloudflareMigrationReadinessReport } from "@/lib/cloudflare/migration-readiness";
 
 function label(value: string): string {
@@ -13,6 +14,21 @@ function label(value: string): string {
 export default function CloudflareMigrationReadiness() {
   const [report, setReport] = useState<CloudflareMigrationReadinessReport | null>(null);
   const [failed, setFailed] = useState(false);
+  const [drift, setDrift] = useState<CloudflareDomainDriftReport | null>(null);
+  const [driftState, setDriftState] = useState<"idle" | "loading" | "failed">("idle");
+
+  function nameDriftingRows() {
+    setDriftState("loading");
+    void authedFetch(apiUrl("/api/admin/cloudflare/readiness?drift=all"), { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("drift unavailable");
+        const next = await response.json() as { rowDrift: CloudflareDomainDriftReport | null };
+        if (!next.rowDrift) throw new Error("drift unavailable");
+        setDrift(next.rowDrift);
+        setDriftState("idle");
+      })
+      .catch(() => setDriftState("failed"));
+  }
 
   useEffect(() => {
     let live = true;
@@ -67,6 +83,52 @@ export default function CloudflareMigrationReadiness() {
                 )}
               </div>
             ))}
+          </div>
+
+          <div className="mt-3 rounded-xl border border-slate-200/80 px-3 py-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-slate-800">Which rows are drifting</strong>
+              <button
+                type="button"
+                onClick={nameDriftingRows}
+                disabled={driftState === "loading"}
+                className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-slate-700 disabled:opacity-60"
+              >
+                {driftState === "loading" ? "Comparing rows…" : "Name the drifting rows"}
+              </button>
+            </div>
+            <p className="mt-1 leading-5 text-slate-500">
+              Reads both databases row by row and reports keys only — never a stored value. Run it when a domain above is not equal.
+            </p>
+            {driftState === "failed" && (
+              <p role="alert" className="mt-2 text-rose-700">Row comparison could not be run.</p>
+            )}
+            {drift && (
+              <ul className="mt-2 space-y-2">
+                {drift.domains.map((entry) => (
+                  <li key={entry.domain} className="rounded-lg bg-slate-50 px-2.5 py-2">
+                    <strong className="text-slate-800">{label(entry.domain)}</strong>{" "}
+                    <span className={entry.status === "equal" ? "text-emerald-700" : "text-amber-700"}>{label(entry.status)}</span>
+                    <span className="mt-1 block tabular-nums text-slate-500">
+                      Missing from Cloudflare {entry.missingInTarget.total} · only in Cloudflare {entry.missingInSource.total} · differing {entry.fingerprintMismatch.total}
+                      {entry.complete ? "" : ` · compared ${entry.comparedSourceRows} source and ${entry.comparedTargetRows} target rows only`}
+                    </span>
+                    {entry.missingInTarget.sample.length > 0 && (
+                      <span className="mt-1 block break-all text-slate-500">Missing from Cloudflare: {entry.missingInTarget.sample.join(", ")}</span>
+                    )}
+                    {entry.missingInSource.sample.length > 0 && (
+                      <span className="mt-1 block break-all text-slate-500">
+                        Only in Cloudflare: {entry.missingInSource.sample.join(", ")}
+                        {entry.deletionTombstones && ` (${entry.deletionTombstones.withTombstone} of ${entry.deletionTombstones.sampled} already have a deletion tombstone)`}
+                      </span>
+                    )}
+                    {entry.fingerprintMismatch.sample.length > 0 && (
+                      <span className="mt-1 block break-all text-slate-500">Differing rows: {entry.fingerprintMismatch.sample.join(", ")}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
