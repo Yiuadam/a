@@ -12,6 +12,10 @@ import {
   cloudflareReplicaOutboxStatus,
   type CloudflareReplicaOutboxStatus,
 } from "./replica-outbox";
+import {
+  cutoverWriteBarrierReadiness,
+  type CutoverWriteBarrierReadiness,
+} from "./write-barrier";
 import { parityClock as clock } from "./source-clock";
 import { parityMoney as money } from "./parity-money";
 
@@ -94,6 +98,15 @@ export interface CloudflareMigrationReadinessReport {
   domains: MigrationDomainReadiness[];
   appSettings: AppSettingsParityReport | null;
   outbox: CloudflareReplicaOutboxStatus | null;
+  /**
+   * The write-refusal mechanism's own state: armed, not armed, or armed at a
+   * given time — never folded into the bare `unsupportedDomains` strings
+   * below, because "armed" is a live D1 fact a static registry entry cannot
+   * represent, and the owner must be able to see the difference between the
+   * mechanism existing and the mechanism actually being armed. Null only when
+   * it could not be read at all. See lib/cloudflare/write-barrier.ts.
+   */
+  writeBarrier: CutoverWriteBarrierReadiness | null;
   unsupportedDomains: string[];
   blockers: string[];
   readyForCloudflareOnly: boolean;
@@ -341,15 +354,17 @@ export async function cloudflareMigrationReadinessReport(
     readSourceFingerprints?: () => Promise<SourceFingerprintRow[]>;
     readAppSettings?: () => Promise<AppSettingsParityReport>;
     readOutbox?: () => Promise<CloudflareReplicaOutboxStatus>;
+    readWriteBarrier?: () => Promise<CutoverWriteBarrierReadiness>;
   } = {},
 ): Promise<CloudflareMigrationReadinessReport> {
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const readSourceFingerprints = options.readSourceFingerprints
     ?? (() => rpc<SourceFingerprintRow[]>("cloudflare_migration_source_fingerprints", {}));
-  const [exactResult, appSettingsResult, outboxResult] = await Promise.all([
+  const [exactResult, appSettingsResult, outboxResult, writeBarrierResult] = await Promise.all([
     exactDomainReports(bindings, readSourceFingerprints),
     (options.readAppSettings?.() ?? appSettingsParityReport(bindings)).catch(() => null),
     (options.readOutbox?.() ?? cloudflareReplicaOutboxStatus(bindings)).catch(() => null),
+    (options.readWriteBarrier?.() ?? cutoverWriteBarrierReadiness(bindings)).catch(() => null),
   ]);
   const { domains: exact, sourceEvidence } = exactResult;
   const organization = organizationReport();
@@ -395,6 +410,14 @@ export async function cloudflareMigrationReadinessReport(
     }
   }
   if (unsupportedDomains.length > 0) blockers.push("unsupported application-data domains remain");
+  // A registry entry saying the write-barrier mechanism exists would still
+  // not mean this particular cutover is safe to finish — only an armed
+  // record proves that, so readiness is gated on `writeBarrier.status`
+  // itself rather than on anything that could be true before the owner ever
+  // acts. See the field's doc comment above.
+  if (writeBarrierResult?.status !== "armed") {
+    blockers.push(`write_barrier: ${writeBarrierResult?.status ?? "unavailable"}`);
+  }
 
   return {
     generatedAt: new Date().toISOString(),
@@ -409,6 +432,7 @@ export async function cloudflareMigrationReadinessReport(
     domains,
     appSettings: appSettingsResult,
     outbox: outboxResult,
+    writeBarrier: writeBarrierResult,
     unsupportedDomains: [...new Set(unsupportedDomains)],
     blockers,
     readyForCloudflareOnly: blockers.length === 0,

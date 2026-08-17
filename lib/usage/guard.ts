@@ -4,6 +4,7 @@ import { supabaseConfigured, rpc } from "@/lib/auth/supabase";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
+import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
 import {
   type UsageEventOutcome,
 } from "@/lib/cloudflare/usage-cost-replica";
@@ -100,6 +101,19 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
     // chosen is explicit rather than incidental.
     logInternal("checkAiUsage", new Error("ACCOUNTS_ENABLED=1 but Supabase is not configured"));
     return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
+  }
+
+  /*
+    Usage metering writes Supabase through `check_and_record_usage[_with_event]`
+    regardless of CLOUDFLARE_DATA_MODE — see cutover-domains.ts's
+    usage_quota_authority entry — so there is no mode branch here to route
+    around a barrier the way lib/cloudflare/data-router.ts's writers do. Once
+    the owner arms one for "learner", every AI route refuses here rather than
+    reaching Supabase. See lib/cloudflare/write-barrier.ts.
+  */
+  if (await cutoverWriteBarrierArmed("learner")) {
+    logInternal("checkAiUsage", new Error("cutover write barrier is armed for learner writes"));
+    return safeJsonError(MESSAGES.unavailable, 503);
   }
 
   let user: SessionUser | null = null;

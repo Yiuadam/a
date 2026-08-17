@@ -220,6 +220,19 @@ export default function CloudflareMigrationReadiness() {
                 <span className="mt-1 block text-slate-500">Oldest pending {new Date(report.outbox.oldestPendingAt).toLocaleString()}</span>
               )}
             </div>
+            <div className="rounded-xl border border-slate-200/80 px-3 py-2.5 text-xs">
+              <strong className="block text-slate-800">Write barrier (learner)</strong>
+              <span className={report.writeBarrier?.status === "armed" ? "text-emerald-700" : "text-amber-700"}>
+                {report.writeBarrier?.status === "armed" && report.writeBarrier.barrierAt
+                  ? `Armed ${new Date(report.writeBarrier.barrierAt).toLocaleString()} by ${report.writeBarrier.recordedBy}`
+                  : report.writeBarrier
+                    ? "Not armed"
+                    : "Unavailable"}
+              </span>
+              <span className="mt-1 block text-slate-500">
+                Arming is a deliberate, one-way owner action from the write-barrier admin route — nothing here arms it automatically.
+              </span>
+            </div>
           </div>
 
           {report.outbox && (
