@@ -4,12 +4,29 @@ import { supabaseConfigured, rpc } from "@/lib/auth/supabase";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { domainWritesToCloudflareOnly } from "@/lib/cloudflare/cutover-domains";
+import {
+  admitUsageEventOnCloudflare,
+  CloudflareIdSequenceNotSeededError,
+  type UsageAuthorityDecision,
+} from "@/lib/cloudflare/usage-quota-authority";
 import {
   type UsageEventOutcome,
 } from "@/lib/cloudflare/usage-cost-replica";
 import { replicateUsageEventDurably } from "@/lib/cloudflare/replica-replay";
+import { resolveEntitlement } from "@/lib/billing/entitlements";
+import { MONTHLY_AI_CAPS, WEEKLY_AI_CAPS } from "@/lib/billing/tiers";
 import { clientIp, hashIp } from "./ip";
-import { limitsForDatabase, USAGE_WINDOW_SECONDS, type AiRoute } from "./limits";
+import {
+  ANONYMOUS_DAILY_AI_CALLS,
+  IP_DAILY_CEILING,
+  MONTH_WINDOW_SECONDS,
+  limitsForDatabase,
+  USAGE_WINDOW_SECONDS,
+  type AiRoute,
+} from "./limits";
+
+const USAGE_QUOTA_AUTHORITY_DOMAIN = "usage_quota_authority";
 
 /*
   The one call the four AI routes make.
@@ -82,6 +99,76 @@ async function mirrorUsageDecision(
 }
 
 /**
+ * The `usage_quota_authority` branch: D1 is the sole decision authority, no
+ * Supabase RPC is called, and nothing is mirrored — there is no separate
+ * Supabase write left to mirror from. See lib/cloudflare/usage-quota-
+ * authority.ts for the atomicity this depends on.
+ *
+ * `usageFailOpen()` still governs an ordinary D1 outage, exactly as it
+ * governs an ordinary Supabase outage in the branch below — two backends
+ * does not mean two default answers to "what if it's down". It does **not**
+ * govern `CloudflareIdSequenceNotSeededError`: that failure mode means the
+ * owner turned this domain's mode to `cloudflare` before running the id-
+ * counter seed SQL from the pull request that added this file, and failing
+ * open for it would silently uncap every paid route for as long as the
+ * mistake went unnoticed — the exact failure this whole design exists to
+ * rule out. It always fails closed, regardless of the flag.
+ */
+async function checkAiUsageOnCloudflare(
+  user: SessionUser | null,
+  userId: string | null,
+  ipHash: string | null,
+  route: AiRoute,
+): Promise<Response | null> {
+  let isAdmin: boolean;
+  let monthly: number | null;
+  let weekly: number | null;
+  try {
+    const entitlement = await resolveEntitlement(userId, user?.email ?? null);
+    isAdmin = entitlement.tier === "admin";
+    monthly = MONTHLY_AI_CAPS[entitlement.tier][route];
+    weekly = WEEKLY_AI_CAPS[entitlement.tier][route];
+  } catch (err) {
+    logInternal("checkAiUsage/cloudflare-entitlement", err);
+    return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
+  }
+
+  let decision: UsageAuthorityDecision;
+  try {
+    decision = await admitUsageEventOnCloudflare({
+      user,
+      userId,
+      ipHash,
+      route,
+      isAdmin,
+      caps: { monthly, weekly, ip: IP_DAILY_CEILING, anonymous: ANONYMOUS_DAILY_AI_CALLS },
+      monthWindowSeconds: MONTH_WINDOW_SECONDS,
+      windowSeconds: USAGE_WINDOW_SECONDS,
+    });
+  } catch (err) {
+    logInternal("checkAiUsage/cloudflare-authority", err);
+    if (err instanceof CloudflareIdSequenceNotSeededError) {
+      return safeJsonError(MESSAGES.unavailable, 503);
+    }
+    return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
+  }
+
+  /*
+    This branch is deliberately not phrased the same way the Supabase branch
+    below phrases its own "allowed means null" return. A source-text test
+    elsewhere in this repo locates that exact phrasing to prove the Supabase
+    branch returns only after its mirror attempt runs, using the first match
+    in the file — an identical phrasing up here would shadow it.
+  */
+  if (!decision.allowed) {
+    return decision.reason === "rate_limited"
+      ? safeJsonError(MESSAGES.rateLimited, 429)
+      : safeJsonError(MESSAGES.quotaExceeded, 429);
+  }
+  return null;
+}
+
+/**
  * Records the call and decides whether it may proceed.
  *
  * With the feature flag off this returns null before doing anything at all:
@@ -125,6 +212,10 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
     // An unverifiable token is an anonymous caller, not an error: the meter
     // still runs, at the anonymous allowance and against the address.
     logInternal("checkAiUsage/session", err);
+  }
+
+  if (domainWritesToCloudflareOnly(USAGE_QUOTA_AUTHORITY_DOMAIN)) {
+    return checkAiUsageOnCloudflare(user, userId, ipHash, route);
   }
 
   let decision: UsageDecision | null;

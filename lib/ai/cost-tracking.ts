@@ -1,6 +1,8 @@
 import { rpc } from "@/lib/auth/supabase";
 import { COSTED_ROUTES, type CostedRoute } from "@/lib/ai/models";
 import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { domainWritesToCloudflareOnly } from "@/lib/cloudflare/cutover-domains";
+import { recordAiCostEventOnCloudflare } from "@/lib/cloudflare/ai-cost-write-authority";
 import {
   type CloudflareAiCostCoverageReplica,
   type CloudflareAiCostEventReplica,
@@ -9,6 +11,8 @@ import {
   replicateAiCostCoverageDurably,
   replicateAiCostEventDurably,
 } from "@/lib/cloudflare/replica-replay";
+
+const AI_COST_WRITE_AUTHORITY_DOMAIN = "ai_cost_write_authority";
 
 /*
   Local Anthropic cost accounting.
@@ -353,6 +357,26 @@ export async function recordAnthropicMessageCost(
 
     const occurredAt = input.occurredAt ?? new Date();
     const calculated = calculateAnthropicTokenCost(input.model, input.usage, occurredAt);
+
+    if (domainWritesToCloudflareOnly(AI_COST_WRITE_AUTHORITY_DOMAIN)) {
+      // D1 is sole authority for this domain: no Supabase RPC, nothing to
+      // mirror. See lib/cloudflare/ai-cost-write-authority.ts.
+      const result = await recordAiCostEventOnCloudflare({
+        providerRequestId,
+        route: input.route,
+        model: calculated.model,
+        inputTokens: calculated.inputTokens,
+        outputTokens: calculated.outputTokens,
+        cacheCreationInputTokens: calculated.cacheCreationInputTokens,
+        cacheCreation5mInputTokens: calculated.cacheCreation5mInputTokens,
+        cacheCreation1hInputTokens: calculated.cacheCreation1hInputTokens,
+        cacheReadInputTokens: calculated.cacheReadInputTokens,
+        costUsd: calculated.costUsd,
+        occurredAt: occurredAt.toISOString(),
+      });
+      return result.inserted;
+    }
+
     const args = {
       p_provider_request_id: providerRequestId,
       p_route: input.route,

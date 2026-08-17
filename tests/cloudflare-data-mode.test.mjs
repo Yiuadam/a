@@ -160,14 +160,22 @@ test("the cutover-domain registry lists exactly the ten domains a Cloudflare-onl
     [...expected].sort(),
   );
   /*
-    `billing_entitlement_runtime` is the first domain with a proven D1 reader
-    (lib/cloudflare/entitlement-runtime.ts) — see the pull request that added
-    it. Every other domain is still exactly where this stage left it: no
-    reader, `supported: false`.
+    `billing_entitlement_runtime` was the first domain with a proven D1
+    reader (lib/cloudflare/entitlement-runtime.ts). `usage_quota_authority`
+    and `ai_cost_write_authority` are the first two with a proven D1 *write*
+    authority (lib/cloudflare/usage-quota-authority.ts and
+    lib/cloudflare/ai-cost-write-authority.ts) — see the pull request that
+    added them. Every other domain is still exactly where this stage left it:
+    no reader or writer, `supported: false`.
   */
-  const stillUnsupported = expected.filter((domain) => domain !== "billing_entitlement_runtime");
+  const nowSupported = [
+    "billing_entitlement_runtime",
+    "usage_quota_authority",
+    "ai_cost_write_authority",
+  ];
+  const stillUnsupported = expected.filter((domain) => !nowSupported.includes(domain));
   const supported = cutoverDomains.CUTOVER_DOMAINS.filter((entry) => entry.supported).map((entry) => entry.domain);
-  assert.deepEqual(supported, ["billing_entitlement_runtime"]);
+  assert.deepEqual(supported.sort(), [...nowSupported].sort());
   assert.deepEqual(
     cutoverDomains.unsupportedCutoverDomains().sort(),
     stillUnsupported.sort(),
