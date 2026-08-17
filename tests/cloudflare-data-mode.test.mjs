@@ -159,11 +159,17 @@ test("the cutover-domain registry lists exactly the ten domains a Cloudflare-onl
     cutoverDomains.CUTOVER_DOMAINS.map((entry) => entry.domain).sort(),
     [...expected].sort(),
   );
-  // None are supported yet — this stage builds the registry, not a reader.
-  assert.equal(cutoverDomains.CUTOVER_DOMAINS.every((entry) => entry.supported === false), true);
+  // The three payload-integrity domains are proven now
+  // (lib/cloudflare/payload-parity.ts) — everything else in this stage's
+  // registry is still unaddressed.
+  const supported = ["progress_payload_integrity", "billing_payload_object_parity", "provider_event_payload_object_parity"];
+  for (const domain of supported) {
+    assert.equal(cutoverDomains.CUTOVER_DOMAINS.find((entry) => entry.domain === domain).supported, true, domain);
+  }
+  const stillUnsupported = expected.filter((domain) => !supported.includes(domain));
   assert.deepEqual(
     cutoverDomains.unsupportedCutoverDomains().sort(),
-    [...expected].sort(),
+    [...stillUnsupported].sort(),
   );
 });
 

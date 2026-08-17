@@ -10,6 +10,11 @@ import {
   type CloudflareDomainDriftReport,
 } from "@/lib/cloudflare/domain-drift";
 import { cloudflareMigrationReadinessReport } from "@/lib/cloudflare/migration-readiness";
+import {
+  cloudflarePayloadParityReport,
+  parsePayloadParityDomains,
+  type CloudflarePayloadParityReport,
+} from "@/lib/cloudflare/payload-parity";
 import { withCors } from "@/lib/http/cors";
 
 export const dynamic = "force-dynamic";
@@ -29,17 +34,35 @@ async function handleGET(req: Request) {
   const rowLimit = Number(query.get("driftRows"));
   const sampleLimit = Number(query.get("driftSample"));
 
+  // `?payloadParity=` opens and hashes the JSON payload behind
+  // progress_snapshots/subscriptions/provider_events, on both sides. It is
+  // off by default and stricter than `?drift=`: an R2 read costs more than a
+  // D1 row read, so this walks fewer rows per call by default (see
+  // DEFAULT_PAYLOAD_PARITY_ROW_LIMIT in lib/cloudflare/payload-parity.ts).
+  const wantedPayload = parsePayloadParityDomains(query.get("payloadParity"));
+  const payloadRowLimit = Number(query.get("payloadParityRows"));
+  const payloadSampleLimit = Number(query.get("payloadParitySample"));
+
   try {
     const report = await cloudflareMigrationReadinessReport();
     let rowDrift: CloudflareDomainDriftReport | null = null;
-    if (wanted) {
+    let payloadParity: CloudflarePayloadParityReport | null = null;
+    if (wanted || wantedPayload) {
       const bindings = await requireBandUpCloudflareBindings();
-      rowDrift = await cloudflareDomainDriftReport(bindings, wanted, {
-        rowLimit: Number.isSafeInteger(rowLimit) && rowLimit > 0 ? rowLimit : undefined,
-        sampleLimit: Number.isSafeInteger(sampleLimit) && sampleLimit > 0 ? sampleLimit : undefined,
-      });
+      if (wanted) {
+        rowDrift = await cloudflareDomainDriftReport(bindings, wanted, {
+          rowLimit: Number.isSafeInteger(rowLimit) && rowLimit > 0 ? rowLimit : undefined,
+          sampleLimit: Number.isSafeInteger(sampleLimit) && sampleLimit > 0 ? sampleLimit : undefined,
+        });
+      }
+      if (wantedPayload) {
+        payloadParity = await cloudflarePayloadParityReport(bindings, wantedPayload, {
+          rowLimit: Number.isSafeInteger(payloadRowLimit) && payloadRowLimit > 0 ? payloadRowLimit : undefined,
+          sampleLimit: Number.isSafeInteger(payloadSampleLimit) && payloadSampleLimit > 0 ? payloadSampleLimit : undefined,
+        });
+      }
     }
-    return NextResponse.json({ ...report, rowDrift }, {
+    return NextResponse.json({ ...report, rowDrift, payloadParity }, {
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {
