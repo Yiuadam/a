@@ -11,6 +11,20 @@ register("./alias-resolve.mjs", import.meta.url);
 
 const load = (...parts) => import(pathToFileURL(join(process.cwd(), ...parts)).href);
 const readiness = await load("lib", "cloudflare", "migration-readiness.ts");
+const cutoverDomains = await load("lib", "cloudflare", "cutover-domains.ts");
+
+/*
+  A comment quoting the code it checks once made an assertion pass against
+  nothing at all. Source text is therefore stripped of comments before
+  anything is asserted about it.
+*/
+function code(text) {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .map((row) => row.replace(/(^|\s)\/\/.*$/, "$1"))
+    .join("\n");
+}
 
 function runtimeD1(database) {
   const bound = (sql, values) => ({
@@ -158,6 +172,15 @@ test("the global report proves exact identities and versions but fails closed on
   assert.ok(report.unsupportedDomains.includes("billing_entitlement_runtime"));
   assert.ok(report.unsupportedDomains.includes("cutover_write_barrier"));
   assert.ok(report.blockers.includes("unsupported application-data domains remain"));
+
+  // unsupportedDomains is derived from the cutover-domain registry rather
+  // than hard-coded here: with organizations and app settings both reported
+  // ready in this fixture, the registry's ten domains are exactly what
+  // remains unsupported — nothing more, nothing less.
+  assert.deepEqual(
+    [...report.unsupportedDomains].sort(),
+    [...cutoverDomains.unsupportedCutoverDomains()].sort(),
+  );
 });
 
 test("a source-target mismatch and non-empty replica queues are named as blockers", async () => {
@@ -253,4 +276,18 @@ test("the source RPC and API expose migration evidence only to the owner service
   assert.match(ui, /migration 0029/);
   assert.match(ui, /Cutover blockers/);
   assert.match(ui, /cleanupDead/);
+});
+
+test("unsupportedDomains is derived from the cutover-domain registry, not a literal list here", () => {
+  const source = code(readFileSync(
+    join(process.cwd(), "lib", "cloudflare", "migration-readiness.ts"),
+    "utf8",
+  ));
+  assert.match(source, /unsupportedDomains\.push\(\.\.\.unsupportedCutoverDomains\(\)\)/);
+  // None of the ten domain names may still be spelled out as string literals
+  // in this file — a stage that finishes one flips `supported` in
+  // cutover-domains.ts instead of editing this list.
+  for (const domain of cutoverDomains.CUTOVER_DOMAINS.map((entry) => entry.domain)) {
+    assert.doesNotMatch(source, new RegExp(`"${domain}"`));
+  }
 });

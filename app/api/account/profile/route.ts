@@ -7,7 +7,7 @@ import {
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { readsFromCloudflare } from "@/lib/cloudflare/bindings";
 import {
   getLearnerProfile,
   reconcileLearnerProfileReplica,
@@ -89,7 +89,9 @@ function cleanDate(value: unknown): string | null | undefined | "too-young" {
 }
 
 async function present(req: Request, user: { id: string; email: string | null }) {
-  const mode = cloudflareDataMode();
+  // Same read question getLearnerProfile() itself asks, and it must stay in
+  // lockstep: `stored` below came from wherever this says it did.
+  const readingFromCloudflare = readsFromCloudflare();
   const stored = await getLearnerProfile(user);
   /*
     Mirror the profile into Cloudflare after the response, not before it.
@@ -103,7 +105,7 @@ async function present(req: Request, user: { id: string; email: string | null })
   // A newly authenticated user may not have written application data yet.
   // In Cloudflare mode an absent D1 row is an empty optional profile, not a
   // reason to fall back to the old Supabase data authority.
-  const profile = stored ?? (mode === "cloudflare" ? {
+  const profile = stored ?? (readingFromCloudflare ? {
     displayName: null,
     username: null,
     accountKind: null,
@@ -114,7 +116,7 @@ async function present(req: Request, user: { id: string; email: string | null })
   if (!profile) return null;
   let avatarUrl: string | null = null;
   if (profile.avatarPath) {
-    avatarUrl = mode === "cloudflare"
+    avatarUrl = readingFromCloudflare
       ? await cloudflareAvatarUrl(req.url, user.id, profile.avatarPath)
       : await signedAvatarUrl(profile.avatarPath);
     if (!avatarUrl) throw new Error("avatar delivery is unavailable");

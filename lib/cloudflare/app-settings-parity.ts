@@ -2,7 +2,7 @@ import {
   getAppSettingRecord,
   type AppSettingRecord,
 } from "@/lib/auth/supabase";
-import { cloudflareDataMode, type BandUpCloudflareBindings } from "./bindings";
+import { cloudflareDataMode, type BandUpCloudflareBindings, type CloudflareDataMode } from "./bindings";
 import {
   appSettingRecordsEqual,
   deleteCloudflareAppSettingReplica,
@@ -34,7 +34,14 @@ export interface AppSettingParityItem {
 export interface AppSettingsParityReport {
   generatedAt: string;
   authority: "supabase" | "cloudflare";
-  mode: "supabase" | "dual" | "cloudflare";
+  /*
+    Reported as the full four-state CloudflareDataMode, not narrowed to three,
+    even though app settings themselves only ever branch on exactly
+    "cloudflare"/"dual" (lib/admin/settings.ts — out of scope for this stage).
+    A report that quietly collapsed "read_cloudflare" into "dual" would be
+    lying about which mode is actually configured.
+  */
+  mode: CloudflareDataMode;
   readyForAppSettingsCutover: boolean;
   items: AppSettingParityItem[];
 }

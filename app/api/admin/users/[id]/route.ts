@@ -5,7 +5,7 @@ import { rpc, supabaseConfigured } from "@/lib/auth/supabase";
 import { withCors } from "@/lib/http/cors";
 import { applyOwnerEffectiveAccessToDetail } from "@/lib/admin/effective-access";
 import { getLearnerProgressSnapshots } from "@/lib/cloudflare/data-router";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { readsFromCloudflare } from "@/lib/cloudflare/bindings";
 import { adminProgressFromSnapshots } from "@/lib/admin/user-progress";
 import { organizationDataMode } from "@/lib/cloudflare/bindings";
 import { cloudflareAdminOrganizationSeats } from "@/lib/cloudflare/admin-organization-access";
@@ -43,7 +43,10 @@ async function handleGET(req: Request, context: RouteContext<"/api/admin/users/[
     const snapshots = await getLearnerProgressSnapshots({ id: user.id, email: user.email });
     const progress = adminProgressFromSnapshots(
       snapshots,
-      cloudflareDataMode() === "cloudflare",
+      // The same read question getLearnerProgressSnapshots() asked to
+      // produce `snapshots` — this must describe where that data actually
+      // came from, so it tracks readsFromCloudflare(), not a bare mode string.
+      readsFromCloudflare(),
     );
     return Response.json({
       ...effective,
