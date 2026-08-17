@@ -1,6 +1,6 @@
 import { rpc } from "@/lib/auth/supabase";
 import { COSTED_ROUTES, type CostedRoute } from "@/lib/ai/models";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
 import {
   type CloudflareAiCostCoverageReplica,
   type CloudflareAiCostEventReplica,
@@ -366,7 +366,7 @@ export async function recordAnthropicMessageCost(
       p_cost_usd: calculated.costUsd,
       p_occurred_at: occurredAt.toISOString(),
     };
-    if (cloudflareDataMode() !== "dual") {
+    if (!mirrorsWritesToCloudflare()) {
       return await rpc<boolean>("record_ai_cost_event", args);
     }
 
@@ -402,7 +402,7 @@ export async function setAiCostCoverage(input: SetAiCostCoverageInput): Promise<
       p_starts_at: input.startsAt.toISOString(),
       p_historical_complete: input.historicalComplete,
     };
-    if (cloudflareDataMode() !== "dual") {
+    if (!mirrorsWritesToCloudflare()) {
       return await rpc<boolean>("set_ai_cost_coverage", args);
     }
 
