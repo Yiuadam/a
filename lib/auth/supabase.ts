@@ -524,17 +524,170 @@ export async function promoProviderAllowed(): Promise<boolean> {
   }
 }
 
-/** Whether this account already holds a promo row. */
-export async function promoSubscriptionExists(userId: string): Promise<boolean> {
-  if (!isUuid(userId)) return false;
+/*
+  ---------------------------------------------------------------------------
+  Giving the trial up, and the one status that says who did it
+
+  A learner may hand the trial back, and if they change their mind the offer
+  comes back. That only works if "the learner set it down" and "the owner
+  withdrew the trial" are different marks on the row, because the second must
+  never turn back into an offer. Both used to be `status = 'canceled'`.
+
+  So a released grant is `status = 'paused'`, and the column is the status
+  itself for four reasons:
+
+    * it needs nothing new. `subscriptions_status_check` in
+      supabase/migrations/0001 already permits 'paused', so this ships without a
+      migration and without a second thing for the owner to run;
+    * it does not grant. `resolve_entitlement` counts only 'active' and
+      'trialing', so a paused row leaves the account on the free plan the
+      moment it is written, with no other code consulted;
+    * it is true. The row is intact and can be made active again, which is what
+      a paused subscription is. 'expired' would claim a period ended and a promo
+      row has no period; 'refunded' would claim money moved and none did;
+      `cancel_at_period_end` would claim a period end there isn't; and 'canceled'
+      is the one value that has to keep meaning "over for good", because that is
+      what the owner's sweep writes;
+    * it keeps the record. Deleting the row instead would leave a released
+      account indistinguishable from one that never accepted — so after the
+      owner ended the trial, that account could take out a *fresh* grant and
+      quietly undo their decision. A paused row cannot: see
+      `resumePromoSubscription`, which will only ever revive a paused row.
+
+  The consequence for the owner is one word in their SQL, and it is written out
+  in the pull request: the sweep that ends the trial for everybody has to reach
+  released rows as well as live ones —
+
+    update public.subscriptions set status = 'canceled', updated_at = now()
+     where provider = 'promo' and status in ('active', 'paused');
+
+  `updated_at` is left to `subscriptions_touch_updated_at` (0001) in the writes
+  below, which sets it on every update; naming it here as well would only give
+  the trigger something to overwrite.
+*/
+const PROMO_RELEASED_STATUS = "paused";
+
+/** What this account's promo rows say, in the only terms this feature needs. */
+export type PromoRowState =
+  /** No promo row: never offered, or never answered. */
+  | "none"
+  /** A row that still grants Pro. */
+  | "holding"
+  /** The learner handed it back. The offer may be made again. */
+  | "released"
+  /** Over, by the owner's decision. The offer must never be made again. */
+  | "ended";
+
+/**
+ * Reads this account's promo rows and reduces them to one answer.
+ *
+ * Nothing stops an account holding two promo rows — a retried accept in the
+ * wrong millisecond would do it — so every row is read and the *least*
+ * generous conclusion wins: one 'canceled' row anywhere means ended, whatever
+ * else is there. The safe direction for a disagreement is the one that does not
+ * hand out an entitlement the owner withdrew.
+ */
+export async function promoSubscriptionState(userId: string): Promise<PromoRowState> {
+  if (!isUuid(userId)) return "none";
   const res = await request(
     `/rest/v1/subscriptions?user_id=eq.${userId}&provider=eq.${PROMO_PROVIDER}` +
-      "&select=id&limit=1",
+      "&select=status",
     { method: "GET", asServiceRole: true },
   );
   if (!res.ok) throw new SupabaseError(`promo lookup failed with ${res.status}`);
   const rows = (await res.json()) as unknown;
-  return Array.isArray(rows) && rows.length > 0;
+  if (!Array.isArray(rows) || rows.length === 0) return "none";
+
+  const statuses = rows.map((row) => (row as { status?: unknown }).status);
+  if (statuses.some((s) => s !== "active" && s !== "trialing" && s !== PROMO_RELEASED_STATUS)) {
+    return "ended";
+  }
+  if (statuses.some((s) => s === "active" || s === "trialing")) return "holding";
+  return "released";
+}
+
+export type PromoUpdateOutcome =
+  /** The row moved. */
+  | "changed"
+  /** No row was in the status this update requires. Nothing was written. */
+  | "no-match"
+  /** A CHECK refused it — the provider widening has been rolled back. */
+  | "unsupported"
+  | "failed";
+
+/**
+ * Records the update, or says why not, without letting PostgREST's words out.
+ *
+ * `return=representation` is what makes "no row matched" distinguishable from
+ * "one row moved": both are a 200, and the difference is the length of the
+ * array. That is the whole point of writing these as conditional updates — the
+ * WHERE carries the policy, so two requests racing cannot both win.
+ */
+async function promoStatusUpdate(
+  query: string,
+  body: Record<string, unknown>,
+): Promise<PromoUpdateOutcome> {
+  try {
+    const res = await request(query, {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(body),
+      asServiceRole: true,
+    });
+    if (res.ok) {
+      const rows = (await res.json()) as unknown;
+      return Array.isArray(rows) && rows.length > 0 ? "changed" : "no-match";
+    }
+    const failure = await failureFrom(res);
+    if (failure.code === "23514" || /subscriptions_\w+_check/.test(failure.message)) {
+      return "unsupported";
+    }
+    return "failed";
+  } catch {
+    return "failed";
+  }
+}
+
+/**
+ * Hands the trial back: a live promo row becomes paused, so the account is on
+ * the free plan again and the offer may be made to it again.
+ *
+ * Postgres re-checks a row's constraints on update, `provider` included, so
+ * this reports `unsupported` if the provider widening has been rolled back
+ * under a grant that is still standing.
+ */
+export function releasePromoSubscription(userId: string): Promise<PromoUpdateOutcome> {
+  if (!isUuid(userId)) return Promise.resolve("failed");
+  return promoStatusUpdate(
+    `/rest/v1/subscriptions?user_id=eq.${userId}&provider=eq.${PROMO_PROVIDER}` +
+      "&status=in.(active,trialing)",
+    { status: PROMO_RELEASED_STATUS },
+  );
+}
+
+/**
+ * Starts a released trial again.
+ *
+ * Only a paused row is touched. If the owner has ended the trial in the
+ * meantime the row is 'canceled', nothing matches, and the answer is `no-match`
+ * — which the caller turns into "the trial has ended" rather than into a second
+ * grant. The whole reversibility rule lives in that WHERE clause.
+ */
+export function resumePromoSubscription(userId: string): Promise<PromoUpdateOutcome> {
+  if (!isUuid(userId)) return Promise.resolve("failed");
+  return promoStatusUpdate(
+    `/rest/v1/subscriptions?user_id=eq.${userId}&provider=eq.${PROMO_PROVIDER}` +
+      `&status=eq.${PROMO_RELEASED_STATUS}`,
+    {
+      status: "active",
+      /*
+        `raw` says when the grant that is standing now began, so it is rewritten
+        rather than left describing a trial that was handed back. The status is
+        the record of whose decision the row is in; this is the record of when.
+      */
+      raw: { kind: "free-pro-trial", acceptedAt: new Date().toISOString(), restarted: true },
+    },
+  );
 }
 
 export type PromoInsertOutcome = "inserted" | "exists" | "unsupported" | "failed";

@@ -9,6 +9,7 @@ import {
   subscribe as subscribeSession,
 } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import { dismissedAlready, rememberDecision } from "@/lib/billing/free-pro-dismissal";
 import { TIERS } from "@/lib/billing/tiers";
 
 /*
@@ -35,13 +36,12 @@ import { TIERS } from "@/lib/billing/tiers";
   Dismissing writes a key in localStorage and this component stops drawing it
   on this device.
 
-  localStorage is the right place for a dismissal and would be the wrong place
-  for an entitlement. What is stored is "this person has seen the poster", and
-  the worst a cleared browser can do with it is show the poster a second time.
-  The grant itself is a database row resolved server-side, where clearing a
-  browser can do nothing to it. Keeping the two apart is deliberate: the honest
-  reason there is no server-side dismissal is that recording one would need a
-  migration, and a migration cannot be previewed.
+  The key lives in lib/billing/free-pro-dismissal.ts, because giving the trial
+  up has to forget it: the server offers the trial again to an account that
+  handed it back, and a "seen it" flag left behind here would hide the only
+  place that offer is ever made. See components/billing/GiveUpFreeProSection.tsx.
+  Why localStorage is the right place for a dismissal and the wrong place for an
+  entitlement is written out in that file.
 
   ---------------------------------------------------------------------------
   Nothing here decides anything
@@ -53,28 +53,7 @@ import { TIERS } from "@/lib/billing/tiers";
   changes what is drawn and changes nothing about what is granted.
 */
 
-/** Set when the reader has decided, either way. See the header for why here. */
-const DISMISSED_KEY = "bandup.promo.free-pro.v1";
-
 type Phase = "idle" | "offered" | "accepting" | "accepted" | "error";
-
-function dismissedAlready(): boolean {
-  try {
-    return window.localStorage.getItem(DISMISSED_KEY) !== null;
-  } catch {
-    // Private browsing, or storage switched off. Drawing the poster once per
-    // visit is a better failure than never drawing it.
-    return false;
-  }
-}
-
-function rememberDecision(): void {
-  try {
-    window.localStorage.setItem(DISMISSED_KEY, new Date().toISOString());
-  } catch {
-    /* Nothing to do, and nothing worth telling the reader about. */
-  }
-}
 
 export default function FreeProPoster() {
   const session = useSyncExternalStore(
@@ -151,7 +130,8 @@ export default function FreeProPoster() {
         <h2 className="text-[17px] font-semibold text-slate-900">Your free Pro trial has started</h2>
         <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
           Your account is on Pro now. Nothing has been charged and no card has been asked for.
-          You can see what you have used on your account page.
+          You can see what you have used on your account page, and give the trial up there
+          whenever you like.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link href="/account" className="btn-secondary">
@@ -189,9 +169,10 @@ export default function FreeProPoster() {
         the button rather than under it.
       */}
       <p className="mt-4 text-[15px] leading-7 text-slate-700">
-        This is a free trial of Pro. It may be cancelled at any time in the future. If it ends,
-        your account goes back to the free plan and everything you have written or practised stays
-        where it is. You will never be charged without choosing to subscribe yourself.
+        This is a free trial of Pro. It may be cancelled at any time in the future, and you can
+        give it up yourself whenever you like, from your account page. If it ends, your account
+        goes back to the free plan and everything you have written or practised stays where it is.
+        You will never be charged without choosing to subscribe yourself.
       </p>
 
       {phase === "error" && (
