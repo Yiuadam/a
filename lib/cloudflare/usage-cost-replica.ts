@@ -45,26 +45,11 @@ export interface CloudflareAiCostCoverageReplica {
   recordedAt: string;
 }
 
-/**
- * Mirrors the exact row committed by Supabase's atomic meter.
- *
- * Supabase remains the decision authority in dual mode. The source identity is
- * also the D1 primary key, so a request retry and the final migration copy both
- * converge on one row rather than manufacturing a second usage event.
- */
-export async function mirrorCloudflareUsageEvent(
+/** The one statement both the live mirror and the drift backfill write. */
+async function applyUsageEventRow(
   event: CloudflareUsageEventReplica,
-  user: SessionUser | null,
-  providedBindings?: BandUpCloudflareBindings,
+  bindings: BandUpCloudflareBindings,
 ): Promise<boolean> {
-  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
-  if (event.userId !== null) {
-    if (!user || user.id !== event.userId) {
-      throw new Error("Cloudflare usage replica user does not match the verified session");
-    }
-    await ensureCloudflareUser(user, bindings);
-  }
-
   const result = await bindings.db.prepare(`
     INSERT INTO usage_events (id, user_id, route, ip_hash, outcome, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -85,19 +70,80 @@ export async function mirrorCloudflareUsageEvent(
   return result.success;
 }
 
-/** One provider response maps to one Supabase id and one D1 row. */
-export async function mirrorCloudflareAiCostEvent(
-  event: CloudflareAiCostEventReplica,
+/**
+ * Mirrors the exact row committed by Supabase's atomic meter.
+ *
+ * Supabase remains the decision authority in dual mode. The source identity is
+ * also the D1 primary key, so a request retry and the final migration copy both
+ * converge on one row rather than manufacturing a second usage event.
+ */
+export async function mirrorCloudflareUsageEvent(
+  event: CloudflareUsageEventReplica,
+  user: SessionUser | null,
   providedBindings?: BandUpCloudflareBindings,
 ): Promise<boolean> {
-  const { db } = providedBindings ?? await requireBandUpCloudflareBindings();
-  const result = await db.prepare(`
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  if (event.userId !== null) {
+    if (!user || user.id !== event.userId) {
+      throw new Error("Cloudflare usage replica user does not match the verified session");
+    }
+    await ensureCloudflareUser(user, bindings);
+  }
+  return applyUsageEventRow(event, bindings);
+}
+
+/**
+ * Writes one usage event for the drift backfill, without `ensureCloudflareUser`'s
+ * side effect of overwriting `app_users.email`.
+ *
+ * The live mirror above passes a verified `SessionUser` and lets
+ * `ensureCloudflareUser` keep that email current. A backfill has no session —
+ * it read this row out of Supabase because it drifted, not because its owner
+ * is signed in — and the row's real current email lives on `profiles`, not on
+ * `usage_events`. Calling `ensureCloudflareUser` here with a placeholder email
+ * would replace a correct one already mirrored from a login. The caller
+ * (lib/cloudflare/domain-backfill.ts) has already confirmed the account is not
+ * mid-deletion and bootstraps a bare `app_users` row with `INSERT OR IGNORE`
+ * when one does not exist yet, which never touches an existing row.
+ */
+export async function backfillCloudflareUsageEvent(
+  event: CloudflareUsageEventReplica,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<boolean> {
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  return applyUsageEventRow(event, bindings);
+}
+
+export interface CloudflareAiCostEventRowInput {
+  id: string;
+  source: string;
+  providerRequestId: string | null;
+  externalReference: string | null;
+  route: string | null;
+  model: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cacheCreationInputTokens: number | null;
+  cacheCreation5mInputTokens: number | null;
+  cacheCreation1hInputTokens: number | null;
+  cacheReadInputTokens: number | null;
+  costUsd: string;
+  occurredAt: string;
+  recordedAt: string;
+}
+
+/** The one statement both the live mirror and the drift backfill write. */
+async function applyAiCostEventRow(
+  event: CloudflareAiCostEventRowInput,
+  bindings: BandUpCloudflareBindings,
+): Promise<boolean> {
+  const result = await bindings.db.prepare(`
     INSERT INTO ai_cost_events (
       id, source, provider_request_id, external_reference, route, model,
       input_tokens, output_tokens, cache_creation_input_tokens,
       cache_creation_5m_input_tokens, cache_creation_1h_input_tokens,
       cache_read_input_tokens, cost_usd, occurred_at, recorded_at
-    ) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       source = excluded.source,
       provider_request_id = excluded.provider_request_id,
@@ -117,6 +163,7 @@ export async function mirrorCloudflareAiCostEvent(
     event.id,
     event.source,
     event.providerRequestId,
+    event.externalReference,
     event.route,
     event.model,
     event.inputTokens,
@@ -130,6 +177,41 @@ export async function mirrorCloudflareAiCostEvent(
     event.recordedAt,
   ).run();
   return result.success;
+}
+
+/** One provider response maps to one Supabase id and one D1 row. */
+export async function mirrorCloudflareAiCostEvent(
+  event: CloudflareAiCostEventReplica,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<boolean> {
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  // `externalReference: null` unconditionally, matching the previous
+  // hard-coded `NULL` literal: the live meter never produces one, only a
+  // 'provider_backfill' sourced row (see backfillCloudflareAiCostEvent) can.
+  return applyAiCostEventRow({ ...event, externalReference: null }, bindings);
+}
+
+/**
+ * Repairs one drifted `ai_cost_events` row for the drift backfill, straight
+ * from its current Supabase state.
+ *
+ * This table has no `user_id` (see cloudflare/migrations/0001), so there is
+ * no account and no deletion guard to consider — unlike the other three
+ * `backfillCloudflare*` functions in this codebase. What it does still need,
+ * unlike `mirrorCloudflareAiCostEvent` above, is `source` and
+ * `external_reference` read back rather than assumed: a row this table holds
+ * is not only ever `'calculated_tokens'` from the live meter — the D1 CHECK
+ * constraint also allows `'provider_backfill'`, and only that kind carries an
+ * `external_reference` — so forcing the live meter's assumptions here could
+ * silently mis-tag a backfilled cost event as something the atomic meter
+ * never actually produced.
+ */
+export async function backfillCloudflareAiCostEvent(
+  row: CloudflareAiCostEventRowInput,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<boolean> {
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  return applyAiCostEventRow(row, bindings);
 }
 
 /**
