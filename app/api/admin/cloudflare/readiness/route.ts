@@ -10,6 +10,11 @@ import {
   type CloudflareDomainDriftReport,
 } from "@/lib/cloudflare/domain-drift";
 import { cloudflareMigrationReadinessReport } from "@/lib/cloudflare/migration-readiness";
+import {
+  avatarObjectParityReport,
+  parseAvatarObjectParityFlag,
+  type AvatarObjectParityReport,
+} from "@/lib/cloudflare/avatar-parity";
 import { withCors } from "@/lib/http/cors";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +34,15 @@ async function handleGET(req: Request) {
   const rowLimit = Number(query.get("driftRows"));
   const sampleLimit = Number(query.get("driftSample"));
 
+  // `?avatarObjectParity=` hashes real Supabase Storage and R2 objects and
+  // counts profiles a read cutover would leave without a picture. Off by
+  // default for the same reason `?drift=` is: it costs far more than the
+  // report itself, which never reads avatar bytes at all.
+  const wantsAvatarParity = parseAvatarObjectParityFlag(query.get("avatarObjectParity"));
+  const avatarRowLimit = Number(query.get("avatarParityRows"));
+  const avatarSampleLimit = Number(query.get("avatarParitySample"));
+  const avatarByteLimit = Number(query.get("avatarParityBytes"));
+
   try {
     const report = await cloudflareMigrationReadinessReport();
     let rowDrift: CloudflareDomainDriftReport | null = null;
@@ -39,7 +53,16 @@ async function handleGET(req: Request) {
         sampleLimit: Number.isSafeInteger(sampleLimit) && sampleLimit > 0 ? sampleLimit : undefined,
       });
     }
-    return NextResponse.json({ ...report, rowDrift }, {
+    let avatarParity: AvatarObjectParityReport | null = null;
+    if (wantsAvatarParity) {
+      const bindings = await requireBandUpCloudflareBindings();
+      avatarParity = await avatarObjectParityReport(bindings, {
+        rowLimit: Number.isSafeInteger(avatarRowLimit) && avatarRowLimit > 0 ? avatarRowLimit : undefined,
+        sampleLimit: Number.isSafeInteger(avatarSampleLimit) && avatarSampleLimit > 0 ? avatarSampleLimit : undefined,
+        byteCheckLimit: Number.isSafeInteger(avatarByteLimit) && avatarByteLimit >= 0 ? avatarByteLimit : undefined,
+      });
+    }
+    return NextResponse.json({ ...report, rowDrift, avatarParity }, {
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {
