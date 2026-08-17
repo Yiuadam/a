@@ -159,11 +159,18 @@ test("the cutover-domain registry lists exactly the ten domains a Cloudflare-onl
     cutoverDomains.CUTOVER_DOMAINS.map((entry) => entry.domain).sort(),
     [...expected].sort(),
   );
-  // None are supported yet — this stage builds the registry, not a reader.
-  assert.equal(cutoverDomains.CUTOVER_DOMAINS.every((entry) => entry.supported === false), true);
+  /*
+    `billing_entitlement_runtime` is the first domain with a proven D1 reader
+    (lib/cloudflare/entitlement-runtime.ts) — see the pull request that added
+    it. Every other domain is still exactly where this stage left it: no
+    reader, `supported: false`.
+  */
+  const stillUnsupported = expected.filter((domain) => domain !== "billing_entitlement_runtime");
+  const supported = cutoverDomains.CUTOVER_DOMAINS.filter((entry) => entry.supported).map((entry) => entry.domain);
+  assert.deepEqual(supported, ["billing_entitlement_runtime"]);
   assert.deepEqual(
     cutoverDomains.unsupportedCutoverDomains().sort(),
-    [...expected].sort(),
+    stillUnsupported.sort(),
   );
 });
 
