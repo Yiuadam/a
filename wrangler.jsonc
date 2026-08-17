@@ -108,10 +108,42 @@
     that getting that wrong is no longer a way to delete your configuration.
 
     tests/deploy-config.test.mjs fails if this is removed.
+
+    ---------------------------------------------------------------------------
+    One thing the paragraph above promises and did not deliver
+
+    "The dashboard is authoritative for variables" turned out not to be
+    dependable. STRIPE_WALLET_METHODS was set in the dashboard, deployed from
+    the dashboard, and never reached the Worker: /api/billing/config kept
+    answering `["alipay"]`. A deploy's own configuration diff then printed
+
+        vars: {
+      -    STRIPE_WALLET_METHODS: "alipay,wechat_pay"
+        }
+        Uploading the Worker will override the remote configuration with your
+        local one.
+
+    which says a dashboard variable absent from this file is on its way out,
+    `keep_vars` or not. Whether wrangler deleted it or OpenNext never exposed
+    it, the same lesson holds either way: a variable that has to survive a
+    deploy belongs in this file, where it is reviewed, previewed and permanent.
+
+    So non-secret configuration goes here from now on. The dashboard is for
+    Secrets, which are encrypted and were never affected by any of this.
   */
   "keep_vars": true,
   "vars": {
     "ORGANIZATION_UI_PREVIEW": "0",
+    /*
+      Which wallets the Alipay/WeChat Pay button offers, and lists on the
+      Stripe Checkout Session.
+
+      Only what the Stripe account is actually approved for may appear here.
+      Stripe refuses an entire Session that names a method it has not
+      activated, so an aspirational entry does not add that method — it takes
+      the working one down with it, which is exactly how #122 broke Alipay.
+    */
+    "STRIPE_WALLET_METHODS": "alipay,wechat_pay",
     // Supabase Auth and application-data reads remain authoritative while
     // every committed learner/profile/progress/billing write is mirrored to
     // D1/R2. Cut reads over only after the migration verifier proves parity.
