@@ -1,6 +1,7 @@
 import { assertServerOnly } from "./server-only";
 import { supabaseConfig } from "./env";
 import { readAccountKind } from "./account-identity";
+import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
 import type {
   ProgressSnapshotExpectation,
   ProgressSnapshotMutation,
@@ -18,6 +19,26 @@ import type {
 
   The service role bypasses Row Level Security. Everything in this file is
   therefore load-bearing for security, and everything in it is server-only.
+
+  ---------------------------------------------------------------------------
+  Cutover write barrier
+
+  Once an owner arms lib/cloudflare/write-barrier.ts's "learner" barrier,
+  every write below refuses rather than reaching Supabase — see that file for
+  why a D1-durable barrier, not an environment variable, is what closes a
+  Workers deploy's split-brain window. Each guarded function checks it first
+  and returns its own ordinary failure value, matching how every other
+  failure in that function is already reported; nothing here invents a new
+  shape a caller has to learn.
+
+  Supabase Auth (every call to `/auth/v1/*` — sendMagicLink,
+  enabledOAuthProviders, refreshAccessToken, signInWithPassword,
+  signInWithGoogleIdToken, signUpWithPassword, userFromAccessToken, and the
+  admin-user calls inside deleteAccount/supabaseAuthUserState) is exempt on
+  purpose and deliberately never checks the barrier. Login and Google sign-in
+  are not migrating away from Supabase — there is no D1 identity provider to
+  move them to — so gating them here would only break sign-in. Do not "fix"
+  that by adding a check to any of them.
 */
 
 const MODULE = "lib/auth/supabase.ts";
@@ -305,6 +326,7 @@ export async function updateProfile(
   if ("avatarPath" in fields) patch.avatar_path = fields.avatarPath;
   if ("accountKind" in fields) patch.account_kind = fields.accountKind;
   if (Object.keys(patch).length === 0) return true;
+  if (await cutoverWriteBarrierArmed("learner")) return false;
 
   try {
     const res = await request(`/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`, {
@@ -335,6 +357,11 @@ export async function setAccountIdentity(
   accountKind: import("./account-identity").AccountKind,
   birthDate: string | null,
 ): Promise<AccountIdentityStatus> {
+  // Every caller of this function already wraps it in a try/catch that turns
+  // a throw into "unavailable" — see lib/cloudflare/data-router.ts.
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new SupabaseError("cutover write barrier is armed for learner writes");
+  }
   return rpc<AccountIdentityStatus>("set_account_identity", {
     p_user_id: userId,
     p_display_name: displayName,
@@ -351,6 +378,11 @@ export async function claimUsername(
   userId: string,
   username: string,
 ): Promise<UsernameClaimStatus> {
+  // Every caller of this function already wraps it in a try/catch that turns
+  // a throw into "unavailable" — see lib/cloudflare/data-router.ts.
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new SupabaseError("cutover write barrier is armed for learner writes");
+  }
   return rpc<UsernameClaimStatus>("claim_username", {
     p_user_id: userId,
     p_username: username,
@@ -537,7 +569,7 @@ export async function promoSubscriptionExists(userId: string): Promise<boolean> 
   return Array.isArray(rows) && rows.length > 0;
 }
 
-export type PromoInsertOutcome = "inserted" | "exists" | "unsupported" | "failed";
+export type PromoInsertOutcome = "inserted" | "exists" | "unsupported" | "failed" | "barred";
 
 /**
  * Writes the promo row: Pro, active, with no period end, so
@@ -545,9 +577,15 @@ export type PromoInsertOutcome = "inserted" | "exists" | "unsupported" | "failed
  *
  * `unsupported` is the honest answer when the provider check has not been
  * widened yet, and the route turns it into a sentence rather than a 500.
+ * `barred` is the same shape of honest answer for a domain the owner has
+ * armed a cutover write barrier for — lib/billing/promo.ts's `acceptPromo`
+ * does not special-case it, so it falls through to exactly the same
+ * `PROMO_MESSAGES.failed` sentence as `unsupported` does; the distinct value
+ * exists only so a server log can tell the two apart.
  */
 export async function insertPromoSubscription(userId: string): Promise<PromoInsertOutcome> {
   if (!isUuid(userId)) return "failed";
+  if (await cutoverWriteBarrierArmed("learner")) return "barred";
   try {
     const res = await request("/rest/v1/subscriptions", {
       method: "POST",
@@ -586,6 +624,7 @@ export async function uploadAvatar(
 ): Promise<boolean> {
   const config = supabaseConfig();
   if (!config) return false;
+  if (await cutoverWriteBarrierArmed("learner")) return false;
   try {
     const res = await fetch(`${config.url}/storage/v1/object/avatars/${path}`, {
       method: "POST",
@@ -643,6 +682,7 @@ export async function signedAvatarUrl(path: string, expiresIn = 3600): Promise<s
 export async function deleteAvatar(path: string): Promise<boolean> {
   const config = supabaseConfig();
   if (!config) return false;
+  if (await cutoverWriteBarrierArmed("learner")) return false;
   try {
     const res = await fetch(`${config.url}/storage/v1/object/avatars/${path}`, {
       method: "DELETE",
@@ -674,7 +714,16 @@ export async function deleteAccount(userId: string, avatarPath: string | null): 
   const config = supabaseConfig();
   if (!config) return false;
 
-  // Before the user row goes, or the path is unrecoverable.
+  /*
+    Before the user row goes, or the path is unrecoverable. `deleteAvatar`
+    checks the barrier and returns false without deleting anything once one is
+    armed, which is accepted here rather than propagated: the admin DELETE
+    below is the exempt Supabase Auth action Apple's deletion requirement
+    actually needs, an orphaned Storage object is not a new failure mode this
+    file did not already have on a network error, and the cascade in Postgres
+    removes every application-data row regardless of whether the object was
+    pre-deleted.
+  */
   if (avatarPath) await deleteAvatar(avatarPath);
 
   try {
@@ -789,6 +838,7 @@ export async function deleteProgressSnapshots(
   const keys = storeKeys.filter(isProgressKey);
   if (keys.length !== storeKeys.length) return false;
   if (keys.length === 0) return true;
+  if (await cutoverWriteBarrierArmed("learner")) return false;
   const inList = keys.map((key) => `"${encodeURIComponent(key)}"`).join(",");
   try {
     const res = await request(
@@ -821,6 +871,7 @@ export async function compareAndSwapProgressSnapshots(
   expected: ProgressSnapshotExpectation[],
   snapshots: ProgressSnapshotMutation[],
 ): Promise<ProgressSnapshotCasResult> {
+  if (await cutoverWriteBarrierArmed("learner")) return { status: "unavailable" };
   try {
     const response = await rpc<unknown>("compare_and_swap_progress_snapshots", {
       p_user_id: userId,
