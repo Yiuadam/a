@@ -65,3 +65,36 @@ test("production has enough CPU for server-rendered Next.js routes", () => {
     "removing this restores the account default; on Workers Free that is 10 ms and causes Error 1102",
   );
 });
+
+/*
+  The wallet methods live in configuration, not in the dashboard.
+
+  They were set in the dashboard first and never reached the Worker: the button
+  kept offering Alipay alone while /api/billing/config answered `["alipay"]`,
+  through two dashboard deploys. A deploy's configuration diff then showed the
+  variable being removed, `keep_vars: true` notwithstanding.
+
+  What is pinned here is only what matters: the value is in this file, so it
+  cannot be lost to a deploy, and every method named in it is one the catalogue
+  recognises. Stripe refuses an entire Session that lists a method the account
+  has not activated, so a typo here does not add a wallet — it removes the
+  working one.
+*/
+test("the wallet methods are configured in wrangler.jsonc", () => {
+  const value = config.vars?.STRIPE_WALLET_METHODS;
+  assert.equal(
+    typeof value,
+    "string",
+    "STRIPE_WALLET_METHODS belongs in wrangler.jsonc, where a deploy cannot strip it",
+  );
+  const named = value.split(",").map((part) => part.trim());
+  assert.ok(named.length > 0, "an empty list disables the wallet button entirely");
+  for (const method of named) {
+    assert.match(
+      method,
+      /^(alipay|wechat_pay)$/,
+      `"${method}" is not a wallet method lib/billing/env.ts recognises, ` +
+        "and an unrecognised entry is silently dropped rather than failing loudly",
+    );
+  }
+});
