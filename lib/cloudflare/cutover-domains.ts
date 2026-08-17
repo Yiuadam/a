@@ -74,13 +74,27 @@ export const CUTOVER_DOMAINS: readonly CutoverDomainDefinition[] = [
   },
   {
     domain: "usage_quota_authority",
-    description: "AI usage rate limiting and quota accounting run against Supabase RPCs.",
-    supported: false,
+    description:
+      "checkAiUsage (lib/usage/guard.ts) has a D1-only admission path " +
+      "(lib/cloudflare/usage-quota-authority.ts) that enforces the monthly, weekly and " +
+      "per-IP caps as a single guarded statement per attempt, with no advisory lock and no " +
+      "read-then-write gap. It mints its own numeric usage_events ids from a D1 counter that " +
+      "must be seeded above Supabase's current maximum before this domain's mode is set to " +
+      "'cloudflare' for the first time — see the pull request that added this file for the " +
+      "exact wrangler d1 execute commands and for why the counter is not seeded automatically.",
+    supported: true,
   },
   {
     domain: "ai_cost_write_authority",
-    description: "Anthropic cost-ledger writes are recorded through Supabase RPCs.",
-    supported: false,
+    description:
+      "recordAnthropicMessageCost (lib/ai/cost-tracking.ts) has a D1-only write path " +
+      "(lib/cloudflare/ai-cost-write-authority.ts) that dedupes on provider_request_id exactly " +
+      "as record_ai_cost_event does, and mints its own numeric ai_cost_events ids from a " +
+      "separate D1 counter with the same seeding requirement as usage_quota_authority's. The " +
+      "owner-only coverage/backfill writes (setAiCostCoverage, record_ai_cost_backfill) are " +
+      "unaffected by this domain and still go through Supabase regardless of its mode — they " +
+      "are out of scope for the pull request that added this entry.",
+    supported: true,
   },
   {
     domain: "avatar_object_parity",
@@ -164,4 +178,20 @@ export function domainDataMode(domain: CutoverDomain): CloudflareDataMode {
 export function domainReadsFromCloudflare(domain: CutoverDomain): boolean {
   const mode = domainDataMode(domain);
   return mode === "cloudflare" || mode === "read_cloudflare";
+}
+
+/**
+ * Whether D1 is the *only* place a write for this specific domain lands —
+ * `domainDataMode` plus the same `writesToCloudflareOnly()` rule the learner
+ * switch uses as a whole (true only for literal `'cloudflare'`).
+ *
+ * `usage_quota_authority` and `ai_cost_write_authority` are the first two
+ * domains that ask this rather than `domainReadsFromCloudflare`: both guard a
+ * write (an admission decision, a cost-ledger row), not a read, and both are
+ * one-way once flipped — see the D1 id-counter seeding requirement on each
+ * domain's entry above for why there is no plain env-var revert back to
+ * Supabase authority the way `read_cloudflare` gives the learner switch.
+ */
+export function domainWritesToCloudflareOnly(domain: CutoverDomain): boolean {
+  return domainDataMode(domain) === "cloudflare";
 }

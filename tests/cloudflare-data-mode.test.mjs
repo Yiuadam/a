@@ -160,16 +160,21 @@ test("the cutover-domain registry lists exactly the ten domains a Cloudflare-onl
     [...expected].sort(),
   );
   /*
-    Four domains now have a proven implementation: the three payload-integrity
-    ones (lib/cloudflare/payload-parity.ts) and `billing_entitlement_runtime`,
-    the first with a real D1 reader (lib/cloudflare/entitlement-runtime.ts).
-    Everything else in this stage's registry is still unaddressed.
+    Six domains now have a proven implementation: the three payload-integrity
+    ones (lib/cloudflare/payload-parity.ts), `billing_entitlement_runtime`, the
+    first with a real D1 reader (lib/cloudflare/entitlement-runtime.ts), and
+    `usage_quota_authority` / `ai_cost_write_authority`, the first two with a
+    proven D1 *write* authority (lib/cloudflare/usage-quota-authority.ts and
+    lib/cloudflare/ai-cost-write-authority.ts). Everything else in this stage's
+    registry is still unaddressed.
   */
   const supported = [
     "progress_payload_integrity",
     "billing_payload_object_parity",
     "provider_event_payload_object_parity",
     "billing_entitlement_runtime",
+    "usage_quota_authority",
+    "ai_cost_write_authority",
   ];
   assert.deepEqual(
     cutoverDomains.CUTOVER_DOMAINS.filter((entry) => entry.supported).map((entry) => entry.domain).sort(),
