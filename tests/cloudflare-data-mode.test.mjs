@@ -160,14 +160,18 @@ test("the cutover-domain registry lists exactly the ten domains a Cloudflare-onl
     [...expected].sort(),
   );
   /*
-    `billing_entitlement_runtime` is the first domain with a proven D1 reader
-    (lib/cloudflare/entitlement-runtime.ts) — see the pull request that added
-    it. Every other domain is still exactly where this stage left it: no
-    reader, `supported: false`.
+    `billing_entitlement_runtime` was the first domain with a proven D1 reader
+    (lib/cloudflare/entitlement-runtime.ts). `admin_user_directory` and
+    `admin_statistics` are next (lib/cloudflare/admin-entitlement-directory.ts,
+    lib/cloudflare/admin-stats.ts) — see the pull request that added them for
+    which of their figures deliberately stay on Supabase regardless. Every
+    other domain is still exactly where this stage left it: no reader,
+    `supported: false`.
   */
-  const stillUnsupported = expected.filter((domain) => domain !== "billing_entitlement_runtime");
+  const SUPPORTED = ["admin_user_directory", "admin_statistics", "billing_entitlement_runtime"];
+  const stillUnsupported = expected.filter((domain) => !SUPPORTED.includes(domain));
   const supported = cutoverDomains.CUTOVER_DOMAINS.filter((entry) => entry.supported).map((entry) => entry.domain);
-  assert.deepEqual(supported, ["billing_entitlement_runtime"]);
+  assert.deepEqual(supported, SUPPORTED);
   assert.deepEqual(
     cutoverDomains.unsupportedCutoverDomains().sort(),
     stillUnsupported.sort(),
