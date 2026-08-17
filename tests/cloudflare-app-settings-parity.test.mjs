@@ -112,49 +112,55 @@ test("future Cloudflare authority bootstraps only the verified Supabase Auth act
   );
 });
 
-test("dual-mode report names exact drift and reconciliation removes target-only settings", async () => {
-  const context = fixture();
-  seedActor(context);
-  const source = {
-    key: "maintenance",
-    value: { closed: false, at: NEW },
-    updatedAt: NEW,
-    updatedBy: ACTOR,
-  };
-  await settings.putCloudflareAppSetting(source, context.bindings);
-  await settings.putCloudflareAppSetting({
-    key: "maintenance_dispatch",
-    value: { stale: true },
-    updatedAt: OLD,
-    updatedBy: ACTOR,
-  }, context.bindings);
+for (const mode of ["dual", "read_cloudflare"]) {
+  test(`${mode}-mode report names exact drift and reconciliation removes target-only settings`, async () => {
+    const context = fixture();
+    seedActor(context);
+    const source = {
+      key: "maintenance",
+      value: { closed: false, at: NEW },
+      updatedAt: NEW,
+      updatedBy: ACTOR,
+    };
+    await settings.putCloudflareAppSetting(source, context.bindings);
+    await settings.putCloudflareAppSetting({
+      key: "maintenance_dispatch",
+      value: { stale: true },
+      updatedAt: OLD,
+      updatedBy: ACTOR,
+    }, context.bindings);
 
-  const previous = process.env.CLOUDFLARE_DATA_MODE;
-  process.env.CLOUDFLARE_DATA_MODE = "dual";
-  const readSource = async (key) => key === "maintenance" ? source : null;
-  try {
-    const before = await parity.appSettingsParityReport(context.bindings, readSource);
-    assert.equal(before.readyForAppSettingsCutover, false);
-    assert.deepEqual(before.items.map((item) => [item.key, item.status]), [
-      ["maintenance", "equal"],
-      ["maintenance_dispatch", "target_only"],
-    ]);
+    const previous = process.env.CLOUDFLARE_DATA_MODE;
+    process.env.CLOUDFLARE_DATA_MODE = mode;
+    const readSource = async (key) => key === "maintenance" ? source : null;
+    try {
+      const before = await parity.appSettingsParityReport(context.bindings, readSource);
+      assert.equal(before.readyForAppSettingsCutover, false);
+      assert.deepEqual(before.items.map((item) => [item.key, item.status]), [
+        ["maintenance", "equal"],
+        ["maintenance_dispatch", "target_only"],
+      ]);
+      // read_cloudflare reads app settings from D1 exactly as bare `cloudflare`
+      // does; `dual` still reads Supabase. Either way the report's authority
+      // label must match what readsFromCloudflare() actually decided.
+      assert.equal(before.authority, mode === "read_cloudflare" ? "cloudflare" : "supabase");
 
-    const after = await parity.reconcileAppSettingsReplica(context.bindings, readSource);
-    assert.equal(after.readyForAppSettingsCutover, true);
-    assert.deepEqual(after.items.map((item) => [item.key, item.status]), [
-      ["maintenance", "equal"],
-      ["maintenance_dispatch", "absent"],
-    ]);
-    assert.equal(
-      context.database.prepare("SELECT count(*) AS total FROM app_settings").get().total,
-      1,
-    );
-  } finally {
-    if (previous === undefined) delete process.env.CLOUDFLARE_DATA_MODE;
-    else process.env.CLOUDFLARE_DATA_MODE = previous;
-  }
-});
+      const after = await parity.reconcileAppSettingsReplica(context.bindings, readSource);
+      assert.equal(after.readyForAppSettingsCutover, true);
+      assert.deepEqual(after.items.map((item) => [item.key, item.status]), [
+        ["maintenance", "equal"],
+        ["maintenance_dispatch", "absent"],
+      ]);
+      assert.equal(
+        context.database.prepare("SELECT count(*) AS total FROM app_settings").get().total,
+        1,
+      );
+    } finally {
+      if (previous === undefined) delete process.env.CLOUDFLARE_DATA_MODE;
+      else process.env.CLOUDFLARE_DATA_MODE = previous;
+    }
+  });
+}
 
 test("reconciliation refuses to copy a retired Supabase authority forwards", async () => {
   const context = fixture();
@@ -163,7 +169,7 @@ test("reconciliation refuses to copy a retired Supabase authority forwards", asy
   try {
     await assert.rejects(
       () => parity.reconcileAppSettingsReplica(context.bindings, async () => null),
-      /only in dual mode/,
+      /available only while writes are mirrored/,
     );
   } finally {
     if (previous === undefined) delete process.env.CLOUDFLARE_DATA_MODE;
@@ -191,8 +197,13 @@ test("app settings are included in immutable migration evidence and runtime rout
 
   const sourceWrite = runtime.indexOf('rpc<unknown>("set_app_setting"');
   const targetWrite = runtime.indexOf("putCloudflareAppSetting(record, undefined, actor)");
-  assert.ok(sourceWrite >= 0 && targetWrite > sourceWrite, "dual writes must keep Supabase first");
-  assert.match(runtime, /mode === "cloudflare"[\s\S]*setCloudflareAppSetting/);
+  assert.ok(sourceWrite >= 0 && targetWrite > sourceWrite, "dual/read_cloudflare writes must keep Supabase first");
+  // writesToCloudflareOnly() is exactly `mode === "cloudflare"` today, but the
+  // call site must ask the named question rather than re-derive it, so a
+  // future state change to that predicate is not silently missed here too.
+  assert.match(runtime, /writesToCloudflareOnly\(\)[\s\S]*setCloudflareAppSetting/);
   assert.match(route, /isAdminEmail/);
-  assert.match(route, /cloudflareDataMode\(\) !== "dual"/);
+  // The reconciliation gate mirrors the widened thing it reconciles: it must
+  // open for read_cloudflare exactly as it does for dual, not just dual.
+  assert.match(route, /mirrorsWritesToCloudflare\(\)/);
 });
