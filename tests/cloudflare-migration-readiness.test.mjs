@@ -169,7 +169,12 @@ test("the global report proves exact identities and versions but fails closed on
   assert.equal(report.supabaseAuth.included, false);
   assert.equal(report.supabaseAuth.authority, "supabase");
   assert.equal(report.readyForCloudflareOnly, false);
-  assert.ok(report.unsupportedDomains.includes("billing_entitlement_runtime"));
+  // billing_entitlement_runtime is no longer in this list: it is the first
+  // cutover domain with a proven D1 reader (lib/cloudflare/entitlement-runtime.ts).
+  // See the pull request that added it for the pre-flip checklist that still
+  // has to clear before its *mode* actually changes.
+  assert.ok(!report.unsupportedDomains.includes("billing_entitlement_runtime"));
+  assert.ok(report.unsupportedDomains.includes("usage_quota_authority"));
   assert.ok(report.unsupportedDomains.includes("cutover_write_barrier"));
   assert.ok(report.blockers.includes("unsupported application-data domains remain"));
 

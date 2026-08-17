@@ -1,11 +1,13 @@
 import type { SessionUser } from "@/lib/auth/session";
 import type {
   Profile,
+  PromoSubscriptionReplica,
   StripeSubscriptionReplica,
 } from "@/lib/auth/supabase";
 import type { ProgressSnapshotMutation } from "@/lib/progress/server-snapshots";
 import type { StripeReplicaEvent } from "./billing-replica";
 import {
+  replicateAuthoritativePromoState,
   replicateAuthoritativeStripeState,
 } from "./billing-replica";
 import {
@@ -83,6 +85,10 @@ interface StripePayload {
   event: StripeReplicaEvent;
   eventPayload: unknown;
   authoritative: StripeSubscriptionReplica;
+}
+
+interface PromoPayload {
+  authoritative: PromoSubscriptionReplica;
 }
 
 interface UsagePayload {
@@ -230,6 +236,24 @@ function stripePayload(task: CloudflareReplicaTask): StripePayload {
   };
 }
 
+function promoPayload(task: CloudflareReplicaTask): PromoPayload {
+  const payload = record(task.payload);
+  const authoritative = record(payload?.authoritative);
+  if (
+    !authoritative
+    || typeof authoritative.id !== "string"
+    || typeof authoritative.userId !== "string"
+    || typeof authoritative.status !== "string"
+    || typeof authoritative.tier !== "string"
+    || typeof authoritative.verifiedAt !== "string"
+    || typeof authoritative.updatedAt !== "string"
+    || task.subjectUserId !== authoritative.userId
+  ) {
+    throw new Error("Invalid promo replica payload");
+  }
+  return { authoritative: authoritative as unknown as PromoSubscriptionReplica };
+}
+
 /** The only dispatcher allowed to execute persisted outbox payloads. */
 export async function executeCloudflareReplicaTask(
   task: CloudflareReplicaTask,
@@ -341,6 +365,10 @@ export async function executeCloudflareReplicaTask(
         payload.authoritative,
         bindings,
       );
+    }
+    case "promo_subscription": {
+      const payload = promoPayload(task);
+      return replicateAuthoritativePromoState(payload.authoritative, bindings);
     }
     case "usage_event": {
       const payload = record(task.payload);
@@ -568,6 +596,28 @@ export async function replicateStripeBillingDurably(
     subjectUserId: authoritative.userId,
     sourceUpdatedAt: sourceClock(authoritative.updatedAt),
     payload: { event, eventPayload, authoritative },
+  };
+  return mirrorDurably(task, (bindings) => executeCloudflareReplicaTask(task, bindings));
+}
+
+/**
+ * Task id is stable per account (`promo:${userId}`), not per write. A promo
+ * row is a mutable snapshot — accepted, possibly given up and taken again —
+ * so successive calls coalesce into the same pending outbox row the way a
+ * profile or progress save already does, rather than accumulating one queued
+ * task per status change. See `replicateAuthoritativePromoState`'s comment
+ * for why `updated_at` is the ordering column that keeps a stale retry from
+ * clobbering a newer status.
+ */
+export async function replicatePromoSubscriptionDurably(
+  authoritative: PromoSubscriptionReplica,
+): Promise<boolean> {
+  const task: CloudflareReplicaTask<PromoPayload> = {
+    taskId: `promo:${authoritative.userId}`,
+    operation: "promo_subscription",
+    subjectUserId: authoritative.userId,
+    sourceUpdatedAt: sourceClock(authoritative.updatedAt),
+    payload: { authoritative },
   };
   return mirrorDurably(task, (bindings) => executeCloudflareReplicaTask(task, bindings));
 }

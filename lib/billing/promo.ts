@@ -5,7 +5,10 @@ import {
   promoSubscriptionState,
   releasePromoSubscription,
   resumePromoSubscription,
+  promoSubscriptionReplica,
 } from "@/lib/auth/supabase";
+import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
+import { replicatePromoSubscriptionDurably } from "@/lib/cloudflare/replica-replay";
 import { resolveEntitlement } from "./entitlements";
 import type { Tier } from "./tiers";
 
@@ -66,6 +69,22 @@ import type { Tier } from "./tiers";
   it has been applied. It asks — see `promoProviderAllowed` — and until the
   answer is yes the poster is never drawn and accepting answers with a sentence
   rather than a 500.
+
+  ---------------------------------------------------------------------------
+  Why a grant is now also mirrored to Cloudflare
+
+  D1's `subscriptions.provider` CHECK has the identical problem one layer
+  further along: it allowed only `('stripe', 'apple')` until the pull request
+  that added this comment widened it by hand, the same way its Supabase
+  counterpart was. A grant made before that ran, or made while
+  `mirrorsWritesToCloudflare()` is false, simply is not in D1 — the resolver at
+  lib/cloudflare/entitlement-runtime.ts finds no subscription row for that
+  account and reports free, silently, which is exactly the bug the pull
+  request describes and the backfill it also describes is how existing grants
+  stop being invisible to a D1 read. `mirrorPromoBestEffort` below is the
+  write side going forward: same best-effort shape as
+  lib/billing/subscriptions.ts's replicateBillingBestEffort, so a mirror
+  failure costs a row of drift, not a trial the learner was told they got.
 */
 
 const MODULE = "lib/billing/promo.ts";
@@ -236,7 +255,16 @@ export async function acceptPromo(
       record of which one the owner's sweep has already dealt with.
     */
     const resumed = await resumePromoSubscription(userId);
-    if (resumed === "changed") return "granted";
+    if (resumed === "changed") {
+      /*
+        The resumed row is a status change on a row D1 may already hold, not a
+        new grant, and mirrorPromoBestEffort carries whatever status the row now
+        holds. Without this the mirror would still show the paused row and a D1
+        read would resolve a learner who had just taken the trial back to free.
+      */
+      await mirrorPromoBestEffort(userId);
+      return "granted";
+    }
     // The owner's sweep landed between the read and the write, so the row is
     // 'canceled' now and matched nothing. Their decision stands.
     if (resumed === "no-match") return "ended";
@@ -248,7 +276,10 @@ export async function acceptPromo(
   }
 
   const outcome = await insertPromoSubscription(userId);
-  if (outcome === "inserted") return "granted";
+  if (outcome === "inserted") {
+    await mirrorPromoBestEffort(userId);
+    return "granted";
+  }
   if (outcome === "exists") return "already-pro";
   if (outcome === "unsupported") {
     // The constraint changed under us between the probe and the write. Drop the
@@ -323,6 +354,40 @@ export async function releasePromo(
     granting, so the true answer to them is the same one — and the tier below is
     resolved rather than assumed, which makes it true in that case too.
   */
+  /*
+    Same reasoning as the resume path: pausing is a status change on a row the
+    mirror already holds, and a D1 read that still saw 'active' would keep
+    granting Pro to somebody who has just given it back.
+  */
+  await mirrorPromoBestEffort(userId);
   const after = await resolveEntitlement(userId, email);
   return { outcome: "released", tier: after.tier };
+}
+
+/**
+ * Supabase has already committed by the time this runs. Best-effort in the
+ * same sense `lib/billing/subscriptions.ts`'s replicateBillingBestEffort is:
+ * awaited for deterministic ordering and observability, but a mirror failure
+ * here must never turn a trial that was actually granted into a 500 for the
+ * learner who just accepted it.
+ *
+ * A no-op when this deployment is not mirroring writes to Cloudflare at all
+ * (`mirrorsWritesToCloudflare()` is false for `supabase` and for `cloudflare`
+ * itself, which has no separate Supabase write to mirror from).
+ */
+async function mirrorPromoBestEffort(userId: string): Promise<void> {
+  if (!mirrorsWritesToCloudflare()) return;
+  try {
+    const row = await promoSubscriptionReplica(userId);
+    if (!row) {
+      console.error("[accounts] billing/promo Cloudflare replica: no row to mirror after insert");
+      return;
+    }
+    if (!(await replicatePromoSubscriptionDurably(row))) {
+      console.error("[accounts] billing/promo Cloudflare replica: replica write returned false");
+    }
+  } catch (error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    console.error(`[accounts] billing/promo Cloudflare replica: ${detail}`);
+  }
 }

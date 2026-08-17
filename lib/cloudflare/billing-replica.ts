@@ -1,4 +1,4 @@
-import type { StripeSubscriptionReplica } from "@/lib/auth/supabase";
+import type { PromoSubscriptionReplica, StripeSubscriptionReplica } from "@/lib/auth/supabase";
 import type {
   StripePrepaidPurchaseEvent,
   StripePrepaidRefundEvent,
@@ -227,6 +227,67 @@ export async function replicateStripePrepaidRefundToCloudflare(
   providedBindings?: BandUpCloudflareBindings,
 ): Promise<boolean> {
   return replicateAuthoritativeStripeState(event, payload, authoritative, providedBindings);
+}
+
+/**
+ * Copy the exact current Supabase promo row.
+ *
+ * A promo grant has no provider webhook, so there is no `provider_events` row
+ * to write and no delivery id to dedupe — unlike
+ * `replicateAuthoritativeStripeState`, this writes only `subscriptions`. What
+ * plays the ordering role `provider_event_at` plays for Stripe is the row's
+ * own `updated_at`: a promo row is a *mutable* snapshot (accepted, later
+ * possibly given up and taken again — see the pull request for why status is
+ * the column that changes), not a stream of immutable events, so a stale
+ * replay is one whose `updated_at` is not newer than what D1 already holds,
+ * the same rule learner_profiles and progress_snapshots already use for their
+ * own mutable rows (see lib/cloudflare/learner-data.ts).
+ *
+ * Takes the whole row rather than assuming `status: 'active'`, so this same
+ * function mirrors a later status change — 'paused' from a learner giving the
+ * trial back, 'canceled' from the owner's sweep — with no changes here. It is
+ * the resolver, not this write, that already treats anything other than
+ * 'active'/'trialing' as granting nothing (supabase/migrations/0026, and
+ * lib/cloudflare/entitlement-runtime.ts's `status IN` clause matching it).
+ */
+export async function replicateAuthoritativePromoState(
+  row: PromoSubscriptionReplica,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<boolean> {
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  await ensureEventUser(row.userId, bindings);
+
+  const stored = await storeJson(bindings, "subscriptions", row.userId, row.raw);
+  const result = await bindings.db.prepare(`
+    INSERT INTO subscriptions (
+      id, user_id, provider, status, tier, current_period_end,
+      cancel_at_period_end, verified_at,
+      raw_inline, raw_object_key, raw_sha256, created_at, updated_at
+    ) VALUES (?, ?, 'promo', ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      tier = excluded.tier,
+      current_period_end = excluded.current_period_end,
+      verified_at = excluded.verified_at,
+      raw_inline = excluded.raw_inline,
+      raw_object_key = excluded.raw_object_key,
+      raw_sha256 = excluded.raw_sha256,
+      updated_at = excluded.updated_at
+    WHERE excluded.updated_at >= subscriptions.updated_at
+  `).bind(
+    row.id,
+    row.userId,
+    row.status,
+    row.tier,
+    row.currentPeriodEnd ? canonicalCloudflareSourceClock(row.currentPeriodEnd) : null,
+    canonicalCloudflareSourceClock(row.verifiedAt),
+    stored.inline,
+    stored.objectKey,
+    stored.sha256,
+    canonicalCloudflareSourceClock(row.createdAt),
+    canonicalCloudflareSourceClock(row.updatedAt),
+  ).run();
+  return result.success;
 }
 
 export async function cloudflareStripeCustomerFor(userId: string): Promise<string | null> {

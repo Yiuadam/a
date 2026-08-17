@@ -2,6 +2,11 @@ import { isAdminEmail } from "@/lib/auth/env";
 import { TIER_NAMES } from "./tiers";
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { rpc } from "@/lib/auth/supabase";
+import { domainReadsFromCloudflare } from "@/lib/cloudflare/cutover-domains";
+import {
+  resolveEntitlementFromCloudflare,
+  type CloudflareRawEntitlement,
+} from "@/lib/cloudflare/entitlement-runtime";
 import type { Tier } from "./tiers";
 
 /*
@@ -88,6 +93,28 @@ function normalise(raw: RawEntitlement | null): Entitlement {
   };
 }
 
+const CUTOVER_DOMAIN = "billing_entitlement_runtime";
+
+/** What ADMIN_EMAILS grants, before either backend is asked anything. */
+const ADMIN_ENTITLEMENT: Entitlement = { role: "admin", tier: "admin", source: "role", expiresAt: null };
+
+async function resolveViaSupabase(userId: string): Promise<Entitlement> {
+  const raw = await rpc<RawEntitlement | null>("resolve_entitlement", { p_user_id: userId });
+  return normalise(raw);
+}
+
+/*
+  D1 never supplies `role` — see lib/cloudflare/entitlement-runtime.ts for why
+  that is correct rather than missing. `normalise` reads an absent `role` as
+  "user", which is exactly right here: by the time this runs, the one way this
+  build grants admin (ADMIN_EMAILS) has already been checked and has already
+  said no.
+*/
+async function resolveViaCloudflare(userId: string): Promise<Entitlement> {
+  const raw: CloudflareRawEntitlement = await resolveEntitlementFromCloudflare(userId);
+  return normalise(raw);
+}
+
 /**
  * Resolves the entitlement for a user id, server-side, from the database.
  *
@@ -116,11 +143,59 @@ export async function resolveEntitlement(
     an owner who has to sign in twice will reasonably think it is broken.
 
     The email comes from the verified session, never from the request body.
-  */
-  if (isAdminEmail(email)) {
-    return { role: "admin", tier: "admin", source: "role", expiresAt: null };
-  }
 
-  const raw = await rpc<RawEntitlement | null>("resolve_entitlement", { p_user_id: userId });
-  return normalise(raw);
+    This is also, deliberately, the *only* way this build grants admin.
+    Postgres's `resolve_entitlement` still reads `profiles.role` first and
+    would say otherwise for any account still holding a database-granted
+    role — the D1 resolver never reads a role at all, by design (see
+    lib/cloudflare/entitlement-runtime.ts) — so this check runs before either
+    backend, and the two paths never even see an account this did not already
+    rule out.
+  */
+  if (isAdminEmail(email)) return ADMIN_ENTITLEMENT;
+
+  return domainReadsFromCloudflare(CUTOVER_DOMAIN)
+    ? resolveViaCloudflare(userId)
+    : resolveViaSupabase(userId);
+}
+
+/** One resolver's answer, paired with which one gave it. */
+export interface EntitlementParityPair {
+  supabase: Entitlement;
+  cloudflare: Entitlement;
+}
+
+/**
+ * Resolves one account through *both* backends, regardless of which one
+ * `resolveEntitlement` is currently configured to trust.
+ *
+ * This exists for exactly one caller: the admin parity tool
+ * (app/api/admin/cloudflare/entitlement-parity/route.ts) that is the owner's
+ * pre-flip proof that the two answers agree — see the pull request that added
+ * this for why "zero mismatches" is the standard rather than "looks right".
+ *
+ * The ADMIN_EMAILS check still runs first and short-circuits both sides
+ * identically, exactly as it does in `resolveEntitlement` — an account it
+ * grants admin to is never a source of a mismatch, because neither resolver
+ * is ever asked about it. What *is* worth surfacing is the opposite case: an
+ * account Supabase's `profiles.role` still calls 'admin' whose email is not
+ * (or is no longer) in ADMIN_EMAILS. That account is not short-circuited, so
+ * it reaches both resolvers — Supabase's RPC reports it 'admin' regardless of
+ * ADMIN_EMAILS, the Cloudflare resolver never can — and the pair disagrees.
+ * That disagreement is this tool's whole point: it is how the owner learns,
+ * before flipping anything, exactly which accounts a role-based admin retired
+ * in favour of ADMIN_EMAILS.
+ */
+export async function resolveEntitlementForParity(
+  userId: string,
+  email: string | null,
+): Promise<EntitlementParityPair> {
+  assertServerOnly(MODULE);
+  if (isAdminEmail(email)) return { supabase: ADMIN_ENTITLEMENT, cloudflare: ADMIN_ENTITLEMENT };
+
+  const [supabase, cloudflare] = await Promise.all([
+    resolveViaSupabase(userId),
+    resolveViaCloudflare(userId),
+  ]);
+  return { supabase, cloudflare };
 }
