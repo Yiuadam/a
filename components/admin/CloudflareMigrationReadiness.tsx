@@ -6,6 +6,7 @@ import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import type { CloudflareDomainDriftReport } from "@/lib/cloudflare/domain-drift";
 import type { CloudflareMigrationReadinessReport } from "@/lib/cloudflare/migration-readiness";
+import type { CloudflarePayloadParityReport } from "@/lib/cloudflare/payload-parity";
 
 function label(value: string): string {
   return value.replaceAll("_", " ");
@@ -23,6 +24,8 @@ export default function CloudflareMigrationReadiness() {
   const [failed, setFailed] = useState(false);
   const [drift, setDrift] = useState<CloudflareDomainDriftReport | null>(null);
   const [driftState, setDriftState] = useState<"idle" | "loading" | "failed">("idle");
+  const [payloadParity, setPayloadParity] = useState<CloudflarePayloadParityReport | null>(null);
+  const [payloadParityState, setPayloadParityState] = useState<"idle" | "loading" | "failed">("idle");
 
   function nameDriftingRows() {
     setDriftState("loading");
@@ -35,6 +38,19 @@ export default function CloudflareMigrationReadiness() {
         setDriftState("idle");
       })
       .catch(() => setDriftState("failed"));
+  }
+
+  function verifyPayloadBytes() {
+    setPayloadParityState("loading");
+    void authedFetch(apiUrl("/api/admin/cloudflare/readiness?payloadParity=all"), { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("payload parity unavailable");
+        const next = await response.json() as { payloadParity: CloudflarePayloadParityReport | null };
+        if (!next.payloadParity) throw new Error("payload parity unavailable");
+        setPayloadParity(next.payloadParity);
+        setPayloadParityState("idle");
+      })
+      .catch(() => setPayloadParityState("failed"));
   }
 
   useEffect(() => {
@@ -131,6 +147,51 @@ export default function CloudflareMigrationReadiness() {
                     )}
                     {entry.fingerprintMismatch.sample.length > 0 && (
                       <span className="mt-1 block break-all text-slate-500">Differing rows: {entry.fingerprintMismatch.sample.join(", ")}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="mt-3 rounded-xl border border-slate-200/80 px-3 py-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-slate-800">Payload byte parity</strong>
+              <button
+                type="button"
+                onClick={verifyPayloadBytes}
+                disabled={payloadParityState === "loading"}
+                className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-slate-700 disabled:opacity-60"
+              >
+                {payloadParityState === "loading" ? "Reading payloads…" : "Verify payload bytes"}
+              </button>
+            </div>
+            <p className="mt-1 leading-5 text-slate-500">
+              Opens the progress, subscription and provider-event payload on both sides, canonicalises it
+              the same way, and hashes it. An equal row above only means the row&rsquo;s identity columns match —
+              this is what proves the stored content itself matches. Costs an R2 read per out-of-line payload.
+            </p>
+            {payloadParityState === "failed" && (
+              <p role="alert" className="mt-2 text-rose-700">Payload comparison could not be run.</p>
+            )}
+            {payloadParity && (
+              <ul className="mt-2 space-y-2">
+                {payloadParity.domains.map((entry) => (
+                  <li key={entry.domain} className="rounded-lg bg-slate-50 px-2.5 py-2">
+                    <strong className="text-slate-800">{label(entry.domain)}</strong>{" "}
+                    <span className={entry.status === "equal" ? "text-emerald-700" : "text-amber-700"}>{label(entry.status)}</span>
+                    <span className="mt-1 block tabular-nums text-slate-500">
+                      Missing from Cloudflare {entry.missingInTarget.total} · only in Cloudflare {entry.missingInSource.total}
+                      · payload differs {entry.payloadMismatch.total} · unreadable in Cloudflare {entry.targetPayloadUnavailable.total}
+                      {entry.complete ? "" : ` · compared ${entry.comparedSourceRows} source and ${entry.comparedTargetRows} target rows only`}
+                    </span>
+                    {entry.targetPayloadUnavailable.sample.length > 0 && (
+                      <span className="mt-1 block break-all text-slate-500">
+                        Unreadable in Cloudflare (missing or checksum-failed R2 object): {entry.targetPayloadUnavailable.sample.join(", ")}
+                      </span>
+                    )}
+                    {entry.payloadMismatch.sample.length > 0 && (
+                      <span className="mt-1 block break-all text-slate-500">Differing payloads: {entry.payloadMismatch.sample.join(", ")}</span>
                     )}
                   </li>
                 ))}
