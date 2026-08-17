@@ -1,6 +1,7 @@
 import { rpc } from "@/lib/auth/supabase";
 import {
   cloudflareDataMode,
+  mirrorsWritesToCloudflare,
   organizationDataMode,
   requireBandUpCloudflareBindings,
   type BandUpCloudflareBindings,
@@ -364,8 +365,12 @@ export async function cloudflareMigrationReadinessReport(
   unsupportedDomains.push(...unsupportedCutoverDomains());
 
   const blockers: string[] = [];
-  if (cloudflareDataMode() !== "dual") {
-    blockers.push("learner_mode: dual mode is required for live cutover proof");
+  // The exact-fingerprint proof below is only meaningful while writes are
+  // still landing in Supabase and being mirrored to D1 under live load —
+  // true in both `dual` and `read_cloudflare`, which share that write
+  // behaviour by construction. See mirrorsWritesToCloudflare().
+  if (!mirrorsWritesToCloudflare()) {
+    blockers.push("learner_mode: mirrored writes are required for live cutover proof");
   }
   for (const domain of domains) if (!domain.ready) blockers.push(`${domain.domain}: ${domain.status}`);
   if (!appSettingsResult?.readyForAppSettingsCutover) blockers.push("app_settings: not proven equal");

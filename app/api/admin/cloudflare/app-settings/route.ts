@@ -7,7 +7,7 @@ import {
   appSettingsParityReport,
   reconcileAppSettingsReplica,
 } from "@/lib/cloudflare/app-settings-parity";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
 import { withCors } from "@/lib/http/cors";
 
 export const dynamic = "force-dynamic";
@@ -32,8 +32,11 @@ async function handleGET(req: Request) {
 
 async function handlePOST(req: Request) {
   if (!(await owner(req))) return safeJsonError("Not found.", 404);
-  if (cloudflareDataMode() !== "dual") {
-    return safeJsonError("Reconciliation is available only while dual mode is active.", 409);
+  if (!mirrorsWritesToCloudflare()) {
+    return safeJsonError(
+      "Reconciliation is available only while writes are mirrored to Cloudflare.",
+      409,
+    );
   }
   try {
     return NextResponse.json(await reconcileAppSettingsReplica(), { headers });

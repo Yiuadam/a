@@ -6,7 +6,11 @@ import {
   supabaseConfigured,
 } from "@/lib/auth/supabase";
 import { logInternal } from "@/lib/auth/errors";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import {
+  mirrorsWritesToCloudflare,
+  readsFromCloudflare,
+  writesToCloudflareOnly,
+} from "@/lib/cloudflare/bindings";
 import {
   getCloudflareAppSetting,
   putCloudflareAppSetting,
@@ -70,21 +74,22 @@ let cached: { value: MaintenanceSetting; until: number } | null = null;
 const OPEN: MaintenanceSetting = { closed: false };
 
 async function readSetting(key: string): Promise<unknown> {
-  const mode = cloudflareDataMode();
-  if (mode === "cloudflare") {
+  if (readsFromCloudflare()) {
     return (await getCloudflareAppSetting(key))?.value ?? null;
   }
   if (!supabaseConfigured()) return null;
 
   const record = await getAppSettingRecord(key);
-  if (mode === "dual" && record) {
+  if (mirrorsWritesToCloudflare() && record) {
     try {
       if (!(await putCloudflareAppSetting(record))) {
         throw new Error("Cloudflare app setting replica was not stored");
       }
     } catch (error) {
-      // Supabase remains the read authority in dual mode. Report drift, but a
-      // replica outage must not change the running site's current setting.
+      // Supabase remains the read authority whenever this line can even run
+      // (readsFromCloudflare() already returned above otherwise). Report
+      // drift, but a replica outage must not change the running site's
+      // current setting.
       logInternal(`admin/settings:${key}:cloudflare-read-repair`, error);
     }
   }
@@ -96,8 +101,7 @@ async function writeSetting(
   value: unknown,
   actor: SessionUser | null,
 ): Promise<unknown> {
-  const mode = cloudflareDataMode();
-  if (mode === "cloudflare") {
+  if (writesToCloudflareOnly()) {
     return (await setCloudflareAppSetting(key, value, actor)).value;
   }
 
@@ -106,7 +110,7 @@ async function writeSetting(
     p_value: value,
     p_actor: actor?.id ?? null,
   });
-  if (mode !== "dual") return stored;
+  if (!mirrorsWritesToCloudflare()) return stored;
 
   try {
     // Re-read the committed row so D1 receives Postgres's exact timestamp and
