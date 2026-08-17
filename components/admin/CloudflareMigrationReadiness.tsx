@@ -7,6 +7,7 @@ import { apiUrl } from "@/lib/api";
 import type { CloudflareDomainDriftReport } from "@/lib/cloudflare/domain-drift";
 import type { CloudflareMigrationReadinessReport } from "@/lib/cloudflare/migration-readiness";
 import type { CloudflarePayloadParityReport } from "@/lib/cloudflare/payload-parity";
+import type { AvatarObjectParityReport } from "@/lib/cloudflare/avatar-parity";
 
 function label(value: string): string {
   return value.replaceAll("_", " ");
@@ -26,6 +27,8 @@ export default function CloudflareMigrationReadiness() {
   const [driftState, setDriftState] = useState<"idle" | "loading" | "failed">("idle");
   const [payloadParity, setPayloadParity] = useState<CloudflarePayloadParityReport | null>(null);
   const [payloadParityState, setPayloadParityState] = useState<"idle" | "loading" | "failed">("idle");
+  const [avatarParity, setAvatarParity] = useState<AvatarObjectParityReport | null>(null);
+  const [avatarParityState, setAvatarParityState] = useState<"idle" | "loading" | "failed">("idle");
 
   function nameDriftingRows() {
     setDriftState("loading");
@@ -51,6 +54,19 @@ export default function CloudflareMigrationReadiness() {
         setPayloadParityState("idle");
       })
       .catch(() => setPayloadParityState("failed"));
+  }
+
+  function checkAvatarObjectParity() {
+    setAvatarParityState("loading");
+    void authedFetch(apiUrl("/api/admin/cloudflare/readiness?avatarObjectParity=1"), { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("avatar parity unavailable");
+        const next = await response.json() as { avatarParity: AvatarObjectParityReport | null };
+        if (!next.avatarParity) throw new Error("avatar parity unavailable");
+        setAvatarParity(next.avatarParity);
+        setAvatarParityState("idle");
+      })
+      .catch(() => setAvatarParityState("failed"));
   }
 
   useEffect(() => {
@@ -196,6 +212,64 @@ export default function CloudflareMigrationReadiness() {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+
+          <div className="mt-3 rounded-xl border border-slate-200/80 px-3 py-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-slate-800">Avatar object parity</strong>
+              <button
+                type="button"
+                onClick={checkAvatarObjectParity}
+                disabled={avatarParityState === "loading"}
+                className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-slate-700 disabled:opacity-60"
+              >
+                {avatarParityState === "loading" ? "Comparing avatars…" : "Check avatar object parity"}
+              </button>
+            </div>
+            <p className="mt-1 leading-5 text-slate-500">
+              Downloads and hashes real Supabase Storage and R2 objects, and counts profiles that would lose their picture at a read cutover. Not run automatically — this costs far more than the report above.
+            </p>
+            {avatarParityState === "failed" && (
+              <p role="alert" className="mt-2 text-rose-700">Avatar object parity could not be checked.</p>
+            )}
+            {avatarParity && (
+              <div className="mt-2 space-y-2">
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                  <strong className={avatarParity.disappearingFaces.total > 0 ? "text-rose-700" : "text-emerald-700"}>
+                    {avatarParity.disappearingFaces.total} face{avatarParity.disappearingFaces.total === 1 ? "" : "s"} would vanish at a read cutover
+                  </strong>
+                  <span className="mt-1 block tabular-nums text-slate-500">
+                    Supabase has an avatar, D1 does not
+                    {!avatarParity.presenceComplete && ` · compared ${avatarParity.comparedSourceRows} source and ${avatarParity.comparedTargetRows} target rows only`}
+                  </span>
+                  {avatarParity.disappearingFaces.sample.length > 0 && (
+                    <span className="mt-1 block break-all text-slate-500">{avatarParity.disappearingFaces.sample.join(", ")}</span>
+                  )}
+                </div>
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                  <strong className="text-slate-800">Only in Cloudflare</strong>{" "}
+                  <span className={avatarParity.targetOnly.total > 0 ? "text-amber-700" : "text-emerald-700"}>{avatarParity.targetOnly.total}</span>
+                  {avatarParity.targetOnly.sample.length > 0 && (
+                    <span className="mt-1 block break-all text-slate-500">{avatarParity.targetOnly.sample.join(", ")}</span>
+                  )}
+                </div>
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                  <strong className="text-slate-800">Byte comparison</strong>{" "}
+                  <span className={avatarParity.bytes.different.total + avatarParity.bytes.sourceUnreadable.total + avatarParity.bytes.targetUnreadable.total + avatarParity.bytes.bothUnreadable.total > 0 ? "text-rose-700" : "text-emerald-700"}>
+                    {avatarParity.bytes.equal.total} equal · {avatarParity.bytes.different.total} different · {avatarParity.bytes.sourceUnreadable.total} unreadable in Supabase · {avatarParity.bytes.targetUnreadable.total} unreadable in R2 · {avatarParity.bytes.bothUnreadable.total} unreadable on both
+                  </span>
+                  <span className="mt-1 block tabular-nums text-slate-500">
+                    Checked {avatarParity.bytes.checked} of {avatarParity.bytes.checked + avatarParity.bytes.skipped} matched avatars this call (limit {avatarParity.byteCheckLimit})
+                  </span>
+                  {avatarParity.bytes.targetUnreadable.sample.length > 0 && (
+                    <span className="mt-1 block break-all text-slate-500">Unreadable in R2 (recorded but would fail to serve): {avatarParity.bytes.targetUnreadable.sample.join(", ")}</span>
+                  )}
+                </div>
+                {!avatarParity.complete && (
+                  <p className="text-slate-500">Bounded check — not every avatar was compared this call. Re-run with a higher limit or repeat to cover more.</p>
+                )}
+              </div>
             )}
           </div>
 

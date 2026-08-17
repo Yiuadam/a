@@ -15,6 +15,11 @@ import {
   parsePayloadParityDomains,
   type CloudflarePayloadParityReport,
 } from "@/lib/cloudflare/payload-parity";
+import {
+  avatarObjectParityReport,
+  parseAvatarObjectParityFlag,
+  type AvatarObjectParityReport,
+} from "@/lib/cloudflare/avatar-parity";
 import { withCors } from "@/lib/http/cors";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +47,14 @@ async function handleGET(req: Request) {
   const wantedPayload = parsePayloadParityDomains(query.get("payloadParity"));
   const payloadRowLimit = Number(query.get("payloadParityRows"));
   const payloadSampleLimit = Number(query.get("payloadParitySample"));
+  // `?avatarObjectParity=` hashes real Supabase Storage and R2 objects and
+  // counts profiles a read cutover would leave without a picture. Off by
+  // default for the same reason `?drift=` is: it costs far more than the
+  // report itself, which never reads avatar bytes at all.
+  const wantsAvatarParity = parseAvatarObjectParityFlag(query.get("avatarObjectParity"));
+  const avatarRowLimit = Number(query.get("avatarParityRows"));
+  const avatarSampleLimit = Number(query.get("avatarParitySample"));
+  const avatarByteLimit = Number(query.get("avatarParityBytes"));
 
   try {
     const report = await cloudflareMigrationReadinessReport();
@@ -62,7 +75,16 @@ async function handleGET(req: Request) {
         });
       }
     }
-    return NextResponse.json({ ...report, rowDrift, payloadParity }, {
+    let avatarParity: AvatarObjectParityReport | null = null;
+    if (wantsAvatarParity) {
+      const bindings = await requireBandUpCloudflareBindings();
+      avatarParity = await avatarObjectParityReport(bindings, {
+        rowLimit: Number.isSafeInteger(avatarRowLimit) && avatarRowLimit > 0 ? avatarRowLimit : undefined,
+        sampleLimit: Number.isSafeInteger(avatarSampleLimit) && avatarSampleLimit > 0 ? avatarSampleLimit : undefined,
+        byteCheckLimit: Number.isSafeInteger(avatarByteLimit) && avatarByteLimit >= 0 ? avatarByteLimit : undefined,
+      });
+    }
+    return NextResponse.json({ ...report, rowDrift, payloadParity, avatarParity }, {
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {
