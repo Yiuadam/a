@@ -31,6 +31,7 @@ export type CloudflareReplicaOperation =
   | "avatar_put"
   | "avatar_delete"
   | "stripe_billing"
+  | "promo_subscription"
   | "usage_event"
   | "ai_cost_event"
   | "ai_cost_coverage";

@@ -778,6 +778,67 @@ export async function insertPromoSubscription(userId: string): Promise<PromoInse
   }
 }
 
+export interface PromoSubscriptionReplica {
+  id: string;
+  userId: string;
+  status: string;
+  tier: string;
+  currentPeriodEnd: string | null;
+  raw: unknown;
+  verifiedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Fixed service-role read of a promo row, in the same spirit as
+ * `stripeSubscriptionReplica` above: the insert above asks Postgres to fill in
+ * `id`, `verified_at`, `created_at` and `updated_at` by default, so mirroring
+ * the row into D1 needs a read of what Postgres actually wrote rather than a
+ * guess reconstructed from what this file happened to send.
+ *
+ * Reads by `(user_id, provider)` rather than by id, because every caller of
+ * this — accepting the trial, and later reconciling it — already knows which
+ * account it means and not yet which row id Postgres assigned it. A promo row
+ * is unique per account by construction (`insertPromoSubscription` reports
+ * `exists` rather than writing a second one), so `limit=1` is not a guess
+ * about which row matters, it is the only row there is.
+ */
+export async function promoSubscriptionReplica(
+  userId: string,
+): Promise<PromoSubscriptionReplica | null> {
+  if (!isUuid(userId)) return null;
+  try {
+    const res = await request(
+      `/rest/v1/subscriptions?user_id=eq.${userId}&provider=eq.${PROMO_PROVIDER}` +
+        "&select=id,user_id,status,tier,current_period_end,raw,verified_at,created_at,updated_at" +
+        "&order=created_at.desc&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Record<string, unknown>[];
+    const row = Array.isArray(rows) ? rows[0] : null;
+    const required = [row?.id, row?.user_id, row?.status, row?.tier, row?.verified_at, row?.created_at, row?.updated_at];
+    if (!row || required.some((value) => typeof value !== "string" || value.length === 0)) {
+      return null;
+    }
+    const optional = (value: unknown) => typeof value === "string" && value.length > 0 ? value : null;
+    return {
+      id: row.id as string,
+      userId: row.user_id as string,
+      status: row.status as string,
+      tier: row.tier as string,
+      currentPeriodEnd: optional(row.current_period_end),
+      raw: row.raw,
+      verifiedAt: row.verified_at as string,
+      createdAt: row.created_at as string,
+      updatedAt: row.updated_at as string,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Stores an avatar. `path` is always inside the caller's own folder. */
 export async function uploadAvatar(
   path: string,
