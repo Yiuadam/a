@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import CheckoutNotice from "@/components/billing/CheckoutNotice";
 import PayingWhileFreeNotice from "@/components/billing/PayingWhileFreeNotice";
+import AccessNotice from "./access-notice";
 import billingBlocker from "./state";
 import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { useDrawnTier, useTier } from "@/lib/billing/useTier";
@@ -142,6 +143,14 @@ export default function BillingPage() {
             the trial is open. See the component.
           */}
           <PayingWhileFreeNotice />
+
+          {/*
+            What this account actually holds — a subscription that renews, or a
+            wallet pass that ends on a date — before the menu leading to the page
+            where they would act on it. It draws nothing for a free account, for
+            the owner, or for the free Pro trial. See ./access-notice.tsx.
+          */}
+          <AccessNotice state={state} planName={definition?.name ?? null} />
 
           <HubMenu items={items} />
 

@@ -100,10 +100,26 @@ export default async function PricingPage() {
           </Link>
           .
         </p>
+        {/*
+          Two paragraphs where there was one, because there are two purchases and
+          the old paragraph described only the card. It said "you can cancel at any
+          time... and it does not renew after that", which is true of a cancelled
+          subscription and reads, to somebody about to pay with Alipay, as though
+          their pass were a subscription they would have to remember to stop.
+        */}
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          <strong>You can cancel at any time</strong>, from the button on this page — the same
-          one place you subscribed from. You keep what you have paid for until the end of the
-          period you paid for, and it does not renew after that.
+          <strong>A card subscription renews until you cancel</strong>, and you can cancel at any
+          time from the button on this page — the same one place you subscribed from. You keep what
+          you have paid for until the end of the period you paid for, and nothing further is
+          charged after that.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          <strong>An Alipay or WeChat Pay pass is a single payment</strong> for one month or one
+          year, because neither wallet can make a recurring charge. It does not renew and there is
+          nothing to cancel: when the time runs out the account goes back to Free, with everything
+          you have done still in it. Your billing page shows the date it ends from the moment you
+          pay, and paying again before then adds to the time you have left rather than replacing
+          it.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           <strong>Each AI allowance runs over a rolling 30 days</strong>, not a calendar month.

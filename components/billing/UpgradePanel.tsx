@@ -142,11 +142,18 @@ export default function UpgradePanel({
           </Link>
         </div>
       )}
-      {/* Stated here too, so nobody meets the word "automatically" later. */}
+      {/*
+        Stated here too, so nobody meets the word "automatically" later — and now
+        with the other half of the truth. This described the card subscription
+        only, so a reader who went on to pay with Alipay had been told their
+        purchase renews and can be cancelled, and neither is so of a pass.
+      */}
       {!IS_MOBILE_BUILD && (
         <p className="mt-2 text-xs leading-5 text-slate-500">
-          Renews automatically until you cancel. Cancel any time in one button. Refunds are
-          fourteen days where the law says so, and two days by request elsewhere.
+          A card subscription renews automatically until you cancel, in one button. Alipay and
+          WeChat Pay are a single payment for the month or the year instead: no renewal, nothing to
+          cancel, and access ends on the date your billing page shows. Refunds are fourteen days
+          where the law says so, and two days by request elsewhere.
         </p>
       )}
     </div>
