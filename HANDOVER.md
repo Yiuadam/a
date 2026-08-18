@@ -1,8 +1,13 @@
 # Handover — Supabase → Cloudflare migration, and the loose ends around it
 
-Written at the end of the session that built PRs #138–#148. Nothing in this
-file changes code; it exists so the next agent does not have to reconstruct
-the state from eleven pull-request bodies.
+Written at the end of the session that built PRs #138–#148 and then, at the
+owner's instruction, merged them all to `main`. Nothing in this file changes
+code; it exists so the next agent does not have to reconstruct the state from
+a dozen pull-request bodies.
+
+**All of the migration work is now on `main`.** No mode has been flipped, no
+SQL has been applied, and nothing has been deployed to production — merging
+changed what the next deploy *would* carry, not what `bandup.life` serves.
 
 Read `CLAUDE.md` and `AGENTS.md` first. Two rules in them are load-bearing and
 have been honoured throughout:
@@ -46,46 +51,53 @@ words: "ask me for the flip where no return, i need to make sure everything is
 fine." Do not set any domain to `cloudflare` without asking for that specific
 flip.
 
-## The eleven open pull requests
+## What landed, and why the numbers moved
 
-All CI-green. Merge order matters.
+Merging exposed a trap worth remembering: **#140 was squash-merged, which
+rewrote the ancestry every stacked branch was built on.** A squash replaces
+the base branch's commits with one new commit, so the seven PRs stacked on it
+suddenly conflicted with `main` even though their content was fine. Each had
+to be rebased onto `main` and reopened under a new number, because the sandbox
+cannot force-push.
 
-### Targeting `main` — these have preview URLs
+**For a stack, merge the base with a merge commit, not a squash.** #157 and
+#158 were merged that way on purpose.
 
-- **#138** — a learner can give the free Pro trial back, and take it again.
-- **#139** — backfills the 35 rows the replica stall dropped for good.
-- **#140** — the reversible `read_cloudflare` mode and the per-domain cutover
-  registry. **Base of the entire stack below.**
-- **#143** — makes the recurring card subscription the default, and stops
-  calling a one-off pass a subscription.
+| on `main` | what it does | was |
+| --- | --- | --- |
+| #138 | give the free Pro trial back, and take it again | — |
+| #139 | backfill the 35 rows the replica stall dropped | — |
+| #140 | reversible `read_cloudflare` mode, per-domain registry | — |
+| #143 | recurring card subscription as the default | — |
+| #149 | mirror in every mirroring mode, not just `"dual"` | #141 |
+| #150 | prove the payload bytes match | #142 |
+| #154 | prove avatar object parity | #145 / #151 |
+| #155 | the cutover write barrier | #147 / #152 |
+| #156 | `billing_entitlement_runtime` on D1 | #144 / #153 |
+| #157 | `usage_quota_authority`, `ai_cost_write_authority` on D1 | #146 |
+| #158 | `admin_user_directory`, `admin_statistics` on D1 | #148 |
 
-### Stacked on #140 — CI-green, but **no preview URL**
+Four rebases hit real conflicts rather than mechanical ones. Each was resolved
+by keeping both sides and re-verifying (`npm test`, `npx eslint .`,
+`npx tsc --noEmit`) before pushing:
 
-`.github/workflows/preview-cloudflare.yml` only runs on
-`pull_request: branches: [main]`, so a PR whose base is another feature branch
-never gets a preview built. That is why the seven below have no link.
-
-- **#141** — mirror in every mirroring mode, not just the literal `"dual"`.
-  Without it, the mode flip silently ends mirroring for three domains.
-- **#142** — proves the payload *bytes* match, not just the row identity.
-- **#144** — gives `billing_entitlement_runtime` a D1 read path.
-- **#145** — proves avatar object parity between Supabase Storage and R2.
-- **#146** (based on #144) — `usage_quota_authority` and
-  `ai_cost_write_authority` on D1.
-- **#147** — the cutover write barrier.
-- **#148** (based on #144) — `admin_user_directory` and `admin_statistics`
-  on D1.
-
-Two options for the previews, and the owner has chosen neither yet: merge the
-stack in order, or retarget each base to `main` so each gets its own preview.
-**Ask before doing either.**
-
-One ordering constraint the PRs themselves record: **#141 should merge before
-#146** (or #146 be rebased onto it). #141 rewrites the
-`cloudflareDataMode() === "dual"` comparisons in `lib/usage/guard.ts` and
-`lib/ai/cost-tracking.ts`; #146 edits those same two files for other reasons
-and deliberately left those comparisons alone. The conflict is small and
-mechanical once #141 lands first.
+- **`lib/billing/promo.ts`** — #138 × #144. Both additive, both kept, plus two
+  integration points neither PR could have written alone: the resume path and
+  `releasePromo` both now mirror, because each is a status change on a row D1
+  may already hold. Without them a D1 read would resolve a learner who had
+  just taken the trial back to free, or keep granting Pro to one who had just
+  given it back.
+- **The readiness route and admin panel** — #142 × #145. The response now
+  carries `rowDrift`, `payloadParity` and `avatarParity`; the panel shows the
+  payload card and the avatar card as siblings.
+- **`lib/usage/guard.ts`, `lib/ai/cost-tracking.ts`, `lib/admin/settings.ts`**
+  — the barrier and write-authority branches predated the predicate work, so
+  they still compared the mode to the literal `"dual"`. `main`'s predicates
+  won; `cloudflareDataMode` is no longer referenced in any of the three.
+- **Two registry tests** hard-code which domains are proven
+  (`tests/cloudflare-data-mode.test.mjs`,
+  `tests/cloudflare-payload-parity.test.mjs`). They had to be updated at every
+  step. Eight domains are now `supported: true`.
 
 ## SQL the owner must run by hand — none of it applied yet
 
@@ -131,7 +143,7 @@ before the irreversible flip.
 
 ## Pre-flip checklist
 
-1. Merge the stack (see the ordering note above).
+1. ~~Merge the stack.~~ Done — everything is on `main`.
 2. Run all four hand-run SQL items.
 3. Run the promo backfill.
 4. Read the four production numbers. Zero means zero.
