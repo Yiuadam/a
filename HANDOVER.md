@@ -13,8 +13,10 @@ Read `CLAUDE.md` and `AGENTS.md` first. Two rules in them are load-bearing and
 have been honoured throughout:
 
 - **Preview every change. Never deploy to production yourself.** The owner
-  reviews on a preview URL and decides when it ships. Nothing here has been
-  merged, and the deploy workflow has not been run.
+  reviews on a preview URL and decides when it ships. The merges below were
+  made because the owner asked for them by name; the deploy workflow was
+  **not** run, and must not be run without the owner saying so for that
+  specific change.
 - **Never write a database migration.** A migration is not previewable —
   applying one changes production immediately. Every schema change below is
   hand-run SQL, handed to the owner, sitting outside `cloudflare/migrations/`
@@ -76,6 +78,13 @@ cannot force-push.
 | #156 | `billing_entitlement_runtime` on D1 | #144 / #153 |
 | #157 | `usage_quota_authority`, `ai_cost_write_authority` on D1 | #146 |
 | #158 | `admin_user_directory`, `admin_statistics` on D1 | #148 |
+
+`main` is at `c26a086`, and was verified after the last merge: `npm test`
+1136 pass / 1 skipped / 0 fail, `npx eslint .` 0 errors (4 pre-existing
+warnings), `npm run build` succeeds, `validate-content` clean.
+
+The only other open pull request is **#36**, another lane's icon and UI work.
+It is not part of this and was deliberately left alone.
 
 Four rebases hit real conflicts rather than mechanical ones. Each was resolved
 by keeping both sides and re-verifying (`npm test`, `npx eslint .`,
