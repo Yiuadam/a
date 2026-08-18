@@ -855,6 +855,77 @@ export async function deleteAvatar(path: string): Promise<boolean> {
   }
 }
 
+export interface AvatarPathRow {
+  userId: string;
+  avatarPath: string;
+}
+
+/**
+ * Ordered, keyset-paged list of profiles that have a stored avatar.
+ *
+ * Used only by the avatar object-parity report
+ * (lib/cloudflare/avatar-parity.ts) to find every learner with a picture in
+ * Supabase Storage, without reading the picture itself here. `after` is the
+ * last `id` already read; pass `""` for the first page. This is a plain
+ * service-role table read, the same shape `getProfile` and `getAccountKind`
+ * already use — no new Postgres function is needed for it.
+ */
+export async function avatarPathPage(after: string, limit: number): Promise<AvatarPathRow[]> {
+  const params = new URLSearchParams({
+    select: "id,avatar_path",
+    avatar_path: "not.is.null",
+    order: "id",
+    limit: String(limit),
+  });
+  if (after) params.set("id", `gt.${after}`);
+  const res = await request(`/rest/v1/profiles?${params.toString()}`, {
+    method: "GET",
+    asServiceRole: true,
+  });
+  if (!res.ok) throw new SupabaseError(`avatar path page failed with ${res.status}`);
+  const rows = (await res.json()) as Record<string, unknown>[];
+  if (!Array.isArray(rows)) throw new SupabaseError("avatar path page response is invalid");
+  return rows.map((row) => ({ userId: String(row.id), avatarPath: String(row.avatar_path) }));
+}
+
+/**
+ * Raw bytes of one avatar, read straight from Storage rather than through a
+ * signed URL. Used only to hash the object for the parity report above —
+ * never for delivery, which stays on `signedAvatarUrl`.
+ *
+ * `path` must sit inside `userId`'s own folder, the shape every avatar path
+ * this app has ever written already has (see the upload route). Anything
+ * else is refused rather than fetched. A refusal, a 404 and a network error
+ * are all reported the same way: null, an unreadable object, not an
+ * exception — the parity report has to keep going past one bad avatar.
+ */
+export async function downloadAvatarBytes(userId: string, path: string): Promise<Uint8Array | null> {
+  const config = supabaseConfig();
+  if (!config) return null;
+  const parts = path.split("/");
+  if (
+    path.length > 500
+    || parts.length < 2
+    || parts.some((part) => !part || part === "." || part === "..")
+    || parts[0] !== userId
+  ) {
+    return null;
+  }
+  try {
+    const res = await fetch(
+      `${config.url}/storage/v1/object/avatars/${parts.map(encodeURIComponent).join("/")}`,
+      {
+        headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}` },
+        signal: AbortSignal.timeout(20000),
+      },
+    );
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Deletes an account and everything attached to it.
  *
