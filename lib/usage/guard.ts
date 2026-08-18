@@ -3,7 +3,7 @@ import { accountsEnabled, isAdminEmail, usageFailOpen } from "@/lib/auth/env";
 import { supabaseConfigured, rpc } from "@/lib/auth/supabase";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
 import {
   type UsageEventOutcome,
 } from "@/lib/cloudflare/usage-cost-replica";
@@ -128,7 +128,9 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
   }
 
   let decision: UsageDecision | null;
-  const dualWrite = cloudflareDataMode() === "dual";
+  // Only a mirrored write needs the committed event's identity back, so the
+  // RPC choice asks the same mirror question the write below does.
+  const shouldMirror = mirrorsWritesToCloudflare();
   try {
     const args = {
       p_user_id: userId,
@@ -137,7 +139,7 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
       p_window_seconds: USAGE_WINDOW_SECONDS,
       p_limits: limitsForDatabase(),
     };
-    decision = dualWrite
+    decision = shouldMirror
       ? await rpc<UsageDecision | null>("check_and_record_usage_with_event", args)
       : await rpc<UsageDecision | null>("check_and_record_usage", args);
   } catch (err) {
@@ -155,7 +157,7 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
     return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
   }
 
-  if (dualWrite) {
+  if (shouldMirror) {
     try {
       await mirrorUsageDecision(decision, user, userId, route, ipHash);
     } catch (err) {

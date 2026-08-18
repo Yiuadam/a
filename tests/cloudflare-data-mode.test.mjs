@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { register } from "node:module";
 import { test } from "node:test";
-import { join } from "node:path";
+import { extname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
 register("./alias-resolve.mjs", import.meta.url);
@@ -222,6 +222,99 @@ test("every organization authority decision uses the organization switch", () =>
   assert.match(progressRoute, /organizationDataMode\(\) === "cloudflare"/);
   assert.match(progressRoute, /getLearnerProgressSnapshots/);
   assert.match(progressRoute, /compareAndSwapLearnerProgressSnapshots/);
+});
+
+/*
+  The bug this repairs: `read_cloudflare` added a fourth CloudflareDataMode
+  state that mirrors writes exactly like `dual` and reads exactly like
+  `cloudflare`. A call site that captured cloudflareDataMode() and then
+  compared it to the bare literal "dual" (a mirror question) or "cloudflare"
+  (often a read question) silently stopped seeing itself included once that
+  fourth state existed — nothing threw, the branch just went the wrong way.
+  bindings.ts exists to make that impossible by naming the three questions a
+  call site actually has (readsFromCloudflare, writesToCloudflareOnly,
+  mirrorsWritesToCloudflare); this test makes it impossible to bypass those
+  names and re-derive the answer from the string instead.
+
+  It does not flag `=== "supabase"` / `!== "supabase"`: that state has not
+  gained a twin the way "dual" and bare "cloudflare" have, so comparing to it
+  directly stays exactly correct and is how lib/cloudflare/replica-health.ts,
+  lib/cloudflare/data-router.ts and lib/billing/subscriptions.ts legitimately
+  ask "is any Cloudflare involvement active at all" — a fourth question with
+  no single named predicate of its own.
+
+  It also does not flag organizationDataMode(). That switch deliberately has
+  no predicate family of its own (see the doc comment on organizationDataMode
+  in bindings.ts) and every call site is expected to keep comparing it to a
+  literal — tested above in "every organization authority decision uses the
+  organization switch".
+*/
+function listSourceFiles(dir, out = []) {
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name.startsWith(".")) continue;
+    const full = join(dir, name);
+    const stat = statSync(full);
+    if (stat.isDirectory()) {
+      listSourceFiles(full, out);
+    } else if (extname(name) === ".ts" || extname(name) === ".tsx") {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+test("no call site decides a read, write or mirror question by comparing cloudflareDataMode() to a bare string literal", () => {
+  // lib/cloudflare/bindings.ts defines the four states and the predicates
+  // themselves, and necessarily compares against the literals to do so.
+  // lib/cloudflare/cutover-domains.ts parses a per-domain override the same
+  // way. Both are owned elsewhere and are what every other call site should
+  // be asking instead.
+  const exempt = new Set([
+    join(process.cwd(), "lib", "cloudflare", "bindings.ts"),
+    join(process.cwd(), "lib", "cloudflare", "cutover-domains.ts"),
+  ]);
+
+  const suspectLiteral = /"(dual|read_cloudflare|cloudflare)"/;
+  const directChain = new RegExp(
+    String.raw`cloudflareDataMode\(\)\s*[!=]==\s*${suspectLiteral.source}`,
+  );
+  const captureAssignment = /(?:const|let)\s+(\w+)\s*=\s*cloudflareDataMode\(\)/g;
+
+  const violations = [];
+  for (const file of listSourceFiles(join(process.cwd(), "app"))
+    .concat(listSourceFiles(join(process.cwd(), "lib")))) {
+    if (exempt.has(file)) continue;
+    const raw = readFileSync(file, "utf8");
+    if (!raw.includes("cloudflareDataMode")) continue;
+    const source = code(raw);
+    const rel = relative(process.cwd(), file);
+
+    source.split("\n").forEach((line, index) => {
+      if (directChain.test(line)) {
+        violations.push(`${rel}:${index + 1}: ${line.trim()}`);
+      }
+    });
+
+    for (const match of source.matchAll(captureAssignment)) {
+      const name = match[1];
+      const comparison = new RegExp(
+        String.raw`\b${name}\b\s*[!=]==\s*${suspectLiteral.source}`,
+      );
+      source.split("\n").forEach((line, index) => {
+        if (comparison.test(line)) {
+          violations.push(`${rel}:${index + 1}: ${line.trim()}`);
+        }
+      });
+    }
+  }
+
+  assert.deepEqual(
+    violations,
+    [],
+    `found bare cloudflareDataMode() literal comparison(s) deciding a read/write/mirror ` +
+    `question instead of using readsFromCloudflare()/writesToCloudflareOnly()/` +
+    `mirrorsWritesToCloudflare():\n${violations.join("\n")}`,
+  );
 });
 
 test("isolated preview moves organizations to D1 without moving learner authority", () => {
