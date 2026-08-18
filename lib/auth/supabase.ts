@@ -919,6 +919,232 @@ export async function getProgressSnapshots(userId: string): Promise<ProgressSnap
   });
 }
 
+/*
+  ---------------------------------------------------------------------------
+  Cloudflare drift backfill: one exact row, by its exact key
+
+  lib/cloudflare/domain-drift.ts already names which row is wrong. These four
+  reads answer the follow-up question — what does that one row actually hold
+  right now — for exactly the domains the backfill in
+  lib/cloudflare/domain-backfill.ts repairs. Each is as narrow as every other
+  fixed read in this file: one table, one row, by its exact key, with only the
+  columns the corresponding D1 mirror writer needs. None of them list, none of
+  them accept a caller-built filter, and a key that fails its own shape check
+  is never sent to Postgres at all.
+*/
+
+export interface CloudflareBackfillProgressSnapshotRow {
+  userId: string;
+  storeKey: string;
+  payload: unknown;
+  /** Postgres `updated_at`: the source clock domain-drift.ts orders by. */
+  updatedAt: string;
+}
+
+/** The one progress row named by a `<user_id>/<store_key>` drift key. */
+export async function cloudflareBackfillProgressSnapshotRow(
+  userId: string,
+  storeKey: string,
+): Promise<CloudflareBackfillProgressSnapshotRow | null> {
+  if (!isUuid(userId) || !isProgressKey(storeKey)) return null;
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/progress_snapshots?user_id=eq.${encodeURIComponent(userId)}` +
+        `&store_key=eq.${encodeURIComponent(storeKey)}` +
+        "&select=payload,updated_at&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  const rows = (await res.json().catch(() => null)) as Record<string, unknown>[] | null;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row || typeof row.updated_at !== "string") return null;
+  return { userId, storeKey, payload: row.payload, updatedAt: row.updated_at };
+}
+
+const BACKFILL_ID = /^[0-9]{1,20}$/;
+
+export interface CloudflareBackfillUsageEventRow {
+  id: string;
+  userId: string | null;
+  route: string;
+  ipHash: string | null;
+  outcome: string;
+  createdAt: string;
+}
+
+/** The one usage event named by its decimal Supabase identity value. */
+export async function cloudflareBackfillUsageEventRow(
+  id: string,
+): Promise<CloudflareBackfillUsageEventRow | null> {
+  if (!BACKFILL_ID.test(id)) return null;
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/usage_events?id=eq.${encodeURIComponent(id)}` +
+        "&select=user_id,route,ip_hash,outcome,created_at&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  const rows = (await res.json().catch(() => null)) as Record<string, unknown>[] | null;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (
+    !row || typeof row.route !== "string" || typeof row.outcome !== "string"
+    || typeof row.created_at !== "string"
+  ) {
+    return null;
+  }
+  return {
+    id,
+    userId: typeof row.user_id === "string" ? row.user_id : null,
+    route: row.route,
+    ipHash: typeof row.ip_hash === "string" ? row.ip_hash : null,
+    outcome: row.outcome,
+    createdAt: row.created_at,
+  };
+}
+
+export interface CloudflareBackfillAiCostEventRow {
+  id: string;
+  source: string;
+  providerRequestId: string | null;
+  externalReference: string | null;
+  route: string | null;
+  model: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cacheCreationInputTokens: number | null;
+  cacheCreation5mInputTokens: number | null;
+  cacheCreation1hInputTokens: number | null;
+  cacheReadInputTokens: number | null;
+  costUsd: string;
+  occurredAt: string;
+  recordedAt: string;
+}
+
+/** The one AI cost event named by its decimal Supabase identity value. */
+export async function cloudflareBackfillAiCostEventRow(
+  id: string,
+): Promise<CloudflareBackfillAiCostEventRow | null> {
+  if (!BACKFILL_ID.test(id)) return null;
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/ai_cost_events?id=eq.${encodeURIComponent(id)}` +
+        "&select=source,provider_request_id,external_reference,route,model,input_tokens," +
+        "output_tokens,cache_creation_input_tokens,cache_creation_5m_input_tokens," +
+        "cache_creation_1h_input_tokens,cache_read_input_tokens,cost_usd,occurred_at," +
+        "recorded_at&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  const rows = (await res.json().catch(() => null)) as Record<string, unknown>[] | null;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (
+    !row || typeof row.source !== "string" || row.cost_usd === null
+    || typeof row.cost_usd === "undefined"
+    || typeof row.occurred_at !== "string" || typeof row.recorded_at !== "string"
+  ) {
+    return null;
+  }
+  const int = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null;
+  const text = (value: unknown) => typeof value === "string" ? value : null;
+  return {
+    id,
+    source: row.source,
+    providerRequestId: text(row.provider_request_id),
+    externalReference: text(row.external_reference),
+    route: text(row.route),
+    model: text(row.model),
+    inputTokens: int(row.input_tokens),
+    outputTokens: int(row.output_tokens),
+    cacheCreationInputTokens: int(row.cache_creation_input_tokens),
+    cacheCreation5mInputTokens: int(row.cache_creation_5m_input_tokens),
+    cacheCreation1hInputTokens: int(row.cache_creation_1h_input_tokens),
+    cacheReadInputTokens: int(row.cache_read_input_tokens),
+    costUsd: String(row.cost_usd),
+    occurredAt: row.occurred_at,
+    recordedAt: row.recorded_at,
+  };
+}
+
+export interface CloudflareBackfillSubscriptionRow {
+  id: string;
+  userId: string;
+  provider: string;
+  status: string;
+  tier: string;
+  customerId: string | null;
+  subscriptionId: string | null;
+  priceId: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  providerEventAt: string | null;
+  verifiedAt: string;
+  raw: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * The one subscription named by its Supabase primary key.
+ *
+ * Deliberately separate from `stripeSubscriptionReplica` above: that lookup
+ * is keyed by `external_subscription_id` and assumes the row is Stripe's,
+ * because it exists only to answer a Stripe webhook. A backfill is handed a
+ * Supabase row id by domain-drift.ts and must not assume its provider, so
+ * this reads `provider` back rather than hard-coding it.
+ */
+export async function cloudflareBackfillSubscriptionRow(
+  id: string,
+): Promise<CloudflareBackfillSubscriptionRow | null> {
+  if (!isUuid(id)) return null;
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/subscriptions?id=eq.${encodeURIComponent(id)}` +
+        "&select=user_id,provider,status,tier,external_customer_id,external_subscription_id," +
+        "external_price_id,current_period_end,cancel_at_period_end,provider_event_at," +
+        "verified_at,raw,created_at,updated_at&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  const rows = (await res.json().catch(() => null)) as Record<string, unknown>[] | null;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  const required = [row?.user_id, row?.provider, row?.status, row?.tier, row?.verified_at, row?.created_at, row?.updated_at];
+  if (!row || required.some((value) => typeof value !== "string" || value.length === 0)) return null;
+  const optional = (value: unknown) => typeof value === "string" && value.length > 0 ? value : null;
+  return {
+    id,
+    userId: row.user_id as string,
+    provider: row.provider as string,
+    status: row.status as string,
+    tier: row.tier as string,
+    customerId: optional(row.external_customer_id),
+    subscriptionId: optional(row.external_subscription_id),
+    priceId: optional(row.external_price_id),
+    currentPeriodEnd: optional(row.current_period_end),
+    cancelAtPeriodEnd: row.cancel_at_period_end === true,
+    providerEventAt: optional(row.provider_event_at),
+    verifiedAt: row.verified_at as string,
+    raw: row.raw,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
 /**
  * Delete named progress rows for one learner, rather than emptying them.
  *
