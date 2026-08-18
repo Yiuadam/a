@@ -83,8 +83,26 @@ cannot force-push.
 1136 pass / 1 skipped / 0 fail, `npx eslint .` 0 errors (4 pre-existing
 warnings), `npm run build` succeeds, `validate-content` clean.
 
-The only other open pull request is **#36**, another lane's icon and UI work.
-It is not part of this and was deliberately left alone.
+**#36** (another lane's icon and UI work, 317 commits behind) was brought
+forward as **#159** and merged too. Everything additive came in — the BandBadge
+progress ring, the Timer's `tabular-nums`, `.band-disc` / `.pill-empty`,
+`NavLinks`, and the icon exploration. Three files conflicted and `main`'s
+newer version won in each: `app/layout.tsx`, `app/page.tsx`,
+`app/plan/page.tsx`.
+
+`app/privacy/page.tsx` was deliberately kept as `main` has it. #36's version
+says the app has no accounts, no cookies and no trackers — true when written,
+false now that there are Supabase accounts and Stripe subscriptions. Merging
+it would have put a false privacy policy on an App-Store-bound app with real
+paying users.
+
+Two loose ends that merge left behind, both harmless and both worth tidying:
+`components/NavLinks.tsx` is now dead code (the header it was written for was
+replaced by `SiteHeader`), and `app/icon-preview/page.tsx` is a scratch route
+its own author marked "for deletion before production" that is now publicly
+reachable.
+
+**No pull requests are open.**
 
 Four rebases hit real conflicts rather than mechanical ones. Each was resolved
 by keeping both sides and re-verifying (`npm test`, `npx eslint .`,
