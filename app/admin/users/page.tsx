@@ -18,6 +18,7 @@ interface UserRow {
   access_source: string;
   organization_seat_count: number;
   usage_30d: number;
+  d1_mirror_missing?: boolean;
 }
 
 export default function AdminUsersPage() {
@@ -66,6 +67,7 @@ export default function AdminUsersPage() {
                   </div>
                   <span className="rounded-full bg-indigo-100/70 px-2.5 py-1 text-[11px] font-semibold capitalize text-indigo-700">{effectiveAccess(user)}</span>
                 </div>
+                {user.d1_mirror_missing && <MirrorMissingNotice />}
                 <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-200/70 pt-3 text-xs">
                   <div><dt className="text-slate-400">Registered</dt><dd className="mt-0.5 text-slate-700">{dateTime(user.registered_at)}</dd></div>
                   <div><dt className="text-slate-400">AI access attempts · 30d</dt><dd className="mt-0.5 font-semibold tabular-nums text-slate-900">{Number(user.usage_30d).toLocaleString()}</dd></div>
@@ -77,7 +79,7 @@ export default function AdminUsersPage() {
           <div className="card hidden overflow-x-auto rounded-2xl border border-slate-200 bg-surface sm:block">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-400"><tr><th className="px-3 py-2.5">User</th><th className="px-3 py-2.5">Username</th><th className="px-3 py-2.5">Registered</th><th className="px-3 py-2.5">Effective access</th><th className="px-3 py-2.5">AI attempts · 30d</th><th className="px-3 py-2.5"><span className="sr-only">Open</span></th></tr></thead>
-              <tbody>{users.map((user) => <tr key={user.id} className="border-b border-slate-200/70 last:border-b-0"><td className="px-3 py-3"><strong className="block text-slate-900">{user.display_name || "No display name"}</strong><span className="block text-xs text-slate-500">{user.email}</span></td><td className="px-3 py-3 text-slate-600">{user.username ? `@${user.username}` : "—"}</td><td className="px-3 py-3 text-slate-600">{dateTime(user.registered_at)}</td><td className="px-3 py-3 capitalize text-slate-600">{effectiveAccess(user)}</td><td className="px-3 py-3 tabular-nums text-slate-600">{Number(user.usage_30d).toLocaleString()}</td><td className="px-3 py-3"><Link href={`/admin/users/${user.id}`} className="btn-secondary min-h-9 !px-3 text-xs">History</Link></td></tr>)}</tbody>
+              <tbody>{users.map((user) => <tr key={user.id} className="border-b border-slate-200/70 last:border-b-0"><td className="px-3 py-3"><strong className="block text-slate-900">{user.display_name || "No display name"}</strong><span className="block text-xs text-slate-500">{user.email}</span></td><td className="px-3 py-3 text-slate-600">{user.username ? `@${user.username}` : "—"}</td><td className="px-3 py-3 text-slate-600">{dateTime(user.registered_at)}</td><td className="px-3 py-3 capitalize text-slate-600">{effectiveAccess(user)}{user.d1_mirror_missing && <span className="ml-1.5 inline-block rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] normal-case font-semibold text-amber-800" title="Auth knows this account; it has no Cloudflare mirror row yet, so this plan may be stale.">Not mirrored</span>}</td><td className="px-3 py-3 tabular-nums text-slate-600">{Number(user.usage_30d).toLocaleString()}</td><td className="px-3 py-3"><Link href={`/admin/users/${user.id}`} className="btn-secondary min-h-9 !px-3 text-xs">History</Link></td></tr>)}</tbody>
             </table>
           </div>
           {users.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No users match that search.</p>}
@@ -85,6 +87,15 @@ export default function AdminUsersPage() {
         </>
       )}
     </ConsoleShell>
+  );
+}
+
+/** See AdminUserRow.d1_mirror_missing in app/api/admin/users/route.ts. */
+function MirrorMissingNotice() {
+  return (
+    <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+      Not yet mirrored to Cloudflare — this plan may be stale.
+    </p>
   );
 }
 

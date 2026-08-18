@@ -22,8 +22,13 @@ const MODULE = "lib/cloudflare/cutover-domains.ts";
  * Nothing in this file makes a domain's actual reads or writes go to
  * Cloudflare. Do not add a branch here that changes runtime routing — that is
  * what `domainDataMode()` (and `domainReadsFromCloudflare()`) below is for.
- * `billing_entitlement_runtime` is the first domain to call it, from
+ * `billing_entitlement_runtime` was the first domain to call it, from
  * lib/billing/entitlements.ts, once its D1 reader existed to call it for.
+ * `admin_user_directory` and `admin_statistics` call it from
+ * app/api/admin/users/route.ts, app/api/admin/users/[id]/route.ts and
+ * app/api/admin/stats/route.ts — each only around the figures that are not
+ * auth.users identity reads; see those domains' descriptions below for what
+ * stays on Supabase regardless of the mode this returns.
  */
 export type CutoverDomain =
   | "admin_user_directory"
@@ -52,13 +57,27 @@ export interface CutoverDomainDefinition {
 export const CUTOVER_DOMAINS: readonly CutoverDomainDefinition[] = [
   {
     domain: "admin_user_directory",
-    description: "The admin user list and search still query Supabase directly.",
-    supported: false,
+    description:
+      "Per-account plan/access-source shown by the directory (both the list and the " +
+      "detail page) has a D1 read path (lib/cloudflare/admin-entitlement-directory.ts) " +
+      "used when this domain reads from Cloudflare; an account absent from the D1 " +
+      "mirror is marked d1_mirror_missing rather than shown as an ordinary free-tier " +
+      "account. The roster itself — which accounts exist, and their email, username, " +
+      "display name and registration date (admin_users_page / admin_user_detail) — is " +
+      "auth.users identity data and stays on Supabase regardless of this domain's mode, " +
+      "by the owner's decision that Supabase Auth is not migrating.",
+    supported: true,
   },
   {
     domain: "admin_statistics",
-    description: "Owner-facing usage/growth statistics are computed from Supabase.",
-    supported: false,
+    description:
+      "admin_usage_daily and admin_usage_breakdown (lib/cloudflare/admin-stats.ts, pure " +
+      "usage_events reads) and admin_tier_counts (same file, via the entitlement " +
+      "resolver) have a D1 read path used when this domain reads from Cloudflare. " +
+      "admin_user_count and admin_signups_daily are auth.users identity reads and stay " +
+      "on Supabase regardless of this domain's mode, by the same decision as " +
+      "admin_user_directory above.",
+    supported: true,
   },
   {
     domain: "billing_entitlement_runtime",
