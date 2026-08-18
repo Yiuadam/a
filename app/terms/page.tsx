@@ -235,10 +235,12 @@ export default function TermsPage() {
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           <strong>Card subscriptions renew automatically</strong>, at the same price, on the same
-          date each period, until you cancel. <strong>Alipay and WeChat Pay passes do not
-          renew</strong>: one payment gives the monthly or yearly access shown at checkout, then
-          the account returns to Free unless you buy another pass. We repeat the applicable terms
-          beside each payment button before you choose it.
+          date each period, until you cancel. That is what the button on the plans page starts, and
+          it says so on itself. <strong>Alipay and WeChat Pay passes do not renew</strong>: one
+          payment gives the monthly or yearly access shown at checkout, then the account returns to
+          Free unless you buy another pass. There is nothing to cancel on a pass, and the date it
+          ends is shown on your billing page from the moment the payment reaches us. We repeat the
+          applicable terms beside each payment control before you choose it.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           The AI allowances are counted per feature — so many essays marked, so many tutor
@@ -263,9 +265,10 @@ export default function TermsPage() {
           them if we wanted to.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          If we ever change a price, we will tell you by email before it takes effect, and the new
-          price will only apply from your next renewal. You can cancel in the meantime and nothing
-          further is charged.
+          If we ever change a price, we will tell you by email before it takes effect. For a card
+          subscription the new price applies only from your next renewal, and you can cancel in the
+          meantime so nothing further is charged. A pass is charged once, at the price shown when
+          you buy it, so a later change cannot affect a pass you already hold.
         </p>
       </Section>
 

@@ -33,6 +33,32 @@ import {
   The plans, side by side, with the reader's own marked.
 
   ---------------------------------------------------------------------------
+  Two ways to pay, and one of them is the default
+
+  A card subscription and a wallet pass are not the same purchase and cannot be
+  made into one. Alipay and WeChat Pay cannot take a recurring charge, and Stripe
+  will not put a subscription and a one-off on the same Checkout Session — so
+  "one button offering all three" is not a thing that can be built, whatever the
+  page looks like.
+
+  What the page can decide is which one somebody lands on without thinking, and
+  it is the subscription: a full-width primary button that says in its own label
+  that it renews. The wallets sit under it as a quieter alternative — a line of
+  text, below a rule, in smaller type — for the buyer who has no card that works
+  here, which for a mainland candidate is the ordinary case rather than the edge
+  one.
+
+  The two controls were the same width and weight before, which asked everybody
+  to make a decision most people had no basis for making, and left the cheaper
+  path for us and the worse-remembered path for them looking equally
+  recommended.
+
+  Both sets of terms sit beside their own control. That is deliberate: a
+  subscription's renewal terms have to be in visual proximity to the thing that
+  agrees to them, and a pass's ending has to be next to the thing that buys it,
+  or the disclosure is a document two pages away.
+
+  ---------------------------------------------------------------------------
   What this page is not allowed to do
 
   There are no crossed-out prices, no "was £19", no countdown, no "3 people are
@@ -483,16 +509,58 @@ function PaidAction({
   onStart: (path: string, body?: unknown) => void;
 }) {
   /*
+    What somebody already on this plan is offered, which depends on what they
+    hold rather than on what is for sale.
+
     A subscriber gets one button and it is the one that cancels. Making that
     harder to find than the subscribe button is the oldest trick in this
     business and it is not being played here.
+
+    A pass holder is a different person with a different problem. They have
+    nothing to cancel — the payment was made once and nothing is scheduled — so
+    "Manage billing" opened a portal with no subscription in it, over the word
+    "Access", which said nothing about the fact that the access stops. They get
+    the date it ends and both ways to carry on: subscribe, or buy another pass.
+
+    One line for that, and measured rather than chosen: three lines of it put the
+    bottom of this card 52px below the fold on a 1280x720 laptop, and the whole
+    point of the layout is that both payment controls are reachable without
+    scrolling. What it drops is said twice more in the same card anyway — the pass
+    line under the wallet link, and the billing page this sentence points at.
   */
   if (isCurrent) {
+    const date = account.expiresAt
+      ? new Date(account.expiresAt).toLocaleDateString()
+      : null;
+
+    if (account.renews === false) {
+      return (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs leading-5 text-slate-500">
+            {date ? `Pass ends ${date} — nothing to cancel.` : "You hold a pass, not a subscription."}
+          </p>
+          <PayControls
+            planId={planId}
+            planOffered={planOffered}
+            walletOffered={walletOffered}
+            walletMethods={walletMethods}
+            busy={busy}
+            currency={currency}
+            onStart={onStart}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col gap-2">
-        {account.expiresAt && (
+        {date && (
           <p className="text-xs leading-5 text-slate-500">
-            Access through {new Date(account.expiresAt).toLocaleDateString()}.
+            {account.renews === true
+              ? `Renews on ${date}, until you cancel.`
+              : /* The date is known and what happens on it is not — see
+                   `renews` in lib/billing/useTier.ts. */
+                `Access through ${date}.`}
           </p>
         )}
         <button
@@ -562,29 +630,68 @@ function PaidAction({
     );
   }
 
-  /*
-    The renewal terms sit here, attached to the button, and not only in the
-    terms of use — and *above* it rather than below.
+  return (
+    <div className="flex flex-col gap-2">
+      {/*
+        The subscription's terms, then the subscribe button, then — quieter, and
+        below a rule — the wallets and theirs.
 
-    Above, because every card in the row has to end on its button or the row
-    looks broken: a card whose small print is four lines long and one whose
-    renewal date is one line put their buttons a hundred pixels apart when the
-    print sits underneath. Putting the print first makes the button the last
-    thing in every card, so every button lands on the same line. It also means
-    the terms are read on the way to the button rather than after it, which is
-    the order they are for.
+        The subscription print stays *above* its button for the reason it always
+        did. Every card in the row has to end on the same element or the row looks
+        broken, and California's Automatic Renewal Law — the strictest of the
+        several that apply, and so the one worth writing to — asks for the renewal
+        terms "in visual proximity" to the control that agrees to them, in a way
+        the buyer cannot reasonably miss. A link to a document two pages away does
+        not satisfy it, and more to the point does not satisfy the person: nobody
+        should discover the word "automatically" a month after agreeing to it.
 
-    That placement is the requirement rather than a preference. California's
-    Automatic Renewal Law — the strictest of the several that apply, and so the
-    one worth writing to — asks for the renewal terms "in visual proximity" to
-    the thing the buyer clicks, in a way they cannot reasonably miss. A link to
-    a document two pages away does not satisfy it, and more to the point does
-    not satisfy the person: nobody should discover the word "automatically" a
-    month after they agreed to it.
+        Four facts, in the order somebody needs them: what it costs, how often,
+        that it keeps going, and how to make it stop.
+      */}
+      <PayControls
+        planId={planId}
+        planOffered={planOffered}
+        walletOffered={walletOffered}
+        walletMethods={walletMethods}
+        busy={busy}
+        currency={currency}
+        onStart={onStart}
+      />
+    </div>
+  );
+}
 
-    Four facts, in the order somebody needs them: what it costs, how often,
-    that it keeps going, and how to make it stop.
-  */
+/**
+ * The two ways to pay, in the order the page recommends them.
+ *
+ * Shared by the buy state and by the state a pass holder sees, because those two
+ * offer the same pair of controls and must not drift into describing them
+ * differently — one of them saying a wallet pass renews would be the exact bug
+ * this whole change is about.
+ *
+ * One label each, and no variant for the pass holder. "Subscribe instead" and
+ * "Or buy another pass" read slightly better to somebody already holding a pass,
+ * and both wrapped onto a second line in a four-column deck — which put the
+ * bottom of their card below the fold. The plain labels say the same thing in the
+ * space there is.
+ */
+function PayControls({
+  planId,
+  planOffered,
+  walletOffered,
+  walletMethods,
+  busy,
+  currency,
+  onStart,
+}: {
+  planId: PlanId;
+  planOffered: boolean;
+  walletOffered: boolean;
+  walletMethods: readonly WalletPaymentMethod[];
+  busy: boolean;
+  currency: string;
+  onStart: (path: string, body?: unknown) => void;
+}) {
   const plan = PLANS[planId];
   const period = plan.interval === "year" ? "year" : "month";
   const cardPrice = formatPrice(amountIn(plan, currency), currency);
@@ -600,83 +707,94 @@ function PaidAction({
   const walletIn = walletCurrency(plan);
   const walletPrice = formatPrice(amountIn(plan, walletIn), walletIn);
   const walletNames = walletMethodList(walletMethods);
+  const walletLength = plan.interval === "year" ? "One year" : "One month";
 
   return (
-    <div className="flex flex-col gap-2">
-      {/*
-        All of the small print, then both buttons, in that order.
-
-        The print stays above the buttons for the reason it always did — every
-        card in the row has to end on a button or the row looks broken, and the
-        renewal terms have to be in visual proximity to the control that agrees
-        to them. What changed is that there is now one block of print rather
-        than one above the card button and another wedged between the two, so
-        the buttons sit together and both are reachable without scrolling.
-      */}
-      <p className="text-xs leading-5 text-slate-500">
-        {planOffered && (
-          <>
-            {cardPrice} every {period} by card, renewing automatically until you cancel — cancel
-            any time from your billing page.{" "}
-          </>
-        )}
-        {walletOffered && (
-          <>
-            {walletNames} charge{walletMethods.length > 1 ? "" : "s"} {walletPrice} once, for{" "}
-            {plan.interval === "year" ? "one year" : "one month"}, and {walletMethods.length > 1 ? "do" : "does"} not renew.{" "}
-          </>
-        )}
-        See the{" "}
-        <Link href="/terms" className="underline underline-offset-2 hover:text-slate-700">
-          terms
-        </Link>
-        .
-      </p>
-
+    <>
       {planOffered && (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onStart("/api/billing/checkout", { plan: planId })}
-          className="pricing-subscribe-button btn-primary w-full"
-        >
-          {busy ? <LoadingIndicator label="Opening checkout…" announce={false} /> : "Subscribe by card"}
-        </button>
-      )}
-
-      {walletOffered && (
-        <div>
+        <>
           {/*
-            One button for both wallets, where there were two.
+            Every fact the law asks for, in as few words as they fit into: the
+            amount, how often, that it renews on its own, and where to stop it.
+            "by card" went because the button beneath says so, and the card has to
+            end above the fold on a 390px phone.
 
-            They were two because the old Checkout Session named a single
-            payment method. It does not have to: a Session can list both, and
-            then Stripe's own page offers the choice — on the screen where the
-            buyer can see each one's logo and, for WeChat, the QR code. Asking
-            them to commit to a wallet before they have left this page was
-            asking the question in the wrong place, and it cost a whole row of
-            the card, which is what pushed these buttons off the bottom of the
-            screen.
-
-            It cannot swallow the card button as well. A card sale is a
-            subscription that renews and a wallet sale is a single prepaid
-            payment; Stripe models those as different Session modes, so one
-            Session cannot be both. They sit next to each other instead.
+            One step darker than the print it replaced, and the pass line below it
+            with it. Measured against the composited card background, slate-500
+            came out at 3.32:1 in the default warm theme — under AA for text this
+            small, on the two sentences that most have to be read. slate-600 is
+            5.02:1 and costs nothing.
           */}
+          <p className="pricing-card-terms text-xs leading-5 text-slate-600">
+            {cardPrice} every {period}, renewing automatically until you cancel — cancel any time on
+            your billing page. See the{" "}
+            <Link href="/terms" className="underline underline-offset-2 hover:text-slate-700">
+              terms
+            </Link>
+            .
+          </p>
           <button
             type="button"
             disabled={busy}
-            onClick={() => onStart("/api/billing/wallet-checkout", { plan: planId })}
-            className="pricing-wallet-button btn-secondary w-full"
+            onClick={() => onStart("/api/billing/checkout", { plan: planId })}
+            className="pricing-subscribe-button btn-primary w-full"
           >
             {busy ? (
               <LoadingIndicator label="Opening checkout…" announce={false} />
             ) : (
-              `Pay once with ${walletNames}`
+              /* The label says it renews. Somebody who reads nothing else on the
+                 card reads the thing they are pressing. */
+              `Subscribe — renews ${plan.interval === "year" ? "yearly" : "monthly"}`
             )}
           </button>
+        </>
+      )}
+
+      {walletOffered && (
+        /*
+          The alternative, and drawn as one.
+
+          It is a line of text under a rule rather than a second full-width
+          button, because the two are not equal offers: a subscription keeps
+          working without anybody remembering it, and a pass stops. It is not
+          hidden either — somebody with no card that works here needs to find it
+          on the first read, and for a candidate paying from the mainland that is
+          the normal case.
+
+          One control for both wallets, where there were two. A Session can list
+          both, and then Stripe's own page offers the choice — on the screen where
+          the buyer can see each one's logo and, for WeChat, the QR code. It
+          cannot also swallow the card: a card sale is a subscription and a wallet
+          sale is a single prepaid payment, and Stripe models those as different
+          Session modes, so one Session cannot be both.
+        */
+        <div className="pricing-wallet-alternative mt-0.5 border-t border-slate-200 pt-1.5">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onStart("/api/billing/wallet-checkout", { plan: planId })}
+            className="pricing-wallet-button text-xs font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900 disabled:opacity-60"
+          >
+            {busy ? (
+              <LoadingIndicator label="Opening checkout…" announce={false} />
+            ) : (
+              `Or pay ${walletPrice} once with ${walletNames}`
+            )}
+          </button>
+          {/*
+            The pass's own terms, next to the pass's own control, and kept to one
+            line on purpose — the card has to end above the fold on a 390px phone
+            and a 720p laptop, and this is the last thing in it. So it carries the
+            three facts that cannot be left to another page: how long, that it does
+            not renew, and what happens then. The date it ends on is on the billing
+            page from the moment the payment lands, and the fold-out below this deck
+            says so at length.
+          */}
+          <p className="pricing-wallet-terms mt-1 text-[11px] leading-4 text-slate-600">
+            {walletLength}, and it does not renew — then back to Free.
+          </p>
         </div>
       )}
-    </div>
+    </>
   );
 }

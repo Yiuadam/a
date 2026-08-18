@@ -75,8 +75,19 @@ export interface TierState {
    * "not on your plan" — rather than a row to leave out.
    */
   routes: RouteUsage[];
-  /** When the current subscription lapses, ISO, or null. */
+  /** When the current access lapses, ISO, or null. */
   expiresAt: string | null;
+  /**
+   * Whether that date is a renewal or an ending.
+   *
+   * True for a card subscription — it charges again on that date. False for an
+   * Alipay or WeChat Pay pass: one payment, and then the account goes back to
+   * Free. Null when there is no date, or when the server could not establish
+   * which it is, and a screen then prints the date without claiming either.
+   *
+   * Presentation only, like everything else in this hook. See the header.
+   */
+  renews: boolean | null;
 }
 
 const INITIAL: TierState = {
@@ -88,6 +99,7 @@ const INITIAL: TierState = {
   oldestAt: null,
   routes: [],
   expiresAt: null,
+  renews: null,
 };
 
 /*
@@ -108,6 +120,7 @@ interface AccountStatus {
     routes?: RouteUsage[];
   };
   expiresAt?: string | null;
+  renews?: boolean | null;
 }
 
 function readTier(value: unknown): Tier | null {
@@ -146,6 +159,12 @@ export function useTier(): TierState {
           oldestAt: body.usage?.oldestAt ?? null,
           routes: body.usage?.routes ?? [],
           expiresAt: body.expiresAt ?? null,
+          /*
+            `?? null` rather than defaulting to true or false. An older cached
+            response carries no such field, and either sentence it chooses between
+            would be a claim this build cannot support — so it prints neither.
+          */
+          renews: body.renews ?? null,
         });
       })
       .catch(() => {

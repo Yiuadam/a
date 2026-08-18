@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { accountsEnabled } from "@/lib/auth/env";
-import { supabaseConfigured, rpc, enabledOAuthProviders } from "@/lib/auth/supabase";
+import {
+  supabaseConfigured,
+  rpc,
+  currentAccessGrants,
+  enabledOAuthProviders,
+} from "@/lib/auth/supabase";
 import { getSessionUser } from "@/lib/auth/session";
+import { entitlementRenews } from "@/lib/billing/access";
 import { resolveEntitlement, ANONYMOUS_ENTITLEMENT } from "@/lib/billing/entitlements";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { MONTH_WINDOW_SECONDS } from "@/lib/usage/limits";
@@ -107,6 +113,35 @@ async function handleGET(req: Request) {
     const providers =
       configured === null ? [] : OAUTH_PROVIDERS.filter((p) => configured.includes(p));
 
+    /*
+      Whether the date below is a renewal or an ending.
+
+      `expiresAt` alone does not say. A card subscription renews on that date; an
+      Alipay or WeChat Pay pass ends on it and the account drops back to Free.
+      Every screen printed "Renews on" for both, which for a pass holder is false
+      in the way that costs somebody their access with no warning — so the answer
+      is established here, where the database is, rather than guessed in a
+      browser.
+
+      Asked only when there is a date to explain, which excludes every free
+      account, the owner's own, and the free Pro trial (whose grant has no end).
+      So the extra read costs nothing on the great majority of requests to this
+      route, which is on nearly every page.
+
+      Null when it cannot be established — an unreachable read, or no row matching
+      the entitlement — and the screens then print the date with no claim about
+      what happens on it. That is also what a Cloudflare-authoritative deployment
+      would see, since this read is Supabase's.
+    */
+    let renews: boolean | null = null;
+    if (user && entitlement.expiresAt !== null) {
+      try {
+        renews = entitlementRenews(entitlement, await currentAccessGrants(user.id));
+      } catch (err) {
+        logInternal("account/status/access_grants", err);
+      }
+    }
+
     return NextResponse.json({
       enabled: true,
       providers,
@@ -126,6 +161,13 @@ async function handleGET(req: Request) {
         routes,
       },
       expiresAt: entitlement.expiresAt,
+      /*
+        True for a subscription that will charge again, false for a pass that will
+        simply end, null when there is no date or it could not be established. Not
+        "why", and not which provider — a screen needs to know which sentence to
+        print, and that is all this says.
+      */
+      renews,
     });
   } catch (err) {
     logInternal("account/status", err);

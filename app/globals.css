@@ -1925,6 +1925,22 @@ html[data-theme="dark"] .google-signin-glass {
     padding-bottom: 1rem;
   }
 
+  /*
+    The same rule again with one more class, because the two-class version above
+    it does not win.
+
+    `.card.card { padding: 1.5rem }` appears later in this file, so on specificity
+    plus source order it beats `.pricing-plan-card.card` — the phone padding above
+    has been inert since it was written, which is noted a few rules down as worth
+    a separate look. It is worth 24px of card here and now, though: measured on a
+    390x844 phone, the card ended 14px below the fold with the padding it actually
+    had, and ends inside it with the padding it was asked for. Only the bottom is
+    set, so the card keeps its full breathing room at the top.
+  */
+  .pricing-plan-card.card.card {
+    padding-bottom: 0.5rem;
+  }
+
   .pricing-plan-price {
     margin-top: 0.625rem;
   }
@@ -2057,6 +2073,24 @@ html[data-theme="dark"] .google-signin-glass {
   .pricing-plan-card.card.card {
     padding-block: 1rem;
   }
+
+  /*
+    The wallet alternative, tightened rather than removed.
+
+    It is the last thing in the card, so every pixel it spends is a pixel of the
+    card that can fall below the fold — and the whole point of putting the pass
+    behind a text link instead of a second full-width button was to keep both
+    payment controls on screen. The rule above it stays: it is what says
+    "alternative" without a heading.
+  */
+  .pricing-wallet-alternative {
+    margin-top: 0.125rem;
+    padding-top: 0.25rem;
+  }
+
+  .pricing-wallet-terms {
+    margin-top: 0.125rem;
+  }
 }
 
 /*
@@ -2087,6 +2121,21 @@ html[data-theme="dark"] .google-signin-glass {
 
   .pricing-plan-card.card.card {
     padding-block: 0.875rem;
+  }
+
+  /*
+    The two blocks of print give up their leading here, and only here. Both are
+    load-bearing — the renewal terms have to be beside the button that agrees to
+    them, and the pass has to say that it ends — so neither loses a word. 11px
+    over 14px is still readable; measured, this is what brings the pass line back
+    above the fold on a 1280x720 window.
+  */
+  .pricing-card-terms {
+    line-height: 1.15rem;
+  }
+
+  .pricing-wallet-terms {
+    line-height: 0.875rem;
   }
 }
 

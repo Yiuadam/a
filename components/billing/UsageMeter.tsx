@@ -191,12 +191,23 @@ export default function UsageMeter({
   routes,
   windowSeconds,
   oldestAt,
-  planRenewsAt,
+  accessEndsAt,
+  renews,
 }: {
   routes: RouteUsage[];
   windowSeconds: number;
   oldestAt: string | null;
-  planRenewsAt: string | null;
+  /**
+   * When the current access lapses, ISO, or null.
+   *
+   * This was `planRenewsAt`, and the rename is the point rather than tidying. A
+   * card subscription renews on that date; an Alipay or WeChat Pay pass ends on
+   * it. Labelling both "Plan renews" told a pass holder the opposite of what will
+   * happen on the one screen where they were looking for it.
+   */
+  accessEndsAt: string | null;
+  /** True for a renewing subscription, false for a pass, null if unknown. */
+  renews: boolean | null;
 }) {
   const now = useMinuteClock();
 
@@ -211,8 +222,8 @@ export default function UsageMeter({
   const uncapped = routes.every((r) => r.quota === null);
   const nothingIncluded = routes.every((r) => r.quota === 0);
   const returnsAt = nextUsageReturnAt(oldestAt, windowSeconds);
-  const renewalAt = planRenewsAt ? Date.parse(planRenewsAt) : null;
-  const validRenewalAt = renewalAt !== null && Number.isFinite(renewalAt) ? renewalAt : null;
+  const endsAt = accessEndsAt ? Date.parse(accessEndsAt) : null;
+  const validEndsAt = endsAt !== null && Number.isFinite(endsAt) ? endsAt : null;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-surface p-4">
@@ -231,12 +242,19 @@ export default function UsageMeter({
                 </dd>
               </div>
             )}
-            {validRenewalAt !== null && (
+            {validEndsAt !== null && (
               <div className="flex flex-wrap justify-between gap-x-3">
-                <dt>Plan renews</dt>
+                {/*
+                  Three labels for three different facts. A subscription renews on
+                  this date, a wallet pass ends on it, and when the server could
+                  not establish which, neither is claimed.
+                */}
+                <dt>
+                  {renews === true ? "Plan renews" : renews === false ? "Pass ends" : "Access to"}
+                </dt>
                 <dd className="font-medium tabular-nums text-slate-700">
-                  <time dateTime={new Date(validRenewalAt).toISOString()}>
-                    {formatUsageDate(validRenewalAt)}
+                  <time dateTime={new Date(validEndsAt).toISOString()}>
+                    {formatUsageDate(validEndsAt)}
                   </time>
                 </dd>
               </div>

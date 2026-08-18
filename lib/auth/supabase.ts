@@ -5,6 +5,9 @@ import type {
   ProgressSnapshotExpectation,
   ProgressSnapshotMutation,
 } from "@/lib/progress/server-snapshots";
+/* Type-only, so nothing from the billing lane is imported at runtime and the
+   dependency stays one-way: billing reads this file, not the other way round. */
+import type { AccessGrant } from "@/lib/billing/access";
 
 /*
   A deliberately small Supabase client.
@@ -363,6 +366,50 @@ export async function emailForUsername(username: string): Promise<string | null>
   } catch {
     return null;
   }
+}
+
+/**
+ * The rows that are currently granting an account something, as a fixed read of
+ * five columns and nothing else.
+ *
+ * It exists so that a billing screen can say whether what somebody holds renews
+ * or runs out — a card subscription does the first and a wallet pass the second,
+ * and `resolve_entitlement` returns the same shape for both. lib/billing/access.ts
+ * decides which from these five fields.
+ *
+ * Deliberately not a new database function: adding one means a migration, a
+ * migration cannot be previewed, and every fact needed is already in the row.
+ *
+ * The filter is the granting half of `resolve_entitlement`'s own condition. A row
+ * whose period has already ended is dropped by the caller's date comparison
+ * rather than by a `now()` written into a query string here.
+ *
+ * Never a user id from a request body: the caller has one a bearer token
+ * resolved to.
+ */
+export async function currentAccessGrants(userId: string): Promise<AccessGrant[]> {
+  if (!isUuid(userId)) return [];
+  const res = await request(
+    `/rest/v1/subscriptions?user_id=eq.${userId}&status=in.(active,trialing)` +
+      "&select=provider,tier,external_price_id,current_period_end,cancel_at_period_end" +
+      "&limit=50",
+    { method: "GET", asServiceRole: true },
+  );
+  if (!res.ok) throw new SupabaseError(`subscription lookup failed with ${res.status}`);
+  const rows = (await res.json()) as unknown;
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => {
+    const record = row as Record<string, unknown>;
+    const text = (value: unknown) =>
+      typeof value === "string" && value.length > 0 ? value : null;
+    return {
+      provider: text(record.provider) ?? "",
+      tier: text(record.tier) ?? "",
+      priceId: text(record.external_price_id),
+      currentPeriodEnd: text(record.current_period_end),
+      cancelAtPeriodEnd: record.cancel_at_period_end === true,
+    };
+  });
 }
 
 export interface StripeSubscriptionReplica {
