@@ -11,6 +11,7 @@ import {
 import { apiUrl } from "@/lib/api";
 import SignedOut from "@/components/account/SignedOut";
 import ClearDeviceSection from "@/components/account/ClearDeviceSection";
+import GiveUpFreeProSection from "@/components/billing/GiveUpFreeProSection";
 import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { TIERS, type Tier } from "@/lib/billing/tiers";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
@@ -181,6 +182,7 @@ export default function AccountPanel({ localMenuPreview = false }: { localMenuPr
         <SignedIn
           status={resolvedStatus}
           email={localMenuPreview ? "member@bandup.local" : session?.email ?? null}
+          onPlanChanged={reload}
         />
       )}
     </div>
@@ -219,7 +221,17 @@ function planName(tier: string | null | undefined): string {
   return Object.prototype.hasOwnProperty.call(TIERS, tier) ? TIERS[tier as Tier].name : tier;
 }
 
-function SignedIn({ status, email }: { status: AccountStatus; email: string | null }) {
+function SignedIn({
+  status,
+  email,
+  onPlanChanged,
+}: {
+  status: AccountStatus;
+  email: string | null;
+  /* Giving the free Pro trial up changes the tier, and the plan row above shows
+     it. Re-asking the server is the only way to redraw it truthfully. */
+  onPlanChanged?: () => void;
+}) {
   const items: HubItem[] = [
     {
       href: "/account/profile",
@@ -274,6 +286,15 @@ function SignedIn({ status, email }: { status: AccountStatus; email: string | nu
           app — anything you buy there works here straight away.
         </p>
       )}
+      {/*
+        After the plan, because it is about the plan, and below the menu because
+        it is one fact about this account rather than a way into another screen.
+        It draws for almost nobody: only an account whose Pro comes from the free
+        trial, resolved server-side, so a paying subscriber and the owner never
+        see it. It is here rather than on /billing because /billing is not in the
+        iOS bundle and the poster that offers the trial is — see the component.
+      */}
+      <GiveUpFreeProSection onChanged={onPlanChanged} />
       <SyncStatusLine />
     </>
   );

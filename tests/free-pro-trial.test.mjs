@@ -137,10 +137,25 @@ test("the notice is mounted on the billing page", () => {
 
 test("the offer route answers the paying question without a second round trip", () => {
   const source = code(route);
-  // Asked only when there is nothing to offer: the two are mutually exclusive.
-  assert.match(source, /offer\.offered\s*\?\s*false\s*:\s*await payingWhileFree/);
-  // Every exit from GET carries the field, including the failure path.
-  const returns = source.match(/NextResponse\.json\(\{ offered[^}]*\}\)/g) ?? [];
+  /*
+    Asked only when there is nothing to offer and nothing held by grant: all
+    three are mutually exclusive, so each of the three readers of this route
+    costs one resolve rather than two. `grantHeld` joined the condition when
+    giving the trial up arrived — a trialist is the commonest visitor to the
+    account page, and it was their request that would have paid for the extra
+    round trip.
+  */
+  assert.match(
+    source,
+    /offer\.offered \|\| offer\.grantHeld\s*\?\s*false\s*:\s*await payingWhileFree/,
+  );
+  // Every exit from GET carries every field, including the failure path.
+  const get = /async function handleGET[\s\S]*?\n}/.exec(source)[0];
+  const returns = get.match(/NextResponse\.json\(\{[\s\S]*?\}\)/g) ?? [];
   assert.ok(returns.length >= 3, `expected every GET exit to answer, saw ${returns.length}`);
-  for (const line of returns) assert.match(line, /payingWhileFree/);
+  for (const answer of returns) {
+    assert.match(answer, /offered/);
+    assert.match(answer, /payingWhileFree/);
+    assert.match(answer, /grantHeld/);
+  }
 });
