@@ -1,7 +1,8 @@
 # Handover — Supabase → Cloudflare migration, and the loose ends around it
 
-Written at the end of the session that built PRs #138–#148 and then, at the
-owner's instruction, merged them all to `main`. Nothing in this file changes
+Written at the end of the session that built PRs #138–#148, then merged them
+all to `main` at the owner's instruction, and finally brought the last stale
+pull request (#36) forward and merged that too. Nothing in this file changes
 code; it exists so the next agent does not have to reconstruct the state from
 a dozen pull-request bodies.
 
@@ -79,9 +80,10 @@ cannot force-push.
 | #157 | `usage_quota_authority`, `ai_cost_write_authority` on D1 | #146 |
 | #158 | `admin_user_directory`, `admin_statistics` on D1 | #148 |
 
-`main` is at `c26a086`, and was verified after the last merge: `npm test`
-1136 pass / 1 skipped / 0 fail, `npx eslint .` 0 errors (4 pre-existing
-warnings), `npm run build` succeeds, `validate-content` clean.
+`main` is at `e444590`. Verified on the merged tree before each of the last
+two merges: `npm test` 1136 pass / 1 skipped / 0 fail, `npx eslint .` 0 errors
+(4 pre-existing warnings), `npx tsc --noEmit` clean, `npm run build`,
+`npm run cf:build`, `validate-content` and `simulate-placement` all green.
 
 **#36** (another lane's icon and UI work, 317 commits behind) was brought
 forward as **#159** and merged too. Everything additive came in — the BandBadge
@@ -101,8 +103,6 @@ Two loose ends that merge left behind, both harmless and both worth tidying:
 replaced by `SiteHeader`), and `app/icon-preview/page.tsx` is a scratch route
 its own author marked "for deletion before production" that is now publicly
 reachable.
-
-**No pull requests are open.**
 
 Four rebases hit real conflicts rather than mechanical ones. Each was resolved
 by keeping both sides and re-verifying (`npm test`, `npx eslint .`,
@@ -126,20 +126,28 @@ by keeping both sides and re-verifying (`npm test`, `npx eslint .`,
   `tests/cloudflare-payload-parity.test.mjs`). They had to be updated at every
   step. Eight domains are now `supported: true`.
 
+**No pull requests are open.**
+
 ## SQL the owner must run by hand — none of it applied yet
 
-Full text lives in the PR bodies; do not retype it from memory.
+Full text lives in the pull-request bodies; do not retype it from memory. Note
+that the bodies carrying the SQL are on the **closed originals**, not on the
+merged replacements — the replacements point back at them, but the exact text
+is in the closed one, so follow the link rather than searching `main`.
 
-1. **`supabase/parity-payload-canonical.sql`** (#142) — canonical JSON and the
-   payload-hashing RPC. Supabase SQL editor.
-2. **Two D1 table rebuilds** (#144) — widen `subscriptions.provider` to accept
+1. **`supabase/parity-payload-canonical.sql`** (text in #142, merged as #150)
+   — canonical JSON and the payload-hashing RPC. Supabase SQL editor.
+2. **Two D1 table rebuilds** (text in #144, merged as #156) — widen `subscriptions.provider` to accept
    `'promo'`, and widen `cloudflare_replica_outbox.operation` to accept
    `'promo_subscription'`. SQLite cannot `ALTER` a `CHECK` in place, so both
    are full rebuild-and-rename scripts including every index and trigger. The
    exact text is in #144's body and is tested against a real in-memory D1
    schema in `tests/entitlement-cloudflare-cutover.test.mjs`.
-3. **The barrier table** — `scripts/hand-run-cutover-write-barrier.sql` (#147).
-4. **The id-sequence seeding** (#146) — create `cloudflare_id_sequences`, then
+3. **The barrier table** — `scripts/hand-run-cutover-write-barrier.sql`, which
+   is in the repo (text also in #147, merged as #155). Until it is run, the
+   drain treats "no such table" as "barrier not armed" rather than throwing on
+   every drain.
+4. **The id-sequence seeding** (text in #146, merged as #157) — create `cloudflare_id_sequences`, then
    seed `usage_events` and `ai_cost_events` from Supabase's current maxima
    **with a generous margin**, not `max + 1`. The margin matters: `dual` and
    `read_cloudflare` keep writing new rows into Supabase right up to the
@@ -156,7 +164,7 @@ agent's.**
 None of these can be established from this sandbox. All four must be clean
 before the irreversible flip.
 
-1. **Payload byte parity** (#142) — must come back clean.
+1. **Payload byte parity** (#150) — must come back clean.
 2. **Entitlement-parity mismatch count** —
    `GET /api/admin/cloudflare/entitlement-parity`, admin-only, paged via
    `?offset=`/`?limit=`. **Must be zero across the whole directory.** It asks
@@ -164,9 +172,9 @@ before the irreversible flip.
    anything is flipped. A `demotesAdmin: true` mismatch means an account holds
    `role = 'admin'` in Supabase but is not in `ADMIN_EMAILS` — the D1 resolver
    never reads a role, so that account would lose admin at the flip.
-3. **Avatar "disappearing faces" count** (#145) — **must be zero.**
+3. **Avatar "disappearing faces" count** (#154) — **must be zero.**
 4. `select max(id) from usage_events;` and
-   `select max(id) from ai_cost_events;` — the seed inputs for #146.
+   `select max(id) from ai_cost_events;` — the seed inputs for #157.
 
 ## Pre-flip checklist
 
@@ -177,6 +185,16 @@ before the irreversible flip.
 5. Flip `CLOUDFLARE_DATA_MODE` to `read_cloudflare`. **Reversible** — this is
    the safe step, and it is where the D1 read path earns its trust.
 6. Watch it. Then, and only then, **ask the owner** for the `cloudflare` flip.
+
+## Small tidying the merges left behind
+
+Neither breaks anything; both are worth a follow-up.
+
+- **`components/NavLinks.tsx` is dead code.** The inline header it was written
+  for was replaced by `SiteHeader` on `main`, and #159 kept `main`'s layout.
+- **`app/icon-preview/page.tsx` is a scratch route**, marked "for deletion
+  before production" by its own author, now publicly reachable. `app/icon-final`
+  is in the same position.
 
 ## Still open, and honestly not finished
 
