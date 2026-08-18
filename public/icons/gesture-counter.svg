@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture, counter</title>
+  <!--
+    Gesture variation: the line stops being a line.
+
+    Filled rather than stroked, so the four movements survive only in the
+    silhouette — ripple along the top, straight run down the right, a hard point
+    at the foot, the bubble bulging left. Everything that was outline is now
+    edge.
+
+    That leaves a counter, and the counter is where the band scale goes: a 9 cut
+    out of the mass. Unlike Signal, which cut its 9 out of a striped field and
+    lost its edges, this one is subtracted from one unbroken surface, so the
+    numeral keeps a clean boundary the whole way down.
+  -->
+  <defs>
+    <radialGradient id="ctr-ground" cx="0.3" cy="0.28" r="0.95">
+      <stop offset="0" stop-color="#302519" />
+      <stop offset="1" stop-color="#14100d" />
+    </radialGradient>
+    <linearGradient id="ctr-mass" x1="0.08" y1="0.1" x2="0.9" y2="0.92">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="0.45" stop-color="#f2ddb4" />
+      <stop offset="0.78" stop-color="#d9955c" />
+      <stop offset="1" stop-color="#a95d2f" />
+    </linearGradient>
+
+    <mask id="ctr-nine">
+      <rect width="1024" height="1024" fill="#fff" />
+      <g fill="none" stroke="#000" stroke-width="124" stroke-linecap="round">
+        <circle cx="462" cy="472" r="126" />
+        <path d="M 622 502 C 626 664 596 748 470 780" />
+      </g>
+    </mask>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#ctr-ground)" />
+
+  <path
+    d="M 168 456 C 188 316 288 248 386 296 C 462 332 520 294 616 248
+       L 892 546 L 674 912 L 372 772 A 292 292 0 0 1 168 456 Z"
+    transform="translate(26 30)"
+    fill="#0b0907"
+    opacity="0.45"
+  />
+
+  <path
+    d="M 168 456 C 188 316 288 248 386 296 C 462 332 520 294 616 248
+       L 892 546 L 674 912 L 372 772 A 292 292 0 0 1 168 456 Z"
+    fill="url(#ctr-mass)"
+    mask="url(#ctr-nine)"
+  />
+</svg>

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Folio, open spread</title>
+  <!--
+    Folio variation: two leaves instead of one, and the gutter is given a job.
+
+    The gap between the leaves is not a seam here — it is a wedge that is 32
+    wide at the foot and 96 at the head, so the negative space opens upward.
+    The book reads as opening and the eye is walked from the dark leaf that has
+    been read to the cream one that has not, whose edge is the scale.
+
+    Three steps rather than five: with two leaves competing for the square there
+    is not room for five and they turn to noise.
+  -->
+  <defs>
+    <radialGradient id="spr-ground" cx="0.5" cy="0.3" r="0.9">
+      <stop offset="0" stop-color="#31261d" />
+      <stop offset="1" stop-color="#14100d" />
+    </radialGradient>
+    <linearGradient id="spr-left" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b0632f" />
+      <stop offset="1" stop-color="#7c4222" />
+    </linearGradient>
+    <linearGradient id="spr-right" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#e6d3b8" />
+      <stop offset="0.6" stop-color="#f8f0e4" />
+      <stop offset="1" stop-color="#fdfaf6" />
+    </linearGradient>
+
+    <mask id="spr-ruled">
+      <rect width="1024" height="1024" fill="#fff" />
+      <rect x="238" y="470" width="180" height="24" rx="12" fill="#000" />
+      <rect x="230" y="546" width="210" height="24" rx="12" fill="#000" />
+      <rect x="224" y="622" width="160" height="24" rx="12" fill="#000" />
+    </mask>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#spr-ground)" />
+
+  <path
+    d="M 452 262 C 366 220 268 232 188 298 L 188 786 C 268 852 384 866 496 838 Z"
+    fill="url(#spr-left)"
+    mask="url(#spr-ruled)"
+  />
+
+  <!-- The near leaf throws a shadow back across the gutter onto the far one. -->
+  <path
+    d="M 548 330 L 646 330 L 646 246 L 744 246 L 744 158 L 838 158
+       L 838 786 C 750 852 640 866 528 838 Z"
+    transform="translate(-26 16)"
+    fill="#0b0907"
+    opacity="0.55"
+  />
+
+  <path
+    d="M 548 330 L 646 330 L 646 246 L 744 246 L 744 158 L 838 158
+       L 838 786 C 750 852 640 866 528 838 Z"
+    fill="url(#spr-right)"
+  />
+</svg>

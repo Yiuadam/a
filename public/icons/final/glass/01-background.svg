@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio glass — layer 1, background</title>
+  <!--
+    Bottom of the stack. Edge to edge and opaque: this is the only layer that
+    fills the canvas, and it is what every layer above refracts.
+
+    Apple asks for a soft light-to-dark gradient rather than a flat fill or a
+    pure black, because the material's own lighting runs top-left to
+    bottom-right and a gradient in the same direction harmonises with it. This
+    is a linear gradient on that diagonal rather than the radial wash the flat
+    icon uses — a radial puts its light in the centre, which fights the
+    material.
+
+    NO rounded corners. Icon Composer masks the canvas itself; baking a mask in
+    produces a double-rounded edge.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#3a2c1e" />
+      <stop offset="0.55" stop-color="#241c15" />
+      <stop offset="1" stop-color="#14100d" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)" />
+</svg>

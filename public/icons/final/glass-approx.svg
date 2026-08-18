@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio glass — browser approximation, NOT a master</title>
+  <!--
+    ============================ READ THIS =============================
+    This file is a SIMULATION, not a deliverable. It exists so the glass
+    treatment can be judged at 32px before anyone spends a day on a Mac.
+
+    It stacks the three real layers and fakes what iOS would apply: a
+    per-layer drop shadow and a specular rim along the top-left edge, done
+    with SVG filters. A browser is not iOS. Real Liquid Glass also refracts
+    the layers beneath, reacts to the device gyro, and varies with the
+    wallpaper behind it — none of which is here.
+
+    Ship 01/02/03 through Icon Composer. Never ship this file.
+    ====================================================================
+  -->
+  <defs>
+    <linearGradient id="ga-bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#3a2c1e" />
+      <stop offset="0.55" stop-color="#241c15" />
+      <stop offset="1" stop-color="#14100d" />
+    </linearGradient>
+
+    <!--
+      Shadow, then a rim of light on the top-left edge: erode the alpha, offset
+      the alpha up-left, and keep what the offset copy has that the eroded one
+      does not. That difference is the lit edge.
+    -->
+    <filter id="ga-glass" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow
+        in="SourceGraphic"
+        dx="6"
+        dy="16"
+        stdDeviation="16"
+        flood-color="#000000"
+        flood-opacity="0.45"
+        result="shadowed"
+      />
+      <feMorphology in="SourceAlpha" operator="erode" radius="4" result="eroded" />
+      <feOffset in="SourceAlpha" dx="-5" dy="-5" result="lifted" />
+      <feComposite in="lifted" in2="eroded" operator="out" result="rim" />
+      <feGaussianBlur in="rim" stdDeviation="2.5" result="rimSoft" />
+      <feFlood flood-color="#ffffff" flood-opacity="0.9" result="white" />
+      <feComposite in="white" in2="rimSoft" operator="in" result="rimLight" />
+      <feMerge>
+        <feMergeNode in="shadowed" />
+        <feMergeNode in="rimLight" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#ga-bg)" />
+
+  <rect
+    x="272"
+    y="300"
+    width="500"
+    height="546"
+    rx="26"
+    fill="#a95d2f"
+    transform="rotate(-13 512 560)"
+    filter="url(#ga-glass)"
+  />
+
+  <path
+    transform="rotate(4 512 560)"
+    fill="#f6ede0"
+    fill-rule="evenodd"
+    filter="url(#ga-glass)"
+    d="M 254 866 L 254 700 L 370 700 L 370 604 L 486 604 L 486 496
+       L 602 496 L 602 384 L 718 384 L 718 254 L 794 254 L 794 866 Z
+       M 304 684 H 688 A 20 20 0 0 1 688 724 H 304 A 20 20 0 0 1 304 684 Z
+       M 304 754 H 570 A 20 20 0 0 1 570 794 H 304 A 20 20 0 0 1 304 754 Z"
+  />
+</svg>

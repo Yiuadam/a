@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Gesture, open stroke</title>
+  <!--
+    Gesture variation: the loop is cut open, and the line gets somewhere.
+
+    Closed, the mark is stable and goes nowhere. Open, it has a start and a
+    finish, and the four movements become an order rather than a ring: it leaves
+    the bubble (speaking), ripples twice (listening), runs dead straight
+    (reading) and tapers to a nib point (writing). Bottom-left to top-right, so
+    the whole gesture also rises.
+
+    The stroke narrows 104 → 46 across five segments that share endpoints and
+    round caps, which is what makes the taper continuous rather than stepped.
+  -->
+  <defs>
+    <radialGradient id="opn-ground" cx="0.26" cy="0.76" r="0.95">
+      <stop offset="0" stop-color="#31261d" />
+      <stop offset="1" stop-color="#14100d" />
+    </radialGradient>
+    <linearGradient
+      id="opn-line"
+      gradientUnits="userSpaceOnUse"
+      x1="180"
+      y1="830"
+      x2="890"
+      y2="220"
+    >
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="0.45" stop-color="#f2ddb4" />
+      <stop offset="0.78" stop-color="#d9955c" />
+      <stop offset="1" stop-color="#a95d2f" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#opn-ground)" />
+
+  <g transform="translate(26 30)" fill="#0b0907" stroke="#0b0907" opacity="0.45">
+    <circle cx="256" cy="776" r="118" stroke="none" />
+    <g fill="none" stroke-linecap="round">
+      <path d="M 330 686 C 388 618 424 700 480 632" stroke-width="104" />
+      <path d="M 480 632 C 520 584 552 646 604 586" stroke-width="92" />
+      <path d="M 604 586 L 762 402" stroke-width="78" />
+      <path d="M 762 402 C 796 362 812 342 836 314" stroke-width="62" />
+    </g>
+    <path d="M 860 334 L 887 255 L 813 294 Z" stroke="none" />
+  </g>
+
+  <circle cx="256" cy="776" r="118" fill="url(#opn-line)" />
+  <g fill="none" stroke="url(#opn-line)" stroke-linecap="round">
+    <path d="M 330 686 C 388 618 424 700 480 632" stroke-width="104" />
+    <path d="M 480 632 C 520 584 552 646 604 586" stroke-width="92" />
+    <path d="M 604 586 L 762 402" stroke-width="78" />
+    <path d="M 762 402 C 796 362 812 342 836 314" stroke-width="62" />
+  </g>
+  <path d="M 860 334 L 887 255 L 813 294 Z" fill="url(#opn-line)" />
+</svg>

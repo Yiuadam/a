@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio glass — layer 2, back sheet</title>
+  <!--
+    The clay sheet turned behind the page.
+
+    Flat, not gradient. In the flat icon this sheet carries a gradient to fake
+    depth; here the depth is real — it comes from sitting on its own layer,
+    with the system's shadow and refraction separating it from the background.
+    Painting a gradient as well would double the effect and read as dirt.
+
+    Transparent outside the shape, which is correct and required for every
+    layer above the background: these are composited, not stacked opaquely.
+  -->
+  <rect
+    x="272"
+    y="300"
+    width="500"
+    height="546"
+    rx="26"
+    fill="#a95d2f"
+    transform="rotate(-13 512 560)"
+  />
+</svg>

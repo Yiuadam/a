@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio — fanned edges</title>
+  <!--
+    Near-abstract: the page reduced to nothing but its edge.
+
+    No sheet is drawn. Five edges pivot from one corner through 64 degrees, the
+    way a book riffles, and they darken as they fall — cream at the top of the
+    sweep, deep clay at the bottom. The scale is in the fan itself: each edge
+    sits above the last.
+
+    All five are nearly the same length, so their tips describe an arc. Varying
+    the lengths instead gave a ragged silhouette that read as a starburst.
+  -->
+  <defs>
+    <radialGradient id="ffn-ground" cx="0.24" cy="0.8" r="0.95">
+      <stop offset="0" stop-color="#31261d" />
+      <stop offset="1" stop-color="#14100d" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#ffn-ground)" />
+
+  <g transform="translate(24 28)" fill="#0b0907" opacity="0.45">
+    <rect x="272" y="804" width="500" height="48" rx="24" transform="rotate(-6 288 828)" />
+    <rect x="272" y="804" width="524" height="48" rx="24" transform="rotate(-22 288 828)" />
+    <rect x="272" y="804" width="548" height="48" rx="24" transform="rotate(-38 288 828)" />
+    <rect x="272" y="804" width="572" height="48" rx="24" transform="rotate(-54 288 828)" />
+    <rect x="272" y="804" width="596" height="48" rx="24" transform="rotate(-70 288 828)" />
+  </g>
+
+  <rect
+    x="272"
+    y="804"
+    width="500"
+    height="48"
+    rx="24"
+    fill="#7c4222"
+    transform="rotate(-6 288 828)"
+  />
+  <rect
+    x="272"
+    y="804"
+    width="524"
+    height="48"
+    rx="24"
+    fill="#a95d2f"
+    transform="rotate(-22 288 828)"
+  />
+  <rect
+    x="272"
+    y="804"
+    width="548"
+    height="48"
+    rx="24"
+    fill="#c98a54"
+    transform="rotate(-38 288 828)"
+  />
+  <rect
+    x="272"
+    y="804"
+    width="572"
+    height="48"
+    rx="24"
+    fill="#e2b47f"
+    transform="rotate(-54 288 828)"
+  />
+  <rect
+    x="272"
+    y="804"
+    width="596"
+    height="48"
+    rx="24"
+    fill="#fdfaf6"
+    transform="rotate(-70 288 828)"
+  />
+</svg>
