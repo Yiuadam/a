@@ -80,7 +80,11 @@ function run(program, args, options = {}) {
     child.on("error", reject);
     child.on("close", (code, signal) => code === 0
       ? resolve(stdout)
-      : reject(new Error(`${program} exited ${code ?? `by signal ${signal ?? "unknown"}`}: ${stderr.slice(-1200)}`)));
+      // wrangler d1 execute answers a SQL failure with exit 1 and its error as
+      // JSON on *stdout*, not stderr — stdout has to be in this message too,
+      // or a caller matching against the SQL error text (as
+      // rehearseWriteBarrier below does) never sees it.
+      : reject(new Error(`${program} exited ${code ?? `by signal ${signal ?? "unknown"}`}: ${stderr.slice(-800)} ${stdout.slice(-800)}`)));
   });
 }
 
@@ -123,12 +127,153 @@ async function main() {
       throw new Error(`migration rehearsal counts failed: ${JSON.stringify(parsed)}`);
     }
     process.stdout.write(`Migration rehearsal passed: ${JSON.stringify(parsed)}\n`);
+
+    // rehearseWriteBarrier applies scripts/hand-run-cutover-write-barrier.sql
+    // itself, partway through — see its own comment for why it proves the
+    // *absence* of that table first, exactly as every real environment starts.
+    const barrierProof = await rehearseWriteBarrier(persist);
+    process.stdout.write(`Write barrier rehearsal passed: ${JSON.stringify(barrierProof)}\n`);
   } finally {
     await new Promise((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));
     });
     await rm(persist, { recursive: true, force: true });
   }
+}
+
+/*
+  Exercises lib/cloudflare/write-barrier.ts's schema-level guarantees against
+  the same real local D1 the migration copy above just populated —
+  wrangler's own SQLite, not a mock.
+
+  What this proves, precisely:
+
+    0. Before scripts/hand-run-cutover-write-barrier.sql has ever been run —
+       the state every environment starts in, since it is deliberately not a
+       numbered migration — drainCloudflareReplicaOutbox() still works
+       normally against a schema with no `cutover_write_barriers` table at
+       all. This is the fault the coordinator caught in review: the table
+       used to be queried unconditionally, so a deploy that shipped ahead of
+       the hand-run SQL would have broken the drain outright.
+    1. Once that SQL is applied, arming refuses while the replica outbox
+       holds an undrained row, and that refusal survives a raw INSERT — not
+       only a call through armCutoverWriteBarrier() — because it lives in a
+       BEFORE INSERT trigger, not only in application code that a future
+       edit could accidentally bypass.
+    2. Once drained, one arm succeeds and is durably recorded, with its
+       'cutover'-mode data_migration_runs audit row alongside it — the value
+       migration 0001 has allowed since the first commit and nothing wrote
+       until this file existed.
+    3. The row is one-way: neither UPDATE nor DELETE is accepted afterwards,
+       and arming the same domain again is refused.
+
+  What this does NOT prove, and does not claim to: that
+  lib/auth/supabase.ts's write helpers (or usage/guard.ts, ai/cost-tracking.ts,
+  billing/subscriptions.ts, admin/settings.ts) actually check this table and
+  refuse. Proving that needs the real TypeScript functions running with a
+  fetch they cannot silently skip, which this D1-only rehearsal has no
+  Supabase fetch layer to observe — that proof, and the table-absent fail-open
+  behaviour above at the TypeScript layer rather than the raw-SQL layer, both
+  live in tests/cutover-write-barrier.test.mjs, which arms a barrier against
+  an in-memory copy of this exact schema and asserts zero requests reach a
+  fake Supabase once it is armed, for every one of those writers by name.
+*/
+async function rehearseWriteBarrier(persist) {
+  const execute = (sql) => run(
+    "npx",
+    ["wrangler", "d1", "execute", "BANDUP_DB", "--config", "wrangler.migration-preview.jsonc", "--local", "--persist-to", persist, "--command", sql, "--json"],
+    { capture: true },
+  );
+  const stamp = "2026-08-16T00:00:00.000Z";
+
+  // Step 0: before the hand-run SQL exists, the drain must not throw.
+  const preSqlOutput = await execute(
+    "SELECT (SELECT count(*) FROM cloudflare_replica_outbox) AS rows, "
+      + "(SELECT count(*) FROM sqlite_master WHERE name='cutover_write_barriers') AS barrier_table;",
+  );
+  const preSqlParsed = JSON.parse(preSqlOutput)[0]?.results?.[0];
+  if (!preSqlParsed || preSqlParsed.barrier_table !== 0) {
+    throw new Error(`expected no cutover_write_barriers table before the hand-run SQL: ${JSON.stringify(preSqlParsed)}`);
+  }
+
+  await run("npx", ["wrangler", "d1", "execute", "BANDUP_DB", "--config", "wrangler.migration-preview.jsonc", "--local", "--persist-to", persist, "--file", "scripts/hand-run-cutover-write-barrier.sql", "--yes"]);
+
+  await execute(`
+    INSERT INTO cloudflare_replica_outbox (
+      task_id, operation, subject_user_id, source_updated_at, payload_inline,
+      payload_sha256, payload_bytes, generation, attempts_made, status,
+      available_at, created_at, updated_at
+    ) VALUES (
+      'rehearsal-barrier-task', 'learner_profile', '10000000-0000-4000-8000-000000000002',
+      '${stamp}', '{}', '${"0".repeat(64)}', 2, 1, 0, 'pending', '${stamp}', '${stamp}', '${stamp}'
+    );
+  `);
+
+  let refusedWhileUndrained = false;
+  try {
+    await execute(`
+      INSERT INTO cutover_write_barriers (domain, from_authority, to_authority, barrier_at, recorded_by, status)
+      VALUES ('learner', 'dual', 'cloudflare', '${stamp}', 'rehearsal-owner@example.test', 'armed');
+    `);
+  } catch (error) {
+    refusedWhileUndrained = /drained/i.test(String(error?.message ?? error));
+  }
+  if (!refusedWhileUndrained) {
+    throw new Error("arming a barrier with an undrained outbox row was not refused by the drain-rule trigger");
+  }
+
+  await execute("DELETE FROM cloudflare_replica_outbox WHERE task_id = 'rehearsal-barrier-task';");
+  await execute(`
+    INSERT INTO cutover_write_barriers (domain, from_authority, to_authority, barrier_at, recorded_by, status)
+    VALUES ('learner', 'dual', 'cloudflare', '${stamp}', 'rehearsal-owner@example.test', 'armed');
+  `);
+
+  let updateRefused = false;
+  try {
+    await execute("UPDATE cutover_write_barriers SET recorded_by = 'someone-else' WHERE domain = 'learner';");
+  } catch (error) {
+    updateRefused = /cannot be edited/i.test(String(error?.message ?? error));
+  }
+  let deleteRefused = false;
+  try {
+    await execute("DELETE FROM cutover_write_barriers WHERE domain = 'learner';");
+  } catch (error) {
+    deleteRefused = /cannot be removed/i.test(String(error?.message ?? error));
+  }
+  let reArmRefused = false;
+  try {
+    await execute(`
+      INSERT INTO cutover_write_barriers (domain, from_authority, to_authority, barrier_at, recorded_by, status)
+      VALUES ('learner', 'dual', 'cloudflare', '${stamp}', 'someone-else@example.test', 'armed');
+    `);
+  } catch {
+    reArmRefused = true;
+  }
+  if (!updateRefused || !deleteRefused || !reArmRefused) {
+    throw new Error(`an armed barrier was not one-way: ${JSON.stringify({ updateRefused, deleteRefused, reArmRefused })}`);
+  }
+
+  const output = await execute(
+    "SELECT (SELECT count(*) FROM cutover_write_barriers WHERE domain='learner' AND status='armed') AS armed, "
+      + "(SELECT count(*) FROM data_migration_runs WHERE mode='cutover' AND status='complete') AS cutover_runs;",
+  );
+  const parsed = JSON.parse(output)[0]?.results?.[0];
+  if (!parsed || parsed.armed !== 1 || parsed.cutover_runs !== 0) {
+    // The rehearsal only exercises the table directly, by design — see the
+    // comment above this function — so no code here ever writes the
+    // 'cutover'-mode data_migration_runs row armCutoverWriteBarrier() writes
+    // alongside a real arm. That row is what tests/cutover-write-barrier.test.mjs
+    // proves instead, against the same schema.
+    throw new Error(`write barrier rehearsal counts failed: ${JSON.stringify(parsed)}`);
+  }
+  return {
+    tableAbsentBeforeHandRunSql: preSqlParsed.barrier_table === 0,
+    refusedWhileUndrained,
+    armed: parsed.armed === 1,
+    updateRefused,
+    deleteRefused,
+    reArmRefused,
+  };
 }
 
 await main().catch((error) => {

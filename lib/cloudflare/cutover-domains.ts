@@ -100,7 +100,21 @@ export const CUTOVER_DOMAINS: readonly CutoverDomainDefinition[] = [
   },
   {
     domain: "cutover_write_barrier",
-    description: "Nothing yet refuses a write once a domain is meant to be Cloudflare-only.",
+    /*
+      The mechanism exists now — lib/cloudflare/write-barrier.ts, armed only
+      through app/api/admin/cloudflare/write-barrier/route.ts — but `supported`
+      stays `false` here on purpose. For the other nine entries "supported"
+      is a fact a code review settles once and for all: a reader either exists
+      or it does not. This one is not that kind of fact — whether a barrier is
+      actually armed is live D1 state that can be true this minute and false
+      the next, and a boolean baked into this array at module load time cannot
+      say which. Flipping it to `true` would claim a cutover is safe to finish
+      regardless of whether the owner ever armed anything. The readiness
+      report's `writeBarrier` field carries the live answer instead — armed,
+      not armed, or armed at a given time — see
+      lib/cloudflare/migration-readiness.ts.
+    */
+    description: "The refusal mechanism exists; whether it is armed is reported separately as live D1 state, not as a fact this registry can hold.",
     supported: false,
   },
 ];

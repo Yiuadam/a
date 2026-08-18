@@ -11,6 +11,7 @@ import {
   readsFromCloudflare,
   writesToCloudflareOnly,
 } from "@/lib/cloudflare/bindings";
+import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
 import {
   getCloudflareAppSetting,
   putCloudflareAppSetting,
@@ -103,6 +104,14 @@ async function writeSetting(
 ): Promise<unknown> {
   if (writesToCloudflareOnly()) {
     return (await setCloudflareAppSetting(key, value, actor)).value;
+  }
+
+  // setMaintenance/recordMaintenanceDispatch below propagate this throw
+  // uncaught by design ("Throws if the write fails, and the caller reports
+  // that"), and app/api/admin/maintenance/route.ts already turns any throw
+  // into a fixed safeJsonError sentence — never a database error.
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new Error("cutover write barrier is armed for learner writes");
   }
 
   const stored = await rpc<unknown>("set_app_setting", {

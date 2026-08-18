@@ -1,6 +1,7 @@
 import { rpc } from "@/lib/auth/supabase";
 import { COSTED_ROUTES, type CostedRoute } from "@/lib/ai/models";
 import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
+import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
 import {
   type CloudflareAiCostCoverageReplica,
   type CloudflareAiCostEventReplica,
@@ -347,6 +348,18 @@ export function calculateAnthropicTokenCost(
 export async function recordAnthropicMessageCost(
   input: RecordAnthropicMessageCostInput,
 ): Promise<boolean> {
+  /*
+    Like usage metering, cost recording writes Supabase through
+    record_ai_cost_event[_with_identity] regardless of mode — see
+    cutover-domains.ts's ai_cost_write_authority entry. Checked outside the
+    try/catch below on purpose: a barred write is not the "Supabase
+    unavailable" case that block already logs, and giving it its own line
+    keeps the two distinguishable in the server log.
+  */
+  if (await cutoverWriteBarrierArmed("learner")) {
+    console.error("[ai-cost] recordAnthropicMessageCost: cutover write barrier is armed for learner writes");
+    return false;
+  }
   try {
     const providerRequestId = input.providerRequestId.trim();
     if (!providerRequestId) throw new Error("Anthropic response has no provider request id");
@@ -395,6 +408,10 @@ export async function recordAnthropicMessageCost(
  * authoritative in dual mode; the exact stored singleton is then mirrored.
  */
 export async function setAiCostCoverage(input: SetAiCostCoverageInput): Promise<boolean> {
+  if (await cutoverWriteBarrierArmed("learner")) {
+    console.error("[ai-cost] setAiCostCoverage: cutover write barrier is armed for learner writes");
+    return false;
+  }
   try {
     if (!Number.isFinite(input.startsAt.getTime())) throw new Error("Invalid coverage timestamp");
     const args = {

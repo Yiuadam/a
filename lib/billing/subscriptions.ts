@@ -5,6 +5,7 @@ import {
   cloudflareStripeCustomerFor,
 } from "@/lib/cloudflare/billing-replica";
 import { replicateStripeBillingDurably } from "@/lib/cloudflare/replica-replay";
+import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
 import type { Provider } from "./providers";
 import type {
   StripePrepaidPurchaseEvent,
@@ -89,6 +90,12 @@ export async function applyStripeSubscription(
   payload: unknown,
 ): Promise<ApplyOutcome> {
   assertServerOnly(MODULE);
+  // The webhook route already turns any throw here into a fixed 503 —
+  // never a database error — so barring reuses that path rather than adding
+  // a new outcome value. See lib/cloudflare/write-barrier.ts.
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new Error("cutover write barrier is armed for learner writes");
+  }
 
   const outcome = await rpc<unknown>("apply_provider_subscription_event", {
     p_provider: "stripe" satisfies Provider,
@@ -140,6 +147,9 @@ export async function applyStripePrepaidPurchase(
   payload: unknown,
 ): Promise<PrepaidApplyOutcome> {
   assertServerOnly(MODULE);
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new Error("cutover write barrier is armed for learner writes");
+  }
   const outcome = await rpc<unknown>("apply_stripe_prepaid_purchase_event", {
     p_event_id: event.eventId,
     p_event_at: event.eventAt,
@@ -173,6 +183,9 @@ export async function applyStripePrepaidRefund(
   payload: unknown,
 ): Promise<PrepaidApplyOutcome> {
   assertServerOnly(MODULE);
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new Error("cutover write barrier is armed for learner writes");
+  }
   const outcome = await rpc<unknown>("apply_stripe_prepaid_refund_event", {
     p_event_id: event.eventId,
     p_event_at: event.eventAt,
