@@ -82,18 +82,21 @@ export const CUTOVER_DOMAINS: readonly CutoverDomainDefinition[] = [
   },
   {
     domain: "progress_payload_integrity",
-    description: "Progress-snapshot JSON payloads are not proven identical, only their rows.",
-    supported: false,
+    description: "Progress-snapshot JSON payloads are canonicalised and hashed on both sides "
+      + "(lib/cloudflare/payload-parity.ts), admin-only via ?payloadParity= on the readiness route.",
+    supported: true,
   },
   {
     domain: "billing_payload_object_parity",
-    description: "Stored Stripe event payload objects are not proven identical.",
-    supported: false,
+    description: "Stored Stripe event payload objects are canonicalised and hashed on both sides "
+      + "(lib/cloudflare/payload-parity.ts), admin-only via ?payloadParity= on the readiness route.",
+    supported: true,
   },
   {
     domain: "provider_event_payload_object_parity",
-    description: "Stored provider-event payload objects are not proven identical.",
-    supported: false,
+    description: "Stored provider-event payload objects are canonicalised and hashed on both sides "
+      + "(lib/cloudflare/payload-parity.ts), admin-only via ?payloadParity= on the readiness route.",
+    supported: true,
   },
   {
     domain: "cutover_write_barrier",
