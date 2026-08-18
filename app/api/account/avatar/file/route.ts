@@ -1,4 +1,4 @@
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { readsFromCloudflare } from "@/lib/cloudflare/bindings";
 import { verifyCloudflareAvatarGrant } from "@/lib/cloudflare/avatar-delivery";
 import { getCloudflareAvatarObject } from "@/lib/cloudflare/learner-data";
 import { logInternal } from "@/lib/auth/errors";
@@ -27,7 +27,7 @@ function unavailable(status = 404): Response {
  * must still agree, so another user's key, a removed key or an old key fails.
  */
 async function handleGET(req: Request): Promise<Response> {
-  if (cloudflareDataMode() !== "cloudflare") return unavailable();
+  if (!readsFromCloudflare()) return unavailable();
   const grant = await verifyCloudflareAvatarGrant(new URL(req.url).searchParams.get("grant"));
   if (!grant) return unavailable();
 

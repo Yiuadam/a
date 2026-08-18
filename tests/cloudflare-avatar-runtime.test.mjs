@@ -228,8 +228,13 @@ test("Cloudflare learner mode never falls back to a public R2 URL or Supabase pr
   const file = readFileSync(join(process.cwd(), "app/api/account/avatar/file/route.ts"), "utf8");
   const learner = readFileSync(join(process.cwd(), "lib/cloudflare/learner-data.ts"), "utf8");
   const editor = readFileSync(join(process.cwd(), "components/account/ProfileSection.tsx"), "utf8");
-  assert.match(profile, /mode === "cloudflare"[\s\S]*cloudflareAvatarUrl/);
-  assert.match(avatar, /cloudflareDataMode\(\) === "cloudflare"[\s\S]*putCloudflareAvatar/);
+  // readsFromCloudflare() is also true in read_cloudflare mode — this is a
+  // read question, and both modes read profiles (so avatarPath) from D1.
+  assert.match(profile, /readingFromCloudflare[\s\S]*cloudflareAvatarUrl/);
+  assert.match(profile, /readingFromCloudflare = readsFromCloudflare\(\)/);
+  // writesToCloudflareOnly() is true only for full "cloudflare" — the write
+  // authority switch, deliberately narrower than the read one above.
+  assert.match(avatar, /writesToCloudflareOnly\(\)[\s\S]*putCloudflareAvatar/);
   assert.match(file, /verifyCloudflareAvatarGrant/);
   assert.match(file, /getCloudflareAvatarObject/);
   assert.doesNotMatch(file, /r2\.dev|publicUrl|signedAvatarUrl|getSessionUser/);

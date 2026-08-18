@@ -6,6 +6,7 @@ import {
   type BandUpCloudflareBindings,
 } from "./bindings";
 import { appSettingsParityReport, type AppSettingsParityReport } from "./app-settings-parity";
+import { unsupportedCutoverDomains } from "./cutover-domains";
 import {
   cloudflareReplicaOutboxStatus,
   type CloudflareReplicaOutboxStatus,
@@ -358,18 +359,9 @@ export async function cloudflareMigrationReadinessReport(
   // These runtime readers/writers still call Supabase even when the learner
   // switch says `cloudflare`. Exact stored-row parity is useful evidence, but
   // it cannot make a Cloudflare-only cutover safe until those paths exist.
-  unsupportedDomains.push(
-    "admin_user_directory",
-    "admin_statistics",
-    "billing_entitlement_runtime",
-    "usage_quota_authority",
-    "ai_cost_write_authority",
-    "avatar_object_parity",
-    "progress_payload_integrity",
-    "billing_payload_object_parity",
-    "provider_event_payload_object_parity",
-    "cutover_write_barrier",
-  );
+  // See lib/cloudflare/cutover-domains.ts — a stage that finishes one of
+  // these flips its `supported` flag there rather than editing this list.
+  unsupportedDomains.push(...unsupportedCutoverDomains());
 
   const blockers: string[] = [];
   if (cloudflareDataMode() !== "dual") {

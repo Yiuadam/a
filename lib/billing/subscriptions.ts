@@ -1,6 +1,6 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { rpc, stripeSubscriptionReplica } from "@/lib/auth/supabase";
-import { cloudflareDataMode, organizationDataMode } from "@/lib/cloudflare/bindings";
+import { cloudflareDataMode, organizationDataMode, readsFromCloudflare } from "@/lib/cloudflare/bindings";
 import {
   cloudflareStripeCustomerFor,
 } from "@/lib/cloudflare/billing-replica";
@@ -211,7 +211,7 @@ export async function applyStripePrepaidRefund(
  */
 export async function stripeCustomerFor(userId: string): Promise<string | null> {
   assertServerOnly(MODULE);
-  if (cloudflareDataMode() === "cloudflare") return cloudflareStripeCustomerFor(userId);
+  if (readsFromCloudflare()) return cloudflareStripeCustomerFor(userId);
   const value = await rpc<unknown>("provider_customer_for_user", {
     p_user_id: userId,
     p_provider: "stripe" satisfies Provider,

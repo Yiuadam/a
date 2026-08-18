@@ -11,7 +11,7 @@ import {
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { mirrorsWritesToCloudflare, writesToCloudflareOnly } from "@/lib/cloudflare/bindings";
 import { replicateLearnerProfile } from "@/lib/cloudflare/data-router";
 import {
   cloudflareAvatarDeliveryConfigured,
@@ -145,7 +145,7 @@ async function handlePOST(req: Request) {
     return safeJsonError("That doesn't look like a JPEG, PNG or WebP image.", 415);
   }
 
-  if (cloudflareDataMode() === "cloudflare") {
+  if (writesToCloudflareOnly()) {
     // Check configuration before storing anything: a private object without a
     // browser-loadable delivery grant would look like a failed save and invite
     // repeated uploads.
@@ -204,7 +204,7 @@ async function handlePOST(req: Request) {
       logInternal("account/avatar POST", new Error("Cloudflare profile replication failed"));
     }
   }
-  if (cloudflareDataMode() === "dual") {
+  if (mirrorsWritesToCloudflare()) {
     try {
       const mirrored = current?.updatedAt
         ? await replicateAvatarPutDurably(auth.user, buffer, kind, current.updatedAt)
@@ -236,7 +236,7 @@ async function handleDELETE(req: Request) {
   if (auth.error === "off") return NextResponse.json({ error: "Not found." }, { status: 404 });
   if (auth.error === "anon") return safeJsonError(MESSAGES.signInRequired, 401);
 
-  if (cloudflareDataMode() === "cloudflare") {
+  if (writesToCloudflareOnly()) {
     let removed = false;
     try {
       removed = await deleteCloudflareAvatar(auth.user);
@@ -262,7 +262,7 @@ async function handleDELETE(req: Request) {
       logInternal("account/avatar DELETE", new Error("Cloudflare profile replication failed"));
     }
   }
-  if (cloudflareDataMode() === "dual") {
+  if (mirrorsWritesToCloudflare()) {
     try {
       if (!current?.updatedAt || !(await replicateAvatarDeleteDurably(auth.user, current.updatedAt))) {
         logInternal("account/avatar DELETE", new Error("Cloudflare avatar replica delete failed"));
