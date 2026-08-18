@@ -417,7 +417,6 @@ test("progress, subscription and provider-event payload domains are now genuinel
       "admin_user_directory",
       "ai_cost_write_authority",
       "avatar_object_parity",
-      "billing_entitlement_runtime",
       "cutover_write_barrier",
       "usage_quota_authority",
     ].sort(),

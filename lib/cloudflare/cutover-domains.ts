@@ -21,9 +21,9 @@ const MODULE = "lib/cloudflare/cutover-domains.ts";
  *
  * Nothing in this file makes a domain's actual reads or writes go to
  * Cloudflare. Do not add a branch here that changes runtime routing — that is
- * what `domainDataMode()` below is for, and it is deliberately unused by any
- * caller yet, because "build an actual D1 reader for one of these" is later
- * stages' work, not this one's.
+ * what `domainDataMode()` (and `domainReadsFromCloudflare()`) below is for.
+ * `billing_entitlement_runtime` is the first domain to call it, from
+ * lib/billing/entitlements.ts, once its D1 reader existed to call it for.
  */
 export type CutoverDomain =
   | "admin_user_directory"
@@ -62,8 +62,15 @@ export const CUTOVER_DOMAINS: readonly CutoverDomainDefinition[] = [
   },
   {
     domain: "billing_entitlement_runtime",
-    description: "Entitlement checks (lib/billing/entitlements.ts) still read Supabase.",
-    supported: false,
+    description:
+      "Entitlement checks (lib/billing/entitlements.ts) have a D1 read path " +
+      "(lib/cloudflare/entitlement-runtime.ts) and an admin parity tool " +
+      "(/api/admin/cloudflare/entitlement-parity) that resolves every account through " +
+      "both backends. Flipping this domain's mode still needs, in order: the " +
+      "subscriptions.provider and cloudflare_replica_outbox.operation widenings from " +
+      "the pull request that added this, the promo backfill it also describes, and a " +
+      "zero-mismatch run of the parity tool.",
+    supported: true,
   },
   {
     domain: "usage_quota_authority",
@@ -145,4 +152,16 @@ export function domainDataMode(domain: CutoverDomain): CloudflareDataMode {
   assertServerOnly(MODULE);
   const override = process.env[overrideEnvVar(domain)];
   return override !== undefined ? parseCloudflareDataMode(override) : cloudflareDataMode();
+}
+
+/**
+ * Where a read for this specific domain should come from — `domainDataMode`
+ * plus the same `cloudflare`/`read_cloudflare` rule `readsFromCloudflare()`
+ * applies to the learner switch as a whole. See that function's comment in
+ * ./bindings for why both modes count: the domain's *write* path is free to
+ * differ behind them without a read call site having to know which.
+ */
+export function domainReadsFromCloudflare(domain: CutoverDomain): boolean {
+  const mode = domainDataMode(domain);
+  return mode === "cloudflare" || mode === "read_cloudflare";
 }
