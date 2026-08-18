@@ -415,10 +415,8 @@ test("progress, subscription and provider-event payload domains are now genuinel
     [
       "admin_statistics",
       "admin_user_directory",
-      "ai_cost_write_authority",
       "avatar_object_parity",
       "cutover_write_barrier",
-      "usage_quota_authority",
     ].sort(),
   );
 });
