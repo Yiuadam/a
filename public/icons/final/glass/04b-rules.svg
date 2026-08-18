@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio glass — layer 4b, ruled lines as marks (fallback)</title>
+  <!--
+    Fallback half of the pair. Pairs with 03b-front-sheet-solid.svg.
+
+    Give this its own group in Icon Composer and switch specular OFF for it —
+    that is the whole point of separating it, and the reason the fallback can
+    survive where the cut-out version might not.
+
+    Clay rather than ink: on a cream sheet, ink at this weight goes to a black
+    hairline that the material then fringes. Clay keeps the value difference
+    without the fringe.
+  -->
+  <g transform="rotate(4 512 560)" fill="#a95d2f">
+    <rect x="304" y="684" width="404" height="40" rx="20" />
+    <rect x="304" y="754" width="286" height="40" rx="20" />
+  </g>
+</svg>

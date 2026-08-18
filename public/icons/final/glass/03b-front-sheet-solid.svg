@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio glass — layer 3b, front sheet, solid (fallback)</title>
+  <!--
+    Fallback half of the pair. Use this together with 04b-rules.svg instead of
+    03-front-sheet.svg, if the cut-outs in that file go pillowy under the
+    material.
+
+    The reason the fallback exists: Apple's remedy for fine detail is to switch
+    specular off for the group carrying it. A hole cannot be given its own
+    group — it belongs to the sheet it is cut from — so the only way to reach
+    that remedy is to stop the rules being holes and make them marks.
+
+    It is a genuine downgrade of the idea, not an equivalent. The design says
+    the writing is absent from the paper, not sitting on it.
+  -->
+  <path
+    transform="rotate(4 512 560)"
+    fill="#f6ede0"
+    d="M 254 866 L 254 700 L 370 700 L 370 604 L 486 604 L 486 496
+       L 602 496 L 602 384 L 718 384 L 718 254 L 794 254 L 794 866 Z"
+  />
+</svg>

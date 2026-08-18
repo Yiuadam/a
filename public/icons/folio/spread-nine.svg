@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio — spread, gutter carves a nine</title>
+  <!--
+    The negative space carrying the second reading outright.
+
+    The spread is one unbroken block of paper, and the only thing separating the
+    two leaves is a 9 — its bowl sitting where the pages meet, its tail running
+    down the gutter and off the bottom edge, so the numeral and the gutter are
+    the same void.
+
+    Cut from a solid surface rather than a striped one, which is the lesson from
+    Signal: a void needs an uninterrupted field around it or it loses its edges
+    at small sizes.
+  -->
+  <defs>
+    <radialGradient id="fsn-ground" cx="0.5" cy="0.3" r="0.9">
+      <stop offset="0" stop-color="#31261d" />
+      <stop offset="1" stop-color="#14100d" />
+    </radialGradient>
+    <linearGradient id="fsn-block" x1="0.05" y1="1" x2="0.95" y2="0">
+      <stop offset="0" stop-color="#dcc7a8" />
+      <stop offset="0.5" stop-color="#f6ede0" />
+      <stop offset="1" stop-color="#fdfaf6" />
+    </linearGradient>
+
+    <mask id="fsn-gutter">
+      <rect width="1024" height="1024" fill="#fff" />
+      <g fill="none" stroke="#000" stroke-width="96" stroke-linecap="round">
+        <circle cx="512" cy="422" r="122" />
+        <path d="M 634 452 C 636 620 566 706 512 830" />
+      </g>
+    </mask>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#fsn-ground)" />
+
+  <path
+    d="M 196 262 C 356 210 668 210 828 262 L 828 792 C 668 850 356 850 196 792 Z"
+    transform="translate(24 28)"
+    fill="#0b0907"
+    opacity="0.45"
+  />
+
+  <path
+    d="M 196 262 C 356 210 668 210 828 262 L 828 792 C 668 850 356 850 196 792 Z"
+    fill="url(#fsn-block)"
+    mask="url(#fsn-gutter)"
+  />
+</svg>
