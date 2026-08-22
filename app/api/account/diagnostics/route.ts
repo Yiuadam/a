@@ -5,7 +5,7 @@ import { rpcDiagnostic, supabaseConfigured } from "@/lib/auth/supabase";
 import { withCors } from "@/lib/http/cors";
 import { LIMITS_SCHEMA_VERSION, USAGE_WINDOW_SECONDS } from "@/lib/usage/limits";
 import { hasApiKey } from "@/lib/anthropic";
-import { stripeDiagnostic } from "@/lib/billing/stripe";
+import { stripeDiagnostic, verifyCataloguePrices } from "@/lib/billing/stripe";
 import { billingHealth } from "@/lib/billing/health";
 import { CHECKOUT_CHECK_NAME } from "@/lib/billing/faults";
 import { stripeConfigured } from "@/lib/billing/env";
@@ -244,7 +244,7 @@ async function handleGET(req: Request) {
       CHECKOUT_CHECK_NAME,
       health.ok,
       health.ok
-        ? "learners can buy — key, prices and Stripe all answering"
+        ? "learners can buy — key, Stripe answering, and all six prices match the catalogue"
         : `no learner can start a checkout. Failed: ${broken.join(", ")}`,
     );
 
@@ -264,6 +264,24 @@ async function handleGET(req: Request) {
     if (!health.ok) {
       const stripe = await stripeDiagnostic();
       add("Stripe reachable", stripe.ok, stripe.detail);
+
+      /*
+        And, when the prices are what failed, which of the six and how.
+
+        The health check can only say `stripe_prices_match_catalogue: false`,
+        because anyone may ask it. "One of your six prices is wrong" is a whole
+        afternoon; "pro-yearly is archived" is a minute. This route has an admin
+        session, so it may print the sentence.
+
+        Only on a failure, and only when it is *this* check that failed — six
+        Price reads are not worth spending to confirm good news, or to elaborate
+        on an expired key that already explains everything below it.
+      */
+      if (health.checks.some((c) => c.name === "stripe_prices_match_catalogue" && !c.ok)) {
+        for (const price of await verifyCataloguePrices()) {
+          add(`Price ${price.plan}`, price.ok, price.detail);
+        }
+      }
     } else {
       add("Stripe reachable", true, "answers — the key this Worker holds is accepted");
     }

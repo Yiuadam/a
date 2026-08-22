@@ -1,7 +1,7 @@
 import { accountsEnabled } from "@/lib/auth/env";
 import { supabaseConfigured } from "@/lib/auth/supabase";
 import { stripeSecretKey, stripePriceId } from "./env";
-import { stripeDiagnostic } from "./stripe";
+import { stripeDiagnostic, verifyCataloguePrices } from "./stripe";
 import { PLAN_IDS } from "./tiers";
 
 /*
@@ -52,7 +52,8 @@ export async function billingHealth(): Promise<BillingHealth> {
   // Every plan's Price id, not merely one — a health check that passed with
   // five of six missing would still call itself healthy while five plans sold
   // nothing.
-  add("stripe_price_ids_present", PLAN_IDS.every((plan) => stripePriceId(plan) !== undefined));
+  const idsPresent = PLAN_IDS.every((plan) => stripePriceId(plan) !== undefined);
+  add("stripe_price_ids_present", idsPresent);
 
   /*
     Reachability is only worth asking with a key in hand — stripeDiagnostic
@@ -61,6 +62,32 @@ export async function billingHealth(): Promise<BillingHealth> {
   */
   const reachable = key ? (await stripeDiagnostic()).ok : false;
   add("stripe_reachable", reachable);
+
+  /*
+    And then whether those ids point at Prices that can actually be sold, at the
+    amounts /pricing prints.
+
+    This is the check the one above only looked like. An id is a string in a
+    variable: it survives the Price being archived, being replaced, being on
+    another Stripe account, and the catalogue here being edited without Stripe
+    being updated to match. Every one of those reads as healthy to
+    `stripe_price_ids_present`, and every one of them is a learner pressing
+    Subscribe and getting nothing — or worse, being charged an amount the page
+    never showed them, which is a misleading price indication under the consumer
+    law this app sets out on /terms.
+
+    It runs the same `priceCatalogueFault` the checkout path runs before every
+    sale, so the deploy cannot pass on a rule checkout would refuse.
+
+    Asked last, and only when there is a key, six ids and a reachable Stripe:
+    six reads answering "which of your six prices is wrong" are wasted on an
+    account that has already failed to answer one. A skipped check reports
+    false rather than true — this never claims prices are verified when they
+    were not looked at.
+  */
+  const pricesVerifiable = key && idsPresent && reachable;
+  const priceResults = pricesVerifiable ? await verifyCataloguePrices() : [];
+  add("stripe_prices_match_catalogue", pricesVerifiable && priceResults.every((r) => r.ok));
 
   return { ok: checks.every((c) => c.ok), checks };
 }
