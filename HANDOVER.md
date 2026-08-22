@@ -1,8 +1,9 @@
 # Handover — Supabase → Cloudflare migration, and the loose ends around it
 
 Written at the end of the session that built PRs #138–#148, then merged them
-all to `main` at the owner's instruction, and finally brought the last stale
-pull request (#36) forward and merged that too. Nothing in this file changes
+all to `main` at the owner's instruction; brought the last stale pull request
+(#36) forward and merged that too; and finally closed out task #14, the
+health check's price-catalogue check, and merged that as well. Nothing in this file changes
 code; it exists so the next agent does not have to reconstruct the state from
 a dozen pull-request bodies.
 
@@ -80,9 +81,9 @@ cannot force-push.
 | #157 | `usage_quota_authority`, `ai_cost_write_authority` on D1 | #146 |
 | #158 | `admin_user_directory`, `admin_statistics` on D1 | #148 |
 
-`main` is at `e444590`. Verified on the merged tree before each of the last
-two merges: `npm test` 1136 pass / 1 skipped / 0 fail, `npx eslint .` 0 errors
-(4 pre-existing warnings), `npx tsc --noEmit` clean, `npm run build`,
+`main` is at `7635dbe`. Verified on the merged tree before each merge:
+`npm test` 1151 pass / 1 skipped / 0 fail, `npx eslint .` 0 errors (4
+pre-existing warnings), `npx tsc --noEmit` clean, `npm run build`,
 `npm run cf:build`, `validate-content` and `simulate-placement` all green.
 
 **#36** (another lane's icon and UI work, 317 commits behind) was brought
@@ -186,6 +187,15 @@ before the irreversible flip.
    the safe step, and it is where the D1 read path earns its trust.
 6. Watch it. Then, and only then, **ask the owner** for the `cloudflare` flip.
 
+## A process note for whoever branches next
+
+Task #14's branch was cut from `main` *before* #159 (the #36 merge) landed,
+under a generic local name, and had to be renamed and re-pushed once that
+became clear — `git branch --show-current` before trusting `git push -u
+origin <the-designated-branch>` would have caught it immediately. Branch from
+a freshly fetched `origin/main`, and check which branch you are actually on
+before pushing.
+
 ## Small tidying the merges left behind
 
 Neither breaks anything; both are worth a follow-up.
@@ -203,8 +213,21 @@ Neither breaks anything; both are worth a follow-up.
   slowness was never reproduced and never explained. This needs a different
   approach than the one that was tried — measure production directly rather
   than reasoning from local timings.
-- **Task #14 — "Make the health check verify prices, not just that price ids
-  exist."** Never started.
+- **Task #14 is done** and merged as #160. `billingHealth` gained
+  `stripe_prices_match_catalogue`: it reads all six Stripe Prices and runs the
+  exact comparison `assertPriceMatchesCatalogue` already ran before every
+  sale (now split into `fetchCataloguePrice` + the pure, exported
+  `priceCatalogueFault`, so checkout and the health check share one rule
+  instead of two that could drift apart). It also catches something the old
+  assertion missed: an **archived** Price, which keeps every amount matching
+  the catalogue perfectly and used to fail only at the Session, after the
+  learner had pressed the button. The public `/api/billing/health` stays
+  boolean-only; `/api/account/diagnostics` (admin-only) names which plan and
+  why. No real Stripe key exists in this sandbox, so the price-*mismatch*
+  path itself was proved only by 11 new tests against a stubbed Stripe
+  (`tests/price-catalogue-verification.test.mjs`) plus four more in
+  `tests/billing-health.test.mjs` — not against a live account. Worth a look
+  on the next real preview.
 
 ## Things this session got wrong, so they are not repeated
 
