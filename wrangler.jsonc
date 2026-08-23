@@ -144,16 +144,14 @@
       the working one down with it, which is exactly how #122 broke Alipay.
     */
     "STRIPE_WALLET_METHODS": "alipay,wechat_pay",
-    // Reads now come from D1/R2; every write still lands on Supabase first
-    // and is mirrored to D1/R2, so this is reversible — set back to "dual"
-    // and reads return to Supabase with no data loss. Flipped once the
-    // migration verifier (entitlement-parity: 0, payload-parity: equal and
-    // complete across progress_snapshots/subscriptions/provider_events,
-    // avatar disappearing-faces: 0) proved D1 answers identically to
-    // Supabase, on 2026-08-23. "cloudflare" — write authority moving to D1
-    // too — is the one-way step; that one only happens when the owner asks
-    // for it by name, per the working agreement in CLAUDE.md.
-    "CLOUDFLARE_DATA_MODE": "read_cloudflare",
+    // Reverted back to "dual" on 2026-08-23, minutes after the
+    // "read_cloudflare" flip: the owner reported the profile page and avatar
+    // not showing and a loading delay on the history page immediately after
+    // deploy. This is exactly the failure mode the reversible mode exists
+    // for — reads return to Supabase, no data loss, while the cause is
+    // found. Do not re-flip to "read_cloudflare" until that cause is
+    // identified and fixed.
+    "CLOUDFLARE_DATA_MODE": "dual",
     "ORGANIZATION_DATA_MODE": "cloudflare"
   }
 }
