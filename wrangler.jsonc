@@ -144,10 +144,16 @@
       the working one down with it, which is exactly how #122 broke Alipay.
     */
     "STRIPE_WALLET_METHODS": "alipay,wechat_pay",
-    // Supabase Auth and application-data reads remain authoritative while
-    // every committed learner/profile/progress/billing write is mirrored to
-    // D1/R2. Cut reads over only after the migration verifier proves parity.
-    "CLOUDFLARE_DATA_MODE": "dual",
+    // Reads now come from D1/R2; every write still lands on Supabase first
+    // and is mirrored to D1/R2, so this is reversible — set back to "dual"
+    // and reads return to Supabase with no data loss. Flipped once the
+    // migration verifier (entitlement-parity: 0, payload-parity: equal and
+    // complete across progress_snapshots/subscriptions/provider_events,
+    // avatar disappearing-faces: 0) proved D1 answers identically to
+    // Supabase, on 2026-08-23. "cloudflare" — write authority moving to D1
+    // too — is the one-way step; that one only happens when the owner asks
+    // for it by name, per the working agreement in CLAUDE.md.
+    "CLOUDFLARE_DATA_MODE": "read_cloudflare",
     "ORGANIZATION_DATA_MODE": "cloudflare"
   }
 }
