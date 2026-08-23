@@ -3,7 +3,7 @@ import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { rpc, supabaseConfigured } from "@/lib/auth/supabase";
-import { resolveEntitlementForParity, type Entitlement } from "@/lib/billing/entitlements";
+import { resolveEntitlementForParity, sameExpiry, type Entitlement } from "@/lib/billing/entitlements";
 import { withCors } from "@/lib/http/cors";
 
 /*
@@ -69,7 +69,7 @@ async function pageOfUsers(offset: number): Promise<{ rows: AdminUserRow[]; tota
 }
 
 function fieldsEqual(a: Entitlement, b: Entitlement): boolean {
-  return a.tier === b.tier && a.source === b.source && a.expiresAt === b.expiresAt;
+  return a.tier === b.tier && a.source === b.source && sameExpiry(a.expiresAt, b.expiresAt);
 }
 
 async function handleGET(req: Request) {

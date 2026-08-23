@@ -199,3 +199,28 @@ export async function resolveEntitlementForParity(
   ]);
   return { supabase, cloudflare };
 }
+
+/*
+  The same instant, spelled two ways, is not a mismatch.
+
+  Supabase's RPC returns Postgres's own timestamptz rendering
+  (`2027-08-11T16:22:20+00:00`, no fractional digits when there are none);
+  `resolveEntitlementFromCloudflare` passes D1's `current_period_end` straight
+  through at its stored nine-digit precision (`2027-08-11T16:22:20.000000000Z`).
+  A raw string compare flagged every account with a live expiry as drifted —
+  found against real production data, where it was the only mismatch left
+  once the promo-trial backfill landed. The same shape of fault `parityClock`
+  (lib/cloudflare/source-clock.ts) exists to fix in the migration
+  fingerprints; this one needed its own copy because it compares live
+  entitlements, not fingerprinted evidence rows.
+*/
+export function sameExpiry(a: string | null, b: string | null): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  const parsedA = Date.parse(a);
+  const parsedB = Date.parse(b);
+  // An unparseable timestamp on either side is a real difference to report,
+  // not something to wave through because the comparison couldn't be made.
+  if (!Number.isFinite(parsedA) || !Number.isFinite(parsedB)) return false;
+  return parsedA === parsedB;
+}
