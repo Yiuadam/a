@@ -98,7 +98,7 @@ const STUDY = [
 
 function CardBlurb({ short, full }: { short: string; full: string }) {
   return (
-    <p className="dashboard-card-blurb mt-0.5 text-sm leading-5 text-slate-600 sm:text-xs">
+    <p className="dashboard-card-blurb mt-0.5 truncate text-sm leading-5 text-slate-600 sm:text-xs">
       <span className="dashboard-card-blurb-short">{short}</span>
       <span className="dashboard-card-blurb-full">{full}</span>
     </p>
