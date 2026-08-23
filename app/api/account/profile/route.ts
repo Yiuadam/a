@@ -119,7 +119,22 @@ async function present(req: Request, user: { id: string; email: string | null })
     avatarUrl = readingFromCloudflare
       ? await cloudflareAvatarUrl(req.url, user.id, profile.avatarPath)
       : await signedAvatarUrl(profile.avatarPath);
-    if (!avatarUrl) throw new Error("avatar delivery is unavailable");
+    /*
+      Missing avatar delivery costs a photo, not the account.
+
+      This threw the whole response until 2026-08-23, which is what made a
+      missing AVATAR_URL_SIGNING_KEY secret — never set, because DEPLOY.md
+      said it was only needed once write authority moved too, when the code
+      has actually gated on it since read authority alone could move — take
+      down display name, username, birth date and every other field this
+      route answers, for every learner with a photo, the moment reads were
+      cut over. lib/billing/env.ts already states the rule this route now
+      follows too: an absent key makes the one feature it breaks honestly
+      unavailable, never an error page for everything else on it.
+    */
+    if (!avatarUrl) {
+      logInternal("account/profile GET", new Error("avatar delivery is unavailable"));
+    }
   }
   return {
     displayName: profile.displayName,
