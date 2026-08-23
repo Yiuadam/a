@@ -242,3 +242,31 @@ test("Cloudflare learner mode never falls back to a public R2 URL or Supabase pr
   assert.match(learner, /avatar_object_key IS \?[\s\S]*NOT EXISTS/);
   assert.match(editor, /publishProfileUpdate\(\{ avatarUrl \}\)/);
 });
+
+test("a missing avatar-delivery secret costs a photo, not the whole account page", () => {
+  /*
+    The bug this pins, live on production: `present()` threw when
+    cloudflareAvatarUrl() returned null, and handleGET turned that throw into
+    a 503 for the whole response — display name, username, birth date,
+    everything, not just the avatar. It happened because DEPLOY.md said
+    AVATAR_URL_SIGNING_KEY was only needed once write authority moved to
+    Cloudflare too, but the code above already establishes readsFromCloudflare()
+    — true under read_cloudflare as well — is what gates this. Nobody set the
+    secret before read authority alone was flipped, and the very next profile
+    load failed entirely.
+  */
+  const source = readFileSync(join(process.cwd(), "app/api/account/profile/route.ts"), "utf8");
+  const start = source.indexOf("async function present(");
+  const end = source.indexOf("\nasync function handleGET", start);
+  const body = source.slice(start, end);
+  assert.doesNotMatch(
+    body,
+    /if \(!avatarUrl\) throw/,
+    "a missing avatar URL must not throw out of present() again",
+  );
+  assert.match(
+    body,
+    /if \(!avatarUrl\) \{\s*logInternal/,
+    "a missing avatar URL should still be logged, just not fail the whole response",
+  );
+});

@@ -163,7 +163,7 @@ because Secrets are encrypted at rest and hidden from the dashboard once saved.
 | `SUPABASE_URL` | accounts |
 | `SUPABASE_ANON_KEY` | accounts |
 | `SUPABASE_SERVICE_ROLE_KEY` | accounts |
-| `AVATAR_URL_SIGNING_KEY` | private R2 avatar delivery when `CLOUDFLARE_DATA_MODE=cloudflare`; generate with `openssl rand -hex 32` and store as a Secret |
+| `AVATAR_URL_SIGNING_KEY` | private R2 avatar delivery once learner reads move to Cloudflare (`CLOUDFLARE_DATA_MODE=read_cloudflare` or `cloudflare` — the code gates on *reading*, not on write authority); generate with `openssl rand -hex 32` and store as a Secret |
 | `USAGE_IP_HASH_SALT` | per-address rate limiting; without it that limit is skipped rather than done badly |
 | `ACCOUNTS_ALLOWED_ORIGINS` | the iOS app; `capacitor://localhost,https://localhost` |
 | `STRIPE_SECRET_KEY` | subscriptions: creating a Checkout Session and a billing portal session |
@@ -188,13 +188,19 @@ later.
 Changing any of them takes effect on the next deploy, so click **Deploy** after
 editing.
 
-Before learner data is switched to `CLOUDFLARE_DATA_MODE=cloudflare`, set
-`AVATAR_URL_SIGNING_KEY` to an independent random value of at least 32
-characters. Profile pictures stay in the private `BANDUP_FILES` R2 binding.
-The profile API returns a one-hour HMAC grant for an exact object and the
-Worker streams it only while D1 still points at that object; no `r2.dev` or
-public-bucket access is used. Rotating the key invalidates outstanding avatar
-URLs, which recover on the next profile read.
+Before `CLOUDFLARE_DATA_MODE` is set to `read_cloudflare` **or** `cloudflare` —
+not only the final one-way step — set `AVATAR_URL_SIGNING_KEY` to an
+independent random value of at least 32 characters. `readsFromCloudflare()`,
+which decides whether the profile route asks D1 for an avatar grant instead of
+Supabase, is true under `read_cloudflare` as well as `cloudflare`; a version of
+this document that said otherwise once left the key unset through a real
+`read_cloudflare` deploy, and every learner with a photo lost their whole
+account page, not only the photo, until app/api/account/profile/route.ts was
+changed to degrade instead of throw. Profile pictures stay in the private
+`BANDUP_FILES` R2 binding. The profile API returns a one-hour HMAC grant for
+an exact object and the Worker streams it only while D1 still points at that
+object; no `r2.dev` or public-bucket access is used. Rotating the key
+invalidates outstanding avatar URLs, which recover on the next profile read.
 
 ## Signing in as the owner
 

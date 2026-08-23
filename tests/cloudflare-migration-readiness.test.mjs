@@ -286,6 +286,51 @@ test("the source RPC and API expose migration evidence only to the owner service
   assert.match(ui, /cleanupDead/);
 });
 
+test("a missing AVATAR_URL_SIGNING_KEY is named as a blocker even when every domain is otherwise equal", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+  const secret = process.env.AVATAR_URL_SIGNING_KEY;
+  delete process.env.AVATAR_URL_SIGNING_KEY;
+  try {
+    const report = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+      context.bindings,
+      {
+        readSourceFingerprints: async () => source,
+        readAppSettings: async () => appSettingsReady(),
+        readOutbox: async () => EMPTY_OUTBOX,
+      },
+    ));
+    assert.ok(report.blockers.includes("avatar_delivery: AVATAR_URL_SIGNING_KEY is not configured"));
+    assert.equal(report.readyForCloudflareOnly, false);
+  } finally {
+    if (secret === undefined) delete process.env.AVATAR_URL_SIGNING_KEY;
+    else process.env.AVATAR_URL_SIGNING_KEY = secret;
+  }
+});
+
+test("a configured AVATAR_URL_SIGNING_KEY does not itself block readiness", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+  const secret = process.env.AVATAR_URL_SIGNING_KEY;
+  process.env.AVATAR_URL_SIGNING_KEY = "test-signing-key-for-readiness-fixture";
+  try {
+    const report = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+      context.bindings,
+      {
+        readSourceFingerprints: async () => source,
+        readAppSettings: async () => appSettingsReady(),
+        readOutbox: async () => EMPTY_OUTBOX,
+      },
+    ));
+    assert.ok(!report.blockers.includes("avatar_delivery: AVATAR_URL_SIGNING_KEY is not configured"));
+  } finally {
+    if (secret === undefined) delete process.env.AVATAR_URL_SIGNING_KEY;
+    else process.env.AVATAR_URL_SIGNING_KEY = secret;
+  }
+});
+
 test("unsupportedDomains is derived from the cutover-domain registry, not a literal list here", () => {
   const source = code(readFileSync(
     join(process.cwd(), "lib", "cloudflare", "migration-readiness.ts"),

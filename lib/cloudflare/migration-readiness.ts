@@ -18,6 +18,7 @@ import {
 } from "./write-barrier";
 import { parityClock as clock } from "./source-clock";
 import { parityMoney as money } from "./parity-money";
+import { cloudflareAvatarDeliveryConfigured } from "./avatar-delivery";
 
 export const MIGRATION_FINGERPRINT_VERSION = "bandup-application-data-v3";
 
@@ -417,6 +418,22 @@ export async function cloudflareMigrationReadinessReport(
   // acts. See the field's doc comment above.
   if (writeBarrierResult?.status !== "armed") {
     blockers.push(`write_barrier: ${writeBarrierResult?.status ?? "unavailable"}`);
+  }
+  /*
+    Found live: AVATAR_URL_SIGNING_KEY was never set, because DEPLOY.md said
+    it was only needed for the write-authority flip, when the code has
+    actually gated on it since read authority alone could move a learner's
+    avatar delivery through cloudflareAvatarUrl(). Reads flipped, the secret
+    was missing, and app/api/account/profile/route.ts threw the whole
+    response for every learner with a photo. That route no longer fails the
+    whole page for this — see its own comment — but a report that says
+    "ready to flip reads" while this is still unset would repeat the same
+    incident with a smaller blast radius rather than none. Checked
+    unconditionally: whether the secret exists does not depend on which mode
+    is configured right now, only on which mode is about to be.
+  */
+  if (!cloudflareAvatarDeliveryConfigured()) {
+    blockers.push("avatar_delivery: AVATAR_URL_SIGNING_KEY is not configured");
   }
 
   return {
