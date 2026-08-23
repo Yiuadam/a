@@ -443,3 +443,71 @@ test("the readiness report and its admin panel name the reason, not only the cou
   assert.match(panel, /cleanupFailures/);
   assert.match(panel, /blockedByAccountDeletion/);
 });
+
+test("the pointer-reference check reads every table without a compound SELECT", () => {
+  /*
+    The bug this pins: D1 rejects a UNION ALL across seven tables with
+    "too many terms in compound SELECT" — a lower limit than SQLite's own
+    default, so this never failed against the in-memory database the tests
+    above run against, only against real D1. Every attempt at real cleanup
+    hit it, silently, because drainCloudflareReplicaObjectCleanup logs the
+    D1 error and retries rather than surfacing "this query can never
+    succeed" — four dead entries and a fifth stuck retrying for over a week
+    were this, not a real conflict.
+  */
+  const source = readFileSync(join(process.cwd(), "lib", "cloudflare", "replica-outbox.ts"), "utf8");
+  const start = source.indexOf("async function objectIsReferenced");
+  const body = source.slice(start, source.indexOf("\n}\n", start));
+  assert.doesNotMatch(body, /UNION/i, "objectIsReferenced has a compound SELECT again");
+  assert.match(body, /EXISTS/);
+  // Every table the old UNION ALL read from is still checked — the fix
+  // narrows the SQL shape, not the set of tables it protects.
+  for (const table of [
+    "learner_profiles", "progress_snapshots", "subscriptions", "provider_events",
+    "practice_attempts", "organization_attempt_sync_outbox", "cloudflare_replica_outbox",
+  ]) {
+    assert.match(body, new RegExp(`FROM ${table}\\b`), `${table} is no longer checked`);
+  }
+});
+
+test("a key still pointed at from provider_events is not deleted, even though nothing enqueued it", async () => {
+  /*
+    provider_events is exactly the table the real incident's stuck rows named
+    — a payload key that a webhook wrote directly, with no outbox row of its
+    own, is the shape of reference the seven-way check exists to catch before
+    the R2 object behind it is deleted out from under it.
+  */
+  const context = fixture();
+  const key = "private/provider-events/stripe/evt_test/deadbeef.json";
+  context.objects.set(key, new TextEncoder().encode("{}"));
+  context.database.exec(`
+    INSERT INTO provider_events (provider, event_id, received_at, payload_object_key, payload_sha256)
+    VALUES ('stripe', 'evt_test', '2026-08-14T10:00:00.000Z', '${key}', '${"a".repeat(64)}')
+  `);
+  context.database.exec(`
+    INSERT INTO cloudflare_replica_object_cleanup
+      (object_key, attempts_made, status, available_at, created_at, updated_at)
+    VALUES ('${key}', 0, 'pending', '1970-01-01T00:00:00.000Z', '1970-01-01T00:00:00.000Z', '1970-01-01T00:00:00.000Z')
+  `);
+  const cleaned = await outbox.drainCloudflareReplicaObjectCleanup(context.bindings, { nowMs: 1_000 });
+  assert.equal(cleaned.succeeded, 1);
+  assert.equal(context.objects.has(key), true, "a still-referenced object must not be deleted");
+  const row = context.database.prepare(
+    "SELECT status FROM cloudflare_replica_object_cleanup WHERE object_key = ?",
+  ).get(key);
+  assert.equal(row, undefined, "the cleanup entry is resolved once the pointer is confirmed live");
+});
+
+test("a key referenced by none of the seven tables is deleted", async () => {
+  const context = fixture();
+  const key = "private/provider-events/stripe/evt_orphaned/cafebabe.json";
+  context.objects.set(key, new TextEncoder().encode("{}"));
+  context.database.exec(`
+    INSERT INTO cloudflare_replica_object_cleanup
+      (object_key, attempts_made, status, available_at, created_at, updated_at)
+    VALUES ('${key}', 0, 'pending', '1970-01-01T00:00:00.000Z', '1970-01-01T00:00:00.000Z', '1970-01-01T00:00:00.000Z')
+  `);
+  const cleaned = await outbox.drainCloudflareReplicaObjectCleanup(context.bindings, { nowMs: 1_000 });
+  assert.equal(cleaned.succeeded, 1);
+  assert.equal(context.objects.has(key), false);
+});
