@@ -144,14 +144,16 @@
       the working one down with it, which is exactly how #122 broke Alipay.
     */
     "STRIPE_WALLET_METHODS": "alipay,wechat_pay",
-    // Reverted back to "dual" on 2026-08-23, minutes after the
-    // "read_cloudflare" flip: the owner reported the profile page and avatar
-    // not showing and a loading delay on the history page immediately after
-    // deploy. This is exactly the failure mode the reversible mode exists
-    // for — reads return to Supabase, no data loss, while the cause is
-    // found. Do not re-flip to "read_cloudflare" until that cause is
-    // identified and fixed.
-    "CLOUDFLARE_DATA_MODE": "dual",
+    // Re-flipped to "read_cloudflare" on 2026-08-23, after the cause of the
+    // earlier revert was fixed and shipped: AVATAR_URL_SIGNING_KEY was never
+    // set on the Worker, so every avatar URL lookup failed, and the profile
+    // route threw for the whole response instead of just the photo. The
+    // secret is now set, and app/api/account/profile/route.ts degrades a
+    // missing avatar URL gracefully instead of failing the page, so this
+    // failure mode can't repeat the same way even if the secret goes
+    // missing again. Revert to "dual" immediately if the profile page,
+    // avatar or history page misbehave after this deploys.
+    "CLOUDFLARE_DATA_MODE": "read_cloudflare",
     "ORGANIZATION_DATA_MODE": "cloudflare"
   }
 }
