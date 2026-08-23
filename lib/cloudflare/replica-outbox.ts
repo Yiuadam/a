@@ -335,21 +335,39 @@ export async function enqueueCloudflareObjectCleanup(
   return result.success;
 }
 
+/*
+  Every table an R2 object key can still be pointed at from, checked one at a
+  time rather than through a single UNION ALL across all seven.
+
+  The UNION ALL form D1 ran until now failed every single time it executed —
+  "too many terms in compound SELECT: SQLITE_ERROR" — because D1 enforces a
+  lower SQLITE_LIMIT_COMPOUND_SELECT than the SQLite default, and seven
+  branches was already over it. That is not a theoretical ceiling: it is the
+  reason four cleanup entries sat dead and a fifth sat retrying for over a
+  week — the check that was supposed to say "still referenced, don't delete"
+  could never run, so drainCloudflareReplicaObjectCleanup treated the D1Error
+  as an ordinary transient failure and kept retrying a query that can never
+  succeed. `EXISTS ... OR EXISTS ...` costs one round trip, same as the UNION
+  ALL was meant to, and has no such limit — SQLite short-circuits at the first
+  true, so a key referenced by the first table checked is cheaper than before,
+  not more expensive.
+*/
 async function objectIsReferenced(
   bindings: BandUpCloudflareBindings,
   objectKey: string,
 ): Promise<boolean> {
   const row = await bindings.db.prepare(`
-    SELECT 1 AS referenced FROM (
-      SELECT avatar_object_key AS object_key FROM learner_profiles
-      UNION ALL SELECT payload_object_key FROM progress_snapshots
-      UNION ALL SELECT raw_object_key FROM subscriptions
-      UNION ALL SELECT payload_object_key FROM provider_events
-      UNION ALL SELECT result_object_key FROM practice_attempts
-      UNION ALL SELECT payload_object_key FROM organization_attempt_sync_outbox
-      UNION ALL SELECT payload_object_key FROM cloudflare_replica_outbox
-    ) pointers WHERE object_key = ? LIMIT 1
-  `).bind(objectKey).first<{ referenced: number }>();
+    SELECT (
+      EXISTS (SELECT 1 FROM learner_profiles WHERE avatar_object_key = ?)
+      OR EXISTS (SELECT 1 FROM progress_snapshots WHERE payload_object_key = ?)
+      OR EXISTS (SELECT 1 FROM subscriptions WHERE raw_object_key = ?)
+      OR EXISTS (SELECT 1 FROM provider_events WHERE payload_object_key = ?)
+      OR EXISTS (SELECT 1 FROM practice_attempts WHERE result_object_key = ?)
+      OR EXISTS (SELECT 1 FROM organization_attempt_sync_outbox WHERE payload_object_key = ?)
+      OR EXISTS (SELECT 1 FROM cloudflare_replica_outbox WHERE payload_object_key = ?)
+    ) AS referenced
+  `).bind(objectKey, objectKey, objectKey, objectKey, objectKey, objectKey, objectKey)
+    .first<{ referenced: number }>();
   return row?.referenced === 1;
 }
 
