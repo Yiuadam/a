@@ -215,6 +215,46 @@ test("cloudflareAdminDirectoryEntitlements ignores a soft-deleted app_users row,
   assert.equal(result.get(id).mirrored, false);
 });
 
+test("cloudflareAdminDirectoryEntitlements resolves a roster past the old UNION-ALL branch limit", async () => {
+  // #163 found D1's SQLITE_LIMIT_COMPOUND_SELECT already exceeded at seven
+  // fixed UNION ALL branches. This query used to build one such branch per
+  // account id, so a roster this size (production has nine accounts) failed
+  // in production even though the in-memory node:sqlite fixture every other
+  // test here runs against has no such limit and never caught it. json_each
+  // reads the ids from one bound JSON array instead — no compound SELECT at
+  // any roster size.
+  const database = freshD1();
+  const bindings = { db: runtimeD1(database) };
+  const ids = Array.from({ length: 12 }, (_, index) =>
+    `50000000-0000-4000-8000-0000000000${String(20 + index).padStart(2, "0")}`);
+  ids.forEach((id, index) => insertUser(database, id, `roster${index}@example.test`));
+  insertSubscription(database, {
+    id: "roster-sub", userId: ids[5], provider: "stripe", status: "active",
+    tier: "pro", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z",
+  });
+
+  const result = await adminDirectory.cloudflareAdminDirectoryEntitlements(ids, bindings);
+  assert.equal(result.size, ids.length);
+  for (const id of ids) assert.equal(result.get(id).mirrored, true);
+  assert.deepEqual(result.get(ids[5]), { mirrored: true, tier: "pro", source: "stripe" });
+});
+
+test("the ids CTE is never rebuilt as a UNION ALL per account — the in-memory D1 fixture has no branch limit to catch it if it were", () => {
+  const source = readFileSync(
+    join(ROOT, "lib", "cloudflare", "admin-entitlement-directory.ts"),
+    "utf8",
+  );
+  // Comments are stripped first: the fix's own explanation legitimately
+  // mentions "UNION ALL" in prose, describing what this file used to do.
+  const code = source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .map((line) => line.replace(/(^|\s)\/\/.*$/, "$1"))
+    .join("\n");
+  assert.doesNotMatch(code, /UNION ALL/);
+  assert.match(code, /json_each/);
+});
+
 /* ------------------------------------------------------------- route wiring -- */
 
 test("the users list route reads plan/access_source from D1 only when admin_user_directory does, and never fabricates a mirrored account", () => {

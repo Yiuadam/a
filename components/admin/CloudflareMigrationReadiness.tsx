@@ -91,8 +91,12 @@ export default function CloudflareMigrationReadiness() {
           </p>
         </div>
         {report && (
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${report.readyForCloudflareOnly ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-800"}`}>
-            {report.readyForCloudflareOnly ? "Ready" : "Not ready"}
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            report.modes.learner === "cloudflare"
+              ? "bg-emerald-100 text-emerald-800"
+              : report.readyForCloudflareOnly ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-800"
+          }`}>
+            {report.modes.learner === "cloudflare" ? "Cutover complete" : report.readyForCloudflareOnly ? "Ready" : "Not ready"}
           </span>
         )}
       </div>
@@ -102,6 +106,18 @@ export default function CloudflareMigrationReadiness() {
 
       {report && (
         <>
+          {report.modes.learner === "cloudflare" && (
+            <div className="mt-3 rounded-xl border border-emerald-300/70 bg-emerald-50/60 px-3 py-3 text-xs text-emerald-900">
+              <strong className="block">Learner data cutover is already complete</strong>
+              <p className="mt-1 leading-5">
+                Writes stopped mirroring to Supabase the moment the write barrier armed and this mode took
+                effect, so Supabase&rsquo;s copy of learner data is now expected to drift further from D1 with
+                every new save — that is not a fault. The domain and blocker evidence below answers a question
+                that no longer gates anything (&ldquo;is it safe to flip once&rdquo;), kept only as a historical
+                record. Supabase Auth is unaffected and remains the sign-in authority.
+              </p>
+            </div>
+          )}
           {report.sourceEvidence.status !== "available" && (
             <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/60 px-3 py-3 text-xs text-amber-900">
               <strong className="block">Supabase fingerprint evidence {report.sourceEvidence.status}</strong>
@@ -339,14 +355,24 @@ export default function CloudflareMigrationReadiness() {
           )}
 
           {report.unsupportedDomains.length > 0 && (
-            <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/60 px-3 py-3 text-xs text-amber-900">
-              <strong className="block">Runtime paths still using Supabase</strong>
+            <div className={`mt-3 rounded-xl border px-3 py-3 text-xs ${
+              report.modes.learner === "cloudflare"
+                ? "border-slate-200/80 text-slate-600"
+                : "border-amber-300/70 bg-amber-50/60 text-amber-900"
+            }`}>
+              <strong className="block">
+                {report.modes.learner === "cloudflare"
+                  ? "Named at cutover time as not yet proven — the flip already happened regardless"
+                  : "Runtime paths still using Supabase"}
+              </strong>
               <p className="mt-1 leading-5">{report.unsupportedDomains.map(label).join(" · ")}</p>
             </div>
           )}
           {report.blockers.length > 0 && (
             <div className="mt-3 rounded-xl border border-slate-200/80 px-3 py-3 text-xs text-slate-700">
-              <strong className="block text-slate-800">Cutover blockers</strong>
+              <strong className="block text-slate-800">
+                {report.modes.learner === "cloudflare" ? "What this check still flags, now historical" : "Cutover blockers"}
+              </strong>
               <ul className="mt-1 list-disc space-y-1 pl-4">
                 {report.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}
               </ul>

@@ -54,14 +54,20 @@ export async function cloudflareAdminDirectoryEntitlements(
   if (ids.length === 0) return result;
 
   const { db } = providedBindings ?? await requireBandUpCloudflareBindings();
-  // One `ids` CTE built from single-value SELECTs so every id is bound
-  // exactly once, then joined into both the ranking and the mirror check —
-  // rather than binding the same list twice, which would double the bound
-  // parameter count for no benefit.
-  const idSelects = ids.map(() => "SELECT ? AS id").join(" UNION ALL ");
+  // The ids CTE used to be one `SELECT ? AS id` per row joined with
+  // UNION ALL — bound once, as the comment here used to explain, but a
+  // UNION ALL branch per id is a compound SELECT with as many terms as
+  // there are ids. D1 enforces a lower SQLITE_LIMIT_COMPOUND_SELECT than
+  // SQLite's own default (the same limit #163 hit in
+  // lib/cloudflare/replica-outbox.ts's objectIsReferenced, there with only
+  // seven fixed branches), and this call's branch count grows with the
+  // account roster — it broke in production once the directory passed nine
+  // accounts. json_each reads the same ids from a single bound JSON array
+  // instead, so this is one parameter regardless of roster size and never a
+  // compound SELECT at all.
   const now = currentCloudflareSourceClock();
   const query = await db.prepare(`
-    WITH ids(id) AS (${idSelects}),
+    WITH ids(id) AS (SELECT value FROM json_each(?)),
     ranked AS (
       SELECT s.user_id, s.tier, s.provider,
         ROW_NUMBER() OVER (
@@ -89,7 +95,7 @@ export async function cloudflareAdminDirectoryEntitlements(
       JOIN ids ON ids.id = u.id
       LEFT JOIN ranked r ON r.user_id = u.id AND r.rn = 1
      WHERE u.deleted_at IS NULL
-  `).bind(...ids, now).all<{ user_id: string; tier: string | null; provider: string | null }>();
+  `).bind(JSON.stringify(ids), now).all<{ user_id: string; tier: string | null; provider: string | null }>();
 
   for (const row of query.results) {
     result.set(row.user_id, {
