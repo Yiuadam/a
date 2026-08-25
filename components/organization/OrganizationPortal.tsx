@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SignInLink from "@/components/account/SignInLink";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { authedFetch } from "@/lib/account";
@@ -617,7 +618,7 @@ function Loading() {
 function SignedOut() {
   return (
     <GlassSection title="Sign in to continue" lead="Organisation membership and student records are attached to your BandUp account.">
-      <Link href="/account" className="btn-primary">Sign in</Link>
+      <SignInLink className="btn-primary">Sign in</SignInLink>
     </GlassSection>
   );
 }

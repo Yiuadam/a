@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import SignInLink from "@/components/account/SignInLink";
 import {
   authedFetch,
   getServerSnapshot as getSessionServerSnapshot,
@@ -9,11 +10,27 @@ import {
   subscribe as subscribeSession,
 } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
-import { dismissedAlready, rememberDecision } from "@/lib/billing/free-pro-dismissal";
+import {
+  consumeAutoAcceptIntent,
+  dismissedAlready,
+  rememberAutoAcceptIntent,
+  rememberDecision,
+} from "@/lib/billing/free-pro-dismissal";
 import { TIERS } from "@/lib/billing/tiers";
 
 /*
   The poster for the free Pro trial.
+
+  ---------------------------------------------------------------------------
+  Shown to a guest too, not only a signed-in account
+
+  Eligibility is resolved server-side, per account, so a guest cannot be
+  told yes or no — there is no account yet to ask about. Rather than say
+  nothing until someone signs in, the pitch itself draws for everyone, and
+  "accept" for a guest means "sign up" (see the guest phase below and
+  components/account/SignInLink.tsx). Once an account exists the same
+  poster asks the real question and shows the real button, same as it
+  always did.
 
   ---------------------------------------------------------------------------
   What it says, and why it says the awkward part
@@ -55,41 +72,36 @@ import { TIERS } from "@/lib/billing/tiers";
 
 type Phase = "idle" | "offered" | "accepting" | "accepted" | "error";
 
+/*
+  Never fires — dismissal is read once per mount, not watched for changes
+  from elsewhere, so there is nothing to subscribe to. useSyncExternalStore
+  is used anyway rather than a plain useState + useEffect pair, because
+  that pair is exactly the shape react-hooks/set-state-in-effect exists to
+  reject: this value can only be answered from localStorage, which does not
+  exist during the server render, so the server snapshot has to say "not
+  dismissed" and the real answer can only land after hydration. See
+  components/billing/UsageMeter.tsx for the same trade made the same way.
+*/
+const neverChanges = () => () => {};
+
 export default function FreeProPoster() {
   const session = useSyncExternalStore(
     subscribeSession,
     getSessionSnapshot,
     getSessionServerSnapshot,
   );
+  const dismissed = useSyncExternalStore(neverChanges, dismissedAlready, () => false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState<string>("");
-
-  useEffect(() => {
-    // A sign-out or a sign-in re-runs this. `alive` keeps the older answer from
-    // landing last and drawing a poster for the previous account.
-    let alive = true;
-    /*
-      The reset happens in the cleanup rather than here, so a signed-out or
-      already-decided reader costs no render at all and the previous account's
-      poster is cleared as the session changes.
-    */
-    const done = () => {
-      alive = false;
-      setPhase("idle");
-    };
-    if (!session || dismissedAlready()) return done;
-
-    authedFetch(apiUrl("/api/billing/promo"))
-      .then(async (res) => (res.ok ? ((await res.json()) as { offered?: boolean }) : null))
-      .then((body) => {
-        if (alive && body?.offered === true) setPhase("offered");
-      })
-      .catch(() => {
-        /* No answer means no poster. Silence is the safe direction here. */
-      });
-
-    return done;
-  }, [session]);
+  /*
+    `accept` needs to be callable from the effect below (a guest who tapped
+    "Sign up free" is auto-continued the moment a session appears, without
+    a second click) but its own identity does not need to be an effect
+    dependency — it never changes what the effect is checking, only what
+    happens once. A ref sidesteps the ordering problem cleanly: no forward
+    reference to a function declared later in the same component.
+  */
+  const acceptRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const accept = useCallback(async () => {
     setPhase("accepting");
@@ -117,11 +129,105 @@ export default function FreeProPoster() {
     }
   }, []);
 
+  useEffect(() => {
+    acceptRef.current = accept;
+  }, [accept]);
+
+  useEffect(() => {
+    // A sign-out or a sign-in re-runs this. `alive` keeps the older answer from
+    // landing last and drawing a poster for the previous account.
+    let alive = true;
+    /*
+      The reset happens in the cleanup rather than here, so an already-
+      decided reader costs no render at all and the previous account's
+      poster is cleared as the session changes.
+    */
+    const done = () => {
+      alive = false;
+      setPhase("idle");
+    };
+    // A guest is rendered straight from `session`/`dismissed`, not from
+    // `phase` — there is nothing to fetch until an account exists to ask
+    // about. See the render below.
+    if (dismissed || !session) return done;
+
+    authedFetch(apiUrl("/api/billing/promo"))
+      .then(async (res) => (res.ok ? ((await res.json()) as { offered?: boolean }) : null))
+      .then((body) => {
+        if (!alive) return;
+        // Read-and-clear regardless of the answer: a guest who signed up
+        // gets one auto-continue, not one per reload of the same tab.
+        const autoAccept = consumeAutoAcceptIntent();
+        if (body?.offered !== true) return;
+        if (autoAccept) void acceptRef.current();
+        else setPhase("offered");
+      })
+      .catch(() => {
+        /* No answer means no poster. Silence is the safe direction here. */
+      });
+
+    return done;
+  }, [session, dismissed]);
+
   const dismiss = useCallback(() => {
     rememberDecision();
     setPhase("idle");
   }, []);
 
+  if (dismissed) return null;
+
+  if (!session) {
+    return (
+      <section className="card">
+        <h2 className="text-[17px] font-semibold text-slate-900">Pro, free, if you want it</h2>
+        <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+          Pro is the plan for the weeks before your exam. We are giving it to every new account
+          for nothing. You do not have to pay, and you do not have to give a card.
+        </p>
+
+        <ul className="mt-4 space-y-1.5">
+          {TIERS.pro.includes.slice(0, 4).map((line) => (
+            <li key={line} className="flex gap-2.5 text-[15px] leading-6 text-slate-700">
+              <span
+                aria-hidden="true"
+                className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"
+              />
+              {line}
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+          Sign up free and it starts right away — no card, and it may be cancelled at any time in
+          the future.
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/*
+            An account is what makes the trial an entitlement rather than a
+            promise, so "accept" for a guest has to mean "sign up" first.
+            The intent survives the trip: consumeAutoAcceptIntent() above
+            picks it back up the moment a session exists, so the person who
+            tapped this never has to find this poster and press a second
+            button — the account they land in already has Pro.
+          */}
+          <SignInLink
+            className="btn-primary"
+            onClick={() => rememberAutoAcceptIntent()}
+          >
+            Sign up free
+          </SignInLink>
+          <button type="button" className="btn-secondary" onClick={dismiss}>
+            No thanks
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  // Signed in, but the eligibility check is still in flight or came back
+  // false — neither is drawn, same as the original behaviour this restores:
+  // the usual case for a signed-in reader is an empty render.
   if (phase === "idle") return null;
 
   if (phase === "accepted") {

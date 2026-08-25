@@ -44,7 +44,11 @@ test("high-detail SVG refraction remains opt-in on selected controls", () => {
   const inbox = read("components/account/NotificationInbox.tsx");
   const theme = read("components/ThemeToggle.tsx");
 
-  assert.match(home, /dashboard-hero[\s\S]*?<RefractiveGlassLayer \/>/);
+  // The dashboard-hero placement card this used to anchor on is gone — the
+  // free Pro trial poster took over its slot (tests/free-pro-trial.test.mjs,
+  // tests/dashboard-home.test.mjs) — so this now anchors on a skill card,
+  // another still-selective use of the base non-interactive variant.
+  assert.match(home, /dashboard-skill-card[\s\S]*?<RefractiveGlassLayer \/>/);
   assert.match(home, /btn-primary premade-glass[\s\S]*?<RefractiveGlassLayer radius=\{999\} interactive \/>/);
   assert.match(bell, /<RefractiveGlassLayer radius=\{999\} interactive \/>/);
   assert.match(inbox, /notification-popover liquid-glass/);

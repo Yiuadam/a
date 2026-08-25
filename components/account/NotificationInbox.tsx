@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SignInLink from "@/components/account/SignInLink";
 import {
   useCallback,
   useEffect,
@@ -554,7 +555,7 @@ export default function NotificationInbox({ previewRole = null }: { previewRole?
     return (
       <section className="card mx-auto max-w-2xl text-center">
         <h2 className="text-lg font-semibold text-slate-900">Sign in to see notifications</h2>
-        <Link href="/account" className="mt-5 inline-flex rounded-full border bg-surface/60 px-5 py-2.5 text-sm font-semibold text-slate-900">Open your account</Link>
+        <SignInLink className="mt-5 inline-flex rounded-full border bg-surface/60 px-5 py-2.5 text-sm font-semibold text-slate-900">Open your account</SignInLink>
       </section>
     );
   }

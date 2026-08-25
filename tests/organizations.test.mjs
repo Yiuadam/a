@@ -400,14 +400,30 @@ test("organization sections keep desktop workspace navigation and use full-page 
   assert.match(portal, /CardIcon name=\{card\.icon\} size=\{34\}/);
 });
 
-test("invitation return paths are limited to one internal invitation route", () => {
+test("the organization invitation return path keeps its own stricter check", () => {
   const valid = "/organization/invite?request=11111111-1111-4111-8111-111111111111#token=abcdefghijklmnopqrstuvwxyz";
   const accountBound = "/organization/invite?request=11111111-1111-4111-8111-111111111111";
   assert.equal(returnPath.safeAuthReturnPath(valid), true);
   assert.equal(returnPath.safeAuthReturnPath(accountBound), true);
   assert.equal(returnPath.safeAuthReturnPath(`${accountBound}#token=short`), false);
   assert.equal(returnPath.safeAuthReturnPath("//evil.example/organization/invite?request=11111111-1111-4111-8111-111111111111#token=x"), false);
-  assert.equal(returnPath.safeAuthReturnPath("/account/?next=https://evil.example"), false);
+});
+
+test("any other same-origin relative path is an accepted return path, and only an open-redirect shape is rejected", () => {
+  // Generalised so every "Sign in to do X" prompt in the app can send a
+  // visitor back to the exact page they clicked from, not only the one
+  // invitation flow this used to be built for. A query string on an
+  // in-app path is inert text this code never follows — router.replace()
+  // only ever navigates to the literal same-origin path string — so a
+  // "next=" value inside it is not itself a redirect target.
+  assert.equal(returnPath.safeAuthReturnPath("/"), true);
+  assert.equal(returnPath.safeAuthReturnPath("/pricing"), true);
+  assert.equal(returnPath.safeAuthReturnPath("/account/?next=https://evil.example"), true);
+  assert.equal(returnPath.safeAuthReturnPath("//evil.example/"), false, "protocol-relative");
+  assert.equal(returnPath.safeAuthReturnPath("/\\evil.example"), false, "backslash a browser can still read as a host separator");
+  assert.equal(returnPath.safeAuthReturnPath("/javascript:alert(1)"), false, "a scheme after the leading slash");
+  assert.equal(returnPath.safeAuthReturnPath("https://evil.example/"), false, "not even relative");
+  assert.equal(returnPath.safeAuthReturnPath(""), false);
 });
 
 test("invitation UI keeps the secret in the URL fragment and student history avoids destructive controls", () => {

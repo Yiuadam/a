@@ -44,6 +44,29 @@ test("the poster does not manufacture urgency", () => {
   }
 });
 
+test("a guest sees the pitch and a sign-up button, not nothing", () => {
+  // Shown to everyone now, not only a signed-in account with a resolved
+  // eligibility answer — a guest cannot be asked "are you offered this",
+  // so the pitch itself draws instead of an empty render while that
+  // question cannot yet be answered.
+  assert.match(poster, /if \(!session\) \{/);
+  assert.match(poster, /import SignInLink from "@\/components\/account\/SignInLink";/);
+  assert.match(poster, /<SignInLink[\s\S]*?Sign up free/);
+});
+
+test("a dismissed reader sees nothing, signed in or not", () => {
+  assert.match(poster, /if \(dismissed\) return null;/);
+});
+
+test("accepting for a guest means signing up, and the accept continues automatically afterward", () => {
+  const code = poster.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  // The intent is recorded before the navigation to sign-up happens...
+  assert.match(code, /rememberAutoAcceptIntent\(\)/);
+  // ...and read back — exactly once — once a session exists to act on it.
+  assert.match(code, /const autoAccept = consumeAutoAcceptIntent\(\);/);
+  assert.match(code, /if \(autoAccept\) void acceptRef\.current\(\);/);
+});
+
 test("the grant is a Pro subscription row, written only by the server", () => {
   assert.match(supabase, /provider: PROMO_PROVIDER/);
   assert.match(supabase, /tier: "pro"/);

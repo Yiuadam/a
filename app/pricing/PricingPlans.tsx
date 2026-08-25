@@ -9,6 +9,7 @@ import {
 } from "react";
 import Link from "next/link";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import SignInLink from "@/components/account/SignInLink";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { useTier } from "@/lib/billing/useTier";
@@ -471,9 +472,9 @@ function FreeAction({
   }
   if (account.phase === "ready" && account.accountsEnabled && !account.signedIn) {
     return (
-      <Link href="/account" className="btn-secondary w-full">
+      <SignInLink className="btn-secondary w-full">
         Create a free account
-      </Link>
+      </SignInLink>
     );
   }
   return (
@@ -623,9 +624,9 @@ function PaidAction({
         <p className="text-xs leading-5 text-slate-500">
           Paid access attaches to an account, so the account comes first. It is free.
         </p>
-        <Link href="/account" className="btn-primary w-full">
+        <SignInLink className="btn-primary w-full">
           Sign in to continue
-        </Link>
+        </SignInLink>
       </div>
     );
   }

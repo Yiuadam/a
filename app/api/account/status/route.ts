@@ -13,7 +13,7 @@ import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { MONTH_WINDOW_SECONDS } from "@/lib/usage/limits";
 import { COSTED_ROUTES, ROUTE_BUDGETS } from "@/lib/ai/models";
 import { monthlyCap } from "@/lib/billing/tiers";
-import { OAUTH_PROVIDERS } from "@/lib/auth/oauth";
+import { OAUTH_PROVIDERS, providersReachableFrom } from "@/lib/auth/oauth";
 import { withCors } from "@/lib/http/cors";
 
 /*
@@ -110,8 +110,10 @@ async function handleGET(req: Request) {
       could render for a provider that was never set up is not shown.
     */
     const configured = await enabledOAuthProviders();
-    const providers =
-      configured === null ? [] : OAUTH_PROVIDERS.filter((p) => configured.includes(p));
+    const providers = providersReachableFrom(
+      req.headers.get("cf-ipcountry"),
+      configured === null ? [] : OAUTH_PROVIDERS.filter((p) => configured.includes(p)),
+    );
 
     /*
       Whether the date below is a renewal or an ending.

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SignInLink from "@/components/account/SignInLink";
 import type { ReactNode } from "react";
 import type { TierState } from "@/lib/billing/useTier";
 import LoadingIndicator from "@/components/LoadingIndicator";
@@ -91,9 +92,9 @@ export default function billingBlocker(state: TierState): ReactNode | null {
           Your allowance belongs to an account, so there is nothing to show until you are in one.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/account" className="btn-primary">
+          <SignInLink className="btn-primary">
             Sign in
-          </Link>
+          </SignInLink>
           <Link href="/pricing" className="btn-secondary">
             See the plans
           </Link>
