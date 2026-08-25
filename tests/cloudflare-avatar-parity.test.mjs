@@ -369,3 +369,28 @@ test("avatar parity is admin-only, off by default, wired through the readiness r
   const registry = code(readFileSync(join(process.cwd(), "lib", "cloudflare", "cutover-domains.ts"), "utf8"));
   assert.match(registry, /domain: "avatar_object_parity",\s*\n\s*description:[^\n]*,\s*\n\s*supported: false,/);
 });
+
+test("an absent avatarParityBytes falls back to the default byte check, not to zero", () => {
+  // Number(null) is 0, not NaN. A route that reads the query param straight
+  // into Number() and then tests `avatarByteLimit >= 0` cannot tell "the
+  // caller left this out" from "the caller asked for zero" — both parse to
+  // a passing 0. That bug shipped: every call to ?avatarObjectParity=1
+  // without also naming avatarParityBytes silently skipped the byte
+  // comparison, so "0 disappearing faces" on production evidence that had
+  // never actually opened a single object on either side to compare.
+  const route = code(readFileSync(
+    join(process.cwd(), "app", "api", "admin", "cloudflare", "readiness", "route.ts"),
+    "utf8",
+  ));
+  assert.doesNotMatch(
+    route,
+    /const avatarByteLimit = Number\(query\.get\("avatarParityBytes"\)\)/,
+    "avatarByteLimit must not be a raw Number(query.get(...)) — that turns an absent " +
+    "param into 0, which is indistinguishable from an explicit request to skip the check",
+  );
+  assert.match(
+    route,
+    /byteCheckLimit: avatarByteLimit !== null\s*&&\s*Number\.isSafeInteger\(avatarByteLimit\)\s*&&\s*avatarByteLimit\s*>=\s*0/,
+    "the null check must guard byteCheckLimit before it falls through to Number.isSafeInteger",
+  );
+});
