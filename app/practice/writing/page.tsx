@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import ExplainText from "@/components/ExplainText";
@@ -97,6 +97,10 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   const [started, setStarted] = useState(false);
   const [grading, setGrading] = useState(false);
   const [grade, setGrade] = useState<WritingGrade | null>(null);
+
+  useEffect(() => {
+    if (grade) window.scrollTo({ top: 0 });
+  }, [grade]);
   const [error, setError] = useState<string | null>(null);
 
   const task = useMemo(() => tasks.find((t) => t.id === initialTaskId)!, [initialTaskId]);
@@ -320,11 +324,23 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
       }
     >
       {grade ? (
-        wide ? <SwipePanels panels={feedbackPanels} /> : <WritingMobilePanels panels={feedbackPanels} />
+        wide ? (
+          <SwipePanels panels={feedbackPanels} />
+        ) : (
+          /*
+            key forces a fresh instance rather than an update to the practice
+            view's — same component, same position in the tree, so without it
+            React would carry over the scrollTop from wherever the essay was
+            last scrolled while writing, landing the feedback view mid-page
+            instead of at the band that heads it.
+          */
+          <WritingMobilePanels key="graded" panels={feedbackPanels} />
+        )
       ) : wide ? (
         <SplitPanes className="h-full" initial={48} left={source} right={response} />
       ) : (
         <WritingMobilePanels
+          key="practice"
           panels={practicePanels}
           lead={<AssignedPracticeNotice className="mx-1 mb-2" />}
         />

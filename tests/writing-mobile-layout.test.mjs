@@ -13,8 +13,12 @@ test("writing uses a full-width vertical paper on narrow screens", () => {
   assert.match(writing, /overflow-x-hidden overflow-y-auto/);
   assert.match(writing, /data-writing-mobile-panel=\{panel\.label\.toLowerCase\(\)\}/);
   assert.match(writing, /className="w-full min-w-0 py-4/);
-  assert.match(writing, /wide \? <SwipePanels panels=\{feedbackPanels\} \/> : <WritingMobilePanels panels=\{feedbackPanels\} \/>/);
-  assert.match(writing, /<WritingMobilePanels[\s\S]*panels=\{practicePanels\}/);
+  assert.match(writing, /<SwipePanels panels=\{feedbackPanels\} \/>/);
+  // key="graded" forces a fresh instance rather than an update to the
+  // practice view's, so the feedback view never opens scrolled to wherever
+  // the essay was last scrolled while writing it.
+  assert.match(writing, /<WritingMobilePanels key="graded" panels=\{feedbackPanels\} \/>/);
+  assert.match(writing, /<WritingMobilePanels\s*\n\s*key="practice"[\s\S]*panels=\{practicePanels\}/);
 
   const phoneLayout = writing.slice(
     writing.indexOf("function WritingMobilePanels"),

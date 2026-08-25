@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import ScoreFooter from "@/components/ScoreFooter";
 import PracticeLoading from "@/components/PracticeLoading";
@@ -110,6 +110,19 @@ function ReadingTestPageRunner() {
       },
     });
   }, [test, answers, submitted]);
+
+  /*
+    The band and the review sit above the paper, at the top of the page —
+    but the passage/questions panes each scroll on their own, and finishing
+    a paper used to leave both wherever the last paragraph or the last
+    answer was, well past the score, with nothing pointing back at it.
+    SplitPanes and SwipePanels reset their own panes via resetScrollKey;
+    this resets the page itself, in case this route's own document scroll
+    is what a reader needs to move to actually see the card.
+  */
+  useEffect(() => {
+    if (submitted) window.scrollTo({ top: 0 });
+  }, [submitted]);
 
   // Generated tests are read from localStorage, so wait for hydration before
   // deciding a test is genuinely missing.
@@ -313,6 +326,7 @@ function ReadingTestPageRunner() {
             className="h-full"
             left={<div className="prose-reading">{passage}</div>}
             right={questions}
+            resetScrollKey={submitted}
           />
         ) : (
           <SwipePanels
@@ -320,6 +334,7 @@ function ReadingTestPageRunner() {
               { label: "Passage", content: <div className="prose-reading">{passage}</div> },
               { label: "Questions", content: questions },
             ]}
+            resetScrollKey={submitted}
           />
         )}
       </ExamShell>

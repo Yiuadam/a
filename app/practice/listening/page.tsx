@@ -59,6 +59,9 @@ function ListeningTestPageRunner() {
   // checked question still counts exactly as it stood when it was checked.
   const [checked, setChecked] = useState<CheckedMap>({});
   const [submitted, setSubmitted] = useState(false);
+  // The paper's own scrolling pane (ExamShell's chrome is fixed, so the
+  // window itself never scrolls) — see the effect below.
+  const paperRef = useRef<HTMLDivElement>(null);
   const [band, setBand] = useState<number | null>(null);
   const [raw, setRaw] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -603,6 +606,22 @@ function ListeningTestPageRunner() {
     });
   }, [test, answers, submitted, stopAudio]);
 
+  /*
+    Submitting used to leave a learner exactly where they were scrolled to
+    while answering — often the last question, well past the score and the
+    review that now sits above it — so finishing a paper looked like
+    nothing had happened until they scrolled back up themselves. The
+    band and the wrong-answer review are the part that actually teaches
+    (see components/Review.tsx); they should be the first thing on screen,
+    not something to go looking for.
+  */
+  useEffect(() => {
+    if (submitted) {
+      paperRef.current?.scrollTo({ top: 0 });
+      window.scrollTo({ top: 0 });
+    }
+  }, [submitted]);
+
   // Generated tests are read from localStorage, so wait for hydration before
   // deciding a test is genuinely missing.
   /*
@@ -938,7 +957,7 @@ function ListeningTestPageRunner() {
           fallbackFromNativeAudio(run, 0);
         }}
       />
-      <div className="min-h-0 flex-1 overflow-y-auto" data-listening-paper>
+      <div ref={paperRef} className="min-h-0 flex-1 overflow-y-auto" data-listening-paper>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--exam-line)] pb-2 text-xs text-[color:var(--exam-muted)]">
           <span>
             {playing
