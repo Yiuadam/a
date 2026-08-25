@@ -54,3 +54,32 @@ export function forgetDecision(): void {
     /* Then it was never stored, and there is nothing to forget. */
   }
 }
+
+/*
+  A guest who taps "Sign up free" on the poster has already decided —
+  making them find the poster again and tap a second button afterward
+  would be asking the same question twice. sessionStorage rather than
+  localStorage: this is a one-time continuation of a click just made, not
+  a standing preference, and it should not survive past the tab that made
+  it.
+*/
+const AUTO_ACCEPT_KEY = "bandup.promo.free-pro.autoaccept.v1";
+
+export function rememberAutoAcceptIntent(): void {
+  try {
+    window.sessionStorage.setItem(AUTO_ACCEPT_KEY, "1");
+  } catch {
+    /* Worst case: signing up lands back on the poster instead of past it. */
+  }
+}
+
+/** Read-and-clear, so a later reload of the same tab does not repeat the accept. */
+export function consumeAutoAcceptIntent(): boolean {
+  try {
+    const present = window.sessionStorage.getItem(AUTO_ACCEPT_KEY) !== null;
+    window.sessionStorage.removeItem(AUTO_ACCEPT_KEY);
+    return present;
+  } catch {
+    return false;
+  }
+}

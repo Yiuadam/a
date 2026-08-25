@@ -23,13 +23,14 @@ test("the full-bleed homepage remains a document instead of locking the viewport
   assert.doesNotMatch(dashboardClass, /\bh-full\b|\boverflow-y-auto\b|\boverflow-hidden\b/);
 });
 
-test("the homepage hero and placement action cannot be squeezed at narrow widths", () => {
-  assert.match(page, /className="dashboard-hero[^"]*\bshrink-0\b[^"]*\bflex-wrap\b/);
-  assert.match(page, /className="dashboard-hero-actions[^"]*\bshrink-0\b/);
-  assert.match(page, /className="dashboard-placement-button[^"]*\bshrink-0\b[^"]*\bwhitespace-nowrap\b/);
+test("the score-trend hero's own actions cannot be squeezed at narrow widths", () => {
+  // The placement-test hero these three checked (dashboard-hero,
+  // dashboard-hero-actions, dashboard-placement-button) no longer exists —
+  // the free Pro trial poster took over its slot in the dashboard, always,
+  // per the free-pro-trial suite. What remains here is the returning
+  // learner's score-trend row, which carries the same narrow-width
+  // constraint on its own two buttons.
+  assert.doesNotMatch(page, /dashboard-hero-actions|dashboard-placement-button/);
   assert.match(page, /href="\/plan" className="[^"]*\bshrink-0\b[^"]*\bwhitespace-nowrap\b/);
   assert.match(page, /href="\/placement" className="btn-secondary[^"]*\bshrink-0\b[^"]*\bwhitespace-nowrap\b/);
-
-  const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
-  assert.doesNotMatch(css, /\.dashboard-hero\s*\{[^}]*flex-wrap:\s*nowrap/);
 });

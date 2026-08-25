@@ -11,13 +11,9 @@ test("the public homepage shows the exact OAuth app name", () => {
   assert.match(layout, /title:\s*"BandUp"/);
 });
 
-test("the public homepage always explains BandUp's purpose", () => {
-  assert.match(
-    page,
-    /An IELTS learning and practice app with a placement test and personal study plan\./,
-  );
-
-  const purposePosition = page.indexOf("An IELTS learning and practice app");
-  const optionalSummaryPosition = page.indexOf('className="dashboard-summary');
-  assert.ok(purposePosition !== -1 && purposePosition < optionalSummaryPosition);
-});
+// The placement-test hero this used to check ("An IELTS learning and
+// practice app with a placement test and personal study plan.") is gone —
+// the free Pro trial poster took over its slot in the dashboard, always,
+// so there is no longer a homepage state where that sentence would even
+// render. tests/dashboard-home.test.mjs and tests/free-pro-trial.test.mjs
+// cover what is in that slot now.

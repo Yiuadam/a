@@ -4,12 +4,13 @@ import { Suspense } from "react";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import Link from "next/link";
 import AccountIdentityForm from "@/components/account/AccountIdentityForm";
+import SignInLink from "@/components/account/SignInLink";
 import { useAccountProfile } from "@/components/account/AccountProfileProvider";
 
 function Setup() {
   const { phase } = useAccountProfile();
   if (phase === "signed-out") {
-    return <section className="card"><h1 className="text-xl font-semibold text-slate-900">Sign in first</h1><Link href="/account" className="btn-primary mt-4">Go to sign in</Link></section>;
+    return <section className="card"><h1 className="text-xl font-semibold text-slate-900">Sign in first</h1><SignInLink className="btn-primary mt-4">Go to sign in</SignInLink></section>;
   }
   if (phase === "loading") return <section className="card"><p className="text-sm text-slate-500"><LoadingIndicator label="Loading account setup…" /></p></section>;
   if (phase === "unavailable") return <section className="card"><h1 className="text-xl font-semibold text-slate-900">Account setup isn&rsquo;t reachable right now</h1><p className="mt-2 text-sm leading-6 text-slate-600">Nothing has been lost. Please check your connection and try again.</p></section>;

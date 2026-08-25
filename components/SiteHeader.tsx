@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import SignInLink from "@/components/account/SignInLink";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref } from "@/lib/nav";
@@ -339,7 +340,7 @@ export default function SiteHeader({
             it, because everything on this app works signed out. It is in the
             menu too, under Help, so it is never icon-only.
           */}
-          <Link
+          <SignInLink
             href="/account"
             prefetch={false}
             aria-label="Your account"
@@ -377,7 +378,7 @@ export default function SiteHeader({
                 <path d="M3.8 17c0-3.3 2.8-5.4 6.2-5.4s6.2 2.1 6.2 5.4" />
               </svg>
             )}
-          </Link>
+          </SignInLink>
           <ThemeToggle />
         </div>
       </div>

@@ -155,31 +155,6 @@ function useHomeOrganizationShortcut(): HomeOrganizationShortcut | null {
   return session && resolved.token === session.accessToken ? resolved.shortcut : null;
 }
 
-function PlacementHero() {
-  return (
-    <section className="dashboard-hero card premade-glass flex shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-3 p-4 sm:p-5">
-      <RefractiveGlassLayer />
-      <div className="premade-glass-content min-w-0 flex-1 basis-64">
-        <h1 className="text-xl font-semibold leading-snug text-slate-900 sm:text-[22px]">
-          BandUp
-        </h1>
-        <p className="mt-1 text-sm leading-5 text-slate-600">
-          An IELTS learning and practice app with a placement test and personal study plan.
-        </p>
-        <p className="dashboard-summary mt-1 text-sm leading-6 text-slate-600">
-          Find your starting band in five minutes. BandUp will use the result to build your study plan.
-        </p>
-      </div>
-      <div className="dashboard-hero-actions premade-glass-content flex shrink-0 flex-wrap items-center gap-2">
-        <IntentPrefetchLink href="/placement" className="dashboard-placement-button btn-primary premade-glass shrink-0 whitespace-nowrap">
-          <RefractiveGlassLayer radius={16} interactive optics="enhanced" />
-          <span className="premade-glass-content">Start the 5-minute test</span>
-        </IntentPrefetchLink>
-      </div>
-    </section>
-  );
-}
-
 function OrganisationHero({ organization }: { organization: HomeOrganizationShortcut }) {
   const counts = [
     organization.studentCount === null
@@ -350,21 +325,6 @@ export default function Dashboard() {
   return (
     <div className="dashboard-screen overflow-x-clip px-4 py-3 sm:px-5 sm:py-5">
       {/*
-        The free Pro trial, offered here rather than as a modal over this page
-        or a card on /pricing.
-
-        Not a modal: the dashboard is where somebody arrives meaning to do
-        something, and a dialogue over it makes them dismiss an offer before
-        they can start. Not /pricing either — the people this is for are
-        precisely the ones who never open the pricing page. A card at the top of
-        the first screen after signing in is seen by everyone, blocks nobody,
-        and takes one tap to be rid of for good.
-
-        It draws nothing at all unless the server says this account is offered
-        the trial, so the usual case is an empty render.
-      */}
-      <FreeProPoster />
-      {/*
         One card, one obvious next step — and now one row of it. The welcome
         used to be a paragraph and a 96px band badge stacked above everything
         else, which cost a third of a laptop screen before the first link.
@@ -374,7 +334,38 @@ export default function Dashboard() {
       ) : isValidPlacement(placement) ? (
         <ScoreTrendOverview placement={placement} results={profile.results} />
       ) : (
-        <PlacementHero />
+        /*
+          The free Pro trial poster stands in the placement-test card's own
+          slot, always — not offered as a modal over this page, and not
+          moved to /pricing, where the people this is for never look.
+
+          It replaces the placement-test card specifically rather than
+          sitting beside it: this slot is the one guaranteed to be seen by
+          a first-time visitor and a fresh account alike, exactly the
+          audience this offer is for, and the 5-minute test is still one
+          tap away from the practice tiles and from /placement directly —
+          it is only this hero position that changed hands.
+
+          Drawing here has nothing to do with `organization`/`placement`
+          state; a returning account with a real placement never reaches
+          this branch and never sees the poster stack up beside a trend
+          chart it does not belong next to. The component decides its own
+          content from there — a guest sees the pitch and a "Sign up free"
+          button, a signed-in account sees the real accept flow, and a
+          dismissed or already-decided account renders nothing at all, at
+          which point nothing stands in this slot either.
+
+          The app's own name used to be this branch's visible page title,
+          in PlacementHero. It still has to appear as an <h1> here — Google's
+          OAuth review matches the exact application name against one on the
+          consent screen's calling page — but the poster's own heading is
+          what a reader should actually see now, so this one is sr-only
+          rather than reintroducing a second visible title above it.
+        */
+        <>
+          <h1 className="sr-only">BandUp</h1>
+          <FreeProPoster />
+        </>
       )}
 
       {/*

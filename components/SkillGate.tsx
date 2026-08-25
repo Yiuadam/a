@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import LockedCard from "@/components/LockedCard";
+import SignInLink from "@/components/account/SignInLink";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { ModuleName } from "@/lib/types";
@@ -128,10 +129,14 @@ export default function SkillGate({
             to sell this — so a signed-in learner who is out of reach of a skill
             is told where it lives and nothing more. See lib/platform.ts.
           */}
-          {signedIn && IS_MOBILE_BUILD ? null : (
-            <Link href={signedIn ? "/pricing" : "/account"} className="btn-primary shrink-0">
-              {signedIn ? "See Standard" : "Sign in"}
+          {signedIn && IS_MOBILE_BUILD ? null : signedIn ? (
+            <Link href="/pricing" className="btn-primary shrink-0">
+              See Standard
             </Link>
+          ) : (
+            <SignInLink className="btn-primary shrink-0">
+              Sign in
+            </SignInLink>
           )}
         </div>
 

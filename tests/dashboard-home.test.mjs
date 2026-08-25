@@ -91,7 +91,12 @@ test("the homepage uses organisation, score-trend, then placement priority", () 
   */
   assert.match(source, /\) : isValidPlacement\(placement\) \? \([\s\S]*?<ScoreTrendOverview/);
   assert.match(source, /import \{ isValidPlacement \} from "@\/lib\/placement";/);
-  assert.match(source, /<PlacementHero \/>/);
+  // The free Pro trial poster took over the placement-test card's own slot
+  // (was <PlacementHero />) so every first-time visitor and fresh account —
+  // exactly who neither organisation nor score-trend applies to — sees the
+  // offer, signed in or not. See components/billing/FreeProPoster.tsx.
+  assert.match(source, /<FreeProPoster \/>/);
+  assert.doesNotMatch(source, /<PlacementHero/);
   assert.match(source, /TREND_MODULES\.map/);
   assert.match(source, /href=\{`\/history\?module=\$\{module\}`\}/);
   assert.match(source, /api\/organization\/shortcut/);

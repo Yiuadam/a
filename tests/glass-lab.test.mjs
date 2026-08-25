@@ -72,7 +72,15 @@ test("the enhanced rim reuses the delegated reflection engine and disables under
   );
 });
 
-test('optics="enhanced" is opted into by exactly two call sites: the homepage placement CTA and the organisation view tabs', () => {
+test('optics="enhanced" is opted into by exactly one call site: the organisation view tabs', () => {
+  // The other of the original two, the homepage placement CTA
+  // (IntentPrefetchLink href="/placement" in PlacementHero), no longer
+  // exists — the free Pro trial poster took over that slot in the
+  // dashboard, always, and its own buttons are plain btn-primary/
+  // btn-secondary rather than the premade-glass treatment PlacementHero
+  // used. Whether the poster's primary action should opt into the
+  // enhanced budget is a design call for whoever next revisits this list,
+  // not something this rename should decide on its own.
   const roots = [join(process.cwd(), "app"), join(process.cwd(), "components")];
   const hits = roots.flatMap(tsxFiles).flatMap((path) => {
     const count = (readFileSync(path, "utf8").match(/optics="enhanced"/g) ?? []).length;
@@ -82,12 +90,12 @@ test('optics="enhanced" is opted into by exactly two call sites: the homepage pl
   const total = hits.reduce((sum, hit) => sum + hit.count, 0);
   assert.equal(
     total,
-    2,
-    `expected exactly 2 occurrences of optics="enhanced", found ${total} (${hits.map((hit) => `${hit.file}: ${hit.count}`).join(", ")})`,
+    1,
+    `expected exactly 1 occurrence of optics="enhanced", found ${total} (${hits.map((hit) => `${hit.file}: ${hit.count}`).join(", ")})`,
   );
   assert.deepEqual(
     hits.map((hit) => hit.file).sort(),
-    ["app/page.tsx", "components/organization/OrganizationPortal.tsx"],
+    ["components/organization/OrganizationPortal.tsx"],
   );
 });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SignInLink from "@/components/account/SignInLink";
 import { TIERS, formatPrice, plansForTier, type Tier } from "@/lib/billing/tiers";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 
@@ -64,9 +65,9 @@ export default function UpgradePanel({
           laptop. Everything you have done so far stays where it is.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/account" className="btn-primary">
+          <SignInLink className="btn-primary">
             Sign in
-          </Link>
+          </SignInLink>
           <Link href="/practice" className="btn-secondary">
             Keep practising
           </Link>
