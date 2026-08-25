@@ -1066,9 +1066,11 @@ function ListeningTestPageRunner() {
         </div>
 
         {submitted && band !== null && (
-          <div className="mb-4 grid gap-4 lg:grid-cols-[auto_1fr]">
-            <BandBadge band={band} caption={`${raw}/${questionCount(test.questions)} correct`} />
+          <div className="mb-4">
             <Review
+              bandBadge={
+                <BandBadge band={band} caption={`${raw}/${questionCount(test.questions)} correct`} />
+              }
               items={buildReview(test.questions, answers)}
               advice={testAdvice(
                 "listening",

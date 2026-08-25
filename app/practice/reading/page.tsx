@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import ScoreFooter from "@/components/ScoreFooter";
 import PracticeLoading from "@/components/PracticeLoading";
@@ -112,16 +112,18 @@ function ReadingTestPageRunner() {
   }, [test, answers, submitted]);
 
   /*
-    The band and the review sit above the paper, at the top of the page —
-    but the passage/questions panes each scroll on their own, and finishing
-    a paper used to leave both wherever the last paragraph or the last
-    answer was, well past the score, with nothing pointing back at it.
-    SplitPanes and SwipePanels reset their own panes via resetScrollKey;
-    this resets the page itself, in case this route's own document scroll
-    is what a reader needs to move to actually see the card.
+    /practice/reading is viewport-locked (body is `overflow: hidden`), so the
+    window never scrolls here — the band and the review sit above the paper
+    in this page's own markup, but without a scrolling pane of their own they
+    would just be clipped past the bottom of the screen with no way to reach
+    them. pageRef below is that pane, covering the whole page (band, review,
+    the paper, the score footer) the same way listening's own paperRef does.
+    SplitPanes and SwipePanels additionally reset their own panes via
+    resetScrollKey, since those scroll independently of this outer pane.
   */
+  const pageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (submitted) window.scrollTo({ top: 0 });
+    if (submitted) pageRef.current?.scrollTo({ top: 0 });
   }, [submitted]);
 
   // Generated tests are read from localStorage, so wait for hydration before
@@ -251,7 +253,10 @@ function ReadingTestPageRunner() {
   );
 
   return (
-    <div className={`space-y-4 ${submitted ? "practice-result-page" : ""}`}>
+    <div
+      ref={pageRef}
+      className={`h-full min-h-0 overflow-y-auto space-y-4 ${submitted ? "practice-result-page" : ""}`}
+    >
       {submitted && band !== null && (
         <div className="card flex flex-col items-center gap-4 py-6 sm:flex-row sm:justify-center sm:gap-10">
           <BandBadge band={band} caption={`${raw}/${questionCount(test.questions)} correct`} />

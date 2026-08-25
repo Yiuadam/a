@@ -36,11 +36,16 @@ test("listening resets its own paper pane and the window when submitted", () => 
   assert.match(listening, /if \(submitted\) \{\s*paperRef\.current\?\.scrollTo\(\{ top: 0 \}\);\s*window\.scrollTo\(\{ top: 0 \}\);/);
 });
 
-test("reading resets both SplitPanes/SwipePanes panes and the document, keyed to submitted", () => {
+test("reading resets both SplitPanes/SwipePanes panes and its own scrolling pane, keyed to submitted", () => {
   const reading = read("app", "practice", "reading", "page.tsx");
   assert.match(reading, /<SplitPanes[\s\S]*?resetScrollKey=\{submitted\}/);
   assert.match(reading, /<SwipePanels[\s\S]*?resetScrollKey=\{submitted\}/);
-  assert.match(reading, /if \(submitted\) window\.scrollTo\(\{ top: 0 \}\);/);
+  // /practice/reading is viewport-locked (body is overflow:hidden), so the
+  // window itself never scrolls — the page's own outer div has to be the
+  // scrolling pane, the same way listening's paperRef is.
+  assert.match(reading, /const pageRef = useRef<HTMLDivElement>\(null\);/);
+  assert.match(reading, /if \(submitted\) pageRef\.current\?\.scrollTo\(\{ top: 0 \}\);/);
+  assert.match(reading, /ref=\{pageRef\}[\s\S]*?overflow-y-auto/);
 });
 
 test("writing remounts the mobile feedback panels fresh, and scrolls the document when graded", () => {
