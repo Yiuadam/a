@@ -54,7 +54,12 @@ async function handleGET(req: Request) {
   const wantsAvatarParity = parseAvatarObjectParityFlag(query.get("avatarObjectParity"));
   const avatarRowLimit = Number(query.get("avatarParityRows"));
   const avatarSampleLimit = Number(query.get("avatarParitySample"));
-  const avatarByteLimit = Number(query.get("avatarParityBytes"));
+  // Number(null) is 0, not NaN, so a raw Number() conversion cannot tell
+  // "the caller left this out" from "the caller asked for zero" — and zero
+  // is a meaningful value here (skip the byte check entirely). Read the raw
+  // param first and only parse it if it was actually supplied.
+  const avatarByteLimitParam = query.get("avatarParityBytes");
+  const avatarByteLimit = avatarByteLimitParam === null ? null : Number(avatarByteLimitParam);
 
   try {
     const report = await cloudflareMigrationReadinessReport();
@@ -81,7 +86,9 @@ async function handleGET(req: Request) {
       avatarParity = await avatarObjectParityReport(bindings, {
         rowLimit: Number.isSafeInteger(avatarRowLimit) && avatarRowLimit > 0 ? avatarRowLimit : undefined,
         sampleLimit: Number.isSafeInteger(avatarSampleLimit) && avatarSampleLimit > 0 ? avatarSampleLimit : undefined,
-        byteCheckLimit: Number.isSafeInteger(avatarByteLimit) && avatarByteLimit >= 0 ? avatarByteLimit : undefined,
+        byteCheckLimit: avatarByteLimit !== null && Number.isSafeInteger(avatarByteLimit) && avatarByteLimit >= 0
+          ? avatarByteLimit
+          : undefined,
       });
     }
     return NextResponse.json({ ...report, rowDrift, payloadParity, avatarParity }, {
