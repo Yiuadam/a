@@ -160,15 +160,19 @@ test("the cutover-domain registry lists exactly the ten domains a Cloudflare-onl
     [...expected].sort(),
   );
   /*
-    Eight domains now have a proven implementation: the three payload-integrity
+    Nine domains now have a proven implementation: the three payload-integrity
     ones (lib/cloudflare/payload-parity.ts), `billing_entitlement_runtime`
     (lib/cloudflare/entitlement-runtime.ts), the two write authorities
-    `usage_quota_authority` / `ai_cost_write_authority`, and the two admin
+    `usage_quota_authority` / `ai_cost_write_authority`, the two admin
     readers `admin_user_directory` / `admin_statistics`
     (lib/cloudflare/admin-entitlement-directory.ts, lib/cloudflare/admin-stats.ts)
     — see the pull request that added the last pair for which of their figures
-    deliberately stay on Supabase regardless. Everything else in this stage's
-    registry is still unaddressed.
+    deliberately stay on Supabase regardless — and `avatar_object_parity`,
+    confirmed by a real admin-triggered byte comparison
+    (lib/cloudflare/avatar-parity.ts) on 2026-08-25. Only
+    `cutover_write_barrier` is still unaddressed, and deliberately so — see
+    its description in cutover-domains.ts for why that one can never be a
+    static `true`.
   */
   const supported = [
     "progress_payload_integrity",
@@ -179,6 +183,7 @@ test("the cutover-domain registry lists exactly the ten domains a Cloudflare-onl
     "ai_cost_write_authority",
     "admin_user_directory",
     "admin_statistics",
+    "avatar_object_parity",
   ];
   assert.deepEqual(
     cutoverDomains.CUTOVER_DOMAINS.filter((entry) => entry.supported).map((entry) => entry.domain).sort(),

@@ -413,7 +413,6 @@ test("progress, subscription and provider-event payload domains are now genuinel
   assert.deepEqual(
     [...cutoverDomains.unsupportedCutoverDomains()].sort(),
     [
-      "avatar_object_parity",
       "cutover_write_barrier",
     ].sort(),
   );

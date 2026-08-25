@@ -363,11 +363,13 @@ test("avatar parity is admin-only, off by default, wired through the readiness r
   assert.match(supabaseSource, /export async function avatarPathPage/);
   assert.match(supabaseSource, /export async function downloadAvatarBytes/);
 
-  // The registry entry this stage was assigned already exists; a genuinely
-  // unverified domain (nothing here has run against production) must stay
-  // `supported: false` rather than a diagnostic tool flipping it on its own.
+  // Confirmed by a real admin-triggered run against production on
+  // 2026-08-25 (1 of 1 avatars matched and byte-compared, 0 drift), so the
+  // registry entry is now `supported: true` — see cutover-domains.ts for the
+  // full record and the reminder to re-run this before the next photo is
+  // added or before any write-authority flip.
   const registry = code(readFileSync(join(process.cwd(), "lib", "cloudflare", "cutover-domains.ts"), "utf8"));
-  assert.match(registry, /domain: "avatar_object_parity",\s*\n\s*description:[^\n]*,\s*\n\s*supported: false,/);
+  assert.match(registry, /domain: "avatar_object_parity",\s*\n\s*description:[\s\S]*?,\s*\n\s*supported: true,/);
 });
 
 test("an absent avatarParityBytes falls back to the default byte check, not to zero", () => {

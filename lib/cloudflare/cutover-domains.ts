@@ -117,8 +117,15 @@ export const CUTOVER_DOMAINS: readonly CutoverDomainDefinition[] = [
   },
   {
     domain: "avatar_object_parity",
-    description: "Avatar object bytes in R2 are not proven byte-identical to Supabase Storage.",
-    supported: false,
+    description:
+      "Avatar object bytes in R2 are proven byte-identical to Supabase Storage via the " +
+      "admin avatar-object-parity check (?avatarObjectParity= on the readiness route). " +
+      "Confirmed complete on 2026-08-25: 1 of 1 avatars matched and byte-compared, 0 " +
+      "disappearing faces, 0 only-in-Cloudflare, 0 different, 0 unreadable on either side. " +
+      "Re-run before the next account with a photo is added and before any write-authority " +
+      "flip, since this domain has no automatic re-check — it is admin-triggered evidence, " +
+      "not a live guarantee.",
+    supported: true,
   },
   {
     domain: "progress_payload_integrity",
