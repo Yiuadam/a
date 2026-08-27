@@ -191,14 +191,13 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
   }
 
   /*
-    Usage metering writes Supabase through `check_and_record_usage[_with_event]`
-    regardless of CLOUDFLARE_DATA_MODE — see cutover-domains.ts's
-    usage_quota_authority entry — so there is no mode branch here to route
-    around a barrier the way lib/cloudflare/data-router.ts's writers do. Once
-    the owner arms one for "learner", every AI route refuses here rather than
-    reaching Supabase. See lib/cloudflare/write-barrier.ts.
+    Once this domain is D1-authoritative, no usage write reaches Supabase. The
+    learner barrier must therefore protect only the remaining Supabase branch:
+    applying it before the D1 branch would turn a successfully completed
+    cutover into an outage for every AI route.
   */
-  if (await cutoverWriteBarrierArmed("learner")) {
+  const cloudflareUsageAuthority = domainWritesToCloudflareOnly(USAGE_QUOTA_AUTHORITY_DOMAIN);
+  if (!cloudflareUsageAuthority && await cutoverWriteBarrierArmed("learner")) {
     logInternal("checkAiUsage", new Error("cutover write barrier is armed for learner writes"));
     return safeJsonError(MESSAGES.unavailable, 503);
   }
@@ -228,7 +227,7 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
     logInternal("checkAiUsage/session", err);
   }
 
-  if (domainWritesToCloudflareOnly(USAGE_QUOTA_AUTHORITY_DOMAIN)) {
+  if (cloudflareUsageAuthority) {
     return checkAiUsageOnCloudflare(user, userId, ipHash, route);
   }
 

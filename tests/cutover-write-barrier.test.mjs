@@ -470,6 +470,47 @@ test("lib/usage/guard.ts: checkAiUsage refuses with a fixed sentence once armed,
   });
 });
 
+test("lib/usage/guard.ts: an armed learner barrier leaves D1-authoritative usage admission live", async () => {
+  await withEnv({
+    ...SUPABASE_CONFIG,
+    ACCOUNTS_ENABLED: "1",
+    CLOUDFLARE_DATA_MODE_USAGE_QUOTA_AUTHORITY: "cloudflare",
+  }, async () => {
+    const { fn, calls } = fetchCounter();
+    const savedFetch = globalThis.fetch;
+    globalThis.fetch = fn;
+    try {
+      const { database, bindings } = fixture();
+      database.exec(`
+        CREATE TABLE cloudflare_id_sequences (
+          sequence_name TEXT PRIMARY KEY,
+          next_value INTEGER NOT NULL
+        ) STRICT;
+        INSERT INTO cloudflare_id_sequences (sequence_name, next_value)
+        VALUES ('usage_events', 5000);
+      `);
+      globalThis.__CUTOVER_FAKE_CF_ENV__ = { BANDUP_DB: bindings.db, BANDUP_FILES: bindings.files };
+      await armLearnerBarrier(bindings);
+
+      const response = await guard.checkAiUsage(
+        new Request("https://bandup.life/api/chat", { headers: { "x-forwarded-for": "203.0.113.9" } }),
+        "chat",
+      );
+
+      assert.ok(response instanceof Response, "the anonymous fixture is correctly subject to its ordinary D1 quota");
+      assert.equal(response.status, 429, "D1 quota policy must answer instead of the Supabase barrier's 503");
+      assert.equal(calls.length, 0, "D1 authority must not fall through to a Supabase usage RPC");
+      assert.equal(
+        database.prepare("SELECT count(*) AS n FROM usage_events WHERE outcome = 'denied_quota'").get().n,
+        1,
+      );
+    } finally {
+      globalThis.fetch = savedFetch;
+      delete globalThis.__CUTOVER_FAKE_CF_ENV__;
+    }
+  });
+});
+
 test("lib/ai/cost-tracking.ts: recordAnthropicMessageCost and setAiCostCoverage refuse once armed", async () => {
   await withEnv(SUPABASE_CONFIG, async () => {
     const { fn, calls } = fetchCounter();
