@@ -13,6 +13,19 @@ const identityAudit = await import(
   pathToFileURL(join(process.cwd(), "lib", "cloudflare", "native-identity-audit.ts")).href
 );
 
+async function withEnv(values, work) {
+  const saved = new Map(Object.keys(values).map((key) => [key, process.env[key]]));
+  Object.assign(process.env, values);
+  try {
+    return await work();
+  } finally {
+    for (const [key, value] of saved) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
 function bindingsFor({ usage = [], grants = [] } = {}) {
   const queries = [];
   const db = {
@@ -155,6 +168,7 @@ test("identity readiness uses provider subjects and existing stable ids, never e
       email: "same-email-must-not-link@example.test",
       emailVerified: true,
     }],
+    readAccounts: async () => [{ id: userId }],
   });
 
   assert.equal(report.target.schema, "ready", JSON.stringify(report));
@@ -165,4 +179,115 @@ test("identity readiness uses provider subjects and existing stable ids, never e
   assert.equal(JSON.stringify(report).includes(subject), false);
   assert.equal(JSON.stringify(report).includes("same-email-must-not-link@example.test"), false);
   assert.equal(queries.some(({ sql }) => /lower\(email\)/i.test(sql)), false);
+});
+
+test("Google ID-token cutover is ready without the optional server-flow secret", async () => {
+  const bindings = {
+    db: {
+      prepare(sql) {
+        return {
+          bind() {
+            return this;
+          },
+          async all() {
+            if (sql.includes("sqlite_master")) {
+              return {
+                success: true,
+                results: [
+                  { name: "app_users" },
+                  { name: "app_user_identities" },
+                  { name: "app_auth_sessions" },
+                ],
+                meta: { changes: 0 },
+              };
+            }
+            if (sql.includes("SELECT identity_authority")) {
+              return { success: true, results: [], meta: { changes: 0 } };
+            }
+            throw new Error("unexpected query");
+          },
+        };
+      },
+    },
+    files: {},
+  };
+
+  await withEnv({
+    ACCOUNTS_ENABLED: "1",
+    CLOUDFLARE_NATIVE_AUTH: "1",
+    CLOUDFLARE_DATA_MODE: "cloudflare",
+    ORGANIZATION_DATA_MODE: "cloudflare",
+    GOOGLE_CLIENT_ID: "bandup-web.apps.googleusercontent.com",
+    GOOGLE_OAUTH_CLIENT_SECRET: "",
+    GOOGLE_OAUTH_APP_ORIGIN: "https://bandup.example.test",
+  }, async () => {
+    const report = await identityAudit.nativeIdentityReadinessReport(bindings, {
+      readSource: async () => [],
+      readAccounts: async () => [],
+    });
+    assert.equal(report.configured.directGoogleServerFlow, false);
+    assert.equal(report.readyForGoogleCutover, true, JSON.stringify(report));
+    assert.deepEqual(report.blockers, []);
+  });
+});
+
+test("native cutover refuses a current Supabase account that is absent from D1", async () => {
+  const userId = "22222222-2222-4222-8222-222222222222";
+  const bindings = {
+    db: {
+      prepare(sql) {
+        return {
+          bind() {
+            return this;
+          },
+          async all() {
+            if (sql.includes("sqlite_master")) {
+              return {
+                success: true,
+                results: [
+                  { name: "app_users" },
+                  { name: "app_user_identities" },
+                  { name: "app_auth_sessions" },
+                ],
+                meta: { changes: 0 },
+              };
+            }
+            if (sql.includes("SELECT identity_authority")) {
+              return { success: true, results: [], meta: { changes: 0 } };
+            }
+            if (sql.includes("FROM app_users")) {
+              return { success: true, results: [], meta: { changes: 0 } };
+            }
+            throw new Error("unexpected query");
+          },
+        };
+      },
+    },
+    files: {},
+  };
+
+  await withEnv({
+    ACCOUNTS_ENABLED: "1",
+    CLOUDFLARE_NATIVE_AUTH: "1",
+    CLOUDFLARE_DATA_MODE: "cloudflare",
+    ORGANIZATION_DATA_MODE: "cloudflare",
+    GOOGLE_CLIENT_ID: "bandup-web.apps.googleusercontent.com",
+    GOOGLE_OAUTH_CLIENT_SECRET: "",
+    GOOGLE_OAUTH_APP_ORIGIN: "https://bandup.example.test",
+  }, async () => {
+    const report = await identityAudit.nativeIdentityReadinessReport(bindings, {
+      readSource: async () => [],
+      readAccounts: async () => [{ id: userId }],
+    });
+    assert.deepEqual(report.accounts, {
+      status: "available",
+      supabaseAuthUsers: 1,
+      invalidUsers: 0,
+      duplicateUserIds: 0,
+      liveD1UsersPresent: 0,
+      liveD1UsersMissing: 1,
+    });
+    assert.equal(report.readyForGoogleCutover, false);
+    assert.match(report.blockers.join("\n"), /missing a live D1 app_users record/);
+  });
 });

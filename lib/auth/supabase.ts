@@ -1121,6 +1121,17 @@ export interface SupabaseGoogleIdentity {
   emailVerified: boolean;
 }
 
+/**
+ * Minimal proof that an active legacy account still exists in Supabase Auth.
+ *
+ * The native-auth readiness audit needs the stable id but neither an email nor
+ * any password/MFA material. Keeping this intentionally small avoids turning
+ * its owner-only report into a user directory.
+ */
+export interface SupabaseAuthAccount {
+  id: string | null;
+}
+
 const SUPABASE_AUTH_PAGE_SIZE = 200;
 const SUPABASE_AUTH_MAX_PAGES = 2_000;
 
@@ -1189,6 +1200,46 @@ export async function listSupabaseGoogleIdentities(): Promise<SupabaseGoogleIden
     // one page past an exact multiple is harmless, so we do not rely on a
     // non-standard response header or expose a cursor parser here.
     if (users.length < SUPABASE_AUTH_PAGE_SIZE) return identities;
+  }
+
+  throw new SupabaseError("admin Auth user pagination exceeded its safety limit");
+}
+
+/**
+ * Lists only stable Supabase Auth ids for the native-auth preservation audit.
+ *
+ * This deliberately uses the same bounded, paginated Admin endpoint as the
+ * Google-identity reader above. It does not return an email, identity payload,
+ * password verifier, MFA factor or session material.
+ */
+export async function listSupabaseAuthAccounts(): Promise<SupabaseAuthAccount[]> {
+  assertServerOnly(MODULE);
+  const accounts: SupabaseAuthAccount[] = [];
+
+  for (let page = 1; page <= SUPABASE_AUTH_MAX_PAGES; page += 1) {
+    const res = await request(
+      `/auth/v1/admin/users?page=${page}&per_page=${SUPABASE_AUTH_PAGE_SIZE}`,
+      { method: "GET", asServiceRole: true },
+    );
+    if (!res.ok) throw new SupabaseError(`admin Auth user page failed with ${res.status}`);
+
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      throw new SupabaseError("admin Auth user page was not JSON");
+    }
+    const users = (body as { users?: unknown } | null)?.users;
+    if (!Array.isArray(users)) throw new SupabaseError("admin Auth user page was invalid");
+
+    for (const rawUser of users) {
+      const user = rawUser && typeof rawUser === "object"
+        ? rawUser as Record<string, unknown>
+        : null;
+      accounts.push({ id: user ? nullableString(user.id, 80) : null });
+    }
+
+    if (users.length < SUPABASE_AUTH_PAGE_SIZE) return accounts;
   }
 
   throw new SupabaseError("admin Auth user pagination exceeded its safety limit");

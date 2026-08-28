@@ -1,6 +1,8 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import {
+  listSupabaseAuthAccounts,
   listSupabaseGoogleIdentities,
+  type SupabaseAuthAccount,
   type SupabaseGoogleIdentity,
 } from "@/lib/auth/supabase";
 import { nativeAuthEnabled } from "@/lib/auth/env";
@@ -37,6 +39,14 @@ export interface NativeIdentityReadinessReport {
     invalidIdentities: number;
     duplicateSubjects: number;
     usersWithMultipleGoogleIdentities: number;
+  };
+  accounts: {
+    status: "available" | "unavailable" | "invalid";
+    supabaseAuthUsers: number;
+    invalidUsers: number;
+    duplicateUserIds: number;
+    liveD1UsersPresent: number;
+    liveD1UsersMissing: number;
   };
   target: {
     schema: "ready" | "missing" | "unavailable";
@@ -87,6 +97,11 @@ function normaliseSourceIdentity(value: SupabaseGoogleIdentity): ValidSourceIden
   return { userId, subject };
 }
 
+function normaliseSourceAccount(value: SupabaseAuthAccount): string | null {
+  const id = value.id;
+  return typeof id === "string" && id.length >= 16 && id.length <= 80 ? id : null;
+}
+
 async function targetSchema(
   bindings: BandUpCloudflareBindings,
 ): Promise<"ready" | "missing" | "unavailable"> {
@@ -134,13 +149,31 @@ async function targetIdentityState(
   return { liveUserIds, mappings };
 }
 
+async function targetAccountState(
+  sourceUserIds: readonly string[],
+  bindings: BandUpCloudflareBindings,
+): Promise<Set<string>> {
+  const liveUserIds = new Set<string>();
+  for (const values of chunk(sourceUserIds)) {
+    const rows = await bindings.db.prepare(`
+      SELECT id FROM app_users
+       WHERE deleted_at IS NULL AND id IN (${placeholders(values.length)})
+    `).bind(...values).all<{ id: string }>();
+    for (const row of rows.results) liveUserIds.add(row.id);
+  }
+  return liveUserIds;
+}
+
 /**
  * Private aggregate proof for the owner dashboard. No email, user id or Google
  * subject is returned, so checking readiness cannot become a directory API.
  */
 export async function nativeIdentityReadinessReport(
   providedBindings?: BandUpCloudflareBindings,
-  options: { readSource?: () => Promise<SupabaseGoogleIdentity[]> } = {},
+  options: {
+    readSource?: () => Promise<SupabaseGoogleIdentity[]>;
+    readAccounts?: () => Promise<SupabaseAuthAccount[]>;
+  } = {},
 ): Promise<NativeIdentityReadinessReport> {
   assertServerOnly(MODULE);
   const configured = {
@@ -151,13 +184,23 @@ export async function nativeIdentityReadinessReport(
   };
   const blockers: string[] = [];
   let rawSource: SupabaseGoogleIdentity[];
+  let rawAccounts: SupabaseAuthAccount[];
   try {
     rawSource = await (options.readSource ?? listSupabaseGoogleIdentities)();
+    // A fixture that supplies only Google identities is used by focused unit
+    // tests. It is not a production path, but deriving its account ids here
+    // prevents the audit from making an accidental live source request.
+    rawAccounts = options.readAccounts
+      ? await options.readAccounts()
+      : options.readSource
+        ? rawSource.map((identity) => ({ id: identity.authUserId }))
+        : await listSupabaseAuthAccounts();
   } catch {
     return {
       generatedAt: new Date().toISOString(),
       configured,
       source: { status: "unavailable", googleIdentities: 0, invalidIdentities: 0, duplicateSubjects: 0, usersWithMultipleGoogleIdentities: 0 },
+      accounts: { status: "unavailable", supabaseAuthUsers: 0, invalidUsers: 0, duplicateUserIds: 0, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
       target: { schema: "unavailable", sourceUsersPresent: 0, sourceUsersMissing: 0 },
       mappings: { correct: 0, missing: 0, mismatched: 0 },
       readyForBackfill: false,
@@ -170,6 +213,22 @@ export async function nativeIdentityReadinessReport(
     const normalised = normaliseSourceIdentity(identity);
     return normalised ? [normalised] : [];
   });
+  const validAccounts = rawAccounts.flatMap((account) => {
+    const id = normaliseSourceAccount(account);
+    return id ? [id] : [];
+  });
+  const accountIds = new Set<string>();
+  let duplicateAccountIds = 0;
+  for (const id of validAccounts) {
+    if (accountIds.has(id)) duplicateAccountIds += 1;
+    accountIds.add(id);
+  }
+  const invalidAccounts = rawAccounts.length - validAccounts.length;
+  const accountStatus: NativeIdentityReadinessReport["accounts"]["status"] = invalidAccounts > 0
+    ? "invalid"
+    : "available";
+  if (invalidAccounts > 0) blockers.push(`${invalidAccounts} Supabase Auth account record(s) have an invalid stable id`);
+  if (duplicateAccountIds > 0) blockers.push(`${duplicateAccountIds} duplicate Supabase Auth user id(s) were returned by the source`);
   const invalidIdentities = rawSource.length - valid.length;
   const subjects = new Set<string>();
   const users = new Map<string, number>();
@@ -197,6 +256,7 @@ export async function nativeIdentityReadinessReport(
       generatedAt: new Date().toISOString(),
       configured,
       source: { status: sourceStatus, googleIdentities: rawSource.length, invalidIdentities, duplicateSubjects, usersWithMultipleGoogleIdentities },
+      accounts: { status: accountStatus, supabaseAuthUsers: rawAccounts.length, invalidUsers: invalidAccounts, duplicateUserIds: duplicateAccountIds, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
       target: { schema, sourceUsersPresent: 0, sourceUsersMissing: 0 },
       mappings: { correct: 0, missing: 0, mismatched: 0 },
       readyForBackfill: false,
@@ -206,14 +266,19 @@ export async function nativeIdentityReadinessReport(
   }
 
   let state: Awaited<ReturnType<typeof targetIdentityState>>;
+  let liveAccountIds: Set<string>;
   try {
-    state = await targetIdentityState(valid, bindings);
+    [state, liveAccountIds] = await Promise.all([
+      targetIdentityState(valid, bindings),
+      targetAccountState([...accountIds], bindings),
+    ]);
   } catch {
-    blockers.push("D1 identity records could not be checked");
+    blockers.push("D1 identity or account records could not be checked");
     return {
       generatedAt: new Date().toISOString(),
       configured,
       source: { status: sourceStatus, googleIdentities: rawSource.length, invalidIdentities, duplicateSubjects, usersWithMultipleGoogleIdentities },
+      accounts: { status: accountStatus, supabaseAuthUsers: rawAccounts.length, invalidUsers: invalidAccounts, duplicateUserIds: duplicateAccountIds, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
       target: { schema: "unavailable", sourceUsersPresent: 0, sourceUsersMissing: 0 },
       mappings: { correct: 0, missing: 0, mismatched: 0 },
       readyForBackfill: false,
@@ -232,27 +297,44 @@ export async function nativeIdentityReadinessReport(
     else mismatched += 1;
   }
   const sourceUsersMissing = [...users.keys()].filter((id) => !state.liveUserIds.has(id)).length;
+  const liveD1UsersMissing = [...accountIds].filter((id) => !liveAccountIds.has(id)).length;
   if (sourceUsersMissing > 0) blockers.push(`${sourceUsersMissing} Supabase Google account(s) are missing a live D1 app_users record`);
   if (mismatched > 0) blockers.push(`${mismatched} existing D1 mapping(s) point to a different user id`);
   if (missing > 0) blockers.push(`${missing} Google identity mapping(s) still need an approved backfill`);
+  if (liveD1UsersMissing > 0) blockers.push(`${liveD1UsersMissing} current Supabase Auth account(s) are missing a live D1 app_users record`);
   if (!configured.dataAuthority.ready) {
     blockers.push("learner and organization data must both be Cloudflare-authoritative before native sign-in can serve users");
   }
-  if (!configured.directGoogleServerFlow) {
-    blockers.push("the direct Google fallback needs GOOGLE_OAUTH_CLIENT_SECRET and an exact registered callback origin");
-  }
-
   const sourceClean = sourceStatus === "available" && duplicateSubjects === 0 && usersWithMultipleGoogleIdentities === 0;
+  const accountsClean = accountStatus === "available" && duplicateAccountIds === 0 && liveD1UsersMissing === 0;
   const readyForBackfill = sourceClean && sourceUsersMissing === 0 && mismatched === 0;
+  /*
+    The normal Google Identity Services button posts its Google-issued ID
+    token to /api/auth/google/token. That path verifies the token, then makes
+    a D1 session directly; it does not use Supabase or the OAuth client
+    secret. The confidential client secret enables an *additional*, full-page
+    recovery path for browsers where the Google button cannot load. It must
+    not make an otherwise safe Cloudflare-native Google cutover look blocked.
+    The dashboard still exposes directGoogleServerFlow so the owner can see
+    whether that optional resilience path is available.
+  */
   const readyForGoogleCutover = readyForBackfill
     && missing === 0
     && correct === valid.length
-    && configured.dataAuthority.ready
-    && configured.directGoogleServerFlow;
+    && accountsClean
+    && configured.dataAuthority.ready;
   return {
     generatedAt: new Date().toISOString(),
     configured,
     source: { status: sourceStatus, googleIdentities: rawSource.length, invalidIdentities, duplicateSubjects, usersWithMultipleGoogleIdentities },
+    accounts: {
+      status: accountStatus,
+      supabaseAuthUsers: rawAccounts.length,
+      invalidUsers: invalidAccounts,
+      duplicateUserIds: duplicateAccountIds,
+      liveD1UsersPresent: accountIds.size - liveD1UsersMissing,
+      liveD1UsersMissing,
+    },
     target: { schema, sourceUsersPresent: users.size - sourceUsersMissing, sourceUsersMissing },
     mappings: { correct, missing, mismatched },
     readyForBackfill,
