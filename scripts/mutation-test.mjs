@@ -27,6 +27,8 @@ const tests = [
   "tests/mutation-progress-boundaries.test.mjs",
   "tests/mutation-native-auth-boundaries.test.mjs",
   "tests/native-auth-readiness.test.mjs",
+  "tests/native-password-migration-proof.test.mjs",
+  "tests/native-session-continuity.test.mjs",
   "tests/cloudflare-account-status.test.mjs",
   "tests/cloudflare-ai-cost-read-authority.test.mjs",
   "tests/cloudflare-account-deletion.test.mjs",
@@ -152,6 +154,13 @@ const mutants = [
     file: "lib/cloudflare/native-identity-audit.ts",
     from: "const readyForNativeAuthCutover = readyForGoogleCutover && providersClean;",
     to: "const readyForNativeAuthCutover = readyForGoogleCutover && true;",
+  },
+  {
+    area: "native-password-evidence",
+    id: "password-proof-hash-must-match-complete-import",
+    file: "lib/cloudflare/native-password-migration-audit.ts",
+    from: "|| manifest !== sourceManifestSha256",
+    to: "|| false",
   },
   {
     area: "stripe-backfill",

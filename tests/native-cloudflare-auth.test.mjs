@@ -319,6 +319,8 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   const accountStatus = readFileSync(join(process.cwd(), "app", "api", "account", "status", "route.ts"), "utf8");
   const cloudflareStatus = readFileSync(join(process.cwd(), "lib", "cloudflare", "account-status.ts"), "utf8");
   const identityCard = readFileSync(join(process.cwd(), "components", "admin", "CloudflareIdentityReadiness.tsx"), "utf8");
+  const passwordProofMigration = readFileSync(join(process.cwd(), "cloudflare", "migrations", "0021_native_password_migration_proof.sql"), "utf8");
+  const passwordProofRoute = readFileSync(join(process.cwd(), "app", "api", "admin", "cloudflare", "password-import", "proof", "route.ts"), "utf8");
 
   assert.match(migration, /CREATE TABLE IF NOT EXISTS app_user_identities/);
   assert.match(migration, /REFERENCES app_users\(id\)/);
@@ -353,6 +355,12 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   assert.match(identityCard, /Copy audited Google mappings/);
   assert.match(identityCard, /readyForNativeAuthCutover/);
   assert.match(identityCard, /No native sign-in setting was changed/);
+  assert.match(passwordProofMigration, /native_password_migration_proofs/);
+  assert.match(passwordProofMigration, /migration_source/);
+  assert.match(passwordProofRoute, /body\.confirm !== true/);
+  assert.match(passwordProofRoute, /isAdminEmail\(actor\.email\)/);
+  assert.match(passwordProofRoute, /Cache-Control": "private, no-store/);
+  assert.doesNotMatch(passwordProofRoute, /console\.log|logInternal/);
   assert.match(accountStatus, /domainReadsFromCloudflare\("usage_quota_authority"\)/);
   assert.match(accountStatus, /currentCloudflareAccessGrants/);
   assert.match(cloudflareStatus, /FROM usage_events/);

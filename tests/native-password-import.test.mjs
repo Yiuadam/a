@@ -241,6 +241,8 @@ test("native password auth is server-only, gated, and never falls back to Supaba
   assert.match(native, /LEFT JOIN app_password_credentials/);
   assert.match(nativeImport, /await bindings\.db\.batch\(/);
   assert.match(nativeImport, /WHERE id = \?[\s\S]*lower\(email\) = lower\(\?\)/);
+  assert.match(nativeImport, /migration_source = excluded\.migration_source/);
+  assert.match(nativeImport, /'supabase_import'/);
   assert.match(routeImport, /body\.confirm !== true/);
   assert.match(routeImport, /isAdminEmail\(actor\.email\)/);
   assert.match(routeImport, /Cache-Control": "private, no-store/);

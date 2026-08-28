@@ -18,6 +18,9 @@ register("./ts-resolve.mjs", import.meta.url);
 const { isAcceptedBcryptVerifier } = await import(
   pathToFileURL(join(ROOT, "lib", "auth", "bcrypt-verifier.ts")).href
 );
+const { passwordProofManifest } = await import(
+  pathToFileURL(join(ROOT, "lib", "cloudflare", "native-password-proof.ts")).href
+);
 
 function usage() {
   return "Usage: BANDUP_MIGRATION_BEARER_TOKEN=… node scripts/import-native-password-credentials.mjs --input /secure/export.jsonl --origin https://organization-preview.bandup.life";
@@ -104,6 +107,8 @@ async function main() {
   if (!token || token.length > 16_384) throw new Error("BANDUP_MIGRATION_BEARER_TOKEN must contain a current owner session token");
   const { input, origin } = parseArgs(process.argv.slice(2));
   const rows = parsePasswordExport(await readFile(input, "utf8"));
+  const sourceManifestSha256 = await passwordProofManifest(rows);
+  if (!sourceManifestSha256) throw new Error("the export could not be committed for an exact password migration check");
   let stored = 0;
   let alreadyNewer = 0;
   for (const credential of rows) {
@@ -125,7 +130,26 @@ async function main() {
     stored += result.stored;
     alreadyNewer += result.alreadyNewer;
   }
-  process.stdout.write(`Imported ${stored} encrypted password verifier${stored === 1 ? "" : "s"}; ${alreadyNewer} already had an equal or newer verifier.\n`);
+  const receipt = await fetch(`${origin}/api/admin/cloudflare/password-import/proof`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      confirm: true,
+      sourceRows: rows.length,
+      sourceManifestSha256,
+    }),
+    redirect: "error",
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!receipt.ok) {
+    throw new Error("all password verifiers were imported, but the exact source-to-D1 certificate was not recorded");
+  }
+  const proof = await receipt.json().catch(() => null);
+  if (!proof || proof.verified !== true || proof.sourceRows !== rows.length || proof.importedRows !== rows.length) {
+    throw new Error("the service returned an invalid aggregate password-import certificate");
+  }
+  process.stdout.write(`Imported ${stored} encrypted password verifier${stored === 1 ? "" : "s"}; ${alreadyNewer} already had an equal or newer verifier. Exact source-to-D1 certificate: verified.\n`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

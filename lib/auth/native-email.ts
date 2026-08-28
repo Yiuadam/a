@@ -207,8 +207,8 @@ export async function startNativePasswordRegistration(
       `).bind(id, email, at, at),
       bindings.db.prepare(`
         INSERT INTO app_password_credentials (
-          user_id, scheme, verifier, source_updated_at, imported_at, updated_at, status
-        ) VALUES (?, 'bcrypt', ?, ?, ?, ?, 'pending')
+          user_id, scheme, verifier, source_updated_at, imported_at, updated_at, status, migration_source
+        ) VALUES (?, 'bcrypt', ?, ?, ?, ?, 'pending', 'native_registration')
       `).bind(id, verifier, at, at, at, at),
     ]);
     if (writes.some((write) => !write.success)) return false;

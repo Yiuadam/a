@@ -66,9 +66,9 @@ export async function importNativePasswordCredential(
   const results = await bindings.db.batch([
     bindings.db.prepare(`
       INSERT INTO app_password_credentials (
-        user_id, scheme, verifier, source_updated_at, imported_at, updated_at
+        user_id, scheme, verifier, source_updated_at, imported_at, updated_at, migration_source
       )
-      SELECT id, 'bcrypt', ?, ?, ?, ?
+      SELECT id, 'bcrypt', ?, ?, ?, ?, 'supabase_import'
         FROM app_users
        WHERE id = ?
          AND deleted_at IS NULL
@@ -78,7 +78,8 @@ export async function importNativePasswordCredential(
         verifier = excluded.verifier,
         source_updated_at = excluded.source_updated_at,
         imported_at = excluded.imported_at,
-        updated_at = excluded.updated_at
+        updated_at = excluded.updated_at,
+        migration_source = excluded.migration_source
       WHERE excluded.source_updated_at >= app_password_credentials.source_updated_at
     `).bind(
       credential.verifier,

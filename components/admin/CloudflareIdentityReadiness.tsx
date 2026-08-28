@@ -96,7 +96,7 @@ export default function CloudflareIdentityReadiness() {
 
       {report && (
         <>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-slate-200/80 px-3 py-2.5 text-xs">
               <strong className="block text-slate-800">Source Google identities</strong>
               <span className="text-slate-600">{count(report.source.googleIdentities)} Google · {count(report.source.appleIdentities)} Apple · {count(report.source.emailIdentities)} email</span>
@@ -108,6 +108,16 @@ export default function CloudflareIdentityReadiness() {
             <div className="rounded-xl border border-slate-200/80 px-3 py-2.5 text-xs">
               <strong className="block text-slate-800">Google mappings</strong>
               <span className="text-slate-600">{count(report.mappings.correct)} correct · {count(report.mappings.missing)} to copy · {count(report.mappings.mismatched)} conflicted</span>
+            </div>
+            <div className="rounded-xl border border-slate-200/80 px-3 py-2.5 text-xs">
+              <strong className="block text-slate-800">Legacy passwords</strong>
+              <span className="text-slate-600">
+                {report.passwords.status === "verified"
+                  ? report.passwords.sourceRows === 0
+                    ? "No legacy email/password accounts"
+                    : `${count(report.passwords.sourceRows ?? 0)} exact source-to-D1 match`
+                  : `Certificate ${report.passwords.status}`}
+              </span>
             </div>
           </div>
 

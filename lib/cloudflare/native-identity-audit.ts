@@ -17,6 +17,10 @@ import {
   requireBandUpCloudflareBindings,
   type BandUpCloudflareBindings,
 } from "./bindings";
+import {
+  nativePasswordMigrationEvidence,
+  type NativePasswordMigrationEvidence,
+} from "./native-password-migration-audit";
 
 /*
   This is an audit, not a migrator. It reports aggregate counts only and never
@@ -64,6 +68,7 @@ export interface NativeIdentityReadinessReport {
     missing: number;
     mismatched: number;
   };
+  passwords: NativePasswordMigrationEvidence;
   readyForBackfill: boolean;
   readyForGoogleCutover: boolean;
   readyForNativeAuthCutover: boolean;
@@ -217,6 +222,7 @@ export async function nativeIdentityReadinessReport(
       accounts: { status: "unavailable", supabaseAuthUsers: 0, invalidUsers: 0, duplicateUserIds: 0, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
       target: { schema: "unavailable", sourceUsersPresent: 0, sourceUsersMissing: 0 },
       mappings: { correct: 0, missing: 0, mismatched: 0 },
+      passwords: { status: "unavailable", sourceRows: null, importedRows: null, verifiedAt: null },
       readyForBackfill: false,
       readyForGoogleCutover: false,
       readyForNativeAuthCutover: false,
@@ -277,6 +283,12 @@ export async function nativeIdentityReadinessReport(
       accounts: { status: accountStatus, supabaseAuthUsers: rawAccounts.length, invalidUsers: invalidAccounts, duplicateUserIds: duplicateAccountIds, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
       target: { schema, sourceUsersPresent: 0, sourceUsersMissing: 0 },
       mappings: { correct: 0, missing: 0, mismatched: 0 },
+      passwords: {
+        status: schema === "missing" ? "missing" : "unavailable",
+        sourceRows: null,
+        importedRows: null,
+        verifiedAt: null,
+      },
       readyForBackfill: false,
       readyForGoogleCutover: false,
       readyForNativeAuthCutover: false,
@@ -286,6 +298,9 @@ export async function nativeIdentityReadinessReport(
 
   let state: Awaited<ReturnType<typeof targetIdentityState>>;
   let liveAccountIds: Set<string>;
+  const passwords = providerSummary.email === 0
+    ? { status: "verified" as const, sourceRows: 0, importedRows: 0, verifiedAt: null }
+    : await nativePasswordMigrationEvidence(bindings);
   try {
     [state, liveAccountIds] = await Promise.all([
       targetIdentityState(valid, bindings),
@@ -300,6 +315,7 @@ export async function nativeIdentityReadinessReport(
       accounts: { status: accountStatus, supabaseAuthUsers: rawAccounts.length, invalidUsers: invalidAccounts, duplicateUserIds: duplicateAccountIds, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
       target: { schema: "unavailable", sourceUsersPresent: 0, sourceUsersMissing: 0 },
       mappings: { correct: 0, missing: 0, mismatched: 0 },
+      passwords,
       readyForBackfill: false,
       readyForGoogleCutover: false,
       readyForNativeAuthCutover: false,
@@ -322,6 +338,9 @@ export async function nativeIdentityReadinessReport(
   if (mismatched > 0) blockers.push(`${mismatched} existing D1 mapping(s) point to a different user id`);
   if (missing > 0) blockers.push(`${missing} Google identity mapping(s) still need an approved backfill`);
   if (liveD1UsersMissing > 0) blockers.push(`${liveD1UsersMissing} current Supabase Auth account(s) are missing a live D1 app_users record`);
+  if (providerSummary.email > 0 && passwords.status !== "verified") {
+    blockers.push("Legacy email/password credentials do not yet have an exact source-to-D1 migration certificate");
+  }
   if (!configured.dataAuthority.ready) {
     blockers.push("learner and organization data must both be Cloudflare-authoritative before native sign-in can serve users");
   }
@@ -329,7 +348,8 @@ export async function nativeIdentityReadinessReport(
   const accountsClean = accountStatus === "available" && duplicateAccountIds === 0 && liveD1UsersMissing === 0;
   const providersClean = providerSummary.apple === 0
     && providerSummary.unsupported === 0
-    && providerSummary.invalid === 0;
+    && providerSummary.invalid === 0
+    && (providerSummary.email === 0 || passwords.status === "verified");
   const readyForBackfill = sourceClean && sourceUsersMissing === 0 && mismatched === 0;
   /*
     The normal Google Identity Services button posts its Google-issued ID
@@ -361,6 +381,7 @@ export async function nativeIdentityReadinessReport(
     },
     target: { schema, sourceUsersPresent: users.size - sourceUsersMissing, sourceUsersMissing },
     mappings: { correct, missing, mismatched },
+    passwords,
     readyForBackfill,
     readyForGoogleCutover,
     readyForNativeAuthCutover,

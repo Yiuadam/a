@@ -290,6 +290,76 @@ test("native cutover stays blocked when a legacy Apple provider still exists", a
   });
 });
 
+test("native cutover stays blocked until legacy bcrypt credentials have an exact aggregate certificate", async () => {
+  const bindings = {
+    db: {
+      prepare(sql) {
+        return {
+          bind() {
+            return {
+              async all() {
+                if (sql.includes("FROM app_password_credentials")) {
+                  return { success: true, results: [], meta: { changes: 0 } };
+                }
+                throw new Error("unexpected bound query");
+              },
+            };
+          },
+          async all() {
+            if (sql.includes("sqlite_master")) {
+              return {
+                success: true,
+                results: [
+                  { name: "app_users" },
+                  { name: "app_user_identities" },
+                  { name: "app_auth_sessions" },
+                ],
+                meta: { changes: 0 },
+              };
+            }
+            if (sql.includes("SELECT identity_authority")) {
+              return { success: true, results: [], meta: { changes: 0 } };
+            }
+            throw new Error("unexpected unbound query");
+          },
+          async first() {
+            if (sql.includes("sqlite_master") && sql.includes("native_password_migration_proofs")) {
+              return { name: "native_password_migration_proofs" };
+            }
+            return null;
+          },
+        };
+      },
+    },
+    files: {},
+  };
+
+  await withEnv({
+    ACCOUNTS_ENABLED: "1",
+    CLOUDFLARE_NATIVE_AUTH: "1",
+    CLOUDFLARE_DATA_MODE: "cloudflare",
+    ORGANIZATION_DATA_MODE: "cloudflare",
+    GOOGLE_CLIENT_ID: "bandup-web.apps.googleusercontent.com",
+    GOOGLE_OAUTH_APP_ORIGIN: "https://bandup.example.test",
+  }, async () => {
+    const report = await identityAudit.nativeIdentityReadinessReport(bindings, {
+      readSource: async () => [],
+      readAccounts: async () => [],
+      readProviderSummary: async () => ({
+        google: 0,
+        apple: 0,
+        email: 1,
+        unsupported: 0,
+        invalid: 0,
+      }),
+    });
+    assert.equal(report.passwords.status, "pending", JSON.stringify(report));
+    assert.equal(report.readyForGoogleCutover, true, JSON.stringify(report));
+    assert.equal(report.readyForNativeAuthCutover, false, JSON.stringify(report));
+    assert.match(report.blockers.join("\n"), /exact source-to-D1 migration certificate/);
+  });
+});
+
 test("native cutover refuses a current Supabase account that is absent from D1", async () => {
   const userId = "22222222-2222-4222-8222-222222222222";
   const bindings = {
