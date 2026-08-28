@@ -1175,7 +1175,20 @@ export async function listSupabaseGoogleIdentities(): Promise<SupabaseGoogleIden
       const authUserId = nullableString(user.id, 80);
       const userEmail = nullableString(user.email, 254)?.trim().toLowerCase() ?? null;
       const userEmailVerified = typeof user.email_confirmed_at === "string";
-      const userIdentities = Array.isArray(user.identities) ? user.identities : [];
+      /*
+        Some Supabase Auth deployments return `identities: null` on every
+        admin user even while `auth.identities` contains provider links. That
+        is an unavailable source, not evidence that no legacy Google accounts
+        exist. Treating it as an empty array would let a native cutover skip
+        immutable subject mappings and strand those accounts.
+      */
+      if (user.identities === null) {
+        throw new SupabaseError("admin Auth identity details are unavailable");
+      }
+      if (!Array.isArray(user.identities)) {
+        throw new SupabaseError("admin Auth identity details were invalid");
+      }
+      const userIdentities = user.identities;
       for (const rawIdentity of userIdentities) {
         const identity = rawIdentity && typeof rawIdentity === "object"
           ? rawIdentity as Record<string, unknown>

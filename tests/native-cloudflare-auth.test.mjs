@@ -163,6 +163,8 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   assert.match(source, /identity\.provider !== "google"/);
   assert.match(source, /identity\.provider_id/);
   assert.match(source, /identity\.user_id/);
+  assert.match(source, /user\.identities === null/);
+  assert.match(source, /admin Auth identity details are unavailable/);
   assert.match(audit, /mappedUserId === identity\.userId/);
   assert.doesNotMatch(audit, /lower\(email\)|identityEmail.*existingEmail/i);
   assert.match(auditRoute, /isAdminEmail\(actor\.email\)/);
