@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
 import { logInternal, MESSAGES, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
-import { supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { organizationDataMode } from "@/lib/cloudflare/bindings";
 import {
   listCloudflareNotifications,
@@ -27,7 +26,7 @@ async function requireUser(req: Request) {
   const previewUser = organizationPreviewUser(req);
   if (previewUser) return { user: previewUser, preview: true };
   if (previewRequest) return { error: "preview_role" as const };
-  if (!accountsEnabled() || !supabaseConfigured()) return { error: "off" as const };
+  if (!accountRuntimeEnabled()) return { error: "off" as const };
   const user = await getSessionUser(req).catch(() => null);
   return user ? { user, preview: false } : { error: "anon" as const };
 }

@@ -87,16 +87,18 @@ export default function CloudflareMigrationReadiness() {
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Cloudflare-only readiness</h2>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
-            Exact source and target evidence. Supabase Auth is deliberately excluded and remains the sign-in authority.
+            {report?.supabaseAuth.authority === "cloudflare"
+              ? "Cloudflare-native sign-in is active. This shows the remaining compatibility work before Supabase can be retired."
+              : "Exact source and target evidence. Supabase Auth is deliberately excluded and remains the sign-in authority."}
           </p>
         </div>
         {report && (
           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            report.modes.learner === "cloudflare"
+            report.readyForCloudflareOnly
               ? "bg-emerald-100 text-emerald-800"
-              : report.readyForCloudflareOnly ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-800"
+              : report.modes.learner === "cloudflare" ? "bg-indigo-100 text-indigo-800" : "bg-slate-200 text-slate-800"
           }`}>
-            {report.modes.learner === "cloudflare" ? "Cutover complete" : report.readyForCloudflareOnly ? "Ready" : "Not ready"}
+            {report.readyForCloudflareOnly ? "Ready" : report.modes.learner === "cloudflare" ? "Cloudflare data active" : "Not ready"}
           </span>
         )}
       </div>
@@ -108,13 +110,15 @@ export default function CloudflareMigrationReadiness() {
         <>
           {report.modes.learner === "cloudflare" && (
             <div className="mt-3 rounded-xl border border-emerald-300/70 bg-emerald-50/60 px-3 py-3 text-xs text-emerald-900">
-              <strong className="block">Learner data cutover is already complete</strong>
+              <strong className="block">Cloudflare learner data is active</strong>
               <p className="mt-1 leading-5">
                 Writes stopped mirroring to Supabase the moment the write barrier armed and this mode took
                 effect, so Supabase&rsquo;s copy of learner data is now expected to drift further from D1 with
                 every new save — that is not a fault. The domain and blocker evidence below answers a question
                 that no longer gates anything (&ldquo;is it safe to flip once&rdquo;), kept only as a historical
-                record. Supabase Auth is unaffected and remains the sign-in authority.
+                record. {report.supabaseAuth.authority === "cloudflare"
+                  ? "Cloudflare-native sign-in is active too; compatibility items below must still be retired deliberately."
+                  : "Supabase Auth remains the sign-in authority until native identity is enabled."}
               </p>
             </div>
           )}
@@ -122,7 +126,9 @@ export default function CloudflareMigrationReadiness() {
             <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/60 px-3 py-3 text-xs text-amber-900">
               <strong className="block">Supabase fingerprint evidence {report.sourceEvidence.status}</strong>
               <p className="mt-1 leading-5">
-                {report.sourceEvidence.status === "unavailable"
+                {report.sourceEvidence.status === "retired"
+                  ? "Supabase credentials have been removed after cutover. Historical row-by-row parity can no longer be recomputed; the cards now show D1's authoritative inventory rather than calling it a mismatch."
+                  : report.sourceEvidence.status === "unavailable"
                   ? "The restricted source-fingerprint RPC could not be read. Verify that Supabase migration 0029 is applied, its service-role grant is present, and PostgREST has reloaded before retrying."
                   : "The restricted source-fingerprint RPC returned incomplete or malformed evidence. The report stays fail-closed until it returns exactly one valid fingerprint for every domain."}
               </p>

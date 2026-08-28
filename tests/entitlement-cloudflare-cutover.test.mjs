@@ -1004,11 +1004,11 @@ test("replicatePromoSubscriptionDurably uses a stable per-account task id, so re
   assert.match(source, /taskId: `promo:\$\{authoritative\.userId\}`/);
 });
 
-test("the registry only claims billing_entitlement_runtime is supported alongside a working D1 reader", () => {
+test("the registry keeps billing entitlement unsupported until its payment writes are native", () => {
   const registry = readFileSync(join(ROOT, "lib", "cloudflare", "cutover-domains.ts"), "utf8");
   assert.match(registry, /domain: "billing_entitlement_runtime"/);
-  assert.match(registry, /supported: true/);
-  assert.match(registry, /entitlement-parity/);
+  assert.match(registry, /Stripe webhook and promo mutations still write/);
+  assert.match(registry, /billing_entitlement_runtime[\s\S]{0,500}supported: false/);
 });
 
 test("the D1 resolver never reads a role, keeping ADMIN_EMAILS the only admin authority", () => {

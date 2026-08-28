@@ -63,6 +63,46 @@ export async function createNativeBrowserSessionForUser(
   return { ...access, refreshToken, email: user.email };
 }
 
+/**
+ * Issues a Cloudflare-native session for someone who has just proved their
+ * identity with a still-valid legacy Supabase access token.
+ *
+ * This is deliberately a bridge rather than an account importer.  It can only
+ * name the exact user id that Supabase authenticated, and it refuses if that
+ * id is not already a live D1 user.  In particular it does not create an
+ * account from an email address: doing so would turn an incomplete data copy
+ * into a silent, permanent split identity.  The browser keeps its working
+ * legacy session when this returns null and tries again after the migration
+ * has caught up.
+ */
+export async function bridgeLegacyBrowserSession(
+  legacyUser: AuthedUser,
+  signingSecret: string,
+  providedBindings?: BandUpCloudflareBindings,
+  now = Date.now(),
+): Promise<NativeBrowserSession | null> {
+  assertServerOnly(MODULE);
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  const row = await bindings.db.prepare(`
+    SELECT id, email, created_at, deleted_at
+      FROM app_users
+     WHERE id = ?
+     LIMIT 1
+  `).bind(legacyUser.id).first<UserRow>();
+  if (!isLiveUser(row)) return null;
+
+  /*
+   * D1's row is the session source of truth from this point onwards.  Do not
+   * overwrite its email from the compatibility provider here: an email change
+   * needs the audited identity-sync path, not an opportunistic login write.
+   */
+  return createNativeBrowserSessionForUser({
+    id: row.id,
+    email: row.email,
+    createdAt: row.created_at,
+  }, signingSecret, bindings, now);
+}
+
 async function existingGoogleUser(
   subject: string,
   bindings: BandUpCloudflareBindings,

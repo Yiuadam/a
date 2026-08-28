@@ -1,6 +1,7 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { accountsEnabled, isAdminEmail, usageFailOpen } from "@/lib/auth/env";
 import { supabaseConfigured, rpc } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
@@ -181,7 +182,8 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
   assertServerOnly(MODULE);
   if (!accountsEnabled()) return null;
 
-  if (!supabaseConfigured()) {
+  const cloudflareUsageAuthority = domainWritesToCloudflareOnly(USAGE_QUOTA_AUTHORITY_DOMAIN);
+  if (!accountRuntimeEnabled() || (!cloudflareUsageAuthority && !supabaseConfigured())) {
     // The flag is on but the backend is not configured. This is a deployment
     // mistake, and the two ways to be wrong about it are opposite: allow, and
     // the meter is decorative; refuse, and the app is down. Which one is
@@ -196,7 +198,6 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
     applying it before the D1 branch would turn a successfully completed
     cutover into an outage for every AI route.
   */
-  const cloudflareUsageAuthority = domainWritesToCloudflareOnly(USAGE_QUOTA_AUTHORITY_DOMAIN);
   if (!cloudflareUsageAuthority && await cutoverWriteBarrierArmed("learner")) {
     logInternal("checkAiUsage", new Error("cutover write barrier is armed for learner writes"));
     return safeJsonError(MESSAGES.unavailable, 503);

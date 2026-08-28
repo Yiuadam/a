@@ -1,9 +1,9 @@
 import { after, NextResponse } from "next/server";
-import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
+import { isAdminEmail } from "@/lib/auth/env";
 import {
-  supabaseConfigured,
   signedAvatarUrl,
 } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
@@ -45,7 +45,7 @@ const MAX_NAME = 60;
 const MIN_AGE_YEARS = 13;
 
 async function requireUser(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) return { error: "off" as const };
+  if (!accountRuntimeEnabled()) return { error: "off" as const };
   const user = await getSessionUser(req);
   if (!user) return { error: "anon" as const };
   return { user };

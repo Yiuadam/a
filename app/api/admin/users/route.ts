@@ -3,12 +3,14 @@ import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
 import { getSessionUser } from "@/lib/auth/session";
 import { safeJsonError } from "@/lib/auth/errors";
 import { rpc, supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { withCors } from "@/lib/http/cors";
 import { applyOwnerEffectiveAccess } from "@/lib/admin/effective-access";
 import { organizationDataMode } from "@/lib/cloudflare/bindings";
 import { domainReadsFromCloudflare } from "@/lib/cloudflare/cutover-domains";
 import { cloudflareAdminOrganizationSeats } from "@/lib/cloudflare/admin-organization-access";
 import { cloudflareAdminDirectoryEntitlements } from "@/lib/cloudflare/admin-entitlement-directory";
+import { cloudflareAdminDirectoryPage } from "@/lib/cloudflare/admin-directory";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +36,7 @@ export interface AdminUserRow {
 }
 
 async function handleGET(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) return safeJsonError("Not found.", 404);
+  if (!accountsEnabled() || !accountRuntimeEnabled()) return safeJsonError("Not found.", 404);
   const actor = await getSessionUser(req).catch(() => null);
   if (!actor || !isAdminEmail(actor.email)) return safeJsonError("Not found.", 404);
   const url = new URL(req.url);
@@ -42,19 +44,40 @@ async function handleGET(req: Request) {
   const page = Math.max(1, Math.min(10000, Number(url.searchParams.get("page")) || 1));
   const limit = 50;
   try {
+    const directoryFromCloudflare = domainReadsFromCloudflare("admin_user_directory")
+      || !supabaseConfigured();
+    if (directoryFromCloudflare) {
+      const directory = await cloudflareAdminDirectoryPage({
+        query,
+        limit,
+        offset: (page - 1) * limit,
+      });
+      const currentUsers = applyOwnerEffectiveAccess(directory.users.map((user) => ({
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        display_name: user.displayName,
+        account_kind: user.accountKind,
+        registered_at: user.registeredAt,
+        plan: user.plan,
+        access_source: user.accessSource,
+        organization_seat_count: user.organizationSeatCount,
+        usage_30d: user.usage30d,
+        total_count: directory.total,
+        d1_mirror_missing: false,
+      })));
+      return NextResponse.json({ users: currentUsers, page, limit, total: directory.total });
+    }
+
     let users = await rpc<AdminUserRow[]>("admin_users_page", {
       p_query: query,
       p_limit: limit,
       p_offset: (page - 1) * limit,
     });
     const total = Number(users[0]?.total_count ?? 0);
-    if (domainReadsFromCloudflare("admin_user_directory")) {
-      users = await mergeCloudflareEntitlements(users);
-    }
+    if (domainReadsFromCloudflare("admin_user_directory")) users = await mergeCloudflareEntitlements(users);
     const effective = applyOwnerEffectiveAccess(users);
-    const currentUsers = organizationDataMode() === "cloudflare"
-      ? await mergeCloudflareSeatCounts(effective)
-      : effective;
+    const currentUsers = organizationDataMode() === "cloudflare" ? await mergeCloudflareSeatCounts(effective) : effective;
     return NextResponse.json({
       users: currentUsers,
       page,

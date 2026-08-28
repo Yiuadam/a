@@ -31,7 +31,7 @@ const MODULE = "lib/auth/native-password.ts";
 /* A valid hash of a value that is never accepted as a BandUp password.
    Comparing it for an absent account makes the usual "wrong email" case do
    comparable work to the usual "wrong password" case. */
-const BOGUS_BCRYPT_VERIFIER = "$2b$10$widJUK7jKi23MXNNqVykquB9Wm//RM1tzrMBFy/jZMJBIDUX3qrBm";
+const BOGUS_BCRYPT_VERIFIER = "$2b$10$uQb1bJuQo/YbcXLikXVD4eub9yfpF5ZccnMnAe5Q3TcruOsU0EHyu";
 
 /* Supabase's bcrypt output is 60 characters. Costs over 14 are deliberately
    rejected at import time: an attacker must not be able to turn a malformed
@@ -119,11 +119,16 @@ export async function signInWithImportedNativePassword(
   `).bind(email).first<PasswordUserRow>();
 
   /* Do not let a missing credential skip the bcrypt work entirely. */
-  const verifier = row && row.scheme === "bcrypt" && row.status === "active" && isImportedBcryptVerifier(row.verifier)
-    ? row.verifier
-    : BOGUS_BCRYPT_VERIFIER;
+  const activeVerifier = Boolean(
+    row
+    && row.deleted_at === null
+    && row.scheme === "bcrypt"
+    && row.status === "active"
+    && isImportedBcryptVerifier(row.verifier),
+  );
+  const verifier = activeVerifier ? row!.verifier : BOGUS_BCRYPT_VERIFIER;
   const matched = await verifyImportedBcryptPassword(password, verifier);
-  if (!row || row.deleted_at !== null || row.scheme !== "bcrypt" || row.status !== "active" || !matched) return null;
+  if (!row || !activeVerifier || !matched) return null;
 
   const at = stamp(now);
   const touched = await bindings.db.batch([

@@ -42,12 +42,34 @@ async function handlePOST(req: Request) {
     }
     try {
       const session = await refreshNativeBrowserSession(token, signingKey);
-      if (!session) return NextResponse.json({ error: "Signed out." }, { status: 401 });
-      return NextResponse.json(session);
+      if (session) return NextResponse.json(session);
     } catch (error) {
       logInternal("auth/refresh/native", error);
       return NextResponse.json({ error: "Signed out." }, { status: 401 });
     }
+
+    /*
+      A browser that was already signed in when the Cloudflare cutover began
+      still holds a legacy refresh token.  Keep that session alive long enough
+      for NativeSessionUpgrade to exchange its next access token for a D1
+      session.  Native tokens never reach Supabase: this fallback is possible
+      only while the temporary compatibility source is configured, and only
+      after D1 has confirmed that the token is not a live native session.
+    */
+    if (!supabaseConfigured()) {
+      return NextResponse.json({ error: "Signed out." }, { status: 401 });
+    }
+    const legacySession = await refreshAccessToken(token);
+    if (!legacySession) {
+      logInternal("auth/refresh/legacy-bridge", new Error("refresh rejected"));
+      return NextResponse.json({ error: "Signed out." }, { status: 401 });
+    }
+    return NextResponse.json({
+      accessToken: legacySession.accessToken,
+      refreshToken: legacySession.refreshToken,
+      expiresAt: legacySession.expiresIn ? Date.now() + legacySession.expiresIn * 1000 : null,
+      email: legacySession.email,
+    });
   }
 
   const session = await refreshAccessToken(token);

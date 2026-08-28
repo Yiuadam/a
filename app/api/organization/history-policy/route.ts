@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
 import { logInternal, MESSAGES, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
 import {
   organizationHistoryClearPolicy,
-  supabaseConfigured,
 } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { organizationDataMode } from "@/lib/cloudflare/bindings";
 import { cloudflareHistoryClearAllowed } from "@/lib/cloudflare/organizations";
 import { withCors } from "@/lib/http/cors";
@@ -15,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 async function handleGET(req: Request) {
   const previewUser = organizationPreviewUser(req);
-  if (!previewUser && (!accountsEnabled() || !supabaseConfigured())) {
+  if (!previewUser && !accountRuntimeEnabled()) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const user = previewUser ?? await getSessionUser(req).catch(() => null);

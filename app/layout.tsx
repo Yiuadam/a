@@ -10,6 +10,7 @@ import SiteHeader from "@/components/SiteHeader";
 import PointerAttraction from "@/components/PointerAttraction";
 import { GLASS_LAB } from "@/lib/glass-lab";
 import AccountProfileProvider from "@/components/account/AccountProfileProvider";
+import NativeSessionUpgrade from "@/components/account/NativeSessionUpgrade";
 import RequiredAccountGate from "@/components/account/RequiredAccountGate";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -131,6 +132,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <MaintenanceGate closed={closed}>
         <AccountProfileProvider>
         <>
+        <NativeSessionUpgrade />
         <SiteHeader
           isolatedOrganizationPreview={process.env.ORGANIZATION_UI_PREVIEW === "1"}
         />

@@ -18,8 +18,8 @@ export function canonicalCloudflareSourceClock(value: string): string {
   return `${second}.${fraction}Z`;
 }
 
-export function currentCloudflareSourceClock(): string {
-  return canonicalCloudflareSourceClock(new Date().toISOString());
+export function currentCloudflareSourceClock(value = new Date().toISOString()): string {
+  return canonicalCloudflareSourceClock(value);
 }
 
 /**

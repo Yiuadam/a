@@ -169,13 +169,10 @@ test("the global report proves exact identities and versions but fails closed on
   assert.equal(report.supabaseAuth.included, false);
   assert.equal(report.supabaseAuth.authority, "supabase");
   assert.equal(report.readyForCloudflareOnly, false);
-  // billing_entitlement_runtime, usage_quota_authority and ai_cost_write_authority
-  // are no longer in this list: each has a proven D1 reader or writer
-  // (lib/cloudflare/entitlement-runtime.ts, lib/cloudflare/usage-quota-authority.ts,
-  // lib/cloudflare/ai-cost-write-authority.ts). See the pull requests that added
-  // them for the pre-flip checklist that still has to clear before each domain's
-  // *mode* actually changes.
-  assert.ok(!report.unsupportedDomains.includes("billing_entitlement_runtime"));
+  // Billing entitlement reads are D1-capable, but payment mutations are not
+  // native yet; a Cloudflare-only report must name that rather than calling
+  // the source writer complete.
+  assert.ok(report.unsupportedDomains.includes("billing_entitlement_runtime"));
   assert.ok(!report.unsupportedDomains.includes("usage_quota_authority"));
   assert.ok(!report.unsupportedDomains.includes("ai_cost_write_authority"));
   assert.ok(report.unsupportedDomains.includes("cutover_write_barrier"));
@@ -279,11 +276,83 @@ test("the source RPC and API expose migration evidence only to the owner service
   assert.match(route, /isAdminEmail\(actor\.email\)/);
   assert.match(route, /private, no-store/);
   assert.match(ui, /Supabase Auth is deliberately excluded/);
+  assert.match(ui, /Cloudflare-native sign-in is active/);
   assert.match(ui, /Cloudflare-only readiness/);
   assert.match(ui, /Supabase fingerprint evidence/);
   assert.match(ui, /migration 0029/);
   assert.match(ui, /Cutover blockers/);
   assert.match(ui, /cleanupDead/);
+});
+
+test("the report distinguishes an active native Cloudflare identity authority from legacy Supabase compatibility", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+  const saved = {
+    native: process.env.CLOUDFLARE_NATIVE_AUTH,
+    learner: process.env.CLOUDFLARE_DATA_MODE,
+    organization: process.env.ORGANIZATION_DATA_MODE,
+  };
+  process.env.CLOUDFLARE_NATIVE_AUTH = "1";
+  process.env.CLOUDFLARE_DATA_MODE = "cloudflare";
+  process.env.ORGANIZATION_DATA_MODE = "cloudflare";
+  try {
+    const report = await readiness.cloudflareMigrationReadinessReport(context.bindings, {
+      readSourceFingerprints: async () => source,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    });
+    assert.equal(report.supabaseAuth.authority, "cloudflare");
+    assert.match(report.supabaseAuth.reason, /temporary legacy-session bridge/);
+  } finally {
+    for (const [key, value] of Object.entries({
+      CLOUDFLARE_NATIVE_AUTH: saved.native,
+      CLOUDFLARE_DATA_MODE: saved.learner,
+      ORGANIZATION_DATA_MODE: saved.organization,
+    })) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
+test("a retired Supabase source is shown as historical, not as a live mismatch", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const saved = Object.fromEntries([
+    "CLOUDFLARE_NATIVE_AUTH",
+    "CLOUDFLARE_DATA_MODE",
+    "ORGANIZATION_DATA_MODE",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  ].map((key) => [key, process.env[key]]));
+  process.env.CLOUDFLARE_NATIVE_AUTH = "1";
+  process.env.CLOUDFLARE_DATA_MODE = "cloudflare";
+  process.env.ORGANIZATION_DATA_MODE = "cloudflare";
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_ANON_KEY;
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  let sourceRead = false;
+  try {
+    const report = await readiness.cloudflareMigrationReadinessReport(context.bindings, {
+      readSourceFingerprints: async () => {
+        sourceRead = true;
+        throw new Error("retired source must not be contacted");
+      },
+      readOutbox: async () => EMPTY_OUTBOX,
+    });
+    assert.equal(sourceRead, false);
+    assert.equal(report.sourceEvidence.status, "retired");
+    assert.equal(report.domains.slice(0, 8).every((domain) => domain.status === "authoritative"), true);
+    assert.ok(report.blockers.includes("source_parity: retired after cutover; historical comparison is no longer available"));
+    assert.equal(report.blockers.some((item) => /profiles: authoritative/.test(item)), false);
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 });
 
 test("a missing AVATAR_URL_SIGNING_KEY is named as a blocker even when every domain is otherwise equal", async () => {

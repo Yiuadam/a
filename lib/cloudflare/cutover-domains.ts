@@ -26,9 +26,8 @@ const MODULE = "lib/cloudflare/cutover-domains.ts";
  * lib/billing/entitlements.ts, once its D1 reader existed to call it for.
  * `admin_user_directory` and `admin_statistics` call it from
  * app/api/admin/users/route.ts, app/api/admin/users/[id]/route.ts and
- * app/api/admin/stats/route.ts — each only around the figures that are not
- * auth.users identity reads; see those domains' descriptions below for what
- * stays on Supabase regardless of the mode this returns.
+ * app/api/admin/stats/route.ts. Native identity additionally selects the D1
+ * roster whenever the legacy provider is no longer configured.
  */
 export type CutoverDomain =
   | "admin_user_directory"
@@ -58,38 +57,29 @@ export const CUTOVER_DOMAINS: readonly CutoverDomainDefinition[] = [
   {
     domain: "admin_user_directory",
     description:
-      "Per-account plan/access-source shown by the directory (both the list and the " +
-      "detail page) has a D1 read path (lib/cloudflare/admin-entitlement-directory.ts) " +
-      "used when this domain reads from Cloudflare; an account absent from the D1 " +
-      "mirror is marked d1_mirror_missing rather than shown as an ordinary free-tier " +
-      "account. The roster itself — which accounts exist, and their email, username, " +
-      "display name and registration date (admin_users_page / admin_user_detail) — is " +
-      "auth.users identity data and stays on Supabase regardless of this domain's mode, " +
-      "by the owner's decision that Supabase Auth is not migrating.",
+      "The list and detail pages have a D1-native roster reader " +
+      "(lib/cloudflare/admin-directory.ts) for account identity, profile, username, " +
+      "plan/access source, organisation seats and usage. It is used once native " +
+      "identity is active or Supabase is no longer configured; legacy mode retains the " +
+      "older RPC reader until the D1 identity backfill is verified.",
     supported: true,
   },
   {
     domain: "admin_statistics",
     description:
-      "admin_usage_daily and admin_usage_breakdown (lib/cloudflare/admin-stats.ts, pure " +
-      "usage_events reads) and admin_tier_counts (same file, via the entitlement " +
-      "resolver) have a D1 read path used when this domain reads from Cloudflare. " +
-      "admin_user_count and admin_signups_daily are auth.users identity reads and stay " +
-      "on Supabase regardless of this domain's mode, by the same decision as " +
-      "admin_user_directory above.",
+      "Daily usage, route breakdown, tier counts, live-account count and daily signups " +
+      "all have D1 readers in lib/cloudflare/admin-stats.ts. Identity totals retain the " +
+      "legacy RPC only until native identity is the selected authority, then count live " +
+      "D1 app_users so the console matches Cloudflare sign-in exactly.",
     supported: true,
   },
   {
     domain: "billing_entitlement_runtime",
     description:
-      "Entitlement checks (lib/billing/entitlements.ts) have a D1 read path " +
-      "(lib/cloudflare/entitlement-runtime.ts) and an admin parity tool " +
-      "(/api/admin/cloudflare/entitlement-parity) that resolves every account through " +
-      "both backends. Flipping this domain's mode still needs, in order: the " +
-      "subscriptions.provider and cloudflare_replica_outbox.operation widenings from " +
-      "the pull request that added this, the promo backfill it also describes, and a " +
-      "zero-mismatch run of the parity tool.",
-    supported: true,
+      "D1 has an entitlement reader, but Stripe webhook and promo mutations still write " +
+      "through Supabase before mirroring. This remains unsupported for a Cloudflare-only " +
+      "cutover until those verified payment writes and their reconciliation paths are native.",
+    supported: false,
   },
   {
     domain: "usage_quota_authority",

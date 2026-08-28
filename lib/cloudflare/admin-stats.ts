@@ -9,13 +9,10 @@ const MODULE = "lib/cloudflare/admin-stats.ts";
 const MAX_DAYS = 366;
 
 /*
-  The D1 half of supabase/migrations/0027_admin_usage_truth.sql's
-  admin_usage_daily, admin_usage_breakdown and admin_tier_counts — the three
-  figures the owner decided genuinely move, because they read `usage_events`
-  and the entitlement resolver rather than `auth.users` identity. See the
-  cutover-domain registry entry for `admin_statistics` for what deliberately
-  does *not* move (admin_user_count, admin_signups_daily): those are
-  auth.users reads, and Supabase Auth is not migrating.
+  The D1 half of the owner dashboard. Usage, breakdown and tier numbers read
+  D1 data already; account count and signup days move here too when native
+  Cloudflare identity is authoritative. The legacy RPC remains only as a
+  compatibility source until that cutover is enabled.
 */
 
 function clampDays(days: number): number {
@@ -67,6 +64,50 @@ export interface CloudflareAdminDayRow {
   day: string;
   admitted: number;
   denied: number;
+}
+
+export interface CloudflareAdminSignupDayRow {
+  day: string;
+  count: number;
+}
+
+/** Count every live D1-native account, including free learners. */
+export async function cloudflareAdminUserCount(
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<number> {
+  assertServerOnly(MODULE);
+  const { db } = providedBindings ?? await requireBandUpCloudflareBindings();
+  const row = await db.prepare(`
+    SELECT count(*) AS total
+      FROM app_users
+     WHERE deleted_at IS NULL
+  `).bind().first<{ total: number | string }>();
+  return Number(row?.total ?? 0);
+}
+
+/**
+ * UTC daily account registrations from D1's native identity roster.
+ *
+ * Zero days are material: the owner dashboard uses them to draw a continuous
+ * chart, so mirror Postgres's generate_series behaviour in JavaScript rather
+ * than omitting a day just because nobody joined.
+ */
+export async function cloudflareAdminSignupsDaily(
+  days: number,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<CloudflareAdminSignupDayRow[]> {
+  assertServerOnly(MODULE);
+  const { startInclusive, endExclusive, allDays } = utcDayWindow(days);
+  const { db } = providedBindings ?? await requireBandUpCloudflareBindings();
+  const query = await db.prepare(`
+    SELECT substr(created_at, 1, 10) AS day, count(*) AS count
+      FROM app_users
+     WHERE deleted_at IS NULL
+       AND created_at >= ? AND created_at < ?
+     GROUP BY day
+  `).bind(startInclusive, endExclusive).all<{ day: string; count: number | string }>();
+  const counts = new Map(query.results.map((row) => [row.day, Number(row.count)]));
+  return allDays.map((day) => ({ day, count: counts.get(day) ?? 0 }));
 }
 
 /**

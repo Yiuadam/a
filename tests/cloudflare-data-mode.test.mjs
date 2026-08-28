@@ -13,6 +13,9 @@ const bindings = await import(
 const cutoverDomains = await import(
   pathToFileURL(join(process.cwd(), "lib", "cloudflare", "cutover-domains.ts")).href
 );
+const accountRuntime = await import(
+  pathToFileURL(join(process.cwd(), "lib", "auth", "runtime.ts")).href
+);
 
 const LEARNER_MODE = "CLOUDFLARE_DATA_MODE";
 const ORGANIZATION_MODE = "ORGANIZATION_DATA_MODE";
@@ -142,6 +145,57 @@ test("read_cloudflare is reversible: only the read predicate changes relative to
   }
 });
 
+test("a native Cloudflare deployment remains account-enabled after Supabase credentials are removed", () => {
+  const names = [
+    "ACCOUNTS_ENABLED",
+    "CLOUDFLARE_NATIVE_AUTH",
+    LEARNER_MODE,
+    ORGANIZATION_MODE,
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  ];
+  const saved = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+  try {
+    process.env.ACCOUNTS_ENABLED = "1";
+    process.env.CLOUDFLARE_NATIVE_AUTH = "1";
+    process.env[LEARNER_MODE] = "cloudflare";
+    process.env[ORGANIZATION_MODE] = "cloudflare";
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_ANON_KEY;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    assert.equal(accountRuntime.accountRuntimeEnabled(), true);
+
+    process.env.CLOUDFLARE_NATIVE_AUTH = "0";
+    assert.equal(accountRuntime.accountRuntimeEnabled(), false);
+  } finally {
+    for (const name of names) restore(name, saved[name]);
+  }
+});
+
+test("Cloudflare-native account routes use the shared runtime-authority gate", () => {
+  const files = [
+    "app/api/account/profile/route.ts",
+    "app/api/account/progress/route.ts",
+    "app/api/account/avatar/route.ts",
+    "app/api/account/notifications/route.ts",
+    "app/api/organization/route.ts",
+    "app/api/organization/search/route.ts",
+    "app/api/organization/shortcut/route.ts",
+    "app/api/organization/students/[id]/route.ts",
+    "app/api/organization/history-policy/route.ts",
+  ];
+  for (const relativePath of files) {
+    const source = code(readFileSync(join(process.cwd(), relativePath), "utf8"));
+    assert.match(source, /accountRuntimeEnabled\(\)/, relativePath);
+  }
+  const gate = code(readFileSync(join(process.cwd(), "lib/billing/gate.ts"), "utf8"));
+  const usage = code(readFileSync(join(process.cwd(), "lib/usage/guard.ts"), "utf8"));
+  assert.match(gate, /accountRuntimeEnabled\(\)/);
+  assert.match(usage, /accountRuntimeEnabled\(\)/);
+  assert.match(usage, /cloudflareUsageAuthority/);
+});
+
 test("the cutover-domain registry lists exactly the ten domains a Cloudflare-only cutover cannot yet claim", () => {
   const expected = [
     "admin_user_directory",
@@ -160,25 +214,14 @@ test("the cutover-domain registry lists exactly the ten domains a Cloudflare-onl
     [...expected].sort(),
   );
   /*
-    Nine domains now have a proven implementation: the three payload-integrity
-    ones (lib/cloudflare/payload-parity.ts), `billing_entitlement_runtime`
-    (lib/cloudflare/entitlement-runtime.ts), the two write authorities
-    `usage_quota_authority` / `ai_cost_write_authority`, the two admin
-    readers `admin_user_directory` / `admin_statistics`
-    (lib/cloudflare/admin-entitlement-directory.ts, lib/cloudflare/admin-stats.ts)
-    — see the pull request that added the last pair for which of their figures
-    deliberately stay on Supabase regardless — and `avatar_object_parity`,
-    confirmed by a real admin-triggered byte comparison
-    (lib/cloudflare/avatar-parity.ts) on 2026-08-25. Only
-    `cutover_write_barrier` is still unaddressed, and deliberately so — see
-    its description in cutover-domains.ts for why that one can never be a
-    static `true`.
+    Eight domains now have a proven implementation. Billing entitlement reads
+    are D1-capable, but their payment mutations still require the source
+    writer, so that domain stays unsupported until the webhook path is native.
   */
   const supported = [
     "progress_payload_integrity",
     "billing_payload_object_parity",
     "provider_event_payload_object_parity",
-    "billing_entitlement_runtime",
     "usage_quota_authority",
     "ai_cost_write_authority",
     "admin_user_directory",

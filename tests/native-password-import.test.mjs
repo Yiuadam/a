@@ -16,14 +16,149 @@ const importer = await import(
 const workerImport = await import(
   pathToFileURL(join(process.cwd(), "lib", "cloudflare", "native-password-import.ts")).href
 );
+const nativeIdentity = await import(
+  pathToFileURL(join(process.cwd(), "lib", "cloudflare", "native-identity.ts")).href
+);
 
 const BCRYPT = "$2b$10$widJUK7jKi23MXNNqVykquB9Wm//RM1tzrMBFy/jZMJBIDUX3qrBm";
+
+function passwordBindings(row, batchResults = [{ success: true }, { success: true }]) {
+  const prepared = [];
+  return {
+    prepared,
+    bindings: {
+      db: {
+        prepare(query) {
+          return {
+            bind(...values) {
+              const statement = {
+                query,
+                values,
+                first: async () => /\bSELECT\b/.test(query) ? row : null,
+                run: async () => ({ success: true }),
+              };
+              prepared.push(statement);
+              return statement;
+            },
+          };
+        },
+        async batch(statements) {
+          assert.equal(statements.length, 2);
+          return batchResults;
+        },
+      },
+    },
+  };
+}
 
 test("Cloudflare validates and checks an imported Supabase-compatible bcrypt verifier", async () => {
   assert.equal(password.isImportedBcryptVerifier(BCRYPT), true);
   assert.equal(password.isImportedBcryptVerifier("$2b$99$not-a-verifier"), false);
   assert.equal(await password.verifyImportedBcryptPassword("BandUp non-matching bcrypt timing value", BCRYPT), true);
   assert.equal(await password.verifyImportedBcryptPassword("wrong password", BCRYPT), false);
+  assert.equal(await password.verifyImportedBcryptPassword("", BCRYPT), false);
+  assert.equal(await password.verifyImportedBcryptPassword("a".repeat(201), BCRYPT), false);
+  assert.equal(await password.verifyImportedBcryptPassword("password", "not-a-bcrypt-verifier"), false);
+});
+
+test("native password sign-in performs the bounded D1 path and fails closed", async () => {
+  const row = {
+    id: "11111111-1111-4111-8111-111111111111",
+    email: "person@example.com",
+    created_at: "2026-08-28T00:00:00.000Z",
+    deleted_at: null,
+    verifier: BCRYPT,
+    scheme: "bcrypt",
+    status: "active",
+  };
+  const now = Date.UTC(2026, 7, 28, 1);
+  const active = passwordBindings(row);
+  const session = await password.signInWithImportedNativePassword(
+    row.email,
+    "BandUp non-matching bcrypt timing value",
+    "a dedicated test session signing secret",
+    active.bindings,
+    now,
+  );
+  assert.ok(session?.accessToken);
+  assert.ok(session?.refreshToken);
+  assert.equal(session?.email, row.email);
+  assert.equal(active.prepared.filter((statement) => statement.query.includes("app_auth_sessions")).length, 1);
+
+  const wrongPassword = passwordBindings(row);
+  assert.equal(await password.signInWithImportedNativePassword(
+    row.email,
+    "wrong password",
+    "a dedicated test session signing secret",
+    wrongPassword.bindings,
+    now,
+  ), null);
+  assert.equal(wrongPassword.prepared.filter((statement) => statement.query.includes("app_auth_sessions")).length, 0);
+
+  for (const invalidRow of [
+    null,
+    { ...row, deleted_at: "2026-08-28T00:00:00.000Z" },
+    { ...row, scheme: "legacy" },
+    { ...row, status: "disabled" },
+    { ...row, verifier: "not-a-bcrypt-verifier" },
+  ]) {
+    const rejected = passwordBindings(invalidRow);
+    assert.equal(await password.signInWithImportedNativePassword(
+      row.email,
+      "BandUp non-matching bcrypt timing value",
+      "a dedicated test session signing secret",
+      rejected.bindings,
+      now,
+    ), null);
+  }
+
+  for (const [email, secret] of [["", "secret"], ["a".repeat(255), "secret"], [row.email, ""]]) {
+    assert.equal(await password.signInWithImportedNativePassword(email, "password", secret, undefined, now), null);
+  }
+
+  const failedWrite = passwordBindings(row, [{ success: false }, { success: true }]);
+  await assert.rejects(
+    password.signInWithImportedNativePassword(
+      row.email,
+      "BandUp non-matching bcrypt timing value",
+      "a dedicated test session signing secret",
+      failedWrite.bindings,
+      now,
+    ),
+    /credential could not be recorded/,
+  );
+});
+
+test("a verified legacy identity is bridged only to its existing live D1 user", async () => {
+  const row = {
+    id: "11111111-1111-4111-8111-111111111111",
+    email: "person@example.com",
+    created_at: "2026-08-28T00:00:00.000Z",
+    deleted_at: null,
+  };
+  const now = Date.UTC(2026, 7, 28, 1);
+  const live = passwordBindings(row);
+  const upgraded = await nativeIdentity.bridgeLegacyBrowserSession(
+    { id: row.id, email: "legacy-email-ignored@example.com", createdAt: row.created_at },
+    "a dedicated test session signing secret",
+    live.bindings,
+    now,
+  );
+  assert.ok(upgraded?.accessToken);
+  assert.ok(upgraded?.refreshToken);
+  assert.equal(upgraded?.email, row.email, "the bridge uses D1's identity record");
+  assert.equal(live.prepared.filter((statement) => statement.query.includes("app_auth_sessions")).length, 1);
+
+  for (const invalidRow of [null, { ...row, deleted_at: "2026-08-28T00:00:00.000Z" }]) {
+    const rejected = passwordBindings(invalidRow);
+    assert.equal(await nativeIdentity.bridgeLegacyBrowserSession(
+      { id: row.id, email: row.email, createdAt: row.created_at },
+      "a dedicated test session signing secret",
+      rejected.bindings,
+      now,
+    ), null);
+    assert.equal(rejected.prepared.filter((statement) => statement.query.includes("app_auth_sessions")).length, 0);
+  }
 });
 
 test("the private import parser and Worker transaction validate source ownership without exposing a verifier", () => {
@@ -94,6 +229,9 @@ test("native password auth is server-only, gated, and never falls back to Supaba
   const nativeImport = readFileSync(join(process.cwd(), "lib", "cloudflare", "native-password-import.ts"), "utf8");
   const routeImport = readFileSync(join(process.cwd(), "app", "api", "admin", "cloudflare", "password-import", "route.ts"), "utf8");
   const migration = readFileSync(join(process.cwd(), "cloudflare", "migrations", "0016_cloudflare_password_credentials.sql"), "utf8");
+  const upgrade = readFileSync(join(process.cwd(), "app", "api", "auth", "native", "upgrade", "route.ts"), "utf8");
+  const browserUpgrade = readFileSync(join(process.cwd(), "components", "account", "NativeSessionUpgrade.tsx"), "utf8");
+  const refresh = readFileSync(join(process.cwd(), "app", "api", "auth", "refresh", "route.ts"), "utf8");
   assert.match(route, /const nativeActive = nativeAuthCutoverActive\(\)/);
   assert.match(route, /!nativeActive && !supabaseConfigured\(\)/);
   assert.match(route, /signInWithImportedNativePassword/);
@@ -108,4 +246,16 @@ test("native password auth is server-only, gated, and never falls back to Supaba
   assert.match(routeImport, /Cache-Control": "private, no-store/);
   assert.match(migration, /REFERENCES app_users\(id\) ON DELETE CASCADE/);
   assert.match(migration, /scheme = 'bcrypt'/);
+  assert.match(upgrade, /nativeAuthCutoverActive\(\)/);
+  assert.match(upgrade, /userFromAccessToken/);
+  assert.match(upgrade, /bridgeLegacyBrowserSession/);
+  assert.match(upgrade, /looksLikeNativeAccessToken/);
+  assert.match(upgrade, /Cache-Control": "private, no-store/);
+  assert.match(browserUpgrade, /upgradeLegacySession/);
+  assert.match(browserUpgrade, /getSnapshot\(\)\?\.accessToken === session\.accessToken/);
+  assert.match(refresh, /refreshNativeBrowserSession\(token, signingKey\)/);
+  assert.match(refresh, /if \(session\) return NextResponse\.json\(session\)/);
+  assert.match(refresh, /if \(!supabaseConfigured\(\)\)/);
+  assert.match(refresh, /const legacySession = await refreshAccessToken\(token\)/);
+  assert.match(refresh, /auth\/refresh\/legacy-bridge/);
 });

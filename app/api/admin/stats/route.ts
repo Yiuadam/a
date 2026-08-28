@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
 import { rpc, supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { billingSnapshot } from "@/lib/billing/stripe";
 import { stripeConfigured } from "@/lib/billing/env";
 import { withCors } from "@/lib/http/cors";
 import { logInternal } from "@/lib/auth/errors";
 import { domainReadsFromCloudflare } from "@/lib/cloudflare/cutover-domains";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
 import {
+  cloudflareAdminSignupsDaily,
+  cloudflareAdminUserCount,
   cloudflareAdminUsageDaily,
   cloudflareAdminUsageBreakdown,
   cloudflareAdminTierCounts,
@@ -32,11 +36,11 @@ import {
   ---------------------------------------------------------------------------
   Which figures can move to D1, and which never will
 
-  `users` (admin_user_count) and `signups` (admin_signups_daily) read
-  `auth.users` — Supabase Auth's own table. Auth is not migrating, so these
-  two stay on the Supabase RPC unconditionally, regardless of what
-  `admin_statistics`'s cutover mode says. That is a decision, not unfinished
-  work — see lib/cloudflare/cutover-domains.ts.
+  `users` and `signups` move with native identity. Until the D1 identity
+  roster is authoritative they retain the legacy RPC source; afterwards the
+  dashboard counts only live `app_users`, exactly the accounts native sign-in
+  can resolve. This keeps the dashboard truthful through the final cutover
+  rather than presenting an old provider's roster as current.
 
   `usage`, `usageBreakdown` and `tiers` read `usage_events` and the
   entitlement resolver, neither of which is an identity read, so each has a
@@ -74,7 +78,7 @@ async function safe<T>(what: string, run: () => Promise<T>): Promise<T | null> {
 }
 
 async function handleGET(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  if (!accountsEnabled() || !accountRuntimeEnabled()) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const user = await getSessionUser(req).catch(() => null);
@@ -87,10 +91,15 @@ async function handleGET(req: Request) {
     how long the owner stares at a spinner. Stripe is usually the slow one.
   */
   const statisticsFromCloudflare = domainReadsFromCloudflare("admin_statistics");
+  const nativeIdentityFromCloudflare = !supabaseConfigured()
+    || (nativeAuthCutoverActive() && domainReadsFromCloudflare("admin_user_directory"));
   const [users, signups, usage, usageBreakdown, tiers, billing] = await Promise.all([
-    // auth.users identity reads. Always Supabase — see the note above.
-    safe("users", () => rpc<number>("admin_user_count", {})),
-    safe("signups", () => rpc<DayRow[]>("admin_signups_daily", { p_days: DAYS })),
+    safe("users", () => nativeIdentityFromCloudflare
+      ? cloudflareAdminUserCount()
+      : rpc<number>("admin_user_count", {})),
+    safe<DayRow[]>("signups", () => nativeIdentityFromCloudflare
+      ? cloudflareAdminSignupsDaily(DAYS)
+      : rpc<DayRow[]>("admin_signups_daily", { p_days: DAYS })),
     safe("usage", (): Promise<DayRow[]> =>
       statisticsFromCloudflare
         ? cloudflareAdminUsageDaily(DAYS, user.id)

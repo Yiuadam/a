@@ -62,6 +62,35 @@ async function signedGoogleToken(payload) {
   return `${unsigned}.${base64Url(signature)}`;
 }
 
+async function signedNativeToken(payload, secret, header = { alg: "HS256", typ: "JWT" }) {
+  const headerPart = jsonPart(header);
+  const body = jsonPart(payload);
+  const unsigned = `${headerPart}.${body}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(unsigned));
+  return `${unsigned}.${base64Url(signature)}`;
+}
+
+function nativePayload(now, overrides = {}) {
+  const issuedAt = Math.floor(now / 1000);
+  return {
+    iss: "bandup.cloudflare",
+    aud: "bandup-api",
+    sub: "11111111-1111-4111-8111-111111111111",
+    email: "learner@example.test",
+    sid: "session-11111111-1111-4111-8111-111111111111",
+    iat: issuedAt,
+    exp: issuedAt + nativeSession.ACCESS_TOKEN_SECONDS,
+    ...overrides,
+  };
+}
+
 test("BandUp-native access tokens are signed, scoped and short-lived", async () => {
   const secret = "a dedicated test session signing secret";
   const now = Date.UTC(2026, 7, 28, 0, 0, 0);
@@ -95,6 +124,75 @@ test("BandUp-native access tokens are signed, scoped and short-lived", async () 
   assert.equal(await nativeSession.userFromNativeAccessToken(created.accessToken, secret, now - 1), null);
 });
 
+test("native session rejects malformed headers and every invalid signed claim", async () => {
+  const secret = "a dedicated test session signing secret";
+  const now = Date.UTC(2026, 7, 28, 0, 0, 0);
+  const invalidClaims = [
+    { iss: "someone-else" },
+    { aud: "another-api" },
+    { sub: "too-short" },
+    { sub: 42 },
+    { sub: "a".repeat(81) },
+    { email: 42 },
+    { sid: "too-short" },
+    { sid: 42 },
+    { iat: Math.floor(now / 1000) + 0.5 },
+    { exp: Math.floor(now / 1000) + 0.5 },
+    { exp: Math.floor(now / 1000) },
+  ];
+
+  for (const overrides of invalidClaims) {
+    const token = await signedNativeToken(nativePayload(now, overrides), secret);
+    assert.equal(await nativeSession.verifyNativeAccessToken(token, secret, now + 1), null, JSON.stringify(overrides));
+  }
+
+  for (const header of [{ alg: "none", typ: "JWT" }, { alg: "HS256", typ: "not-a-jwt" }]) {
+    const token = await signedNativeToken(nativePayload(now), secret, header);
+    assert.equal(await nativeSession.verifyNativeAccessToken(token, secret, now + 1), null, JSON.stringify(header));
+  }
+
+  assert.equal(await nativeSession.verifyNativeAccessToken("", secret, now), null);
+  assert.equal(await nativeSession.verifyNativeAccessToken("header.payload", secret, now), null);
+  assert.equal(await nativeSession.verifyNativeAccessToken("not-base64.payload.signature", secret, now), null);
+  assert.equal(await nativeSession.verifyNativeAccessToken("a".repeat(4097), secret, now), null);
+  assert.equal(nativeSession.looksLikeNativeAccessToken("not-a-token"), false);
+  assert.match(nativeSession.randomSessionToken(12), /^[A-Za-z0-9_-]{16}$/);
+  assert.equal(await nativeSession.sha256Hex("BandUp"), "83337a9ccf5b0b83163f1795e2a9101c04d56867afcbddcc720ec04e18ac348e");
+});
+
+test("native session accepts externally signed boundary claims and rejects an unscoped token", async () => {
+  const secret = "a dedicated test session signing secret";
+  const now = Date.UTC(2026, 7, 28, 0, 0, 0);
+  const boundary = nativePayload(now, {
+    sub: "u".repeat(16),
+    sid: "s".repeat(16),
+    email: null,
+  });
+  const minimum = await signedNativeToken(boundary, secret);
+  assert.deepEqual(await nativeSession.verifyNativeAccessToken(minimum, secret, now), {
+    user: { id: boundary.sub, email: null, createdAt: null },
+    sessionId: boundary.sid,
+    expiresAt: boundary.exp * 1000,
+  });
+
+  const maximum = nativePayload(now, { sub: "u".repeat(80) });
+  assert.equal((await nativeSession.verifyNativeAccessToken(
+    await signedNativeToken(maximum, secret),
+    secret,
+    now,
+  ))?.user.id, maximum.sub);
+
+  const equalTimes = nativePayload(now, { exp: Math.floor(now / 1000) });
+  assert.equal(await nativeSession.verifyNativeAccessToken(
+    await signedNativeToken(equalTimes, secret),
+    now,
+  ), null);
+  assert.equal(nativeSession.looksLikeNativeAccessToken(
+    `header.${jsonPart({ iss: "bandup.cloudflare", aud: "somewhere-else" })}.signature`,
+  ), false);
+  assert.notEqual(nativeSession.randomSessionToken(12), nativeSession.randomSessionToken(12));
+});
+
 test("Google credentials require a real Google signature, audience, issuer, expiry and nonce", async () => {
   const savedFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
@@ -121,6 +219,86 @@ test("Google credentials require a real Google signature, audience, issuer, expi
     assert.equal(await google.verifyGoogleIdToken(token, "wrong-client", nonce, now), null);
     assert.equal(await google.verifyGoogleIdToken(token, payload.aud, "wrong-nonce", now), null);
     assert.equal(await google.verifyGoogleIdToken(token, payload.aud, nonce, now + 601_000), null);
+
+    const invalidClaims = [
+      { sub: "" },
+      { sub: "a".repeat(256) },
+      { email: "x" },
+      { email: "a".repeat(250) + "@example.test" },
+      { email_verified: false },
+      { aud: "another-client" },
+      { iss: "not-google" },
+      { exp: Math.floor(now / 1000) },
+      { nonce: "not-the-right-nonce" },
+    ];
+    for (const overrides of invalidClaims) {
+      const invalid = await signedGoogleToken({ ...payload, ...overrides });
+      assert.equal(await google.verifyGoogleIdToken(invalid, payload.aud, nonce, now), null, JSON.stringify(overrides));
+    }
+
+    const wrongHeader = `${jsonPart({ alg: "none", typ: "JWT", kid: GOOGLE_PUBLIC_JWK.kid })}.${token.split(".")[1]}.${token.split(".")[2]}`;
+    assert.equal(await google.verifyGoogleIdToken(wrongHeader, payload.aud, nonce, now), null);
+    assert.equal(await google.verifyGoogleIdToken("", payload.aud, nonce, now), null);
+    assert.equal(await google.verifyGoogleIdToken("a.b.c", payload.aud, nonce, now), null);
+    assert.equal(await google.verifyGoogleIdToken(token, payload.aud, nonce, now, "raw"), null);
+    assert.equal(await google.verifyGoogleIdToken(token, "", nonce, now), null);
+    assert.equal(await google.verifyGoogleIdToken(token, payload.aud, "", now), null);
+    assert.equal(await google.verifyGoogleIdToken(token, payload.aud, "n".repeat(257), now), null);
+  } finally {
+    globalThis.fetch = savedFetch;
+  }
+});
+
+test("Google identity verification fails closed when key discovery is malformed or untrusted", async () => {
+  const savedFetch = globalThis.fetch;
+  const now = Date.UTC(2026, 7, 28, 0, 0, 0);
+  const nonce = "the-browser-only-raw-nonce";
+  const payload = {
+    iss: "accounts.google.com",
+    aud: "bandup-google-client.apps.googleusercontent.com",
+    sub: "google-user-subject-123",
+    email: "learner@example.test",
+    email_verified: "true",
+    exp: Math.floor(now / 1000) + 600,
+    nonce: nonce,
+  };
+  const token = await signedGoogleToken(payload);
+  const invalidKeys = [
+    { ...GOOGLE_PUBLIC_JWK, kid: "another-key" },
+    { ...GOOGLE_PUBLIC_JWK, kty: "EC" },
+    { ...GOOGLE_PUBLIC_JWK, alg: "ES256" },
+    { ...GOOGLE_PUBLIC_JWK, use: "enc" },
+  ];
+  try {
+    for (const key of invalidKeys) {
+      globalThis.fetch = async () => Response.json({ keys: [key] });
+      assert.equal(await google.verifyGoogleIdToken(token, payload.aud, nonce, now, "raw"), null);
+    }
+    globalThis.fetch = async () => new Response("unavailable", { status: 503 });
+    assert.equal(await google.verifyGoogleIdToken(token, payload.aud, nonce, now, "raw"), null);
+    globalThis.fetch = async () => new Response("not-json", { status: 200, headers: { "content-type": "application/json" } });
+    assert.equal(await google.verifyGoogleIdToken(token, payload.aud, nonce, now, "raw"), null);
+    globalThis.fetch = async () => {
+      throw new Error("network down");
+    };
+    assert.equal(await google.verifyGoogleIdToken(token, payload.aud, nonce, now, "raw"), null);
+    globalThis.fetch = async () => Response.json({ keys: {} });
+    assert.equal(await google.verifyGoogleIdToken(token, payload.aud, nonce, now, "raw"), null);
+    globalThis.fetch = async () => Response.json({ keys: [GOOGLE_PUBLIC_JWK] });
+    assert.deepEqual(await google.verifyGoogleIdToken(token, payload.aud, nonce, now, "raw"), {
+      subject: payload.sub,
+      email: payload.email,
+      emailVerified: true,
+    });
+
+    const shortSubject = { ...payload, sub: "x" };
+    const longSubject = { ...payload, sub: "x".repeat(255) };
+    const shortEmail = { ...payload, email: "a@b" };
+    const longEmail = { ...payload, email: `${"a".repeat(241)}@example.test` };
+    for (const boundary of [shortSubject, longSubject, shortEmail, longEmail]) {
+      const boundaryToken = await signedGoogleToken(boundary);
+      assert.equal((await google.verifyGoogleIdToken(boundaryToken, payload.aud, nonce, now, "raw"))?.subject, boundary.sub);
+    }
   } finally {
     globalThis.fetch = savedFetch;
   }

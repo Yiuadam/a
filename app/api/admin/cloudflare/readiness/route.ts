@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
-import { supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { requireBandUpCloudflareBindings } from "@/lib/cloudflare/bindings";
 import {
   cloudflareDomainDriftReport,
@@ -25,7 +25,7 @@ import { withCors } from "@/lib/http/cors";
 export const dynamic = "force-dynamic";
 
 async function handleGET(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  if (!accountsEnabled() || !accountRuntimeEnabled()) {
     return safeJsonError("Not found.", 404);
   }
   const actor = await getSessionUser(req).catch(() => null);

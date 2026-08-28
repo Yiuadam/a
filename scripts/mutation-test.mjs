@@ -117,8 +117,8 @@ const mutants = [
     area: "cutover",
     id: "both-data-authorities-required",
     file: "lib/cloudflare/native-auth-readiness.ts",
-    from: 'ready: learner === "cloudflare" && organization === "cloudflare",',
-    to: 'ready: learner === "cloudflare" || organization === "cloudflare",',
+    from: "ready: writesToCloudflareOnly() && organizationWritesToCloudflareOnly(),",
+    to: "ready: writesToCloudflareOnly() || organizationWritesToCloudflareOnly(),",
   },
   {
     area: "cutover",

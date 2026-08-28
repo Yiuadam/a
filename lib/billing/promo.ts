@@ -8,6 +8,13 @@ import {
   promoSubscriptionReplica,
 } from "@/lib/auth/supabase";
 import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
+import { domainWritesToCloudflareOnly } from "@/lib/cloudflare/cutover-domains";
+import {
+  nativeInsertPromoSubscription,
+  nativePromoSubscriptionState,
+  nativeReleasePromoSubscription,
+  nativeResumePromoSubscription,
+} from "@/lib/cloudflare/native-promo";
 import { replicatePromoSubscriptionDurably } from "@/lib/cloudflare/replica-replay";
 import { resolveEntitlement } from "./entitlements";
 import type { Tier } from "./tiers";
@@ -97,6 +104,11 @@ const MODULE = "lib/billing/promo.ts";
  */
 let capability: { allowed: boolean; at: number } | null = null;
 const NEGATIVE_TTL_MS = 60_000;
+const NATIVE_PROBE_USER = "00000000-0000-0000-0000-000000000000";
+
+function nativePromoAuthority(): boolean {
+  return domainWritesToCloudflareOnly("billing_entitlement_runtime");
+}
 
 export function forgetPromoCapability(): void {
   capability = null;
@@ -107,9 +119,24 @@ export async function promoWriteSupported(now = Date.now()): Promise<boolean> {
   if (capability && (capability.allowed || now - capability.at < NEGATIVE_TTL_MS)) {
     return capability.allowed;
   }
-  const allowed = await promoProviderAllowed();
+  /*
+    In the one-way Cloudflare mode the D1 migration already carries the promo
+    provider constraint.  Ask the real table rather than retaining a
+    Supabase-only capability probe which would make a fully migrated account
+    appear unable to take its trial.  The impossible all-zero id writes
+    nothing; this is only a schema/binding availability probe.
+  */
+  const allowed = nativePromoAuthority()
+    ? await nativePromoSubscriptionState(NATIVE_PROBE_USER).then(() => true).catch(() => false)
+    : await promoProviderAllowed();
   capability = { allowed, at: now };
   return allowed;
+}
+
+async function promoState(userId: string) {
+  return nativePromoAuthority()
+    ? nativePromoSubscriptionState(userId)
+    : promoSubscriptionState(userId);
 }
 
 /**
@@ -169,7 +196,7 @@ export async function promoOfferFor(
   if (!(await promoWriteSupported())) {
     return { offered: false, reason: "not-open", grantHeld: false };
   }
-  const state = await promoSubscriptionState(userId);
+  const state = await promoState(userId);
   if (state === "none" || state === "released") {
     return { offered: true, reason: "offered", grantHeld: false };
   }
@@ -237,7 +264,7 @@ export async function acceptPromo(
   if (alreadyCovered(entitlement.tier)) return "already-pro";
   if (!(await promoWriteSupported())) return "not-open";
 
-  const state = await promoSubscriptionState(userId);
+  const state = await promoState(userId);
   /*
     A row that no longer grants anything and was not the learner's own doing:
     the owner ended the trial. Say so, rather than writing a second row that
@@ -254,7 +281,9 @@ export async function acceptPromo(
       work equally well today and would leave the account with two grants and no
       record of which one the owner's sweep has already dealt with.
     */
-    const resumed = await resumePromoSubscription(userId);
+    const resumed = nativePromoAuthority()
+      ? await nativeResumePromoSubscription(userId)
+      : await resumePromoSubscription(userId);
     if (resumed === "changed") {
       /*
         The resumed row is a status change on a row D1 may already hold, not a
@@ -275,7 +304,9 @@ export async function acceptPromo(
     return "failed";
   }
 
-  const outcome = await insertPromoSubscription(userId);
+  const outcome = nativePromoAuthority()
+    ? await nativeInsertPromoSubscription(userId)
+    : await insertPromoSubscription(userId);
   if (outcome === "inserted") {
     await mirrorPromoBestEffort(userId);
     return "granted";
@@ -341,7 +372,9 @@ export async function releasePromo(
   const entitlement = await resolveEntitlement(userId, email);
   if (entitlement.source !== "promo") return { outcome: "not-held", tier: null };
 
-  const outcome = await releasePromoSubscription(userId);
+  const outcome = nativePromoAuthority()
+    ? await nativeReleasePromoSubscription(userId)
+    : await releasePromoSubscription(userId);
   if (outcome === "unsupported") {
     forgetPromoCapability();
     return { outcome: "not-open", tier: null };

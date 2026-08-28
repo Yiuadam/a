@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
-import { supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { acceptPromo, payingWhileFree, promoOfferFor, releasePromo } from "@/lib/billing/promo";
@@ -50,7 +49,7 @@ const PROMO_MESSAGES = {
 } as const;
 
 async function handleGET(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  if (!accountRuntimeEnabled()) {
     return NextResponse.json({ offered: false, payingWhileFree: false, grantHeld: false });
   }
   try {
@@ -94,7 +93,7 @@ async function handleGET(req: Request) {
 }
 
 async function handlePOST(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  if (!accountRuntimeEnabled()) {
     return safeJsonError(PROMO_MESSAGES.notOpen, 503);
   }
 
@@ -129,7 +128,7 @@ async function handlePOST(req: Request) {
 }
 
 async function handleDELETE(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  if (!accountRuntimeEnabled()) {
     return safeJsonError(PROMO_MESSAGES.releaseUnavailable, 503);
   }
 

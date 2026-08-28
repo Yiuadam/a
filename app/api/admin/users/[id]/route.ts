@@ -2,6 +2,7 @@ import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
 import { getSessionUser } from "@/lib/auth/session";
 import { safeJsonError } from "@/lib/auth/errors";
 import { rpc, supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { withCors } from "@/lib/http/cors";
 import { applyOwnerEffectiveAccessToDetail } from "@/lib/admin/effective-access";
 import { getLearnerProgressSnapshots } from "@/lib/cloudflare/data-router";
@@ -11,6 +12,7 @@ import { organizationDataMode } from "@/lib/cloudflare/bindings";
 import { domainReadsFromCloudflare } from "@/lib/cloudflare/cutover-domains";
 import { cloudflareAdminOrganizationSeats } from "@/lib/cloudflare/admin-organization-access";
 import { cloudflareAdminDirectoryEntitlements } from "@/lib/cloudflare/admin-entitlement-directory";
+import { cloudflareAdminDirectoryDetail } from "@/lib/cloudflare/admin-directory";
 
 export const dynamic = "force-dynamic";
 
@@ -32,12 +34,35 @@ interface AdminUserDetail {
 }
 
 async function handleGET(req: Request, context: RouteContext<"/api/admin/users/[id]">) {
-  if (!accountsEnabled() || !supabaseConfigured()) return safeJsonError("Not found.", 404);
+  if (!accountsEnabled() || !accountRuntimeEnabled()) return safeJsonError("Not found.", 404);
   const actor = await getSessionUser(req).catch(() => null);
   if (!actor || !isAdminEmail(actor.email)) return safeJsonError("Not found.", 404);
   const { id } = await context.params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return safeJsonError("Not found.", 404);
   try {
+    const directoryFromCloudflare = domainReadsFromCloudflare("admin_user_directory")
+      || !supabaseConfigured();
+    if (directoryFromCloudflare) {
+      const directory = await cloudflareAdminDirectoryDetail(id);
+      if (!directory) return safeJsonError("Not found.", 404);
+      const snapshots = await getLearnerProgressSnapshots({ id: directory.id, email: directory.email });
+      const progress = adminProgressFromSnapshots(snapshots, true)
+        ?? { progressAvailable: false };
+      const effective = applyOwnerEffectiveAccessToDetail({
+        id: directory.id,
+        email: directory.email,
+        username: directory.username,
+        displayName: directory.displayName,
+        registeredAt: directory.registeredAt,
+        plan: directory.plan,
+        accessSource: directory.accessSource,
+        usage: directory.usage,
+        d1MirrorMissing: false,
+      });
+      const organizationSeats = (await cloudflareAdminOrganizationSeats([directory.id])).get(directory.id) ?? [];
+      return Response.json({ ...effective, organizationSeats, ...progress });
+    }
+
     let user = await rpc<AdminUserDetail | null>("admin_user_detail", { p_user_id: id });
     if (!user) return safeJsonError("Not found.", 404);
     if (domainReadsFromCloudflare("admin_user_directory")) {

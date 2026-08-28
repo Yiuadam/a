@@ -1,8 +1,7 @@
 import { after, NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
 import { logInternal, MESSAGES, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
-import { supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { withCors } from "@/lib/http/cors";
 import { isOrganizationAction } from "@/lib/organizations/actions";
 import { OrganizationCommandError } from "@/lib/cloudflare/organization-commands";
@@ -28,7 +27,7 @@ async function requireUser(req: Request) {
   // Fail closed on the dedicated preview host. In particular, a malformed
   // role header must never fall through to a real Supabase session.
   if (previewRequest) return { error: "preview_role" as const };
-  if (!accountsEnabled() || !supabaseConfigured()) return { error: "off" as const };
+  if (!accountRuntimeEnabled()) return { error: "off" as const };
   const user = await getSessionUser(req).catch(() => null);
   return user ? { user } : { error: "anon" as const };
 }

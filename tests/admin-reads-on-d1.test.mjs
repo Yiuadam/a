@@ -1,14 +1,11 @@
 /*
   `admin_user_directory` and `admin_statistics`'s D1 read paths.
 
-  What genuinely moves to D1: admin_usage_daily and admin_usage_breakdown
-  (pure usage_events reads), admin_tier_counts (via the entitlement
-  resolver), and the per-account plan/access-source the directory shows —
-  both on the list and the detail page. admin_user_count, admin_signups_daily
-  and the roster itself (which accounts exist, their email/username/display
-  name/registration date) are auth.users identity reads and stay on Supabase
-  regardless of either domain's mode, by the owner's decision that Supabase
-  Auth is not migrating.
+  The native Cloudflare paths now include the entire owner roster and the
+  identity dashboard totals: email/profile/username, registration date,
+  plan, organisation seats, usage, account count and signup days. Legacy RPC
+  reads remain only while Supabase is configured as an explicit transition
+  source.
 
   Every fix below was stash-verified: reverted, watched the test fail,
   restored. See the pull request for the revert/fails table.
@@ -27,7 +24,8 @@ const ROOT = process.cwd();
 const load = (...parts) => import(pathToFileURL(join(ROOT, ...parts)).href);
 
 const adminStats = await load("lib", "cloudflare", "admin-stats.ts");
-const adminDirectory = await load("lib", "cloudflare", "admin-entitlement-directory.ts");
+const adminEntitlements = await load("lib", "cloudflare", "admin-entitlement-directory.ts");
+const nativeDirectory = await load("lib", "cloudflare", "admin-directory.ts");
 const sourceClockModule = await load("lib", "cloudflare", "source-clock.ts");
 const { canonicalCloudflareSourceClock } = sourceClockModule;
 
@@ -57,6 +55,12 @@ function freshD1() {
 
 function insertUser(database, id, email, deletedAt = null) {
   const clock = canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z");
+  database.prepare(`INSERT INTO app_users (id, email, role, created_at, updated_at, deleted_at)
+    VALUES (?, ?, 'user', ?, ?, ?)`).run(id, email, clock, clock, deletedAt);
+}
+
+function insertUserAt(database, id, email, createdAt, deletedAt = null) {
+  const clock = canonicalCloudflareSourceClock(createdAt);
   database.prepare(`INSERT INTO app_users (id, email, role, created_at, updated_at, deleted_at)
     VALUES (?, ?, 'user', ?, ?, ?)`).run(id, email, clock, clock, deletedAt);
 }
@@ -149,6 +153,24 @@ test("cloudflareAdminUsageBreakdown groups by route, decision and caller, identi
   ]);
 });
 
+test("Cloudflare-native identity totals count only live D1 accounts and zero-fill daily signups", async () => {
+  const database = freshD1();
+  const bindings = { db: runtimeD1(database) };
+  const today = utcInstant(0, 9);
+  const yesterday = utcInstant(1, 9);
+  insertUserAt(database, "50000000-0000-4000-8000-000000000041", "today@example.test", today);
+  insertUserAt(database, "50000000-0000-4000-8000-000000000042", "yesterday@example.test", yesterday);
+  insertUserAt(database, "50000000-0000-4000-8000-000000000043", "gone@example.test", today, today);
+
+  assert.equal(await adminStats.cloudflareAdminUserCount(bindings), 2);
+  const signups = await adminStats.cloudflareAdminSignupsDaily(3, bindings);
+  assert.deepEqual(signups, [
+    { day: utcDayString(2), count: 0 },
+    { day: utcDayString(1), count: 1 },
+    { day: utcDayString(0), count: 1 },
+  ]);
+});
+
 test("cloudflareAdminTierCounts ranks by tier, treats the admin id as 'admin', and excludes deleted accounts", async () => {
   const database = freshD1();
   const bindings = { db: runtimeD1(database) };
@@ -190,7 +212,7 @@ test("cloudflareAdminDirectoryEntitlements marks an id with no app_users row as 
   insertUser(database, mirrored, "mirrored@example.test");
   insertSubscription(database, { id: "d1", userId: mirrored, provider: "stripe", status: "active", tier: "plus", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
 
-  const result = await adminDirectory.cloudflareAdminDirectoryEntitlements([mirrored, unmirrored], bindings);
+  const result = await adminEntitlements.cloudflareAdminDirectoryEntitlements([mirrored, unmirrored], bindings);
   assert.deepEqual(result.get(mirrored), { mirrored: true, tier: "plus", source: "stripe" });
   assert.equal(result.get(unmirrored).mirrored, false, "Auth knows this id; D1 does not — it must say so, not resolve to free");
 });
@@ -201,7 +223,7 @@ test("cloudflareAdminDirectoryEntitlements resolves a mirrored account with no a
   const id = "50000000-0000-4000-8000-000000000012";
   insertUser(database, id, "nosub@example.test");
 
-  const result = await adminDirectory.cloudflareAdminDirectoryEntitlements([id], bindings);
+  const result = await adminEntitlements.cloudflareAdminDirectoryEntitlements([id], bindings);
   assert.deepEqual(result.get(id), { mirrored: true, tier: "free", source: "default" });
 });
 
@@ -211,7 +233,7 @@ test("cloudflareAdminDirectoryEntitlements ignores a soft-deleted app_users row,
   const id = "50000000-0000-4000-8000-000000000013";
   insertUser(database, id, "gone2@example.test", canonicalCloudflareSourceClock("2026-06-01T00:00:00.000Z"));
 
-  const result = await adminDirectory.cloudflareAdminDirectoryEntitlements([id], bindings);
+  const result = await adminEntitlements.cloudflareAdminDirectoryEntitlements([id], bindings);
   assert.equal(result.get(id).mirrored, false);
 });
 
@@ -233,10 +255,45 @@ test("cloudflareAdminDirectoryEntitlements resolves a roster past the old UNION-
     tier: "pro", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z",
   });
 
-  const result = await adminDirectory.cloudflareAdminDirectoryEntitlements(ids, bindings);
+  const result = await adminEntitlements.cloudflareAdminDirectoryEntitlements(ids, bindings);
   assert.equal(result.size, ids.length);
   for (const id of ids) assert.equal(result.get(id).mirrored, true);
   assert.deepEqual(result.get(ids[5]), { mirrored: true, tier: "pro", source: "stripe" });
+});
+
+test("Cloudflare-native directory uses its own roster, profile, username and D1 effective tier", async () => {
+  const database = freshD1();
+  const bindings = { db: runtimeD1(database) };
+  const id = "50000000-0000-4000-8000-000000000051";
+  const deleted = "50000000-0000-4000-8000-000000000052";
+  insertUser(database, id, "learner@example.test");
+  insertUser(database, deleted, "gone@example.test", canonicalCloudflareSourceClock("2026-06-01T00:00:00.000Z"));
+  database.prepare(`INSERT INTO learner_profiles
+    (user_id, display_name, account_kind, updated_at) VALUES (?, ?, 'student', ?)`)
+    .run(id, "Learner", canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"));
+  database.prepare("INSERT INTO usernames (username, user_id, created_at) VALUES (?, ?, ?)")
+    .run("learner", id, canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"));
+  insertSubscription(database, { id: "native-directory-sub", userId: id, provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
+  insertUsageEvent(database, { id: "native-directory-usage", userId: id, route: "tutor", outcome: "admitted", createdAt: utcInstant(0, 9) });
+
+  const page = await nativeDirectory.cloudflareAdminDirectoryPage({ query: "learner", limit: 50, offset: 0 }, bindings);
+  assert.equal(page.total, 1);
+  assert.deepEqual(page.users[0], {
+    id,
+    email: "learner@example.test",
+    username: "learner",
+    displayName: "Learner",
+    accountKind: "student",
+    registeredAt: canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"),
+    plan: "pro",
+    accessSource: "stripe",
+    organizationSeatCount: 0,
+    usage30d: 1,
+    totalCount: 1,
+  });
+  const detail = await nativeDirectory.cloudflareAdminDirectoryDetail(id, bindings);
+  assert.deepEqual(detail?.usage, [{ route: "tutor", admitted: 1, refused: 0 }]);
+  assert.equal(await nativeDirectory.cloudflareAdminDirectoryDetail(deleted, bindings), null);
 });
 
 test("the ids CTE is never rebuilt as a UNION ALL per account — the in-memory D1 fixture has no branch limit to catch it if it were", () => {
@@ -257,9 +314,11 @@ test("the ids CTE is never rebuilt as a UNION ALL per account — the in-memory 
 
 /* ------------------------------------------------------------- route wiring -- */
 
-test("the users list route reads plan/access_source from D1 only when admin_user_directory does, and never fabricates a mirrored account", () => {
+test("the users list route has a full D1-native roster path and preserves the legacy bridge path", () => {
   const source = readFileSync(join(ROOT, "app", "api", "admin", "users", "route.ts"), "utf8");
   assert.match(source, /domainReadsFromCloudflare\("admin_user_directory"\)/);
+  assert.match(source, /cloudflareAdminDirectoryPage/);
+  assert.match(source, /!supabaseConfigured\(\)/);
   assert.match(source, /cloudflareAdminDirectoryEntitlements/);
   assert.match(source, /d1_mirror_missing: true/);
   // ADMIN_EMAILS must still be applied on top of whichever backend answered.
@@ -267,33 +326,35 @@ test("the users list route reads plan/access_source from D1 only when admin_user
   assert.doesNotMatch(source, /domainDataMode\([^)]*\)\s*===/, "must ask domainReadsFromCloudflare(), never re-derive the mode string");
 });
 
-test("the user detail route mirrors the same D1 entitlement merge as the list, keyed to one account", () => {
+test("the user detail route has the same D1-native identity path as the list", () => {
   const source = readFileSync(join(ROOT, "app", "api", "admin", "users", "[id]", "route.ts"), "utf8");
   assert.match(source, /domainReadsFromCloudflare\("admin_user_directory"\)/);
+  assert.match(source, /cloudflareAdminDirectoryDetail/);
+  assert.match(source, /!supabaseConfigured\(\)/);
   assert.match(source, /cloudflareAdminDirectoryEntitlements/);
   assert.match(source, /d1MirrorMissing: true/);
   assert.match(source, /applyOwnerEffectiveAccessToDetail\(user\)/);
   assert.doesNotMatch(source, /domainDataMode\([^)]*\)\s*===/);
 });
 
-test("the stats route moves usage/breakdown/tiers to D1 behind admin_statistics but keeps identity figures on Supabase unconditionally", () => {
+test("the stats route moves all figures to D1 when native identity is authoritative", () => {
   const source = readFileSync(join(ROOT, "app", "api", "admin", "stats", "route.ts"), "utf8");
   assert.match(source, /domainReadsFromCloudflare\("admin_statistics"\)/);
   assert.match(source, /cloudflareAdminUsageDaily/);
   assert.match(source, /cloudflareAdminUsageBreakdown/);
   assert.match(source, /cloudflareAdminTierCounts/);
-  // admin_user_count and admin_signups_daily are never gated on the domain —
-  // both calls must appear with no conditional between them and the earlier
-  // "always Supabase" comment.
+  assert.match(source, /cloudflareAdminUserCount/);
+  assert.match(source, /cloudflareAdminSignupsDaily/);
+  assert.match(source, /nativeAuthCutoverActive/);
   assert.match(source, /rpc<number>\("admin_user_count", \{\}\)/);
   assert.match(source, /rpc<DayRow\[\]>\("admin_signups_daily", \{ p_days: DAYS \}\)/);
   assert.doesNotMatch(source, /domainDataMode\([^)]*\)\s*===/);
 });
 
-test("the cutover registry marks admin_user_directory and admin_statistics supported, and names what stays on Supabase", () => {
+test("the cutover registry marks admin_user_directory and admin_statistics supported, including native identity", () => {
   const registry = readFileSync(join(ROOT, "lib", "cloudflare", "cutover-domains.ts"), "utf8");
   assert.match(registry, /domain: "admin_user_directory"[\s\S]{0,900}supported: true/);
   assert.match(registry, /domain: "admin_statistics"[\s\S]{0,900}supported: true/);
-  assert.match(registry, /auth\.users identity/);
-  assert.match(registry, /is not migrating/);
+  assert.match(registry, /D1-native roster reader/);
+  assert.match(registry, /live-account count/);
 });
