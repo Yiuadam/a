@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import BandBadge from "@/components/BandBadge";
 import { useProfile } from "@/lib/hooks";
 import { isValidPlacement } from "@/lib/placement";
-import { newestFirst, seriesFor } from "@/lib/results";
+import { seriesFor } from "@/lib/results";
 import LockedCard from "@/components/LockedCard";
 import FreeProPoster from "@/components/billing/FreeProPoster";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
@@ -341,7 +340,6 @@ export default function Dashboard() {
   const placement = isValidPlacement(profile.placement) ? profile.placement : null;
   const hasRecordedHistory = placement !== null || profile.results.length > 0;
   const organization = useHomeOrganizationShortcut();
-  const recent = newestFirst(profile.results).slice(0, 6);
   return (
     <div className="dashboard-screen overflow-x-clip px-4 py-3 sm:px-5 sm:py-5">
       {/*
@@ -389,13 +387,6 @@ export default function Dashboard() {
       )}
 
       {/*
-        Practice, study and history side by side on a laptop rather than three
-        full-width bands stacked down the page. Below `lg` they fall back to
-        stacking, but the tiles themselves stay two-up even on the narrowest
-        phone — a tile is a title, one line and an icon, which fits in half a
-        390px screen and halves the height of the page.
-      */}
-      {/*
         min-w-0 on both columns, and it is load-bearing rather than tidy.
 
         A grid item's automatic minimum width is its min-content, not zero. The
@@ -410,20 +401,8 @@ export default function Dashboard() {
         screen. Every grid or flex child in this app that contains a grid needs
         it, which is the same trap /practice hit at 390px.
       */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/*
-          Two thirds when there is something in the third column, all three
-          when there is not.
-
-          The right column only renders once a learner has practised. Before
-          that the left column was still spanning 2 of 3, so a new account got
-          its six tiles squeezed into two thirds of the page with 524px of
-          nothing beside them — measured at 1920px. The grid was reserving room
-          for a section that had decided not to appear.
-        */}
-        <div
-          className={`dashboard-sections min-w-0 space-y-4 ${recent.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}
-        >
+      <div className="grid gap-4">
+        <div className="dashboard-sections min-w-0 space-y-4">
           <section>
             <h2 className="heading-rule mb-2.5 text-sm font-semibold text-slate-900">
               Practise a skill
@@ -555,50 +534,6 @@ export default function Dashboard() {
           </section>
         </div>
 
-        {recent.length > 0 && (
-          <section className="dashboard-recent min-w-0 lg:col-span-1">
-            <div className="mb-2.5 flex items-baseline justify-between gap-3">
-              <h2 className="heading-rule flex-1 text-sm font-semibold text-slate-900">
-                Your recent practice
-              </h2>
-              <Link
-                href="/history"
-                prefetch={false}
-                className="shrink-0 text-xs font-medium text-indigo-700 underline underline-offset-2"
-              >
-                All history →
-              </Link>
-            </div>
-            {/*
-              Six sittings in a fixed-height list. Anything older is one tap
-              away in History, and the list scrolls inside itself rather than
-              pushing the rest of the page down the screen.
-            */}
-            <ul className="max-h-[13rem] space-y-1.5 overflow-hidden sm:max-h-[20rem]">
-              {recent.map((r, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-surface px-3.5 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">{r.testTitle}</p>
-                    <p className="text-xs text-slate-500">
-                      <span className="capitalize">{r.module}</span>
-                      {r.raw !== undefined && r.total !== undefined
-                        ? ` · ${r.raw} of ${r.total} correct`
-                        : ""}
-                      {" · "}
-                      {new Date(r.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-indigo-50 px-2.5 py-0.5 text-sm font-semibold text-indigo-700">
-                    {r.band}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </div>
     </div>
   );

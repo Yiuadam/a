@@ -98,6 +98,14 @@ test("the homepage puts recorded history ahead of the welcome or organisation sh
   assert.doesNotMatch(source, /apiUrl\("\/api\/organization"\)/);
 });
 
+test("the homepage keeps history as four trends instead of duplicating it as a sitting list", () => {
+  const source = readFileSync(join(process.cwd(), "app", "page.tsx"), "utf8");
+  assert.match(source, /<ScoreTrendOverview placement=\{placement\} results=\{profile\.results\} \/>/);
+  assert.doesNotMatch(source, /Your recent practice/);
+  assert.doesNotMatch(source, /dashboard-recent/);
+  assert.doesNotMatch(source, /newestFirst/);
+});
+
 test("opening a homepage destination saves its visit so its New label stays retired", () => {
   const source = readFileSync(join(process.cwd(), "app", "page.tsx"), "utf8");
   assert.match(source, /import \{ markVisited \} from "@\/lib\/store";/);

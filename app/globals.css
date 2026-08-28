@@ -1244,12 +1244,6 @@ html[data-theme="dark"] .google-signin-glass {
   display: none;
 }
 
-@media (max-width: 1023px) {
-  .dashboard-recent {
-    display: none;
-  }
-}
-
 @media (max-width: 767px), (max-height: 800px) {
   .dashboard-screen .dashboard-summary {
     display: none;
