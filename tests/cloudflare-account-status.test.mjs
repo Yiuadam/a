@@ -176,6 +176,7 @@ test("identity readiness uses provider subjects and existing stable ids, never e
   assert.deepEqual(report.mappings, { correct: 0, missing: 1, mismatched: 0 });
   assert.equal(report.readyForBackfill, true);
   assert.equal(report.readyForGoogleCutover, false);
+  assert.equal(report.readyForNativeAuthCutover, false);
   assert.equal(JSON.stringify(report).includes(subject), false);
   assert.equal(JSON.stringify(report).includes("same-email-must-not-link@example.test"), false);
   assert.equal(queries.some(({ sql }) => /lower\(email\)/i.test(sql)), false);
@@ -228,6 +229,64 @@ test("Google ID-token cutover is ready without the optional server-flow secret",
     assert.equal(report.configured.directGoogleServerFlow, false);
     assert.equal(report.readyForGoogleCutover, true, JSON.stringify(report));
     assert.deepEqual(report.blockers, []);
+  });
+});
+
+test("native cutover stays blocked when a legacy Apple provider still exists", async () => {
+  const bindings = {
+    db: {
+      prepare(sql) {
+        return {
+          bind() {
+            return this;
+          },
+          async all() {
+            if (sql.includes("sqlite_master")) {
+              return {
+                success: true,
+                results: [
+                  { name: "app_users" },
+                  { name: "app_user_identities" },
+                  { name: "app_auth_sessions" },
+                ],
+                meta: { changes: 0 },
+              };
+            }
+            if (sql.includes("SELECT identity_authority")) {
+              return { success: true, results: [], meta: { changes: 0 } };
+            }
+            throw new Error("unexpected query");
+          },
+        };
+      },
+    },
+    files: {},
+  };
+
+  await withEnv({
+    ACCOUNTS_ENABLED: "1",
+    CLOUDFLARE_NATIVE_AUTH: "1",
+    CLOUDFLARE_DATA_MODE: "cloudflare",
+    ORGANIZATION_DATA_MODE: "cloudflare",
+    GOOGLE_CLIENT_ID: "bandup-web.apps.googleusercontent.com",
+    GOOGLE_OAUTH_CLIENT_SECRET: "",
+    GOOGLE_OAUTH_APP_ORIGIN: "https://bandup.example.test",
+  }, async () => {
+    const report = await identityAudit.nativeIdentityReadinessReport(bindings, {
+      readSource: async () => [],
+      readAccounts: async () => [],
+      readProviderSummary: async () => ({
+        google: 0,
+        apple: 1,
+        email: 0,
+        unsupported: 0,
+        invalid: 0,
+      }),
+    });
+    assert.equal(report.readyForGoogleCutover, true, JSON.stringify(report));
+    assert.equal(report.readyForNativeAuthCutover, false, JSON.stringify(report));
+    assert.equal(report.source.appleIdentities, 1);
+    assert.match(report.blockers.join("\n"), /Apple identity record/);
   });
 });
 

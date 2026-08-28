@@ -1132,6 +1132,15 @@ export interface SupabaseAuthAccount {
   id: string | null;
 }
 
+/** Aggregate provider evidence for the native-auth cutover; never a directory. */
+export interface SupabaseAuthProviderSummary {
+  google: number;
+  apple: number;
+  email: number;
+  unsupported: number;
+  invalid: number;
+}
+
 const SUPABASE_AUTH_PAGE_SIZE = 200;
 const SUPABASE_AUTH_MAX_PAGES = 2_000;
 
@@ -1255,6 +1264,62 @@ export async function listSupabaseAuthAccounts(): Promise<SupabaseAuthAccount[]>
     if (users.length < SUPABASE_AUTH_PAGE_SIZE) return accounts;
   }
 
+  throw new SupabaseError("admin Auth user pagination exceeded its safety limit");
+}
+
+/**
+ * Counts legacy sign-in providers without returning a user id, email, subject,
+ * password verifier, MFA factor or session. Apple and unknown providers must
+ * be explicit cutover blockers rather than silently falling through a native
+ * Google/password deployment after Supabase has been removed.
+ */
+export async function listSupabaseAuthProviderSummary(): Promise<SupabaseAuthProviderSummary> {
+  assertServerOnly(MODULE);
+  const summary: SupabaseAuthProviderSummary = {
+    google: 0,
+    apple: 0,
+    email: 0,
+    unsupported: 0,
+    invalid: 0,
+  };
+  for (let page = 1; page <= SUPABASE_AUTH_MAX_PAGES; page += 1) {
+    const res = await request(
+      `/auth/v1/admin/users?page=${page}&per_page=${SUPABASE_AUTH_PAGE_SIZE}`,
+      { method: "GET", asServiceRole: true },
+    );
+    if (!res.ok) throw new SupabaseError(`admin Auth user page failed with ${res.status}`);
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      throw new SupabaseError("admin Auth user page was not JSON");
+    }
+    const users = (body as { users?: unknown } | null)?.users;
+    if (!Array.isArray(users)) throw new SupabaseError("admin Auth user page was invalid");
+    for (const rawUser of users) {
+      const user = rawUser && typeof rawUser === "object"
+        ? rawUser as Record<string, unknown>
+        : null;
+      if (!user || !Array.isArray(user.identities)) {
+        throw new SupabaseError("admin Auth identity details are unavailable");
+      }
+      for (const rawIdentity of user.identities) {
+        const identity = rawIdentity && typeof rawIdentity === "object"
+          ? rawIdentity as Record<string, unknown>
+          : null;
+        const provider = identity?.provider;
+        if (provider === "google") summary.google += 1;
+        else if (provider === "apple") summary.apple += 1;
+        else if (provider === "email") summary.email += 1;
+        else if (typeof provider === "string" && provider.length > 0 && provider.length <= 80) {
+          summary.unsupported += 1;
+        } else {
+          summary.invalid += 1;
+        }
+      }
+    }
+    if (users.length < SUPABASE_AUTH_PAGE_SIZE) return summary;
+  }
   throw new SupabaseError("admin Auth user pagination exceeded its safety limit");
 }
 

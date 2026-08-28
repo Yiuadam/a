@@ -89,7 +89,11 @@ async function handlePOST(req: Request) {
     try {
       // Build the complete D1/R2 manifest first. If this cannot be made
       // recoverable, the irreversible identity deletion must not start.
-      cloudflarePreparation = await prepareCloudflareAccountDeletion(user);
+      cloudflarePreparation = await prepareCloudflareAccountDeletion(
+        user,
+        undefined,
+        nativeSession ? "cloudflare" : "supabase",
+      );
     } catch (error) {
       if (error instanceof CloudflareAccountDeletionInProgressError) {
         return safeJsonError("Account deletion is already in progress. Please wait a moment.", 409);
@@ -113,6 +117,16 @@ async function handlePOST(req: Request) {
     }
     scheduleCloudflareCleanup(user.id, cloudflarePreparation.operationId);
     return NextResponse.json({ deleted: true, cleanupPending: true }, { status: 202 });
+  }
+
+  if (
+    cloudflarePreparation
+    && cloudflarePreparation.authAuthority !== (nativeSession ? "cloudflare" : "supabase")
+  ) {
+    // Never allow a native retry to confirm a legacy deletion (or the
+    // reverse): their irreversible identity steps belong to different
+    // authorities and must be reconciled by the owner route instead.
+    return safeJsonError("Account deletion is already in progress. Please contact support.", 409);
   }
 
   if (cloudflarePreparation?.state === "prepared") {

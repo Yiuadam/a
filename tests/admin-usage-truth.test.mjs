@@ -10,6 +10,10 @@ test("owner diagnostics are read-only and cannot inflate AI usage", () => {
   assert.doesNotMatch(diagnostics, /check_and_record_usage/);
   assert.doesNotMatch(diagnostics, /limitsForDatabase/);
   assert.match(diagnostics, /usage_limits_schema/);
+  assert.match(diagnostics, /accountRuntimeEnabled\(\)/);
+  assert.match(diagnostics, /nativeAuthCutoverActive\(\) && !supabaseConfigured\(\)/);
+  assert.match(diagnostics, /cloudflareUsageDetail/);
+  assert.match(diagnostics, /currentCloudflareAccessGrants/);
   assert.match(checksPage, /without adding artificial AI usage/);
 });
 

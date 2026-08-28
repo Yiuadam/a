@@ -2,8 +2,10 @@ import { assertServerOnly } from "@/lib/auth/server-only";
 import {
   listSupabaseAuthAccounts,
   listSupabaseGoogleIdentities,
+  listSupabaseAuthProviderSummary,
   type SupabaseAuthAccount,
   type SupabaseGoogleIdentity,
+  type SupabaseAuthProviderSummary,
 } from "@/lib/auth/supabase";
 import { nativeAuthEnabled } from "@/lib/auth/env";
 import { googleOAuthServerFlowConfigured } from "@/lib/auth/google-oauth-server";
@@ -36,6 +38,10 @@ export interface NativeIdentityReadinessReport {
   source: {
     status: "available" | "unavailable" | "invalid";
     googleIdentities: number;
+    appleIdentities: number;
+    emailIdentities: number;
+    unsupportedProviderIdentities: number;
+    invalidProviderIdentities: number;
     invalidIdentities: number;
     duplicateSubjects: number;
     usersWithMultipleGoogleIdentities: number;
@@ -60,6 +66,7 @@ export interface NativeIdentityReadinessReport {
   };
   readyForBackfill: boolean;
   readyForGoogleCutover: boolean;
+  readyForNativeAuthCutover: boolean;
   blockers: string[];
 }
 
@@ -173,6 +180,7 @@ export async function nativeIdentityReadinessReport(
   options: {
     readSource?: () => Promise<SupabaseGoogleIdentity[]>;
     readAccounts?: () => Promise<SupabaseAuthAccount[]>;
+    readProviderSummary?: () => Promise<SupabaseAuthProviderSummary>;
   } = {},
 ): Promise<NativeIdentityReadinessReport> {
   assertServerOnly(MODULE);
@@ -185,6 +193,7 @@ export async function nativeIdentityReadinessReport(
   const blockers: string[] = [];
   let rawSource: SupabaseGoogleIdentity[];
   let rawAccounts: SupabaseAuthAccount[];
+  let providerSummary: SupabaseAuthProviderSummary;
   try {
     rawSource = await (options.readSource ?? listSupabaseGoogleIdentities)();
     // A fixture that supplies only Google identities is used by focused unit
@@ -195,16 +204,22 @@ export async function nativeIdentityReadinessReport(
       : options.readSource
         ? rawSource.map((identity) => ({ id: identity.authUserId }))
         : await listSupabaseAuthAccounts();
+    providerSummary = options.readProviderSummary
+      ? await options.readProviderSummary()
+      : options.readSource
+        ? { google: rawSource.length, apple: 0, email: 0, unsupported: 0, invalid: 0 }
+        : await listSupabaseAuthProviderSummary();
   } catch {
     return {
       generatedAt: new Date().toISOString(),
       configured,
-      source: { status: "unavailable", googleIdentities: 0, invalidIdentities: 0, duplicateSubjects: 0, usersWithMultipleGoogleIdentities: 0 },
+      source: { status: "unavailable", googleIdentities: 0, appleIdentities: 0, emailIdentities: 0, unsupportedProviderIdentities: 0, invalidProviderIdentities: 0, invalidIdentities: 0, duplicateSubjects: 0, usersWithMultipleGoogleIdentities: 0 },
       accounts: { status: "unavailable", supabaseAuthUsers: 0, invalidUsers: 0, duplicateUserIds: 0, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
       target: { schema: "unavailable", sourceUsersPresent: 0, sourceUsersMissing: 0 },
       mappings: { correct: 0, missing: 0, mismatched: 0 },
       readyForBackfill: false,
       readyForGoogleCutover: false,
+      readyForNativeAuthCutover: false,
       blockers: ["Supabase Auth Google-identity evidence is unavailable"],
     };
   }
@@ -245,6 +260,9 @@ export async function nativeIdentityReadinessReport(
   if (invalidIdentities > 0) blockers.push(`${invalidIdentities} Google identity record(s) are malformed or linked to the wrong Supabase user id`);
   if (duplicateSubjects > 0) blockers.push(`${duplicateSubjects} duplicate Google provider subject(s) appear in Supabase Auth`);
   if (usersWithMultipleGoogleIdentities > 0) blockers.push(`${usersWithMultipleGoogleIdentities} user(s) have more than one Google identity`);
+  if (providerSummary.invalid > 0) blockers.push(`${providerSummary.invalid} legacy identity provider record(s) are invalid`);
+  if (providerSummary.apple > 0) blockers.push(`${providerSummary.apple} Apple identity record(s) need a direct Cloudflare Apple OAuth migration`);
+  if (providerSummary.unsupported > 0) blockers.push(`${providerSummary.unsupported} legacy identity provider record(s) use an unsupported provider`);
 
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const schema = await targetSchema(bindings);
@@ -255,12 +273,13 @@ export async function nativeIdentityReadinessReport(
     return {
       generatedAt: new Date().toISOString(),
       configured,
-      source: { status: sourceStatus, googleIdentities: rawSource.length, invalidIdentities, duplicateSubjects, usersWithMultipleGoogleIdentities },
+      source: { status: sourceStatus, googleIdentities: rawSource.length, appleIdentities: providerSummary.apple, emailIdentities: providerSummary.email, unsupportedProviderIdentities: providerSummary.unsupported, invalidProviderIdentities: providerSummary.invalid, invalidIdentities, duplicateSubjects, usersWithMultipleGoogleIdentities },
       accounts: { status: accountStatus, supabaseAuthUsers: rawAccounts.length, invalidUsers: invalidAccounts, duplicateUserIds: duplicateAccountIds, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
       target: { schema, sourceUsersPresent: 0, sourceUsersMissing: 0 },
       mappings: { correct: 0, missing: 0, mismatched: 0 },
       readyForBackfill: false,
       readyForGoogleCutover: false,
+      readyForNativeAuthCutover: false,
       blockers,
     };
   }
@@ -277,12 +296,13 @@ export async function nativeIdentityReadinessReport(
     return {
       generatedAt: new Date().toISOString(),
       configured,
-      source: { status: sourceStatus, googleIdentities: rawSource.length, invalidIdentities, duplicateSubjects, usersWithMultipleGoogleIdentities },
+      source: { status: sourceStatus, googleIdentities: rawSource.length, appleIdentities: providerSummary.apple, emailIdentities: providerSummary.email, unsupportedProviderIdentities: providerSummary.unsupported, invalidProviderIdentities: providerSummary.invalid, invalidIdentities, duplicateSubjects, usersWithMultipleGoogleIdentities },
       accounts: { status: accountStatus, supabaseAuthUsers: rawAccounts.length, invalidUsers: invalidAccounts, duplicateUserIds: duplicateAccountIds, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
       target: { schema: "unavailable", sourceUsersPresent: 0, sourceUsersMissing: 0 },
       mappings: { correct: 0, missing: 0, mismatched: 0 },
       readyForBackfill: false,
       readyForGoogleCutover: false,
+      readyForNativeAuthCutover: false,
       blockers,
     };
   }
@@ -307,6 +327,9 @@ export async function nativeIdentityReadinessReport(
   }
   const sourceClean = sourceStatus === "available" && duplicateSubjects === 0 && usersWithMultipleGoogleIdentities === 0;
   const accountsClean = accountStatus === "available" && duplicateAccountIds === 0 && liveD1UsersMissing === 0;
+  const providersClean = providerSummary.apple === 0
+    && providerSummary.unsupported === 0
+    && providerSummary.invalid === 0;
   const readyForBackfill = sourceClean && sourceUsersMissing === 0 && mismatched === 0;
   /*
     The normal Google Identity Services button posts its Google-issued ID
@@ -323,10 +346,11 @@ export async function nativeIdentityReadinessReport(
     && correct === valid.length
     && accountsClean
     && configured.dataAuthority.ready;
+  const readyForNativeAuthCutover = readyForGoogleCutover && providersClean;
   return {
     generatedAt: new Date().toISOString(),
     configured,
-    source: { status: sourceStatus, googleIdentities: rawSource.length, invalidIdentities, duplicateSubjects, usersWithMultipleGoogleIdentities },
+    source: { status: sourceStatus, googleIdentities: rawSource.length, appleIdentities: providerSummary.apple, emailIdentities: providerSummary.email, unsupportedProviderIdentities: providerSummary.unsupported, invalidProviderIdentities: providerSummary.invalid, invalidIdentities, duplicateSubjects, usersWithMultipleGoogleIdentities },
     accounts: {
       status: accountStatus,
       supabaseAuthUsers: rawAccounts.length,
@@ -339,6 +363,7 @@ export async function nativeIdentityReadinessReport(
     mappings: { correct, missing, mismatched },
     readyForBackfill,
     readyForGoogleCutover,
+    readyForNativeAuthCutover,
     blockers,
   };
 }

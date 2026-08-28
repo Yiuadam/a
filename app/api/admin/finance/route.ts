@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
 import { logInternal } from "@/lib/auth/errors";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { getSessionUser } from "@/lib/auth/session";
-import { supabaseConfigured } from "@/lib/auth/supabase";
 import {
   AnthropicCostError,
   anthropicCostConfigured,
@@ -206,7 +206,7 @@ function contributionAvailability(args: {
 
 async function handleGET(req: Request) {
   /* The same indistinguishable 404 gate as every other owner-only endpoint. */
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  if (!accountsEnabled() || !accountRuntimeEnabled()) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const user = await getSessionUser(req).catch(() => null);

@@ -71,7 +71,12 @@ function walletSubscriptions(rows) {
  * Compare source payment evidence to D1 without exposing payment-intent or
  * account identifiers in the report. `ready` is deliberately all-or-nothing.
  */
-export function stripeBillingCutoverReport(sourceSubscriptions, sourceEvents, targetPurchases) {
+/**
+ * Builds the private, immutable original-payment ledger expected in D1. The
+ * values never leave a process except as parameterised D1 rows; callers print
+ * only aggregate counts from `stripeBillingCutoverReport`.
+ */
+export function expectedStripePrepaidPurchases(sourceSubscriptions, sourceEvents) {
   const walletRows = walletSubscriptions(Array.isArray(sourceSubscriptions) ? sourceSubscriptions : []);
   const evidenceByIntent = new Map();
   let conflictingEvidence = 0;
@@ -111,6 +116,18 @@ export function stripeBillingCutoverReport(sourceSubscriptions, sourceEvents, ta
     });
   }
 
+  return {
+    sourceWalletSubscriptions: walletRows.length,
+    sourcePaymentEvidence: evidenceByIntent.size,
+    unverifiableSource,
+    conflictingEvidence,
+    expected: [...expected.entries()].map(([paymentIntentId, value]) => ({ paymentIntentId, ...value })),
+  };
+}
+
+export function stripeBillingCutoverReport(sourceSubscriptions, sourceEvents, targetPurchases) {
+  const source = expectedStripePrepaidPurchases(sourceSubscriptions, sourceEvents);
+  const expected = new Map(source.expected.map((row) => [row.paymentIntentId, row]));
   const target = new Map();
   let malformedTarget = 0;
   for (const row of Array.isArray(targetPurchases) ? targetPurchases : []) {
@@ -146,12 +163,12 @@ export function stripeBillingCutoverReport(sourceSubscriptions, sourceEvents, ta
   }
 
   const report = {
-    sourceWalletSubscriptions: walletRows.length,
-    sourcePaymentEvidence: evidenceByIntent.size,
+    sourceWalletSubscriptions: source.sourceWalletSubscriptions,
+    sourcePaymentEvidence: source.sourcePaymentEvidence,
     expectedPrepaidPurchases: expected.size,
     targetPrepaidPurchases: target.size,
-    unverifiableSource,
-    conflictingEvidence,
+    unverifiableSource: source.unverifiableSource,
+    conflictingEvidence: source.conflictingEvidence,
     malformedTarget,
     missingTarget,
     mismatchedTarget,
@@ -220,7 +237,7 @@ function d1Rows(output) {
   throw new Error("Cloudflare returned no valid D1 query result");
 }
 
-async function sourceRows(sourceUrl, sourceKey, table, select) {
+export async function sourceRows(sourceUrl, sourceKey, table, select) {
   const rows = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const endpoint = new URL(`/rest/v1/${table}`, sourceUrl);
@@ -242,13 +259,15 @@ async function sourceRows(sourceUrl, sourceKey, table, select) {
   }
 }
 
-async function targetRows(config) {
+export async function targetRows(config) {
   const output = await run("npx", [
     "wrangler", "d1", "execute", "BANDUP_DB", "--config", config, "--remote", "--yes", "--json",
     "--command", "SELECT payment_intent_id,user_id,subscription_id,amount_minor FROM stripe_prepaid_purchases ORDER BY payment_intent_id",
   ]);
   return d1Rows(output);
 }
+
+export { d1Rows, run };
 
 async function main() {
   const args = new Set(process.argv.slice(2));

@@ -318,6 +318,7 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   const auditRoute = readFileSync(join(process.cwd(), "app", "api", "admin", "cloudflare", "identity-readiness", "route.ts"), "utf8");
   const accountStatus = readFileSync(join(process.cwd(), "app", "api", "account", "status", "route.ts"), "utf8");
   const cloudflareStatus = readFileSync(join(process.cwd(), "lib", "cloudflare", "account-status.ts"), "utf8");
+  const identityCard = readFileSync(join(process.cwd(), "components", "admin", "CloudflareIdentityReadiness.tsx"), "utf8");
 
   assert.match(migration, /CREATE TABLE IF NOT EXISTS app_user_identities/);
   assert.match(migration, /REFERENCES app_users\(id\)/);
@@ -340,6 +341,7 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   assert.match(source, /auth\/v1\/admin\/users\?page=\$\{page\}&per_page=/);
   assert.match(source, /identity\.provider !== "google"/);
   assert.match(source, /identity\.provider_id/);
+  assert.match(source, /listSupabaseAuthProviderSummary/);
   assert.match(source, /identity\.user_id/);
   assert.match(source, /user\.identities === null/);
   assert.match(source, /admin Auth identity details are unavailable/);
@@ -347,6 +349,10 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   assert.doesNotMatch(audit, /lower\(email\)|identityEmail.*existingEmail/i);
   assert.match(auditRoute, /isAdminEmail\(actor\.email\)/);
   assert.match(auditRoute, /Cache-Control": "private, no-store/);
+  assert.match(identityCard, /Cloudflare account identity/);
+  assert.match(identityCard, /Copy audited Google mappings/);
+  assert.match(identityCard, /readyForNativeAuthCutover/);
+  assert.match(identityCard, /No native sign-in setting was changed/);
   assert.match(accountStatus, /domainReadsFromCloudflare\("usage_quota_authority"\)/);
   assert.match(accountStatus, /currentCloudflareAccessGrants/);
   assert.match(cloudflareStatus, /FROM usage_events/);

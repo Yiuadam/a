@@ -2,8 +2,12 @@ import { rpc } from "@/lib/auth/supabase";
 import { COSTED_ROUTES, type CostedRoute } from "@/lib/ai/models";
 import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
 import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
-import { domainWritesToCloudflareOnly } from "@/lib/cloudflare/cutover-domains";
+import {
+  domainReadsFromCloudflare,
+  domainWritesToCloudflareOnly,
+} from "@/lib/cloudflare/cutover-domains";
 import { recordAiCostEventOnCloudflare } from "@/lib/cloudflare/ai-cost-write-authority";
+import { readCloudflareAdminAiCostSnapshot } from "@/lib/cloudflare/ai-cost-read-authority";
 import {
   type CloudflareAiCostCoverageReplica,
   type CloudflareAiCostEventReplica,
@@ -465,9 +469,16 @@ export async function setAiCostCoverage(input: SetAiCostCoverageInput): Promise<
   }
 }
 
-/** Service-role reader for the owner-only finance API. */
+/**
+ * Owner-only AI-cost reader. A deliberate D1 read cutover uses the exact
+ * decimal reader rather than the Supabase RPC; dual mode retains the
+ * established source reader until its parity evidence is complete.
+ */
 export async function readAdminAiCostSnapshot(days = 30): Promise<AdminAiCostSnapshot> {
   const requestedDays = Number.isFinite(days) ? Math.trunc(days) : 30;
   const boundedDays = Math.min(Math.max(requestedDays, 1), 366);
+  if (domainReadsFromCloudflare(AI_COST_WRITE_AUTHORITY_DOMAIN)) {
+    return await readCloudflareAdminAiCostSnapshot(boundedDays);
+  }
   return rpc<AdminAiCostSnapshot>("admin_ai_cost_snapshot", { p_days: boundedDays });
 }

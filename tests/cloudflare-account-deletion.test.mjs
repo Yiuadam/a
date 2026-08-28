@@ -15,6 +15,10 @@ const migration = readFileSync(
   join(process.cwd(), "cloudflare", "migrations", "0005_account_deletion.sql"),
   "utf8",
 );
+const nativeAuthorityMigration = readFileSync(
+  join(process.cwd(), "cloudflare", "migrations", "0020_account_deletion_auth_authority.sql"),
+  "utf8",
+);
 const copy = readFileSync(
   join(process.cwd(), "scripts", "migrate-supabase-to-cloudflare.mjs"),
   "utf8",
@@ -28,8 +32,8 @@ const payloads = readFileSync(
   "utf8",
 );
 
-test("Supabase Auth remains the irreversible deletion authority", () => {
-  const prepared = route.indexOf("prepareCloudflareAccountDeletion(user)");
+test("each identity authority is confirmed before its Cloudflare cleanup", () => {
+  const prepared = route.indexOf("prepareCloudflareAccountDeletion(");
   const authStarted = route.indexOf("beginCloudflareAccountAuthDeletion(");
   const authDeleted = route.indexOf("deleteAccount(user.id");
   const authConfirmed = route.lastIndexOf("confirmCloudflareAccountAuthDeleted(");
@@ -46,6 +50,7 @@ test("Supabase Auth remains the irreversible deletion authority", () => {
     /cancelCloudflareAccountDeletion/,
     "an ambiguous external DELETE must retain its recovery tombstone",
   );
+  assert.match(route, /if \(!nativeSession && !\(await deleteAccount\(user\.id/);
   assert.match(route, /cleanupPending: true[\s\S]*status: 202/);
 });
 
@@ -103,8 +108,18 @@ test("ambiguous Auth deletion has an owner-only fail-closed reconciliation path"
   assert.match(runtime, /SET state = 'auth_delete_started'/);
   assert.match(recoveryRoute, /isAdminEmail/);
   assert.match(recoveryRoute, /supabaseAuthUserState/);
+  assert.match(recoveryRoute, /cloudflareNativeAccountState/);
+  assert.match(recoveryRoute, /reopenCloudflareNativeAccountDeletion/);
+  assert.match(recoveryRoute, /job\.authAuthority === "cloudflare"/);
   assert.match(recoveryRoute, /authState === "unknown"[\s\S]*Nothing was changed/);
   assert.match(recoveryRoute, /authState === "deleted"|authState === "exists"/);
+});
+
+test("native and legacy deletion jobs cannot confirm each other's identity step", () => {
+  assert.match(nativeAuthorityMigration, /auth_authority TEXT/);
+  assert.match(runtime, /authAuthority: row\.auth_authority/);
+  assert.match(route, /authAuthority !== \(nativeSession \? "cloudflare" : "supabase"\)/);
+  assert.match(route, /prepareCloudflareAccountDeletion\([\s\S]*nativeSession \? "cloudflare" : "supabase"/);
 });
 
 test("privacy cleanup covers profile, progress, attempts, subscriptions and migration copies", () => {

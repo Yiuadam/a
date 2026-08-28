@@ -4,9 +4,10 @@
   local-only code paths.  It runs each mutant in an isolated disposable copy
   of the worktree, with node_modules linked read-only from the original.
 
-  This is not a percentage for the whole product.  It is a repeatable measure
+  This is not a percentage for the whole product. It is a repeatable measure
   for the listed security and data-loss behaviours: progress merging, native
-  session verification, Google token verification and native cutover gating.
+  session verification, Google token verification, native identity cutover,
+  Cloudflare finance/deletion, and Stripe historical-payment preservation.
   Add a mutant only when it represents a concrete regression that would be
   harmful in production; do not inflate the score with cosmetic mutations.
 
@@ -26,6 +27,10 @@ const tests = [
   "tests/mutation-progress-boundaries.test.mjs",
   "tests/mutation-native-auth-boundaries.test.mjs",
   "tests/native-auth-readiness.test.mjs",
+  "tests/cloudflare-account-status.test.mjs",
+  "tests/cloudflare-ai-cost-read-authority.test.mjs",
+  "tests/cloudflare-account-deletion.test.mjs",
+  "tests/stripe-prepaid-backfill.test.mjs",
 ];
 
 const mutants = [
@@ -126,6 +131,34 @@ const mutants = [
     file: "lib/cloudflare/native-auth-readiness.ts",
     from: "return nativeAuthEnabled() && nativeAuthDataAuthority().ready;",
     to: "return nativeAuthDataAuthority().ready;",
+  },
+  {
+    area: "native-finance",
+    id: "provider-backfill-provenance-retained",
+    file: "lib/cloudflare/ai-cost-read-authority.ts",
+    from: "if (row.source === \"provider_backfill\") includesProviderBackfill = true;",
+    to: "if (false) includesProviderBackfill = true;",
+  },
+  {
+    area: "native-deletion",
+    id: "native-and-legacy-deletion-authorities-cannot-cross",
+    file: "app/api/account/delete/route.ts",
+    from: "&& cloudflarePreparation.authAuthority !== (nativeSession ? \"cloudflare\" : \"supabase\")",
+    to: "&& false",
+  },
+  {
+    area: "native-identity",
+    id: "apple-and-unknown-providers-block-native-only-cutover",
+    file: "lib/cloudflare/native-identity-audit.ts",
+    from: "const readyForNativeAuthCutover = readyForGoogleCutover && providersClean;",
+    to: "const readyForNativeAuthCutover = readyForGoogleCutover && true;",
+  },
+  {
+    area: "stripe-backfill",
+    id: "mismatched-prepaid-ledger-blocks-write",
+    file: "scripts/backfill-stripe-prepaid-purchases.mjs",
+    from: "|| report.mismatchedTarget > 0",
+    to: "|| false",
   },
 ];
 
