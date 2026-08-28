@@ -42,7 +42,7 @@ function isLiveUser(row: UserRow | null): row is UserRow {
   return Boolean(row && row.id && row.deleted_at === null);
 }
 
-async function nativeSessionFor(
+export async function createNativeBrowserSessionForUser(
   user: AuthedUser,
   signingSecret: string,
   bindings: BandUpCloudflareBindings,
@@ -159,7 +159,7 @@ export async function createGoogleNativeSession(
 ): Promise<NativeBrowserSession | null> {
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const user = await resolveGoogleIdentity(identity, bindings);
-  return user ? nativeSessionFor(user, signingSecret, bindings) : null;
+  return user ? createNativeBrowserSessionForUser(user, signingSecret, bindings) : null;
 }
 
 /**
