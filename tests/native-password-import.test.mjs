@@ -97,7 +97,7 @@ test("native password auth is server-only, gated, and never falls back to Supaba
   assert.match(route, /const nativeActive = nativeAuthCutoverActive\(\)/);
   assert.match(route, /!nativeActive && !supabaseConfigured\(\)/);
   assert.match(route, /signInWithImportedNativePassword/);
-  assert.match(route, /if \(nativeActive\) return safeJsonError\(MESSAGES\.accountUnavailable, 503\)/);
+  assert.match(route, /if \(nativeActive\) \{[\s\S]*?startNativePasswordRegistration/);
   assert.match(native, /assertServerOnly\(MODULE\)/);
   assert.match(native, /BOGUS_BCRYPT_VERIFIER/);
   assert.match(native, /LEFT JOIN app_password_credentials/);

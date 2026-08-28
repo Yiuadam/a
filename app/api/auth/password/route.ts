@@ -7,7 +7,10 @@ import { clientIp } from "@/lib/usage/ip";
 import { withCors } from "@/lib/http/cors";
 import { emailForLearnerUsername } from "@/lib/cloudflare/data-router";
 import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
-import { signInWithImportedNativePassword } from "@/lib/auth/native-password";
+import {
+  signInWithImportedNativePassword,
+} from "@/lib/auth/native-password";
+import { startNativePasswordRegistration } from "@/lib/auth/native-email";
 
 /*
   Signing in with an email address and a password — and, for the owner, with a
@@ -138,7 +141,18 @@ async function handlePOST(req: Request) {
        Never silently fall back to Supabase after the native cutover: that
        would make a successful migration look complete while creating a new
        split identity authority. */
-    if (nativeActive) return safeJsonError(MESSAGES.accountUnavailable, 503);
+    if (nativeActive) {
+      try {
+        const sent = await startNativePasswordRegistration(email, password);
+        if (!sent) return safeJsonError(MESSAGES.accountUnavailable, 503);
+        forgetAttempts(key);
+        /* Same answer for a new address and an existing one: the inbox, not
+           this route, is the proof that an address is controlled. */
+        return NextResponse.json({ confirm: true });
+      } catch {
+        return safeJsonError(MESSAGES.accountUnavailable, 503);
+      }
+    }
 
     let result;
     try {

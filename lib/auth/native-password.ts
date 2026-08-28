@@ -1,4 +1,4 @@
-import { compare } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { isAcceptedBcryptVerifier } from "./bcrypt-verifier";
 import { assertServerOnly } from "./server-only";
 import type { AuthedUser } from "./supabase";
@@ -44,6 +44,7 @@ interface PasswordUserRow {
   deleted_at: string | null;
   verifier: string;
   scheme: string;
+  status: string | null;
 }
 
 function stamp(now = Date.now()): string {
@@ -74,6 +75,22 @@ export async function verifyImportedBcryptPassword(
 }
 
 /**
+ * Creates the same bounded bcrypt verifier format accepted for migrated
+ * Supabase accounts. The fixed work factor prevents registration becoming a
+ * Worker CPU denial-of-service primitive.
+ */
+export async function hashNativePassword(password: string): Promise<string | null> {
+  assertServerOnly(MODULE);
+  if (!password || password.length > 200) return null;
+  try {
+    const verifier = await hash(password, 10);
+    return isImportedBcryptVerifier(verifier) ? verifier : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Signs in a password account from Cloudflare D1 without consulting Supabase.
  * All failure cases intentionally become null so the route can retain its
  * existing non-enumerating response.
@@ -92,7 +109,7 @@ export async function signInWithImportedNativePassword(
 
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const row = await bindings.db.prepare(`
-    SELECT u.id, u.email, u.created_at, u.deleted_at, c.verifier, c.scheme
+    SELECT u.id, u.email, u.created_at, u.deleted_at, c.verifier, c.scheme, c.status
       FROM app_users u
       LEFT JOIN app_password_credentials c ON c.user_id = u.id
      WHERE u.email IS NOT NULL
@@ -102,11 +119,11 @@ export async function signInWithImportedNativePassword(
   `).bind(email).first<PasswordUserRow>();
 
   /* Do not let a missing credential skip the bcrypt work entirely. */
-  const verifier = row && row.scheme === "bcrypt" && isImportedBcryptVerifier(row.verifier)
+  const verifier = row && row.scheme === "bcrypt" && row.status === "active" && isImportedBcryptVerifier(row.verifier)
     ? row.verifier
     : BOGUS_BCRYPT_VERIFIER;
   const matched = await verifyImportedBcryptPassword(password, verifier);
-  if (!row || row.deleted_at !== null || row.scheme !== "bcrypt" || !matched) return null;
+  if (!row || row.deleted_at !== null || row.scheme !== "bcrypt" || row.status !== "active" || !matched) return null;
 
   const at = stamp(now);
   const touched = await bindings.db.batch([

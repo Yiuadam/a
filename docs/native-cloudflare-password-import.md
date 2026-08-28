@@ -5,10 +5,11 @@ password. It preserves their existing bcrypt verifier, so they can continue to
 sign in with the password they already know. It does **not** export, show, or
 store plaintext passwords.
 
-Do this only after the Cloudflare preview schema migration `0016` has been
-reviewed and applied, and before enabling `CLOUDFLARE_NATIVE_AUTH`. The runtime
-flag must remain `0` until the Google mapping, password import, session signing
-key, account recovery, and final cutover checks are complete.
+Do this only after the Cloudflare preview schema migrations `0016` and `0017`
+have been reviewed and applied, and before enabling `CLOUDFLARE_NATIVE_AUTH`
+in production. The runtime flag must remain `0` there until the Google mapping,
+password import, session signing key, Cloudflare Email Sending, account
+recovery, and final cutover checks are complete.
 
 1. From a secure owner machine, use a direct, read-only PostgreSQL connection
    to the existing Supabase project. The GoTrue HTTP Admin API deliberately

@@ -97,6 +97,8 @@ export function mirrorsWritesToCloudflare(): boolean {
 export interface BandUpCloudflareBindings {
   db: Env["BANDUP_DB"];
   files: Env["BANDUP_FILES"];
+  /** Optional only so non-email routes stay usable in a local shell. */
+  email?: Env["EMAIL"];
 }
 
 /**
@@ -110,7 +112,7 @@ export async function bandUpCloudflareBindings(): Promise<BandUpCloudflareBindin
     const context = await getCloudflareContext({ async: true });
     const env = context.env as CloudflareEnv & Env;
     if (!env.BANDUP_DB || !env.BANDUP_FILES) return null;
-    return { db: env.BANDUP_DB, files: env.BANDUP_FILES };
+    return { db: env.BANDUP_DB, files: env.BANDUP_FILES, email: env.EMAIL };
   } catch {
     return null;
   }
