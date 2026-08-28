@@ -23,10 +23,11 @@
 import { randomUUID } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { canonical, hash } from "./migration-hash.mjs";
+import { supabaseServiceHeaders } from "../lib/auth/supabase-service-key.mjs";
 
 const SOURCE_URL = (process.env.SUPABASE_URL ?? "").replace(/\/$/, "");
 const SOURCE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -45,8 +46,23 @@ if (productionTarget === previewTarget) {
   die("choose exactly one target: --preview or --production");
 }
 // The public organization preview is deliberately synthetic-only. A source
-// migration must never reuse its Worker config or its D1/R2 bindings.
-const CONFIG = join(
+// migration must never reuse its Worker config or its D1/R2 bindings. A
+// repository-local Preview-only override lets an owner rehearse against a
+// freshly provisioned disposable D1 database without changing that default.
+const previewConfigOverride = process.env.BANDUP_MIGRATION_PREVIEW_CONFIG ?? "";
+if (productionTarget && previewConfigOverride) {
+  die("BANDUP_MIGRATION_PREVIEW_CONFIG is only allowed for --preview");
+}
+const configOverridePath = previewConfigOverride
+  ? resolve(REPOSITORY_ROOT, previewConfigOverride)
+  : null;
+if (configOverridePath) {
+  const pathWithinRepository = relative(REPOSITORY_ROOT, configOverridePath);
+  if (!pathWithinRepository || isAbsolute(pathWithinRepository) || pathWithinRepository.startsWith("..")) {
+    die("BANDUP_MIGRATION_PREVIEW_CONFIG must resolve inside the repository");
+  }
+}
+const CONFIG = configOverridePath ?? join(
   REPOSITORY_ROOT,
   productionTarget ? "wrangler.jsonc" : "wrangler.migration-preview.jsonc",
 );
@@ -79,6 +95,10 @@ if (productionTarget && target !== "remote") {
 }
 if (productionTarget && !args.has("--confirm-production=bandup-data-production")) {
   die("production requires --confirm-production=bandup-data-production");
+}
+
+function sourceHeaders(accept) {
+  return supabaseServiceHeaders(SOURCE_KEY, accept);
 }
 
 function sql(value) {
@@ -215,11 +235,7 @@ async function sourceAvatar(path, userId) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       response = await fetch(endpoint, {
-        headers: {
-          apikey: SOURCE_KEY,
-          Authorization: `Bearer ${SOURCE_KEY}`,
-          Accept: "image/*",
-        },
+        headers: sourceHeaders("image/*"),
         signal: AbortSignal.timeout(20_000),
       });
       if (response.ok || response.status < 500) break;
@@ -365,11 +381,7 @@ async function sourcePage(table, select, order, offset) {
   endpoint.searchParams.set("offset", String(offset));
   endpoint.searchParams.set("limit", String(PAGE_SIZE));
   const response = await fetchSource(endpoint, {
-    headers: {
-      apikey: SOURCE_KEY,
-      Authorization: `Bearer ${SOURCE_KEY}`,
-      Accept: "application/json",
-    },
+    headers: sourceHeaders("application/json"),
   }, `Supabase ${table} page ${offset}`);
   if (!response.ok) {
     const detail = await response.text();

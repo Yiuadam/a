@@ -94,13 +94,23 @@ function fakeR2() {
   };
 }
 
-function freshD1() {
+function d1Through(lastMigration) {
   const database = new DatabaseSync(":memory:");
   const dir = join(ROOT, "cloudflare", "migrations");
-  for (const file of readdirSync(dir).filter((name) => name.endsWith(".sql")).sort()) {
+  for (const file of readdirSync(dir)
+    .filter((name) => name.endsWith(".sql") && name <= lastMigration)
+    .sort()) {
     database.exec(readFileSync(join(dir, file), "utf8"));
   }
   return database;
+}
+
+function freshD1() {
+  return d1Through("9999");
+}
+
+function prePromoD1() {
+  return d1Through("0017_native_email_actions.sql");
 }
 
 /* The two hand-run rebuilds from the pull request body, verbatim. */
@@ -347,16 +357,28 @@ PRAGMA foreign_keys=ON;
 `;
 
 function widenedD1() {
-  const database = freshD1();
-  database.exec(WIDEN_SUBSCRIPTIONS_PROVIDER);
-  database.exec(WIDEN_OUTBOX_OPERATION);
-  return database;
+  return freshD1();
 }
+
+test("the shipped promo migration remains equivalent to the reviewed rebuilds", () => {
+  const migration = readFileSync(
+    join(ROOT, "cloudflare", "migrations", "0018_promo_subscription_replica.sql"),
+    "utf8",
+  );
+  const normaliseSql = (value) => value
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\s+/g, "")
+    .replaceAll(";", "");
+  assert.equal(
+    normaliseSql(migration),
+    normaliseSql(`${WIDEN_SUBSCRIPTIONS_PROVIDER}\n${WIDEN_OUTBOX_OPERATION}`),
+  );
+});
 
 /* ------------------------------------------------------- hand-run rebuilds -- */
 
-test("the hand-run subscriptions.provider widening preserves data, indexes and triggers", () => {
-  const database = freshD1();
+test("the shipped subscriptions.provider widening preserves data, indexes and triggers", () => {
+  const database = prePromoD1();
   database.exec(`INSERT INTO app_users (id, email, role, created_at, updated_at)
     VALUES ('50000000-0000-4000-8000-000000000001', 'a@example.test', 'user', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`);
   database.exec(`INSERT INTO subscriptions (id, user_id, provider, status, tier, verified_at, created_at, updated_at)
@@ -390,8 +412,8 @@ test("the hand-run subscriptions.provider widening preserves data, indexes and t
     VALUES ('sub-blocked', '50000000-0000-4000-8000-000000000001', 'promo', 'active', 'pro', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`), /account deletion is in progress/);
 });
 
-test("the hand-run outbox operation widening preserves the queue and its triggers", () => {
-  const database = freshD1();
+test("the shipped outbox operation widening preserves the queue and its triggers", () => {
+  const database = prePromoD1();
   database.exec(`INSERT INTO app_users (id, email, role, created_at, updated_at)
     VALUES ('50000000-0000-4000-8000-000000000001', 'a@example.test', 'user', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`);
   database.exec(`INSERT INTO cloudflare_replica_outbox (task_id, operation, subject_user_id, source_updated_at, payload_inline, payload_sha256, payload_bytes, available_at, created_at, updated_at)

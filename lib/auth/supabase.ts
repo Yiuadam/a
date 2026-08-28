@@ -1,6 +1,7 @@
 import { assertServerOnly } from "./server-only";
 import { supabaseConfig } from "./env";
 import { readAccountKind } from "./account-identity";
+import { setSupabaseServiceHeaders } from "./supabase-service-key.mjs";
 import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
 import type {
   ProgressSnapshotExpectation,
@@ -65,13 +66,14 @@ async function request(
 
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
-  // PostgREST and GoTrue both require the anon key as `apikey`; the bearer
-  // decides what the request is actually allowed to do.
-  headers.set("apikey", init.asServiceRole ? config.serviceRoleKey : config.anonKey);
-  headers.set(
-    "Authorization",
-    `Bearer ${init.asServiceRole ? config.serviceRoleKey : (init.bearer ?? config.anonKey)}`,
-  );
+  if (init.asServiceRole) {
+    setSupabaseServiceHeaders(headers, config.serviceRoleKey);
+  } else {
+    // GoTrue expects the public key as `apikey`; a user bearer token, when
+    // supplied, carries the caller's actual identity.
+    headers.set("apikey", config.anonKey);
+    headers.set("Authorization", `Bearer ${init.bearer ?? config.anonKey}`);
+  }
 
   // A hung Supabase must not hold an AI route open until its own timeout.
   const abort = AbortSignal.timeout(8000);
@@ -889,18 +891,18 @@ export async function uploadAvatar(
   if (!config) return false;
   if (await cutoverWriteBarrierArmed("learner")) return false;
   try {
+    const headers = new Headers({
+      "Content-Type": contentType,
+      // Every upload gets a new random path, so this object is immutable.
+      // Let the browser/CDN reuse it instead of downloading the avatar again
+      // on every page while its signed URL remains valid.
+      "Cache-Control": "max-age=31536000, immutable",
+      "x-upsert": "true",
+    });
+    setSupabaseServiceHeaders(headers, config.serviceRoleKey);
     const res = await fetch(`${config.url}/storage/v1/object/avatars/${path}`, {
       method: "POST",
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        "Content-Type": contentType,
-        // Every upload gets a new random path, so this object is immutable.
-        // Let the browser/CDN reuse it instead of downloading the avatar again
-        // on every page while its signed URL remains valid.
-        "Cache-Control": "max-age=31536000, immutable",
-        "x-upsert": "true",
-      },
+      headers,
       body,
       signal: AbortSignal.timeout(15000),
     });
@@ -947,9 +949,11 @@ export async function deleteAvatar(path: string): Promise<boolean> {
   if (!config) return false;
   if (await cutoverWriteBarrierArmed("learner")) return false;
   try {
+    const headers = new Headers();
+    setSupabaseServiceHeaders(headers, config.serviceRoleKey);
     const res = await fetch(`${config.url}/storage/v1/object/avatars/${path}`, {
       method: "DELETE",
-      headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}` },
+      headers,
       signal: AbortSignal.timeout(8000),
     });
     return res.ok;
@@ -1015,10 +1019,12 @@ export async function downloadAvatarBytes(userId: string, path: string): Promise
     return null;
   }
   try {
+    const headers = new Headers();
+    setSupabaseServiceHeaders(headers, config.serviceRoleKey);
     const res = await fetch(
       `${config.url}/storage/v1/object/avatars/${parts.map(encodeURIComponent).join("/")}`,
       {
-        headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}` },
+        headers,
         signal: AbortSignal.timeout(20000),
       },
     );
