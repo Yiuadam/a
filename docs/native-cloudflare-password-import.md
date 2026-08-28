@@ -5,8 +5,8 @@ password. It preserves their existing bcrypt verifier, so they can continue to
 sign in with the password they already know. It does **not** export, show, or
 store plaintext passwords.
 
-Do this only after the Cloudflare preview schema migrations `0016` and `0017`
-have been reviewed and applied, and before enabling `CLOUDFLARE_NATIVE_AUTH`
+Do this only after the Cloudflare preview schema migrations `0016`, `0017`,
+and `0021` have been reviewed and applied, and before enabling `CLOUDFLARE_NATIVE_AUTH`
 in production. The runtime flag must remain `0` there until the Google mapping,
 password import, session signing key, Cloudflare Email Sending, account
 recovery, and final cutover checks are complete.
@@ -45,14 +45,23 @@ recovery, and final cutover checks are complete.
    email match the exact live D1 account. A mismatch makes no change and stops
    the import. The token, emails, IDs and verifiers are never printed.
 
-3. Verify only aggregate counts and test a non-owner account whose password is
-   known; never query or print the verifier column. Do not enable the
-   native-auth flag during this step.
+3. The importer finishes by recording an aggregate **exact source-to-D1
+   certificate**. It succeeds only when the full canonical D1 set has the
+   same count, stable user IDs, source update times, and bcrypt verifiers as
+   the confidential source export. The certificate stores only a SHA-256
+   commitment and aggregate count; it never stores or prints an email, user
+   ID, verifier, or password. A missing, stale, swapped, or extra credential
+   leaves native-only cutover blocked.
 
-4. After preview verification, create a fresh production export and repeat the
+4. Verify the certificate is `verified` in the owner Cloudflare-identity
+   readiness card and test a non-owner account whose password is known; never
+   query or print the verifier column. Do not enable the native-auth flag
+   during this step.
+
+5. After preview verification, create a fresh production export and repeat the
    same check for production. Do not reuse a preview export in production.
 
-5. Remove the private export under the organisation's approved retention
+6. Remove the private export under the organisation's approved retention
    policy. It contains encrypted password verifiers, not plaintext, but must
    still be treated as confidential authentication data.
 
