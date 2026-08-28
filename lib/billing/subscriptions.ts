@@ -4,6 +4,12 @@ import { cloudflareDataMode, organizationDataMode, readsFromCloudflare } from "@
 import {
   cloudflareStripeCustomerFor,
 } from "@/lib/cloudflare/billing-replica";
+import {
+  applyNativeStripePrepaidPurchase,
+  applyNativeStripePrepaidRefund,
+  applyNativeStripeSubscription,
+} from "@/lib/cloudflare/native-stripe-billing";
+import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { replicateStripeBillingDurably } from "@/lib/cloudflare/replica-replay";
 import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
 import type { Provider } from "./providers";
@@ -97,6 +103,10 @@ export async function applyStripeSubscription(
     throw new Error("cutover write barrier is armed for learner writes");
   }
 
+  if (nativeStripeBillingActive()) {
+    return applyNativeStripeSubscription(event, payload);
+  }
+
   const outcome = await rpc<unknown>("apply_provider_subscription_event", {
     p_provider: "stripe" satisfies Provider,
     p_event_id: event.eventId,
@@ -150,6 +160,9 @@ export async function applyStripePrepaidPurchase(
   if (await cutoverWriteBarrierArmed("learner")) {
     throw new Error("cutover write barrier is armed for learner writes");
   }
+  if (nativeStripeBillingActive()) {
+    return applyNativeStripePrepaidPurchase(event, payload);
+  }
   const outcome = await rpc<unknown>("apply_stripe_prepaid_purchase_event", {
     p_event_id: event.eventId,
     p_event_at: event.eventAt,
@@ -185,6 +198,9 @@ export async function applyStripePrepaidRefund(
   assertServerOnly(MODULE);
   if (await cutoverWriteBarrierArmed("learner")) {
     throw new Error("cutover write barrier is armed for learner writes");
+  }
+  if (nativeStripeBillingActive()) {
+    return applyNativeStripePrepaidRefund(event, payload);
   }
   const outcome = await rpc<unknown>("apply_stripe_prepaid_refund_event", {
     p_event_id: event.eventId,

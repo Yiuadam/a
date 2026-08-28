@@ -1,5 +1,6 @@
-import { accountsEnabled } from "@/lib/auth/env";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { supabaseConfigured } from "@/lib/auth/supabase";
+import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { stripeSecretKey, stripePriceId } from "./env";
 import { stripeDiagnostic, verifyCataloguePrices } from "./stripe";
 import { PLAN_IDS } from "./tiers";
@@ -43,8 +44,8 @@ export async function billingHealth(): Promise<BillingHealth> {
   const checks: BillingHealthCheck[] = [];
   const add = (name: string, ok: boolean) => checks.push({ name, ok });
 
-  add("accounts_enabled", accountsEnabled());
-  add("supabase_configured", supabaseConfigured());
+  add("accounts_runtime_enabled", accountRuntimeEnabled());
+  add("billing_storage_configured", supabaseConfigured() || nativeStripeBillingActive());
 
   const key = Boolean(stripeSecretKey());
   add("stripe_key_present", key);

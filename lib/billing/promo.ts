@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/supabase";
 import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
 import { domainWritesToCloudflareOnly } from "@/lib/cloudflare/cutover-domains";
+import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import {
   nativeInsertPromoSubscription,
   nativePromoSubscriptionState,
@@ -107,7 +108,8 @@ const NEGATIVE_TTL_MS = 60_000;
 const NATIVE_PROBE_USER = "00000000-0000-0000-0000-000000000000";
 
 function nativePromoAuthority(): boolean {
-  return domainWritesToCloudflareOnly("billing_entitlement_runtime");
+  return domainWritesToCloudflareOnly("billing_entitlement_runtime")
+    && nativeStripeBillingActive();
 }
 
 export function forgetPromoCapability(): void {

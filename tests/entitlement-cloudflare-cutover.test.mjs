@@ -1004,10 +1004,11 @@ test("replicatePromoSubscriptionDurably uses a stable per-account task id, so re
   assert.match(source, /taskId: `promo:\$\{authoritative\.userId\}`/);
 });
 
-test("the registry keeps billing entitlement unsupported until its payment writes are native", () => {
+test("the registry keeps billing entitlement unsupported until its native payment migration is proven", () => {
   const registry = readFileSync(join(ROOT, "lib", "cloudflare", "cutover-domains.ts"), "utf8");
   assert.match(registry, /domain: "billing_entitlement_runtime"/);
-  assert.match(registry, /Stripe webhook and promo mutations still write/);
+  assert.match(registry, /CLOUDFLARE_NATIVE_STRIPE_BILLING/);
+  assert.match(registry, /replay\/reconciliation has passed/);
   assert.match(registry, /billing_entitlement_runtime[\s\S]{0,500}supported: false/);
 });
 

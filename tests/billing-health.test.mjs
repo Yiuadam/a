@@ -143,7 +143,7 @@ test("ok is false, and names the check, when a single Price id goes missing", ()
       assert.equal(prices.ok, false);
       // Everything else configured stays reported as configured — one missing
       // Price does not smear the whole panel red.
-      assert.equal(health.checks.find((c) => c.name === "accounts_enabled").ok, true);
+      assert.equal(health.checks.find((c) => c.name === "accounts_runtime_enabled").ok, true);
       assert.equal(health.checks.find((c) => c.name === "stripe_key_present").ok, true);
     } finally {
       restore();
@@ -157,7 +157,7 @@ test("ok is false when ACCOUNTS_ENABLED goes missing", () =>
     try {
       const health = await billingHealth();
       assert.equal(health.ok, false);
-      assert.equal(health.checks.find((c) => c.name === "accounts_enabled").ok, false);
+      assert.equal(health.checks.find((c) => c.name === "accounts_runtime_enabled").ok, false);
     } finally {
       restore();
     }
@@ -197,12 +197,12 @@ test("every check is a boolean under a fixed name, nothing else", () =>
       }
       const names = health.checks.map((c) => c.name).sort();
       assert.deepEqual(names, [
-        "accounts_enabled",
+        "accounts_runtime_enabled",
+        "billing_storage_configured",
         "stripe_key_present",
         "stripe_price_ids_present",
         "stripe_prices_match_catalogue",
         "stripe_reachable",
-        "supabase_configured",
       ].sort());
     } finally {
       restore();

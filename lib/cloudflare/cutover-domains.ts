@@ -76,9 +76,11 @@ export const CUTOVER_DOMAINS: readonly CutoverDomainDefinition[] = [
   {
     domain: "billing_entitlement_runtime",
     description:
-      "D1 has an entitlement reader, but Stripe webhook and promo mutations still write " +
-      "through Supabase before mirroring. This remains unsupported for a Cloudflare-only " +
-      "cutover until those verified payment writes and their reconciliation paths are native.",
+      "D1-native promo and verified Stripe-event writers exist, but Stripe stays on the " +
+      "established Supabase route until historical subscriptions and original prepaid amounts " +
+      "have been backfilled, replay/reconciliation has passed, and the dedicated " +
+      "CLOUDFLARE_NATIVE_STRIPE_BILLING switch is explicitly armed. This remains unsupported " +
+      "for a Cloudflare-only cutover until that evidence and operational transition are complete.",
     supported: false,
   },
   {

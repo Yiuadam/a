@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
 import { supabaseConfigured } from "@/lib/auth/supabase";
+import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { stripeWalletConfigured } from "@/lib/billing/env";
 import { BILLING_MESSAGES } from "@/lib/billing/messages";
 import { logBillingFailure } from "@/lib/billing/faults";
@@ -14,7 +15,11 @@ import { withCors } from "@/lib/http/cors";
 export const dynamic = "force-dynamic";
 
 async function handlePOST(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured() || !stripeWalletConfigured()) {
+  if (
+    !accountRuntimeEnabled()
+    || !stripeWalletConfigured()
+    || (!supabaseConfigured() && !nativeStripeBillingActive())
+  ) {
     return safeJsonError(BILLING_MESSAGES.checkoutUnavailable, 503);
   }
 

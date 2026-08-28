@@ -74,6 +74,7 @@ const USER_OBJECT_PREFIXES = [
   "private/avatars",
   "private/attempts",
   "private/subscriptions",
+  "private/provider-events",
   "private/progress/ielts-prep-v1",
   "private/progress/bandup.drills.v1",
   "private/progress/bandup.lookups.v1",
@@ -199,6 +200,7 @@ async function captureReferencedObjects(
      WHERE value = ?
   )`;
   const subscriptionPrefix = `private/subscriptions/${userId}/`;
+  const providerEventPrefix = `private/provider-events/${userId}/`;
   await db.batch([
     db.prepare(`
       INSERT OR IGNORE INTO account_deletion_objects (user_id, object_key, discovered_at)
@@ -252,6 +254,7 @@ async function captureReferencedObjects(
        WHERE provider_events.payload_object_key IS NOT NULL
          AND (
            substr(provider_events.payload_object_key, 1, length(?)) = ?
+           OR substr(provider_events.payload_object_key, 1, length(?)) = ?
            OR EXISTS (
              SELECT 1 FROM data_migration_source_rows
               WHERE table_name = 'provider_events'
@@ -259,7 +262,15 @@ async function captureReferencedObjects(
                 AND ${sourceSubject}
            )
          )
-    `).bind(userId, stamp, subscriptionPrefix, subscriptionPrefix, userId),
+    `).bind(
+      userId,
+      stamp,
+      subscriptionPrefix,
+      subscriptionPrefix,
+      providerEventPrefix,
+      providerEventPrefix,
+      userId,
+    ),
   ]);
 
   // Prefix discovery also catches superseded avatar/progress objects no
@@ -448,6 +459,7 @@ async function purgeCloudflareRows(
   const email = row.email_for_cleanup;
   const stamp = now();
   const subscriptionPrefix = `private/subscriptions/${userId}/`;
+  const providerEventPrefix = `private/provider-events/${userId}/`;
   const sourceSubject = `EXISTS (
     SELECT 1 FROM json_each(data_migration_source_rows.subject_user_ids_json)
      WHERE value = ?
@@ -521,6 +533,7 @@ async function purgeCloudflareRows(
          SET payload_object_key = NULL, payload_sha256 = NULL
        WHERE payload_object_key IS NOT NULL AND (
          substr(payload_object_key, 1, length(?)) = ?
+         OR substr(payload_object_key, 1, length(?)) = ?
          OR EXISTS (
            SELECT 1 FROM data_migration_source_rows
             WHERE table_name = 'provider_events'
@@ -528,7 +541,13 @@ async function purgeCloudflareRows(
               AND ${sourceSubject}
          )
        )
-    `).bind(subscriptionPrefix, subscriptionPrefix, userId),
+    `).bind(
+      subscriptionPrefix,
+      subscriptionPrefix,
+      providerEventPrefix,
+      providerEventPrefix,
+      userId,
+    ),
     db.prepare("DELETE FROM organization_command_receipts WHERE actor_user_id = ?").bind(userId),
     db.prepare("DELETE FROM organization_sync_receipts WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM organization_attempt_sync_outbox WHERE user_id = ?").bind(userId),
