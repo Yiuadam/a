@@ -74,33 +74,54 @@ test("the small homepage response is validated before it becomes a link", () => 
   assert.equal(homeOrganizationShortcutFromResponse({ organization: { id: "first" } }), null);
 });
 
-test("the homepage uses organisation, score-trend, then placement priority", () => {
+test("the homepage puts recorded history ahead of the welcome or organisation shortcut", () => {
   const source = readFileSync(join(process.cwd(), "app", "page.tsx"), "utf8");
-  assert.match(source, /organization \? \([\s\S]*?<OrganisationHero/);
   /*
-    This assertion used to match a bare `placement ? (`, which was the actual
-    production bug: any truthy object — including an empty or malformed one —
-    took this branch and rendered a "Placement band" line and badge from
-    whatever was in it. A missing/zero band happens to display as exactly
-    "1", the floor every band-clamping formula in this codebase shares (see
-    lib/band.ts), which reads as a genuine low score rather than the absence
-    of one. The guard now requires isValidPlacement — a real band on the 1-9
-    scale and a parseable date — so a malformed or emptied-out placement
-    record can never pass this check. See lib/placement.ts and
-    tests/placement-adaptive.test.mjs for the guard itself.
+    A truthy-but-malformed placement must not make the dashboard claim a
+    band, but either a valid placement or one recorded practice sitting is
+    enough to replace the first-visit poster with useful history.
   */
-  assert.match(source, /\) : isValidPlacement\(placement\) \? \([\s\S]*?<ScoreTrendOverview/);
+  assert.match(source, /const placement = isValidPlacement\(profile\.placement\) \? profile\.placement : null;/);
+  assert.match(source, /const hasRecordedHistory = placement !== null \|\| profile\.results\.length > 0;/);
+  assert.match(source, /hasRecordedHistory \? \([\s\S]*?<ScoreTrendOverview[\s\S]*?\) : organization \? \([\s\S]*?<OrganisationHero/);
   assert.match(source, /import \{ isValidPlacement \} from "@\/lib\/placement";/);
-  // The free Pro trial poster took over the placement-test card's own slot
-  // (was <PlacementHero />) so every first-time visitor and fresh account —
-  // exactly who neither organisation nor score-trend applies to — sees the
-  // offer, signed in or not. See components/billing/FreeProPoster.tsx.
+  // Only a first-time visitor with no result or placement reaches the offer.
   assert.match(source, /<FreeProPoster \/>/);
   assert.doesNotMatch(source, /<PlacementHero/);
   assert.match(source, /TREND_MODULES\.map/);
   assert.match(source, /href=\{`\/history\?module=\$\{module\}`\}/);
+  assert.match(source, /View detailed history/);
+  assert.match(source, /Take placement test/);
+  assert.match(source, /placement\s*\?\s*`Placement band \$\{placement\.band\} · four skill trends`/);
+  assert.match(source, /\$\{sittingCount\} recorded practice sitting/);
   assert.match(source, /api\/organization\/shortcut/);
   assert.doesNotMatch(source, /apiUrl\("\/api\/organization"\)/);
+});
+
+test("opening a homepage destination saves its visit so its New label stays retired", () => {
+  const source = readFileSync(join(process.cwd(), "app", "page.tsx"), "utf8");
+  assert.match(source, /import \{ markVisited \} from "@\/lib\/store";/);
+  assert.match(source, /onClick=\{\(\) => markVisited\(m\.key\)\}/);
+  assert.match(source, /drillSectionNeedsNewBadge\(profile, scores, s\.key\)/);
+  assert.match(source, /onClick=\{\(\) => markVisited\(s\.key\)\}/);
+});
+
+test("every dashboard destination records a direct or menu visit too", () => {
+  const destinations = [
+    ["app", "grammar", "page.tsx", "grammar"],
+    ["app", "vocabulary", "page.tsx", "vocabulary"],
+    ["app", "practice", "listening", "page.tsx", "listening"],
+    ["app", "practice", "reading", "page.tsx", "reading"],
+    ["app", "practice", "writing", "page.tsx", "writing"],
+    ["app", "speaking", "page.tsx", "speaking"],
+  ];
+  for (const entry of destinations) {
+    const destination = entry.at(-1);
+    const path = entry.slice(0, -1);
+    const source = readFileSync(join(process.cwd(), ...path), "utf8");
+    assert.match(source, /import DashboardVisit from "@\/components\/DashboardVisit";/);
+    assert.match(source, new RegExp(`<DashboardVisit destination="${destination}"`));
+  }
 });
 
 test("the homepage shortcut endpoint avoids loading the complete organisation portal", () => {

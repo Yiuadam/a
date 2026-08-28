@@ -23,9 +23,10 @@ const result = (module, testId) => ({
   date: "2026-08-12T00:00:00.000Z",
 });
 
-test("opening or visiting a skill does not retire its New badge", () => {
-  const oldProfile = { visited: ["reading"], results: [] };
-  assert.equal(moduleNeedsNewBadge(oldProfile, "reading"), true);
+test("opening a homepage skill retires only that skill's New badge", () => {
+  const profile = { visited: ["reading"], results: [] };
+  assert.equal(moduleNeedsNewBadge(profile, "reading"), false);
+  assert.equal(moduleNeedsNewBadge(profile, "listening"), true);
 });
 
 test("a submitted result retires only that skill and paper badge", () => {
@@ -57,12 +58,13 @@ test("a drill stays New until its full run records a score", () => {
   );
 });
 
-test("a study-section badge retires after one topic in that section is completed", () => {
+test("a study-section badge retires after it is opened or one topic is completed", () => {
   const scores = {
     articles: { correct: 6, total: 8, at: "2026-08-12T00:00:00.000Z" },
   };
-  assert.equal(drillSectionNeedsNewBadge(scores, "grammar"), false);
-  assert.equal(drillSectionNeedsNewBadge(scores, "vocabulary"), true);
+  assert.equal(drillSectionNeedsNewBadge({ visited: [] }, scores, "grammar"), false);
+  assert.equal(drillSectionNeedsNewBadge({ visited: ["vocabulary"] }, scores, "vocabulary"), false);
+  assert.equal(drillSectionNeedsNewBadge({ visited: [] }, {}, "vocabulary"), true);
 });
 
 test("the compact dashboard topic index matches both authored drill banks", () => {

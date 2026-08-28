@@ -32,6 +32,7 @@ import {
   moduleNeedsNewBadge,
   type DrillBadgeKind,
 } from "@/lib/completion-badges";
+import { markVisited } from "@/lib/store";
 import {
   drillScores,
   getServerDrillScores,
@@ -280,30 +281,48 @@ function ScoreTrendOverview({
   placement,
   results,
 }: {
-  placement: PlacementResult;
+  placement: PlacementResult | null;
   results: readonly ModuleResult[];
 }) {
+  const sittingCount = results.length;
   return (
     <section className="dashboard-score-overview min-w-0 shrink-0" aria-labelledby="dashboard-score-heading">
       <div className="mb-2 flex min-w-0 flex-wrap items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-2.5">
-          <BandBadge band={placement.band} size="sm" />
+          {placement ? <BandBadge band={placement.band} size="sm" /> : null}
           <span className="min-w-0">
             <h1 id="dashboard-score-heading" className="truncate text-xl font-semibold text-slate-900 sm:text-[22px]">
-              Your score trends
+              Your history
             </h1>
-            <span className="block text-xs text-slate-500">Placement band {placement.band}</span>
+            <span className="block text-xs text-slate-500">
+              {placement
+                ? `Placement band ${placement.band} · four skill trends`
+                : `${sittingCount} recorded practice sitting${sittingCount === 1 ? "" : "s"} · four skill trends`}
+            </span>
           </span>
         </span>
         <span className="flex flex-wrap items-center justify-end gap-2">
-          <IntentPrefetchLink href="/plan" className="btn-primary premade-glass shrink-0 whitespace-nowrap">
+          <IntentPrefetchLink href="/history" className="btn-primary premade-glass shrink-0 whitespace-nowrap">
             <RefractiveGlassLayer radius={999} interactive />
-            <span className="premade-glass-content">See what to do next</span>
+            <span className="premade-glass-content">View detailed history</span>
           </IntentPrefetchLink>
-          <IntentPrefetchLink href="/placement" className="btn-secondary premade-glass shrink-0 whitespace-nowrap">
-            <RefractiveGlassLayer radius={999} interactive />
-            <span className="premade-glass-content">Re-test</span>
-          </IntentPrefetchLink>
+          {placement ? (
+            <>
+              <IntentPrefetchLink href="/plan" className="btn-secondary premade-glass shrink-0 whitespace-nowrap">
+                <RefractiveGlassLayer radius={999} interactive />
+                <span className="premade-glass-content">See what to do next</span>
+              </IntentPrefetchLink>
+              <IntentPrefetchLink href="/placement" className="btn-secondary premade-glass shrink-0 whitespace-nowrap">
+                <RefractiveGlassLayer radius={999} interactive />
+                <span className="premade-glass-content">Re-test</span>
+              </IntentPrefetchLink>
+            </>
+          ) : (
+            <IntentPrefetchLink href="/placement" className="btn-secondary premade-glass shrink-0 whitespace-nowrap">
+              <RefractiveGlassLayer radius={999} interactive />
+              <span className="premade-glass-content">Take placement test</span>
+            </IntentPrefetchLink>
+          )}
         </span>
       </div>
       <div className="dashboard-trend-grid grid min-w-0 grid-cols-2 gap-2.5 lg:grid-cols-4">
@@ -319,7 +338,8 @@ export default function Dashboard() {
   const profile = useProfile();
   const scores = useSyncExternalStore(subscribeDrills, drillScores, getServerDrillScores);
   const access = useSessionAccess();
-  const placement = profile.placement;
+  const placement = isValidPlacement(profile.placement) ? profile.placement : null;
+  const hasRecordedHistory = placement !== null || profile.results.length > 0;
   const organization = useHomeOrganizationShortcut();
   const recent = newestFirst(profile.results).slice(0, 6);
   return (
@@ -329,10 +349,10 @@ export default function Dashboard() {
         used to be a paragraph and a 96px band badge stacked above everything
         else, which cost a third of a laptop screen before the first link.
       */}
-      {organization ? (
-        <OrganisationHero organization={organization} />
-      ) : isValidPlacement(placement) ? (
+      {hasRecordedHistory ? (
         <ScoreTrendOverview placement={placement} results={profile.results} />
+      ) : organization ? (
+        <OrganisationHero organization={organization} />
       ) : (
         /*
           The free Pro trial poster stands in the placement-test card's own
@@ -470,6 +490,7 @@ export default function Dashboard() {
                     key={m.key}
                     href={m.href}
                     className="dashboard-skill-card card premade-glass p-3.5 block"
+                    onClick={() => markVisited(m.key)}
                   >
                     <RefractiveGlassLayer interactive />
                     <div className="premade-glass-content flex items-start justify-between gap-2">
@@ -508,9 +529,14 @@ export default function Dashboard() {
             </h2>
             <div className="dashboard-card-grid dashboard-study-grid grid grid-cols-2 gap-3">
               {STUDY.map((s) => {
-                const isNew = drillSectionNeedsNewBadge(scores, s.key);
+                const isNew = drillSectionNeedsNewBadge(profile, scores, s.key);
                 return (
-                  <IntentPrefetchLink key={s.href} href={s.href} className="dashboard-skill-card card premade-glass p-3.5 block">
+                  <IntentPrefetchLink
+                    key={s.href}
+                    href={s.href}
+                    className="dashboard-skill-card card premade-glass p-3.5 block"
+                    onClick={() => markVisited(s.key)}
+                  >
                     <RefractiveGlassLayer interactive />
                     <div className="premade-glass-content flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-start gap-2.5">

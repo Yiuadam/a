@@ -42,4 +42,9 @@ test("opening a Grammar topic retains the full lesson and the existing drill con
     /@media \(min-width: 64rem\) \{[\s\S]*?\.compactWorkspace \{[\s\S]*?grid-template-columns:/,
   );
   assert.match(layout, /\.compactLesson \{\s*position: sticky/);
+  assert.match(
+    layout,
+    /@media \(min-width: 64rem\) \{[\s\S]*?\.compactWorkspace \{[\s\S]*?align-items: stretch/,
+    "the desktop lesson and exercise panels should share one row height",
+  );
 });

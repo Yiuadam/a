@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import DrillSection from "@/components/DrillSection";
+import DashboardVisit from "@/components/DashboardVisit";
 import vocabularyData from "@/data/vocabulary.json";
 import type { DrillData } from "@/lib/drills";
 import { forgetLookup, getServerSavedWords, savedWords, subscribeLookups } from "@/lib/lookups";
@@ -77,6 +78,7 @@ function MyWords() {
 export default function VocabularyPage() {
   return (
     <div className="space-y-3" data-vocabulary-practice>
+      <DashboardVisit destination="vocabulary" />
       <DrillSection
         compact
         kind="vocabulary"

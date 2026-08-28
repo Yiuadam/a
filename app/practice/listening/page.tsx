@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import DashboardVisit from "@/components/DashboardVisit";
 import ScoreFooter from "@/components/ScoreFooter";
 import PracticeLoading from "@/components/PracticeLoading";
 import Review from "@/components/Review";
@@ -1104,8 +1105,11 @@ function ListeningTestPageRunner() {
 
 export default function ListeningTestPage() {
   return (
-    <Suspense fallback={<PracticeLoading kind="Listening" />}>
-      <ListeningTestPageRunner />
-    </Suspense>
+    <>
+      <DashboardVisit destination="listening" />
+      <Suspense fallback={<PracticeLoading kind="Listening" />}>
+        <ListeningTestPageRunner />
+      </Suspense>
+    </>
   );
 }

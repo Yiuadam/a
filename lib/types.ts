@@ -386,11 +386,10 @@ export interface GeneratedTest {
 
 export interface Profile {
   placement?: PlacementResult;
-  /*
-    Legacy data from builds where opening a module retired its "New" badge.
-    Kept while old account snapshots are merged so a sync remains lossless,
-    but current badges deliberately ignore it: only a submitted result counts.
-  */
+  /**
+   * Dashboard destinations the learner has opened. This synced, append-only
+   * record retires each homepage "New" label across the learner's browsers.
+   */
   visited?: string[];
   /** Question ids from the last two placement sittings, newest first. */
   placementHistory?: string[][];

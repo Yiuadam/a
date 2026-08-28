@@ -1,20 +1,22 @@
 import type { ModuleName, ModuleResult, Profile } from "./types";
 
 /*
-  "New" describes unfinished work, not unseen navigation.
+  The dashboard's "New" labels describe unseen destinations: once a learner
+  opens a skill or study section, its homepage label should not reappear on a
+  later visit. `visited` is synced and append-only so this holds across the
+  learner's signed-in browsers.
 
-  A click is not progress: somebody can open a paper, close it immediately and
-  still need the same invitation when they return.  These helpers deliberately
-  read only durable completion records written after results/feedback are
-  shown.  Keeping that rule here prevents individual card lists from quietly
-  drifting back to click- or visit-based behaviour.
+  Paper and topic labels below remain completion-based. Opening one paper is
+  not the same as completing it, so the more granular lists still invite the
+  learner back until they submit a result or record a drill score.
 */
 
 export function moduleNeedsNewBadge(
-  profile: Pick<Profile, "results">,
+  profile: Pick<Profile, "results" | "visited">,
   module: ModuleName,
 ): boolean {
-  return !profile.results.some((result) => result.module === module);
+  return !profile.visited?.includes(module)
+    && !profile.results.some((result) => result.module === module);
 }
 
 export function paperNeedsNewBadge(
@@ -86,8 +88,10 @@ export const DRILL_TOPIC_IDS = {
 export type DrillBadgeKind = keyof typeof DRILL_TOPIC_IDS;
 
 export function drillSectionNeedsNewBadge(
+  profile: Pick<Profile, "visited">,
   scores: Readonly<Record<string, unknown>>,
   kind: DrillBadgeKind,
 ): boolean {
-  return DRILL_TOPIC_IDS[kind].every((topicId) => drillNeedsNewBadge(scores, topicId));
+  return !profile.visited?.includes(kind)
+    && DRILL_TOPIC_IDS[kind].every((topicId) => drillNeedsNewBadge(scores, topicId));
 }

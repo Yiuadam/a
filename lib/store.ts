@@ -142,6 +142,21 @@ export function setPlanDays(days: number): Profile {
   return commit({ ...getSnapshot(), planDays: days });
 }
 
+/**
+ * Records that the learner has opened one of the dashboard destinations.
+ *
+ * This is deliberately an append-only marker. It drives the homepage's
+ * "New" labels, so opening Reading on a phone must retire the same label on
+ * the learner's laptop after progress sync, but a later profile update must
+ * never make the label return.
+ */
+export function markVisited(destination: string): Profile {
+  const profile = getSnapshot();
+  const visited = profile.visited ?? [];
+  if (visited.includes(destination)) return profile;
+  return commit({ ...profile, visited: [...visited, destination] });
+}
+
 export function addResult(result: ModuleResult): Profile {
   const p = getSnapshot();
   return commit({ ...p, results: [result, ...p.results].slice(0, 100) });

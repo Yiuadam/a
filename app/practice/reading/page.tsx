@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import DashboardVisit from "@/components/DashboardVisit";
 import ScoreFooter from "@/components/ScoreFooter";
 import PracticeLoading from "@/components/PracticeLoading";
 import Review from "@/components/Review";
@@ -343,8 +344,11 @@ function ReadingTestPageRunner() {
 
 export default function ReadingTestPage() {
   return (
-    <Suspense fallback={<PracticeLoading kind="Reading" />}>
-      <ReadingTestPageRunner />
-    </Suspense>
+    <>
+      <DashboardVisit destination="reading" />
+      <Suspense fallback={<PracticeLoading kind="Reading" />}>
+        <ReadingTestPageRunner />
+      </Suspense>
+    </>
   );
 }

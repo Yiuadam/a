@@ -1,6 +1,7 @@
 "use client";
 
 import SkillGate from "@/components/SkillGate";
+import DashboardVisit from "@/components/DashboardVisit";
 import SpeakingSession from "@/components/speaking/SpeakingSession";
 
 /*
@@ -10,14 +11,17 @@ import SpeakingSession from "@/components/speaking/SpeakingSession";
 */
 export default function SpeakingPage() {
   return (
-    /*
-      The width is named here rather than in the gate, because this page is the
-      only one whose opening card is narrower than the layout container — see
-      the note on SkillGate's className. Locked, the lock is this wide; open,
-      the intro card centres itself the same way and the gate adds nothing.
-    */
-    <SkillGate module="speaking" className="mx-auto max-w-3xl">
-      <SpeakingSession />
-    </SkillGate>
+    <>
+      <DashboardVisit destination="speaking" />
+      {/*
+        The width is named here rather than in the gate, because this page is the
+        only one whose opening card is narrower than the layout container — see
+        the note on SkillGate's className. Locked, the lock is this wide; open,
+        the intro card centres itself the same way and the gate adds nothing.
+      */}
+      <SkillGate module="speaking" className="mx-auto max-w-3xl">
+        <SpeakingSession />
+      </SkillGate>
+    </>
   );
 }

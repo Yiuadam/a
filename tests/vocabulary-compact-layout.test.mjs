@@ -56,6 +56,10 @@ test("an open compact topic keeps every teaching point visible beside the curren
     drillStyles,
     /@media \(min-width: 64rem\)[\s\S]*?\.compactWorkspace\s*\{[\s\S]*?grid-template-columns:\s*minmax\(15rem, 0\.82fr\) minmax\(0, 1\.18fr\)/,
   );
+  assert.match(
+    drillStyles,
+    /@media \(min-width: 64rem\)[\s\S]*?\.compactWorkspace\s*\{[\s\S]*?align-items:\s*stretch/,
+  );
   assert.doesNotMatch(
     drillStyles,
     /\.compactLesson\s*\{[^}]*display:\s*none/,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
+import DashboardVisit from "@/components/DashboardVisit";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import ExplainText from "@/components/ExplainText";
 import ExamShell from "@/components/exam/ExamShell";
@@ -339,15 +340,18 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
 */
 export default function WritingPage() {
   return (
-    <Suspense
-      fallback={(
-        <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-xl items-center justify-center px-4">
-          <LoadingIndicator label="Loading writing tasks…" />
-        </div>
-      )}
-    >
-      <WritingPageContent />
-    </Suspense>
+    <>
+      <DashboardVisit destination="writing" />
+      <Suspense
+        fallback={(
+          <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-xl items-center justify-center px-4">
+            <LoadingIndicator label="Loading writing tasks…" />
+          </div>
+        )}
+      >
+        <WritingPageContent />
+      </Suspense>
+    </>
   );
 }
 
