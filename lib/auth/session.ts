@@ -1,5 +1,8 @@
 import { assertServerOnly } from "./server-only";
-import { accountsEnabled } from "./env";
+import { accountsEnabled, bandUpSessionSigningKey } from "./env";
+import { looksLikeNativeAccessToken } from "./native-session";
+import { userFromNativeBrowserSessionToken } from "@/lib/cloudflare/native-identity";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
 import { userFromAccessToken, supabaseConfigured, type AuthedUser } from "./supabase";
 
 /*
@@ -32,6 +35,13 @@ function bearerToken(req: Request): string | null {
   return token.length > 0 ? token : null;
 }
 
+/** True only for a native bearer token while the native path is explicitly on. */
+export function isNativeSessionRequest(req: Request): boolean {
+  assertServerOnly(MODULE);
+  const token = bearerToken(req);
+  return nativeAuthCutoverActive() && token !== null && looksLikeNativeAccessToken(token);
+}
+
 /**
  * Resolves the caller, or null if the request is anonymous.
  *
@@ -41,9 +51,15 @@ function bearerToken(req: Request): string | null {
  */
 export async function getSessionUser(req: Request): Promise<SessionUser | null> {
   assertServerOnly(MODULE);
-  if (!accountsEnabled() || !supabaseConfigured()) return null;
+  if (!accountsEnabled()) return null;
 
   const token = bearerToken(req);
   if (!token) return null;
+  if (nativeAuthCutoverActive() && looksLikeNativeAccessToken(token)) {
+    const key = bandUpSessionSigningKey();
+    if (!key) throw new Error("CLOUDFLARE_NATIVE_AUTH=1 without BANDUP_SESSION_SIGNING_KEY");
+    return await userFromNativeBrowserSessionToken(token, key);
+  }
+  if (!supabaseConfigured()) return null;
   return await userFromAccessToken(token);
 }

@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { authorizeUrl, isOAuthProvider } from "@/lib/auth/oauth";
 import { logInternal } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
 
 /*
-  Starts a provider handshake by redirecting to Supabase.
+  Starts a provider handshake. Apple and pre-cutover accounts redirect through
+  Supabase; Cloudflare-native Google accounts redirect directly to Google.
 
   The browser cannot build this URL itself — it does not know the project URL,
   and that is the point (see lib/auth/oauth.ts). So it asks for a provider by
@@ -24,6 +26,15 @@ async function handleGET(req: Request) {
   */
   if (!isOAuthProvider(provider)) {
     return NextResponse.json({ error: "Unknown sign-in method." }, { status: 400 });
+  }
+
+  /*
+    Once a Cloudflare-native identity is active, Google must never fall back
+    through Supabase. The dedicated route either starts the direct Google
+    server flow or answers safely if that deployment is incomplete.
+  */
+  if (provider === "google" && nativeAuthCutoverActive()) {
+    return NextResponse.redirect(new URL("/api/auth/google/start", url), { status: 302 });
   }
 
   /*

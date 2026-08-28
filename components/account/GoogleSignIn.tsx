@@ -45,6 +45,8 @@ declare global {
 interface ConfigResponse {
   enabled?: boolean;
   clientId?: string;
+  native?: boolean;
+  serverFlow?: boolean;
 }
 
 interface SessionResponse {
@@ -72,9 +74,9 @@ async function googleNonce(): Promise<{ raw: string; hashed: string }> {
 }
 
 /**
- * Google talks to this page directly, then BandUp exchanges the signed ID
- * token with Supabase on the server. The account chooser therefore identifies
- * BandUp/bandup.life instead of the Supabase project hostname.
+ * Google talks to this page directly and BandUp verifies the signed ID token
+ * on its server. Once Cloudflare-native identity is enabled, neither this
+ * button nor its full-page fallback passes a Google credential to Supabase.
  */
 export default function GoogleSignIn() {
   const router = useRouter();
@@ -82,6 +84,8 @@ export default function GoogleSignIn() {
   const hostRef = useRef<HTMLDivElement>(null);
   const rawNonceRef = useRef<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [nativeAuth, setNativeAuth] = useState(false);
+  const [serverFlow, setServerFlow] = useState(false);
   const [configReady, setConfigReady] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -89,7 +93,6 @@ export default function GoogleSignIn() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (IS_MOBILE_BUILD) return;
     let live = true;
     fetch(apiUrl("/api/auth/google/config"), { cache: "no-store" })
       .then(async (res) => (res.ok ? ((await res.json()) as ConfigResponse) : null))
@@ -98,6 +101,8 @@ export default function GoogleSignIn() {
         const configuredClientId =
           data?.enabled && typeof data.clientId === "string" ? data.clientId : null;
         setClientId(configuredClientId);
+        setNativeAuth(data?.native === true);
+        setServerFlow(data?.serverFlow === true);
         if (!configuredClientId) setError("Google sign-in is not configured yet.");
       })
       .catch(() => {
@@ -110,6 +115,12 @@ export default function GoogleSignIn() {
       live = false;
     };
   }, []);
+
+  const googleServerStart = apiUrl("/api/auth/google/start");
+  const legacyGoogleStart = apiUrl("/api/auth/start?provider=google");
+  // During the staged migration, the old route remains only until the native
+  // cutover is active. At cutover every Google route is direct-to-Google.
+  const fallbackStart = nativeAuth ? googleServerStart : legacyGoogleStart;
 
   useEffect(() => {
     const identity = window.google?.accounts?.id;
@@ -189,8 +200,18 @@ export default function GoogleSignIn() {
   }, [clientId, router, scriptReady, theme]);
 
   if (IS_MOBILE_BUILD) {
+    if (!configReady) {
+      return <div className="btn-secondary min-h-10"><LoadingIndicator label="Loading Google sign-in…" /></div>;
+    }
+    if (nativeAuth && !serverFlow) {
+      return (
+        <p className="text-center text-xs leading-5 text-rose-700" role="alert">
+          Google sign-in is being updated. Please try again shortly.
+        </p>
+      );
+    }
     return (
-      <a href={apiUrl("/api/auth/start?provider=google")} className="btn-secondary">
+      <a href={fallbackStart} className="btn-secondary">
         Continue with Google
       </a>
     );
@@ -228,18 +249,36 @@ export default function GoogleSignIn() {
             </div>
           )}
           {loadFailed && (
-            <a
-              href={apiUrl("/api/auth/start?provider=google")}
-              className="btn-secondary absolute inset-0 min-h-10 rounded-full"
-              aria-describedby="google-signin-fallback-help"
-              data-google-signin-fallback
-            >
-              Continue with Google
-            </a>
+            nativeAuth && !serverFlow ? (
+              <p
+                className="absolute inset-0 flex items-center justify-center px-5 text-center text-xs text-rose-700"
+                role="alert"
+              >
+                Google sign-in is being updated. Please try again shortly.
+              </p>
+            ) : (
+              <a
+                href={fallbackStart}
+                className="btn-secondary absolute inset-0 min-h-10 rounded-full"
+                aria-describedby="google-signin-fallback-help"
+                data-google-signin-fallback
+              >
+                Continue with Google
+              </a>
+            )
           )}
         </div>
       </div>
-      {loadFailed && (
+      {loadFailed && !nativeAuth && (
+        <p
+          id="google-signin-fallback-help"
+          className="mt-2 text-center text-xs leading-5 text-slate-500"
+          role="status"
+        >
+          The Google button couldn&rsquo;t load in this browser. Continue to Google to sign in.
+        </p>
+      )}
+      {loadFailed && nativeAuth && serverFlow && (
         <p
           id="google-signin-fallback-help"
           className="mt-2 text-center text-xs leading-5 text-slate-500"

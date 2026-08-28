@@ -38,10 +38,12 @@ import type { AccessGrant } from "@/lib/billing/access";
   enabledOAuthProviders, refreshAccessToken, signInWithPassword,
   signInWithGoogleIdToken, signUpWithPassword, userFromAccessToken, and the
   admin-user calls inside deleteAccount/supabaseAuthUserState) is exempt on
-  purpose and deliberately never checks the barrier. Login and Google sign-in
-  are not migrating away from Supabase — there is no D1 identity provider to
-  move them to — so gating them here would only break sign-in. Do not "fix"
-  that by adding a check to any of them.
+  purpose and deliberately never checks the barrier. The disabled native
+  Google seam is additive; password, recovery, Apple and the mobile Google
+  navigation path remain Supabase compatibility flows until their own identity
+  migrations exist. Gating any of those existing calls here would only lock a
+  learner out during a data cutover. Do not "fix" that by adding a barrier
+  check to any of them.
 */
 
 const MODULE = "lib/auth/supabase.ts";
@@ -1091,6 +1093,99 @@ export async function supabaseAuthUserState(userId: string): Promise<SupabaseAut
   } catch {
     return "unknown";
   }
+}
+
+/*
+  The native-identity migration has exactly one safe source for a legacy
+  Google subject: Supabase Auth's identity record. It must never infer the
+  association from an email address, which is mutable profile data and not an
+  authentication binding. This fixed admin read returns only the Google
+  identity fields the private migration audit/backfill needs; it is not a
+  general-purpose Auth administration API.
+*/
+export interface SupabaseGoogleIdentity {
+  /** The canonical Supabase Auth id of the user returned by the admin list. */
+  authUserId: string | null;
+  /** `auth.identities.user_id`; must equal `authUserId` before a backfill trusts it. */
+  identityUserId: string | null;
+  /** The immutable Google provider subject (`provider_id`), never an email. */
+  providerSubject: string | null;
+  /** Metadata retained only for the eventual D1 identity row, never sent to a browser. */
+  email: string | null;
+  emailVerified: boolean;
+}
+
+const SUPABASE_AUTH_PAGE_SIZE = 200;
+const SUPABASE_AUTH_MAX_PAGES = 2_000;
+
+function nullableString(value: unknown, maxLength = 2_000): string | null {
+  return typeof value === "string" && value.length > 0 && value.length <= maxLength ? value : null;
+}
+
+/**
+ * Lists every Google identity from Supabase Auth, page by page.
+ *
+ * This is server-only and is consumed only by the owner-only migration audit.
+ * It deliberately leaves malformed source values in the result: the audit can
+ * then fail closed and count them, rather than silently treating a damaged
+ * Auth response as an account with no Google identity.
+ */
+export async function listSupabaseGoogleIdentities(): Promise<SupabaseGoogleIdentity[]> {
+  assertServerOnly(MODULE);
+  const identities: SupabaseGoogleIdentity[] = [];
+
+  for (let page = 1; page <= SUPABASE_AUTH_MAX_PAGES; page += 1) {
+    const res = await request(
+      `/auth/v1/admin/users?page=${page}&per_page=${SUPABASE_AUTH_PAGE_SIZE}`,
+      { method: "GET", asServiceRole: true },
+    );
+    if (!res.ok) throw new SupabaseError(`admin Auth user page failed with ${res.status}`);
+
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      throw new SupabaseError("admin Auth user page was not JSON");
+    }
+    const users = (body as { users?: unknown } | null)?.users;
+    if (!Array.isArray(users)) throw new SupabaseError("admin Auth user page was invalid");
+
+    for (const rawUser of users) {
+      const user = rawUser && typeof rawUser === "object"
+        ? rawUser as Record<string, unknown>
+        : null;
+      if (!user) continue;
+      const authUserId = nullableString(user.id, 80);
+      const userEmail = nullableString(user.email, 254)?.trim().toLowerCase() ?? null;
+      const userEmailVerified = typeof user.email_confirmed_at === "string";
+      const userIdentities = Array.isArray(user.identities) ? user.identities : [];
+      for (const rawIdentity of userIdentities) {
+        const identity = rawIdentity && typeof rawIdentity === "object"
+          ? rawIdentity as Record<string, unknown>
+          : null;
+        if (!identity || identity.provider !== "google") continue;
+        const identityData = identity.identity_data && typeof identity.identity_data === "object"
+          ? identity.identity_data as Record<string, unknown>
+          : null;
+        const identityEmail = nullableString(identity.email, 254)
+          ?? nullableString(identityData?.email, 254);
+        identities.push({
+          authUserId,
+          identityUserId: nullableString(identity.user_id, 80),
+          providerSubject: nullableString(identity.provider_id, 255),
+          email: (identityEmail ?? userEmail)?.trim().toLowerCase() ?? null,
+          emailVerified: userEmailVerified || identityData?.email_verified === true,
+        });
+      }
+    }
+
+    // A final short page is the documented pagination terminal state. Asking
+    // one page past an exact multiple is harmless, so we do not rely on a
+    // non-standard response header or expose a cursor parser here.
+    if (users.length < SUPABASE_AUTH_PAGE_SIZE) return identities;
+  }
+
+  throw new SupabaseError("admin Auth user pagination exceeded its safety limit");
 }
 
 export interface ProgressSnapshot {

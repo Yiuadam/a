@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
+import { accountsEnabled, bandUpSessionSigningKey } from "@/lib/auth/env";
 import { supabaseConfigured, refreshAccessToken } from "@/lib/auth/supabase";
 import { logInternal } from "@/lib/auth/errors";
+import { refreshNativeBrowserSession } from "@/lib/cloudflare/native-identity";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
 import { withCors } from "@/lib/http/cors";
 
 /*
@@ -16,7 +18,8 @@ import { withCors } from "@/lib/http/cors";
 export const dynamic = "force-dynamic";
 
 async function handlePOST(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  const nativeActive = nativeAuthCutoverActive();
+  if (!accountsEnabled() || (!nativeActive && !supabaseConfigured())) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
@@ -29,6 +32,22 @@ async function handlePOST(req: Request) {
   const token = (body as { refresh_token?: unknown } | null)?.refresh_token;
   if (typeof token !== "string" || token.length === 0) {
     return NextResponse.json({ error: "Signed out." }, { status: 401 });
+  }
+
+  if (nativeActive) {
+    const signingKey = bandUpSessionSigningKey();
+    if (!signingKey) {
+      logInternal("auth/refresh/native", new Error("native auth is enabled without a session signing key"));
+      return NextResponse.json({ error: "Signed out." }, { status: 401 });
+    }
+    try {
+      const session = await refreshNativeBrowserSession(token, signingKey);
+      if (!session) return NextResponse.json({ error: "Signed out." }, { status: 401 });
+      return NextResponse.json(session);
+    } catch (error) {
+      logInternal("auth/refresh/native", error);
+      return NextResponse.json({ error: "Signed out." }, { status: 401 });
+    }
   }
 
   const session = await refreshAccessToken(token);

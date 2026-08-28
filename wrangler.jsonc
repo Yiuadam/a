@@ -167,6 +167,10 @@
     // that flipped it, reverted it after AVATAR_URL_SIGNING_KEY turned out
     // to be unset, and re-flipped it once that was fixed).
     "CLOUDFLARE_DATA_MODE": "cloudflare",
-    "ORGANIZATION_DATA_MODE": "cloudflare"
+    "ORGANIZATION_DATA_MODE": "cloudflare",
+    // Native Google identity remains off until D1 has an audited mapping for
+    // every active Supabase account. This preserves the current sign-in path.
+    "CLOUDFLARE_NATIVE_AUTH": "0",
+    "GOOGLE_OAUTH_APP_ORIGIN": "https://bandup.life"
   }
 }

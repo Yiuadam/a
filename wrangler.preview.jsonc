@@ -22,7 +22,9 @@
     "ORGANIZATION_UI_PREVIEW": "1",
     "CLOUDFLARE_DATA_MODE": "supabase",
     "ORGANIZATION_DATA_MODE": "cloudflare",
-    "ADMIN_EMAILS": "admin@preview.bandup.invalid"
+    "ADMIN_EMAILS": "admin@preview.bandup.invalid",
+    "CLOUDFLARE_NATIVE_AUTH": "0",
+    "GOOGLE_OAUTH_APP_ORIGIN": "https://organization-preview.bandup.life"
   },
   "d1_databases": [
     {

@@ -1,3 +1,6 @@
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+
 /*
   Lets Node import the app's TypeScript modules directly.
 
@@ -7,6 +10,16 @@
   a plain script without a build step.
 */
 export async function resolve(specifier, context, nextResolve) {
+  if (specifier.startsWith("@/")) {
+    const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+    const target = pathToFileURL(join(projectRoot, `${specifier.slice(2)}.ts`)).href;
+    try {
+      return await nextResolve(target, context);
+    } catch {
+      // A client component may be .tsx; the normal resolver can report a
+      // useful error for that unsupported test shape rather than hiding it.
+    }
+  }
   if (specifier.startsWith(".") && !/\.[cm]?[jt]sx?$/.test(specifier)) {
     try {
       return await nextResolve(`${specifier}.ts`, context);

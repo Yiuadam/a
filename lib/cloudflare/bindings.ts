@@ -48,6 +48,11 @@ export function organizationDataMode(): CloudflareDataMode {
   return parseCloudflareDataMode(process.env["ORGANIZATION_DATA_MODE"]);
 }
 
+/** Whether D1 is the only authority for organization-data writes. */
+export function organizationWritesToCloudflareOnly(): boolean {
+  return organizationDataMode() === "cloudflare";
+}
+
 /**
  * Where a learner-data read should come from.
  *

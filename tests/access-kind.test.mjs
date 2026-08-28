@@ -130,7 +130,9 @@ test("the server answers it, and only asks the database when there is a date", (
   const source = code(read("app", "api", "account", "status", "route.ts"));
 
   assert.match(source, /renews,/, "the status response no longer carries `renews`");
-  assert.match(source, /entitlementRenews\(entitlement, await currentAccessGrants\(user\.id\)\)/);
+  assert.match(source, /currentCloudflareAccessGrants\(user\.id\)/);
+  assert.match(source, /currentAccessGrants\(user\.id\)/);
+  assert.match(source, /entitlementRenews\(entitlement, grants\)/);
   /*
     The guard is the whole cost argument: this route runs on nearly every page,
     and a free account — which is most of them — must not pay for an extra read

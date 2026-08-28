@@ -3,7 +3,7 @@
 import { useState } from "react";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { useRouter } from "next/navigation";
-import { clearSession, signOutSession } from "@/lib/account";
+import { clearSession, revokeSession, signOutSession } from "@/lib/account";
 import ClearDeviceSection from "@/components/account/ClearDeviceSection";
 import { DeleteAccountSection } from "@/components/account/DangerSection";
 import { HubScreen } from "@/components/HubMenu";
@@ -33,6 +33,7 @@ export default function CloseScreen() {
     if (signingOut) return;
     setSigningOut(true);
     setSignOutProblem(null);
+    revokeSession();
 
     if (!signOutSession()) {
       setSignOutProblem("Couldn't sign out on this device. Please try again.");

@@ -166,6 +166,21 @@ export function clearSession(): void {
 }
 
 /**
+ * Best-effort server revocation for Cloudflare-native sessions. The ordinary
+ * local clear below remains authoritative for the device: a network error
+ * must never prevent someone from signing out of this browser.
+ */
+export function revokeSession(apiBase = ""): void {
+  const session = getSnapshot();
+  if (!session) return;
+  void fetch(`${apiBase}/api/auth/signout`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.accessToken}` },
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
+/**
  * Signs out after first confirming that the persisted token can be removed.
  *
  * The ordinary `clearSession` remains deliberately best-effort for expired

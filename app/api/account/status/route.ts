@@ -15,6 +15,12 @@ import { COSTED_ROUTES, ROUTE_BUDGETS } from "@/lib/ai/models";
 import { monthlyCap } from "@/lib/billing/tiers";
 import { OAUTH_PROVIDERS, providersReachableFrom } from "@/lib/auth/oauth";
 import { withCors } from "@/lib/http/cors";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
+import { domainReadsFromCloudflare } from "@/lib/cloudflare/cutover-domains";
+import {
+  cloudflareUsageDetail,
+  currentCloudflareAccessGrants,
+} from "@/lib/cloudflare/account-status";
 
 /*
   What the UI is allowed to know about the current account.
@@ -39,7 +45,8 @@ async function handleGET(req: Request) {
     return NextResponse.json({ enabled: false });
   }
 
-  if (!supabaseConfigured()) {
+  const nativeActive = nativeAuthCutoverActive();
+  if (!nativeActive && !supabaseConfigured()) {
     logInternal("account/status", new Error("ACCOUNTS_ENABLED=1 but Supabase is not configured"));
     return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
@@ -68,16 +75,22 @@ async function handleGET(req: Request) {
     let byRoute: Record<string, number> = {};
     if (user) {
       try {
-        const detail = await rpc<{
-          used: number;
-          oldest_at: string | null;
-          by_route: Record<string, number>;
-        }>("usage_detail", {
-          p_user_id: user.id,
-          p_window_seconds: MONTH_WINDOW_SECONDS,
-        });
-        oldestAt = detail?.oldest_at ?? null;
-        byRoute = detail?.by_route ?? {};
+        if (domainReadsFromCloudflare("usage_quota_authority")) {
+          const detail = await cloudflareUsageDetail(user.id, MONTH_WINDOW_SECONDS);
+          oldestAt = detail.oldestAt;
+          byRoute = detail.byRoute;
+        } else {
+          const detail = await rpc<{
+            used: number;
+            oldest_at: string | null;
+            by_route: Record<string, number>;
+          }>("usage_detail", {
+            p_user_id: user.id,
+            p_window_seconds: MONTH_WINDOW_SECONDS,
+          });
+          oldestAt = detail?.oldest_at ?? null;
+          byRoute = detail?.by_route ?? {};
+        }
       } catch (err) {
         logInternal("account/status/usage_detail", err);
       }
@@ -109,7 +122,7 @@ async function handleGET(req: Request) {
       that this app has no button for is not offered, and a button this app
       could render for a provider that was never set up is not shown.
     */
-    const configured = await enabledOAuthProviders();
+    const configured = nativeActive ? ["google"] : await enabledOAuthProviders();
     const providers = providersReachableFrom(
       req.headers.get("cf-ipcountry"),
       configured === null ? [] : OAUTH_PROVIDERS.filter((p) => configured.includes(p)),
@@ -138,7 +151,10 @@ async function handleGET(req: Request) {
     let renews: boolean | null = null;
     if (user && entitlement.expiresAt !== null) {
       try {
-        renews = entitlementRenews(entitlement, await currentAccessGrants(user.id));
+        const grants = domainReadsFromCloudflare("billing_entitlement_runtime")
+          ? await currentCloudflareAccessGrants(user.id)
+          : await currentAccessGrants(user.id);
+        renews = entitlementRenews(entitlement, grants);
       } catch (err) {
         logInternal("account/status/access_grants", err);
       }
