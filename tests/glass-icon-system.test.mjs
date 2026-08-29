@@ -132,6 +132,8 @@ test("the notification popover paints exactly one clipped outer glass boundary",
   assert.doesNotMatch(popover, /RefractiveGlassLayer/);
   assert.doesNotMatch(popover, /premade-glass-content/);
   assert.match(css, /\.notification-popover \{[\s\S]*contain: paint;[\s\S]*clip-path: inset\(0 round var\(--radius-xl\)\)/);
-  assert.match(css, /\.notification-popover \{[\s\S]*?background-color: color-mix\(in srgb, var\(--color-surface\) 22%, transparent\)[\s\S]*?blur\(24px\)/);
-  assert.match(css, /html\[data-theme\]\[data-live-glass-refraction\] \.liquid-glass\.notification-popover \{[\s\S]*?blur\(24px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/);
+  assert.match(css, /\.notification-popover \{[\s\S]*?background-color: color-mix\(in srgb, var\(--color-surface\) 26%, transparent\)[\s\S]*?blur\(36px\)/);
+  assert.match(css, /\.notification-popover::before \{[\s\S]*?pointer-events: none;[\s\S]*?border-radius: inherit;[\s\S]*?inset 0 1px 0/);
+  assert.match(css, /\.notification-popover > \* \{[\s\S]*?position: relative;[\s\S]*?z-index: 1/);
+  assert.match(css, /html\[data-theme\]\[data-live-glass-refraction\] \.liquid-glass\.notification-popover \{[\s\S]*?blur\(36px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/);
 });
