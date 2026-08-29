@@ -85,7 +85,7 @@ test("the full navigation menu is one strongly blurred refractive surface", () =
   assert.match(css, /@supports not[\s\S]*\.nav-paper \{[\s\S]*background: var\(--color-background\)/);
 });
 
-test("navigation opens immediately without stagger while keeping its fixed glass surface", () => {
+test("navigation keeps its fixed glass surface, and opens with the same pudding bounce as every other glass panel", () => {
   const css = read("app/globals.css");
   const header = read("components/SiteHeader.tsx");
   const panel = cssRule(css, ".nav-paper");
@@ -93,10 +93,21 @@ test("navigation opens immediately without stagger while keeping its fixed glass
   assert.match(header, /className="nav-menu-group liquid-glass/);
   assert.match(header, /className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-\[var\(--header-h\)\]/);
   assert.match(panel, /backdrop-filter: blur\(42px\)/);
+  // The base rule stays motion-inert; the bounce lives entirely in the
+  // reduced-motion-gated block below, same as the other glass panels.
   assert.doesNotMatch(panel, /\banimation(?:-\w+)?:/);
-  assert.doesNotMatch(css, /\.nav-menu-group\s*\{[^}]*\banimation(?:-\w+)?\s*:/);
+
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-paper \{[\s\S]*?animation: glass-pop-in-sheet/,
+  );
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-menu-group \{[\s\S]*?animation: glass-pop-in\b/,
+  );
+  // The cascade is a handful of fixed per-card delays, not a formula fed by a
+  // custom property — nothing for SiteHeader itself to compute or clean up.
   assert.doesNotMatch(header, /--nav-group-(?:delay|touch-delay|flow-x)/);
-  assert.doesNotMatch(css, /@keyframes (?:glass-menu-open|nav-group-materialise|nav-group-touch-open)/);
 });
 
 test("the header icon ships a right-sized immutable static asset without image optimisation", () => {

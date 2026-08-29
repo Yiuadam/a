@@ -267,7 +267,14 @@ body {
   --glass-edge-dark: rgba(45, 35, 27, 0.12);
   --glass-specular: rgba(255, 255, 255, 0.48);
   --glass-shadow: rgba(42, 31, 24, 0.1);
-  --glass-blur: 24px;
+  /*
+    40px rather than the 24px this used to carry. The reference is Apple's
+    own Control Center glass: heavy enough that the icons and colour blocks
+    behind a panel read as a soft wash, never as shapes a reader could name.
+    The reduced-blur fallback below (coarse pointers, reduced motion/
+    transparency) stays lower for fill-rate, but is raised to match.
+  */
+  --glass-blur: 40px;
   /* One decorative/navigation icon ink across every control. The token, not
      each component, changes with the active colour theme. Semantic success,
      warning and error marks intentionally keep their own status colours. */
@@ -710,6 +717,92 @@ html[data-theme="dark"] .google-signin-glass {
   .nav-paper {
     background: var(--color-background);
   }
+}
+
+/*
+  The opening move for every floating glass panel: this sheet, the
+  notification inbox, a picker popover. Apple's own folder-opening animation
+  is the reference — the panel doesn't just fade in, it overshoots and
+  settles like a soft, wobbling mass finding its shape, stretched wide and
+  shallow at the peak of the bounce and squeezed narrow and tall on the
+  rebound before it comes to rest. That non-uniform scale is what reads as
+  pudding rather than plastic.
+
+  Each of these panels is a plain `{open && <div .../>}` mount, so the
+  browser replays the animation from a fresh element every time it opens —
+  no keyed remount trick needed. `prefers-reduced-motion` gets the instant
+  appearance this sheet always had instead, same as the fade every other
+  transition in this file already falls back to.
+*/
+@keyframes glass-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6, 0.66) translateY(10px);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.055, 0.94) translateY(0);
+  }
+  68% {
+    transform: scale(0.975, 1.035);
+  }
+  86% {
+    transform: scale(1.012, 0.994);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+/*
+  The full-height navigation sheet gets a milder pass of the same wobble.
+  It fills the viewport rather than sitting near one anchor point, so the
+  popovers' amplitude reads as a glitch here rather than a bounce — this
+  keeps the same settle-with-overshoot shape at an amplitude that suits a
+  sheet rather than a card.
+*/
+@keyframes glass-pop-in-sheet {
+  0% {
+    opacity: 0;
+    transform: scale(0.94, 0.9) translateY(14px);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.012, 0.996) translateY(0);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nav-paper {
+    transform-origin: top center;
+    animation: glass-pop-in-sheet 420ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+  }
+
+  .notification-popover,
+  .organization-picker-popover {
+    transform-origin: top center;
+    animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+  }
+
+  /* Each group card gets its own, slightly later copy of the same bounce —
+     the cascade is what makes the sheet read as several soft things settling
+     into place one after another, the way the reference folder's icons pop
+     out in sequence rather than all at once. Capped at six because a
+     seventh group repeating the same 80ms step would be a visibly separate,
+     late-arriving card rather than part of the same cascade. */
+  .nav-menu-group {
+    animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+  }
+
+  .nav-menu-group:nth-child(1) { animation-delay: 40ms; }
+  .nav-menu-group:nth-child(2) { animation-delay: 90ms; }
+  .nav-menu-group:nth-child(3) { animation-delay: 140ms; }
+  .nav-menu-group:nth-child(4) { animation-delay: 190ms; }
+  .nav-menu-group:nth-child(5) { animation-delay: 240ms; }
+  .nav-menu-group:nth-child(6) { animation-delay: 290ms; }
 }
 
 /*
@@ -2934,7 +3027,7 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
    and battery use without replacing glass with an opaque card. */
 @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   body {
-    --glass-blur: 16px;
+    --glass-blur: 22px;
   }
 
   .card[data-glass-reflecting],
