@@ -62,14 +62,25 @@ export default function LookupProvider({ children }: { children: React.ReactNode
   );
   const [query, setQuery] = useState("");
   const [panelFavourite, setPanelFavourite] = useState(false);
+  const [panelIsClosing, setPanelIsClosing] = useState(false);
   // Only the newest request may write to the panel; an earlier slow lookup
   // must not overwrite the answer the user is currently reading.
   const requestId = useRef(0);
   const pillRef = useRef<HTMLButtonElement | null>(null);
+  const closeTimer = useRef<number | null>(null);
+
+  const cancelPendingClose = useCallback(() => {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setPanelIsClosing(false);
+  }, []);
 
   const look = useCallback((term: string, context?: string) => {
     const clean = term.trim().replace(/\s+/g, " ");
     if (!clean) return;
+    cancelPendingClose();
     setPill(null);
 
     const id = ++requestId.current;
@@ -125,14 +136,33 @@ export default function LookupProvider({ children }: { children: React.ReactNode
           message: err instanceof Error ? err.message : "Lookup failed.",
         });
       });
-  }, []);
+  }, [cancelPendingClose]);
 
   const close = useCallback(() => {
+    if (panel.status === "closed" || panelIsClosing) return;
     requestId.current += 1;
     stopPronunciation();
-    setQuery("");
-    setPanelFavourite(false);
-    setPanel({ status: "closed" });
+    const finish = () => {
+      closeTimer.current = null;
+      setQuery("");
+      setPanelFavourite(false);
+      setPanel({ status: "closed" });
+      setPanelIsClosing(false);
+    };
+
+    // Do not make people who have asked for reduced motion wait for an
+    // animation that they have elected not to see.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      finish();
+      return;
+    }
+
+    setPanelIsClosing(true);
+    closeTimer.current = window.setTimeout(finish, 150);
+  }, [panel.status, panelIsClosing]);
+
+  useEffect(() => () => {
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
   }, []);
 
   /*
@@ -249,9 +279,9 @@ export default function LookupProvider({ children }: { children: React.ReactNode
             type="button"
             aria-label="Close"
             onClick={close}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-slate-900/15 backdrop-blur-[1px]"
           />
-          <div className="card relative m-0 w-full max-w-lg rounded-b-none sm:m-4 sm:rounded-2xl">
+          <div className={`card liquid-glass-window relative m-0 w-full max-w-lg rounded-b-none sm:m-4 sm:rounded-2xl${panelIsClosing ? " is-closing" : ""}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h2 className="text-lg font-semibold text-slate-900">

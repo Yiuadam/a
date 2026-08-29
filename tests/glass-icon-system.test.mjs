@@ -70,13 +70,13 @@ test("decorative navigation icons inherit one theme-aware token", () => {
   assert.match(header, /className="app-icon-control rounded-xl/);
 });
 
-test("the full navigation menu is one strongly blurred refractive surface", () => {
+test("the full navigation menu is a clear refractive surface", () => {
   const css = read("app/globals.css");
   const header = read("components/SiteHeader.tsx");
 
   assert.match(header, /className="nav-paper premade-glass/);
   assert.match(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
-  assert.match(css, /\.nav-paper \{[\s\S]*backdrop-filter: blur\(42px\)/);
+  assert.match(css, /\.nav-paper \{[\s\S]*backdrop-filter: blur\(10px\)/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: absolute;[^}]*inset: -1px/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer\[data-interactive\] > span \{[^}]*display: none !important/);
   assert.doesNotMatch(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: fixed/);
@@ -90,7 +90,7 @@ test("navigation opens immediately without stagger while keeping its fixed glass
 
   assert.match(header, /className="nav-menu-group liquid-glass/);
   assert.match(header, /className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-\[var\(--header-h\)\]/);
-  assert.match(panel, /backdrop-filter: blur\(42px\)/);
+  assert.match(panel, /backdrop-filter: blur\(10px\)/);
   assert.doesNotMatch(panel, /\banimation(?:-\w+)?:/);
   assert.doesNotMatch(css, /\.nav-menu-group\s*\{[^}]*\banimation(?:-\w+)?\s*:/);
   assert.doesNotMatch(header, /--nav-group-(?:delay|touch-delay|flow-x)/);

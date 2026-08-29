@@ -13,8 +13,8 @@ test("Light keeps a white canvas with neutral-grey interactive controls", () => 
   assert.match(lightBlock, /--color-accent-fg:\s*#26282d;/);
   assert.doesNotMatch(lightBlock, /#4f46e5|#4338ca/);
   assert.match(css, /Light canvas theme/);
-  assert.match(css, /html\[data-theme="light"\] \.card,[\s\S]*?background:\s*var\(--color-indigo-100\);/);
-  assert.match(css, /html\[data-theme="light"\] a\.card\.card:hover,[\s\S]*?background:\s*var\(--color-indigo-200\);/);
+  assert.match(css, /html\[data-theme="light"\] \.card,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 46%, transparent\);/);
+  assert.match(css, /html\[data-theme="light"\] a\.card\.card:hover,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-200\) 58%, transparent\);/);
   assert.match(css, /html\[data-theme="light"\] \.btn-primary \{[\s\S]*?background:\s*var\(--color-indigo-600\);/);
   assert.doesNotMatch(css, /html\[data-theme="warm"\] \.card \{[\s\S]*?background:\s*#fac69f;/);
 });
