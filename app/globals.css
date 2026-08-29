@@ -510,6 +510,43 @@ html[data-theme="dark"] body {
 }
 
 /*
+  The opening move for every floating glass panel: this popover, the
+  notification inbox, the nav sheet below. transform and opacity only — the
+  one combination every browser engine composites unconditionally, so this
+  never competes with the live refraction filter or the backdrop blur these
+  panels already carry for the frame budget. Each of these panels is a
+  plain `{open && <div .../>}` mount, so the animation replays from a fresh
+  element every time it opens; `prefers-reduced-motion` keeps the instant
+  appearance instead.
+*/
+@keyframes glass-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6, 0.66) translateY(10px);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.055, 0.94) translateY(0);
+  }
+  68% {
+    transform: scale(0.975, 1.035);
+  }
+  86% {
+    transform: scale(1.012, 0.994);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .liquid-glass.organization-picker-popover {
+    animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
+  }
+}
+
+/*
   The homepage prototype uses the refraction engine from liquid-glass-react,
   not its visual decoration. The package's two tint layers, moving highlight
   rims, text shadow and heavy drop shadow are hidden here; only its SVG
@@ -634,6 +671,20 @@ html[data-theme="dark"] .premade-glass {
     inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 96%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 72%, transparent),
     0 18px 44px color-mix(in srgb, var(--glass-shadow) 84%, transparent);
+}
+
+/*
+  top right rather than centred: this popover's wrapping element sizes
+  exactly to the bell button (see NotificationBell.tsx's `relative isolate`
+  root), so `right: 0` on the popover already lands its right edge exactly
+  on the button's right edge. It visibly grows out of the bell.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  .notification-popover {
+    transform-origin: top right;
+    animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
+  }
 }
 
 /* A folder-style pane has one continuous, lit perimeter: the curved material
@@ -821,6 +872,65 @@ html[data-theme="dark"] .google-signin-glass {
   -webkit-backdrop-filter: blur(2px) saturate(106%) brightness(102%);
   backdrop-filter: blur(2px) saturate(106%) brightness(102%);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+/*
+  The full-height navigation sheet visibly grows outward from the button
+  that opened it — a plain scale-from-the-origin, not a clip-path reveal.
+  clip-path was tried and rejected: animating it is not reliably
+  GPU-compositor-accelerated the way transform and opacity are, and this
+  sheet already carries a live SVG refraction filter plus a backdrop blur —
+  both genuinely expensive to re-evaluate every frame. transform never has
+  that risk in any engine: the browser scales an already-painted,
+  already-filtered layer on the compositor, so every frame of this
+  animation costs the same regardless of what's rendered behind it.
+
+  Scaling from 0.06 rather than 0 keeps the sheet a real (if tiny)
+  rectangle at frame one instead of a mathematical point, which is what
+  keeps this reading as a rectangle growing from the button — a genie
+  effect — rather than a fade with no shape at all until partway through.
+*/
+@keyframes nav-sheet-grow {
+  0% {
+    opacity: 0;
+    transform: scale(0.06);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nav-paper {
+    /* --nav-origin-x is set by SiteHeader just before this mounts, in px
+       from the viewport's left edge — where the menu button actually sits,
+       not the middle of the screen. The 50% fallback only matters if that
+       assignment is ever skipped (e.g. the button ref isn't measurable
+       yet). */
+    transform-origin: var(--nav-origin-x, 50%) top;
+    animation: nav-sheet-grow 420ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
+  }
+
+  /* Each destination group gets its own, slightly later copy of the same
+     grow — the cascade is what makes the sheet read as several soft
+     things settling into place one after another, rather than one flat
+     sheet appearing with its contents already fixed in place. */
+  .nav-menu-group {
+    animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .nav-menu-group:nth-child(1) { animation-delay: 40ms; }
+  .nav-menu-group:nth-child(2) { animation-delay: 90ms; }
+  .nav-menu-group:nth-child(3) { animation-delay: 140ms; }
+  .nav-menu-group:nth-child(4) { animation-delay: 190ms; }
+  .nav-menu-group:nth-child(5) { animation-delay: 240ms; }
+  .nav-menu-group:nth-child(6) { animation-delay: 290ms; }
 }
 
 .nav-paper > .refractive-glass-layer {
