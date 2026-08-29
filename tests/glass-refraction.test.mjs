@@ -53,5 +53,6 @@ test("live panels use the SVG displacement filter only after browser capability 
   assert.match(filter, /connection\?\.saveData/);
   assert.match(filter, /document\.documentElement\.dataset\.liveGlassRefraction/);
   assert.match(filter, /<feDisplacementMap[\s\S]*?in2="glass-normal-map"/);
-  assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass,[\s\S]*?blur\(4px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/);
+  assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass,[\s\S]*?blur\(8px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/);
+  assert.match(css, /html\[data-live-glass-refraction\] \.nav-paper \{[\s\S]*?blur\(2px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/);
 });
