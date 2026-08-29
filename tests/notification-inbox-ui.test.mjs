@@ -228,7 +228,7 @@ test("bell and full inbox keep refresh, read controls and setup reminder", () =>
   assert.match(bell, /window\.visualViewport\?\.addEventListener\("resize", positionPopover\)/);
   assert.match(css, /@media \(max-width: 39\.999rem\) \{[\s\S]*\[data-notification-bell-root\] > \.notification-popover \{[\s\S]*left: calc\(var\(--notification-mobile-left, 0px\) \+ max\(8px, env\(safe-area-inset-left\)\)\);[\s\S]*width: calc\([\s\S]*--notification-mobile-width[\s\S]*safe-area-inset-left[\s\S]*safe-area-inset-right/);
   assert.doesNotMatch(css, /\[data-notification-bell-root\] > \.notification-popover \{[\s\S]{0,300}position:\s*fixed/);
-  assert.match(css, /\.notification-glass-backdrop \{[\s\S]*?inset: var\(--header-h, 0px\) 0 0;[\s\S]*?pointer-events: none;[\s\S]*?blur\(12px\)/);
+  assert.match(css, /\.notification-glass-backdrop \{[\s\S]*?inset: var\(--header-h, 0px\) 0 0;[\s\S]*?pointer-events: none;[\s\S]*?blur\(20px\)/);
   assert.match(inbox, /document\.hidden/);
   assert.match(inbox, /visibilitychange/);
   assert.match(inbox, /window\.setInterval\(\(\) => void load\(\), 60_000\)/);
