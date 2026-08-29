@@ -999,6 +999,13 @@ html[data-theme="dark"] .nav-menu-group {
 .nav-menu-group {
   border-color: transparent;
   box-shadow: 0 1px 3px var(--glass-shadow);
+  /* WebKit silently skips backdrop-filter on an element that never gets its
+     own compositing layer, which is easy to end up with two levels deep in
+     a fixed, isolated sheet: the card just shows the page through it with
+     no blur at all, rather than a lighter blur. This hint is enough to make
+     WebKit commit to a layer without touching the card's actual transform,
+     so it survives past the settle animation ending on its own 2D value. */
+  will-change: transform;
 }
 
 .nav-paper > .refractive-glass-layer {
