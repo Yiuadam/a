@@ -367,6 +367,9 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   assert.match(capabilityImportRoute, /cloudflareMigrationReadinessReport/);
   assert.match(capabilityImportRoute, /stripeCutoverReadinessReport/);
   assert.match(capabilityImportRoute, /operation === "billing_audit"/);
+  assert.match(capabilityImportRoute, /operation === "application_drift"/);
+  assert.match(capabilityImportRoute, /cloudflareDomainDriftReport/);
+  assert.match(capabilityImportRoute, /cloudflarePayloadParityReport/);
   assert.match(capabilityImportRoute, /operation === "identity_backfill"/);
   assert.doesNotMatch(capabilityImportRoute, /console\.log|logInternal/);
   assert.match(passwordProofRoute, /isAdminEmail\(actor\.email\)/);

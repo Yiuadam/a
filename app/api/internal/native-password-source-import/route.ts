@@ -10,6 +10,9 @@ import {
 } from "@/lib/cloudflare/native-password-import";
 import { passwordProofManifest } from "@/lib/cloudflare/native-password-proof";
 import { cloudflareMigrationReadinessReport } from "@/lib/cloudflare/migration-readiness";
+import { requireBandUpCloudflareBindings } from "@/lib/cloudflare/bindings";
+import { cloudflareDomainDriftReport, DRIFT_DOMAINS } from "@/lib/cloudflare/domain-drift";
+import { cloudflarePayloadParityReport, PAYLOAD_PARITY_DOMAINS } from "@/lib/cloudflare/payload-parity";
 import { stripeCutoverReadinessReport } from "@/lib/cloudflare/stripe-cutover-readiness";
 import { withCors } from "@/lib/http/cors";
 
@@ -64,6 +67,14 @@ async function handlePOST(request: Request) {
     if (operation === "application_audit") {
       const application = await cloudflareMigrationReadinessReport();
       return NextResponse.json({ application }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (operation === "application_drift") {
+      const bindings = await requireBandUpCloudflareBindings();
+      const [rowDrift, payloadParity] = await Promise.all([
+        cloudflareDomainDriftReport(bindings, DRIFT_DOMAINS, { rowLimit: 50_000, sampleLimit: 1 }),
+        cloudflarePayloadParityReport(bindings, PAYLOAD_PARITY_DOMAINS, { rowLimit: 50_000, sampleLimit: 1 }),
+      ]);
+      return NextResponse.json({ rowDrift, payloadParity }, { headers: { "Cache-Control": "no-store" } });
     }
     if (operation === "billing_audit") {
       const billing = await stripeCutoverReadinessReport();
