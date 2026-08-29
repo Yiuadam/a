@@ -1,6 +1,7 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import {
   listSupabaseGoogleIdentities,
+  listSupabaseNativeIdentitySource,
   type SupabaseGoogleIdentity,
 } from "@/lib/auth/supabase";
 import {
@@ -88,6 +89,19 @@ function validateSource(source: readonly SupabaseGoogleIdentity[]): SafeSourceId
   return valid;
 }
 
+async function sourceGoogleIdentities(
+  provided?: () => Promise<SupabaseGoogleIdentity[]>,
+): Promise<SupabaseGoogleIdentity[]> {
+  if (provided) return provided();
+  try {
+    return await listSupabaseGoogleIdentities();
+  } catch {
+    /* Auth Admin can return identities:null. Use the same short-lived,
+       service-role-only source proof that the readiness audit already trusts. */
+    return (await listSupabaseNativeIdentitySource()).googleIdentities;
+  }
+}
+
 /**
  * Idempotently copies reviewed source-subject mappings to D1.
  *
@@ -100,7 +114,7 @@ export async function backfillNativeGoogleIdentities(
   options: { readSource?: () => Promise<SupabaseGoogleIdentity[]>; now?: number } = {},
 ): Promise<NativeIdentityBackfillResult> {
   assertServerOnly(MODULE);
-  const source = validateSource(await (options.readSource ?? listSupabaseGoogleIdentities)());
+  const source = validateSource(await sourceGoogleIdentities(options.readSource));
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const userIds = source.map((row) => row.userId);
   const subjects = source.map((row) => row.subject);

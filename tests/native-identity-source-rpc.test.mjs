@@ -9,6 +9,7 @@ test("the temporary Supabase identity source exposes only the immutable cutover 
   const sql = readFileSync(join(ROOT, "scripts", "provision-supabase-native-identity-source.sql"), "utf8");
   const source = readFileSync(join(ROOT, "lib", "auth", "supabase.ts"), "utf8");
   const audit = readFileSync(join(ROOT, "lib", "cloudflare", "native-identity-audit.ts"), "utf8");
+  const backfill = readFileSync(join(ROOT, "lib", "cloudflare", "native-identity-backfill.ts"), "utf8");
   assert.match(sql, /FUNCTION public\.bandup_native_auth_accounts\(\)/);
   assert.match(sql, /FUNCTION public\.bandup_native_auth_identities\(\)/);
   assert.match(sql, /SECURITY DEFINER/);
@@ -20,4 +21,6 @@ test("the temporary Supabase identity source exposes only the immutable cutover 
   assert.match(source, /bandup_native_auth_identities/);
   assert.match(audit, /listSupabaseNativeIdentitySource/);
   assert.match(audit, /identities: null/);
+  assert.match(backfill, /listSupabaseNativeIdentitySource/);
+  assert.match(backfill, /sourceGoogleIdentities/);
 });
