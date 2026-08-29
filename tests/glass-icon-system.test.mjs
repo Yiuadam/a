@@ -76,12 +76,15 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
 
   assert.match(header, /className="nav-paper premade-glass/);
   assert.match(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
-  // The sheet itself carries no blur, tint or refraction of its own — only
-  // the .nav-menu-group cards it holds do. A gap between cards must show
-  // the real page behind it, not a second, much bigger blurred/refracted
-  // layer stacked underneath every card's own.
+  // The sheet itself carries no visible tint or refraction of its own —
+  // only the .nav-menu-group cards it holds do. A gap between cards must
+  // show the real page behind it, not a second, much bigger blurred/
+  // refracted layer stacked underneath every card's own. Its own blur is
+  // kept imperceptibly small (a Safari workaround: WebKit needs an
+  // ancestor's own filter layer for a descendant's backdrop-filter to
+  // render at all), not zero.
   assert.match(css, /\.nav-paper \{[^}]*background: transparent;/);
-  assert.doesNotMatch(css, /\.nav-paper \{[^}]*backdrop-filter:/);
+  assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(0\.3px\);/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: absolute;[^}]*inset: -1px/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer\[data-interactive\] > span \{[^}]*display: none !important/);
   assert.doesNotMatch(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: fixed/);

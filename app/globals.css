@@ -853,18 +853,27 @@ html[data-theme="dark"] .google-signin-glass {
 }
 
 /*
-  The sheet itself carries no blur, tint or refraction of its own: it is
+  The sheet itself carries no visible tint or refraction of its own: it is
   purely a positioning/interaction surface for the cards it holds. Only
   .nav-menu-group's own small bounding boxes get the live lens below, so the
   page behind any gap between cards reads exactly as it did before the menu
   opened — no smear, no double-refracted edge from a second, much bigger
   bevel wrapping the whole viewport.
+
+  The near-zero backdrop-filter below is not decorative — it's a Safari
+  workaround. WebKit needs an ancestor to have established its own
+  filter/compositing layer for a *descendant's* backdrop-filter to render
+  at all; without it, .nav-menu-group's own blur silently renders as zero
+  on iOS even though the exact same CSS blurs correctly in Chromium. A
+  blur this small has no visible effect of its own.
 */
 .nav-paper {
   isolation: isolate;
   overflow-x: hidden;
   overflow-y: auto;
   background: transparent;
+  -webkit-backdrop-filter: blur(0.3px);
+  backdrop-filter: blur(0.3px);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 
