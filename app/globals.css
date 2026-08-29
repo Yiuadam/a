@@ -270,10 +270,13 @@ body {
   --glass-edge-dark: rgba(45, 35, 27, 0.12);
   --glass-specular: rgba(255, 255, 255, 0.48);
   --glass-shadow: rgba(42, 31, 24, 0.1);
-  /* Cards are a distinct, slightly softer optical layer than the page-sized
-     glass behind them. Keep enough blur to separate a card, while retaining
-     recognisable shapes and copy behind it. */
-  --glass-blur: 12px;
+  /* Raised to match the notification popover and the nav list: the same
+     heavy frosted blur everywhere reads as one consistent material instead
+     of cards being a thinner, half-hearted version of the panels that use
+     the real thing. The touch/reduced-motion fallback just below keeps its
+     own lighter value — that path exists specifically to bound cost on
+     less capable hardware. */
+  --glass-blur: 56px;
   /* One decorative/navigation icon ink across every control. The token, not
      each component, changes with the active colour theme. Semantic success,
      warning and error marks intentionally keep their own status colours. */
@@ -524,18 +527,9 @@ html[data-theme="dark"] body {
     opacity: 0;
     transform: scale(0.6, 0.66) translateY(10px);
   }
-  45% {
-    opacity: 1;
-    transform: scale(1.055, 0.94) translateY(0);
-  }
-  68% {
-    transform: scale(0.975, 1.035);
-  }
-  86% {
-    transform: scale(1.012, 0.994);
-  }
   100% {
-    transform: scale(1, 1);
+    opacity: 1;
+    transform: scale(1, 1) translateY(0);
   }
 }
 
@@ -971,7 +965,21 @@ html[data-theme="dark"] .google-signin-glass {
   prop needs threading through CardIcon or Icon for one screen.
 */
 .nav-menu-group svg {
-  stroke-width: 2.2;
+  stroke-width: 2.8;
+}
+
+/*
+  White text reads reliably against this menu's warm, low-opacity glass
+  regardless of what's blurred behind it, where the app's usual dark
+  slate text was starting to fight the busier live-refracted backgrounds.
+  Scoped to the nav list only — every other surface keeps its slate text.
+*/
+.nav-menu-group a {
+  color: white;
+}
+
+.nav-menu-group a:hover {
+  color: white;
 }
 
 /*
@@ -993,6 +1001,18 @@ html[data-theme="dark"] .nav-menu-group {
      rather than a tint, and every dark-theme surface it neighbours is
      built on translucency this thin. */
   background: color-mix(in srgb, rgb(142, 104, 78) 3%, var(--glass-fill));
+}
+
+/*
+  .liquid-glass's hairline top edge (inset 0 1px 0 var(--glass-highlight))
+  and border-color are tuned for the app's usual, much more opaque glass.
+  Against .nav-paper's 9%-tint/2px-blur material they show up as a flat grey
+  line across the top of every card instead of a subtle highlight, so this
+  menu draws neither: just the lift-and-shadow, no edge.
+*/
+.nav-menu-group {
+  border-color: transparent;
+  box-shadow: 0 1px 3px var(--glass-shadow);
 }
 
 .nav-paper > .refractive-glass-layer {
