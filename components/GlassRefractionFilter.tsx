@@ -22,7 +22,21 @@ function createMapUrl() {
 }
 
 function supportsLiveBackdropRefraction() {
-  return CSS.supports(
+  /* Safari parses `url(#filter)` in this property but drops the SVG stage at
+     paint time. CSS.supports alone would therefore give a false positive and
+     can make an iPhone panel disappear. The direct-live path is limited to
+     Chromium, whose backdrop compositor actually runs the displacement map. */
+  const browser = navigator as Navigator & {
+    userAgentData?: { brands?: Array<{ brand: string }> };
+  };
+  const brands = browser.userAgentData?.brands?.map(({ brand }) => brand) ?? [];
+  const chromiumBrand = brands.some((brand) =>
+    /Chromium|Google Chrome|Microsoft Edge|Opera/i.test(brand),
+  );
+  const chromiumUserAgent = /(?:Chrome|Chromium|Edg|OPR)\//.test(navigator.userAgent)
+    && !/CriOS|FxiOS/.test(navigator.userAgent);
+
+  return (chromiumBrand || chromiumUserAgent) && CSS.supports(
     "backdrop-filter",
     `blur(1px) saturate(100%) url(#${FILTER_ID})`,
   );

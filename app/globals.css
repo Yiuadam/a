@@ -412,8 +412,8 @@ html[data-theme="dark"] body {
   of text, image or moving page surface behind the panel visibly bends at the
   edge while the centre stays readable.
 
-  GlassRefractionFilter only writes this attribute after the browser confirms
-  that it can run an SVG URL in backdrop-filter. Engines that cannot (notably
+  GlassRefractionFilter only writes this attribute in a Chromium renderer that
+  can execute an SVG URL in backdrop-filter. Engines that cannot (notably
   current Safari) retain the normal backdrop blur declared above instead of
   receiving a fake or broken refraction effect.
 */

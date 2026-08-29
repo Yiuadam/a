@@ -42,6 +42,8 @@ test("the glass displacement map bends each edge outward and remains symmetric",
 });
 
 test("live panels use the SVG displacement filter only after browser capability detection", () => {
+  assert.match(filter, /Safari parses[\s\S]*?false positive/);
+  assert.match(filter, /Chromium\|Google Chrome\|Microsoft Edge\|Opera/);
   assert.match(filter, /CSS\.supports\([\s\S]*?backdrop-filter[\s\S]*?url\(#\$\{FILTER_ID\}\)/);
   assert.match(filter, /document\.documentElement\.dataset\.liveGlassRefraction/);
   assert.match(filter, /<feDisplacementMap[\s\S]*?in2="glass-normal-map"/);
