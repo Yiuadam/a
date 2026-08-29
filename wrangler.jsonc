@@ -177,10 +177,11 @@
     // Native Google identity remains off until D1 has an audited mapping for
     // every active Supabase account. This preserves the current sign-in path.
     "CLOUDFLARE_NATIVE_AUTH": "0",
-    // Explicitly separate from learner-data authority. Stripe writes remain
-    // on the proven compatibility path until event replay and source backfill
-    // have passed, even though learner data is already D1-authoritative.
-    "CLOUDFLARE_NATIVE_STRIPE_BILLING": "0",
+    // Explicitly separate from learner-data authority. The native writer is
+    // armed only after production subscription, event-payload and prepaid
+    // ledger parity has passed; it writes verified Stripe events directly to
+    // D1 while the completed learner barrier seals the legacy writer.
+    "CLOUDFLARE_NATIVE_STRIPE_BILLING": "1",
     "GOOGLE_OAUTH_APP_ORIGIN": "https://bandup.life"
   }
 }

@@ -76,12 +76,11 @@ export const CUTOVER_DOMAINS: readonly CutoverDomainDefinition[] = [
   {
     domain: "billing_entitlement_runtime",
     description:
-      "D1-native promo and verified Stripe-event writers exist, but Stripe stays on the " +
-      "established Supabase route until historical subscriptions and original prepaid amounts " +
-      "have been backfilled, replay/reconciliation has passed, and the dedicated " +
-      "CLOUDFLARE_NATIVE_STRIPE_BILLING switch is explicitly armed. This remains unsupported " +
-      "for a Cloudflare-only cutover until that evidence and operational transition are complete.",
-    supported: false,
+      "D1-native promo and verified Stripe-event writers are complete. Historical subscriptions, " +
+      "provider-event payloads and the original-prepaid-payment ledger are reconciled before " +
+      "the dedicated CLOUDFLARE_NATIVE_STRIPE_BILLING switch is armed; the runtime keeps that " +
+      "switch separate from general learner-data authority.",
+    supported: true,
   },
   {
     domain: "usage_quota_authority",

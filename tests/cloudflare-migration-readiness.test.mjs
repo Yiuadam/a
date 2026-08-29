@@ -169,10 +169,9 @@ test("the global report proves exact identities and versions but fails closed on
   assert.equal(report.supabaseAuth.included, false);
   assert.equal(report.supabaseAuth.authority, "supabase");
   assert.equal(report.readyForCloudflareOnly, false);
-  // Billing entitlement reads are D1-capable, but payment mutations are not
-  // native yet; a Cloudflare-only report must name that rather than calling
-  // the source writer complete.
-  assert.ok(report.unsupportedDomains.includes("billing_entitlement_runtime"));
+  // Billing entitlement reads and verified Stripe mutations now have a D1
+  // path. The separate native-billing switch still controls its activation.
+  assert.ok(!report.unsupportedDomains.includes("billing_entitlement_runtime"));
   assert.ok(!report.unsupportedDomains.includes("usage_quota_authority"));
   assert.ok(!report.unsupportedDomains.includes("ai_cost_write_authority"));
   assert.ok(report.unsupportedDomains.includes("cutover_write_barrier"));

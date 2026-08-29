@@ -284,6 +284,20 @@ test("the native writer stays behind its own explicit payment switch", () => {
   assert.match(readiness, /domainWritesToCloudflareOnly/);
 });
 
+test("an armed legacy barrier does not reject the selected native D1 Stripe writer", () => {
+  const subscriptions = readFileSync(join(ROOT, "lib", "billing", "subscriptions.ts"), "utf8");
+  const nativeChecks = [...subscriptions.matchAll(/if \(nativeStripeBillingActive\(\)\) \{/g)];
+  const barrierChecks = [...subscriptions.matchAll(/if \(await cutoverWriteBarrierArmed\("learner"\)\) \{/g)];
+  assert.equal(nativeChecks.length, 3, "every Stripe mutation must select native authority explicitly");
+  assert.equal(barrierChecks.length, 3, "every legacy Stripe path must still be sealed by the barrier");
+  for (let index = 0; index < nativeChecks.length; index += 1) {
+    assert.ok(
+      nativeChecks[index].index < barrierChecks[index].index,
+      "the D1-native writer must be chosen before the legacy-write barrier is checked",
+    );
+  }
+});
+
 test("Cloudflare learner mode alone cannot cut Stripe writes over", () => {
   const names = ["CLOUDFLARE_DATA_MODE", "CLOUDFLARE_NATIVE_STRIPE_BILLING"];
   const saved = Object.fromEntries(names.map((name) => [name, process.env[name]]));

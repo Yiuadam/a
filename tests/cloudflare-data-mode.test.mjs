@@ -214,11 +214,12 @@ test("the cutover-domain registry lists exactly the ten domains a Cloudflare-onl
     [...expected].sort(),
   );
   /*
-    Eight domains now have a proven implementation. Billing entitlement reads
-    are D1-capable, but their payment mutations still require the source
-    writer, so that domain stays unsupported until the webhook path is native.
+    Nine domains now have a proven implementation. Billing entitlement reads
+    and verified Stripe webhook mutations use the D1-native path behind its
+    separate explicit payment switch.
   */
   const supported = [
+    "billing_entitlement_runtime",
     "progress_payload_integrity",
     "billing_payload_object_parity",
     "provider_event_payload_object_parity",
