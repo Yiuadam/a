@@ -1,17 +1,17 @@
 export type Theme = "warm" | "light" | "dark";
 
 export const THEMES: { id: Theme; label: string; icon: string; hint: string }[] = [
-  { id: "warm", label: "Warm", icon: "theme-warm", hint: "Cream paper and clay — easiest on the eyes" },
-  { id: "light", label: "Light", icon: "theme-light", hint: "Crisp white and indigo" },
-  { id: "dark", label: "Dark", icon: "theme-dark", hint: "Low light, for late sessions" },
+  { id: "warm", label: "Warm", icon: "theme-warm", hint: "White canvas with a clay control accent" },
+  { id: "light", label: "Light", icon: "theme-light", hint: "White canvas with an indigo control accent" },
+  { id: "dark", label: "Dark", icon: "theme-dark", hint: "White canvas with a graphite control accent" },
 ];
 
 export const THEME_KEY = "bandup.theme";
 
 const BROWSER_THEME_COLORS: Record<Theme, string> = {
-  warm: "#e7e0d8",
-  light: "#fafafa",
-  dark: "#151517",
+  warm: "#ffffff",
+  light: "#ffffff",
+  dark: "#ffffff",
 };
 
 /**
@@ -23,7 +23,7 @@ const BROWSER_THEME_COLORS: Record<Theme, string> = {
  */
 export const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(
   THEME_KEY,
-)});t=(t==="light"||t==="dark"||t==="warm")?t:"warm";document.documentElement.dataset.theme=t;var m=document.querySelector('meta[name="theme-color"]');if(!m){m=document.createElement("meta");m.name="theme-color";document.head.appendChild(m)}m.content=({warm:"#e7e0d8",light:"#fafafa",dark:"#151517"})[t]}catch(e){}`;
+)});t=(t==="light"||t==="dark"||t==="warm")?t:"warm";document.documentElement.dataset.theme=t;var m=document.querySelector('meta[name="theme-color"]');if(!m){m=document.createElement("meta");m.name="theme-color";document.head.appendChild(m)}m.content="#ffffff"}catch(e){}`;
 
 function setBrowserThemeColor(theme: Theme): void {
   if (typeof document === "undefined") return;
