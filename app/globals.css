@@ -406,6 +406,28 @@ html[data-theme="dark"] body {
 }
 
 /*
+  Real lensing, not a lower-alpha overlay. The SVG map is neutral through the
+  middle of a panel and encodes its outward surface normal only around the
+  curved bezel. Chromium feeds its *live backdrop* into that map, so a line
+  of text, image or moving page surface behind the panel visibly bends at the
+  edge while the centre stays readable.
+
+  GlassRefractionFilter only writes this attribute after the browser confirms
+  that it can run an SVG URL in backdrop-filter. Engines that cannot (notably
+  current Safari) retain the normal backdrop blur declared above instead of
+  receiving a fake or broken refraction effect.
+*/
+html[data-live-glass-refraction] .liquid-glass,
+html[data-live-glass-refraction] .card,
+html[data-live-glass-refraction] .premade-glass {
+  backdrop-filter:
+    blur(var(--glass-blur))
+    saturate(108%)
+    brightness(103%)
+    url("#bandup-live-glass-refraction");
+}
+
+/*
   Compact organization pickers sit over dense dashboard data. Keep the page's
   colour visible, but blur it far enough that names and controls underneath
   cannot compete with the active choice list.
