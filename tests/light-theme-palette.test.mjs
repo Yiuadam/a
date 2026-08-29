@@ -38,6 +38,17 @@ test("Dark remains a low-light theme with a graphite canvas", () => {
   assert.match(theme, /Dark canvas with graphite cards and controls/);
 });
 
+test("Dark navigation keeps its opened header free of a containing blur", () => {
+  assert.match(
+    css,
+    /html\[data-theme="dark"\] \.nav-open-header \{[\s\S]*?-webkit-backdrop-filter:\s*none;[\s\S]*?backdrop-filter:\s*none;/,
+  );
+  assert.doesNotMatch(
+    css,
+    /html\[data-theme="dark"\] \.nav-open-header,[\s\S]*?backdrop-filter:\s*blur\(var\(--glass-blur\)\)/,
+  );
+});
+
 test("browser chrome follows the selected canvas", () => {
   assert.match(theme, /light:\s*"#ffffff"/);
   assert.match(theme, /dark:\s*"#111113"/);
