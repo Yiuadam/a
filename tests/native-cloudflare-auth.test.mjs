@@ -327,7 +327,7 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   assert.match(migration, /REFERENCES app_users\(id\)/);
   assert.doesNotMatch(migration, /UPDATE\s+app_users\s+SET\s+id\s*=/i);
   assert.match(migration, /refresh_token_sha256/);
-  assert.match(production, /"CLOUDFLARE_NATIVE_AUTH": "0"/);
+  assert.match(production, /"CLOUDFLARE_NATIVE_AUTH": "1"/);
   assert.match(preview, /"CLOUDFLARE_NATIVE_AUTH": "0"/);
   assert.match(session, /looksLikeNativeAccessToken/);
   assert.match(route, /verifyGoogleIdToken/);

@@ -174,9 +174,9 @@
     // to be unset, and re-flipped it once that was fixed).
     "CLOUDFLARE_DATA_MODE": "cloudflare",
     "ORGANIZATION_DATA_MODE": "cloudflare",
-    // Native Google identity remains off until D1 has an audited mapping for
-    // every active Supabase account. This preserves the current sign-in path.
-    "CLOUDFLARE_NATIVE_AUTH": "0",
+    // Native Cloudflare identity is active after its D1 mappings and password
+    // evidence were verified. Existing browser sessions migrate silently.
+    "CLOUDFLARE_NATIVE_AUTH": "1",
     // Explicitly separate from learner-data authority. The native writer is
     // armed only after production subscription, event-payload and prepaid
     // ledger parity has passed; it writes verified Stripe events directly to
