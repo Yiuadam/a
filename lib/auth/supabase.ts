@@ -1141,11 +1141,83 @@ export interface SupabaseAuthProviderSummary {
   invalid: number;
 }
 
+/**
+ * The private source-RPC fallback is used only when Supabase Auth's Admin
+ * Users endpoint omits `identities`. It keeps the subject-to-existing-user-id
+ * proof available for a one-time native cutover without exposing a directory
+ * to a browser or adding a general database-query helper.
+ */
+export interface SupabaseNativeIdentitySource {
+  googleIdentities: SupabaseGoogleIdentity[];
+  accounts: SupabaseAuthAccount[];
+  providerSummary: SupabaseAuthProviderSummary;
+}
+
 const SUPABASE_AUTH_PAGE_SIZE = 200;
 const SUPABASE_AUTH_MAX_PAGES = 2_000;
 
 function nullableString(value: unknown, maxLength = 2_000): string | null {
   return typeof value === "string" && value.length > 0 && value.length <= maxLength ? value : null;
+}
+
+async function nativeIdentitySourceRpc(functionName: "bandup_native_auth_accounts" | "bandup_native_auth_identities") {
+  const res = await request(`/rest/v1/rpc/${functionName}`, {
+    method: "POST",
+    body: "{}",
+    asServiceRole: true,
+  });
+  if (!res.ok) throw new SupabaseError(`native identity source RPC ${functionName} failed with ${res.status}`);
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    throw new SupabaseError(`native identity source RPC ${functionName} was not JSON`);
+  }
+  if (!Array.isArray(body) || body.some((row) => !row || typeof row !== "object" || Array.isArray(row))) {
+    throw new SupabaseError(`native identity source RPC ${functionName} was invalid`);
+  }
+  return body as Record<string, unknown>[];
+}
+
+/**
+ * Fixed, service-role-only fallback for a Supabase deployment that returns
+ * `identities: null` from its Auth Admin endpoint. The matching source
+ * functions are deliberately temporary cutover infrastructure; see
+ * `scripts/provision-supabase-native-identity-source.sql`.
+ */
+export async function listSupabaseNativeIdentitySource(): Promise<SupabaseNativeIdentitySource> {
+  assertServerOnly(MODULE);
+  const [accountRows, identityRows] = await Promise.all([
+    nativeIdentitySourceRpc("bandup_native_auth_accounts"),
+    nativeIdentitySourceRpc("bandup_native_auth_identities"),
+  ]);
+  const accounts = accountRows.map((row) => ({ id: nullableString(row.id, 80) }));
+  const providerSummary: SupabaseAuthProviderSummary = {
+    google: 0,
+    apple: 0,
+    email: 0,
+    unsupported: 0,
+    invalid: 0,
+  };
+  const googleIdentities: SupabaseGoogleIdentity[] = [];
+  for (const row of identityRows) {
+    const provider = nullableString(row.provider, 80);
+    if (provider === "google") {
+      providerSummary.google += 1;
+      const email = nullableString(row.email, 254)?.trim().toLowerCase() ?? null;
+      googleIdentities.push({
+        authUserId: nullableString(row.auth_user_id, 80),
+        identityUserId: nullableString(row.identity_user_id, 80),
+        providerSubject: nullableString(row.provider_subject, 255),
+        email,
+        emailVerified: row.email_verified === true,
+      });
+    } else if (provider === "apple") providerSummary.apple += 1;
+    else if (provider === "email") providerSummary.email += 1;
+    else if (provider) providerSummary.unsupported += 1;
+    else providerSummary.invalid += 1;
+  }
+  return { googleIdentities, accounts, providerSummary };
 }
 
 /**

@@ -3,6 +3,7 @@ import {
   listSupabaseAuthAccounts,
   listSupabaseGoogleIdentities,
   listSupabaseAuthProviderSummary,
+  listSupabaseNativeIdentitySource,
   type SupabaseAuthAccount,
   type SupabaseGoogleIdentity,
   type SupabaseAuthProviderSummary,
@@ -114,6 +115,24 @@ function normaliseSourceAccount(value: SupabaseAuthAccount): string | null {
   return typeof id === "string" && id.length >= 16 && id.length <= 80 ? id : null;
 }
 
+function unavailableReport(
+  configured: NativeIdentityReadinessReport["configured"],
+): NativeIdentityReadinessReport {
+  return {
+    generatedAt: new Date().toISOString(),
+    configured,
+    source: { status: "unavailable", googleIdentities: 0, appleIdentities: 0, emailIdentities: 0, unsupportedProviderIdentities: 0, invalidProviderIdentities: 0, invalidIdentities: 0, duplicateSubjects: 0, usersWithMultipleGoogleIdentities: 0 },
+    accounts: { status: "unavailable", supabaseAuthUsers: 0, invalidUsers: 0, duplicateUserIds: 0, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
+    target: { schema: "unavailable", sourceUsersPresent: 0, sourceUsersMissing: 0 },
+    mappings: { correct: 0, missing: 0, mismatched: 0 },
+    passwords: { status: "unavailable", sourceRows: null, importedRows: null, verifiedAt: null },
+    readyForBackfill: false,
+    readyForGoogleCutover: false,
+    readyForNativeAuthCutover: false,
+    blockers: ["Supabase Auth Google-identity evidence is unavailable"],
+  };
+}
+
 async function targetSchema(
   bindings: BandUpCloudflareBindings,
 ): Promise<"ready" | "missing" | "unavailable"> {
@@ -215,19 +234,24 @@ export async function nativeIdentityReadinessReport(
         ? { google: rawSource.length, apple: 0, email: 0, unsupported: 0, invalid: 0 }
         : await listSupabaseAuthProviderSummary();
   } catch {
-    return {
-      generatedAt: new Date().toISOString(),
-      configured,
-      source: { status: "unavailable", googleIdentities: 0, appleIdentities: 0, emailIdentities: 0, unsupportedProviderIdentities: 0, invalidProviderIdentities: 0, invalidIdentities: 0, duplicateSubjects: 0, usersWithMultipleGoogleIdentities: 0 },
-      accounts: { status: "unavailable", supabaseAuthUsers: 0, invalidUsers: 0, duplicateUserIds: 0, liveD1UsersPresent: 0, liveD1UsersMissing: 0 },
-      target: { schema: "unavailable", sourceUsersPresent: 0, sourceUsersMissing: 0 },
-      mappings: { correct: 0, missing: 0, mismatched: 0 },
-      passwords: { status: "unavailable", sourceRows: null, importedRows: null, verifiedAt: null },
-      readyForBackfill: false,
-      readyForGoogleCutover: false,
-      readyForNativeAuthCutover: false,
-      blockers: ["Supabase Auth Google-identity evidence is unavailable"],
-    };
+    /*
+      Some Supabase Auth projects intentionally return `identities: null` to
+      the Admin Users API. A temporary, service-role-only source RPC can give
+      the migration the same immutable proof without weakening the public
+      surface. Test fixtures keep their explicit source functions and never
+      make this live fallback call.
+    */
+    if (options.readSource || options.readAccounts || options.readProviderSummary) {
+      return unavailableReport(configured);
+    }
+    try {
+      const fallback = await listSupabaseNativeIdentitySource();
+      rawSource = fallback.googleIdentities;
+      rawAccounts = fallback.accounts;
+      providerSummary = fallback.providerSummary;
+    } catch {
+      return unavailableReport(configured);
+    }
   }
 
   const valid = rawSource.flatMap((identity) => {
