@@ -909,11 +909,11 @@ html[data-theme="dark"] .google-signin-glass {
 @keyframes nav-card-settle {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(10px) scale(0.98) translateZ(0);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(1) translateZ(0);
   }
 }
 
@@ -999,12 +999,15 @@ html[data-theme="dark"] .nav-menu-group {
 .nav-menu-group {
   border-color: transparent;
   box-shadow: 0 1px 3px var(--glass-shadow);
-  /* WebKit silently skips backdrop-filter on an element that never gets its
-     own compositing layer, which is easy to end up with two levels deep in
-     a fixed, isolated sheet: the card just shows the page through it with
-     no blur at all, rather than a lighter blur. This hint is enough to make
-     WebKit commit to a layer without touching the card's actual transform,
-     so it survives past the settle animation ending on its own 2D value. */
+  /* WebKit silently skips backdrop-filter on an element that never commits
+     to its own compositing layer, which is easy to end up with two levels
+     deep in a fixed, isolated sheet: the card just shows the page through
+     it with no blur at all, rather than a lighter blur. will-change alone
+     wasn't a strong enough signal for Safari's heuristic; an explicit,
+     always-present 3D transform is. The settle keyframe below carries the
+     same translateZ(0) in its own 0%/100% values so the animation's final,
+     locked-in transform doesn't drop it once nav-card-settle finishes. */
+  transform: translateZ(0);
   will-change: transform;
 }
 
