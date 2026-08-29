@@ -156,6 +156,7 @@ export default function NotificationBell({ previewRole = null }: { previewRole?:
           className="pointer-events-none absolute right-0.5 top-0.5 z-[1200] h-2.5 w-2.5 rounded-full border-2 border-[var(--color-background)] bg-indigo-500"
         />
       )}
+      {open && <span className="notification-glass-backdrop" aria-hidden="true" />}
       {open && <NotificationPopover previewRole={previewRole} needsSetup={needsSetup} onClose={() => setOpen(false)} onUnreadCount={setNotificationUnread} />}
     </div>
   );

@@ -664,6 +664,27 @@ html[data-theme="dark"] .premade-glass {
   z-index: 1;
 }
 
+/* The page under an opened floating window is not another solid sheet. It is
+   a low-cost, non-interactive depth layer: the header remains crisp, while
+   page content below it recedes into the same soft field as the iOS folder
+   reference. Pointer events stay off so existing outside-click and scroll
+   behaviour are unchanged. */
+.notification-glass-backdrop {
+  position: fixed;
+  inset: var(--header-h, 0px) 0 0;
+  z-index: 1000;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-background) 15%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(108%) brightness(98%);
+  backdrop-filter: blur(12px) saturate(108%) brightness(98%);
+}
+
+html[data-theme="dark"] .notification-glass-backdrop {
+  background: color-mix(in srgb, var(--color-background) 22%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(105%) brightness(90%);
+  backdrop-filter: blur(12px) saturate(105%) brightness(90%);
+}
+
 html[data-theme="dark"] .liquid-glass.notification-popover {
   background-color: color-mix(in srgb, var(--color-surface) 36%, transparent);
   background-image:
