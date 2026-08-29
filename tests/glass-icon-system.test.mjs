@@ -114,10 +114,21 @@ test("navigation keeps its fixed glass surface, and grows outward from the butto
 
   assert.match(header, /--nav-origin-x/);
 
+  // Each card fades and rises into its own final position rather than
+  // reusing the popovers' squash-and-stretch bounce: a card that has
+  // already arrived has no reason to keep overshooting past its resting
+  // place and springing back.
   assert.match(
     css,
-    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-menu-group \{[\s\S]*?animation: glass-pop-in\b/,
+    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-menu-group \{[\s\S]*?animation: nav-card-settle\b/,
   );
+  assert.match(css, /@keyframes nav-card-settle \{/);
+  const settleStart = css.indexOf("@keyframes nav-card-settle {");
+  const settleEnd = css.indexOf("\n}\n", settleStart);
+  const settleBody = css.slice(settleStart, settleEnd);
+  // Exactly a start and an end state — no intermediate overshoot step for
+  // the card to spring past its resting place and back from.
+  assert.equal((settleBody.match(/%\s*\{/g) ?? []).length, 2);
   // The cascade is a handful of fixed per-card delays, not a formula fed by a
   // custom property — nothing for SiteHeader itself to compute or clean up.
   assert.doesNotMatch(header, /--nav-group-(?:delay|touch-delay|flow-x)/);
