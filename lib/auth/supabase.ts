@@ -1323,6 +1323,69 @@ export async function listSupabaseAuthProviderSummary(): Promise<SupabaseAuthPro
   throw new SupabaseError("admin Auth user pagination exceeded its safety limit");
 }
 
+const STRIPE_CUTOVER_PAGE_SIZE = 100;
+const STRIPE_CUTOVER_MAX_PAGES = 20_000;
+
+/**
+ * Private source evidence for the one-time Stripe ledger audit. This is a
+ * fixed allow-list rather than a general service-role query: its raw records
+ * are consumed only inside the Worker to produce an aggregate readiness
+ * report, and never returned to a browser or a caller.
+ */
+export interface StripeCutoverSourceEvidence {
+  subscriptions: Record<string, unknown>[];
+  providerEvents: Record<string, unknown>[];
+}
+
+async function listStripeCutoverRows(
+  table: "subscriptions" | "provider_events",
+  select: string,
+  order: string,
+): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = [];
+  for (let page = 0; page < STRIPE_CUTOVER_MAX_PAGES; page += 1) {
+    const query = new URLSearchParams({
+      select,
+      provider: "eq.stripe",
+      order,
+      offset: String(page * STRIPE_CUTOVER_PAGE_SIZE),
+      limit: String(STRIPE_CUTOVER_PAGE_SIZE),
+    });
+    const res = await request(`/rest/v1/${table}?${query}`, { method: "GET", asServiceRole: true });
+    if (!res.ok) throw new SupabaseError(`Stripe ${table} source read failed with ${res.status}`);
+    let sourcePage: unknown;
+    try {
+      sourcePage = await res.json();
+    } catch {
+      throw new SupabaseError(`Stripe ${table} source response was not JSON`);
+    }
+    if (!Array.isArray(sourcePage) || sourcePage.some((row) => !row || typeof row !== "object" || Array.isArray(row))) {
+      throw new SupabaseError(`Stripe ${table} source response was invalid`);
+    }
+    const records = sourcePage as Record<string, unknown>[];
+    rows.push(...records);
+    if (records.length < STRIPE_CUTOVER_PAGE_SIZE) return rows;
+  }
+  throw new SupabaseError("Stripe cutover source pagination exceeded its safety limit");
+}
+
+export async function listStripeCutoverSourceEvidence(): Promise<StripeCutoverSourceEvidence> {
+  assertServerOnly(MODULE);
+  const [subscriptions, providerEvents] = await Promise.all([
+    listStripeCutoverRows(
+      "subscriptions",
+      "id,user_id,provider,external_price_id,external_subscription_id",
+      "id.asc",
+    ),
+    listStripeCutoverRows(
+      "provider_events",
+      "provider,event_id,received_at,payload",
+      "received_at.asc,event_id.asc",
+    ),
+  ]);
+  return { subscriptions, providerEvents };
+}
+
 export interface ProgressSnapshot {
   storeKey: string;
   payload: unknown;

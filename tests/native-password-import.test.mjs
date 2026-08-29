@@ -223,6 +223,114 @@ test("one credential is written through a two-statement atomic D1 batch with bou
   assert.equal(prepared[0].values[0], BCRYPT);
 });
 
+test("a complete source batch prechecks every stable D1 identity before one atomic write", async () => {
+  const prepared = [];
+  let batches = 0;
+  const first = {
+    userId: "11111111-1111-4111-8111-111111111111",
+    email: "first@example.com",
+    verifier: BCRYPT,
+    sourceUpdatedAt: "2026-08-28T00:00:00.000Z",
+  };
+  const second = {
+    userId: "22222222-2222-4222-8222-222222222222",
+    email: "second@example.com",
+    verifier: "$2b$10$O3qtiPNUNg1dIX2p3iY2Z.45nGd9IL8UnLiW2C/RUxNh5JysNcpE.",
+    sourceUpdatedAt: "2026-08-28T00:01:00.000Z",
+  };
+  const bindings = {
+    db: {
+      prepare(query) {
+        return {
+          bind(...values) {
+            const statement = {
+              query,
+              values,
+              all: async () => query.includes("SELECT id, email FROM app_users")
+                ? { success: true, results: [{ id: first.userId, email: first.email }, { id: second.userId, email: second.email }] }
+                : { success: true, results: [] },
+            };
+            prepared.push(statement);
+            return statement;
+          },
+        };
+      },
+      async batch(statements) {
+        batches += 1;
+        assert.equal(statements.length, 6);
+        return statements.map(() => ({ success: true, meta: { changes: 1 } }));
+      },
+    },
+  };
+  const result = await workerImport.importNativePasswordCredentialBatch([first, second], bindings, Date.UTC(2026, 7, 28, 1));
+  assert.deepEqual(result, { status: "stored", stored: 2 });
+  assert.equal(batches, 1);
+  assert.match(prepared[0].query, /SELECT id, email FROM app_users/);
+  assert.equal(prepared.filter((statement) => /exact_import/.test(statement.query)).length, 2);
+  assert.match(prepared.at(-1).query, /abs\(-9223372036854775808\)/);
+});
+
+test("a stale concurrent credential causes the entire import batch to fail rather than certify a partial write", async () => {
+  const credential = {
+    userId: "11111111-1111-4111-8111-111111111111",
+    email: "person@example.com",
+    verifier: BCRYPT,
+    sourceUpdatedAt: "2026-08-28T00:00:00.000Z",
+  };
+  const bindings = {
+    db: {
+      prepare(query) {
+        return {
+          bind(...values) {
+            return {
+              query,
+              values,
+              all: async () => ({ success: true, results: [{ id: credential.userId, email: credential.email }] }),
+            };
+          },
+        };
+      },
+      async batch(statements) {
+        assert.equal(statements.length, 3);
+        // D1 runs this batch as one transaction. The guard statement raises a
+        // SQLite error, so the two preceding writes are rolled back with it.
+        throw new Error("integer overflow: SQLITE_ERROR");
+      },
+    },
+  };
+  await assert.rejects(
+    workerImport.importNativePasswordCredentialBatch([credential], bindings),
+    /native password credential batch could not be imported|integer overflow/,
+  );
+});
+
+test("a source batch with one unmatched D1 account performs no password writes", async () => {
+  let batches = 0;
+  const bindings = {
+    db: {
+      prepare() {
+        return {
+          bind() {
+            return { all: async () => ({ success: true, results: [] }) };
+          },
+        };
+      },
+      async batch() {
+        batches += 1;
+        return [];
+      },
+    },
+  };
+  const result = await workerImport.importNativePasswordCredentialBatch([{
+    userId: "11111111-1111-4111-8111-111111111111",
+    email: "person@example.com",
+    verifier: BCRYPT,
+    sourceUpdatedAt: "2026-08-28T00:00:00.000Z",
+  }], bindings);
+  assert.deepEqual(result, { status: "mismatch", stored: 0 });
+  assert.equal(batches, 0);
+});
+
 test("native password auth is server-only, gated, and never falls back to Supabase after cutover", () => {
   const route = readFileSync(join(process.cwd(), "app", "api", "auth", "password", "route.ts"), "utf8");
   const native = readFileSync(join(process.cwd(), "lib", "auth", "native-password.ts"), "utf8");

@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { register } from "node:module";
 import { test } from "node:test";
+import { pathToFileURL } from "node:url";
 
 const ROOT = process.cwd();
+register("../scripts/ts-resolve.mjs", import.meta.url);
 const preflight = await import(`file://${join(ROOT, "scripts", "check-stripe-cutover-readiness.mjs")}`);
+const workerPreflight = await import(
+  pathToFileURL(join(ROOT, "lib", "cloudflare", "stripe-cutover-preflight.ts")).href,
+);
 
 const USER = "70000000-0000-4000-8000-000000000001";
 const SUBSCRIPTION = "80000000-0000-4000-8000-000000000001";
@@ -57,6 +63,10 @@ test("the payment preflight accepts only exact original-payment evidence", () =>
   );
   assert.equal(report.ready, true);
   assert.equal(report.expectedPrepaidPurchases, 1);
+  assert.deepEqual(
+    workerPreflight.stripeBillingCutoverReport([sourceSubscription()], [sourceEvent()], [targetPurchase()]),
+    report,
+  );
 });
 
 test("missing or partial legacy evidence fails closed before a native payment flip", () => {

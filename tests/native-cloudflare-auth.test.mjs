@@ -321,6 +321,7 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   const identityCard = readFileSync(join(process.cwd(), "components", "admin", "CloudflareIdentityReadiness.tsx"), "utf8");
   const passwordProofMigration = readFileSync(join(process.cwd(), "cloudflare", "migrations", "0021_native_password_migration_proof.sql"), "utf8");
   const passwordProofRoute = readFileSync(join(process.cwd(), "app", "api", "admin", "cloudflare", "password-import", "proof", "route.ts"), "utf8");
+  const capabilityImportRoute = readFileSync(join(process.cwd(), "app", "api", "internal", "native-password-source-import", "route.ts"), "utf8");
 
   assert.match(migration, /CREATE TABLE IF NOT EXISTS app_user_identities/);
   assert.match(migration, /REFERENCES app_users\(id\)/);
@@ -358,6 +359,16 @@ test("the identity migration preserves app_users IDs and keeps the native path d
   assert.match(passwordProofMigration, /native_password_migration_proofs/);
   assert.match(passwordProofMigration, /migration_source/);
   assert.match(passwordProofRoute, /body\.confirm !== true/);
+  assert.match(capabilityImportRoute, /NATIVE_PASSWORD_IMPORT_CAPABILITY/);
+  assert.match(capabilityImportRoute, /importNativePasswordCredentialBatch/);
+  assert.match(capabilityImportRoute, /certifyNativePasswordMigration/);
+  assert.match(capabilityImportRoute, /nativeIdentityReadinessReport/);
+  assert.match(capabilityImportRoute, /backfillNativeGoogleIdentities/);
+  assert.match(capabilityImportRoute, /cloudflareMigrationReadinessReport/);
+  assert.match(capabilityImportRoute, /stripeCutoverReadinessReport/);
+  assert.match(capabilityImportRoute, /operation === "billing_audit"/);
+  assert.match(capabilityImportRoute, /operation === "identity_backfill"/);
+  assert.doesNotMatch(capabilityImportRoute, /console\.log|logInternal/);
   assert.match(passwordProofRoute, /isAdminEmail\(actor\.email\)/);
   assert.match(passwordProofRoute, /Cache-Control": "private, no-store/);
   assert.doesNotMatch(passwordProofRoute, /console\.log|logInternal/);
