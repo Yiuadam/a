@@ -755,35 +755,46 @@ html[data-theme="dark"] .google-signin-glass {
 }
 
 /*
-  The full-height navigation sheet gets a milder pass of the same wobble.
-  It fills the viewport rather than sitting near one anchor point, so the
-  popovers' amplitude reads as a glitch here rather than a bounce — this
-  keeps the same settle-with-overshoot shape at an amplitude that suits a
-  sheet rather than a card.
+  The full-height navigation sheet doesn't just wobble into place like the
+  smaller popovers below — it visibly grows outward from the button that
+  opened it, the way a folder's contents spill out of the folder rather
+  than materialising over it. clip-path circle() is the tool for that: a
+  disc centred on the button, radius 0 at the start, wide enough at the end
+  to have swallowed every corner of the screen. Because the sheet is
+  already a solid 42px-blurred material (see .nav-paper above), whatever
+  is still outside that growing circle at any instant reads as page behind
+  glass — the reveal and the blur are doing this together, not two
+  separate effects layered on top of each other.
+
+  Only `clip-path` and `opacity` change — no `transform`, no `width`, no
+  `height` — so this is a compositor-only animation the same way the
+  popovers' scale/opacity ones are: the browser can run every frame of it
+  without a single layout pass or repaint of the page underneath.
 */
-@keyframes glass-pop-in-sheet {
+@keyframes nav-sheet-reveal {
   0% {
-    opacity: 0;
-    transform: scale(0.94, 0.9) translateY(14px);
-  }
-  55% {
-    opacity: 1;
-    transform: scale(1.012, 0.996) translateY(0);
+    opacity: 0.4;
+    clip-path: circle(0% at var(--nav-origin-x, 50%) 0%);
   }
   100% {
-    transform: scale(1, 1);
+    opacity: 1;
+    /* 150% guarantees the disc has passed every corner of the sheet by the
+       end of the animation regardless of aspect ratio or where along the
+       header the button sits — a circle that stopped at 100% would still
+       be visibly short of the far corners on a wide phone. */
+    clip-path: circle(150% at var(--nav-origin-x, 50%) 0%);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .nav-paper {
-    /* Set by SiteHeader just before this mounts, in px from the viewport's
-       left edge — where the menu button actually sits, not the middle of
-       the screen. The 50% fallback only matters if that assignment is ever
-       skipped (e.g. the button ref isn't measurable yet). */
-    transform-origin: var(--nav-origin-x, 50%) top;
-    animation: glass-pop-in-sheet 420ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
-    will-change: transform, opacity;
+    /* --nav-origin-x is set by SiteHeader just before this mounts, in px
+       from the viewport's left edge — where the menu button actually sits,
+       not the middle of the screen. The 50% fallback only matters if that
+       assignment is ever skipped (e.g. the button ref isn't measurable
+       yet). */
+    animation: nav-sheet-reveal 520ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: clip-path, opacity;
   }
 
   /*

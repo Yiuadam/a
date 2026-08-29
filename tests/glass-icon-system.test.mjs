@@ -85,7 +85,7 @@ test("the full navigation menu is one strongly blurred refractive surface", () =
   assert.match(css, /@supports not[\s\S]*\.nav-paper \{[\s\S]*background: var\(--color-background\)/);
 });
 
-test("navigation keeps its fixed glass surface, and opens with the same pudding bounce as every other glass panel", () => {
+test("navigation keeps its fixed glass surface, and grows outward from the button that opened it", () => {
   const css = read("app/globals.css");
   const header = read("components/SiteHeader.tsx");
   const panel = cssRule(css, ".nav-paper");
@@ -93,14 +93,31 @@ test("navigation keeps its fixed glass surface, and opens with the same pudding 
   assert.match(header, /className="nav-menu-group liquid-glass/);
   assert.match(header, /className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-\[var\(--header-h\)\]/);
   assert.match(panel, /backdrop-filter: blur\(42px\)/);
-  // The base rule stays motion-inert; the bounce lives entirely in the
+  // The base rule stays motion-inert; the reveal lives entirely in the
   // reduced-motion-gated block below, same as the other glass panels.
   assert.doesNotMatch(panel, /\banimation(?:-\w+)?:/);
 
+  // The sheet's own opening move is a clip-path circle expanding from the
+  // menu button, not the popovers' scale/opacity bounce — it fills the
+  // whole viewport, so growing visibly out of one small button reads as a
+  // reveal rather than a wobble at that scale.
+  assert.match(css, /@keyframes nav-sheet-reveal \{/);
   assert.match(
     css,
-    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-paper \{[\s\S]*?animation: glass-pop-in-sheet/,
+    /@keyframes nav-sheet-reveal \{[\s\S]*?clip-path: circle\(0% at var\(--nav-origin-x, 50%\) 0%\)/,
   );
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-paper \{[\s\S]*?animation: nav-sheet-reveal/,
+  );
+  // clip-path and opacity only — no transform/width/height — is what keeps
+  // this compositor-only at the full-viewport scale the sheet animates at.
+  const revealStart = css.indexOf("@keyframes nav-sheet-reveal {");
+  const revealEnd = css.indexOf("\n}\n", revealStart);
+  assert.doesNotMatch(css.slice(revealStart, revealEnd), /\btransform\s*:/);
+
+  assert.match(header, /--nav-origin-x/);
+
   assert.match(
     css,
     /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-menu-group \{[\s\S]*?animation: glass-pop-in\b/,
