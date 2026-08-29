@@ -32,7 +32,9 @@ export function createGlassRefractionMap(size = GLASS_REFRACTION_MAP_SIZE) {
   const pixels = new Uint8ClampedArray(size * size * 4);
   const halfExtent = 0.94;
   const cornerRadius = 0.24;
-  const bezelWidth = 0.16;
+  /* A clear, substantial bevel is what makes a pane read as a lens rather
+     than a soft blur. It still leaves the broad centre completely neutral. */
+  const bezelWidth = 0.22;
   const straightExtent = halfExtent - cornerRadius;
 
   for (let row = 0; row < size; row += 1) {

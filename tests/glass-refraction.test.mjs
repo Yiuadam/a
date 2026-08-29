@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 
 register("../scripts/ts-resolve.mjs", import.meta.url);
 
-const module = await import(
+const glassRefractionModule = await import(
   pathToFileURL(join(process.cwd(), "lib", "glass-refraction.ts")).href,
 );
 
@@ -21,13 +21,13 @@ function pixel(map, size, x, y) {
 
 test("the glass displacement map keeps its centre optically flat", () => {
   const size = 64;
-  const map = module.createGlassRefractionMap(size);
+  const map = glassRefractionModule.createGlassRefractionMap(size);
   assert.deepEqual(pixel(map, size, 32, 32), [128, 128, 128, 255]);
 });
 
 test("the glass displacement map bends each edge outward and remains symmetric", () => {
   const size = 64;
-  const map = module.createGlassRefractionMap(size);
+  const map = glassRefractionModule.createGlassRefractionMap(size);
   const left = pixel(map, size, 2, 32);
   const right = pixel(map, size, 61, 32);
   const top = pixel(map, size, 32, 2);
@@ -44,6 +44,8 @@ test("the glass displacement map bends each edge outward and remains symmetric",
 test("live panels use the SVG displacement filter only after browser capability detection", () => {
   assert.match(filter, /Safari parses[\s\S]*?false positive/);
   assert.match(filter, /Chromium\|Google Chrome\|Microsoft Edge\|Opera/);
+  assert.match(filter, /primitiveUnits="objectBoundingBox"/);
+  assert.match(filter, /scale="0\.04"/);
   assert.match(filter, /CSS\.supports\([\s\S]*?backdrop-filter[\s\S]*?url\(#\$\{FILTER_ID\}\)/);
   assert.match(filter, /document\.documentElement\.dataset\.liveGlassRefraction/);
   assert.match(filter, /<feDisplacementMap[\s\S]*?in2="glass-normal-map"/);

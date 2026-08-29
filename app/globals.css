@@ -406,28 +406,6 @@ html[data-theme="dark"] body {
 }
 
 /*
-  Real lensing, not a lower-alpha overlay. The SVG map is neutral through the
-  middle of a panel and encodes its outward surface normal only around the
-  curved bezel. Chromium feeds its *live backdrop* into that map, so a line
-  of text, image or moving page surface behind the panel visibly bends at the
-  edge while the centre stays readable.
-
-  GlassRefractionFilter only writes this attribute in a Chromium renderer that
-  can execute an SVG URL in backdrop-filter. Engines that cannot (notably
-  current Safari) retain the normal backdrop blur declared above instead of
-  receiving a fake or broken refraction effect.
-*/
-html[data-live-glass-refraction] .liquid-glass,
-html[data-live-glass-refraction] .card,
-html[data-live-glass-refraction] .premade-glass {
-  backdrop-filter:
-    blur(var(--glass-blur))
-    saturate(108%)
-    brightness(103%)
-    url("#bandup-live-glass-refraction");
-}
-
-/*
   Compact organization pickers sit over dense dashboard data. Keep the page's
   colour visible, but blur it far enough that names and controls underneath
   cannot compete with the active choice list.
@@ -3279,4 +3257,29 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
   border-color: var(--glass-edge);
   background: var(--glass-fill-strong);
   box-shadow: inset 0 1px 0 var(--glass-highlight), 0 1px 3px var(--glass-shadow);
+}
+
+/* ---------------------------------------------------------------------------
+   Live refraction (Chromium)
+
+   This deliberately comes last. Theme and page recipes above tune the ordinary
+   glass treatment, but a later backdrop-filter declaration silently turns a
+   real lens back into a vague frost. The SVG map has a neutral centre and a
+   broad curved bezel, so Chromium bends the live backdrop at the rim instead
+   of merely lowering its opacity.
+
+   The blur stays small: strong frosting hides the shapes and lettering that
+   make the refraction believable in the first place.
+--------------------------------------------------------------------------- */
+html[data-live-glass-refraction] .liquid-glass,
+html[data-live-glass-refraction] .card,
+html[data-live-glass-refraction] .card.card,
+html[data-live-glass-refraction] .premade-glass,
+html[data-live-glass-refraction] .nav-paper {
+  backdrop-filter:
+    blur(7px)
+    saturate(125%)
+    brightness(107%)
+    contrast(104%)
+    url("#bandup-live-glass-refraction");
 }

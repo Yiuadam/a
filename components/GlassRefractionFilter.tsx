@@ -96,21 +96,23 @@ export default function GlassRefractionFilter() {
           y="-10%"
           width="120%"
           height="120%"
+          filterUnits="objectBoundingBox"
+          primitiveUnits="objectBoundingBox"
           colorInterpolationFilters="sRGB"
         >
           <feImage
             href={mapUrl}
             x="0"
             y="0"
-            width="100%"
-            height="100%"
+            width="1"
+            height="1"
             preserveAspectRatio="none"
             result="glass-normal-map"
           />
           <feDisplacementMap
             in="SourceGraphic"
             in2="glass-normal-map"
-            scale="13"
+            scale="0.04"
             xChannelSelector="R"
             yChannelSelector="G"
           />
