@@ -54,5 +54,10 @@ test("live panels use the SVG displacement filter only after browser capability 
   assert.match(filter, /document\.documentElement\.dataset\.liveGlassRefraction/);
   assert.match(filter, /<feDisplacementMap[\s\S]*?in2="glass-normal-map"/);
   assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass,[\s\S]*?blur\(8px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/);
-  assert.match(css, /html\[data-live-glass-refraction\] \.nav-paper \{[\s\S]*?blur\(2px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/);
+  // The sheet itself (.nav-paper) no longer carries its own refraction —
+  // only the .nav-menu-group cards it holds do, via the generic rule above.
+  // A second, much bigger lens wrapping the whole viewport double-refracted
+  // whatever showed through a card and scattered visible squiggles across
+  // page content in the gaps between cards.
+  assert.doesNotMatch(css, /html\[data-live-glass-refraction\] \.nav-paper \{/);
 });

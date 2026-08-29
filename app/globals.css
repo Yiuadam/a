@@ -640,27 +640,24 @@ html[data-theme="dark"] .premade-glass {
   color: var(--app-icon-color);
 }
 
-/* Notifications are a floating glass card, not an opaque drawer. Their copy
-   needs a little more separation than the clear page-sized sheet, but the
-   site beneath should still be recognisable through the material. */
+/* Notifications are a floating glass card, sharing the same barely-there,
+   live-refracted material as the nav list rather than a heavier, more
+   opaque frosted drawer. */
 .notification-popover {
   isolation: isolate;
   overflow: hidden;
   contain: paint;
   clip-path: inset(0 round var(--radius-xl));
   border-color: color-mix(in srgb, var(--glass-highlight) 78%, transparent);
-  /* One outer rim and a semi-clear tint. The material is strong enough to
-     protect its own labels when a browser reduces backdrop filtering, while
-     still carrying the colour and motion of the page underneath. */
-  background-color: color-mix(in srgb, var(--color-surface) 68%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 9%, transparent);
   background-image:
     linear-gradient(
       145deg,
       color-mix(in srgb, var(--glass-specular) 14%, transparent),
       transparent
     );
-  -webkit-backdrop-filter: blur(56px) saturate(112%) brightness(104%);
-  backdrop-filter: blur(56px) saturate(112%) brightness(104%);
+  -webkit-backdrop-filter: blur(2px) saturate(106%) brightness(102%);
+  backdrop-filter: blur(2px) saturate(106%) brightness(102%);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 96%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 72%, transparent),
@@ -731,15 +728,15 @@ html[data-theme="dark"] .notification-glass-backdrop {
 }
 
 html[data-theme="dark"] .liquid-glass.notification-popover {
-  background-color: color-mix(in srgb, var(--color-surface) 56%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 12%, transparent);
   background-image:
     linear-gradient(
       145deg,
       color-mix(in srgb, var(--glass-specular) 12%, transparent),
       transparent
     );
-  -webkit-backdrop-filter: blur(56px) saturate(108%) brightness(105%);
-  backdrop-filter: blur(56px) saturate(108%) brightness(105%);
+  -webkit-backdrop-filter: blur(2px) saturate(104%) brightness(104%);
+  backdrop-filter: blur(2px) saturate(104%) brightness(104%);
 }
 
 /* Notification actions are tiny, information-dense text. General glass/accent
@@ -855,16 +852,19 @@ html[data-theme="dark"] .google-signin-glass {
   background: rgba(255, 255, 255, 0.018);
 }
 
+/*
+  The sheet itself carries no blur, tint or refraction of its own: it is
+  purely a positioning/interaction surface for the cards it holds. Only
+  .nav-menu-group's own small bounding boxes get the live lens below, so the
+  page behind any gap between cards reads exactly as it did before the menu
+  opened — no smear, no double-refracted edge from a second, much bigger
+  bevel wrapping the whole viewport.
+*/
 .nav-paper {
   isolation: isolate;
   overflow-x: hidden;
   overflow-y: auto;
-  background:
-    linear-gradient(color-mix(in srgb, var(--color-background) 9%, transparent), color-mix(in srgb, var(--color-background) 9%, transparent)),
-    radial-gradient(50rem 32rem at 14% 0%, var(--wash-one), transparent 62%),
-    radial-gradient(44rem 30rem at 88% 8%, var(--wash-two), transparent 64%);
-  -webkit-backdrop-filter: blur(2px) saturate(106%) brightness(102%);
-  backdrop-filter: blur(2px) saturate(106%) brightness(102%);
+  background: transparent;
   box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 
@@ -966,20 +966,6 @@ html[data-theme="dark"] .google-signin-glass {
 */
 .nav-menu-group svg {
   stroke-width: 2.8;
-}
-
-/*
-  White text reads reliably against this menu's warm, low-opacity glass
-  regardless of what's blurred behind it, where the app's usual dark
-  slate text was starting to fight the busier live-refracted backgrounds.
-  Scoped to the nav list only — every other surface keeps its slate text.
-*/
-.nav-menu-group a {
-  color: white;
-}
-
-.nav-menu-group a:hover {
-  color: white;
 }
 
 /*
@@ -3122,11 +3108,6 @@ html[data-theme="dark"] .card:focus-within {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-html[data-theme="dark"] .nav-paper {
-  background: color-mix(in srgb, var(--color-background) 12%, transparent);
-  -webkit-backdrop-filter: blur(2px) saturate(104%) brightness(104%);
-  backdrop-filter: blur(2px) saturate(104%) brightness(104%);
-}
 
 html[data-theme="dark"] .nav-open-header {
   background: color-mix(in srgb, var(--glass-fill) 45%, transparent);
@@ -3471,28 +3452,19 @@ html[data-theme="light"] .input {
   background: color-mix(in srgb, var(--color-indigo-100) 46%, transparent);
 }
 
-/* The navigation sheet is deliberately clearer than the cards it carries.
-   The site below remains almost legible; the cards retain the softer 12px
-   material so the hierarchy is visible at a glance. */
-html[data-theme="light"] .nav-paper {
-  background: color-mix(in srgb, var(--color-indigo-100) 9%, transparent);
-  -webkit-backdrop-filter: blur(2px) saturate(106%) brightness(102%);
-  backdrop-filter: blur(2px) saturate(106%) brightness(102%);
-}
-
 /* Keep the inbox at the card optical index in Light as well. The generic
    light interactive-surface rule is intentionally stronger for buttons, but
    would otherwise turn this floating glass into a flat grey rectangle. */
 html[data-theme="light"] .liquid-glass.notification-popover {
-  background-color: color-mix(in srgb, var(--color-surface) 68%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 9%, transparent);
   background-image:
     linear-gradient(
       145deg,
       color-mix(in srgb, var(--glass-specular) 14%, transparent),
       transparent
     );
-  -webkit-backdrop-filter: blur(56px) saturate(112%) brightness(104%);
-  backdrop-filter: blur(56px) saturate(112%) brightness(104%);
+  -webkit-backdrop-filter: blur(2px) saturate(106%) brightness(102%);
+  backdrop-filter: blur(2px) saturate(106%) brightness(102%);
 }
 
 html[data-theme="light"] a.card.card:hover,
@@ -3602,27 +3574,4 @@ html[data-live-glass-refraction] .premade-glass {
     brightness(104%)
     contrast(102%)
     url("#bandup-live-glass-refraction");
-}
-
-/* A full page sheet needs an intentionally lower optical index than a card:
-   otherwise its blur and fill merge into a single milky veil. */
-html[data-live-glass-refraction] .nav-paper {
-  backdrop-filter:
-    blur(2px)
-    saturate(108%)
-    brightness(102%)
-    contrast(101%)
-    url("#bandup-live-glass-refraction");
-}
-
-/* Notifications need a dependable frosted reading surface. Keep the subtle
-   edge treatment, but use Chromium's native compositor blur here rather than
-   combining it with the optional SVG lens: that combination can leave the
-   page behind the popup visually sharp on some browsers. */
-html[data-theme][data-live-glass-refraction] .liquid-glass.notification-popover {
-  backdrop-filter:
-    blur(56px)
-    saturate(112%)
-    brightness(104%)
-    contrast(102%);
 }

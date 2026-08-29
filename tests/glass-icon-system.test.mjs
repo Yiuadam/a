@@ -76,7 +76,12 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
 
   assert.match(header, /className="nav-paper premade-glass/);
   assert.match(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
-  assert.match(css, /\.nav-paper \{[\s\S]*?color-background\) 9%, transparent\)[\s\S]*backdrop-filter: blur\(2px\)/);
+  // The sheet itself carries no blur, tint or refraction of its own — only
+  // the .nav-menu-group cards it holds do. A gap between cards must show
+  // the real page behind it, not a second, much bigger blurred/refracted
+  // layer stacked underneath every card's own.
+  assert.match(css, /\.nav-paper \{[^}]*background: transparent;/);
+  assert.doesNotMatch(css, /\.nav-paper \{[^}]*backdrop-filter:/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: absolute;[^}]*inset: -1px/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer\[data-interactive\] > span \{[^}]*display: none !important/);
   assert.doesNotMatch(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: fixed/);
@@ -90,7 +95,7 @@ test("navigation keeps its fixed glass surface, and grows outward from the butto
 
   assert.match(header, /className="nav-menu-group liquid-glass/);
   assert.match(header, /className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-\[var\(--header-h\)\]/);
-  assert.match(panel, /backdrop-filter: blur\(2px\)/);
+  assert.match(panel, /background: transparent;/);
   // The base rule stays motion-inert; the grow lives entirely in the
   // reduced-motion-gated block below, same as every other glass panel.
   assert.doesNotMatch(panel, /\banimation(?:-\w+)?:/);
@@ -98,8 +103,8 @@ test("navigation keeps its fixed glass surface, and grows outward from the butto
   // The sheet's own opening move is a scale-from-the-button grow — a
   // clip-path circle reveal was tried and rejected: animating clip-path is
   // not reliably GPU-compositor-accelerated the way transform/opacity are,
-  // and this sheet already carries a live SVG refraction filter plus a
-  // backdrop blur, both genuinely expensive to re-evaluate every frame.
+  // and every .nav-menu-group card it holds carries its own live SVG
+  // refraction filter, genuinely expensive to re-evaluate every frame.
   assert.match(css, /@keyframes nav-sheet-grow \{/);
   assert.match(css, /@keyframes nav-sheet-grow \{[\s\S]*?transform: scale\(0\.06\)/);
   assert.match(
@@ -169,11 +174,12 @@ test("the notification popover paints exactly one clipped outer glass boundary",
   assert.doesNotMatch(popover, /RefractiveGlassLayer/);
   assert.doesNotMatch(popover, /premade-glass-content/);
   assert.match(css, /\.notification-popover \{[\s\S]*contain: paint;[\s\S]*clip-path: inset\(0 round var\(--radius-xl\)\)/);
-  assert.match(css, /\.notification-popover \{[\s\S]*?background-color: color-mix\(in srgb, var\(--color-surface\) 68%, transparent\)[\s\S]*?blur\(56px\)/);
+  // Same barely-there, live-refracted material as the nav list, not the
+  // heavier, more opaque frosted drawer this used to be.
+  assert.match(css, /\.notification-popover \{[\s\S]*?background-color: color-mix\(in srgb, var\(--color-surface\) 9%, transparent\)[\s\S]*?blur\(2px\)/);
   assert.match(css, /\.notification-popover::before \{[\s\S]*?pointer-events: none;[\s\S]*?border-radius: inherit;[\s\S]*?inset 0 1px 0/);
   assert.match(css, /\.notification-popover > \* \{[\s\S]*?position: relative;[\s\S]*?z-index: 1/);
-  const liveNotificationStart = css.indexOf("html[data-theme][data-live-glass-refraction] .liquid-glass.notification-popover");
-  const liveNotification = css.slice(liveNotificationStart, css.indexOf("}", liveNotificationStart));
-  assert.match(liveNotification, /blur\(56px\)[\s\S]*?contrast\(102%\)/);
-  assert.doesNotMatch(liveNotification, /url\("#bandup-live-glass-refraction"\)/);
+  // No more special-cased exclusion from the SVG lens: this popover now
+  // gets exactly the generic .liquid-glass refraction treatment.
+  assert.doesNotMatch(css, /html\[data-theme\]\[data-live-glass-refraction\] \.liquid-glass\.notification-popover/);
 });
