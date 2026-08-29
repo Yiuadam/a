@@ -618,9 +618,10 @@ html[data-theme="dark"] .premade-glass {
   contain: paint;
   clip-path: inset(0 round var(--radius-xl));
   border-color: color-mix(in srgb, var(--glass-highlight) 78%, transparent);
-  /* One outer rim, a low tint, and the same card blur as the rest of the
-     product. This avoids a second solid-looking window on top of the page. */
-  background-color: color-mix(in srgb, var(--color-surface) 26%, transparent);
+  /* One outer rim and a semi-clear tint. The material is strong enough to
+     protect its own labels when a browser reduces backdrop filtering, while
+     still carrying the colour and motion of the page underneath. */
+  background-color: color-mix(in srgb, var(--color-surface) 46%, transparent);
   background-image:
     linear-gradient(
       145deg,
@@ -664,7 +665,7 @@ html[data-theme="dark"] .premade-glass {
 }
 
 html[data-theme="dark"] .liquid-glass.notification-popover {
-  background-color: color-mix(in srgb, var(--color-surface) 20%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 36%, transparent);
   background-image:
     linear-gradient(
       145deg,
@@ -3263,7 +3264,7 @@ html[data-theme="light"] .nav-paper {
    light interactive-surface rule is intentionally stronger for buttons, but
    would otherwise turn this floating glass into a flat grey rectangle. */
 html[data-theme="light"] .liquid-glass.notification-popover {
-  background-color: color-mix(in srgb, var(--color-surface) 26%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 46%, transparent);
   background-image:
     linear-gradient(
       145deg,
