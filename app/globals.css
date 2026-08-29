@@ -777,14 +777,36 @@ html[data-theme="dark"] .google-signin-glass {
 
 @media (prefers-reduced-motion: no-preference) {
   .nav-paper {
-    transform-origin: top center;
+    /* Set by SiteHeader just before this mounts, in px from the viewport's
+       left edge — where the menu button actually sits, not the middle of
+       the screen. The 50% fallback only matters if that assignment is ever
+       skipped (e.g. the button ref isn't measurable yet). */
+    transform-origin: var(--nav-origin-x, 50%) top;
     animation: glass-pop-in-sheet 420ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
   }
 
-  .notification-popover,
-  .organization-picker-popover {
-    transform-origin: top center;
+  /*
+    top right rather than top center: the popover's wrapping element sizes
+    exactly to the bell button (see NotificationBell.tsx's `relative isolate`
+    root), so `right: 0` on the popover already lands its right edge exactly
+    on the button's right edge. The panel visibly grows out of the bell
+    rather than materialising centred above it.
+  */
+  .notification-popover {
+    transform-origin: top right;
     animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
+  }
+
+  /* organization-picker-popover's origin is set inline by GlassSelect.tsx —
+     the anchor button can be any control on the page, at any position the
+     popover then has to avoid overlapping, so only the code that already
+     computes the popover's on-screen box knows where the button sits
+     relative to it. */
+  .organization-picker-popover {
+    animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
   }
 
   /* Each group card gets its own, slightly later copy of the same bounce —
@@ -795,6 +817,7 @@ html[data-theme="dark"] .google-signin-glass {
      late-arriving card rather than part of the same cascade. */
   .nav-menu-group {
     animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
   }
 
   .nav-menu-group:nth-child(1) { animation-delay: 40ms; }
