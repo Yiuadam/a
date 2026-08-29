@@ -15,6 +15,8 @@ test("every theme keeps the learner canvas white while controls carry its accent
   assert.match(css, /White canvas themes/);
   assert.match(css, /html\[data-theme="light"\] \.card,[\s\S]*?background:\s*var\(--color-indigo-100\);/);
   assert.match(css, /html\[data-theme="light"\] a\.card\.card:hover,[\s\S]*?background:\s*var\(--color-indigo-200\);/);
+  assert.match(css, /html\[data-theme="warm"\] \.card \{[\s\S]*?background:\s*#fac69f;/);
+  assert.match(css, /html\[data-theme="warm"\] a\.card\.card:hover,[\s\S]*?background:\s*#f6b782;/);
   assert.match(css, /html\[data-theme="warm"\],[\s\S]*?--color-background:\s*#ffffff;/);
   assert.match(css, /\.btn-primary,[\s\S]*?background:\s*var\(--color-indigo-600\);/);
 });

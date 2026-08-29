@@ -3160,6 +3160,19 @@ body[data-glass-lab] {
   background: var(--color-indigo-700);
 }
 
+/* Cards belong to the selected colour system too. Warm uses a visibly
+   sunlit orange paper, while the white page around them keeps the layout airy. */
+html[data-theme="warm"] .card {
+  border-color: #e89c66;
+  background: #fac69f;
+}
+
+html[data-theme="warm"] a.card.card:hover,
+html[data-theme="warm"] .card:focus-within {
+  border-color: #db8247;
+  background: #f6b782;
+}
+
 /* Light keeps every surface a quiet grey instead of leaving its controls or
    clickable cards blue. The page itself stays pure white, preserving the
    distinction between content canvas and something a learner can press. */
