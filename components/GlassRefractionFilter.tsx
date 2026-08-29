@@ -5,8 +5,23 @@ import {
   createGlassRefractionMap,
   GLASS_REFRACTION_MAP_SIZE,
 } from "@/lib/glass-refraction";
+import {
+  GLASS_PERFORMANCE_QUERY,
+  supportsDetailedGlass,
+} from "@/lib/glass-performance";
 
 const FILTER_ID = "bandup-live-glass-refraction";
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+const REDUCED_TRANSPARENCY_QUERY = "(prefers-reduced-transparency: reduce)";
+
+type PerformanceNavigator = Navigator & {
+  connection?: {
+    saveData?: boolean;
+    addEventListener?: typeof addEventListener;
+    removeEventListener?: typeof removeEventListener;
+  };
+  deviceMemory?: number;
+};
 
 function createMapUrl() {
   const canvas = document.createElement("canvas");
@@ -43,6 +58,27 @@ function supportsLiveBackdropRefraction() {
 }
 
 /*
+  An SVG displacement stage is GPU work, not a free opacity tweak. Keep it to
+  desktops that have both a fine pointer and enough reported hardware headroom;
+  all other devices keep the normal backdrop glass. This is deliberately the
+  same eligibility contract as the optional refractive rim, so a page never
+  enables one high-detail system while the other has declined it.
+*/
+function supportsDetailedLiveRefraction() {
+  if (!supportsLiveBackdropRefraction()) return false;
+
+  const browser = navigator as PerformanceNavigator;
+  return supportsDetailedGlass({
+    finePointer: window.matchMedia(GLASS_PERFORMANCE_QUERY).matches,
+    reducedMotion: window.matchMedia(REDUCED_MOTION_QUERY).matches,
+    reducedTransparency: window.matchMedia(REDUCED_TRANSPARENCY_QUERY).matches,
+    saveData: Boolean(browser.connection?.saveData),
+    memoryGb: Number.isFinite(browser.deviceMemory) ? browser.deviceMemory ?? null : null,
+    cores: Number.isFinite(navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : null,
+  });
+}
+
+/*
   Chromium can run an SVG filter on the live backdrop itself. The SVG is
   declared once for the whole document; individual panels only reference the
   stable filter id in CSS, so opening a menu or hovering a control never
@@ -54,9 +90,29 @@ function supportsLiveBackdropRefraction() {
 */
 export default function GlassRefractionFilter() {
   const [mapUrl, setMapUrl] = useState<string | null>(null);
+  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    if (!supportsLiveBackdropRefraction()) return;
+    const media = [
+      window.matchMedia(GLASS_PERFORMANCE_QUERY),
+      window.matchMedia(REDUCED_MOTION_QUERY),
+      window.matchMedia(REDUCED_TRANSPARENCY_QUERY),
+    ];
+    const connection = (navigator as PerformanceNavigator).connection;
+    const update = () => setEnabled(supportsDetailedLiveRefraction());
+
+    update();
+    for (const query of media) query.addEventListener("change", update);
+    connection?.addEventListener?.("change", update);
+
+    return () => {
+      for (const query of media) query.removeEventListener("change", update);
+      connection?.removeEventListener?.("change", update);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || mapUrl) return;
 
     const source = createMapUrl();
     if (!source) return;
@@ -68,18 +124,18 @@ export default function GlassRefractionFilter() {
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [enabled, mapUrl]);
 
   useEffect(() => {
-    if (!mapUrl) return;
+    if (!mapUrl || !enabled) return;
 
     document.documentElement.dataset.liveGlassRefraction = "";
     return () => {
       delete document.documentElement.dataset.liveGlassRefraction;
     };
-  }, [mapUrl]);
+  }, [enabled, mapUrl]);
 
-  if (!mapUrl) return null;
+  if (!mapUrl || !enabled) return null;
 
   return (
     <svg

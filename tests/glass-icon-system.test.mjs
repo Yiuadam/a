@@ -13,10 +13,11 @@ const cssRule = (css, selector) => {
   return css.slice(start, end + 2);
 };
 
-test("adaptive glass has one delegated frame budget and preserves low-cost fallbacks", () => {
+test("live glass uses the browser compositor and preserves low-cost fallbacks", () => {
   const component = read("components/RefractiveGlassLayer.tsx");
   const gate = read("components/GlassPerformanceGate.tsx");
   const engine = read("components/PointerAttraction.tsx");
+  const refraction = read("components/GlassRefractionFilter.tsx");
   const css = read("app/globals.css");
 
   assert.match(component, /interactive = false/);
@@ -25,17 +26,14 @@ test("adaptive glass has one delegated frame budget and preserves low-cost fallb
   assert.doesNotMatch(component, /addEventListener|requestAnimationFrame|useState|useEffect/);
   assert.match(component, /globalMousePos=\{STILL_POINTER\}/);
   assert.match(component, /mouseOffset=\{STILL_POINTER\}/);
-  assert.match(engine, /GLASS_SURFACE = "\.card, \.liquid-glass, \.premade-glass/);
-  assert.match(engine, /REFLECTION_FRAME_MS = 32/);
+  assert.doesNotMatch(engine, /data-glass-reflecting|--glass-reflection-|REFLECTION_FRAME_MS/);
   assert.match(engine, /requestAnimationFrame\(draw\)/);
-  assert.match(engine, /connection\?\.saveData/);
-  assert.match(engine, /document\.visibilityState === "visible"/);
-  assert.match(engine, /rect\.bottom > 0[\s\S]*rect\.top < window\.innerHeight/);
-  assert.match(css, /\.card\[data-glass-reflecting\][\s\S]*radial-gradient/);
-  assert.doesNotMatch(css, /\.card\[data-glass-reflecting\][^{]*\{[^}]*position:\s*relative/);
-  assert.doesNotMatch(css, /\.card\[data-glass-reflecting\][^{]*\{[^}]*overflow:\s*hidden/);
+  assert.match(refraction, /supportsDetailedLiveRefraction/);
+  assert.match(refraction, /supportsDetailedGlass/);
+  assert.match(refraction, /connection\?\.saveData/);
+  assert.doesNotMatch(css, /data-glass-reflecting|--glass-reflection-/);
   assert.match(css, /@supports not \(\(-webkit-backdrop-filter:/);
-  assert.match(css, /@media \(hover: none\), \(pointer: coarse\), \(prefers-reduced-motion: reduce\)/);
+  assert.match(css, /@media \(hover: none\), \(pointer: coarse\), \(prefers-reduced-motion: reduce\), \(prefers-reduced-transparency: reduce\)/);
 });
 
 test("high-detail SVG refraction remains opt-in on selected controls", () => {

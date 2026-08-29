@@ -26,16 +26,12 @@ const MAX_CARD_WIDTH = 560;
 const MAX_CARD_HEIGHT = 190;
 const FLOWING_CONTROL =
   ".theme-toggle-base, .interval-toggle-base, .panel-toggle-base, .speaking-engine-picker, .organization-view-tabs";
-const GLASS_SURFACE = ".card, .liquid-glass, .premade-glass, [data-glass-surface]";
 const REFRACTIVE_GLASS_LAYER = ":scope > .refractive-glass-layer";
-const REFLECTION_FRAME_MS = 32;
-const MAX_REFLECTION_DEVICE_PIXELS = 1_250_000;
-const REDUCED_TRANSPARENCY_QUERY = "(prefers-reduced-transparency: reduce)";
 
-/* A generic button may receive the low-cost directional reflection, but the
-   magnetic/deforming response is reserved for controls that already contain
-   an isolated visual glass layer. Moving a whole button would also move its
-   label and accessible focus geometry, which is the opposite of a lens. */
+/* The magnetic/deforming response is reserved for controls that already
+   contain an isolated visual glass layer. Moving a whole button would also
+   move its label and accessible focus geometry, which is the opposite of a
+   lens. Refraction itself is never pointer-driven. */
 function hasDirectRefractiveGlassLayer(target: HTMLElement) {
   return target.querySelector(REFRACTIVE_GLASS_LAYER) !== null;
 }
@@ -62,11 +58,6 @@ function touchTargetFrom(node: EventTarget | null): HTMLElement | null {
   return rect.width <= MAX_CARD_WIDTH && rect.height <= MAX_CARD_HEIGHT ? target : null;
 }
 
-function glassSurfaceFrom(node: EventTarget | null): HTMLElement | null {
-  if (!(node instanceof Element)) return null;
-  return node.closest<HTMLElement>(GLASS_SURFACE);
-}
-
 function rest(target: HTMLElement | null) {
   if (!target) return;
   target.removeAttribute("data-pointer-attracting");
@@ -77,57 +68,28 @@ function rest(target: HTMLElement | null) {
   target.style.setProperty("--pointer-stretch-y", "1");
 }
 
-function restGlass(target: HTMLElement | null) {
-  if (!target) return;
-  target.removeAttribute("data-glass-reflecting");
-  target.style.removeProperty("--glass-reflection-x");
-  target.style.removeProperty("--glass-reflection-y");
-}
-
 export default function PointerAttraction() {
   useEffect(() => {
     const canHover = window.matchMedia(
       "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
     );
-    const reducedTransparency = window.matchMedia(REDUCED_TRANSPARENCY_QUERY);
     let active: HTMLElement | null = null;
     let frame = 0;
     let clientX = 0;
     let clientY = 0;
     let touchPointerId: number | null = null;
     let touchBounds: DOMRect | null = null;
-    let glassSurface: HTMLElement | null = null;
-    let lastGlassSurface: HTMLElement | null = null;
-    let lastReflectionPaint = -Infinity;
-    let lastReflectionX = -1;
-    let lastReflectionY = -1;
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-
-    /* The ordinary CSS backdrop-filter is the real background sampler and is
-       available to every card. Directional specular work is the adaptive
-       part: it runs only on a fine pointer, never in a hidden tab, never with
-       reduced motion or Save-Data, and only for the one surface under the
-       pointer. A 32 ms paint floor caps this extra work near 30 fps. */
-    const canReflect = () =>
-      canHover.matches && !reducedTransparency.matches && !connection?.saveData &&
-      document.visibilityState === "visible";
 
     const clear = () => {
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
       rest(active);
-      restGlass(glassSurface);
       active = null;
-      glassSurface = null;
-      lastGlassSurface = null;
-      lastReflectionPaint = -Infinity;
-      lastReflectionX = -1;
-      lastReflectionY = -1;
       touchPointerId = null;
       touchBounds = null;
     };
 
-    const draw = (timestamp: number) => {
+    const draw = () => {
       frame = 0;
       if (active && !active.isConnected) {
         rest(active);
@@ -173,40 +135,6 @@ export default function PointerAttraction() {
         }
       }
 
-      if (glassSurface && (!glassSurface.isConnected || !canReflect())) {
-        restGlass(glassSurface);
-        glassSurface = null;
-      }
-
-      if (glassSurface) {
-        const surfaceChanged = lastGlassSurface !== glassSurface;
-        if (surfaceChanged || timestamp - lastReflectionPaint >= REFLECTION_FRAME_MS) {
-          const rect = glassSurface.getBoundingClientRect();
-          const dpr = Math.min(window.devicePixelRatio || 1, 3);
-          const visible =
-            rect.width > 0 && rect.height > 0 &&
-            rect.bottom > 0 && rect.right > 0 &&
-            rect.top < window.innerHeight && rect.left < window.innerWidth &&
-            rect.width * rect.height * dpr * dpr <= MAX_REFLECTION_DEVICE_PIXELS;
-          /* Whole-percent quantisation avoids a style invalidation when a high
-             polling-rate mouse moved but the visible highlight did not. */
-          if (visible) {
-            const x = Math.round(Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)));
-            const y = Math.round(Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100)));
-            if (surfaceChanged || x !== lastReflectionX || y !== lastReflectionY) {
-              glassSurface.style.setProperty("--glass-reflection-x", `${x}%`);
-              glassSurface.style.setProperty("--glass-reflection-y", `${y}%`);
-              glassSurface.dataset.glassReflecting = "";
-              lastReflectionX = x;
-              lastReflectionY = y;
-            }
-          } else {
-            restGlass(glassSurface);
-          }
-          lastGlassSurface = glassSurface;
-          lastReflectionPaint = timestamp;
-        }
-      }
     };
 
     const move = (event: PointerEvent) => {
@@ -223,15 +151,9 @@ export default function PointerAttraction() {
         rest(active);
         active = next;
       }
-      const nextGlass = canReflect() ? glassSurfaceFrom(event.target) : null;
-      if (nextGlass !== glassSurface) {
-        restGlass(glassSurface);
-        glassSurface = nextGlass;
-        lastGlassSurface = null;
-      }
       clientX = event.clientX;
       clientY = event.clientY;
-      if ((active || glassSurface) && !frame) frame = requestAnimationFrame(draw);
+      if (active && !frame) frame = requestAnimationFrame(draw);
     };
 
     const down = (event: PointerEvent) => {
@@ -265,7 +187,6 @@ export default function PointerAttraction() {
     window.addEventListener("scroll", clear, { passive: true });
     document.addEventListener("visibilitychange", visibility);
     canHover.addEventListener("change", clear);
-    reducedTransparency.addEventListener("change", clear);
 
     return () => {
       document.removeEventListener("pointerdown", down);
@@ -278,7 +199,6 @@ export default function PointerAttraction() {
       window.removeEventListener("scroll", clear);
       document.removeEventListener("visibilitychange", visibility);
       canHover.removeEventListener("change", clear);
-      reducedTransparency.removeEventListener("change", clear);
       clear();
     };
   }, []);

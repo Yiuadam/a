@@ -2900,50 +2900,12 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
   backdrop-filter: blur(24px) saturate(105%) brightness(106%);
 }
 
-/* ---------------------------------------------------------------------------
-   Adaptive background reflection
-
-   Every card/window already samples the real page pixels with backdrop-filter.
-   The delegated PointerAttraction engine adds this directional specular wash
-   to only the one visible surface beneath a fine pointer. It changes two CSS
-   variables at most ~30 times per second; all other and off-screen cards stay
-   compositor-only and receive no JavaScript work. This is a background layer,
-   not another element, so popovers may extend beyond their parent cards and no
-   extra outline/window can appear around them.
---------------------------------------------------------------------------- */
-.card[data-glass-reflecting],
-.liquid-glass[data-glass-reflecting],
-.premade-glass[data-glass-reflecting] {
-  background-image:
-    radial-gradient(
-      ellipse 72% 62% at var(--glass-reflection-x, 50%) var(--glass-reflection-y, 0%),
-      color-mix(in srgb, var(--glass-specular) 38%, transparent) 0%,
-      color-mix(in srgb, var(--glass-highlight) 13%, transparent) 34%,
-      transparent 72%
-    ),
-    linear-gradient(
-      118deg,
-      color-mix(in srgb, var(--glass-highlight) 8%, transparent),
-      transparent 42%,
-      color-mix(in srgb, var(--glass-edge-dark) 5%, transparent)
-    );
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-}
-
-/* Coarse pointers do not have a persistent cursor to drive a reflection.
-   Phones keep real backdrop sampling at a lower blur radius, while the SVG
-   displacement and JS highlight remain off. This materially lowers fill-rate
-   and battery use without replacing glass with an opaque card. */
+/* Touch devices keep ordinary backdrop sampling, but at a smaller radius to
+   control fill-rate while scrolling. This is independent of cursor behaviour:
+   the live lens itself is activated only on capable desktop hardware. */
 @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   body {
     --glass-blur: 16px;
-  }
-
-  .card[data-glass-reflecting],
-  .liquid-glass[data-glass-reflecting],
-  .premade-glass[data-glass-reflecting] {
-    background-image: none;
   }
 }
 
@@ -2961,15 +2923,12 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
    the experiment in the tree while the decision is still open on whether the
    look belongs in production.
 
-   The rim it adds is not a new interaction. It reads the same
-   --glass-reflection-x/--glass-reflection-y custom properties that the
-   delegated PointerAttraction engine already writes on the parent glass
-   surface for the adaptive background reflection above, so turning this on
-   costs no new listener and no new JavaScript — only extra paint work on the
-   one surface a fine pointer already happens to be over. And like every other
-   refractive layer this is aria-hidden and pointer-events: none, so it moves
-   no semantic content: the button or tab underneath keeps exactly the label,
-   link and focus outline it already had.
+   The rim is a static material response to the page's light direction. It has
+   no pointer listener or animation loop: the live SVG backdrop filter does
+   the dynamic work as real website content moves behind the pane. And like
+   every other refractive layer this is aria-hidden and pointer-events: none,
+   so it moves no semantic content: the button or tab underneath keeps exactly
+   the label, link and focus outline it already had.
 --------------------------------------------------------------------------- */
 /* The rim needs a strength of its own. --glass-specular is tuned to be a fill
    tint — 0.18 alpha in dark — so a 1px ring mixed from it is invisible at any
@@ -3020,13 +2979,13 @@ html[data-theme="dark"] .refractive-glass-layer[data-optics="enhanced"] {
   padding: 1.25px;
   background:
     radial-gradient(
-      circle at var(--glass-reflection-x, 50%) var(--glass-reflection-y, 0%),
+      circle at 50% 0%,
       var(--glass-rim-lit) 0%,
       color-mix(in srgb, var(--glass-rim-lit) 45%, transparent) 24%,
       transparent 56%
     ),
     radial-gradient(
-      circle at calc(100% - var(--glass-reflection-x, 50%)) calc(100% - var(--glass-reflection-y, 0%)),
+      circle at 50% 100%,
       var(--glass-rim-shade) 0%,
       transparent 52%
     );
