@@ -2,7 +2,7 @@ export type Theme = "warm" | "light" | "dark";
 
 export const THEMES: { id: Theme; label: string; icon: string; hint: string }[] = [
   { id: "warm", label: "Warm", icon: "theme-warm", hint: "White canvas with a clay control accent" },
-  { id: "light", label: "Light", icon: "theme-light", hint: "White canvas with an indigo control accent" },
+  { id: "light", label: "Light", icon: "theme-light", hint: "White canvas with a light grey control accent" },
   { id: "dark", label: "Dark", icon: "theme-dark", hint: "White canvas with a graphite control accent" },
 ];
 

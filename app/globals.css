@@ -126,15 +126,18 @@ html[data-theme="light"] {
   --color-slate-800: #26282d;
   --color-slate-900: #16171a;
 
-  --color-indigo-50: #eef2ff;
-  --color-indigo-100: #e0e7ff;
-  --color-indigo-200: #c7d2fe;
-  --color-indigo-300: #a5b4fc;
-  --color-indigo-400: #818cf8;
-  --color-indigo-500: #6366f1;
-  --color-indigo-600: #4f46e5;
-  --color-indigo-700: #4338ca;
-  --color-indigo-800: #3730a3;
+  /* These legacy "indigo" tokens drive interactive controls. In the Light
+     theme they are intentionally neutral greys, from a pale selected surface
+     to a still-light primary action. */
+  --color-indigo-50: #fbfcfd;
+  --color-indigo-100: #f7f8f9;
+  --color-indigo-200: #f1f3f5;
+  --color-indigo-300: #e7e9ec;
+  --color-indigo-400: #dce0e5;
+  --color-indigo-500: #d2d6dc;
+  --color-indigo-600: #c7ccd3;
+  --color-indigo-700: #aeb5bd;
+  --color-indigo-800: #8f969f;
 
   --color-emerald-50: #ecfdf5;
   --color-emerald-100: #d1fae5;
@@ -165,7 +168,7 @@ html[data-theme="light"] {
   --color-purple-700: #7e22ce;
 
   --color-surface: #ffffff;
-  --color-accent-fg: #ffffff;
+  --color-accent-fg: #26282d;
   --color-background: #fafafa;
   --color-foreground: #16171a;
 
@@ -3202,6 +3205,45 @@ html[data-theme="dark"] .btn-primary {
 html[data-theme="dark"] .btn-primary:hover:not(:disabled) {
   border-color: var(--color-indigo-800);
   background: var(--color-indigo-700);
+}
+
+/* Light keeps every surface a quiet grey instead of leaving its controls or
+   clickable cards blue. The page itself stays pure white, preserving the
+   distinction between content canvas and something a learner can press. */
+html[data-theme="light"] .liquid-glass,
+html[data-theme="light"] .card,
+html[data-theme="light"] .premade-glass,
+html[data-theme="light"] .btn-secondary,
+html[data-theme="light"] .theme-toggle-base,
+html[data-theme="light"] .interval-toggle-base,
+html[data-theme="light"] .notification-filter-base,
+html[data-theme="light"] .panel-toggle-base,
+html[data-theme="light"] .organization-view-tabs,
+html[data-theme="light"] .nav-paper,
+html[data-theme="light"] .nav-open-header,
+html[data-theme="light"] .input {
+  border-color: var(--color-indigo-300);
+  background: var(--color-indigo-100);
+}
+
+html[data-theme="light"] a.card.card:hover,
+html[data-theme="light"] .card:focus-within,
+html[data-theme="light"] .liquid-glass:focus-within,
+html[data-theme="light"] .btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-indigo-400);
+  background: var(--color-indigo-200);
+}
+
+html[data-theme="light"] .theme-toggle-selector,
+html[data-theme="light"] .interval-toggle-selector,
+html[data-theme="light"] .notification-filter-selector,
+html[data-theme="light"] .panel-toggle-selector,
+html[data-theme="light"] .organization-view-selector,
+html[data-theme="light"] .speaking-engine-selector,
+html[data-theme="light"] .nav-primary-selector,
+html[data-theme="light"] .nav-menu-selector {
+  border-color: var(--color-indigo-400);
+  background: var(--color-indigo-200);
 }
 
 html[data-theme="dark"] .liquid-glass,
