@@ -97,24 +97,27 @@ test("navigation keeps its fixed glass surface, and grows outward from the butto
   // reduced-motion-gated block below, same as the other glass panels.
   assert.doesNotMatch(panel, /\banimation(?:-\w+)?:/);
 
-  // The sheet's own opening move is a clip-path circle expanding from the
-  // menu button, not the popovers' scale/opacity bounce — it fills the
-  // whole viewport, so growing visibly out of one small button reads as a
-  // reveal rather than a wobble at that scale.
-  assert.match(css, /@keyframes nav-sheet-reveal \{/);
+  // The sheet's own opening move is a scale-from-the-button grow, not the
+  // popovers' squash-and-stretch bounce — a clip-path circle reveal was
+  // tried and rejected here: animating clip-path is not reliably
+  // GPU-compositor-accelerated the way transform/opacity are, and this
+  // sheet's own 42px backdrop blur makes a dropped-frame repaint costly on
+  // a real phone. transform+opacity is the one combination every engine
+  // always composites.
+  assert.match(css, /@keyframes nav-sheet-grow \{/);
   assert.match(
     css,
-    /@keyframes nav-sheet-reveal \{[\s\S]*?clip-path: circle\(0% at var\(--nav-origin-x, 50%\) 0%\)/,
+    /@keyframes nav-sheet-grow \{[\s\S]*?transform: scale\(0\.06\)/,
   );
   assert.match(
     css,
-    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-paper \{[\s\S]*?animation: nav-sheet-reveal/,
+    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-paper \{[\s\S]*?transform-origin: var\(--nav-origin-x, 50%\) top;[\s\S]*?animation: nav-sheet-grow/,
   );
-  // clip-path and opacity only — no transform/width/height — is what keeps
+  // transform and opacity only — no clip-path/width/height — is what keeps
   // this compositor-only at the full-viewport scale the sheet animates at.
-  const revealStart = css.indexOf("@keyframes nav-sheet-reveal {");
-  const revealEnd = css.indexOf("\n}\n", revealStart);
-  assert.doesNotMatch(css.slice(revealStart, revealEnd), /\btransform\s*:/);
+  const growStart = css.indexOf("@keyframes nav-sheet-grow {");
+  const growEnd = css.indexOf("\n}\n", growStart);
+  assert.doesNotMatch(css.slice(growStart, growEnd), /\bclip-path\s*:/);
 
   assert.match(header, /--nav-origin-x/);
 

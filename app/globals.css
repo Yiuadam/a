@@ -415,7 +415,15 @@ html[data-theme="dark"] body {
   cannot compete with the active choice list.
 */
 .liquid-glass.organization-picker-popover {
-  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  /*
+    92% read as a near-solid card with a blur filter attached, not glass —
+    the page underneath was doing all the optical work and the tint was
+    hiding almost every trace of it. 55% is low enough that the live,
+    heavily blurred page behind this popover — whatever the reader was
+    looking at half a second earlier — is genuinely what they see through
+    it, with just enough tint left for list text to stay readable over it.
+  */
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
   -webkit-backdrop-filter: blur(48px) saturate(76%) brightness(101%);
   backdrop-filter: blur(48px) saturate(76%) brightness(101%);
   box-shadow:
@@ -523,20 +531,24 @@ html[data-theme="dark"] .premade-glass {
   color: var(--app-icon-color);
 }
 
-/* A floating inbox needs more optical separation than an ordinary card: its
-   labels must not visually merge with the page it overlaps. It remains
-   translucent and refractive, but the stronger blur removes readable shapes
-   from the background before the notification text is painted. */
+/*
+  A floating inbox needs more optical separation than an ordinary card: its
+  labels must not visually merge with the page it overlaps. That used to be
+  solved with a near-opaque fill (96%/94%) — dense enough that almost none
+  of the actual page behind it survived, which reads as a frosted card
+  wearing a blur filter rather than glass the page is genuinely showing
+  through. The separation now comes entirely from the much stronger 52px
+  blur plus the saturate/brightness pass — real optical depth — so the fill
+  itself can drop to something that still lets the page's blurred shapes
+  and colour read through, the way opening this on a real phone shows the
+  page that was there a moment ago rather than a plain panel.
+*/
 .notification-popover {
   isolation: isolate;
   overflow: hidden;
   contain: paint;
   clip-path: inset(0 round var(--radius-xl));
-  /* Keep one glass boundary, but give the reading surface enough density that
-     page dividers and labels underneath cannot draw a second, false line
-     through the popover. The background is still translucent; the stronger
-     blur supplies the optical depth instead of another nested window. */
-  background-color: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 55%, transparent);
   background-image:
     linear-gradient(
       145deg,
@@ -551,7 +563,7 @@ html[data-theme="dark"] .premade-glass {
 }
 
 html[data-theme="dark"] .liquid-glass.notification-popover {
-  background-color: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 50%, transparent);
   background-image:
     linear-gradient(
       145deg,
@@ -679,8 +691,17 @@ html[data-theme="dark"] .google-signin-glass {
   isolation: isolate;
   overflow-x: hidden;
   overflow-y: auto;
+  /*
+    72% was a near-solid tint sitting on top of the blur — the sheet read as
+    a page in its own right, with only a faint texture hinting that
+    something was blurred underneath. Apple's own version of this material
+    is unmistakably still showing you the room behind the glass, heavily
+    blurred; 40% is where that page — the practice list, the plan, whatever
+    was open a moment before this sheet appeared — stays legible as "the
+    same page, now blurred" rather than being replaced by a new one.
+  */
   background:
-    linear-gradient(color-mix(in srgb, var(--color-background) 72%, transparent), color-mix(in srgb, var(--color-background) 72%, transparent)),
+    linear-gradient(color-mix(in srgb, var(--color-background) 40%, transparent), color-mix(in srgb, var(--color-background) 40%, transparent)),
     radial-gradient(50rem 32rem at 14% 0%, var(--wash-one), transparent 62%),
     radial-gradient(44rem 30rem at 88% 8%, var(--wash-two), transparent 64%);
   -webkit-backdrop-filter: blur(42px) saturate(112%) brightness(102%);
@@ -755,34 +776,34 @@ html[data-theme="dark"] .google-signin-glass {
 }
 
 /*
-  The full-height navigation sheet doesn't just wobble into place like the
-  smaller popovers below — it visibly grows outward from the button that
-  opened it, the way a folder's contents spill out of the folder rather
-  than materialising over it. clip-path circle() is the tool for that: a
-  disc centred on the button, radius 0 at the start, wide enough at the end
-  to have swallowed every corner of the screen. Because the sheet is
-  already a solid 42px-blurred material (see .nav-paper above), whatever
-  is still outside that growing circle at any instant reads as page behind
-  glass — the reveal and the blur are doing this together, not two
-  separate effects layered on top of each other.
+  The full-height navigation sheet visibly grows outward from the button
+  that opened it, the way a folder's contents spill out of the folder
+  rather than materialising over it — a plain scale-from-the-origin, not a
+  clip-path reveal. clip-path was tried first and rejected: animating it
+  is not reliably GPU-compositor-accelerated the way transform and opacity
+  are, and combined with this sheet's own 42px backdrop blur — a genuinely
+  expensive filter to re-evaluate — that risks dropped frames on exactly
+  the mid-range phones this app runs on. transform never has that risk in
+  any engine: the browser scales an already-painted, already-blurred layer
+  on the compositor, so every frame of this animation costs the same
+  whether the sheet behind it is blank or full of exam content.
 
-  Only `clip-path` and `opacity` change — no `transform`, no `width`, no
-  `height` — so this is a compositor-only animation the same way the
-  popovers' scale/opacity ones are: the browser can run every frame of it
-  without a single layout pass or repaint of the page underneath.
+  Scaling from 0.06 rather than 0 keeps the sheet a real (if tiny)
+  rectangle at frame one instead of a mathematical point, which is what
+  keeps this reading as a rectangle growing from the button — a genie
+  effect — rather than a fade with no shape at all until partway through.
 */
-@keyframes nav-sheet-reveal {
+@keyframes nav-sheet-grow {
   0% {
-    opacity: 0.4;
-    clip-path: circle(0% at var(--nav-origin-x, 50%) 0%);
+    opacity: 0;
+    transform: scale(0.06);
+  }
+  60% {
+    opacity: 1;
   }
   100% {
     opacity: 1;
-    /* 150% guarantees the disc has passed every corner of the sheet by the
-       end of the animation regardless of aspect ratio or where along the
-       header the button sits — a circle that stopped at 100% would still
-       be visibly short of the far corners on a wide phone. */
-    clip-path: circle(150% at var(--nav-origin-x, 50%) 0%);
+    transform: scale(1);
   }
 }
 
@@ -793,8 +814,9 @@ html[data-theme="dark"] .google-signin-glass {
        not the middle of the screen. The 50% fallback only matters if that
        assignment is ever skipped (e.g. the button ref isn't measurable
        yet). */
-    animation: nav-sheet-reveal 520ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
-    will-change: clip-path, opacity;
+    transform-origin: var(--nav-origin-x, 50%) top;
+    animation: nav-sheet-grow 420ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
   }
 
   /*
