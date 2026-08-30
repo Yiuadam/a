@@ -494,9 +494,9 @@ test("the nav card's rim has a wall behind it, not just an edge", () => {
   // seam.
   const before = css.match(/\n\.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
   assert.doesNotMatch(before, /box-shadow:/);
-  assert.match(before, /--nav-wall-light: color-mix\(in srgb, white 70%/);
-  assert.match(before, /--nav-wall-shade: color-mix\(in srgb, rgb\(40, 30, 22\) 26%/);
-  assert.match(before, /--nav-wall-shade-soft: color-mix\(in srgb, rgb\(40, 30, 22\) 14%/);
+  assert.match(before, /--nav-wall-light: color-mix\(in srgb, white 55%/);
+  assert.match(before, /--nav-wall-shade: color-mix\(in srgb, rgb\(40, 30, 22\) 20%/);
+  assert.match(before, /--nav-wall-shade-soft: color-mix\(in srgb, rgb\(40, 30, 22\) 10%/);
   assert.match(before, /radial-gradient\(130% 100% at 50% -30%, var\(--nav-wall-light\)/);
   assert.match(before, /radial-gradient\(150% 140% at 50% 130%, var\(--nav-wall-shade\)/);
   // Each ellipse fades to transparent well inside its own radius, so the wall
@@ -514,8 +514,8 @@ test("the nav card's rim has a wall behind it, not just an edge", () => {
   // redeclaration, so the layer structure above cannot drift from this.
   assert.doesNotMatch(dark, /\n {2}background:/);
   assert.doesNotMatch(dark, /box-shadow:/);
-  assert.match(dark, /--nav-wall-light: color-mix\(in srgb, white 34%/);
-  assert.match(dark, /--nav-wall-shade: color-mix\(in srgb, black 40%/);
+  assert.match(dark, /--nav-wall-light: color-mix\(in srgb, white 26%/);
+  assert.match(dark, /--nav-wall-shade: color-mix\(in srgb, black 30%/);
   assert.ok(
     !/white (5[0-9]|[6-9][0-9])%/.test(dark),
     "a dark-theme wall at light-theme strength reads as a second drawn border",

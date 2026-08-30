@@ -13,13 +13,19 @@ test("Light keeps a white canvas with neutral-grey interactive controls", () => 
   assert.match(lightBlock, /--color-accent-fg:\s*#26282d;/);
   assert.doesNotMatch(lightBlock, /#4f46e5|#4338ca/);
   assert.match(css, /Light canvas theme/);
-  // Interactive controls (buttons, toggles, inputs) keep the stronger
-  // neutral-grey fill — they need to read as clickable.
-  assert.match(css, /html\[data-theme="light"\] \.btn-secondary,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 46%, transparent\);/);
+  // Interactive controls (toggles, inputs) keep the stronger neutral-grey
+  // fill — they need to read as clickable. .btn-secondary is a button
+  // rather than a toggle or field, so it has its own rule below with the
+  // same fill but a blue perimeter (see the accent-perimeter test).
+  assert.match(css, /html\[data-theme="light"\] \.theme-toggle-base,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 46%, transparent\);/);
   assert.doesNotMatch(
     css,
-    /html\[data-theme="light"\] \.btn-secondary,[\s\S]{0,400}?\.card,/,
+    /html\[data-theme="light"\] \.theme-toggle-base,[\s\S]{0,400}?\.btn-secondary,/,
   );
+  const lightBtnSecondary = css.match(/html\[data-theme="light"\] \.btn-secondary \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(lightBtnSecondary, "expected a standalone Light .btn-secondary rule");
+  assert.match(lightBtnSecondary, /background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 46%, transparent\);/);
+  assert.match(lightBtnSecondary, /border-color:\s*color-mix\(in srgb, var\(--color-accent-blue\) 45%, transparent\);/);
   // Actual glass (.card/.liquid-glass/.premade-glass) is split out into its
   // own, much lighter fill: no colour of its own, and transparent enough
   // that the page's own background wash glows through the blur instead of
@@ -55,15 +61,24 @@ test("Light's canvas is a flat light blue, and its glass carries no colour of it
   // overrides just those custom properties with colourless mixes, rather
   // than redeclaring the whole layered wall/rim formula. Thinned down from
   // Warm's own strength too, so the nav list reads as more transparent
-  // glow-blur over Light's own blue wash.
+  // glow-blur over Light's own blue wash — and thinned again on a later,
+  // direct "more transparent" request.
   const lightNavBefore = css.match(
     /html\[data-theme="light"\] \.nav-menu-group::before \{[\s\S]*?\n\}/,
   )?.[0];
   assert.ok(lightNavBefore, "expected a Light override for .nav-menu-group::before");
-  assert.match(lightNavBefore, /--nav-tint:\s*color-mix\(in srgb, var\(--color-background\) 5%, transparent\);/);
-  assert.match(lightNavBefore, /--nav-wall-light:\s*color-mix\(in srgb, white 45%, transparent\);/);
-  assert.match(lightNavBefore, /--nav-wall-shade:\s*color-mix\(in srgb, black 14%, transparent\);/);
-  assert.match(lightNavBefore, /--nav-wall-shade-soft:\s*color-mix\(in srgb, black 7%, transparent\);/);
+  assert.match(lightNavBefore, /--nav-tint:\s*color-mix\(in srgb, var\(--color-background\) 3%, transparent\);/);
+  assert.match(lightNavBefore, /--nav-wall-light:\s*color-mix\(in srgb, white 35%, transparent\);/);
+  assert.match(lightNavBefore, /--nav-wall-shade:\s*color-mix\(in srgb, black 10%, transparent\);/);
+  assert.match(lightNavBefore, /--nav-wall-shade-soft:\s*color-mix\(in srgb, black 5%, transparent\);/);
+
+  // The nav sheet's own base fill was also cut, specifically for the nav
+  // list rather than every plain card: it stacks several of these panes
+  // side by side, where the shared 16% indigo-100 fill below reads as a
+  // bank of pale grey tiles.
+  const lightNavGroupFill = css.match(/html\[data-theme="light"\] \.nav-menu-group \{\s*\n\s*background:[\s\S]*?\n\}/)?.[0];
+  assert.ok(lightNavGroupFill, "expected a Light .nav-menu-group background override");
+  assert.match(lightNavGroupFill, /background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 8%, transparent\);/);
 
   // The two ambient ombre glows outside the wall/tint layer (the nav sheet's
   // own bathing glow, and the lift under each open card) also mix in the
@@ -117,12 +132,12 @@ test("Dark carries the same orange-brown accent as the logo and Warm's own glass
   assert.ok(luminance(indigo50) < luminance(indigo800), "indigo-50 should be darker than indigo-800 in Dark");
 });
 
-test("primary buttons carry an accent-coloured perimeter, in Warm/Dark and neutral in Light", () => {
+test("primary buttons carry an accent-coloured perimeter in every theme", () => {
   // The base rule mixes the accent into the existing --glass-edge rather
   // than replacing it outright — an orange-brown perimeter in Warm and Dark,
-  // where the accent ramp actually is that colour, and Light's own neutral
-  // grey where it isn't (Light's .btn-primary is overridden separately
-  // below with its own solid, already-neutral-grey button).
+  // where the accent ramp actually is that colour. Light overrides its own
+  // border-color separately below with its own blue token, since Light's
+  // accent ramp is neutral grey rather than a colour worth mixing in here.
   const baseRule = css.match(/\n\.btn-primary \{[\s\S]*?\n\}/)?.[0];
   assert.ok(baseRule, "expected a base .btn-primary rule");
   assert.match(baseRule, /border-color:\s*color-mix\(in srgb, var\(--color-indigo-600\) 55%, var\(--glass-edge\)\);/);
@@ -140,6 +155,17 @@ test("primary buttons carry an accent-coloured perimeter, in Warm/Dark and neutr
   assert.ok(darkRule, "expected a Dark .btn-primary override");
   assert.match(darkRule, /border-color:\s*color-mix\(in srgb, var\(--color-indigo-600\) 55%, rgba\(255, 255, 255, 0\.22\)\);/);
   assert.doesNotMatch(darkRule, /border-color:\s*rgba\(255, 255, 255, 0\.22\);/);
+
+  // Light: on a direct request, the one deliberately blue token in the
+  // theme (--color-accent-blue), not the neutral-grey indigo ramp every
+  // other part of a Light button still uses (fill, focus states, etc).
+  const lightRule = css.match(/html\[data-theme="light"\] \.btn-primary \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(lightRule, "expected a Light .btn-primary override");
+  assert.match(lightRule, /border-color:\s*color-mix\(in srgb, var\(--color-accent-blue\) 60%, transparent\);/);
+
+  const lightHoverRule = css.match(/html\[data-theme="light"\] \.btn-primary:hover:not\(:disabled\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(lightHoverRule, "expected a Light .btn-primary:hover override");
+  assert.match(lightHoverRule, /border-color:\s*var\(--color-accent-blue\);/);
 });
 
 test("Dark navigation keeps its opened header free of a containing blur", () => {
