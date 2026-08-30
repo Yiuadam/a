@@ -1031,14 +1031,13 @@ html[data-theme="dark"] .google-signin-glass {
   a stronger orange rather than a more opaque card.
 */
 .nav-menu-group {
-  /* The card should show the same rough, unreadable layout the sheet's
-     gaps do (see .nav-paper), just a little less of it — a card is still
-     meant to read as a distinct, more substantial surface than the open
-     background around it, not an equally-clear window. */
+  /* As blurred and transparent as the sheet's own gaps (see .nav-paper) —
+     the card is still a distinct surface via its tint and highlight, not
+     because it hides more of what's behind it. */
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 8%,
-    color-mix(in srgb, var(--color-background) 76%, transparent)
+    color-mix(in srgb, var(--color-background) 62%, transparent)
   );
 }
 
@@ -1052,7 +1051,7 @@ html[data-theme="dark"] .nav-menu-group {
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 3%,
-    color-mix(in srgb, var(--color-background) 72%, transparent)
+    color-mix(in srgb, var(--color-background) 58%, transparent)
   );
   /* A dimmer top highlight than light's own — dark glass still catches a
      rim of light, just not as brightly as a pale card would. */
@@ -1098,10 +1097,10 @@ html[data-theme="dark"] .nav-menu-group {
   will-change: transform;
   /* An explicit value rather than inheriting the sitewide 56px .liquid-glass
      default — that's tuned for surfaces meant to hide what's behind them
-     entirely, not for reading as "a little less clear than the sheet's own
-     14px gaps," which is the goal here. */
-  -webkit-backdrop-filter: blur(20px) saturate(108%) brightness(103%);
-  backdrop-filter: blur(20px) saturate(108%) brightness(103%);
+     entirely, not for matching the sheet's own 14px gaps, which is the
+     goal here. */
+  -webkit-backdrop-filter: blur(14px) saturate(108%) brightness(103%);
+  backdrop-filter: blur(14px) saturate(108%) brightness(103%);
 }
 
 .nav-paper > .refractive-glass-layer {
@@ -3350,8 +3349,8 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
 */
 @media (hover: none), (pointer: coarse) {
   .nav-menu-group {
-    -webkit-backdrop-filter: blur(26px) saturate(115%) brightness(104%) contrast(102%);
-    backdrop-filter: blur(26px) saturate(115%) brightness(104%) contrast(102%);
+    -webkit-backdrop-filter: blur(14px) saturate(115%) brightness(104%) contrast(102%);
+    backdrop-filter: blur(14px) saturate(115%) brightness(104%) contrast(102%);
   }
 }
 
@@ -3724,7 +3723,7 @@ html[data-live-glass-refraction] .premade-glass {
 */
 html[data-live-glass-refraction] .nav-menu-group {
   backdrop-filter:
-    blur(20px)
+    blur(14px)
     saturate(115%)
     brightness(104%)
     contrast(102%)
