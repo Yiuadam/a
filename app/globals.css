@@ -1063,7 +1063,7 @@ html[data-theme="dark"] .google-signin-glass {
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 8%,
-    color-mix(in srgb, var(--color-background) 34%, transparent)
+    color-mix(in srgb, var(--color-background) 24%, transparent)
   );
   /* WebKit silently skips backdrop-filter on an element that never commits
      to its own compositing layer, which is easy to end up with two levels
@@ -1089,7 +1089,7 @@ html[data-theme="dark"] .nav-menu-group::before {
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 3%,
-    color-mix(in srgb, var(--color-background) 30%, transparent)
+    color-mix(in srgb, var(--color-background) 20%, transparent)
   );
 }
 
