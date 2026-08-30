@@ -668,6 +668,11 @@ html[data-theme="dark"] .premade-glass {
   blurred correctly in this app's own headless Chromium checks.
 */
 [data-notification-bell-root] {
+  /* The workaround blur applies to this element's own box, a plain
+     rectangle sized to the round bell button it wraps — without rounding
+     it to match, the blur reads as a faint square edge around a circular
+     button instead of blending into it invisibly. */
+  border-radius: 999px;
   -webkit-backdrop-filter: blur(1px);
   backdrop-filter: blur(1px);
 }
