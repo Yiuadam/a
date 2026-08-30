@@ -3276,6 +3276,20 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
   body {
     --glass-blur: 12px;
   }
+
+  /*
+    The nav list is the one glass surface this touch fallback visibly
+    undershoots: on a touch device (which is also where Safari lives —
+    the live SVG lens above never runs there at all) it fell back to this
+    12px value with no refraction to make up the difference, reading as
+    barely blurred next to the same cards on a capable desktop. Keep it at
+    the full, un-throttled blur radius everywhere so a phone gets the same
+    blur strength as desktop, not a reduced one.
+  */
+  .nav-menu-group {
+    -webkit-backdrop-filter: blur(56px) saturate(108%) brightness(103%);
+    backdrop-filter: blur(56px) saturate(108%) brightness(103%);
+  }
 }
 
 /* ---------------------------------------------------------------------------
