@@ -61,13 +61,33 @@ export type GlassRefractionMapOptions = {
    * cylindrical lens, which is the right model for a long, thin pane.
    */
   magnify?: number;
+  /**
+   * How far a full-strength channel actually moves a pixel, as a fraction of
+   * the pane's half-height.
+   *
+   * The map does not otherwise know what the displacement scale will be, and
+   * it has to, because the outward bend must never ask for a sample from
+   * beyond the pane's own edge — there is nothing there to read, and the
+   * emptiness that comes back is what makes a card look ringed. Matches the
+   * scale the filter is given.
+   */
+  maxDisplacement?: number;
 };
 
 export function createGlassRefractionMap(
   size = GLASS_REFRACTION_MAP_SIZE,
   options: GlassRefractionMapOptions = {},
 ) {
-  const { aspect = 1, cornerRadius = 0.3, bezelWidth = 0.16, magnify = 0 } = options;
+  const {
+    aspect = 1,
+    cornerRadius = 0.3,
+    bezelWidth = 0.16,
+    magnify = 0,
+    /* Uncapped by default, so the sitewide square map keeps exactly the shape
+       it had. Only a caller that knows its own displacement scale can say
+       what the bend must stay within. */
+    maxDisplacement = Number.POSITIVE_INFINITY,
+  } = options;
   const pixels = new Uint8ClampedArray(size * size * 4);
   const halfExtent = 0.98;
   /* Half-extents in height units. The rounded rectangle is inset by its own
@@ -107,7 +127,25 @@ export function createGlassRefractionMap(
            way it does under a real convex panel, instead of drifting
            gently across the whole border the way an even falloff makes it. */
         const p = clamp(1 - -signedDistance / bezelWidth, 0, 1);
-        bend = clamp(p / Math.sqrt(Math.max(1 - p * p, 0.02)), 0, 1);
+        const profile = clamp(p / Math.sqrt(Math.max(1 - p * p, 0.02)), 0, 1);
+
+        /* A pane can only refract what is behind it. The bevel bends outward,
+           so a sample taken further out than the rim is actually beyond the
+           element, where the filter has nothing to read — it comes back empty,
+           and the material recedes from its own edge in a transparent band.
+           On screen that band separates the glass from its rim highlight and
+           reads as a hard outer ring around the card.
+
+           So the bend is held to the distance still available to it: at the
+           rim, none, rising as the glass thickens inward. The strongest bend
+           therefore sits just inside the edge rather than on it, which is
+           where a real bevel's steepest slope is anyway, and every sample
+           lands on backdrop that exists. */
+        const available =
+          Number.isFinite(maxDisplacement) && maxDisplacement > 0
+            ? -signedDistance / maxDisplacement
+            : Number.POSITIVE_INFINITY;
+        bend = Math.min(profile, available);
 
         if (cornerDistance > 0.0001) {
           normalX = (x - clamp(x, -straightExtentX, straightExtentX)) / cornerDistance;

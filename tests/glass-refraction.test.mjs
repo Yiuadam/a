@@ -128,6 +128,50 @@ test("magnification spreads the centre so the middle is not inert", () => {
   );
 });
 
+test("the bend never asks for a sample from beyond the pane's edge", () => {
+  // A pane can only refract what is behind it. The bevel bends outward, so a
+  // sample taken further out than the rim lands outside the element, where the
+  // filter has nothing to read — it comes back empty, and the material recedes
+  // from its own edge in a transparent band. On screen that band separates the
+  // glass from its rim highlight and reads as a hard outer ring around the
+  // card. Told what its channels are worth, the map holds the bend to the
+  // distance actually available to it.
+  const size = 256;
+  const maxDisplacement = 0.85;
+  const shape = { aspect: 3, cornerRadius: 0.98, bezelWidth: 0.8, magnify: 0.18 };
+  const capped = glassRefractionModule.createGlassRefractionMap(size, {
+    ...shape,
+    maxDisplacement,
+  });
+  const uncapped = glassRefractionModule.createGlassRefractionMap(size, shape);
+  const mid = size / 2;
+  const outward = (map, row) => -(pixel(map, size, mid, row)[1] - 128) / 127;
+
+  // find the first row inside the shape, scanning down the vertical centreline
+  let rim = 0;
+  while (rim < mid && pixel(uncapped, size, mid, rim)[1] === 128) rim += 1;
+
+  // uncapped, the rim samples hard outward — past the element, into nothing
+  assert.ok(outward(uncapped, rim) > 0.5, "the uncapped bend runs off the edge");
+  // capped, it does not sample outward at the rim at all
+  assert.ok(outward(capped, rim) <= 0, "the bend must not run off the edge");
+
+  // and nowhere does the outward reach exceed the distance back to the rim
+  for (let row = rim; row < mid; row += 1) {
+    const distance = (row - rim) / (mid - rim); // in half-heights of the shape
+    const reach = outward(capped, row) * maxDisplacement;
+    assert.ok(
+      reach <= distance + 0.02,
+      `row ${row} reaches ${reach.toFixed(3)} past a rim only ${distance.toFixed(3)} away`,
+    );
+  }
+
+  // the strongest bend still lands somewhere inside, not at zero everywhere
+  let peak = 0;
+  for (let row = rim; row < mid; row += 1) peak = Math.max(peak, outward(capped, row));
+  assert.ok(peak > 0.25, "capping must not flatten the bend away");
+});
+
 test("an aspect of 1 leaves the map exactly as it was", () => {
   // The generic sitewide filter still uses the square map, so the default must
   // not drift when the option is added.

@@ -261,6 +261,10 @@ export default function GlassRefractionFilter() {
           cornerRadius: shape.cornerRadius,
           bezelWidth: NAV_BEZEL_WIDTH,
           magnify: NAV_MAGNIFY,
+          /* The scale below is derived from this same constant, so the map
+             knows exactly how far its own channels will move a pixel and can
+             keep the outward bend inside the pane. */
+          maxDisplacement: NAV_DISPLACEMENT_HEADROOM,
         },
         NAV_MAP_SIZE,
       );
