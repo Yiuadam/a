@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio — turning leaf</title>
+  <!--
+    Perspective, and a real edge.
+
+    A shear and a small rotation put the sheet at an angle instead of facing
+    you, and a clay band along its underside gives it thickness rather than an
+    outline — it becomes an object lying on something. The shadow falls on the
+    same axis as the shear so the two agree.
+
+    Four steps, not five: the shear foreshortens the risers, so five turned to
+    mush and three lost the scale.
+  -->
+  <defs>
+    <radialGradient id="ft-ground" cx="0.28" cy="0.72" r="0.95">
+      <stop offset="0" stop-color="#31261d" />
+      <stop offset="1" stop-color="#14100d" />
+    </radialGradient>
+    <linearGradient id="ft-face" x1="0.05" y1="1" x2="0.95" y2="0">
+      <stop offset="0" stop-color="#dfcaad" />
+      <stop offset="0.5" stop-color="#f6ede0" />
+      <stop offset="1" stop-color="#fdfaf6" />
+    </linearGradient>
+    <mask id="ft-ruled">
+      <rect width="1024" height="1024" fill="#fff" />
+      <rect x="306" y="700" width="392" height="28" rx="14" fill="#000" />
+      <rect x="306" y="774" width="272" height="28" rx="14" fill="#000" />
+    </mask>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#ft-ground)" />
+
+  <g transform="translate(512 560) rotate(-5) skewY(-9) translate(-512 -560)">
+    <path
+      d="M 262 852 L 262 668 L 396 668 L 396 550 L 530 550 L 530 424
+         L 664 424 L 664 288 L 788 288 L 788 852 Z"
+      transform="translate(34 66)"
+      fill="#0b0907"
+      opacity="0.5"
+    />
+    <path
+      d="M 262 852 L 262 668 L 396 668 L 396 550 L 530 550 L 530 424
+         L 664 424 L 664 288 L 788 288 L 788 852 Z"
+      transform="translate(0 30)"
+      fill="#8b4a26"
+    />
+    <path
+      d="M 262 852 L 262 668 L 396 668 L 396 550 L 530 550 L 530 424
+         L 664 424 L 664 288 L 788 288 L 788 852 Z"
+      fill="url(#ft-face)"
+      mask="url(#ft-ruled)"
+    />
+  </g>
+</svg>

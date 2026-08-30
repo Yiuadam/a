@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
 import { logInternal, MESSAGES, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
-import { supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { withCors } from "@/lib/http/cors";
 import { organizationDiscovery } from "@/lib/organizations/discovery";
 import {
@@ -16,7 +15,7 @@ async function handleGET(req: Request) {
   const previewRequest = isOrganizationPreviewRequest(req);
   const previewUser = organizationPreviewUser(req);
   if (previewRequest && !previewUser) return safeJsonError("Invalid preview role.", 400);
-  if (!previewUser && (!accountsEnabled() || !supabaseConfigured())) {
+  if (!previewUser && !accountRuntimeEnabled()) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const user = previewUser ?? await getSessionUser(req).catch(() => null);

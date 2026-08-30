@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { supabaseConfigured } from "@/lib/auth/supabase";
+import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { countryFromRequest, currencyForCountry } from "@/lib/billing/currency";
 import { purchasablePlans, stripeWalletConfigured, stripeWalletMethods } from "@/lib/billing/env";
 import { withCors } from "@/lib/http/cors";
@@ -42,14 +43,15 @@ async function handleGET(req: Request) {
     no account to attach a subscription to, and selling one would be selling
     something that could not be delivered.
   */
-  const plans = accountsEnabled() && supabaseConfigured() ? purchasablePlans() : [];
+  const billingStorageReady = supabaseConfigured() || nativeStripeBillingActive();
+  const plans = accountRuntimeEnabled() && billingStorageReady ? purchasablePlans() : [];
   const currency = currencyForCountry(countryFromRequest(req));
 
   return NextResponse.json({
     checkout: plans.length > 0,
     plans,
     walletCheckout:
-      accountsEnabled() && supabaseConfigured() && stripeWalletConfigured(),
+      accountRuntimeEnabled() && billingStorageReady && stripeWalletConfigured(),
     /*
       Which wallets, not merely whether. The button names them, and naming one
       the account is not approved for is how it came to promise WeChat Pay and

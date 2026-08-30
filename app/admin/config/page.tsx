@@ -7,6 +7,7 @@ import { useTier } from "@/lib/billing/useTier";
 import { useConsole } from "@/lib/admin/useConsole";
 import CloudflareSettingsParity from "@/components/admin/CloudflareSettingsParity";
 import CloudflareMigrationReadiness from "@/components/admin/CloudflareMigrationReadiness";
+import CloudflareIdentityReadiness from "@/components/admin/CloudflareIdentityReadiness";
 
 /*
   What is wired up, and what isn't.
@@ -36,6 +37,7 @@ export default function ConfigScreen() {
       <div className="space-y-3">
         <ConfigList checks={checks} />
         <CloudflareMigrationReadiness />
+        <CloudflareIdentityReadiness />
         <CloudflareSettingsParity />
       </div>
     </ConsoleShell>

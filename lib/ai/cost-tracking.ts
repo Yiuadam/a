@@ -1,6 +1,13 @@
 import { rpc } from "@/lib/auth/supabase";
 import { COSTED_ROUTES, type CostedRoute } from "@/lib/ai/models";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
+import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
+import {
+  domainReadsFromCloudflare,
+  domainWritesToCloudflareOnly,
+} from "@/lib/cloudflare/cutover-domains";
+import { recordAiCostEventOnCloudflare } from "@/lib/cloudflare/ai-cost-write-authority";
+import { readCloudflareAdminAiCostSnapshot } from "@/lib/cloudflare/ai-cost-read-authority";
 import {
   type CloudflareAiCostCoverageReplica,
   type CloudflareAiCostEventReplica,
@@ -9,6 +16,8 @@ import {
   replicateAiCostCoverageDurably,
   replicateAiCostEventDurably,
 } from "@/lib/cloudflare/replica-replay";
+
+const AI_COST_WRITE_AUTHORITY_DOMAIN = "ai_cost_write_authority";
 
 /*
   Local Anthropic cost accounting.
@@ -347,12 +356,44 @@ export function calculateAnthropicTokenCost(
 export async function recordAnthropicMessageCost(
   input: RecordAnthropicMessageCostInput,
 ): Promise<boolean> {
+  /*
+    Like usage metering, cost recording writes Supabase through
+    record_ai_cost_event[_with_identity] regardless of mode — see
+    cutover-domains.ts's ai_cost_write_authority entry. Checked outside the
+    try/catch below on purpose: a barred write is not the "Supabase
+    unavailable" case that block already logs, and giving it its own line
+    keeps the two distinguishable in the server log.
+  */
+  if (await cutoverWriteBarrierArmed("learner")) {
+    console.error("[ai-cost] recordAnthropicMessageCost: cutover write barrier is armed for learner writes");
+    return false;
+  }
   try {
     const providerRequestId = input.providerRequestId.trim();
     if (!providerRequestId) throw new Error("Anthropic response has no provider request id");
 
     const occurredAt = input.occurredAt ?? new Date();
     const calculated = calculateAnthropicTokenCost(input.model, input.usage, occurredAt);
+
+    if (domainWritesToCloudflareOnly(AI_COST_WRITE_AUTHORITY_DOMAIN)) {
+      // D1 is sole authority for this domain: no Supabase RPC, nothing to
+      // mirror. See lib/cloudflare/ai-cost-write-authority.ts.
+      const result = await recordAiCostEventOnCloudflare({
+        providerRequestId,
+        route: input.route,
+        model: calculated.model,
+        inputTokens: calculated.inputTokens,
+        outputTokens: calculated.outputTokens,
+        cacheCreationInputTokens: calculated.cacheCreationInputTokens,
+        cacheCreation5mInputTokens: calculated.cacheCreation5mInputTokens,
+        cacheCreation1hInputTokens: calculated.cacheCreation1hInputTokens,
+        cacheReadInputTokens: calculated.cacheReadInputTokens,
+        costUsd: calculated.costUsd,
+        occurredAt: occurredAt.toISOString(),
+      });
+      return result.inserted;
+    }
+
     const args = {
       p_provider_request_id: providerRequestId,
       p_route: input.route,
@@ -366,7 +407,7 @@ export async function recordAnthropicMessageCost(
       p_cost_usd: calculated.costUsd,
       p_occurred_at: occurredAt.toISOString(),
     };
-    if (cloudflareDataMode() !== "dual") {
+    if (!mirrorsWritesToCloudflare()) {
       return await rpc<boolean>("record_ai_cost_event", args);
     }
 
@@ -395,6 +436,10 @@ export async function recordAnthropicMessageCost(
  * authoritative in dual mode; the exact stored singleton is then mirrored.
  */
 export async function setAiCostCoverage(input: SetAiCostCoverageInput): Promise<boolean> {
+  if (await cutoverWriteBarrierArmed("learner")) {
+    console.error("[ai-cost] setAiCostCoverage: cutover write barrier is armed for learner writes");
+    return false;
+  }
   try {
     if (!Number.isFinite(input.startsAt.getTime())) throw new Error("Invalid coverage timestamp");
     const args = {
@@ -402,7 +447,7 @@ export async function setAiCostCoverage(input: SetAiCostCoverageInput): Promise<
       p_starts_at: input.startsAt.toISOString(),
       p_historical_complete: input.historicalComplete,
     };
-    if (cloudflareDataMode() !== "dual") {
+    if (!mirrorsWritesToCloudflare()) {
       return await rpc<boolean>("set_ai_cost_coverage", args);
     }
 
@@ -424,9 +469,16 @@ export async function setAiCostCoverage(input: SetAiCostCoverageInput): Promise<
   }
 }
 
-/** Service-role reader for the owner-only finance API. */
+/**
+ * Owner-only AI-cost reader. A deliberate D1 read cutover uses the exact
+ * decimal reader rather than the Supabase RPC; dual mode retains the
+ * established source reader until its parity evidence is complete.
+ */
 export async function readAdminAiCostSnapshot(days = 30): Promise<AdminAiCostSnapshot> {
   const requestedDays = Number.isFinite(days) ? Math.trunc(days) : 30;
   const boundedDays = Math.min(Math.max(requestedDays, 1), 366);
+  if (domainReadsFromCloudflare(AI_COST_WRITE_AUTHORITY_DOMAIN)) {
+    return await readCloudflareAdminAiCostSnapshot(boundedDays);
+  }
   return rpc<AdminAiCostSnapshot>("admin_ai_cost_snapshot", { p_days: boundedDays });
 }

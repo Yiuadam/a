@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { errorFromFragment, saveSession, sessionFromFragment } from "@/lib/account";
 import { consumeAuthReturnPath } from "@/lib/auth/return-path";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import { apiUrl } from "@/lib/api";
 
 /*
   Where Supabase drops the browser after a provider — or a recovery link — has
@@ -38,12 +39,62 @@ function serverHash(): string {
   return "";
 }
 
+function emailActionFromFragment(fragment: string): { token: string; action: "confirm" | "recover" } | null {
+  const params = new URLSearchParams(fragment.replace(/^#/, ""));
+  const token = params.get("email_token");
+  const action = params.get("email_action");
+  if (!token || (action !== "confirm" && action !== "recover")) return null;
+  return { token, action };
+}
+
 export default function AccountCallback() {
   const router = useRouter();
   const fragment = useSyncExternalStore(subscribeToHash, readHash, serverHash);
 
   const failure = errorFromFragment(fragment);
   const session = failure ? null : sessionFromFragment(fragment);
+  const [emailFailure, setEmailFailure] = useState<string | null>(null);
+  const emailAction = failure || session || emailFailure ? null : emailActionFromFragment(fragment);
+  const emailToken = emailAction?.token ?? null;
+  const emailActionName = emailAction?.action ?? null;
+
+  useEffect(() => {
+    if (!emailToken || !emailActionName) return;
+    let cancelled = false;
+    void fetch(apiUrl("/api/auth/email/consume"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: emailToken, action: emailActionName }),
+    }).then(async (response) => {
+      const body = await response.json().catch(() => null) as {
+        accessToken?: unknown;
+        refreshToken?: unknown;
+        expiresAt?: unknown;
+        email?: unknown;
+        error?: unknown;
+      } | null;
+      if (!response.ok || typeof body?.accessToken !== "string" || body.accessToken.length === 0) {
+        throw new Error(typeof body?.error === "string" ? body.error : "That sign-in link could not be used.");
+      }
+      if (cancelled) return;
+      saveSession({
+        accessToken: body.accessToken,
+        refreshToken: typeof body.refreshToken === "string" ? body.refreshToken : null,
+        expiresAt: typeof body.expiresAt === "number" ? body.expiresAt : null,
+        email: typeof body.email === "string" ? body.email : null,
+      });
+      window.history.replaceState(null, "", window.location.pathname);
+      router.replace(consumeAuthReturnPath("/"));
+    }).catch((error: unknown) => {
+      if (cancelled) return;
+      const message = error instanceof Error ? error.message : "That sign-in link could not be used.";
+      setEmailFailure(message.replace(/[<>]/g, "").slice(0, 200));
+      window.history.replaceState(null, "", window.location.pathname);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [emailToken, emailActionName, router]);
 
   useEffect(() => {
     /*
@@ -51,7 +102,7 @@ export default function AccountCallback() {
       the URL carrying the token does not sit in session history behind a back
       button.
     */
-    if (failure) {
+    if (failure || emailFailure) {
       window.history.replaceState(null, "", window.location.pathname);
       return;
     }
@@ -74,17 +125,19 @@ export default function AccountCallback() {
       on some paths, and redirecting then would throw away a good session.
     */
     if (fragment === "") router.replace("/account/");
-  }, [failure, session, fragment, router]);
+  }, [failure, emailFailure, session, fragment, router]);
+
+  const shownFailure = failure ?? emailFailure;
 
   return (
     <div className="space-y-10">
       <div className="max-w-xl space-y-2">
         <h1 className="text-[26px] font-semibold text-slate-900">
-          {failure ? "That didn’t work" : <LoadingIndicator label="Signing you in…" />}
+          {shownFailure ? "That didn’t work" : <LoadingIndicator label="Signing you in…" />}
         </h1>
-        {failure ? (
+        {shownFailure ? (
           <>
-            <p className="text-[15px] leading-7 text-slate-600">{failure}</p>
+            <p className="text-[15px] leading-7 text-slate-600">{shownFailure}</p>
             <p className="pt-2 text-[15px] leading-7 text-slate-600">
               Nothing on your device has changed, and your practice is untouched.
             </p>
@@ -96,7 +149,7 @@ export default function AccountCallback() {
         )}
       </div>
 
-      {failure && (
+      {shownFailure && (
         <section className="card">
           <Link href="/account/" className="btn-primary">
             Back to sign in

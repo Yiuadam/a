@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
-import { accountsEnabled, emailForIdentifier } from "@/lib/auth/env";
+import { accountsEnabled, bandUpSessionSigningKey, emailForIdentifier } from "@/lib/auth/env";
 import { callbackUrl } from "@/lib/auth/oauth";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { signInWithPassword, signUpWithPassword, supabaseConfigured } from "@/lib/auth/supabase";
 import { clientIp } from "@/lib/usage/ip";
 import { withCors } from "@/lib/http/cors";
 import { emailForLearnerUsername } from "@/lib/cloudflare/data-router";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
+import {
+  signInWithImportedNativePassword,
+} from "@/lib/auth/native-password";
+import { startNativePasswordRegistration } from "@/lib/auth/native-email";
 
 /*
   Signing in with an email address and a password — and, for the owner, with a
@@ -92,7 +97,8 @@ interface Body {
 }
 
 async function handlePOST(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  const nativeActive = nativeAuthCutoverActive();
+  if (!accountsEnabled() || (!nativeActive && !supabaseConfigured())) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
@@ -107,7 +113,7 @@ async function handlePOST(req: Request) {
   const password = typeof body?.password === "string" ? body.password : "";
   const signingUp = body?.mode === "signup";
 
-  if (identifier.length === 0 || identifier.length > 254 || password.length === 0) {
+  if (identifier.length === 0 || identifier.length > 254 || password.length === 0 || password.length > 200) {
     return safeJsonError(WRONG, 401);
   }
 
@@ -129,6 +135,23 @@ async function handlePOST(req: Request) {
     if (!identifier.includes("@")) return safeJsonError(WRONG, 401);
     if (password.length < 8) {
       return safeJsonError("Please choose a password of at least 8 characters.", 400);
+    }
+
+    /* Native registration and recovery require the Cloudflare email path.
+       Never silently fall back to Supabase after the native cutover: that
+       would make a successful migration look complete while creating a new
+       split identity authority. */
+    if (nativeActive) {
+      try {
+        const sent = await startNativePasswordRegistration(email, password);
+        if (!sent) return safeJsonError(MESSAGES.accountUnavailable, 503);
+        forgetAttempts(key);
+        /* Same answer for a new address and an existing one: the inbox, not
+           this route, is the proof that an address is controlled. */
+        return NextResponse.json({ confirm: true });
+      } catch {
+        return safeJsonError(MESSAGES.accountUnavailable, 503);
+      }
     }
 
     let result;
@@ -159,6 +182,23 @@ async function handlePOST(req: Request) {
       expiresAt: s.expiresIn ? Date.now() + s.expiresIn * 1000 : null,
       email: s.email,
     });
+  }
+
+  if (nativeActive) {
+    const signingKey = bandUpSessionSigningKey();
+    if (!signingKey) {
+      logInternal("auth/password/native", new Error("native auth is enabled without a session signing key"));
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
+    try {
+      const session = await signInWithImportedNativePassword(email, password, signingKey);
+      if (!session) return safeJsonError(WRONG, 401);
+      forgetAttempts(key);
+      return NextResponse.json(session);
+    } catch (err) {
+      logInternal("auth/password/native", err);
+      return safeJsonError(MESSAGES.accountUnavailable, 503);
+    }
   }
 
   let session;

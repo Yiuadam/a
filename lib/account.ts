@@ -166,6 +166,21 @@ export function clearSession(): void {
 }
 
 /**
+ * Best-effort server revocation for Cloudflare-native sessions. The ordinary
+ * local clear below remains authoritative for the device: a network error
+ * must never prevent someone from signing out of this browser.
+ */
+export function revokeSession(apiBase = ""): void {
+  const session = getSnapshot();
+  if (!session) return;
+  void fetch(`${apiBase}/api/auth/signout`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.accessToken}` },
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
+/**
  * Signs out after first confirming that the persisted token can be removed.
  *
  * The ordinary `clearSession` remains deliberately best-effort for expired
@@ -257,6 +272,36 @@ export async function refreshSession(session: Session, apiBase = ""): Promise<Se
 }
 
 /**
+ * A short compatibility bridge while Cloudflare-native sessions replace the
+ * legacy Supabase sessions already stored in people's browsers.  A failed or
+ * incomplete migration never clears the existing session: it simply leaves it
+ * in place until the next visit, so this upgrade cannot sign someone out.
+ */
+export async function upgradeLegacySession(
+  session: Session,
+  apiBase = "",
+): Promise<Session | null> {
+  if (looksLikeNativeSessionToken(session.accessToken)) return null;
+  try {
+    const res = await fetch(`${apiBase}/api/auth/native/upgrade`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.accessToken}` },
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as Partial<Session>;
+    if (typeof body.accessToken !== "string" || body.accessToken.length === 0) return null;
+    return {
+      accessToken: body.accessToken,
+      refreshToken: typeof body.refreshToken === "string" ? body.refreshToken : null,
+      expiresAt: typeof body.expiresAt === "number" ? body.expiresAt : null,
+      email: typeof body.email === "string" ? body.email : session.email,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * `fetch` with the access token attached, refreshed first if it has expired.
  *
  * Signed out is not an error here. Every metered route already has to work for
@@ -284,6 +329,20 @@ export async function authedFetch(
   const headers = new Headers(init.headers);
   if (session) headers.set("Authorization", `Bearer ${session.accessToken}`);
   return fetch(input, { ...init, headers });
+}
+
+/** A client-side hint only; the Worker verifies every token it accepts. */
+export function looksLikeNativeSessionToken(token: string): boolean {
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  try {
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
+    const claims = JSON.parse(atob(padded)) as { iss?: unknown; aud?: unknown };
+    return claims.iss === "bandup.cloudflare" && claims.aud === "bandup-api";
+  } catch {
+    return false;
+  }
 }
 
 /**

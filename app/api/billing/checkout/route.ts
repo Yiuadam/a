@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { supabaseConfigured } from "@/lib/auth/supabase";
+import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { stripeConfigured } from "@/lib/billing/env";
@@ -38,7 +39,11 @@ import { withCors } from "@/lib/http/cors";
 export const dynamic = "force-dynamic";
 
 async function handlePOST(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured() || !stripeConfigured()) {
+  if (
+    !accountRuntimeEnabled()
+    || !stripeConfigured()
+    || (!supabaseConfigured() && !nativeStripeBillingActive())
+  ) {
     /*
       Not an error, and not logged as one. This is how the app is deployed
       until somebody sets up Stripe, and the answer says so plainly instead of

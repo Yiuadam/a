@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseConfigured } from "@/lib/auth/supabase";
+import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { logInternal } from "@/lib/auth/errors";
 import { stripeWebhookSecret, tierForStripePrice } from "@/lib/billing/env";
 import {
@@ -87,7 +88,7 @@ async function handlePOST(req: Request) {
     deliberately does not check that flag. Losing a webhook because a feature
     flag was unset would mean somebody paid and the database never heard.
   */
-  if (!secret || !supabaseConfigured()) {
+  if (!secret || (!supabaseConfigured() && !nativeStripeBillingActive())) {
     logInternal(
       "billing/webhook/stripe",
       new Error("delivery received while the webhook secret or the database is unconfigured"),

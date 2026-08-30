@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Folio, ramp</title>
+  <!--
+    Folio variation: the steps stop being steps.
+
+    The top edge is a continuous diagonal with three shallow notches cut into
+    it — 40 units of riser on a slope that climbs 440. Close up you count the
+    notches and it is a scale; at arm's length they disappear into the slope and
+    it is simply a page that rises. This is the variation that finds out whether
+    the band scale needs to be stated or can be implied.
+
+    Also the one inverted palette in the family: clay page on cream ground,
+    which puts the paper in the ground rather than in the mark.
+  -->
+  <defs>
+    <linearGradient id="rmp-ground" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="1" stop-color="#eddfcd" />
+    </linearGradient>
+    <linearGradient id="rmp-page" x1="0.1" y1="1" x2="0.9" y2="0">
+      <stop offset="0" stop-color="#7c4222" />
+      <stop offset="0.55" stop-color="#b0632f" />
+      <stop offset="1" stop-color="#d9955c" />
+    </linearGradient>
+    <linearGradient id="rmp-back" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0c880" />
+      <stop offset="1" stop-color="#e2a75e" />
+    </linearGradient>
+
+    <!-- Knocked out, so the ruled lines are the cream ground showing through. -->
+    <mask id="rmp-ruled">
+      <rect width="1024" height="1024" fill="#fff" />
+      <rect x="296" y="694" width="430" height="30" rx="15" fill="#000" />
+      <rect x="296" y="772" width="322" height="30" rx="15" fill="#000" />
+    </mask>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#rmp-ground)" />
+
+  <rect
+    x="268"
+    y="296"
+    width="500"
+    height="548"
+    rx="26"
+    fill="url(#rmp-back)"
+    transform="rotate(-9 512 560)"
+  />
+
+  <g transform="rotate(3 512 560)">
+    <path
+      d="M 250 862 L 250 690 L 386 584 L 386 544 L 522 438 L 522 398
+         L 658 292 L 658 252 L 796 252 L 796 862 Z"
+      transform="translate(22 26)"
+      fill="#8b4a26"
+      opacity="0.26"
+    />
+    <path
+      d="M 250 862 L 250 690 L 386 584 L 386 544 L 522 438 L 522 398
+         L 658 292 L 658 252 L 796 252 L 796 862 Z"
+      fill="url(#rmp-page)"
+      mask="url(#rmp-ruled)"
+    />
+  </g>
+</svg>

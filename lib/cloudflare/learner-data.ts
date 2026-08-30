@@ -819,35 +819,29 @@ export async function deleteCloudflareProgressSnapshots(
 }
 
 /**
- * Mirror one committed Supabase batch without allowing a delayed older
- * request to overwrite a newer D1 replica.
+ * The one guarded upsert both the live mirror and the drift backfill write:
+ * never for a tombstoned account, never rolling `source_updated_at` back.
  */
-export async function replicateCloudflareProgressSnapshots(
-  user: SessionUser,
+async function applyCloudflareProgressSnapshots(
+  userId: string,
   snapshots: ProgressSnapshotMutation[],
   sourceUpdatedAt: string,
-  providedBindings?: BandUpCloudflareBindings,
+  bindings: BandUpCloudflareBindings,
 ): Promise<boolean> {
-  if (snapshots.length < 1 || snapshots.length > 3
-    || new Set(snapshots.map((item) => item.storeKey)).size !== snapshots.length) {
-    return false;
-  }
-  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
-  await ensureCloudflareUser(user, bindings);
   const sourceStamp = canonicalCloudflareSourceClock(sourceUpdatedAt);
   const stored = await Promise.all(snapshots.map(async (snapshot) => ({
     ...snapshot,
     stored: await storeJson(
       bindings,
       `progress/${snapshot.storeKey}`,
-      user.id,
+      userId,
       snapshot.payload,
     ),
   })));
   const stamp = now();
   const valuesSql = stored.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ");
   const values = stored.flatMap((snapshot) => [
-    user.id,
+    userId,
     snapshot.storeKey,
     snapshot.stored.inline,
     snapshot.stored.objectKey,
@@ -883,6 +877,47 @@ export async function replicateCloudflareProgressSnapshots(
       updated_at = excluded.updated_at
     WHERE progress_snapshots.source_updated_at IS NULL
        OR excluded.source_updated_at >= progress_snapshots.source_updated_at
-  `).bind(...values, user.id).run();
+  `).bind(...values, userId).run();
   return result.success && result.meta.changes === snapshots.length;
+}
+
+/**
+ * Mirror one committed Supabase batch without allowing a delayed older
+ * request to overwrite a newer D1 replica.
+ */
+export async function replicateCloudflareProgressSnapshots(
+  user: SessionUser,
+  snapshots: ProgressSnapshotMutation[],
+  sourceUpdatedAt: string,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<boolean> {
+  if (snapshots.length < 1 || snapshots.length > 3
+    || new Set(snapshots.map((item) => item.storeKey)).size !== snapshots.length) {
+    return false;
+  }
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  await ensureCloudflareUser(user, bindings);
+  return applyCloudflareProgressSnapshots(user.id, snapshots, sourceUpdatedAt, bindings);
+}
+
+/**
+ * Writes one drifted progress row for the backfill, without
+ * `ensureCloudflareUser`'s side effect of overwriting `app_users.email`.
+ *
+ * See `backfillCloudflareUsageEvent` in usage-cost-replica.ts for why: this
+ * has no session, only a row domain-drift.ts already named as wrong, and the
+ * account's real current email belongs to the profile mirror, not to this
+ * write. The caller bootstraps a bare `app_users` row with `INSERT OR IGNORE`
+ * beforehand when one does not exist, which never touches an existing row.
+ * The tombstone guard and the "never roll `source_updated_at` back" guard
+ * above are unchanged and still apply.
+ */
+export async function backfillCloudflareProgressSnapshot(
+  userId: string,
+  snapshot: ProgressSnapshotMutation,
+  sourceUpdatedAt: string,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<boolean> {
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  return applyCloudflareProgressSnapshots(userId, [snapshot], sourceUpdatedAt, bindings);
 }

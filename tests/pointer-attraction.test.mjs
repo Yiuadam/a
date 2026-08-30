@@ -71,24 +71,18 @@ test("only bounded interactive controls keep pointer attraction", () => {
   assert.match(source, /it is an actual control/);
 });
 
-test("all glass reflection is delegated to one visible, power-aware surface", () => {
+test("pointer attraction never drives the glass refraction itself", () => {
   const source = readFileSync(
     join(process.cwd(), "components", "PointerAttraction.tsx"),
     "utf8",
   );
-  assert.match(source, /GLASS_SURFACE = "\.card, \.liquid-glass, \.premade-glass/);
-  assert.match(source, /REFLECTION_FRAME_MS = 32/);
-  assert.match(source, /MAX_REFLECTION_DEVICE_PIXELS = 1_250_000/);
+  const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
+
+  assert.doesNotMatch(source, /data-glass-reflecting|--glass-reflection-|GLASS_SURFACE|REFLECTION_FRAME_MS/);
   assert.equal((source.match(/document\.addEventListener\("pointermove"/g) ?? []).length, 1);
-  assert.match(source, /connection\?\.saveData/);
-  assert.match(source, /document\.visibilityState === "visible"/);
-  assert.match(source, /document\.addEventListener\("visibilitychange"/);
-  assert.match(source, /prefers-reduced-transparency: reduce/);
-  assert.match(source, /rect\.width \* rect\.height \* dpr \* dpr <= MAX_REFLECTION_DEVICE_PIXELS/);
-  assert.match(source, /rect\.bottom > 0[\s\S]*rect\.top < window\.innerHeight/);
-  assert.match(source, /Math\.round\(Math\.max\(0, Math\.min\(100/);
   assert.match(source, /target === current/);
-  assert.ok(source.indexOf("timestamp - lastReflectionPaint") < source.indexOf("const rect = glassSurface.getBoundingClientRect()"));
+  assert.doesNotMatch(css, /data-glass-reflecting|--glass-reflection-/);
+  assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),/);
 });
 
 test("pointer attraction moves only a decorative glass child, never a control's label", () => {

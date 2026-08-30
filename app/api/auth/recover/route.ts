@@ -4,6 +4,8 @@ import { supabaseConfigured, sendMagicLink } from "@/lib/auth/supabase";
 import { callbackUrl } from "@/lib/auth/oauth";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
+import { startNativeAccountRecovery } from "@/lib/auth/native-email";
 
 /*
   Account recovery: email a one-time sign-in link.
@@ -42,7 +44,8 @@ function looksLikeEmail(value: unknown): value is string {
 }
 
 async function handlePOST(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  const nativeActive = nativeAuthCutoverActive();
+  if (!accountsEnabled() || (!nativeActive && !supabaseConfigured())) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
@@ -60,20 +63,29 @@ async function handlePOST(req: Request) {
     cannot separate "not an address" from "no such account" either.
   */
   if (looksLikeEmail(email)) {
-    try {
-      const origin = new URL(req.url).origin;
-      const sent = await sendMagicLink(email.trim(), callbackUrl(origin));
-      if (!sent) {
-        // Includes the ordinary case of an address with no account, which
-        // Supabase refuses because should_create_user is false. Logged at the
-        // same level as a real failure because the two are not distinguishable
-        // from here, and neither is worth waking anyone for.
-        logInternal("auth/recover", new Error("magic link not sent"));
+    if (nativeActive) {
+      try {
+        await startNativeAccountRecovery(email.trim());
+      } catch {
+        /* Keep the same response, and avoid logging a provider exception that
+           could contain an address supplied to this non-enumerating route. */
       }
-    } catch (err) {
-      logInternal("auth/recover", err);
-      // Still falls through to the same response. An upstream outage is not
-      // something to disclose on an unauthenticated endpoint.
+    } else {
+      try {
+        const origin = new URL(req.url).origin;
+        const sent = await sendMagicLink(email.trim(), callbackUrl(origin));
+        if (!sent) {
+          // Includes the ordinary case of an address with no account, which
+          // Supabase refuses because should_create_user is false. Logged at the
+          // same level as a real failure because the two are not distinguishable
+          // from here, and neither is worth waking anyone for.
+          logInternal("auth/recover", new Error("magic link not sent"));
+        }
+      } catch (err) {
+        logInternal("auth/recover", err);
+        // Still falls through to the same response. An upstream outage is not
+        // something to disclose on an unauthenticated endpoint.
+      }
     }
   }
 

@@ -11,10 +11,14 @@ export type CloudflareAccountDeletionState =
   | "data_deleted"
   | "complete";
 
+export type CloudflareAccountDeletionAuthAuthority = "supabase" | "cloudflare";
+export type CloudflareNativeAccountState = "exists" | "deleted" | "unknown";
+
 interface DeletionRow {
   user_id: string;
   operation_id: string;
   state: CloudflareAccountDeletionState;
+  auth_authority: CloudflareAccountDeletionAuthAuthority;
   email_for_cleanup: string | null;
   lease_expires_at: string;
 }
@@ -23,6 +27,7 @@ interface DeletionJobRow {
   user_id: string;
   operation_id: string;
   state: CloudflareAccountDeletionState;
+  auth_authority: CloudflareAccountDeletionAuthAuthority;
   prepared_at: string;
   auth_delete_started_at: string | null;
   auth_deleted_at: string | null;
@@ -37,6 +42,7 @@ interface DeletionJobRow {
 export interface CloudflareAccountDeletionPreparation {
   operationId: string;
   state: CloudflareAccountDeletionState;
+  authAuthority: CloudflareAccountDeletionAuthAuthority;
 }
 
 export interface CloudflareAccountDeletionResult {
@@ -48,6 +54,7 @@ export interface CloudflareAccountDeletionJob {
   userId: string;
   operationId: string;
   state: CloudflareAccountDeletionState;
+  authAuthority: CloudflareAccountDeletionAuthAuthority;
   preparedAt: string;
   authDeleteStartedAt: string | null;
   authDeletedAt: string | null;
@@ -74,6 +81,7 @@ const USER_OBJECT_PREFIXES = [
   "private/avatars",
   "private/attempts",
   "private/subscriptions",
+  "private/provider-events",
   "private/progress/ielts-prep-v1",
   "private/progress/bandup.drills.v1",
   "private/progress/bandup.lookups.v1",
@@ -99,7 +107,7 @@ async function deletionRow(
   userId: string,
 ): Promise<DeletionRow | null> {
   return await bindings.db.prepare(`
-    SELECT user_id, operation_id, state, email_for_cleanup, lease_expires_at
+    SELECT user_id, operation_id, state, auth_authority, email_for_cleanup, lease_expires_at
       FROM account_deletion_tombstones
      WHERE user_id = ?
   `).bind(userId).first<DeletionRow>();
@@ -110,6 +118,7 @@ function deletionJob(row: DeletionJobRow): CloudflareAccountDeletionJob {
     userId: row.user_id,
     operationId: row.operation_id,
     state: row.state,
+    authAuthority: row.auth_authority,
     preparedAt: row.prepared_at,
     authDeleteStartedAt: row.auth_delete_started_at,
     authDeletedAt: row.auth_deleted_at,
@@ -123,7 +132,7 @@ function deletionJob(row: DeletionJobRow): CloudflareAccountDeletionJob {
 }
 
 const DELETION_JOB_COLUMNS = `
-  user_id, operation_id, state, prepared_at, auth_delete_started_at,
+  user_id, operation_id, state, auth_authority, prepared_at, auth_delete_started_at,
   auth_deleted_at, data_deleted_at, completed_at, last_error_code,
   objects_discovered, objects_deleted, updated_at
 `;
@@ -153,6 +162,26 @@ export async function pendingCloudflareAccountDeletionJobs(
      ORDER BY updated_at ASC LIMIT ?
   `).bind(safeLimit).all<DeletionJobRow>();
   return result.results.map(deletionJob);
+}
+
+/**
+ * Reads only the native D1 identity state for a deletion job explicitly
+ * labelled as Cloudflare-owned. A missing/tombstoned app user is deleted;
+ * anything the database cannot prove stays unknown and recovery fails closed.
+ */
+export async function cloudflareNativeAccountState(
+  userId: string,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<CloudflareNativeAccountState> {
+  try {
+    const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+    const row = await bindings.db.prepare(`
+      SELECT deleted_at FROM app_users WHERE id = ?
+    `).bind(userId).first<{ deleted_at: string | null }>();
+    return row && row.deleted_at === null ? "exists" : "deleted";
+  } catch {
+    return "unknown";
+  }
 }
 
 async function insertObjectKeys(
@@ -199,6 +228,7 @@ async function captureReferencedObjects(
      WHERE value = ?
   )`;
   const subscriptionPrefix = `private/subscriptions/${userId}/`;
+  const providerEventPrefix = `private/provider-events/${userId}/`;
   await db.batch([
     db.prepare(`
       INSERT OR IGNORE INTO account_deletion_objects (user_id, object_key, discovered_at)
@@ -252,6 +282,7 @@ async function captureReferencedObjects(
        WHERE provider_events.payload_object_key IS NOT NULL
          AND (
            substr(provider_events.payload_object_key, 1, length(?)) = ?
+           OR substr(provider_events.payload_object_key, 1, length(?)) = ?
            OR EXISTS (
              SELECT 1 FROM data_migration_source_rows
               WHERE table_name = 'provider_events'
@@ -259,7 +290,15 @@ async function captureReferencedObjects(
                 AND ${sourceSubject}
            )
          )
-    `).bind(userId, stamp, subscriptionPrefix, subscriptionPrefix, userId),
+    `).bind(
+      userId,
+      stamp,
+      subscriptionPrefix,
+      subscriptionPrefix,
+      providerEventPrefix,
+      providerEventPrefix,
+      userId,
+    ),
   ]);
 
   // Prefix discovery also catches superseded avatar/progress objects no
@@ -294,18 +333,20 @@ async function cancelPreparedDeletion(
 export async function prepareCloudflareAccountDeletion(
   user: SessionUser,
   providedBindings?: BandUpCloudflareBindings,
+  authAuthority: CloudflareAccountDeletionAuthAuthority = "supabase",
 ): Promise<CloudflareAccountDeletionPreparation> {
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const operationId = crypto.randomUUID();
   const preparedAt = now();
   const inserted = await bindings.db.prepare(`
     INSERT OR IGNORE INTO account_deletion_tombstones (
-      user_id, operation_id, state, email_for_cleanup, prepared_at,
+      user_id, operation_id, state, auth_authority, email_for_cleanup, prepared_at,
       lease_expires_at, updated_at
-    ) VALUES (?, ?, 'prepared', ?, ?, ?, ?)
+    ) VALUES (?, ?, 'prepared', ?, ?, ?, ?, ?)
   `).bind(
     user.id,
     operationId,
+    authAuthority,
     user.email,
     preparedAt,
     leaseExpiry(),
@@ -317,16 +358,21 @@ export async function prepareCloudflareAccountDeletion(
     const existing = await deletionRow(bindings, user.id);
     if (!existing) throw new Error("Cloudflare account deletion state is unavailable");
     if (existing.state !== "prepared") {
-      return { operationId: existing.operation_id, state: existing.state };
+      return {
+        operationId: existing.operation_id,
+        state: existing.state,
+        authAuthority: existing.auth_authority,
+      };
     }
 
     const takeover = await bindings.db.prepare(`
       UPDATE account_deletion_tombstones
-         SET operation_id = ?, email_for_cleanup = ?, lease_expires_at = ?,
+         SET operation_id = ?, auth_authority = ?, email_for_cleanup = ?, lease_expires_at = ?,
              last_error_code = NULL, updated_at = ?
        WHERE user_id = ? AND state = 'prepared' AND lease_expires_at <= ?
     `).bind(
       operationId,
+      authAuthority,
       user.email,
       leaseExpiry(),
       preparedAt,
@@ -357,7 +403,7 @@ export async function prepareCloudflareAccountDeletion(
     if ((saved.meta.changes ?? 0) !== 1) {
       throw new Error("Cloudflare account deletion preparation lost its lease");
     }
-    return { operationId, state: "prepared" };
+    return { operationId, state: "prepared", authAuthority };
   } catch (error) {
     await cancelPreparedDeletion(bindings, user.id, operationId).catch(() => undefined);
     throw error;
@@ -375,7 +421,33 @@ export async function cancelCloudflareAccountDeletion(
 }
 
 /**
- * Persist the point of no safe cancellation before calling Supabase Auth.
+ * A Cloudflare-owned identity is still present in D1 after a crash between
+ * the durable marker and local session invalidation. Re-open only that known
+ * native job; a legacy Supabase job can never be rewound this way because its
+ * external DELETE may already have succeeded.
+ */
+export async function reopenCloudflareNativeAccountDeletion(
+  userId: string,
+  operationId: string,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<boolean> {
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  const stamp = now();
+  const result = await bindings.db.prepare(`
+    UPDATE account_deletion_tombstones
+       SET state = 'prepared', auth_delete_started_at = NULL,
+           lease_expires_at = ?, last_error_code = NULL, updated_at = ?
+     WHERE user_id = ? AND operation_id = ?
+       AND auth_authority = 'cloudflare' AND state = 'auth_delete_started'
+  `).bind(leaseExpiry(), stamp, userId, operationId).run();
+  return (result.meta.changes ?? 0) === 1;
+}
+
+/**
+ * Persist the point of no safe cancellation before calling the selected
+ * identity authority. A legacy external delete remains ambiguous after a
+ * timeout; native jobs carry their authority in the tombstone and are
+ * therefore separately recoverable from D1.
  * A timeout after the external DELETE can then be reconciled without ever
  * mistaking "unknown" for "the identity definitely still exists".
  */
@@ -399,7 +471,7 @@ export async function beginCloudflareAccountAuthDeletion(
   if (row.state !== "auth_delete_started") {
     throw new Error("Cloudflare account deletion could not start Auth deletion");
   }
-  return { operationId, state: row.state };
+  return { operationId, state: row.state, authAuthority: row.auth_authority };
 }
 
 async function markAuthDeleted(
@@ -422,7 +494,7 @@ async function markAuthDeleted(
 }
 
 /**
- * Record a confirmed Supabase Auth deletion before slow D1/R2 cleanup moves
+ * Record a confirmed identity deletion before slow D1/R2 cleanup moves
  * to background work. This is intentionally a small, idempotent D1 write.
  */
 export async function confirmCloudflareAccountAuthDeleted(
@@ -432,7 +504,7 @@ export async function confirmCloudflareAccountAuthDeleted(
 ): Promise<CloudflareAccountDeletionPreparation> {
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const row = await markAuthDeleted(bindings, userId, operationId);
-  return { operationId: row.operation_id, state: row.state };
+  return { operationId: row.operation_id, state: row.state, authAuthority: row.auth_authority };
 }
 
 async function purgeCloudflareRows(
@@ -441,13 +513,14 @@ async function purgeCloudflareRows(
 ): Promise<void> {
   if (row.state === "data_deleted" || row.state === "complete") return;
   if (row.state !== "auth_deleted") {
-    throw new Error("Supabase Auth deletion is not recorded");
+    throw new Error("Identity deletion is not recorded");
   }
   const { db } = bindings;
   const userId = row.user_id;
   const email = row.email_for_cleanup;
   const stamp = now();
   const subscriptionPrefix = `private/subscriptions/${userId}/`;
+  const providerEventPrefix = `private/provider-events/${userId}/`;
   const sourceSubject = `EXISTS (
     SELECT 1 FROM json_each(data_migration_source_rows.subject_user_ids_json)
      WHERE value = ?
@@ -521,6 +594,7 @@ async function purgeCloudflareRows(
          SET payload_object_key = NULL, payload_sha256 = NULL
        WHERE payload_object_key IS NOT NULL AND (
          substr(payload_object_key, 1, length(?)) = ?
+         OR substr(payload_object_key, 1, length(?)) = ?
          OR EXISTS (
            SELECT 1 FROM data_migration_source_rows
             WHERE table_name = 'provider_events'
@@ -528,7 +602,13 @@ async function purgeCloudflareRows(
               AND ${sourceSubject}
          )
        )
-    `).bind(subscriptionPrefix, subscriptionPrefix, userId),
+    `).bind(
+      subscriptionPrefix,
+      subscriptionPrefix,
+      providerEventPrefix,
+      providerEventPrefix,
+      userId,
+    ),
     db.prepare("DELETE FROM organization_command_receipts WHERE actor_user_id = ?").bind(userId),
     db.prepare("DELETE FROM organization_sync_receipts WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM organization_attempt_sync_outbox WHERE user_id = ?").bind(userId),
@@ -643,7 +723,7 @@ async function recordCleanupError(
 }
 
 /**
- * Called only after Supabase Auth confirms deletion. It is safe to repeat:
+ * Called only after the selected identity authority confirms deletion. It is safe to repeat:
  * D1 deletes are idempotent and each R2 manifest row is removed only after the
  * object delete succeeds. A false result means durable cleanup is pending, not
  * that the deleted identity was recreated.

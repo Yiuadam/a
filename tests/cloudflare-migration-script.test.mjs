@@ -4,6 +4,9 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
 import { hash, json } from "../scripts/migration-hash.mjs";
+import {
+  supabaseServiceHeaders,
+} from "../lib/auth/supabase-service-key.mjs";
 
 const source = readFileSync(
   join(process.cwd(), "scripts", "migrate-supabase-to-cloudflare.mjs"),
@@ -49,6 +52,48 @@ test("invalid migration invocation fails with the intended safe CLI message", ()
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Migration stopped: choose exactly one target: --preview or --production/);
   assert.doesNotMatch(result.stderr, /ReferenceError|before initialization/);
+});
+
+test("a disposable migration config can only be selected for Preview", () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      join(process.cwd(), "scripts", "migrate-supabase-to-cloudflare.mjs"),
+      "--production",
+      "--remote",
+      "--confirm-production=bandup-data-production",
+    ],
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        SUPABASE_URL: "https://example.invalid",
+        SUPABASE_SERVICE_ROLE_KEY: "not-a-real-key",
+        BANDUP_MIGRATION_PREVIEW_CONFIG: "wrangler.migration-rehearsal.jsonc",
+      },
+    },
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /only allowed for --preview/);
+  assert.match(source, /BANDUP_MIGRATION_PREVIEW_CONFIG/);
+});
+
+test("current Supabase secret API keys are never sent as Bearer tokens", () => {
+  assert.deepEqual(
+    supabaseServiceHeaders("sb_secret_current-key", "application/json"),
+    { accept: "application/json", apikey: "sb_secret_current-key" },
+  );
+  assert.deepEqual(
+    supabaseServiceHeaders("legacy-service-role-jwt", "application/json"),
+    {
+      accept: "application/json",
+      apikey: "legacy-service-role-jwt",
+      authorization: "Bearer legacy-service-role-jwt",
+    },
+  );
+  assert.match(source, /supabaseServiceHeaders\(SOURCE_KEY, accept\)/);
 });
 
 test("single D1 statements use command mode while only bulk pages use file imports", () => {

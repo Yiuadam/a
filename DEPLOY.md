@@ -163,7 +163,7 @@ because Secrets are encrypted at rest and hidden from the dashboard once saved.
 | `SUPABASE_URL` | accounts |
 | `SUPABASE_ANON_KEY` | accounts |
 | `SUPABASE_SERVICE_ROLE_KEY` | accounts |
-| `AVATAR_URL_SIGNING_KEY` | private R2 avatar delivery when `CLOUDFLARE_DATA_MODE=cloudflare`; generate with `openssl rand -hex 32` and store as a Secret |
+| `AVATAR_URL_SIGNING_KEY` | private R2 avatar delivery once learner reads move to Cloudflare (`CLOUDFLARE_DATA_MODE=read_cloudflare` or `cloudflare` — the code gates on *reading*, not on write authority); generate with `openssl rand -hex 32` and store as a Secret |
 | `USAGE_IP_HASH_SALT` | per-address rate limiting; without it that limit is skipped rather than done badly |
 | `ACCOUNTS_ALLOWED_ORIGINS` | the iOS app; `capacitor://localhost,https://localhost` |
 | `STRIPE_SECRET_KEY` | subscriptions: creating a Checkout Session and a billing portal session |
@@ -188,13 +188,19 @@ later.
 Changing any of them takes effect on the next deploy, so click **Deploy** after
 editing.
 
-Before learner data is switched to `CLOUDFLARE_DATA_MODE=cloudflare`, set
-`AVATAR_URL_SIGNING_KEY` to an independent random value of at least 32
-characters. Profile pictures stay in the private `BANDUP_FILES` R2 binding.
-The profile API returns a one-hour HMAC grant for an exact object and the
-Worker streams it only while D1 still points at that object; no `r2.dev` or
-public-bucket access is used. Rotating the key invalidates outstanding avatar
-URLs, which recover on the next profile read.
+Before `CLOUDFLARE_DATA_MODE` is set to `read_cloudflare` **or** `cloudflare` —
+not only the final one-way step — set `AVATAR_URL_SIGNING_KEY` to an
+independent random value of at least 32 characters. `readsFromCloudflare()`,
+which decides whether the profile route asks D1 for an avatar grant instead of
+Supabase, is true under `read_cloudflare` as well as `cloudflare`; a version of
+this document that said otherwise once left the key unset through a real
+`read_cloudflare` deploy, and every learner with a photo lost their whole
+account page, not only the photo, until app/api/account/profile/route.ts was
+changed to degrade instead of throw. Profile pictures stay in the private
+`BANDUP_FILES` R2 binding. The profile API returns a one-hour HMAC grant for
+an exact object and the Worker streams it only while D1 still points at that
+object; no `r2.dev` or public-bucket access is used. Rotating the key
+invalidates outstanding avatar URLs, which recover on the next profile read.
 
 ## Signing in as the owner
 
@@ -351,10 +357,12 @@ In Stripe → Settings → Payment methods, enable **Alipay** and **WeChat Pay**
 the same live/test mode as the secret key. WeChat Pay availability can require
 Stripe approval. Wait until both say **Enabled**, then set
 `STRIPE_WALLET_PAYMENTS_ENABLED=1`. Leave it unset while Stripe says **Pending
-approval**; BandUp keeps the wallet buttons hidden instead of sending customers
-to a failed checkout. Wallet checkout is deliberately prepaid: monthly means
-one payment for one month and yearly means one payment for one year; neither
-renews automatically.
+approval**; BandUp keeps the wallet link hidden instead of sending customers to a
+failed checkout, and the card subscription — which is the default path on
+`/pricing` anyway — goes on working either way. Wallet checkout is deliberately
+prepaid: monthly means one payment for one month and yearly means one payment for
+one year; neither renews automatically, and the date a pass ends is shown on the
+buyer's own billing page from the moment the webhook lands.
 
 Copy the signing secret into `STRIPE_WEBHOOK_SECRET`. If it is ever rotated,
 update it here in the same minute: in between, every delivery fails its

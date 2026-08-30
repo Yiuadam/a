@@ -75,6 +75,31 @@ export const PROVIDER_LABELS: Record<OAuthProvider, string> = {
   apple: "Apple",
 };
 
+/*
+  Google's own services are blocked inside mainland China, so a button that
+  cannot be reached is worse than no button: it invites a tap that only ever
+  fails, with nothing on this side to explain why. Offering it to Hong Kong,
+  Macau or Taiwan would be exactly that same mistake in the other direction —
+  each is its own CF-IPCountry value, never "CN", so none of them are touched
+  by this filter.
+*/
+const GOOGLE_UNREACHABLE_FROM = new Set(["CN"]);
+
+/**
+ * The offered providers, narrowed for a visitor Google cannot reach.
+ *
+ * `country` is Cloudflare's own CF-IPCountry, which the caller cannot
+ * spoof — see lib/billing/region.ts for the same guarantee used for
+ * currency. Null (no request, e.g. local development) narrows nothing.
+ */
+export function providersReachableFrom(
+  country: string | null,
+  providers: readonly OAuthProvider[],
+): OAuthProvider[] {
+  if (country === null || !GOOGLE_UNREACHABLE_FROM.has(country)) return [...providers];
+  return providers.filter((provider) => provider !== "google");
+}
+
 /** Where Supabase sends the browser once the provider is done with it. */
 export const CALLBACK_PATH = "/account/callback/";
 

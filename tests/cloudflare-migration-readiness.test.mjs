@@ -11,6 +11,20 @@ register("./alias-resolve.mjs", import.meta.url);
 
 const load = (...parts) => import(pathToFileURL(join(process.cwd(), ...parts)).href);
 const readiness = await load("lib", "cloudflare", "migration-readiness.ts");
+const cutoverDomains = await load("lib", "cloudflare", "cutover-domains.ts");
+
+/*
+  A comment quoting the code it checks once made an assertion pass against
+  nothing at all. Source text is therefore stripped of comments before
+  anything is asserted about it.
+*/
+function code(text) {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .map((row) => row.replace(/(^|\s)\/\/.*$/, "$1"))
+    .join("\n");
+}
 
 function runtimeD1(database) {
   const bound = (sql, values) => ({
@@ -155,9 +169,22 @@ test("the global report proves exact identities and versions but fails closed on
   assert.equal(report.supabaseAuth.included, false);
   assert.equal(report.supabaseAuth.authority, "supabase");
   assert.equal(report.readyForCloudflareOnly, false);
-  assert.ok(report.unsupportedDomains.includes("billing_entitlement_runtime"));
+  // Billing entitlement reads and verified Stripe mutations now have a D1
+  // path. The separate native-billing switch still controls its activation.
+  assert.ok(!report.unsupportedDomains.includes("billing_entitlement_runtime"));
+  assert.ok(!report.unsupportedDomains.includes("usage_quota_authority"));
+  assert.ok(!report.unsupportedDomains.includes("ai_cost_write_authority"));
   assert.ok(report.unsupportedDomains.includes("cutover_write_barrier"));
   assert.ok(report.blockers.includes("unsupported application-data domains remain"));
+
+  // unsupportedDomains is derived from the cutover-domain registry rather
+  // than hard-coded here: with organizations and app settings both reported
+  // ready in this fixture, the registry's ten domains are exactly what
+  // remains unsupported — nothing more, nothing less.
+  assert.deepEqual(
+    [...report.unsupportedDomains].sort(),
+    [...cutoverDomains.unsupportedCutoverDomains()].sort(),
+  );
 });
 
 test("a source-target mismatch and non-empty replica queues are named as blockers", async () => {
@@ -248,9 +275,140 @@ test("the source RPC and API expose migration evidence only to the owner service
   assert.match(route, /isAdminEmail\(actor\.email\)/);
   assert.match(route, /private, no-store/);
   assert.match(ui, /Supabase Auth is deliberately excluded/);
+  assert.match(ui, /Cloudflare-native sign-in is active/);
   assert.match(ui, /Cloudflare-only readiness/);
   assert.match(ui, /Supabase fingerprint evidence/);
   assert.match(ui, /migration 0029/);
   assert.match(ui, /Cutover blockers/);
   assert.match(ui, /cleanupDead/);
+});
+
+test("the report distinguishes an active native Cloudflare identity authority from legacy Supabase compatibility", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+  const saved = {
+    native: process.env.CLOUDFLARE_NATIVE_AUTH,
+    learner: process.env.CLOUDFLARE_DATA_MODE,
+    organization: process.env.ORGANIZATION_DATA_MODE,
+  };
+  process.env.CLOUDFLARE_NATIVE_AUTH = "1";
+  process.env.CLOUDFLARE_DATA_MODE = "cloudflare";
+  process.env.ORGANIZATION_DATA_MODE = "cloudflare";
+  try {
+    const report = await readiness.cloudflareMigrationReadinessReport(context.bindings, {
+      readSourceFingerprints: async () => source,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    });
+    assert.equal(report.supabaseAuth.authority, "cloudflare");
+    assert.match(report.supabaseAuth.reason, /temporary legacy-session bridge/);
+  } finally {
+    for (const [key, value] of Object.entries({
+      CLOUDFLARE_NATIVE_AUTH: saved.native,
+      CLOUDFLARE_DATA_MODE: saved.learner,
+      ORGANIZATION_DATA_MODE: saved.organization,
+    })) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
+test("a retired Supabase source is shown as historical, not as a live mismatch", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const saved = Object.fromEntries([
+    "CLOUDFLARE_NATIVE_AUTH",
+    "CLOUDFLARE_DATA_MODE",
+    "ORGANIZATION_DATA_MODE",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  ].map((key) => [key, process.env[key]]));
+  process.env.CLOUDFLARE_NATIVE_AUTH = "1";
+  process.env.CLOUDFLARE_DATA_MODE = "cloudflare";
+  process.env.ORGANIZATION_DATA_MODE = "cloudflare";
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_ANON_KEY;
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  let sourceRead = false;
+  try {
+    const report = await readiness.cloudflareMigrationReadinessReport(context.bindings, {
+      readSourceFingerprints: async () => {
+        sourceRead = true;
+        throw new Error("retired source must not be contacted");
+      },
+      readOutbox: async () => EMPTY_OUTBOX,
+    });
+    assert.equal(sourceRead, false);
+    assert.equal(report.sourceEvidence.status, "retired");
+    assert.equal(report.domains.slice(0, 8).every((domain) => domain.status === "authoritative"), true);
+    assert.ok(report.blockers.includes("source_parity: retired after cutover; historical comparison is no longer available"));
+    assert.equal(report.blockers.some((item) => /profiles: authoritative/.test(item)), false);
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
+test("a missing AVATAR_URL_SIGNING_KEY is named as a blocker even when every domain is otherwise equal", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+  const secret = process.env.AVATAR_URL_SIGNING_KEY;
+  delete process.env.AVATAR_URL_SIGNING_KEY;
+  try {
+    const report = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+      context.bindings,
+      {
+        readSourceFingerprints: async () => source,
+        readAppSettings: async () => appSettingsReady(),
+        readOutbox: async () => EMPTY_OUTBOX,
+      },
+    ));
+    assert.ok(report.blockers.includes("avatar_delivery: AVATAR_URL_SIGNING_KEY is not configured"));
+    assert.equal(report.readyForCloudflareOnly, false);
+  } finally {
+    if (secret === undefined) delete process.env.AVATAR_URL_SIGNING_KEY;
+    else process.env.AVATAR_URL_SIGNING_KEY = secret;
+  }
+});
+
+test("a configured AVATAR_URL_SIGNING_KEY does not itself block readiness", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+  const secret = process.env.AVATAR_URL_SIGNING_KEY;
+  process.env.AVATAR_URL_SIGNING_KEY = "test-signing-key-for-readiness-fixture";
+  try {
+    const report = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+      context.bindings,
+      {
+        readSourceFingerprints: async () => source,
+        readAppSettings: async () => appSettingsReady(),
+        readOutbox: async () => EMPTY_OUTBOX,
+      },
+    ));
+    assert.ok(!report.blockers.includes("avatar_delivery: AVATAR_URL_SIGNING_KEY is not configured"));
+  } finally {
+    if (secret === undefined) delete process.env.AVATAR_URL_SIGNING_KEY;
+    else process.env.AVATAR_URL_SIGNING_KEY = secret;
+  }
+});
+
+test("unsupportedDomains is derived from the cutover-domain registry, not a literal list here", () => {
+  const source = code(readFileSync(
+    join(process.cwd(), "lib", "cloudflare", "migration-readiness.ts"),
+    "utf8",
+  ));
+  assert.match(source, /unsupportedDomains\.push\(\.\.\.unsupportedCutoverDomains\(\)\)/);
+  // None of the ten domain names may still be spelled out as string literals
+  // in this file — a stage that finishes one flips `supported` in
+  // cutover-domains.ts instead of editing this list.
+  for (const domain of cutoverDomains.CUTOVER_DOMAINS.map((entry) => entry.domain)) {
+    assert.doesNotMatch(source, new RegExp(`"${domain}"`));
+  }
 });

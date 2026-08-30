@@ -1,17 +1,25 @@
-import { rpc } from "@/lib/auth/supabase";
+import { rpc, supabaseConfigured } from "@/lib/auth/supabase";
 import {
   cloudflareDataMode,
+  mirrorsWritesToCloudflare,
   organizationDataMode,
   requireBandUpCloudflareBindings,
   type BandUpCloudflareBindings,
 } from "./bindings";
 import { appSettingsParityReport, type AppSettingsParityReport } from "./app-settings-parity";
+import { unsupportedCutoverDomains } from "./cutover-domains";
 import {
   cloudflareReplicaOutboxStatus,
   type CloudflareReplicaOutboxStatus,
 } from "./replica-outbox";
+import {
+  cutoverWriteBarrierReadiness,
+  type CutoverWriteBarrierReadiness,
+} from "./write-barrier";
 import { parityClock as clock } from "./source-clock";
 import { parityMoney as money } from "./parity-money";
+import { cloudflareAvatarDeliveryConfigured } from "./avatar-delivery";
+import { nativeAuthCutoverActive } from "./native-auth-readiness";
 
 export const MIGRATION_FINGERPRINT_VERSION = "bandup-application-data-v3";
 
@@ -73,7 +81,8 @@ export interface MigrationDomainReadiness {
  * it merely tells the owner which side could not be proven.
  */
 export interface MigrationSourceEvidence {
-  status: "available" | "unavailable" | "invalid";
+  /** `retired` is distinct from unavailable: parity cannot be recomputed once the owner removes the source. */
+  status: "available" | "unavailable" | "invalid" | "retired";
 }
 
 export interface CloudflareMigrationReadinessReport {
@@ -81,7 +90,7 @@ export interface CloudflareMigrationReadinessReport {
   fingerprintVersion: string;
   supabaseAuth: {
     included: false;
-    authority: "supabase";
+    authority: "supabase" | "cloudflare";
     reason: string;
   };
   modes: {
@@ -92,6 +101,15 @@ export interface CloudflareMigrationReadinessReport {
   domains: MigrationDomainReadiness[];
   appSettings: AppSettingsParityReport | null;
   outbox: CloudflareReplicaOutboxStatus | null;
+  /**
+   * The write-refusal mechanism's own state: armed, not armed, or armed at a
+   * given time — never folded into the bare `unsupportedDomains` strings
+   * below, because "armed" is a live D1 fact a static registry entry cannot
+   * represent, and the owner must be able to see the difference between the
+   * mechanism existing and the mechanism actually being armed. Null only when
+   * it could not be read at all. See lib/cloudflare/write-barrier.ts.
+   */
+  writeBarrier: CutoverWriteBarrierReadiness | null;
   unsupportedDomains: string[];
   blockers: string[];
   readyForCloudflareOnly: boolean;
@@ -319,6 +337,42 @@ async function exactDomainReports(
   return { domains, sourceEvidence: { status: "available" } };
 }
 
+/**
+ * Once the owner has removed Supabase credentials, an old-source comparison
+ * is intentionally impossible. Keep showing D1's inventory, but never paint
+ * it as a live mismatch or pretend it proves a historical copy was complete.
+ */
+async function retiredSourceDomainReports(
+  bindings: BandUpCloudflareBindings,
+): Promise<MigrationDomainReadiness[]> {
+  return Promise.all(EXACT_DOMAINS.map(async (domain) => {
+    try {
+      const target = await targetFingerprint(domain, bindings);
+      return {
+        domain,
+        proof: "target_authoritative" as const,
+        ready: false,
+        status: "authoritative" as const,
+        sourceCount: null,
+        targetCount: target.count,
+        sourceFingerprint: null,
+        targetFingerprint: target.fingerprint,
+      };
+    } catch {
+      return {
+        domain,
+        proof: "target_authoritative" as const,
+        ready: false,
+        status: "unavailable" as const,
+        sourceCount: null,
+        targetCount: null,
+        sourceFingerprint: null,
+        targetFingerprint: null,
+      };
+    }
+  }));
+}
+
 function organizationReport(): MigrationDomainReadiness {
   const authoritative = organizationDataMode() === "cloudflare";
   return {
@@ -339,44 +393,52 @@ export async function cloudflareMigrationReadinessReport(
     readSourceFingerprints?: () => Promise<SourceFingerprintRow[]>;
     readAppSettings?: () => Promise<AppSettingsParityReport>;
     readOutbox?: () => Promise<CloudflareReplicaOutboxStatus>;
+    readWriteBarrier?: () => Promise<CutoverWriteBarrierReadiness>;
   } = {},
 ): Promise<CloudflareMigrationReadinessReport> {
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  const sourceRetired = !supabaseConfigured() && nativeAuthCutoverActive();
   const readSourceFingerprints = options.readSourceFingerprints
     ?? (() => rpc<SourceFingerprintRow[]>("cloudflare_migration_source_fingerprints", {}));
-  const [exactResult, appSettingsResult, outboxResult] = await Promise.all([
-    exactDomainReports(bindings, readSourceFingerprints),
-    (options.readAppSettings?.() ?? appSettingsParityReport(bindings)).catch(() => null),
+  const [exactResult, appSettingsResult, outboxResult, writeBarrierResult] = await Promise.all([
+    sourceRetired
+      ? retiredSourceDomainReports(bindings).then((domains) => ({
+          domains,
+          sourceEvidence: { status: "retired" as const },
+        }))
+      : exactDomainReports(bindings, readSourceFingerprints),
+    sourceRetired ? Promise.resolve(null) : (options.readAppSettings?.() ?? appSettingsParityReport(bindings)).catch(() => null),
     (options.readOutbox?.() ?? cloudflareReplicaOutboxStatus(bindings)).catch(() => null),
+    (options.readWriteBarrier?.() ?? cutoverWriteBarrierReadiness(bindings)).catch(() => null),
   ]);
   const { domains: exact, sourceEvidence } = exactResult;
   const organization = organizationReport();
   const domains = [...exact, organization];
   const unsupportedDomains: string[] = [];
   if (!organization.ready) unsupportedDomains.push(...ORGANIZATION_TABLES);
-  if (!appSettingsResult) unsupportedDomains.push("app_settings");
+  if (!appSettingsResult && !sourceRetired) unsupportedDomains.push("app_settings");
   // These runtime readers/writers still call Supabase even when the learner
   // switch says `cloudflare`. Exact stored-row parity is useful evidence, but
   // it cannot make a Cloudflare-only cutover safe until those paths exist.
-  unsupportedDomains.push(
-    "admin_user_directory",
-    "admin_statistics",
-    "billing_entitlement_runtime",
-    "usage_quota_authority",
-    "ai_cost_write_authority",
-    "avatar_object_parity",
-    "progress_payload_integrity",
-    "billing_payload_object_parity",
-    "provider_event_payload_object_parity",
-    "cutover_write_barrier",
-  );
+  // See lib/cloudflare/cutover-domains.ts — a stage that finishes one of
+  // these flips its `supported` flag there rather than editing this list.
+  unsupportedDomains.push(...unsupportedCutoverDomains());
 
   const blockers: string[] = [];
-  if (cloudflareDataMode() !== "dual") {
-    blockers.push("learner_mode: dual mode is required for live cutover proof");
+  // The exact-fingerprint proof below is only meaningful while writes are
+  // still landing in Supabase and being mirrored to D1 under live load —
+  // true in both `dual` and `read_cloudflare`, which share that write
+  // behaviour by construction. See mirrorsWritesToCloudflare().
+  if (!mirrorsWritesToCloudflare() && !sourceRetired) {
+    blockers.push("learner_mode: mirrored writes are required for live cutover proof");
   }
-  for (const domain of domains) if (!domain.ready) blockers.push(`${domain.domain}: ${domain.status}`);
-  if (!appSettingsResult?.readyForAppSettingsCutover) blockers.push("app_settings: not proven equal");
+  if (sourceRetired) blockers.push("source_parity: retired after cutover; historical comparison is no longer available");
+  for (const domain of domains) {
+    if (!domain.ready && !(sourceRetired && domain.status === "authoritative")) {
+      blockers.push(`${domain.domain}: ${domain.status}`);
+    }
+  }
+  if (!appSettingsResult?.readyForAppSettingsCutover && !sourceRetired) blockers.push("app_settings: not proven equal");
   if (!outboxResult) blockers.push("replica_outbox: unavailable");
   else {
     if (outboxResult.pending > 0) blockers.push(`replica_outbox: ${outboxResult.pending} pending`);
@@ -398,20 +460,48 @@ export async function cloudflareMigrationReadinessReport(
     }
   }
   if (unsupportedDomains.length > 0) blockers.push("unsupported application-data domains remain");
+  // A registry entry saying the write-barrier mechanism exists would still
+  // not mean this particular cutover is safe to finish — only an armed
+  // record proves that, so readiness is gated on `writeBarrier.status`
+  // itself rather than on anything that could be true before the owner ever
+  // acts. See the field's doc comment above.
+  if (writeBarrierResult?.status !== "armed") {
+    blockers.push(`write_barrier: ${writeBarrierResult?.status ?? "unavailable"}`);
+  }
+  /*
+    Found live: AVATAR_URL_SIGNING_KEY was never set, because DEPLOY.md said
+    it was only needed for the write-authority flip, when the code has
+    actually gated on it since read authority alone could move a learner's
+    avatar delivery through cloudflareAvatarUrl(). Reads flipped, the secret
+    was missing, and app/api/account/profile/route.ts threw the whole
+    response for every learner with a photo. That route no longer fails the
+    whole page for this — see its own comment — but a report that says
+    "ready to flip reads" while this is still unset would repeat the same
+    incident with a smaller blast radius rather than none. Checked
+    unconditionally: whether the secret exists does not depend on which mode
+    is configured right now, only on which mode is about to be.
+  */
+  if (!cloudflareAvatarDeliveryConfigured()) {
+    blockers.push("avatar_delivery: AVATAR_URL_SIGNING_KEY is not configured");
+  }
 
+  const nativeAuth = nativeAuthCutoverActive();
   return {
     generatedAt: new Date().toISOString(),
     fingerprintVersion: MIGRATION_FINGERPRINT_VERSION,
     supabaseAuth: {
       included: false,
-      authority: "supabase",
-      reason: "Supabase Auth remains the identity provider and is not migrated.",
+      authority: nativeAuth ? "cloudflare" : "supabase",
+      reason: nativeAuth
+        ? "Cloudflare-native authentication is active. Supabase remains only for the temporary legacy-session bridge and the remaining compatibility domains."
+        : "Supabase Auth remains the identity provider and is not migrated.",
     },
     modes: { learner: cloudflareDataMode(), organization: organizationDataMode() },
     sourceEvidence,
     domains,
     appSettings: appSettingsResult,
     outbox: outboxResult,
+    writeBarrier: writeBarrierResult,
     unsupportedDomains: [...new Set(unsupportedDomains)],
     blockers,
     readyForCloudflareOnly: blockers.length === 0,

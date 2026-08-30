@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import AccessNotice from "../access-notice";
 import billingBlocker from "../state";
 import { HubScreen } from "@/components/HubMenu";
 import { useDrawnTier, useTier } from "@/lib/billing/useTier";
 import { TIERS, plansForTier, formatPrice } from "@/lib/billing/tiers";
 
 /*
-  One subject: what you are on, what it costs, when it renews, what is in it.
+  One subject: what you are on, what it costs, when it ends, what is in it.
 
   The list of what a plan includes used to be folded shut behind a disclosure,
   because on the stacked page it was the difference between fitting on a screen
@@ -48,26 +49,32 @@ export default function PlanScreen() {
 
               <p className="text-[14px] leading-6 text-slate-600">{definition.blurb}</p>
 
-              {state.expiresAt && (
-                <p className="text-[14px] text-slate-500">
-                  {/* "Renews", not "expires": the second reads like a warning. */}
-                  Renews on{" "}
-                  {new Date(state.expiresAt).toLocaleDateString(undefined, {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                  .
-                </p>
-              )}
-
               <Link
                 href="/pricing"
                 className={tier === "free" ? "btn-primary w-full" : "btn-secondary w-full"}
               >
-                {tier === "free" ? "See the plans" : "Manage or cancel"}
+                {tier === "free"
+                  ? "See the plans"
+                  : /* A pass has no next payment to cancel, so the button says
+                       what the page it opens can actually do for them. */
+                    state.renews === false
+                    ? "See the plans"
+                    : "Manage or cancel"}
               </Link>
             </section>
+
+            {/*
+              The date, and what happens on it, in the words both billing screens
+              share — see ../access-notice.tsx. Beside the plan card rather than
+              inside it, because it draws its own card and a card inside a card is
+              two rounded rectangles saying one thing.
+
+              What it replaced was a line in the card above: "Renews on 17
+              September", with a comment explaining that "renews" reads better
+              than "expires". It does, and for an Alipay or WeChat Pay pass it was
+              also wrong.
+            */}
+            <AccessNotice state={state} planName={definition.name} />
 
             <section className="card">
               <h2 className="heading-rule mb-3 text-[15px] font-semibold text-slate-900">

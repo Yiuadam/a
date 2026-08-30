@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BandUp icon — Nib</title>
+  <!--
+    Speaking × Writing, in one form.
+
+    A speech bubble is a round head with a tail. A pen nib is a round vent hole
+    above a slit running to a point. Both are the same silhouette, so this draws
+    it once: the head reads as the bubble, the counter reads as the nib's vent,
+    and the tail keeps going until it becomes the nib's tip.
+
+    Geometry: one circle of r=250 at (420,400), and the two tangent lines from
+    the point at (872,872). Nothing here is eyeballed — the tangent points are
+    where the straight edges meet the circle exactly, which is what stops the
+    join between head and tail looking stuck on.
+  -->
+  <defs>
+    <radialGradient id="nib-ground" cx="0.34" cy="0.32" r="0.9">
+      <stop offset="0" stop-color="#33281e" />
+      <stop offset="1" stop-color="#15110e" />
+    </radialGradient>
+    <linearGradient id="nib-body" x1="0.12" y1="0.08" x2="0.82" y2="0.92">
+      <stop offset="0" stop-color="#fdfaf6" />
+      <stop offset="0.5" stop-color="#f2ddb4" />
+      <stop offset="1" stop-color="#c1743f" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#nib-ground)" />
+
+  <!-- The same form, offset and darkened: the mark sits above the ground rather than on it. -->
+  <path
+    d="M 653 309 A 250 250 0 1 0 320 629 L 872 872 Z"
+    transform="translate(30 34)"
+    fill="#0d0a08"
+    opacity="0.5"
+  />
+
+  <path d="M 653 309 A 250 250 0 1 0 320 629 L 872 872 Z" fill="url(#nib-body)" />
+
+  <!-- The vent hole, held off-centre so the head has somewhere to lean. -->
+  <circle cx="396" cy="364" r="90" fill="#191410" />
+  <path d="M 440 428 L 826 824" stroke="#191410" stroke-width="32" stroke-linecap="round" />
+</svg>

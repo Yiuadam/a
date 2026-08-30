@@ -1,13 +1,13 @@
 import { after, NextResponse } from "next/server";
-import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
+import { isAdminEmail } from "@/lib/auth/env";
 import {
-  supabaseConfigured,
   signedAvatarUrl,
 } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { readsFromCloudflare } from "@/lib/cloudflare/bindings";
 import {
   getLearnerProfile,
   reconcileLearnerProfileReplica,
@@ -45,7 +45,7 @@ const MAX_NAME = 60;
 const MIN_AGE_YEARS = 13;
 
 async function requireUser(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) return { error: "off" as const };
+  if (!accountRuntimeEnabled()) return { error: "off" as const };
   const user = await getSessionUser(req);
   if (!user) return { error: "anon" as const };
   return { user };
@@ -89,7 +89,9 @@ function cleanDate(value: unknown): string | null | undefined | "too-young" {
 }
 
 async function present(req: Request, user: { id: string; email: string | null }) {
-  const mode = cloudflareDataMode();
+  // Same read question getLearnerProfile() itself asks, and it must stay in
+  // lockstep: `stored` below came from wherever this says it did.
+  const readingFromCloudflare = readsFromCloudflare();
   const stored = await getLearnerProfile(user);
   /*
     Mirror the profile into Cloudflare after the response, not before it.
@@ -103,7 +105,7 @@ async function present(req: Request, user: { id: string; email: string | null })
   // A newly authenticated user may not have written application data yet.
   // In Cloudflare mode an absent D1 row is an empty optional profile, not a
   // reason to fall back to the old Supabase data authority.
-  const profile = stored ?? (mode === "cloudflare" ? {
+  const profile = stored ?? (readingFromCloudflare ? {
     displayName: null,
     username: null,
     accountKind: null,
@@ -114,10 +116,25 @@ async function present(req: Request, user: { id: string; email: string | null })
   if (!profile) return null;
   let avatarUrl: string | null = null;
   if (profile.avatarPath) {
-    avatarUrl = mode === "cloudflare"
+    avatarUrl = readingFromCloudflare
       ? await cloudflareAvatarUrl(req.url, user.id, profile.avatarPath)
       : await signedAvatarUrl(profile.avatarPath);
-    if (!avatarUrl) throw new Error("avatar delivery is unavailable");
+    /*
+      Missing avatar delivery costs a photo, not the account.
+
+      This threw the whole response until 2026-08-23, which is what made a
+      missing AVATAR_URL_SIGNING_KEY secret — never set, because DEPLOY.md
+      said it was only needed once write authority moved too, when the code
+      has actually gated on it since read authority alone could move — take
+      down display name, username, birth date and every other field this
+      route answers, for every learner with a photo, the moment reads were
+      cut over. lib/billing/env.ts already states the rule this route now
+      follows too: an absent key makes the one feature it breaks honestly
+      unavailable, never an error page for everything else on it.
+    */
+    if (!avatarUrl) {
+      logInternal("account/profile GET", new Error("avatar delivery is unavailable"));
+    }
   }
   return {
     displayName: profile.displayName,

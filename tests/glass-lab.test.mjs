@@ -44,15 +44,15 @@ test("the experiment is off by default, because nothing in this test run sets NE
   assert.equal(GLASS_LAB, false);
 });
 
-test("the enhanced rim reuses the delegated reflection engine and disables under the same power-aware query as everything else", () => {
+test("the enhanced rim is static material lighting and disables under the power-aware query", () => {
   const css = read("app", "globals.css");
   const rim = rule(css, '.refractive-glass-layer[data-optics="enhanced"]::after');
 
-  // The rim paints from --glass-reflection-x/y rather than owning any pointer
-  // math of its own, so it is riding the coordinates PointerAttraction was
-  // already writing for the adaptive background reflection.
-  assert.match(rim, /var\(--glass-reflection-x/);
-  assert.match(rim, /var\(--glass-reflection-y/);
+  // Material lighting is fixed to the pane. The live backdrop filter changes
+  // with page content; the rim must not chase a pointer.
+  assert.match(rim, /circle at 50% 0%/);
+  assert.match(rim, /circle at 50% 100%/);
+  assert.doesNotMatch(rim, /glass-reflection/);
   // The gradient-border technique lives or dies on the mask pair.
   assert.match(rim, /mask-composite:\s*exclude/);
   assert.match(rim, /-webkit-mask-composite:\s*xor/);
@@ -62,9 +62,8 @@ test("the enhanced rim reuses the delegated reflection engine and disables under
     in this file, so the check below anchors on the enhanced rim's selector
     landing immediately inside a media block's opening brace (only
     whitespace between them) rather than merely appearing somewhere after it
-    — otherwise this could pass by matching the unrelated, pre-existing
-    "Adaptive background reflection" query instead of the one guarding the
-    lab rules.
+    — otherwise it could pass by matching an unrelated coarse-pointer query
+    instead of the one guarding the lab rules.
   */
   assert.match(
     css,
@@ -72,7 +71,15 @@ test("the enhanced rim reuses the delegated reflection engine and disables under
   );
 });
 
-test('optics="enhanced" is opted into by exactly two call sites: the homepage placement CTA and the organisation view tabs', () => {
+test('optics="enhanced" is opted into by exactly one call site: the organisation view tabs', () => {
+  // The other of the original two, the homepage placement CTA
+  // (IntentPrefetchLink href="/placement" in PlacementHero), no longer
+  // exists — the free Pro trial poster took over that slot in the
+  // dashboard, always, and its own buttons are plain btn-primary/
+  // btn-secondary rather than the premade-glass treatment PlacementHero
+  // used. Whether the poster's primary action should opt into the
+  // enhanced budget is a design call for whoever next revisits this list,
+  // not something this rename should decide on its own.
   const roots = [join(process.cwd(), "app"), join(process.cwd(), "components")];
   const hits = roots.flatMap(tsxFiles).flatMap((path) => {
     const count = (readFileSync(path, "utf8").match(/optics="enhanced"/g) ?? []).length;
@@ -82,12 +89,12 @@ test('optics="enhanced" is opted into by exactly two call sites: the homepage pl
   const total = hits.reduce((sum, hit) => sum + hit.count, 0);
   assert.equal(
     total,
-    2,
-    `expected exactly 2 occurrences of optics="enhanced", found ${total} (${hits.map((hit) => `${hit.file}: ${hit.count}`).join(", ")})`,
+    1,
+    `expected exactly 1 occurrence of optics="enhanced", found ${total} (${hits.map((hit) => `${hit.file}: ${hit.count}`).join(", ")})`,
   );
   assert.deepEqual(
     hits.map((hit) => hit.file).sort(),
-    ["app/page.tsx", "components/organization/OrganizationPortal.tsx"],
+    ["components/organization/OrganizationPortal.tsx"],
   );
 });
 

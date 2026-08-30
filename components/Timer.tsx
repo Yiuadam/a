@@ -34,7 +34,12 @@ export default function Timer({
   const low = secondsLeft <= 120;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 font-mono text-sm ${
+      /*
+        `tabular-nums` matters more than it looks: without it the digits are
+        proportionally spaced and the whole pill twitches once a second, which
+        is the last thing you want in the corner of your eye during a test.
+      */
+      className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 font-mono text-sm tabular-nums transition-colors ${
         low ? "border-rose-300 bg-rose-50 text-rose-700" : "border-slate-200 bg-surface text-slate-700"
       }`}
       title="Time remaining"

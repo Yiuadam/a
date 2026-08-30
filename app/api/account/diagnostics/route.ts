@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { accountsEnabled, adminEmails, adminUsername, isAdminEmail } from "@/lib/auth/env";
-import { getSessionUser } from "@/lib/auth/session";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
+import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { rpcDiagnostic, supabaseConfigured } from "@/lib/auth/supabase";
 import { withCors } from "@/lib/http/cors";
 import { LIMITS_SCHEMA_VERSION, USAGE_WINDOW_SECONDS } from "@/lib/usage/limits";
 import { hasApiKey } from "@/lib/anthropic";
-import { stripeDiagnostic } from "@/lib/billing/stripe";
+import { stripeDiagnostic, verifyCataloguePrices } from "@/lib/billing/stripe";
 import { billingHealth } from "@/lib/billing/health";
 import { CHECKOUT_CHECK_NAME } from "@/lib/billing/faults";
 import { stripeConfigured } from "@/lib/billing/env";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
+import { requireBandUpCloudflareBindings } from "@/lib/cloudflare/bindings";
+import {
+  cloudflareUsageDetail,
+  currentCloudflareAccessGrants,
+} from "@/lib/cloudflare/account-status";
 
 /*
   What is actually wrong, for the one person entitled to know.
@@ -54,18 +61,90 @@ interface Check {
   detail: string;
 }
 
+function diagnosticResponse(checks: Check[]) {
+  return NextResponse.json({ ok: checks.every((check) => check.ok), checks });
+}
+
+/**
+ * Once the legacy source is intentionally absent, diagnostics must not turn a
+ * healthy native deployment into a false 404 merely because its old RPCs are
+ * gone. These checks exercise the D1 identity, usage and entitlement readers
+ * that native sessions use, then keep the same external Stripe configuration
+ * checks the legacy panel already performs.
+ */
+async function nativeDiagnostics(user: SessionUser): Promise<NextResponse> {
+  const checks: Check[] = [];
+  const add = (name: string, ok: boolean, detail: string) => checks.push({ name, ok, detail });
+  add("Accounts switched on", accountsEnabled(), "ACCOUNTS_ENABLED");
+  add("Cloudflare-native sign-in active", nativeAuthCutoverActive(), "CLOUDFLARE_NATIVE_AUTH with Cloudflare-only data authority");
+  add("Anthropic key present", hasApiKey(), "ANTHROPIC_API_KEY — without it every AI route answers 503");
+  add(
+    "Owner address configured",
+    adminEmails().length > 0,
+    adminEmails().length > 0 ? `${adminEmails().length} address(es) in ADMIN_EMAILS` : "ADMIN_EMAILS is empty — you would sign in as an ordinary free account",
+  );
+  add(
+    "Owner username configured",
+    adminUsername() !== null,
+    adminUsername() !== null ? "ADMIN_USERNAME is set" : "ADMIN_USERNAME is not set — optional; sign in with the address instead",
+  );
+
+  try {
+    const bindings = await requireBandUpCloudflareBindings();
+    const account = await bindings.db.prepare(`
+      SELECT id FROM app_users WHERE id = ? AND deleted_at IS NULL
+    `).bind(user.id).first<{ id: string }>();
+    add("Cloudflare identity record", account?.id === user.id, account?.id === user.id
+      ? "matches this authenticated owner session"
+      : "the authenticated identity has no live D1 account record");
+
+    await cloudflareUsageDetail(user.id, USAGE_WINDOW_SECONDS, bindings);
+    add("Cloudflare usage ledger", true, "answers — this is what draws the usage bar");
+
+    await currentCloudflareAccessGrants(user.id, bindings);
+    add("Cloudflare entitlement ledger", true, "answers — this is what resolves the current access tier");
+  } catch {
+    add("Cloudflare account storage", false, "D1 identity, usage or entitlement data could not be read");
+  }
+
+  if (stripeConfigured()) {
+    const health = await billingHealth();
+    const broken = health.checks.filter((check) => !check.ok).map((check) => check.name);
+    add(
+      CHECKOUT_CHECK_NAME,
+      health.ok,
+      health.ok
+        ? "learners can buy — native storage, key, Stripe answering, and all six prices match the catalogue"
+        : `checkout is not ready. Failed: ${broken.join(", ")}`,
+    );
+    const stripe = await stripeDiagnostic();
+    add("Stripe reachable", stripe.ok, stripe.detail);
+  } else {
+    add(
+      "Stripe configured",
+      false,
+      "STRIPE_SECRET_KEY or every price id is missing — checkout is closed and the dashboard has no billing figures",
+    );
+  }
+  return diagnosticResponse(checks);
+}
+
 async function handleGET(req: Request) {
   /*
     404 rather than 403 for a non-admin. A 403 confirms the route exists and is
     worth attacking; a 404 says nothing at all, which is what somebody who is
     not the owner should learn from it.
   */
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  if (!accountsEnabled() || !accountRuntimeEnabled()) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const user = await getSessionUser(req).catch(() => null);
   if (!user || !isAdminEmail(user.email)) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  if (nativeAuthCutoverActive() && !supabaseConfigured()) {
+    return await nativeDiagnostics(user);
   }
 
   const checks: Check[] = [];
@@ -244,7 +323,7 @@ async function handleGET(req: Request) {
       CHECKOUT_CHECK_NAME,
       health.ok,
       health.ok
-        ? "learners can buy — key, prices and Stripe all answering"
+        ? "learners can buy — key, Stripe answering, and all six prices match the catalogue"
         : `no learner can start a checkout. Failed: ${broken.join(", ")}`,
     );
 
@@ -264,6 +343,24 @@ async function handleGET(req: Request) {
     if (!health.ok) {
       const stripe = await stripeDiagnostic();
       add("Stripe reachable", stripe.ok, stripe.detail);
+
+      /*
+        And, when the prices are what failed, which of the six and how.
+
+        The health check can only say `stripe_prices_match_catalogue: false`,
+        because anyone may ask it. "One of your six prices is wrong" is a whole
+        afternoon; "pro-yearly is archived" is a minute. This route has an admin
+        session, so it may print the sentence.
+
+        Only on a failure, and only when it is *this* check that failed — six
+        Price reads are not worth spending to confirm good news, or to elaborate
+        on an expired key that already explains everything below it.
+      */
+      if (health.checks.some((c) => c.name === "stripe_prices_match_catalogue" && !c.ok)) {
+        for (const price of await verifyCataloguePrices()) {
+          add(`Price ${price.plan}`, price.ok, price.detail);
+        }
+      }
     } else {
       add("Stripe reachable", true, "answers — the key this Worker holds is accepted");
     }
@@ -275,10 +372,7 @@ async function handleGET(req: Request) {
     );
   }
 
-  return NextResponse.json({
-    ok: checks.every((c) => c.ok),
-    checks,
-  });
+  return diagnosticResponse(checks);
 }
 
 export { OPTIONS } from "@/lib/http/cors";

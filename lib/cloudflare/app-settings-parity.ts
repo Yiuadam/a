@@ -2,7 +2,13 @@ import {
   getAppSettingRecord,
   type AppSettingRecord,
 } from "@/lib/auth/supabase";
-import { cloudflareDataMode, type BandUpCloudflareBindings } from "./bindings";
+import {
+  cloudflareDataMode,
+  mirrorsWritesToCloudflare,
+  readsFromCloudflare,
+  type BandUpCloudflareBindings,
+  type CloudflareDataMode,
+} from "./bindings";
 import {
   appSettingRecordsEqual,
   deleteCloudflareAppSettingReplica,
@@ -34,7 +40,13 @@ export interface AppSettingParityItem {
 export interface AppSettingsParityReport {
   generatedAt: string;
   authority: "supabase" | "cloudflare";
-  mode: "supabase" | "dual" | "cloudflare";
+  /*
+    Reported as the full four-state CloudflareDataMode, not narrowed to the
+    two authority buckets below. A report that quietly collapsed
+    "read_cloudflare" into "dual" would be lying about which mode is actually
+    configured.
+  */
+  mode: CloudflareDataMode;
   readyForAppSettingsCutover: boolean;
   items: AppSettingParityItem[];
 }
@@ -82,7 +94,7 @@ export async function appSettingsParityReport(
   }));
   return {
     generatedAt: new Date().toISOString(),
-    authority: mode === "cloudflare" ? "cloudflare" : "supabase",
+    authority: readsFromCloudflare() ? "cloudflare" : "supabase",
     mode,
     readyForAppSettingsCutover: items.every(
       (item) => item.status === "equal" || item.status === "absent",
@@ -99,8 +111,8 @@ export async function reconcileAppSettingsReplica(
   providedBindings?: BandUpCloudflareBindings,
   readSource: SourceReader = getAppSettingRecord,
 ): Promise<AppSettingsParityReport> {
-  if (cloudflareDataMode() !== "dual") {
-    throw new Error("App settings reconciliation is available only in dual mode");
+  if (!mirrorsWritesToCloudflare()) {
+    throw new Error("App settings reconciliation is available only while writes are mirrored");
   }
   for (const key of CUTOVER_APP_SETTING_KEYS) {
     const source = await readSource(key);

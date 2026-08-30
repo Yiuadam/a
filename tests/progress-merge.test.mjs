@@ -396,3 +396,166 @@ test("a merge under the cap is left alone", () => {
   const merged = mergeLookups({ a: 1 }, { b: 2 }, 300);
   assert.deepEqual(merged, { a: 1, b: 2 });
 });
+
+test("a richer copy of the same sitting keeps its review", () => {
+  const sitting = result("reading-1", "2026-05-01T12:00:00.000Z", 6);
+  const reviewed = { ...sitting, review: { questions: [{ correct: true }] } };
+  const merged = mergeProfiles({ results: [sitting] }, { results: [reviewed] }, NEW, OLD);
+  assert.deepEqual(merged.results, [reviewed]);
+});
+
+test("timestamp boundaries preserve only entries created strictly after a clear", () => {
+  const clearedAt = Date.parse("2026-05-02T12:00:00.000Z");
+  const merged = mergeProfiles(
+    {
+      historyClearedAt: "2026-05-02T12:00:00.000Z",
+      results: [
+        result("at-clear", "2026-05-02T12:00:00.000Z", 6),
+        result("after-clear", "2026-05-02T12:00:00.001Z", 7),
+      ],
+      mockReports: [
+        { id: "at-clear", completedAt: "2026-05-02T12:00:00.000Z" },
+        { id: "after-clear", completedAt: "2026-05-02T12:00:00.001Z" },
+      ],
+    },
+    {},
+    NEW,
+    OLD,
+  );
+  assert.deepEqual(merged.results.map((item) => item.testId), ["after-clear"]);
+  assert.deepEqual(merged.mockReports.map((item) => item.id), ["after-clear"]);
+
+  assert.deepEqual(mergeDrillScores({
+    atClear: { correct: 1, total: 1, at: "2026-05-02T12:00:00.000Z" },
+    after: { correct: 1, total: 1, at: "2026-05-02T12:00:00.001Z" },
+    undated: { correct: 1, total: 1 },
+  }, null, clearedAt), {
+    after: { correct: 1, total: 1, at: "2026-05-02T12:00:00.001Z" },
+  });
+});
+
+test("profile merge retains the latest valid tombstones and rejects malformed generated papers", () => {
+  const merged = mergeProfiles(
+    {
+      drillsClearedAt: "2026-01-02T00:00:00.000Z",
+      lookupsClearedAt: "not-a-date",
+      deletedGenTests: { latest: "2026-01-03T00:00:00.000Z", malformed: "nope" },
+      genTests: [
+        { createdAt: "2026-01-04T00:00:00.000Z", test: { id: "latest" } },
+        { createdAt: "2026-01-04T00:00:00.000Z", test: { id: "" } },
+        { createdAt: "2026-01-04T00:00:00.000Z" },
+      ],
+    },
+    {
+      drillsClearedAt: "2026-01-03T00:00:00.000Z",
+      lookupsClearedAt: "2026-01-04T00:00:00.000Z",
+      deletedGenTests: { latest: "2026-01-05T00:00:00.000Z" },
+    },
+    OLD,
+    NEW,
+  );
+  assert.equal(merged.drillsClearedAt, "2026-01-03T00:00:00.000Z");
+  assert.equal(merged.lookupsClearedAt, "2026-01-04T00:00:00.000Z");
+  assert.deepEqual(merged.deletedGenTests, { latest: "2026-01-05T00:00:00.000Z" });
+  assert.deepEqual(merged.genTests, []);
+});
+
+test("lookup favourites have their own timestamp and survive trimming before ordinary words", () => {
+  const pinTime = "2026-05-03T12:00:00.000Z";
+  const unpinTime = "2026-05-04T12:00:00.000Z";
+  const conflicted = mergeLookups(
+    { atlas: { term: "local", at: "2026-05-01", favourite: true, favouriteUpdatedAt: pinTime, localOnly: true } },
+    { atlas: { term: "remote", at: "2026-05-02", favourite: false, favouriteUpdatedAt: unpinTime, remoteOnly: true } },
+  );
+  assert.deepEqual(conflicted.atlas, {
+    term: "local",
+    at: "2026-05-01",
+    favourite: false,
+    favouriteUpdatedAt: unpinTime,
+    localOnly: true,
+    remoteOnly: true,
+  });
+
+  const legacy = mergeLookups(
+    { old: { at: "2026-05-01", favourite: true } },
+    { old: { at: "2026-05-02" } },
+  );
+  assert.equal(legacy.old.favourite, true);
+
+  const trimmed = mergeLookups({
+    favourite: { at: "2026-05-01", favourite: true },
+    middle: { at: "2026-05-02" },
+    newest: { at: "2026-05-03" },
+  }, null, 2);
+  assert.deepEqual(Object.keys(trimmed).sort(), ["favourite", "newest"]);
+});
+
+test("lookup clear removes stale and undated words while keeping newer lookups", () => {
+  const clearedAt = Date.parse("2026-05-02T12:00:00.000Z");
+  const merged = mergeLookups({
+    before: { at: "2026-05-02T11:59:59.999Z" },
+    atClear: { at: "2026-05-02T12:00:00.000Z" },
+    after: { at: "2026-05-02T12:00:00.001Z" },
+    undated: { term: "undated" },
+  }, null, 300, clearedAt);
+  assert.deepEqual(merged, { after: { at: "2026-05-02T12:00:00.001Z" } });
+});
+
+test("equal snapshot and result timestamps keep the local copy deterministically", () => {
+  const sameTime = Date.parse("2026-05-05T12:00:00.000Z");
+  const merged = mergeProfiles(
+    {
+      targetBand: 6,
+      planDays: 28,
+      placementHistory: [["local"]],
+      placement: { band: 6, date: "2026-05-05T12:00:00.000Z" },
+      results: [{ ...result("same", "2026-05-05T12:00:00.000Z", 6), review: { source: "local" } }],
+    },
+    {
+      targetBand: 8,
+      planDays: 5,
+      placementHistory: [["remote"]],
+      placement: { band: 8, date: "2026-05-05T12:00:00.000Z" },
+      results: [result("same", "2026-05-05T12:00:00.000Z", 8)],
+    },
+    sameTime,
+    sameTime,
+  );
+  assert.equal(merged.targetBand, 6);
+  assert.equal(merged.planDays, 28);
+  assert.deepEqual(merged.placementHistory, [["local"]]);
+  assert.equal(merged.placement.band, 6);
+  assert.deepEqual(merged.results[0].review, { source: "local" });
+  assert.equal(mergeDrillScores(
+    { tenses: { correct: 8, total: 8, at: "2026-05-05" } },
+    { tenses: { correct: 1, total: 8, at: "2026-05-05" } },
+  ).tenses.correct, 8);
+});
+
+test("mock reports remain newest first and retain only their newest thirty", () => {
+  const mockReports = Array.from({ length: 31 }, (_, index) => ({
+    id: `mock-${index}`,
+    completedAt: `2026-05-${String(index + 1).padStart(2, "0")}T12:00:00.000Z`,
+  }));
+  const merged = mergeProfiles({ mockReports }, null, NEW, OLD);
+  assert.equal(merged.mockReports.length, 30);
+  assert.equal(merged.mockReports[0].id, "mock-30");
+  assert.equal(merged.mockReports.at(-1).id, "mock-1");
+});
+
+test("lookup collision rules preserve local definitions and resolve equal favourite revisions locally", () => {
+  const revision = "2026-05-06T12:00:00.000Z";
+  const merged = mergeLookups(
+    {
+      word: { term: "local definition", at: "2026-05-01", favourite: true, favouriteUpdatedAt: revision },
+      primitive: "local value",
+    },
+    {
+      word: { term: "remote definition", at: "2026-05-02", favourite: false, favouriteUpdatedAt: revision },
+      primitive: { term: "remote object" },
+    },
+  );
+  assert.equal(merged.word.term, "local definition");
+  assert.equal(merged.word.favourite, true);
+  assert.equal(merged.primitive, "local value");
+});

@@ -3,6 +3,7 @@ import { classifyStripeRefusal, type BillingFault } from "./faults";
 import { stripeSecretKey, stripePriceId, stripeWalletMethods } from "./env";
 import {
   PLANS,
+  PLAN_IDS,
   TIERS,
   amountIn,
   isPaidTier,
@@ -638,47 +639,74 @@ async function stripeGet(path: string): Promise<Record<string, unknown>> {
  * that was never shown.
  */
 async function assertPriceMatchesCatalogue(plan: PlanId, priceId: string): Promise<void> {
+  const fault = priceCatalogueFault(plan, priceId, await fetchCataloguePrice(priceId));
+  if (fault) throw new StripeError(fault);
+}
+
+/**
+ * Reads one Price, with the fields the catalogue comparison needs.
+ *
+ * `expand[]=currency_options` is load-bearing and looks like noise.
+ *
+ * Stripe marks currency_options as an expandable field on a Price: ask for the
+ * Price and you get its base amount, its currency and its interval, and no
+ * regional prices at all — not an empty object, absent. The comparison below
+ * then reads `undefined` for every currency the catalogue advertises, compares
+ * it against a real number, and refuses the sale.
+ *
+ * Which is exactly what it did. Every checkout on the live site failed with
+ * "we couldn't start the checkout just now", and Stripe's own logs showed no
+ * failed request, because there wasn't one: the GET succeeded and the refusal
+ * happened here, on data Stripe had never been asked to send.
+ */
+async function fetchCataloguePrice(priceId: string): Promise<Record<string, unknown>> {
+  return stripeGet(`/prices/${encodeURIComponent(priceId)}?expand[]=currency_options`);
+}
+
+/**
+ * Whether a Stripe Price is the one the catalogue advertises — as a sentence
+ * naming what disagrees, or null when nothing does.
+ *
+ * Pure, and separated from the request above for two reasons. It is the part
+ * worth testing exhaustively, and it has a second caller: `verifyCataloguePrices`
+ * runs the identical comparison from the health check, so what the deploy
+ * verifies after every release and what checkout enforces before every sale
+ * cannot drift apart into two slightly different ideas of "correct".
+ */
+export function priceCatalogueFault(
+  plan: PlanId,
+  priceId: string,
+  price: Record<string, unknown>,
+): string | null {
   const expected = PLANS[plan];
-  /*
-    `expand[]=currency_options` is load-bearing and looks like noise.
-
-    Stripe marks currency_options as an expandable field on a Price: ask for
-    the Price and you get its base amount, its currency and its interval, and
-    no regional prices at all — not an empty object, absent. The loop below
-    then reads `undefined` for every currency the catalogue advertises,
-    compares it against a real number, and refuses the sale.
-
-    Which is exactly what it did. Every checkout on the live site failed with
-    "we couldn't start the checkout just now", and Stripe's own logs showed no
-    failed request, because there wasn't one: the GET succeeded and the refusal
-    happened here, on data Stripe had never been asked to send.
-  */
-  const price = await stripeGet(
-    `/prices/${encodeURIComponent(priceId)}?expand[]=currency_options`,
-  );
-
   const amount = price.unit_amount;
   const currency = price.currency;
   const interval = (price.recurring as { interval?: unknown } | undefined)?.interval;
 
+  /*
+    Archived first, because it is the failure this whole function used to miss.
+
+    A Price that has been replaced rather than edited — which is the only way to
+    change one, see the header above — is left behind as `active: false`, and
+    every field this compares still matches the catalogue perfectly. Checkout
+    then fails at the Session, after the learner has pressed the button, with a
+    refusal that names the Price id and nothing a learner could act on.
+  */
+  if (price.active === false) {
+    return `price ${priceId} for ${plan} is archived in Stripe — it can no longer be sold`;
+  }
   if (typeof amount !== "number" || amount !== expected.amountMinor) {
-    throw new StripeError(
-      `price ${priceId} for ${plan} charges ${String(amount)} but the catalogue advertises ${expected.amountMinor}`,
-    );
+    return `price ${priceId} for ${plan} charges ${String(amount)} but the catalogue advertises ${expected.amountMinor}`;
   }
   if (typeof currency !== "string" || currency.toLowerCase() !== expected.currency.toLowerCase()) {
-    throw new StripeError(
-      `price ${priceId} for ${plan} is in ${String(currency)} but the catalogue advertises ${expected.currency}`,
-    );
+    return `price ${priceId} for ${plan} is in ${String(currency)} but the catalogue advertises ${expected.currency}`;
   }
   /*
     A monthly Price sold as the yearly plan would charge the right number and
     twelve times as often, which is worse than charging the wrong number once.
   */
   if (interval !== expected.interval) {
-    throw new StripeError(
-      `price ${priceId} for ${plan} renews ${String(interval)}ly but the catalogue advertises ${expected.interval}ly`,
-    );
+    return `price ${priceId} for ${plan} renews ${String(interval)}ly but the catalogue advertises ${expected.interval}ly`;
   }
 
   /*
@@ -699,11 +727,65 @@ async function assertPriceMatchesCatalogue(plan: PlanId, priceId: string): Promi
     if (code === expected.currency) continue;
     const actual = options[code]?.unit_amount;
     if (actual !== amount) {
-      throw new StripeError(
-        `price ${priceId} for ${plan} charges ${String(actual)} in ${code} but the catalogue advertises ${amount}`,
-      );
+      return `price ${priceId} for ${plan} charges ${String(actual)} in ${code} but the catalogue advertises ${amount}`;
     }
   }
+
+  return null;
+}
+
+/**
+ * Every plan's Stripe Price, read and compared against the catalogue.
+ *
+ * ---------------------------------------------------------------------------
+ * Why the health check needed this
+ *
+ * `billingHealth` used to ask only whether the six Price ids were *set*. A set
+ * id is a string in a variable; it says nothing about whether Stripe still has
+ * that Price, whether it is archived, or whether it charges what /pricing
+ * prints. Every failure this app has actually had in that area passed that
+ * check: an id pointing at a Price on the wrong account, an id left behind
+ * after a Price was replaced, and a catalogue edited here while the Stripe
+ * Prices were updated a day later.
+ *
+ * So the deploy now verifies the same thing checkout enforces, through the same
+ * `priceCatalogueFault` — the difference being when it is discovered. Before,
+ * the first person to find out was a learner pressing Subscribe.
+ *
+ * Six reads, in parallel, on a check that already makes one network call. A
+ * missing id is reported here rather than skipped, because "no id" and "an id
+ * pointing at nothing" are the same outage to somebody trying to pay.
+ */
+export async function verifyCataloguePrices(): Promise<
+  { plan: PlanId; ok: boolean; detail: string }[]
+> {
+  assertServerOnly(MODULE);
+  return Promise.all(
+    PLAN_IDS.map(async (plan) => {
+      const priceId = stripePriceId(plan);
+      if (!priceId) {
+        return { plan, ok: false, detail: `no Price id is configured for ${plan}` };
+      }
+      try {
+        const fault = priceCatalogueFault(plan, priceId, await fetchCataloguePrice(priceId));
+        return fault
+          ? { plan, ok: false, detail: fault }
+          : { plan, ok: true, detail: `matches the catalogue` };
+      } catch (err) {
+        /*
+          Stripe's own words, which is the whole value of asking: `resource_missing`
+          for an id from another account reads very differently from
+          `api_key_expired`, and a tile saying "prices" would have said neither.
+          This text is admin-only — the health endpoint reduces it to a boolean.
+        */
+        return {
+          plan,
+          ok: false,
+          detail: err instanceof Error ? err.message : "unknown failure",
+        };
+      }
+    }),
+  );
 }
 
 /**

@@ -1,6 +1,7 @@
 import type { BandUpCloudflareBindings } from "./bindings";
 import { readStoredJson, sha256, storeJson, type StoredJson } from "./payloads";
 import { canonicalCloudflareSourceClock } from "./source-clock";
+import { cutoverWriteBarrierArmed } from "./write-barrier";
 
 export const CLOUDFLARE_REPLICA_MAX_ATTEMPTS = 12;
 /*
@@ -31,6 +32,7 @@ export type CloudflareReplicaOperation =
   | "avatar_put"
   | "avatar_delete"
   | "stripe_billing"
+  | "promo_subscription"
   | "usage_event"
   | "ai_cost_event"
   | "ai_cost_coverage";
@@ -333,21 +335,39 @@ export async function enqueueCloudflareObjectCleanup(
   return result.success;
 }
 
+/*
+  Every table an R2 object key can still be pointed at from, checked one at a
+  time rather than through a single UNION ALL across all seven.
+
+  The UNION ALL form D1 ran until now failed every single time it executed —
+  "too many terms in compound SELECT: SQLITE_ERROR" — because D1 enforces a
+  lower SQLITE_LIMIT_COMPOUND_SELECT than the SQLite default, and seven
+  branches was already over it. That is not a theoretical ceiling: it is the
+  reason four cleanup entries sat dead and a fifth sat retrying for over a
+  week — the check that was supposed to say "still referenced, don't delete"
+  could never run, so drainCloudflareReplicaObjectCleanup treated the D1Error
+  as an ordinary transient failure and kept retrying a query that can never
+  succeed. `EXISTS ... OR EXISTS ...` costs one round trip, same as the UNION
+  ALL was meant to, and has no such limit — SQLite short-circuits at the first
+  true, so a key referenced by the first table checked is cheaper than before,
+  not more expensive.
+*/
 async function objectIsReferenced(
   bindings: BandUpCloudflareBindings,
   objectKey: string,
 ): Promise<boolean> {
   const row = await bindings.db.prepare(`
-    SELECT 1 AS referenced FROM (
-      SELECT avatar_object_key AS object_key FROM learner_profiles
-      UNION ALL SELECT payload_object_key FROM progress_snapshots
-      UNION ALL SELECT raw_object_key FROM subscriptions
-      UNION ALL SELECT payload_object_key FROM provider_events
-      UNION ALL SELECT result_object_key FROM practice_attempts
-      UNION ALL SELECT payload_object_key FROM organization_attempt_sync_outbox
-      UNION ALL SELECT payload_object_key FROM cloudflare_replica_outbox
-    ) pointers WHERE object_key = ? LIMIT 1
-  `).bind(objectKey).first<{ referenced: number }>();
+    SELECT (
+      EXISTS (SELECT 1 FROM learner_profiles WHERE avatar_object_key = ?)
+      OR EXISTS (SELECT 1 FROM progress_snapshots WHERE payload_object_key = ?)
+      OR EXISTS (SELECT 1 FROM subscriptions WHERE raw_object_key = ?)
+      OR EXISTS (SELECT 1 FROM provider_events WHERE payload_object_key = ?)
+      OR EXISTS (SELECT 1 FROM practice_attempts WHERE result_object_key = ?)
+      OR EXISTS (SELECT 1 FROM organization_attempt_sync_outbox WHERE payload_object_key = ?)
+      OR EXISTS (SELECT 1 FROM cloudflare_replica_outbox WHERE payload_object_key = ?)
+    ) AS referenced
+  `).bind(objectKey, objectKey, objectKey, objectKey, objectKey, objectKey, objectKey)
+    .first<{ referenced: number }>();
   return row?.referenced === 1;
 }
 
@@ -436,6 +456,29 @@ export type CloudflareReplicaExecutor = (
 /**
  * Lease and replay a bounded page. Execution is at-least-once: every target
  * operation is source-clocked or keyed by its immutable source identity.
+ *
+ * ---------------------------------------------------------------------------
+ * The barrier check
+ *
+ * Every operation this outbox carries belongs to the "learner" write-authority
+ * domain (see lib/cloudflare/write-barrier.ts) — arming that barrier requires
+ * this same outbox to already be empty, so in the ordinary case there is
+ * nothing here to refuse. It matters for the one path that can still put a row
+ * back after arming: an owner explicitly requeuing a dead letter through the
+ * admin route. Applying that row's pre-barrier Supabase source clock over
+ * whatever D1 has since become authoritative for on its own is exactly the CAS
+ * ordering violation `source_updated_at >=` guards elsewhere in this file are
+ * meant to prevent — so once armed, the drain refuses every row for that
+ * domain outright rather than deciding row by row. The rows stay visible and
+ * counted by cloudflareReplicaOutboxStatus below; they simply never get
+ * selected for replay again.
+ *
+ * This asks `cutoverWriteBarrierArmed` — a plain function call, cached and
+ * already tolerant of `cutover_write_barriers` not existing yet — rather than
+ * folding the same check into the SELECT below as a SQL subquery. A subquery
+ * would run, and fail, on literally every drain until the owner applies
+ * scripts/hand-run-cutover-write-barrier.sql; asking first, in JS, means that
+ * gap costs one cheap, cached function call instead of a failing query.
  */
 export async function drainCloudflareReplicaOutbox(
   execute: CloudflareReplicaExecutor,
@@ -443,6 +486,9 @@ export async function drainCloudflareReplicaOutbox(
   options: { limit?: number; subjectUserId?: string; nowMs?: number } = {},
 ): Promise<CloudflareReplicaDrainResult> {
   const nowMs = options.nowMs ?? Date.now();
+  if (await cutoverWriteBarrierArmed("learner", bindings)) {
+    return { selected: 0, succeeded: 0, failed: 0, dead: 0 };
+  }
   const stamp = iso(nowMs);
   const limit = Math.max(1, Math.min(MAX_DRAIN, Math.trunc(options.limit ?? 4)));
   const subjectFilter = options.subjectUserId ? "AND o.subject_user_id = ?" : "";

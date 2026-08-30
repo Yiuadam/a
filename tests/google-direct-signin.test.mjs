@@ -48,7 +48,15 @@ test("web Google sign-in falls back to the established full-navigation flow", ()
   assert.match(component, /identity\.renderButton[\s\S]*setLoadFailed\(false\)/);
   assert.match(
     component,
-    /loadFailed && \([\s\S]*href=\{apiUrl\("\/api\/auth\/start\?provider=google"\)\}[\s\S]*data-google-signin-fallback/,
+    /const legacyGoogleStart = apiUrl\("\/api\/auth\/start\?provider=google"\);/,
+  );
+  assert.match(
+    component,
+    /const fallbackStart = nativeAuth \? googleServerStart : legacyGoogleStart;/,
+  );
+  assert.match(
+    component,
+    /loadFailed && \([\s\S]*href=\{fallbackStart\}[\s\S]*data-google-signin-fallback/,
   );
   assert.match(component, /aria-describedby="google-signin-fallback-help"/);
   assert.match(component, /id="google-signin-fallback-help"[\s\S]*role="status"/);

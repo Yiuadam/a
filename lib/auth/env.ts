@@ -35,6 +35,8 @@ export const SERVER_ONLY_ENV_VARS = [
   "APPLE_IAP_KEY_ID",
   "APPLE_IAP_PRIVATE_KEY",
   "ANTHROPIC_API_KEY",
+  "BANDUP_SESSION_SIGNING_KEY",
+  "GOOGLE_OAUTH_CLIENT_SECRET",
   "ANTHROPIC_ADMIN_KEY",
   "ANTHROPIC_WORKSPACE_ID",
   "ADMIN_EMAILS",
@@ -62,6 +64,43 @@ export function googleClientId(): string | undefined {
 }
 
 /**
+ * Confidential credential for BandUp's server-side Google authorization-code
+ * exchange. It is used only by the Worker, never by a browser or the iOS
+ * bundle. The normal Google Identity Services button does not need it.
+ */
+export function googleOAuthClientSecret(): string | undefined {
+  return secret("GOOGLE_OAUTH_CLIENT_SECRET");
+}
+
+/**
+ * The one HTTPS origin registered as the callback home for this Worker.
+ *
+ * The request Host header is deliberately not trusted for an OAuth redirect:
+ * persisting an attacker-controlled return address would turn the callback
+ * into an open redirect. Each Worker environment declares its own fixed
+ * public origin in Wrangler instead.
+ */
+export function googleOAuthAppOrigin(): string | undefined {
+  assertServerOnly(MODULE);
+  const value = process.env["GOOGLE_OAUTH_APP_ORIGIN"];
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== "https:"
+      || url.username
+      || url.password
+      || url.pathname !== "/"
+      || url.search
+      || url.hash
+    ) return undefined;
+    return url.origin;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * The accounts system as a whole. Off by default, and off is the state in
  * which the app behaves exactly as it did before any of this existed.
  *
@@ -72,6 +111,21 @@ export function googleClientId(): string | undefined {
 export function accountsEnabled(): boolean {
   assertServerOnly(MODULE);
   return process.env["ACCOUNTS_ENABLED"] === "1";
+}
+
+/**
+ * Enables the Cloudflare-native identity path after its D1 migration has been
+ * verified. Kept off until an owner explicitly enables it; Supabase remains
+ * the compatibility path while existing account IDs are linked.
+ */
+export function nativeAuthEnabled(): boolean {
+  assertServerOnly(MODULE);
+  return String(process.env["CLOUDFLARE_NATIVE_AUTH"] ?? "") === "1";
+}
+
+/** HMAC key for BandUp's short-lived access tokens and rotating refresh tokens. */
+export function bandUpSessionSigningKey(): string | undefined {
+  return secret("BANDUP_SESSION_SIGNING_KEY");
 }
 
 /**

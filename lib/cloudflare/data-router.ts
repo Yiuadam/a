@@ -12,7 +12,13 @@ import {
   type Profile,
   type ProgressSnapshot,
 } from "@/lib/auth/supabase";
-import { cloudflareDataMode, organizationDataMode } from "./bindings";
+import {
+  cloudflareDataMode,
+  mirrorsWritesToCloudflare,
+  organizationDataMode,
+  readsFromCloudflare,
+  writesToCloudflareOnly,
+} from "./bindings";
 import {
   getCloudflareLearnerProfile,
   getCloudflareLearnerAccountKind,
@@ -55,7 +61,7 @@ function cloudflareProfileReplicaEnabled(): boolean {
  * comes from the already-verified Supabase Auth user passed by the caller.
  */
 export async function getLearnerProfile(user: SessionUser): Promise<Profile | null> {
-  if (cloudflareDataMode() === "cloudflare") {
+  if (readsFromCloudflare()) {
     return getCloudflareLearnerProfile(user.id);
   }
   return getSupabaseLearnerProfile(user.id);
@@ -91,7 +97,11 @@ export async function reconcileLearnerProfileReplica(
   user: SessionUser,
   profile: Profile,
 ): Promise<void> {
-  if (cloudflareDataMode() === "cloudflare") return;
+  // Nothing to reconcile from once D1 is the only place a write lands —
+  // that is a write question, not a read one, so it stays on
+  // writesToCloudflareOnly() rather than readsFromCloudflare(): in
+  // read_cloudflare, Supabase is still the write authority this repairs from.
+  if (writesToCloudflareOnly()) return;
   if (!cloudflareProfileReplicaEnabled()) return;
   try {
     if (!(await replicateLearnerProfileDurably(user, profile))) {
@@ -107,14 +117,14 @@ export async function reconcileLearnerProfileReplica(
 export async function getLearnerAccountKind(
   user: SessionUser,
 ): Promise<import("@/lib/auth/account-identity").AccountKind | null> {
-  return cloudflareDataMode() === "cloudflare"
+  return readsFromCloudflare()
     ? getCloudflareLearnerAccountKind(user.id)
     : getSupabaseLearnerAccountKind(user.id);
 }
 
 /** Resolve a sign-in alias from the same authority that owns usernames. */
 export async function emailForLearnerUsername(username: string): Promise<string | null> {
-  if (cloudflareDataMode() === "cloudflare") {
+  if (readsFromCloudflare()) {
     try {
       return await emailForCloudflareUsername(username);
     } catch {
@@ -151,8 +161,7 @@ export async function updateLearnerProfile(
   user: SessionUser,
   fields: Partial<Pick<Profile, "displayName" | "birthDate">>,
 ): Promise<ReplicatedWrite> {
-  const mode = cloudflareDataMode();
-  if (mode === "cloudflare") {
+  if (writesToCloudflareOnly()) {
     try {
       return {
         primary: await updateCloudflareLearnerProfile(user, fields),
@@ -194,8 +203,7 @@ export async function setLearnerAccountIdentity(
     birthDate: string | null;
   },
 ): Promise<{ status: LearnerAccountIdentityStatus; cloudflareReplica: boolean | null }> {
-  const mode = cloudflareDataMode();
-  if (mode === "cloudflare") {
+  if (writesToCloudflareOnly()) {
     try {
       return { status: await setCloudflareAccountIdentity(user, identity), cloudflareReplica: null };
     } catch {
@@ -259,8 +267,7 @@ export async function claimLearnerUsername(
   user: SessionUser,
   username: string,
 ): Promise<{ status: LearnerAccountIdentityStatus; cloudflareReplica: boolean | null }> {
-  const mode = cloudflareDataMode();
-  if (mode === "cloudflare") {
+  if (writesToCloudflareOnly()) {
     try {
       return {
         status: await claimCloudflareUsername(user, username),
@@ -318,7 +325,9 @@ export async function repairLearnerUsernameReplica(
   username: string | null,
 ): Promise<boolean> {
   if (!username || !cloudflareProfileReplicaEnabled()) return false;
-  if (cloudflareDataMode() === "cloudflare") return false;
+  // A repair copies Supabase into D1, so it is a write question: skip only
+  // when Supabase is no longer the write authority to copy from.
+  if (writesToCloudflareOnly()) return false;
   const stored = await getSupabaseLearnerProfile(user.id).catch(() => null);
   if (!stored?.updatedAt) return false;
   try {
@@ -347,16 +356,17 @@ export async function replicateLearnerProfile(
 }
 
 /**
- * Supabase remains the read authority while copies are being compared. This
+ * Supabase remains the read authority in `supabase` and `dual`: this
  * intentionally does not merge an unverified D1 copy into a learner's live
- * account: migration correctness is proven by the verifier, not guessed on a
- * request path.
+ * account while migration correctness is still being proven by the verifier
+ * rather than guessed on a request path. `read_cloudflare` and `cloudflare`
+ * are the two modes that have decided the D1 copy is trustworthy enough to
+ * read — see readsFromCloudflare().
  */
 export async function getLearnerProgressSnapshots(
   user: SessionUser,
 ): Promise<ProgressSnapshot[] | null> {
-  const mode = cloudflareDataMode();
-  if (mode === "cloudflare") {
+  if (readsFromCloudflare()) {
     try {
       return await getCloudflareProgressSnapshots(user);
     } catch {
@@ -385,8 +395,7 @@ export async function deleteLearnerProgressRows(
   storeKeys: string[],
 ): Promise<boolean> {
   if (storeKeys.length === 0) return true;
-  const mode = cloudflareDataMode();
-  if (mode === "cloudflare") {
+  if (writesToCloudflareOnly()) {
     try {
       return await deleteCloudflareProgressSnapshots(user, storeKeys);
     } catch {
@@ -395,7 +404,7 @@ export async function deleteLearnerProgressRows(
   }
 
   const primary = await deleteSupabaseProgressSnapshots(user.id, storeKeys);
-  if (mode !== "dual") return primary;
+  if (!mirrorsWritesToCloudflare()) return primary;
 
   let replica = false;
   try {
@@ -422,8 +431,7 @@ export async function compareAndSwapLearnerProgressSnapshots(
   expected: ProgressSnapshotExpectation[],
   snapshots: ProgressSnapshotMutation[],
 ): Promise<LearnerProgressCasResult> {
-  const mode = cloudflareDataMode();
-  if (mode === "cloudflare") {
+  if (writesToCloudflareOnly()) {
     try {
       const result = await compareAndSwapCloudflareProgressSnapshots(
         user,
@@ -444,7 +452,7 @@ export async function compareAndSwapLearnerProgressSnapshots(
     snapshots,
   );
   if (primary.status !== "committed") return primary;
-  if (mode !== "dual") return { ...primary, cloudflareReplica: null };
+  if (!mirrorsWritesToCloudflare()) return { ...primary, cloudflareReplica: null };
 
   try {
     return {

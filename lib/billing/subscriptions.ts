@@ -1,10 +1,17 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { rpc, stripeSubscriptionReplica } from "@/lib/auth/supabase";
-import { cloudflareDataMode, organizationDataMode } from "@/lib/cloudflare/bindings";
+import { cloudflareDataMode, organizationDataMode, readsFromCloudflare } from "@/lib/cloudflare/bindings";
 import {
   cloudflareStripeCustomerFor,
 } from "@/lib/cloudflare/billing-replica";
+import {
+  applyNativeStripePrepaidPurchase,
+  applyNativeStripePrepaidRefund,
+  applyNativeStripeSubscription,
+} from "@/lib/cloudflare/native-stripe-billing";
+import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { replicateStripeBillingDurably } from "@/lib/cloudflare/replica-replay";
+import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
 import type { Provider } from "./providers";
 import type {
   StripePrepaidPurchaseEvent,
@@ -89,6 +96,23 @@ export async function applyStripeSubscription(
   payload: unknown,
 ): Promise<ApplyOutcome> {
   assertServerOnly(MODULE);
+  /*
+    The barrier closes the legacy Supabase writer after learner data has moved
+    to D1. It must not close the D1-native Stripe writer too: doing that would
+    turn every valid post-cutover webhook into a retry even though the target
+    transaction is precisely the write that the barrier was introduced to
+    protect. Select the native path first; the legacy path still fails closed
+    immediately below.
+  */
+  if (nativeStripeBillingActive()) {
+    return applyNativeStripeSubscription(event, payload);
+  }
+  // The webhook route already turns any throw here into a fixed 503 —
+  // never a database error — so barring reuses that path rather than adding
+  // a new outcome value. See lib/cloudflare/write-barrier.ts.
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new Error("cutover write barrier is armed for learner writes");
+  }
 
   const outcome = await rpc<unknown>("apply_provider_subscription_event", {
     p_provider: "stripe" satisfies Provider,
@@ -140,6 +164,14 @@ export async function applyStripePrepaidPurchase(
   payload: unknown,
 ): Promise<PrepaidApplyOutcome> {
   assertServerOnly(MODULE);
+  // See applyStripeSubscription: an armed legacy barrier must not reject the
+  // D1-native path that replaces the legacy writer.
+  if (nativeStripeBillingActive()) {
+    return applyNativeStripePrepaidPurchase(event, payload);
+  }
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new Error("cutover write barrier is armed for learner writes");
+  }
   const outcome = await rpc<unknown>("apply_stripe_prepaid_purchase_event", {
     p_event_id: event.eventId,
     p_event_at: event.eventAt,
@@ -173,6 +205,14 @@ export async function applyStripePrepaidRefund(
   payload: unknown,
 ): Promise<PrepaidApplyOutcome> {
   assertServerOnly(MODULE);
+  // See applyStripeSubscription: a native D1 refund is a permitted target
+  // write after the legacy source has been sealed.
+  if (nativeStripeBillingActive()) {
+    return applyNativeStripePrepaidRefund(event, payload);
+  }
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new Error("cutover write barrier is armed for learner writes");
+  }
   const outcome = await rpc<unknown>("apply_stripe_prepaid_refund_event", {
     p_event_id: event.eventId,
     p_event_at: event.eventAt,
@@ -211,7 +251,7 @@ export async function applyStripePrepaidRefund(
  */
 export async function stripeCustomerFor(userId: string): Promise<string | null> {
   assertServerOnly(MODULE);
-  if (cloudflareDataMode() === "cloudflare") return cloudflareStripeCustomerFor(userId);
+  if (readsFromCloudflare()) return cloudflareStripeCustomerFor(userId);
   const value = await rpc<unknown>("provider_customer_for_user", {
     p_user_id: userId,
     p_provider: "stripe" satisfies Provider,

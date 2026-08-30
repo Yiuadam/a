@@ -1,7 +1,7 @@
 import { after, NextResponse } from "next/server";
 import { accountsEnabled } from "@/lib/auth/env";
 import { supabaseConfigured, getProfile, deleteAccount } from "@/lib/auth/supabase";
-import { getSessionUser } from "@/lib/auth/session";
+import { getSessionUser, isNativeSessionRequest } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
 import { cloudflareDataMode, organizationDataMode } from "@/lib/cloudflare/bindings";
@@ -51,7 +51,8 @@ function scheduleCloudflareCleanup(userId: string, operationId: string): void {
 }
 
 async function handlePOST(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  const nativeSession = isNativeSessionRequest(req);
+  if (!accountsEnabled() || (!nativeSession && !supabaseConfigured())) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const user = await getSessionUser(req);
@@ -73,16 +74,26 @@ async function handlePOST(req: Request) {
     return safeJsonError("Type DELETE to confirm.", 400);
   }
 
-  const profile = await getProfile(user.id);
+  const profile = nativeSession ? null : await getProfile(user.id);
   const cloudflareDataActive = cloudflareDataMode() !== "supabase"
     || organizationDataMode() !== "supabase";
+  if (nativeSession && !cloudflareDataActive) {
+    // A native identity exists only in D1. Do not claim it was deleted until
+    // its durable account cleanup can be performed there.
+    logInternal("account/delete/native", new Error("native identity without Cloudflare data authority"));
+    return safeJsonError(MESSAGES.accountUnavailable, 503);
+  }
   let cloudflarePreparation: Awaited<ReturnType<typeof prepareCloudflareAccountDeletion>> | null = null;
 
   if (cloudflareDataActive) {
     try {
       // Build the complete D1/R2 manifest first. If this cannot be made
       // recoverable, the irreversible identity deletion must not start.
-      cloudflarePreparation = await prepareCloudflareAccountDeletion(user);
+      cloudflarePreparation = await prepareCloudflareAccountDeletion(
+        user,
+        undefined,
+        nativeSession ? "cloudflare" : "supabase",
+      );
     } catch (error) {
       if (error instanceof CloudflareAccountDeletionInProgressError) {
         return safeJsonError("Account deletion is already in progress. Please wait a moment.", 409);
@@ -108,6 +119,16 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ deleted: true, cleanupPending: true }, { status: 202 });
   }
 
+  if (
+    cloudflarePreparation
+    && cloudflarePreparation.authAuthority !== (nativeSession ? "cloudflare" : "supabase")
+  ) {
+    // Never allow a native retry to confirm a legacy deletion (or the
+    // reverse): their irreversible identity steps belong to different
+    // authorities and must be reconciled by the owner route instead.
+    return safeJsonError("Account deletion is already in progress. Please contact support.", 409);
+  }
+
   if (cloudflarePreparation?.state === "prepared") {
     try {
       cloudflarePreparation = await beginCloudflareAccountAuthDeletion(
@@ -125,7 +146,7 @@ async function handlePOST(req: Request) {
     }
   }
 
-  if (!(await deleteAccount(user.id, profile?.avatarPath ?? null))) {
+  if (!nativeSession && !(await deleteAccount(user.id, profile?.avatarPath ?? null))) {
     // The DELETE may have reached Supabase even when its response did not
     // reach us. Keep the durable freeze and manifest for owner reconciliation;
     // cancelling here could resurrect data for an identity that is already gone.

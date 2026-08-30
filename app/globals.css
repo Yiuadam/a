@@ -126,15 +126,18 @@ html[data-theme="light"] {
   --color-slate-800: #26282d;
   --color-slate-900: #16171a;
 
-  --color-indigo-50: #eef2ff;
-  --color-indigo-100: #e0e7ff;
-  --color-indigo-200: #c7d2fe;
-  --color-indigo-300: #a5b4fc;
-  --color-indigo-400: #818cf8;
-  --color-indigo-500: #6366f1;
-  --color-indigo-600: #4f46e5;
-  --color-indigo-700: #4338ca;
-  --color-indigo-800: #3730a3;
+  /* These legacy "indigo" tokens drive interactive controls. In the Light
+     theme they are intentionally neutral greys, from a pale selected surface
+     to a still-light primary action. */
+  --color-indigo-50: #fbfcfd;
+  --color-indigo-100: #f7f8f9;
+  --color-indigo-200: #f1f3f5;
+  --color-indigo-300: #e7e9ec;
+  --color-indigo-400: #dce0e5;
+  --color-indigo-500: #d2d6dc;
+  --color-indigo-600: #c7ccd3;
+  --color-indigo-700: #aeb5bd;
+  --color-indigo-800: #8f969f;
 
   --color-emerald-50: #ecfdf5;
   --color-emerald-100: #d1fae5;
@@ -165,7 +168,7 @@ html[data-theme="light"] {
   --color-purple-700: #7e22ce;
 
   --color-surface: #ffffff;
-  --color-accent-fg: #ffffff;
+  --color-accent-fg: #26282d;
   --color-background: #fafafa;
   --color-foreground: #16171a;
 
@@ -260,14 +263,20 @@ body {
   */
   --window-text-inset-compact: clamp(0.875rem, calc(0.75rem + 0.4vw), 1rem);
   --page-window-gutter: clamp(1rem, calc(0.75rem + 1.25vw), 2rem);
-  --glass-fill: rgba(255, 255, 255, 0.12);
-  --glass-fill-strong: rgba(255, 255, 255, 0.2);
+  --glass-fill: rgba(255, 255, 255, 0.08);
+  --glass-fill-strong: rgba(255, 255, 255, 0.16);
   --glass-edge: rgba(255, 255, 255, 0.32);
   --glass-highlight: rgba(255, 255, 255, 0.34);
   --glass-edge-dark: rgba(45, 35, 27, 0.12);
   --glass-specular: rgba(255, 255, 255, 0.48);
   --glass-shadow: rgba(42, 31, 24, 0.1);
-  --glass-blur: 24px;
+  /* Raised to match the notification popover and the nav list: the same
+     heavy frosted blur everywhere reads as one consistent material instead
+     of cards being a thinner, half-hearted version of the panels that use
+     the real thing. The touch/reduced-motion fallback just below keeps its
+     own lighter value — that path exists specifically to bound cost on
+     less capable hardware. */
+  --glass-blur: 56px;
   /* One decorative/navigation icon ink across every control. The token, not
      each component, changes with the active colour theme. Semantic success,
      warning and error marks intentionally keep their own status colours. */
@@ -346,8 +355,8 @@ body[data-viewport-locked] {
 }
 
 html[data-theme="light"] body {
-  --glass-fill: rgba(255, 255, 255, 0.66);
-  --glass-fill-strong: rgba(255, 255, 255, 0.86);
+  --glass-fill: rgba(255, 255, 255, 0.42);
+  --glass-fill-strong: rgba(255, 255, 255, 0.68);
   --glass-edge: rgba(22, 23, 26, 0.075);
   --glass-highlight: rgba(255, 255, 255, 0.98);
   --glass-edge-dark: rgba(22, 23, 26, 0.055);
@@ -390,6 +399,112 @@ html[data-theme="dark"] body {
     background 180ms ease;
 }
 
+/*
+  General Safari fix for the bug behind the nav list's and the notification
+  popover's earlier zero-blur reports: WebKit needs an `isolate` ancestor to
+  have established its own filter/compositing layer for a *descendant's*
+  backdrop-filter to render at all. Chromium has no such requirement, which
+  is why this only ever showed up on a real iPhone and never in this app's
+  own headless-Chromium checks.
+
+  Those two spots got a manual, near-invisible blur(1px) on their specific
+  wrapper. This rule finds the general case automatically: any element
+  carrying Tailwind's `isolate` utility that contains a glass surface
+  anywhere below it gets the same tiny workaround, so a future floating
+  glass panel doesn't need its own manual patch to blur correctly on iOS.
+*/
+.isolate:has(.liquid-glass, .card, .premade-glass, .notification-popover) {
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+}
+
+/* A window's copy remains a stable, ordinary layer. Only the glass rim gets
+   the soft squash-and-settle motion, which makes a newly opened surface feel
+   fluid without stretching a word or placing work on the pointer's path. */
+.liquid-glass-window {
+  isolation: isolate;
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+  animation: liquid-glass-window-open 180ms cubic-bezier(0.22, 0.9, 0.32, 1) both;
+}
+
+.liquid-glass-window::after {
+  position: absolute;
+  z-index: 0;
+  inset: -1px;
+  pointer-events: none;
+  content: "";
+  border: 1px solid color-mix(in srgb, var(--glass-highlight) 78%, transparent);
+  border-radius: inherit;
+  background:
+    radial-gradient(88% 44% at 50% -12%, color-mix(in srgb, var(--glass-specular) 36%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, white 10%, transparent), transparent 38%);
+  opacity: 0;
+  transform: scale3d(0.94, 0.975, 1);
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+  animation: liquid-glass-window-settle 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.liquid-glass-window > * {
+  position: relative;
+  z-index: 1;
+}
+
+.liquid-glass-window.is-closing {
+  pointer-events: none;
+  animation: liquid-glass-window-close 150ms ease-in both;
+}
+
+@keyframes liquid-glass-window-open {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.45rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes liquid-glass-window-settle {
+  0% {
+    opacity: 0.42;
+    transform: scale3d(0.94, 0.975, 1);
+  }
+  44% {
+    opacity: 0.72;
+    transform: scale3d(1.012, 0.995, 1);
+  }
+  70% {
+    opacity: 0.34;
+    transform: scale3d(0.996, 1.003, 1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes liquid-glass-window-close {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 0.35rem, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass-window,
+  .liquid-glass-window::after,
+  .liquid-glass-window.is-closing {
+    animation: none;
+  }
+}
+
 .liquid-glass::before,
 .card::before,
 .liquid-glass::after,
@@ -408,12 +523,40 @@ html[data-theme="dark"] body {
   cannot compete with the active choice list.
 */
 .liquid-glass.organization-picker-popover {
-  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
-  -webkit-backdrop-filter: blur(48px) saturate(76%) brightness(101%);
-  backdrop-filter: blur(48px) saturate(76%) brightness(101%);
+  background: color-mix(in srgb, var(--color-surface) 52%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(92%) brightness(101%);
+  backdrop-filter: blur(14px) saturate(92%) brightness(101%);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 10px 28px color-mix(in srgb, var(--glass-shadow) 72%, transparent);
+}
+
+/*
+  The opening move for every floating glass panel: this popover, the
+  notification inbox, the nav sheet below. transform and opacity only — the
+  one combination every browser engine composites unconditionally, so this
+  never competes with the live refraction filter or the backdrop blur these
+  panels already carry for the frame budget. Each of these panels is a
+  plain `{open && <div .../>}` mount, so the animation replays from a fresh
+  element every time it opens; `prefers-reduced-motion` keeps the instant
+  appearance instead.
+*/
+@keyframes glass-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6, 0.66) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1, 1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .liquid-glass.organization-picker-popover {
+    animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
+  }
 }
 
 /*
@@ -516,43 +659,121 @@ html[data-theme="dark"] .premade-glass {
   color: var(--app-icon-color);
 }
 
-/* A floating inbox needs more optical separation than an ordinary card: its
-   labels must not visually merge with the page it overlaps. It remains
-   translucent and refractive, but the stronger blur removes readable shapes
-   from the background before the notification text is painted. */
+/*
+  Same Safari workaround as .nav-paper above: WebKit needs an `isolate`
+  ancestor to have established its own filter/compositing layer for a
+  descendant's backdrop-filter to render at all, and NotificationBell's
+  root wrapper is `isolate` with no filter of its own. Without this, the
+  popover showed zero blur on a real iPhone even though the exact same CSS
+  blurred correctly in this app's own headless Chromium checks.
+*/
+[data-notification-bell-root] {
+  /* The workaround blur applies to this element's own box, a plain
+     rectangle sized to the round bell button it wraps — without rounding
+     it to match, the blur reads as a faint square edge around a circular
+     button instead of blending into it invisibly. */
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+}
+
+/* Notifications are a floating glass card, sharing the same barely-there,
+   live-refracted material as the nav list rather than a heavier, more
+   opaque frosted drawer. */
 .notification-popover {
   isolation: isolate;
   overflow: hidden;
   contain: paint;
   clip-path: inset(0 round var(--radius-xl));
-  /* Keep one glass boundary, but give the reading surface enough density that
-     page dividers and labels underneath cannot draw a second, false line
-     through the popover. The background is still translucent; the stronger
-     blur supplies the optical depth instead of another nested window. */
-  background-color: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  border-color: color-mix(in srgb, var(--glass-highlight) 78%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 9%, transparent);
   background-image:
     linear-gradient(
       145deg,
-      color-mix(in srgb, var(--color-surface) 6%, transparent),
+      color-mix(in srgb, var(--glass-specular) 14%, transparent),
       transparent
     );
-  -webkit-backdrop-filter: blur(52px) saturate(92%) brightness(102%);
-  backdrop-filter: blur(52px) saturate(92%) brightness(102%);
+  -webkit-backdrop-filter: blur(2px) saturate(106%) brightness(102%);
+  backdrop-filter: blur(2px) saturate(106%) brightness(102%);
   box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 14px 36px color-mix(in srgb, var(--glass-shadow) 82%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 96%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 72%, transparent),
+    0 18px 44px color-mix(in srgb, var(--glass-shadow) 84%, transparent);
+}
+
+/*
+  top right rather than centred: this popover's wrapping element sizes
+  exactly to the bell button (see NotificationBell.tsx's `relative isolate`
+  root), so `right: 0` on the popover already lands its right edge exactly
+  on the button's right edge. It visibly grows out of the bell.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  .notification-popover {
+    transform-origin: top right;
+    animation: glass-pop-in 480ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
+  }
+}
+
+/* A folder-style pane has one continuous, lit perimeter: the curved material
+   brightens at its upper edge and settles into shadow underneath. This rim is
+   paint-only; the live backdrop remains the source of the reflected content. */
+.notification-popover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--glass-specular) 22%, transparent),
+      transparent 38%,
+      color-mix(in srgb, var(--glass-shadow) 10%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 84%, transparent),
+    inset 1px 0 0 color-mix(in srgb, var(--glass-highlight) 32%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 54%, transparent);
+}
+
+.notification-popover > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* The page under an opened floating window is not another solid sheet. It is
+   a low-cost, non-interactive depth layer: the header remains crisp, while
+   page content below it recedes into the same soft field as the iOS folder
+   reference. Pointer events stay off so existing outside-click and scroll
+   behaviour are unchanged. */
+.notification-glass-backdrop {
+  position: fixed;
+  inset: var(--header-h, 0px) 0 0;
+  z-index: 1000;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-background) 30%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(108%) brightness(98%);
+  backdrop-filter: blur(20px) saturate(108%) brightness(98%);
+}
+
+html[data-theme="dark"] .notification-glass-backdrop {
+  background: color-mix(in srgb, var(--color-background) 36%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(105%) brightness(90%);
+  backdrop-filter: blur(20px) saturate(105%) brightness(90%);
 }
 
 html[data-theme="dark"] .liquid-glass.notification-popover {
-  background-color: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 12%, transparent);
   background-image:
     linear-gradient(
       145deg,
-      color-mix(in srgb, var(--color-surface) 5%, transparent),
+      color-mix(in srgb, var(--glass-specular) 12%, transparent),
       transparent
     );
-  -webkit-backdrop-filter: blur(52px) saturate(88%) brightness(105%);
-  backdrop-filter: blur(52px) saturate(88%) brightness(105%);
+  -webkit-backdrop-filter: blur(2px) saturate(104%) brightness(104%);
+  backdrop-filter: blur(2px) saturate(104%) brightness(104%);
 }
 
 /* Notification actions are tiny, information-dense text. General glass/accent
@@ -668,17 +889,264 @@ html[data-theme="dark"] .google-signin-glass {
   background: rgba(255, 255, 255, 0.018);
 }
 
+/*
+  The sheet itself carries no visible tint or refraction of its own: it is
+  purely a positioning/interaction surface for the cards it holds. Only
+  .nav-menu-group's own small bounding boxes get the live lens below, so the
+  page behind any gap between cards reads exactly as it did before the menu
+  opened — no smear, no double-refracted edge from a second, much bigger
+  bevel wrapping the whole viewport.
+
+  The near-zero backdrop-filter below is not decorative — it's a Safari
+  workaround. WebKit needs an ancestor to have established its own
+  filter/compositing layer for a *descendant's* backdrop-filter to render
+  at all; without it, .nav-menu-group's own blur silently renders as zero
+  on iOS even though the exact same CSS blurs correctly in Chromium. A
+  blur this small has no visible effect of its own.
+*/
 .nav-paper {
   isolation: isolate;
   overflow-x: hidden;
   overflow-y: auto;
-  background:
-    linear-gradient(color-mix(in srgb, var(--color-background) 72%, transparent), color-mix(in srgb, var(--color-background) 72%, transparent)),
-    radial-gradient(50rem 32rem at 14% 0%, var(--wash-one), transparent 62%),
-    radial-gradient(44rem 30rem at 88% 8%, var(--wash-two), transparent 64%);
-  -webkit-backdrop-filter: blur(42px) saturate(112%) brightness(102%);
-  backdrop-filter: blur(42px) saturate(112%) brightness(102%);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  background: transparent;
+  /* A real, uniform blur across the whole sheet — not just a tiny
+     Safari-compositing-layer shim — so the page behind reads as a rough
+     layout of soft shapes wherever it shows, including the gaps between
+     cards, not legible text or hard lines just because no card happens to
+     cover that spot. Light enough that shapes and colour blocks are still
+     recognisable at a glance, not washed into a single flat glow.
+     No tint and no url() lens here: those stay on the cards, which sit on
+     top of this and add their own heavier blur and colour. */
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  /* The same warm ambient glow each card carries (see .nav-menu-group's own
+     box-shadow below), spread across the whole sheet at a fraction of the
+     strength — so the glow reads as bathing the whole panel the cards sit
+     in, not as something that stops dead at a card's own edge. inset
+     because .nav-paper has no edge of its own to cast a glow outward from;
+     it is the full sheet, so the glow has to come from inside it. */
+  box-shadow: inset 0 0 48px 12px color-mix(in srgb, rgb(142, 104, 78) 5%, transparent);
+}
+
+html[data-theme="dark"] .nav-paper {
+  box-shadow: inset 0 0 48px 12px color-mix(in srgb, rgb(142, 104, 78) 2%, transparent);
+}
+
+/*
+  The full-height navigation sheet visibly grows outward from the button
+  that opened it — a plain scale-from-the-origin, not a clip-path reveal.
+  clip-path was tried and rejected: animating it is not reliably
+  GPU-compositor-accelerated the way transform and opacity are, and this
+  sheet already carries a live SVG refraction filter plus a backdrop blur —
+  both genuinely expensive to re-evaluate every frame. transform never has
+  that risk in any engine: the browser scales an already-painted,
+  already-filtered layer on the compositor, so every frame of this
+  animation costs the same regardless of what's rendered behind it.
+
+  Scaling from 0.06 rather than 0 keeps the sheet a real (if tiny)
+  rectangle at frame one instead of a mathematical point, which is what
+  keeps this reading as a rectangle growing from the button — a genie
+  effect — rather than a fade with no shape at all until partway through.
+*/
+@keyframes nav-sheet-grow {
+  0% {
+    opacity: 0;
+    transform: scale(0.06);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/*
+  A card arriving into the list, not a popover growing out of a control —
+  it fades and rises slightly into its own final position with no overshoot
+  past it. cubic-bezier(0.16, 1, 0.3, 1) ("ease-out-expo") decelerates hard
+  and monotonically: velocity keeps dropping all the way to zero, so the
+  card is visibly still the instant it arrives instead of continuing to
+  move once it looks like it should have stopped.
+*/
+@keyframes nav-card-settle {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98) translateZ(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) translateZ(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nav-paper {
+    /* --nav-origin-x is set by SiteHeader just before this mounts, in px
+       from the viewport's left edge — where the menu button actually sits,
+       not the middle of the screen. The 50% fallback only matters if that
+       assignment is ever skipped (e.g. the button ref isn't measurable
+       yet). */
+    transform-origin: var(--nav-origin-x, 50%) top;
+    animation: nav-sheet-grow 420ms cubic-bezier(0.22, 0.8, 0.32, 1) both;
+    will-change: transform, opacity;
+  }
+
+  /* Each destination group settles in with its own, slightly later copy of
+     the same motion — the cascade is what makes the sheet read as several
+     soft things arriving one after another, rather than one flat sheet
+     appearing with its contents already fixed in place. This deliberately
+     does not reuse glass-pop-in: a card that has already reached its final
+     size and position has no reason to keep overshooting past it and
+     springing back — real inertia decelerates into place, it doesn't
+     oscillate once it's arrived, and the squash-and-stretch that suits a
+     popover growing out of a button read as a glitch on a card that's
+     simply fading up into a list. */
+  .nav-menu-group {
+    animation: nav-card-settle 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .nav-menu-group:nth-child(1) { animation-delay: 40ms; }
+  .nav-menu-group:nth-child(2) { animation-delay: 90ms; }
+  .nav-menu-group:nth-child(3) { animation-delay: 140ms; }
+  .nav-menu-group:nth-child(4) { animation-delay: 190ms; }
+  .nav-menu-group:nth-child(5) { animation-delay: 240ms; }
+  .nav-menu-group:nth-child(6) { animation-delay: 290ms; }
+}
+
+/*
+  This menu sits over the clearest, least-blurred glass in the app (see
+  .nav-paper above) — busy page content behind it competes with the icons'
+  own 1.6-1.7 stroke, the weight this same icon set uses at 24px everywhere
+  else it's legible against a plain card. A heavier stroke here is scoped to
+  the menu rather than raised globally: a request for the nav list to read
+  clearly is not a request to redraw the icon set BandUp uses everywhere
+  else, most of which sit on much more opaque backgrounds already. CSS wins
+  this override for free — `stroke-width` set here as a property beats the
+  `strokeWidth` the icon components set as a plain SVG attribute, so no
+  prop needs threading through CardIcon or Icon for one screen.
+*/
+.nav-menu-group svg {
+  stroke-width: 2.8;
+}
+
+/*
+  Reference: iOS Control Center's own cards, where the material is opaque
+  enough that nothing behind it is recognisable — a smooth frosted wash,
+  not a tint you can still read shapes through. Layer the same warm
+  brown-orange accent used before onto a much more opaque neutral scrim
+  (the page's own background colour, not --glass-fill's thin white/black
+  wash) rather than raising the warm mix itself, which would just read as
+  a stronger orange rather than a more opaque card.
+
+  The material itself lives on ::before rather than on .nav-menu-group, so
+  that its backdrop-filter and its live-lens filter can be declared as two
+  separate CSS properties (see html[data-glass-lens-split] below) instead
+  of the combined `backdrop-filter: blur() url()` syntax WebKit silently
+  drops the SVG stage from. `filter` runs on an element's own already-
+  rendered output — including whatever its own backdrop-filter produced —
+  so it distorts the blurred backdrop without hitting that bug, and can
+  therefore run on Safari too. Card content stays a sibling with its own
+  stacking order (below) so only the material itself gets warped, never
+  the icons or labels sitting on top of it.
+*/
+.nav-menu-group {
+  position: relative;
+}
+
+.nav-menu-group > * {
+  position: relative;
+  z-index: 1;
+}
+
+.nav-menu-group::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* As blurred and transparent as the sheet's own gaps (see .nav-paper) —
+     the card is still a distinct surface via its tint and highlight, not
+     because it hides more of what's behind it. */
+  /* Both halves come down together. The warm tint is mixed as an opaque
+     colour, so it sets a floor the scrim underneath can never get below —
+     thinning only the scrim would leave the card stuck at the tint's own
+     weight and just make it read browner rather than clearer. */
+  background: color-mix(
+    in srgb,
+    rgb(142, 104, 78) 5%,
+    color-mix(in srgb, var(--color-background) 14%, transparent)
+  );
+  /* WebKit silently skips backdrop-filter on an element that never commits
+     to its own compositing layer, which is easy to end up with two levels
+     deep in a fixed, isolated sheet: the card just shows the page through
+     it with no blur at all, rather than a lighter blur. will-change alone
+     wasn't a strong enough signal for Safari's heuristic; an explicit,
+     always-present 3D transform is. */
+  transform: translateZ(0);
+  will-change: transform;
+  /* An explicit value rather than inheriting the sitewide 56px .liquid-glass
+     default — that's tuned for surfaces meant to hide what's behind them
+     entirely, not for matching the sheet's own 14px gaps, which is the
+     goal here. */
+  -webkit-backdrop-filter: blur(14px) saturate(108%) brightness(103%);
+  backdrop-filter: blur(14px) saturate(108%) brightness(103%);
+}
+
+html[data-theme="dark"] .nav-menu-group::before {
+  /* The same warm hue at a fraction of the light-theme mix — dark glass is
+     already near-black, so 8% of a mid-brown would read as visible paint
+     rather than a tint, and every dark-theme surface it neighbours is
+     built on translucency this thin. */
+  background: color-mix(
+    in srgb,
+    rgb(142, 104, 78) 2%,
+    color-mix(in srgb, var(--color-background) 12%, transparent)
+  );
+}
+
+html[data-glass-lens-split] .nav-menu-group::before {
+  filter: url("#bandup-live-glass-refraction");
+}
+
+html[data-theme="dark"] .nav-menu-group {
+  /* A dimmer top highlight than light's own — dark glass still catches a
+     rim of light, just not as brightly as a pale card would. The glow gets
+     the same treatment: full strength would paint a visible orange ring
+     instead of a soft ambient bloom. */
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 18%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 24%, transparent),
+    0 1px 3px var(--glass-shadow),
+    0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 4%, transparent);
+}
+
+/*
+  .liquid-glass's own hairline (inset 0 1px 0 var(--glass-highlight)) and
+  border-color were tuned for the app's usual, much more opaque glass and
+  read as a flat grey line back when this card was nearly see-through.
+  Now that it's back to a substantially opaque material, the same kind of
+  highlight Apple's own Control Center panels and app icons show — a bright
+  edge along the top, a touch of shade along the bottom for volume — is
+  what makes it read as curved glass catching light rather than a flat
+  tinted rectangle.
+*/
+.nav-menu-group {
+  border-color: transparent;
+  /* Top-lit highlight and bottom shading for volume, the card's own crisp
+     lift-shadow, and a much softer, wider glow in the same warm tint that
+     fades outward past the card's own edges — the "blur expanding out"
+     look of an iOS app icon lifting off the grid, or a Control Center
+     panel's soft bloom, rather than the blur cutting off sharply the
+     instant it crosses the card's border. */
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 6%, transparent),
+    0 1px 3px var(--glass-shadow),
+    0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 8%, transparent);
 }
 
 .nav-paper > .refractive-glass-layer {
@@ -689,7 +1157,7 @@ html[data-theme="dark"] .google-signin-glass {
   position: absolute;
   inset: -1px;
   border-radius: 0;
-  opacity: 0.55;
+  opacity: 0.26;
 }
 
 /* LiquidGlass adds two decorative edge spans around each interactive lens.
@@ -726,11 +1194,20 @@ html[data-theme="dark"] .google-signin-glass {
      still belongs to ::before, so the fixed navigation sheet remains
      viewport-relative. */
   isolation: isolate;
-  border-color: var(--glass-edge);
+  /*
+    The closed header's border-b earns its keep against an opaque bar. Open,
+    it sits directly above a sheet that is now mostly clear (.nav-paper's
+    9% tint, 2px blur) — a solid line at that seam reads as a stray artifact
+    left over from a more opaque design, not a deliberate divider, because
+    there is barely any material left on either side of it to divide.
+  */
+  border-color: transparent;
   background: color-mix(in srgb, var(--glass-fill) 45%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 45%, transparent),
-    0 1px 3px color-mix(in srgb, var(--glass-shadow) 45%, transparent);
+  /* Just the inset highlight along the header's own top edge — the
+     ::before layer below already paints the same drop shadow at this
+     element's bottom edge (the header/sheet seam), and the two stacked on
+     top of each other are what was reading as a stray line there. */
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 45%, transparent);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -1925,6 +2402,22 @@ html[data-theme="dark"] .google-signin-glass {
     padding-bottom: 1rem;
   }
 
+  /*
+    The same rule again with one more class, because the two-class version above
+    it does not win.
+
+    `.card.card { padding: 1.5rem }` appears later in this file, so on specificity
+    plus source order it beats `.pricing-plan-card.card` — the phone padding above
+    has been inert since it was written, which is noted a few rules down as worth
+    a separate look. It is worth 24px of card here and now, though: measured on a
+    390x844 phone, the card ended 14px below the fold with the padding it actually
+    had, and ends inside it with the padding it was asked for. Only the bottom is
+    set, so the card keeps its full breathing room at the top.
+  */
+  .pricing-plan-card.card.card {
+    padding-bottom: 0.5rem;
+  }
+
   .pricing-plan-price {
     margin-top: 0.625rem;
   }
@@ -2057,6 +2550,24 @@ html[data-theme="dark"] .google-signin-glass {
   .pricing-plan-card.card.card {
     padding-block: 1rem;
   }
+
+  /*
+    The wallet alternative, tightened rather than removed.
+
+    It is the last thing in the card, so every pixel it spends is a pixel of the
+    card that can fall below the fold — and the whole point of putting the pass
+    behind a text link instead of a second full-width button was to keep both
+    payment controls on screen. The rule above it stays: it is what says
+    "alternative" without a heading.
+  */
+  .pricing-wallet-alternative {
+    margin-top: 0.125rem;
+    padding-top: 0.25rem;
+  }
+
+  .pricing-wallet-terms {
+    margin-top: 0.125rem;
+  }
 }
 
 /*
@@ -2087,6 +2598,21 @@ html[data-theme="dark"] .google-signin-glass {
 
   .pricing-plan-card.card.card {
     padding-block: 0.875rem;
+  }
+
+  /*
+    The two blocks of print give up their leading here, and only here. Both are
+    load-bearing — the renewal terms have to be beside the button that agrees to
+    them, and the pass has to say that it ends — so neither loses a word. 11px
+    over 14px is still readable; measured, this is what brings the pass line back
+    above the fold on a 1280x720 window.
+  */
+  .pricing-card-terms {
+    line-height: 1.15rem;
+  }
+
+  .pricing-wallet-terms {
+    line-height: 0.875rem;
   }
 }
 
@@ -2339,6 +2865,31 @@ textarea {
 /* Long-form reading text: slightly larger and more leaded than UI text. */
 .prose-reading p {
   @apply mb-4 text-[16px] leading-8 text-slate-700;
+}
+
+/*
+  The disc inside BandBadge. The same gradient as the primary button, so the
+  band score and the thing you press to earn one are visibly the same family.
+*/
+.band-disc {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--color-indigo-500) 92%, white),
+    var(--color-indigo-600) 55%,
+    var(--color-indigo-700)
+  );
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    0 8px 18px -12px color-mix(in srgb, var(--color-indigo-600) 80%, transparent);
+}
+
+/*
+  An empty slot rather than a filled one. A dashed outline reads as "nothing
+  here yet"; the grey filled pill it replaces read as a disabled control, which
+  is exactly the wrong first impression for a learner who has not started.
+*/
+.pill-empty {
+  @apply shrink-0 rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs text-slate-500;
 }
 
 /*
@@ -2707,17 +3258,10 @@ html[data-theme="dark"] .card:focus-within {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-html[data-theme="dark"] .nav-paper {
-  background: color-mix(in srgb, var(--color-background) 86%, transparent);
-  -webkit-backdrop-filter: blur(42px) saturate(106%) brightness(105%);
-  backdrop-filter: blur(42px) saturate(106%) brightness(105%);
-}
 
 html[data-theme="dark"] .nav-open-header {
   background: color-mix(in srgb, var(--glass-fill) 45%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 45%, transparent),
-    0 1px 2px color-mix(in srgb, var(--glass-shadow) 45%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 45%, transparent);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -2823,50 +3367,36 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
   backdrop-filter: blur(24px) saturate(105%) brightness(106%);
 }
 
-/* ---------------------------------------------------------------------------
-   Adaptive background reflection
-
-   Every card/window already samples the real page pixels with backdrop-filter.
-   The delegated PointerAttraction engine adds this directional specular wash
-   to only the one visible surface beneath a fine pointer. It changes two CSS
-   variables at most ~30 times per second; all other and off-screen cards stay
-   compositor-only and receive no JavaScript work. This is a background layer,
-   not another element, so popovers may extend beyond their parent cards and no
-   extra outline/window can appear around them.
---------------------------------------------------------------------------- */
-.card[data-glass-reflecting],
-.liquid-glass[data-glass-reflecting],
-.premade-glass[data-glass-reflecting] {
-  background-image:
-    radial-gradient(
-      ellipse 72% 62% at var(--glass-reflection-x, 50%) var(--glass-reflection-y, 0%),
-      color-mix(in srgb, var(--glass-specular) 38%, transparent) 0%,
-      color-mix(in srgb, var(--glass-highlight) 13%, transparent) 34%,
-      transparent 72%
-    ),
-    linear-gradient(
-      118deg,
-      color-mix(in srgb, var(--glass-highlight) 8%, transparent),
-      transparent 42%,
-      color-mix(in srgb, var(--glass-edge-dark) 5%, transparent)
-    );
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-}
-
-/* Coarse pointers do not have a persistent cursor to drive a reflection.
-   Phones keep real backdrop sampling at a lower blur radius, while the SVG
-   displacement and JS highlight remain off. This materially lowers fill-rate
-   and battery use without replacing glass with an opaque card. */
+/* Touch devices keep ordinary backdrop sampling, but at a smaller radius to
+   control fill-rate while scrolling. This is independent of cursor behaviour:
+   the live lens itself is activated only on capable desktop hardware. */
 @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   body {
-    --glass-blur: 16px;
+    --glass-blur: 12px;
   }
 
-  .card[data-glass-reflecting],
-  .liquid-glass[data-glass-reflecting],
-  .premade-glass[data-glass-reflecting] {
-    background-image: none;
+}
+
+/*
+  The nav list is the one glass surface the touch fallback above visibly
+  undershoots: touch devices are also where Safari lives, and Safari can
+  never run the live SVG lens above at all — WebKit doesn't implement a
+  url() filter stage inside backdrop-filter, which no amount of extra
+  processing power changes. Everything else CSS can do is pushed as far as
+  it goes to make up for the missing lens instead: a heavier blur than
+  even the desktop base radius, plus the same saturate/brightness/contrast
+  recipe the live-refraction path uses, so the two read as close to the
+  same intensity as a plain backdrop-filter can get.
+
+  Scoped to (hover: none), (pointer: coarse) only, deliberately separate
+  from the performance-safety query above — a person who has asked for
+  reduced motion or reduced transparency should not get a heavier, more
+  processed surface pushed at them in the name of matching desktop.
+*/
+@media (hover: none), (pointer: coarse) {
+  .nav-menu-group::before {
+    -webkit-backdrop-filter: blur(14px) saturate(115%) brightness(104%) contrast(102%);
+    backdrop-filter: blur(14px) saturate(115%) brightness(104%) contrast(102%);
   }
 }
 
@@ -2884,15 +3414,12 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
    the experiment in the tree while the decision is still open on whether the
    look belongs in production.
 
-   The rim it adds is not a new interaction. It reads the same
-   --glass-reflection-x/--glass-reflection-y custom properties that the
-   delegated PointerAttraction engine already writes on the parent glass
-   surface for the adaptive background reflection above, so turning this on
-   costs no new listener and no new JavaScript — only extra paint work on the
-   one surface a fine pointer already happens to be over. And like every other
-   refractive layer this is aria-hidden and pointer-events: none, so it moves
-   no semantic content: the button or tab underneath keeps exactly the label,
-   link and focus outline it already had.
+   The rim is a static material response to the page's light direction. It has
+   no pointer listener or animation loop: the live SVG backdrop filter does
+   the dynamic work as real website content moves behind the pane. And like
+   every other refractive layer this is aria-hidden and pointer-events: none,
+   so it moves no semantic content: the button or tab underneath keeps exactly
+   the label, link and focus outline it already had.
 --------------------------------------------------------------------------- */
 /* The rim needs a strength of its own. --glass-specular is tuned to be a fill
    tint — 0.18 alpha in dark — so a 1px ring mixed from it is invisible at any
@@ -2943,13 +3470,13 @@ html[data-theme="dark"] .refractive-glass-layer[data-optics="enhanced"] {
   padding: 1.25px;
   background:
     radial-gradient(
-      circle at var(--glass-reflection-x, 50%) var(--glass-reflection-y, 0%),
+      circle at 50% 0%,
       var(--glass-rim-lit) 0%,
       color-mix(in srgb, var(--glass-rim-lit) 45%, transparent) 24%,
       transparent 56%
     ),
     radial-gradient(
-      circle at calc(100% - var(--glass-reflection-x, 50%)) calc(100% - var(--glass-reflection-y, 0%)),
+      circle at 50% 100%,
       var(--glass-rim-shade) 0%,
       transparent 52%
     );
@@ -3027,3 +3554,218 @@ html[data-theme="dark"] body[data-glass-lab] {
 .lookup-selection-pill {
   translate: -50% calc(-100% - 0.5rem);
 }
+
+/* ---------------------------------------------------------------------------
+   Light canvas theme
+
+   The Light picker gives learners a white canvas with neutral-grey interactive
+   surfaces. Warm intentionally keeps its original cream paper and clay glass;
+   Dark remains its graphite low-light environment.
+--------------------------------------------------------------------------- */
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --wash-one: transparent;
+  --wash-two: transparent;
+  background-color: #ffffff;
+}
+
+html[data-theme="light"] body {
+  --glass-fill: rgba(255, 255, 255, 0.42);
+  --glass-fill-strong: rgba(255, 255, 255, 0.68);
+  --glass-edge: rgba(22, 23, 26, 0.09);
+  --glass-highlight: rgba(255, 255, 255, 0.98);
+  --glass-edge-dark: rgba(22, 23, 26, 0.07);
+  --glass-specular: rgba(22, 23, 26, 0.14);
+  --glass-shadow: rgba(22, 23, 26, 0.07);
+  --app-icon-color: var(--color-slate-700);
+  background: #ffffff;
+  color: var(--color-foreground);
+}
+
+html[data-theme="light"] body[data-glass-lab] {
+  background-image: none;
+}
+
+/* Light primary controls use the same neutral-grey family as its cards. */
+html[data-theme="light"] .btn-primary {
+  color: var(--color-accent-fg);
+  border-color: color-mix(in srgb, var(--color-indigo-700) 56%, transparent);
+  background: var(--color-indigo-600);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 28%, transparent),
+    0 5px 14px color-mix(in srgb, var(--color-indigo-700) 20%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html[data-theme="light"] .btn-primary:hover:not(:disabled) {
+  border-color: var(--color-indigo-800);
+  background: var(--color-indigo-700);
+}
+
+/* Light keeps every surface a quiet grey instead of leaving its controls or
+   clickable cards blue. The page itself stays pure white, preserving the
+   distinction between content canvas and something a learner can press. */
+html[data-theme="light"] .liquid-glass,
+html[data-theme="light"] .card,
+html[data-theme="light"] .premade-glass,
+html[data-theme="light"] .btn-secondary,
+html[data-theme="light"] .theme-toggle-base,
+html[data-theme="light"] .interval-toggle-base,
+html[data-theme="light"] .notification-filter-base,
+html[data-theme="light"] .panel-toggle-base,
+html[data-theme="light"] .organization-view-tabs,
+html[data-theme="light"] .nav-open-header,
+html[data-theme="light"] .input {
+  border-color: var(--color-indigo-300);
+  background: color-mix(in srgb, var(--color-indigo-100) 46%, transparent);
+}
+
+/* Keep the inbox at the card optical index in Light as well. The generic
+   light interactive-surface rule is intentionally stronger for buttons, but
+   would otherwise turn this floating glass into a flat grey rectangle. */
+html[data-theme="light"] .liquid-glass.notification-popover {
+  background-color: color-mix(in srgb, var(--color-surface) 9%, transparent);
+  background-image:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--glass-specular) 14%, transparent),
+      transparent
+    );
+  -webkit-backdrop-filter: blur(2px) saturate(106%) brightness(102%);
+  backdrop-filter: blur(2px) saturate(106%) brightness(102%);
+}
+
+html[data-theme="light"] a.card.card:hover,
+html[data-theme="light"] .card:focus-within,
+html[data-theme="light"] .liquid-glass:focus-within,
+html[data-theme="light"] .btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-indigo-400);
+  background: color-mix(in srgb, var(--color-indigo-200) 58%, transparent);
+}
+
+html[data-theme="light"] .theme-toggle-selector,
+html[data-theme="light"] .interval-toggle-selector,
+html[data-theme="light"] .notification-filter-selector,
+html[data-theme="light"] .panel-toggle-selector,
+html[data-theme="light"] .organization-view-selector,
+html[data-theme="light"] .speaking-engine-selector,
+html[data-theme="light"] .nav-primary-selector,
+html[data-theme="light"] .nav-menu-selector {
+  border-color: var(--color-indigo-400);
+  background: var(--color-indigo-200);
+}
+
+html[data-theme="dark"] .liquid-glass,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .premade-glass,
+html[data-theme="dark"] .nav-open-header::before,
+html[data-theme="dark"] .theme-toggle-base,
+html[data-theme="dark"] .interval-toggle-base,
+html[data-theme="dark"] .notification-filter-base,
+html[data-theme="dark"] .panel-toggle-base,
+html[data-theme="dark"] .organization-view-tabs,
+html[data-theme="dark"] .btn-secondary,
+html[data-theme="dark"] .input {
+  border-color: var(--glass-edge);
+  background: var(--glass-fill);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 3px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(104%) brightness(102%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(104%) brightness(102%);
+}
+
+/*
+  .nav-paper also carries the .premade-glass class (shared layout styling
+  unrelated to this), which the generic light/dark theme rules above (and
+  another at the top of this file) paint with a real background colour.
+  Equal-specificity selectors resolve by source order, so this, placed
+  after all three, is what actually keeps the sheet transparent in every
+  theme rather than only the default one this was verified against.
+*/
+html[data-theme="light"] .nav-paper,
+html[data-theme="dark"] .nav-paper {
+  background: transparent;
+}
+
+html[data-theme="dark"] .theme-toggle-selector,
+html[data-theme="dark"] .interval-toggle-selector,
+html[data-theme="dark"] .notification-filter-selector,
+html[data-theme="dark"] .panel-toggle-selector,
+html[data-theme="dark"] .organization-view-selector,
+html[data-theme="dark"] .speaking-engine-selector,
+html[data-theme="dark"] .nav-primary-selector,
+html[data-theme="dark"] .nav-menu-selector {
+  border-color: color-mix(in srgb, var(--color-indigo-500) 34%, var(--glass-edge));
+  background: color-mix(in srgb, var(--color-indigo-100) 76%, white);
+}
+
+html[data-theme="dark"] .notification-row-copy {
+  color: var(--color-slate-800);
+}
+
+html[data-theme="dark"] .notification-row-meta {
+  color: var(--color-slate-600);
+}
+
+html[data-theme="dark"] .notification-attention {
+  border-color: var(--color-slate-300);
+  background: var(--color-slate-100);
+  color: var(--color-slate-800);
+}
+
+html[data-theme="dark"] .notification-action {
+  color: var(--color-indigo-700);
+}
+
+html[data-theme="dark"] .heading-rule::after {
+  background: var(--color-slate-300);
+}
+
+html[data-theme="dark"] [data-exam] .card,
+html[data-theme="dark"] [data-exam] .exam-pane,
+html[data-theme="dark"] [data-exam] .exam-glass,
+html[data-theme="dark"] [data-exam] .exam-settings-trigger,
+html[data-theme="dark"] [data-exam] .exam-settings-popover {
+  border-color: var(--glass-edge);
+  background: var(--glass-fill-strong);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 1px 3px var(--glass-shadow);
+}
+
+/* ---------------------------------------------------------------------------
+   Live refraction (Chromium)
+
+   This deliberately comes last. Theme and page recipes above tune the ordinary
+   glass treatment, but a later backdrop-filter declaration silently turns a
+   real lens back into a vague frost. The SVG map has a neutral centre and a
+   broad curved bezel, so Chromium bends the live backdrop at the rim instead
+   of merely lowering its opacity.
+
+   The blur stays small: strong frosting hides the shapes and lettering that
+   make the refraction believable in the first place.
+--------------------------------------------------------------------------- */
+html[data-live-glass-refraction] .liquid-glass:not(.nav-menu-group),
+html[data-live-glass-refraction] .card,
+html[data-live-glass-refraction] .card.card,
+html[data-live-glass-refraction] .premade-glass {
+  /* .nav-menu-group is excluded: it carries its own dedicated live-lens
+     material on ::before (see html[data-glass-lens-split] above), which
+     also runs on Safari. Matching it here too would stack this combined,
+     Chromium-only blur+lens directly on top of that. */
+  backdrop-filter:
+    blur(8px)
+    saturate(115%)
+    brightness(104%)
+    contrast(102%)
+    url("#bandup-live-glass-refraction");
+}
+
+/*
+  .nav-menu-group's own live lens no longer uses this combined, Chromium-only
+  syntax at all — see html[data-glass-lens-split] .nav-menu-group::before
+  above, which runs on Safari too and would otherwise double up with this
+  rule if it also matched the bare .nav-menu-group element.
+*/

@@ -51,7 +51,8 @@ export default function CloudflareSettingsParity() {
             This does not claim that learner, billing or metering migration is complete.
           </p>
         </div>
-        {report?.mode === "dual" && !report.readyForAppSettingsCutover && (
+        {(report?.mode === "dual" || report?.mode === "read_cloudflare")
+          && !report.readyForAppSettingsCutover && (
           <button type="button" className="btn-secondary min-h-9 !px-3 text-xs" disabled={busy} onClick={repair}>
             {busy ? <LoadingIndicator label="Reconciling…" announce={false} /> : "Reconcile copy"}
           </button>

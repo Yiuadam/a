@@ -338,5 +338,10 @@ test("the admin UI states effective access and synced-history boundaries honestl
   const detailRoute = readFileSync(join(process.cwd(), "app", "api", "admin", "users", "[id]", "route.ts"), "utf8");
   assert.match(detailRoute, /getLearnerProgressSnapshots/);
   assert.match(detailRoute, /adminProgressFromSnapshots/);
-  assert.match(detailRoute, /cloudflareDataMode\(\) === "cloudflare"/);
+  // Which store adminProgressFromSnapshots is told the snapshots came from
+  // must track the same read question getLearnerProgressSnapshots() itself
+  // asks — readsFromCloudflare(), which is also true in read_cloudflare —
+  // not a re-derived "=== \"cloudflare\"" that would miss that mode.
+  assert.match(detailRoute, /adminProgressFromSnapshots\(\s*\n[\s\S]{0,300}readsFromCloudflare\(\),\s*\n\s*\);/);
+  assert.doesNotMatch(detailRoute, /cloudflareDataMode\(\) === "cloudflare"/);
 });

@@ -1,6 +1,6 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { accountsEnabled, usageFailOpen } from "@/lib/auth/env";
-import { supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { resolveEntitlement, ANONYMOUS_ENTITLEMENT } from "./entitlements";
@@ -78,7 +78,7 @@ export interface FeatureDecision {
  */
 export async function checkFeature(req: Request, feature: Feature): Promise<FeatureDecision> {
   assertServerOnly(MODULE);
-  if (!accountsEnabled() || !supabaseConfigured()) return { allowed: true, tier: null };
+  if (!accountsEnabled() || !accountRuntimeEnabled()) return { allowed: true, tier: null };
 
   const user = await getSessionUser(req);
   const entitlement = user ? await resolveEntitlement(user.id, user.email) : ANONYMOUS_ENTITLEMENT;

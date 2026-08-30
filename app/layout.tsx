@@ -8,8 +8,10 @@ import AppMain from "@/components/AppMain";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import PointerAttraction from "@/components/PointerAttraction";
+import GlassRefractionFilter from "@/components/GlassRefractionFilter";
 import { GLASS_LAB } from "@/lib/glass-lab";
 import AccountProfileProvider from "@/components/account/AccountProfileProvider";
+import NativeSessionUpgrade from "@/components/account/NativeSessionUpgrade";
 import RequiredAccountGate from "@/components/account/RequiredAccountGate";
 import { MAINTENANCE_MODE } from "@/lib/maintenance";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -110,6 +112,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         rather than as an empty one.
       */}
       <body className="flex min-h-dvh flex-col" data-glass-lab={GLASS_LAB ? "" : undefined}>
+        <GlassRefractionFilter />
         {/*
           Closed for maintenance: the app is replaced rather than covered.
 
@@ -131,6 +134,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <MaintenanceGate closed={closed}>
         <AccountProfileProvider>
         <>
+        <NativeSessionUpgrade />
         <SiteHeader
           isolatedOrganizationPreview={process.env.ORGANIZATION_UI_PREVIEW === "1"}
         />

@@ -61,6 +61,12 @@
       "bucket_name": "bandup-files-production"
     }
   ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["accounts@bandup.life"]
+    }
+  ],
   "ai": {
     "binding": "AI"
   },
@@ -144,10 +150,38 @@
       the working one down with it, which is exactly how #122 broke Alipay.
     */
     "STRIPE_WALLET_METHODS": "alipay,wechat_pay",
-    // Supabase Auth and application-data reads remain authoritative while
-    // every committed learner/profile/progress/billing write is mirrored to
-    // D1/R2. Cut reads over only after the migration verifier proves parity.
-    "CLOUDFLARE_DATA_MODE": "dual",
-    "ORGANIZATION_DATA_MODE": "cloudflare"
+    // Flipped to "cloudflare" — the one-way write-authority step — only once
+    // all nine of the ten cutover-domain registry entries that can be proven
+    // statically were (lib/cloudflare/cutover-domains.ts), and only as the
+    // owner's explicit, named request, per the working agreement in
+    // CLAUDE.md. The tenth, `cutover_write_barrier`, cannot be a static
+    // flag — it is live D1 state, and this deploy is only valid alongside
+    // arming it.
+    //
+    // THIS PR MUST NOT MERGE ON ITS OWN. Every Supabase learner writer
+    // (lib/auth/supabase.ts) checks cutoverWriteBarrierArmed("learner") and
+    // refuses immediately once armed, regardless of what this value says —
+    // but the app only reroutes those writes to D1 once this value already
+    // reads "cloudflare". Arming the barrier before this deploys, or
+    // deploying this long before arming the barrier, both mean a real
+    // window where every learner write fails. Arm the barrier via
+    // POST /api/admin/cloudflare/write-barrier { domain: "learner", confirm:
+    // true }, then merge and deploy this immediately after — not before, not
+    // with delay after.
+    //
+    // Prior state: "read_cloudflare" since 2026-08-23 (see the pull requests
+    // that flipped it, reverted it after AVATAR_URL_SIGNING_KEY turned out
+    // to be unset, and re-flipped it once that was fixed).
+    "CLOUDFLARE_DATA_MODE": "cloudflare",
+    "ORGANIZATION_DATA_MODE": "cloudflare",
+    // Native Cloudflare identity is active after its D1 mappings and password
+    // evidence were verified. Existing browser sessions migrate silently.
+    "CLOUDFLARE_NATIVE_AUTH": "1",
+    // Explicitly separate from learner-data authority. The native writer is
+    // armed only after production subscription, event-payload and prepaid
+    // ledger parity has passed; it writes verified Stripe events directly to
+    // D1 while the completed learner barrier seals the legacy writer.
+    "CLOUDFLARE_NATIVE_STRIPE_BILLING": "1",
+    "GOOGLE_OAUTH_APP_ORIGIN": "https://bandup.life"
   }
 }

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Folio glass — layer 3, front sheet with ruled cut-outs</title>
+  <!--
+    The page itself, with the ruled lines cut out of it rather than drawn on
+    top — which is the thing that makes this design what it is, and also the
+    single most at-risk detail under Liquid Glass.
+
+    Apple's guidance is explicit that narrow areas go "complex and pillowy"
+    under the material and that thin lines should be avoided in favour of
+    bolder weights. The cut-outs are therefore widened from 26 units to 40 —
+    still a hairline at 32px, but 54% more of one. If they still pillow in
+    Icon Composer, use the fallback pair (03b + 04b) instead; see README.md.
+
+    Flat fill, no drop shadow, no bevel. The flat icon paints a shadow under
+    this shape; that has been removed, because the system draws a per-layer
+    shadow and two shadows read as a smudge.
+  -->
+  <path
+    transform="rotate(4 512 560)"
+    fill="#f6ede0"
+    fill-rule="evenodd"
+    d="M 254 866 L 254 700 L 370 700 L 370 604 L 486 604 L 486 496
+       L 602 496 L 602 384 L 718 384 L 718 254 L 794 254 L 794 866 Z
+       M 304 684 H 688 A 20 20 0 0 1 688 724 H 304 A 20 20 0 0 1 304 684 Z
+       M 304 754 H 570 A 20 20 0 0 1 570 794 H 304 A 20 20 0 0 1 304 754 Z"
+  />
+</svg>

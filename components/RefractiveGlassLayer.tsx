@@ -15,11 +15,10 @@ const LiquidGlass = dynamic(() => import("liquid-glass-react"), { ssr: false });
 const STILL_POINTER = { x: 0, y: 0 };
 
 /**
- * A visual-only displacement layer. It deliberately owns no pointer listener
- * or React state: PointerAttraction delegates one listener for the entire app
- * and paints the one surface currently under a fine pointer. That avoids one
- * render loop per glass control while keeping these opt-in SVG lenses as the
- * higher-detail layer over the shared CSS backdrop glass.
+ * A visual-only displacement layer. It deliberately owns no pointer listener,
+ * React state, or render loop. The browser's backdrop compositor updates it
+ * when real page content moves behind the pane, keeping the lens connected to
+ * the website rather than to cursor position.
  */
 export default function RefractiveGlassLayer({
   radius = 32,
@@ -35,10 +34,8 @@ export default function RefractiveGlassLayer({
     lab CSS out of a build that never opted in: a caller may request the
     enhanced treatment freely, but resolveOptics only lets it through to the
     DOM as a data-optics attribute when NEXT_PUBLIC_GLASS_LAB was "1" at build
-    time. The rules that key off that attribute are themselves pure CSS — no
-    JavaScript ships for them and no extra pointer listener is installed; the
-    existing delegated PointerAttraction engine already supplies the
-    reflection coordinates they read.
+    time. The rules that key off that attribute are pure CSS, so the optional
+    rim adds no listener or animation work.
   */
   const resolved = resolveOptics(optics);
   return (

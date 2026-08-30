@@ -1,10 +1,15 @@
 import { assertServerOnly } from "./server-only";
 import { supabaseConfig } from "./env";
 import { readAccountKind } from "./account-identity";
+import { setSupabaseServiceHeaders } from "./supabase-service-key.mjs";
+import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
 import type {
   ProgressSnapshotExpectation,
   ProgressSnapshotMutation,
 } from "@/lib/progress/server-snapshots";
+/* Type-only, so nothing from the billing lane is imported at runtime and the
+   dependency stays one-way: billing reads this file, not the other way round. */
+import type { AccessGrant } from "@/lib/billing/access";
 
 /*
   A deliberately small Supabase client.
@@ -18,6 +23,28 @@ import type {
 
   The service role bypasses Row Level Security. Everything in this file is
   therefore load-bearing for security, and everything in it is server-only.
+
+  ---------------------------------------------------------------------------
+  Cutover write barrier
+
+  Once an owner arms lib/cloudflare/write-barrier.ts's "learner" barrier,
+  every write below refuses rather than reaching Supabase — see that file for
+  why a D1-durable barrier, not an environment variable, is what closes a
+  Workers deploy's split-brain window. Each guarded function checks it first
+  and returns its own ordinary failure value, matching how every other
+  failure in that function is already reported; nothing here invents a new
+  shape a caller has to learn.
+
+  Supabase Auth (every call to `/auth/v1/*` — sendMagicLink,
+  enabledOAuthProviders, refreshAccessToken, signInWithPassword,
+  signInWithGoogleIdToken, signUpWithPassword, userFromAccessToken, and the
+  admin-user calls inside deleteAccount/supabaseAuthUserState) is exempt on
+  purpose and deliberately never checks the barrier. The disabled native
+  Google seam is additive; password, recovery, Apple and the mobile Google
+  navigation path remain Supabase compatibility flows until their own identity
+  migrations exist. Gating any of those existing calls here would only lock a
+  learner out during a data cutover. Do not "fix" that by adding a barrier
+  check to any of them.
 */
 
 const MODULE = "lib/auth/supabase.ts";
@@ -39,13 +66,14 @@ async function request(
 
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
-  // PostgREST and GoTrue both require the anon key as `apikey`; the bearer
-  // decides what the request is actually allowed to do.
-  headers.set("apikey", init.asServiceRole ? config.serviceRoleKey : config.anonKey);
-  headers.set(
-    "Authorization",
-    `Bearer ${init.asServiceRole ? config.serviceRoleKey : (init.bearer ?? config.anonKey)}`,
-  );
+  if (init.asServiceRole) {
+    setSupabaseServiceHeaders(headers, config.serviceRoleKey);
+  } else {
+    // GoTrue expects the public key as `apikey`; a user bearer token, when
+    // supplied, carries the caller's actual identity.
+    headers.set("apikey", config.anonKey);
+    headers.set("Authorization", `Bearer ${init.bearer ?? config.anonKey}`);
+  }
 
   // A hung Supabase must not hold an AI route open until its own timeout.
   const abort = AbortSignal.timeout(8000);
@@ -305,6 +333,7 @@ export async function updateProfile(
   if ("avatarPath" in fields) patch.avatar_path = fields.avatarPath;
   if ("accountKind" in fields) patch.account_kind = fields.accountKind;
   if (Object.keys(patch).length === 0) return true;
+  if (await cutoverWriteBarrierArmed("learner")) return false;
 
   try {
     const res = await request(`/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`, {
@@ -335,6 +364,11 @@ export async function setAccountIdentity(
   accountKind: import("./account-identity").AccountKind,
   birthDate: string | null,
 ): Promise<AccountIdentityStatus> {
+  // Every caller of this function already wraps it in a try/catch that turns
+  // a throw into "unavailable" — see lib/cloudflare/data-router.ts.
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new SupabaseError("cutover write barrier is armed for learner writes");
+  }
   return rpc<AccountIdentityStatus>("set_account_identity", {
     p_user_id: userId,
     p_display_name: displayName,
@@ -351,6 +385,11 @@ export async function claimUsername(
   userId: string,
   username: string,
 ): Promise<UsernameClaimStatus> {
+  // Every caller of this function already wraps it in a try/catch that turns
+  // a throw into "unavailable" — see lib/cloudflare/data-router.ts.
+  if (await cutoverWriteBarrierArmed("learner")) {
+    throw new SupabaseError("cutover write barrier is armed for learner writes");
+  }
   return rpc<UsernameClaimStatus>("claim_username", {
     p_user_id: userId,
     p_username: username,
@@ -363,6 +402,50 @@ export async function emailForUsername(username: string): Promise<string | null>
   } catch {
     return null;
   }
+}
+
+/**
+ * The rows that are currently granting an account something, as a fixed read of
+ * five columns and nothing else.
+ *
+ * It exists so that a billing screen can say whether what somebody holds renews
+ * or runs out — a card subscription does the first and a wallet pass the second,
+ * and `resolve_entitlement` returns the same shape for both. lib/billing/access.ts
+ * decides which from these five fields.
+ *
+ * Deliberately not a new database function: adding one means a migration, a
+ * migration cannot be previewed, and every fact needed is already in the row.
+ *
+ * The filter is the granting half of `resolve_entitlement`'s own condition. A row
+ * whose period has already ended is dropped by the caller's date comparison
+ * rather than by a `now()` written into a query string here.
+ *
+ * Never a user id from a request body: the caller has one a bearer token
+ * resolved to.
+ */
+export async function currentAccessGrants(userId: string): Promise<AccessGrant[]> {
+  if (!isUuid(userId)) return [];
+  const res = await request(
+    `/rest/v1/subscriptions?user_id=eq.${userId}&status=in.(active,trialing)` +
+      "&select=provider,tier,external_price_id,current_period_end,cancel_at_period_end" +
+      "&limit=50",
+    { method: "GET", asServiceRole: true },
+  );
+  if (!res.ok) throw new SupabaseError(`subscription lookup failed with ${res.status}`);
+  const rows = (await res.json()) as unknown;
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => {
+    const record = row as Record<string, unknown>;
+    const text = (value: unknown) =>
+      typeof value === "string" && value.length > 0 ? value : null;
+    return {
+      provider: text(record.provider) ?? "",
+      tier: text(record.tier) ?? "",
+      priceId: text(record.external_price_id),
+      currentPeriodEnd: text(record.current_period_end),
+      cancelAtPeriodEnd: record.cancel_at_period_end === true,
+    };
+  });
 }
 
 export interface StripeSubscriptionReplica {
@@ -524,20 +607,173 @@ export async function promoProviderAllowed(): Promise<boolean> {
   }
 }
 
-/** Whether this account already holds a promo row. */
-export async function promoSubscriptionExists(userId: string): Promise<boolean> {
-  if (!isUuid(userId)) return false;
+/*
+  ---------------------------------------------------------------------------
+  Giving the trial up, and the one status that says who did it
+
+  A learner may hand the trial back, and if they change their mind the offer
+  comes back. That only works if "the learner set it down" and "the owner
+  withdrew the trial" are different marks on the row, because the second must
+  never turn back into an offer. Both used to be `status = 'canceled'`.
+
+  So a released grant is `status = 'paused'`, and the column is the status
+  itself for four reasons:
+
+    * it needs nothing new. `subscriptions_status_check` in
+      supabase/migrations/0001 already permits 'paused', so this ships without a
+      migration and without a second thing for the owner to run;
+    * it does not grant. `resolve_entitlement` counts only 'active' and
+      'trialing', so a paused row leaves the account on the free plan the
+      moment it is written, with no other code consulted;
+    * it is true. The row is intact and can be made active again, which is what
+      a paused subscription is. 'expired' would claim a period ended and a promo
+      row has no period; 'refunded' would claim money moved and none did;
+      `cancel_at_period_end` would claim a period end there isn't; and 'canceled'
+      is the one value that has to keep meaning "over for good", because that is
+      what the owner's sweep writes;
+    * it keeps the record. Deleting the row instead would leave a released
+      account indistinguishable from one that never accepted — so after the
+      owner ended the trial, that account could take out a *fresh* grant and
+      quietly undo their decision. A paused row cannot: see
+      `resumePromoSubscription`, which will only ever revive a paused row.
+
+  The consequence for the owner is one word in their SQL, and it is written out
+  in the pull request: the sweep that ends the trial for everybody has to reach
+  released rows as well as live ones —
+
+    update public.subscriptions set status = 'canceled', updated_at = now()
+     where provider = 'promo' and status in ('active', 'paused');
+
+  `updated_at` is left to `subscriptions_touch_updated_at` (0001) in the writes
+  below, which sets it on every update; naming it here as well would only give
+  the trigger something to overwrite.
+*/
+const PROMO_RELEASED_STATUS = "paused";
+
+/** What this account's promo rows say, in the only terms this feature needs. */
+export type PromoRowState =
+  /** No promo row: never offered, or never answered. */
+  | "none"
+  /** A row that still grants Pro. */
+  | "holding"
+  /** The learner handed it back. The offer may be made again. */
+  | "released"
+  /** Over, by the owner's decision. The offer must never be made again. */
+  | "ended";
+
+/**
+ * Reads this account's promo rows and reduces them to one answer.
+ *
+ * Nothing stops an account holding two promo rows — a retried accept in the
+ * wrong millisecond would do it — so every row is read and the *least*
+ * generous conclusion wins: one 'canceled' row anywhere means ended, whatever
+ * else is there. The safe direction for a disagreement is the one that does not
+ * hand out an entitlement the owner withdrew.
+ */
+export async function promoSubscriptionState(userId: string): Promise<PromoRowState> {
+  if (!isUuid(userId)) return "none";
   const res = await request(
     `/rest/v1/subscriptions?user_id=eq.${userId}&provider=eq.${PROMO_PROVIDER}` +
-      "&select=id&limit=1",
+      "&select=status",
     { method: "GET", asServiceRole: true },
   );
   if (!res.ok) throw new SupabaseError(`promo lookup failed with ${res.status}`);
   const rows = (await res.json()) as unknown;
-  return Array.isArray(rows) && rows.length > 0;
+  if (!Array.isArray(rows) || rows.length === 0) return "none";
+
+  const statuses = rows.map((row) => (row as { status?: unknown }).status);
+  if (statuses.some((s) => s !== "active" && s !== "trialing" && s !== PROMO_RELEASED_STATUS)) {
+    return "ended";
+  }
+  if (statuses.some((s) => s === "active" || s === "trialing")) return "holding";
+  return "released";
 }
 
-export type PromoInsertOutcome = "inserted" | "exists" | "unsupported" | "failed";
+export type PromoUpdateOutcome =
+  /** The row moved. */
+  | "changed"
+  /** No row was in the status this update requires. Nothing was written. */
+  | "no-match"
+  /** A CHECK refused it — the provider widening has been rolled back. */
+  | "unsupported"
+  | "failed";
+
+/**
+ * Records the update, or says why not, without letting PostgREST's words out.
+ *
+ * `return=representation` is what makes "no row matched" distinguishable from
+ * "one row moved": both are a 200, and the difference is the length of the
+ * array. That is the whole point of writing these as conditional updates — the
+ * WHERE carries the policy, so two requests racing cannot both win.
+ */
+async function promoStatusUpdate(
+  query: string,
+  body: Record<string, unknown>,
+): Promise<PromoUpdateOutcome> {
+  try {
+    const res = await request(query, {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(body),
+      asServiceRole: true,
+    });
+    if (res.ok) {
+      const rows = (await res.json()) as unknown;
+      return Array.isArray(rows) && rows.length > 0 ? "changed" : "no-match";
+    }
+    const failure = await failureFrom(res);
+    if (failure.code === "23514" || /subscriptions_\w+_check/.test(failure.message)) {
+      return "unsupported";
+    }
+    return "failed";
+  } catch {
+    return "failed";
+  }
+}
+
+/**
+ * Hands the trial back: a live promo row becomes paused, so the account is on
+ * the free plan again and the offer may be made to it again.
+ *
+ * Postgres re-checks a row's constraints on update, `provider` included, so
+ * this reports `unsupported` if the provider widening has been rolled back
+ * under a grant that is still standing.
+ */
+export function releasePromoSubscription(userId: string): Promise<PromoUpdateOutcome> {
+  if (!isUuid(userId)) return Promise.resolve("failed");
+  return promoStatusUpdate(
+    `/rest/v1/subscriptions?user_id=eq.${userId}&provider=eq.${PROMO_PROVIDER}` +
+      "&status=in.(active,trialing)",
+    { status: PROMO_RELEASED_STATUS },
+  );
+}
+
+/**
+ * Starts a released trial again.
+ *
+ * Only a paused row is touched. If the owner has ended the trial in the
+ * meantime the row is 'canceled', nothing matches, and the answer is `no-match`
+ * — which the caller turns into "the trial has ended" rather than into a second
+ * grant. The whole reversibility rule lives in that WHERE clause.
+ */
+export function resumePromoSubscription(userId: string): Promise<PromoUpdateOutcome> {
+  if (!isUuid(userId)) return Promise.resolve("failed");
+  return promoStatusUpdate(
+    `/rest/v1/subscriptions?user_id=eq.${userId}&provider=eq.${PROMO_PROVIDER}` +
+      `&status=eq.${PROMO_RELEASED_STATUS}`,
+    {
+      status: "active",
+      /*
+        `raw` says when the grant that is standing now began, so it is rewritten
+        rather than left describing a trial that was handed back. The status is
+        the record of whose decision the row is in; this is the record of when.
+      */
+      raw: { kind: "free-pro-trial", acceptedAt: new Date().toISOString(), restarted: true },
+    },
+  );
+}
+
+export type PromoInsertOutcome = "inserted" | "exists" | "unsupported" | "failed" | "barred";
 
 /**
  * Writes the promo row: Pro, active, with no period end, so
@@ -545,9 +781,15 @@ export type PromoInsertOutcome = "inserted" | "exists" | "unsupported" | "failed
  *
  * `unsupported` is the honest answer when the provider check has not been
  * widened yet, and the route turns it into a sentence rather than a 500.
+ * `barred` is the same shape of honest answer for a domain the owner has
+ * armed a cutover write barrier for — lib/billing/promo.ts's `acceptPromo`
+ * does not special-case it, so it falls through to exactly the same
+ * `PROMO_MESSAGES.failed` sentence as `unsupported` does; the distinct value
+ * exists only so a server log can tell the two apart.
  */
 export async function insertPromoSubscription(userId: string): Promise<PromoInsertOutcome> {
   if (!isUuid(userId)) return "failed";
+  if (await cutoverWriteBarrierArmed("learner")) return "barred";
   try {
     const res = await request("/rest/v1/subscriptions", {
       method: "POST",
@@ -578,6 +820,67 @@ export async function insertPromoSubscription(userId: string): Promise<PromoInse
   }
 }
 
+export interface PromoSubscriptionReplica {
+  id: string;
+  userId: string;
+  status: string;
+  tier: string;
+  currentPeriodEnd: string | null;
+  raw: unknown;
+  verifiedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Fixed service-role read of a promo row, in the same spirit as
+ * `stripeSubscriptionReplica` above: the insert above asks Postgres to fill in
+ * `id`, `verified_at`, `created_at` and `updated_at` by default, so mirroring
+ * the row into D1 needs a read of what Postgres actually wrote rather than a
+ * guess reconstructed from what this file happened to send.
+ *
+ * Reads by `(user_id, provider)` rather than by id, because every caller of
+ * this — accepting the trial, and later reconciling it — already knows which
+ * account it means and not yet which row id Postgres assigned it. A promo row
+ * is unique per account by construction (`insertPromoSubscription` reports
+ * `exists` rather than writing a second one), so `limit=1` is not a guess
+ * about which row matters, it is the only row there is.
+ */
+export async function promoSubscriptionReplica(
+  userId: string,
+): Promise<PromoSubscriptionReplica | null> {
+  if (!isUuid(userId)) return null;
+  try {
+    const res = await request(
+      `/rest/v1/subscriptions?user_id=eq.${userId}&provider=eq.${PROMO_PROVIDER}` +
+        "&select=id,user_id,status,tier,current_period_end,raw,verified_at,created_at,updated_at" +
+        "&order=created_at.desc&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Record<string, unknown>[];
+    const row = Array.isArray(rows) ? rows[0] : null;
+    const required = [row?.id, row?.user_id, row?.status, row?.tier, row?.verified_at, row?.created_at, row?.updated_at];
+    if (!row || required.some((value) => typeof value !== "string" || value.length === 0)) {
+      return null;
+    }
+    const optional = (value: unknown) => typeof value === "string" && value.length > 0 ? value : null;
+    return {
+      id: row.id as string,
+      userId: row.user_id as string,
+      status: row.status as string,
+      tier: row.tier as string,
+      currentPeriodEnd: optional(row.current_period_end),
+      raw: row.raw,
+      verifiedAt: row.verified_at as string,
+      createdAt: row.created_at as string,
+      updatedAt: row.updated_at as string,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Stores an avatar. `path` is always inside the caller's own folder. */
 export async function uploadAvatar(
   path: string,
@@ -586,19 +889,20 @@ export async function uploadAvatar(
 ): Promise<boolean> {
   const config = supabaseConfig();
   if (!config) return false;
+  if (await cutoverWriteBarrierArmed("learner")) return false;
   try {
+    const headers = new Headers({
+      "Content-Type": contentType,
+      // Every upload gets a new random path, so this object is immutable.
+      // Let the browser/CDN reuse it instead of downloading the avatar again
+      // on every page while its signed URL remains valid.
+      "Cache-Control": "max-age=31536000, immutable",
+      "x-upsert": "true",
+    });
+    setSupabaseServiceHeaders(headers, config.serviceRoleKey);
     const res = await fetch(`${config.url}/storage/v1/object/avatars/${path}`, {
       method: "POST",
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        "Content-Type": contentType,
-        // Every upload gets a new random path, so this object is immutable.
-        // Let the browser/CDN reuse it instead of downloading the avatar again
-        // on every page while its signed URL remains valid.
-        "Cache-Control": "max-age=31536000, immutable",
-        "x-upsert": "true",
-      },
+      headers,
       body,
       signal: AbortSignal.timeout(15000),
     });
@@ -643,15 +947,91 @@ export async function signedAvatarUrl(path: string, expiresIn = 3600): Promise<s
 export async function deleteAvatar(path: string): Promise<boolean> {
   const config = supabaseConfig();
   if (!config) return false;
+  if (await cutoverWriteBarrierArmed("learner")) return false;
   try {
+    const headers = new Headers();
+    setSupabaseServiceHeaders(headers, config.serviceRoleKey);
     const res = await fetch(`${config.url}/storage/v1/object/avatars/${path}`, {
       method: "DELETE",
-      headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}` },
+      headers,
       signal: AbortSignal.timeout(8000),
     });
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+export interface AvatarPathRow {
+  userId: string;
+  avatarPath: string;
+}
+
+/**
+ * Ordered, keyset-paged list of profiles that have a stored avatar.
+ *
+ * Used only by the avatar object-parity report
+ * (lib/cloudflare/avatar-parity.ts) to find every learner with a picture in
+ * Supabase Storage, without reading the picture itself here. `after` is the
+ * last `id` already read; pass `""` for the first page. This is a plain
+ * service-role table read, the same shape `getProfile` and `getAccountKind`
+ * already use — no new Postgres function is needed for it.
+ */
+export async function avatarPathPage(after: string, limit: number): Promise<AvatarPathRow[]> {
+  const params = new URLSearchParams({
+    select: "id,avatar_path",
+    avatar_path: "not.is.null",
+    order: "id",
+    limit: String(limit),
+  });
+  if (after) params.set("id", `gt.${after}`);
+  const res = await request(`/rest/v1/profiles?${params.toString()}`, {
+    method: "GET",
+    asServiceRole: true,
+  });
+  if (!res.ok) throw new SupabaseError(`avatar path page failed with ${res.status}`);
+  const rows = (await res.json()) as Record<string, unknown>[];
+  if (!Array.isArray(rows)) throw new SupabaseError("avatar path page response is invalid");
+  return rows.map((row) => ({ userId: String(row.id), avatarPath: String(row.avatar_path) }));
+}
+
+/**
+ * Raw bytes of one avatar, read straight from Storage rather than through a
+ * signed URL. Used only to hash the object for the parity report above —
+ * never for delivery, which stays on `signedAvatarUrl`.
+ *
+ * `path` must sit inside `userId`'s own folder, the shape every avatar path
+ * this app has ever written already has (see the upload route). Anything
+ * else is refused rather than fetched. A refusal, a 404 and a network error
+ * are all reported the same way: null, an unreadable object, not an
+ * exception — the parity report has to keep going past one bad avatar.
+ */
+export async function downloadAvatarBytes(userId: string, path: string): Promise<Uint8Array | null> {
+  const config = supabaseConfig();
+  if (!config) return null;
+  const parts = path.split("/");
+  if (
+    path.length > 500
+    || parts.length < 2
+    || parts.some((part) => !part || part === "." || part === "..")
+    || parts[0] !== userId
+  ) {
+    return null;
+  }
+  try {
+    const headers = new Headers();
+    setSupabaseServiceHeaders(headers, config.serviceRoleKey);
+    const res = await fetch(
+      `${config.url}/storage/v1/object/avatars/${parts.map(encodeURIComponent).join("/")}`,
+      {
+        headers,
+        signal: AbortSignal.timeout(20000),
+      },
+    );
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
   }
 }
 
@@ -674,7 +1054,16 @@ export async function deleteAccount(userId: string, avatarPath: string | null): 
   const config = supabaseConfig();
   if (!config) return false;
 
-  // Before the user row goes, or the path is unrecoverable.
+  /*
+    Before the user row goes, or the path is unrecoverable. `deleteAvatar`
+    checks the barrier and returns false without deleting anything once one is
+    armed, which is accepted here rather than propagated: the admin DELETE
+    below is the exempt Supabase Auth action Apple's deletion requirement
+    actually needs, an orphaned Storage object is not a new failure mode this
+    file did not already have on a network error, and the cascade in Postgres
+    removes every application-data row regardless of whether the object was
+    pre-deleted.
+  */
   if (avatarPath) await deleteAvatar(avatarPath);
 
   try {
@@ -710,6 +1099,363 @@ export async function supabaseAuthUserState(userId: string): Promise<SupabaseAut
   } catch {
     return "unknown";
   }
+}
+
+/*
+  The native-identity migration has exactly one safe source for a legacy
+  Google subject: Supabase Auth's identity record. It must never infer the
+  association from an email address, which is mutable profile data and not an
+  authentication binding. This fixed admin read returns only the Google
+  identity fields the private migration audit/backfill needs; it is not a
+  general-purpose Auth administration API.
+*/
+export interface SupabaseGoogleIdentity {
+  /** The canonical Supabase Auth id of the user returned by the admin list. */
+  authUserId: string | null;
+  /** `auth.identities.user_id`; must equal `authUserId` before a backfill trusts it. */
+  identityUserId: string | null;
+  /** The immutable Google provider subject (`provider_id`), never an email. */
+  providerSubject: string | null;
+  /** Metadata retained only for the eventual D1 identity row, never sent to a browser. */
+  email: string | null;
+  emailVerified: boolean;
+}
+
+/**
+ * Minimal proof that an active legacy account still exists in Supabase Auth.
+ *
+ * The native-auth readiness audit needs the stable id but neither an email nor
+ * any password/MFA material. Keeping this intentionally small avoids turning
+ * its owner-only report into a user directory.
+ */
+export interface SupabaseAuthAccount {
+  id: string | null;
+}
+
+/** Aggregate provider evidence for the native-auth cutover; never a directory. */
+export interface SupabaseAuthProviderSummary {
+  google: number;
+  apple: number;
+  email: number;
+  unsupported: number;
+  invalid: number;
+}
+
+/**
+ * The private source-RPC fallback is used only when Supabase Auth's Admin
+ * Users endpoint omits `identities`. It keeps the subject-to-existing-user-id
+ * proof available for a one-time native cutover without exposing a directory
+ * to a browser or adding a general database-query helper.
+ */
+export interface SupabaseNativeIdentitySource {
+  googleIdentities: SupabaseGoogleIdentity[];
+  accounts: SupabaseAuthAccount[];
+  providerSummary: SupabaseAuthProviderSummary;
+}
+
+const SUPABASE_AUTH_PAGE_SIZE = 200;
+const SUPABASE_AUTH_MAX_PAGES = 2_000;
+
+function nullableString(value: unknown, maxLength = 2_000): string | null {
+  return typeof value === "string" && value.length > 0 && value.length <= maxLength ? value : null;
+}
+
+async function nativeIdentitySourceRpc(functionName: "bandup_native_auth_accounts" | "bandup_native_auth_identities") {
+  const res = await request(`/rest/v1/rpc/${functionName}`, {
+    method: "POST",
+    body: "{}",
+    asServiceRole: true,
+  });
+  if (!res.ok) throw new SupabaseError(`native identity source RPC ${functionName} failed with ${res.status}`);
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    throw new SupabaseError(`native identity source RPC ${functionName} was not JSON`);
+  }
+  if (!Array.isArray(body) || body.some((row) => !row || typeof row !== "object" || Array.isArray(row))) {
+    throw new SupabaseError(`native identity source RPC ${functionName} was invalid`);
+  }
+  return body as Record<string, unknown>[];
+}
+
+/**
+ * Fixed, service-role-only fallback for a Supabase deployment that returns
+ * `identities: null` from its Auth Admin endpoint. The matching source
+ * functions are deliberately temporary cutover infrastructure; see
+ * `scripts/provision-supabase-native-identity-source.sql`.
+ */
+export async function listSupabaseNativeIdentitySource(): Promise<SupabaseNativeIdentitySource> {
+  assertServerOnly(MODULE);
+  const [accountRows, identityRows] = await Promise.all([
+    nativeIdentitySourceRpc("bandup_native_auth_accounts"),
+    nativeIdentitySourceRpc("bandup_native_auth_identities"),
+  ]);
+  const accounts = accountRows.map((row) => ({ id: nullableString(row.id, 80) }));
+  const providerSummary: SupabaseAuthProviderSummary = {
+    google: 0,
+    apple: 0,
+    email: 0,
+    unsupported: 0,
+    invalid: 0,
+  };
+  const googleIdentities: SupabaseGoogleIdentity[] = [];
+  for (const row of identityRows) {
+    const provider = nullableString(row.provider, 80);
+    if (provider === "google") {
+      providerSummary.google += 1;
+      const email = nullableString(row.email, 254)?.trim().toLowerCase() ?? null;
+      googleIdentities.push({
+        authUserId: nullableString(row.auth_user_id, 80),
+        identityUserId: nullableString(row.identity_user_id, 80),
+        providerSubject: nullableString(row.provider_subject, 255),
+        email,
+        emailVerified: row.email_verified === true,
+      });
+    } else if (provider === "apple") providerSummary.apple += 1;
+    else if (provider === "email") providerSummary.email += 1;
+    else if (provider) providerSummary.unsupported += 1;
+    else providerSummary.invalid += 1;
+  }
+  return { googleIdentities, accounts, providerSummary };
+}
+
+/**
+ * Lists every Google identity from Supabase Auth, page by page.
+ *
+ * This is server-only and is consumed only by the owner-only migration audit.
+ * It deliberately leaves malformed source values in the result: the audit can
+ * then fail closed and count them, rather than silently treating a damaged
+ * Auth response as an account with no Google identity.
+ */
+export async function listSupabaseGoogleIdentities(): Promise<SupabaseGoogleIdentity[]> {
+  assertServerOnly(MODULE);
+  const identities: SupabaseGoogleIdentity[] = [];
+
+  for (let page = 1; page <= SUPABASE_AUTH_MAX_PAGES; page += 1) {
+    const res = await request(
+      `/auth/v1/admin/users?page=${page}&per_page=${SUPABASE_AUTH_PAGE_SIZE}`,
+      { method: "GET", asServiceRole: true },
+    );
+    if (!res.ok) throw new SupabaseError(`admin Auth user page failed with ${res.status}`);
+
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      throw new SupabaseError("admin Auth user page was not JSON");
+    }
+    const users = (body as { users?: unknown } | null)?.users;
+    if (!Array.isArray(users)) throw new SupabaseError("admin Auth user page was invalid");
+
+    for (const rawUser of users) {
+      const user = rawUser && typeof rawUser === "object"
+        ? rawUser as Record<string, unknown>
+        : null;
+      if (!user) continue;
+      const authUserId = nullableString(user.id, 80);
+      const userEmail = nullableString(user.email, 254)?.trim().toLowerCase() ?? null;
+      const userEmailVerified = typeof user.email_confirmed_at === "string";
+      /*
+        Some Supabase Auth deployments return `identities: null` on every
+        admin user even while `auth.identities` contains provider links. That
+        is an unavailable source, not evidence that no legacy Google accounts
+        exist. Treating it as an empty array would let a native cutover skip
+        immutable subject mappings and strand those accounts.
+      */
+      if (user.identities === null) {
+        throw new SupabaseError("admin Auth identity details are unavailable");
+      }
+      if (!Array.isArray(user.identities)) {
+        throw new SupabaseError("admin Auth identity details were invalid");
+      }
+      const userIdentities = user.identities;
+      for (const rawIdentity of userIdentities) {
+        const identity = rawIdentity && typeof rawIdentity === "object"
+          ? rawIdentity as Record<string, unknown>
+          : null;
+        if (!identity || identity.provider !== "google") continue;
+        const identityData = identity.identity_data && typeof identity.identity_data === "object"
+          ? identity.identity_data as Record<string, unknown>
+          : null;
+        const identityEmail = nullableString(identity.email, 254)
+          ?? nullableString(identityData?.email, 254);
+        identities.push({
+          authUserId,
+          identityUserId: nullableString(identity.user_id, 80),
+          providerSubject: nullableString(identity.provider_id, 255),
+          email: (identityEmail ?? userEmail)?.trim().toLowerCase() ?? null,
+          emailVerified: userEmailVerified || identityData?.email_verified === true,
+        });
+      }
+    }
+
+    // A final short page is the documented pagination terminal state. Asking
+    // one page past an exact multiple is harmless, so we do not rely on a
+    // non-standard response header or expose a cursor parser here.
+    if (users.length < SUPABASE_AUTH_PAGE_SIZE) return identities;
+  }
+
+  throw new SupabaseError("admin Auth user pagination exceeded its safety limit");
+}
+
+/**
+ * Lists only stable Supabase Auth ids for the native-auth preservation audit.
+ *
+ * This deliberately uses the same bounded, paginated Admin endpoint as the
+ * Google-identity reader above. It does not return an email, identity payload,
+ * password verifier, MFA factor or session material.
+ */
+export async function listSupabaseAuthAccounts(): Promise<SupabaseAuthAccount[]> {
+  assertServerOnly(MODULE);
+  const accounts: SupabaseAuthAccount[] = [];
+
+  for (let page = 1; page <= SUPABASE_AUTH_MAX_PAGES; page += 1) {
+    const res = await request(
+      `/auth/v1/admin/users?page=${page}&per_page=${SUPABASE_AUTH_PAGE_SIZE}`,
+      { method: "GET", asServiceRole: true },
+    );
+    if (!res.ok) throw new SupabaseError(`admin Auth user page failed with ${res.status}`);
+
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      throw new SupabaseError("admin Auth user page was not JSON");
+    }
+    const users = (body as { users?: unknown } | null)?.users;
+    if (!Array.isArray(users)) throw new SupabaseError("admin Auth user page was invalid");
+
+    for (const rawUser of users) {
+      const user = rawUser && typeof rawUser === "object"
+        ? rawUser as Record<string, unknown>
+        : null;
+      accounts.push({ id: user ? nullableString(user.id, 80) : null });
+    }
+
+    if (users.length < SUPABASE_AUTH_PAGE_SIZE) return accounts;
+  }
+
+  throw new SupabaseError("admin Auth user pagination exceeded its safety limit");
+}
+
+/**
+ * Counts legacy sign-in providers without returning a user id, email, subject,
+ * password verifier, MFA factor or session. Apple and unknown providers must
+ * be explicit cutover blockers rather than silently falling through a native
+ * Google/password deployment after Supabase has been removed.
+ */
+export async function listSupabaseAuthProviderSummary(): Promise<SupabaseAuthProviderSummary> {
+  assertServerOnly(MODULE);
+  const summary: SupabaseAuthProviderSummary = {
+    google: 0,
+    apple: 0,
+    email: 0,
+    unsupported: 0,
+    invalid: 0,
+  };
+  for (let page = 1; page <= SUPABASE_AUTH_MAX_PAGES; page += 1) {
+    const res = await request(
+      `/auth/v1/admin/users?page=${page}&per_page=${SUPABASE_AUTH_PAGE_SIZE}`,
+      { method: "GET", asServiceRole: true },
+    );
+    if (!res.ok) throw new SupabaseError(`admin Auth user page failed with ${res.status}`);
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      throw new SupabaseError("admin Auth user page was not JSON");
+    }
+    const users = (body as { users?: unknown } | null)?.users;
+    if (!Array.isArray(users)) throw new SupabaseError("admin Auth user page was invalid");
+    for (const rawUser of users) {
+      const user = rawUser && typeof rawUser === "object"
+        ? rawUser as Record<string, unknown>
+        : null;
+      if (!user || !Array.isArray(user.identities)) {
+        throw new SupabaseError("admin Auth identity details are unavailable");
+      }
+      for (const rawIdentity of user.identities) {
+        const identity = rawIdentity && typeof rawIdentity === "object"
+          ? rawIdentity as Record<string, unknown>
+          : null;
+        const provider = identity?.provider;
+        if (provider === "google") summary.google += 1;
+        else if (provider === "apple") summary.apple += 1;
+        else if (provider === "email") summary.email += 1;
+        else if (typeof provider === "string" && provider.length > 0 && provider.length <= 80) {
+          summary.unsupported += 1;
+        } else {
+          summary.invalid += 1;
+        }
+      }
+    }
+    if (users.length < SUPABASE_AUTH_PAGE_SIZE) return summary;
+  }
+  throw new SupabaseError("admin Auth user pagination exceeded its safety limit");
+}
+
+const STRIPE_CUTOVER_PAGE_SIZE = 100;
+const STRIPE_CUTOVER_MAX_PAGES = 20_000;
+
+/**
+ * Private source evidence for the one-time Stripe ledger audit. This is a
+ * fixed allow-list rather than a general service-role query: its raw records
+ * are consumed only inside the Worker to produce an aggregate readiness
+ * report, and never returned to a browser or a caller.
+ */
+export interface StripeCutoverSourceEvidence {
+  subscriptions: Record<string, unknown>[];
+  providerEvents: Record<string, unknown>[];
+}
+
+async function listStripeCutoverRows(
+  table: "subscriptions" | "provider_events",
+  select: string,
+  order: string,
+): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = [];
+  for (let page = 0; page < STRIPE_CUTOVER_MAX_PAGES; page += 1) {
+    const query = new URLSearchParams({
+      select,
+      provider: "eq.stripe",
+      order,
+      offset: String(page * STRIPE_CUTOVER_PAGE_SIZE),
+      limit: String(STRIPE_CUTOVER_PAGE_SIZE),
+    });
+    const res = await request(`/rest/v1/${table}?${query}`, { method: "GET", asServiceRole: true });
+    if (!res.ok) throw new SupabaseError(`Stripe ${table} source read failed with ${res.status}`);
+    let sourcePage: unknown;
+    try {
+      sourcePage = await res.json();
+    } catch {
+      throw new SupabaseError(`Stripe ${table} source response was not JSON`);
+    }
+    if (!Array.isArray(sourcePage) || sourcePage.some((row) => !row || typeof row !== "object" || Array.isArray(row))) {
+      throw new SupabaseError(`Stripe ${table} source response was invalid`);
+    }
+    const records = sourcePage as Record<string, unknown>[];
+    rows.push(...records);
+    if (records.length < STRIPE_CUTOVER_PAGE_SIZE) return rows;
+  }
+  throw new SupabaseError("Stripe cutover source pagination exceeded its safety limit");
+}
+
+export async function listStripeCutoverSourceEvidence(): Promise<StripeCutoverSourceEvidence> {
+  assertServerOnly(MODULE);
+  const [subscriptions, providerEvents] = await Promise.all([
+    listStripeCutoverRows(
+      "subscriptions",
+      "id,user_id,provider,external_price_id,external_subscription_id",
+      "id.asc",
+    ),
+    listStripeCutoverRows(
+      "provider_events",
+      "provider,event_id,received_at,payload",
+      "received_at.asc,event_id.asc",
+    ),
+  ]);
+  return { subscriptions, providerEvents };
 }
 
 export interface ProgressSnapshot {
@@ -766,6 +1512,232 @@ export async function getProgressSnapshots(userId: string): Promise<ProgressSnap
   });
 }
 
+/*
+  ---------------------------------------------------------------------------
+  Cloudflare drift backfill: one exact row, by its exact key
+
+  lib/cloudflare/domain-drift.ts already names which row is wrong. These four
+  reads answer the follow-up question — what does that one row actually hold
+  right now — for exactly the domains the backfill in
+  lib/cloudflare/domain-backfill.ts repairs. Each is as narrow as every other
+  fixed read in this file: one table, one row, by its exact key, with only the
+  columns the corresponding D1 mirror writer needs. None of them list, none of
+  them accept a caller-built filter, and a key that fails its own shape check
+  is never sent to Postgres at all.
+*/
+
+export interface CloudflareBackfillProgressSnapshotRow {
+  userId: string;
+  storeKey: string;
+  payload: unknown;
+  /** Postgres `updated_at`: the source clock domain-drift.ts orders by. */
+  updatedAt: string;
+}
+
+/** The one progress row named by a `<user_id>/<store_key>` drift key. */
+export async function cloudflareBackfillProgressSnapshotRow(
+  userId: string,
+  storeKey: string,
+): Promise<CloudflareBackfillProgressSnapshotRow | null> {
+  if (!isUuid(userId) || !isProgressKey(storeKey)) return null;
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/progress_snapshots?user_id=eq.${encodeURIComponent(userId)}` +
+        `&store_key=eq.${encodeURIComponent(storeKey)}` +
+        "&select=payload,updated_at&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  const rows = (await res.json().catch(() => null)) as Record<string, unknown>[] | null;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row || typeof row.updated_at !== "string") return null;
+  return { userId, storeKey, payload: row.payload, updatedAt: row.updated_at };
+}
+
+const BACKFILL_ID = /^[0-9]{1,20}$/;
+
+export interface CloudflareBackfillUsageEventRow {
+  id: string;
+  userId: string | null;
+  route: string;
+  ipHash: string | null;
+  outcome: string;
+  createdAt: string;
+}
+
+/** The one usage event named by its decimal Supabase identity value. */
+export async function cloudflareBackfillUsageEventRow(
+  id: string,
+): Promise<CloudflareBackfillUsageEventRow | null> {
+  if (!BACKFILL_ID.test(id)) return null;
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/usage_events?id=eq.${encodeURIComponent(id)}` +
+        "&select=user_id,route,ip_hash,outcome,created_at&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  const rows = (await res.json().catch(() => null)) as Record<string, unknown>[] | null;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (
+    !row || typeof row.route !== "string" || typeof row.outcome !== "string"
+    || typeof row.created_at !== "string"
+  ) {
+    return null;
+  }
+  return {
+    id,
+    userId: typeof row.user_id === "string" ? row.user_id : null,
+    route: row.route,
+    ipHash: typeof row.ip_hash === "string" ? row.ip_hash : null,
+    outcome: row.outcome,
+    createdAt: row.created_at,
+  };
+}
+
+export interface CloudflareBackfillAiCostEventRow {
+  id: string;
+  source: string;
+  providerRequestId: string | null;
+  externalReference: string | null;
+  route: string | null;
+  model: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cacheCreationInputTokens: number | null;
+  cacheCreation5mInputTokens: number | null;
+  cacheCreation1hInputTokens: number | null;
+  cacheReadInputTokens: number | null;
+  costUsd: string;
+  occurredAt: string;
+  recordedAt: string;
+}
+
+/** The one AI cost event named by its decimal Supabase identity value. */
+export async function cloudflareBackfillAiCostEventRow(
+  id: string,
+): Promise<CloudflareBackfillAiCostEventRow | null> {
+  if (!BACKFILL_ID.test(id)) return null;
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/ai_cost_events?id=eq.${encodeURIComponent(id)}` +
+        "&select=source,provider_request_id,external_reference,route,model,input_tokens," +
+        "output_tokens,cache_creation_input_tokens,cache_creation_5m_input_tokens," +
+        "cache_creation_1h_input_tokens,cache_read_input_tokens,cost_usd,occurred_at," +
+        "recorded_at&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  const rows = (await res.json().catch(() => null)) as Record<string, unknown>[] | null;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (
+    !row || typeof row.source !== "string" || row.cost_usd === null
+    || typeof row.cost_usd === "undefined"
+    || typeof row.occurred_at !== "string" || typeof row.recorded_at !== "string"
+  ) {
+    return null;
+  }
+  const int = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null;
+  const text = (value: unknown) => typeof value === "string" ? value : null;
+  return {
+    id,
+    source: row.source,
+    providerRequestId: text(row.provider_request_id),
+    externalReference: text(row.external_reference),
+    route: text(row.route),
+    model: text(row.model),
+    inputTokens: int(row.input_tokens),
+    outputTokens: int(row.output_tokens),
+    cacheCreationInputTokens: int(row.cache_creation_input_tokens),
+    cacheCreation5mInputTokens: int(row.cache_creation_5m_input_tokens),
+    cacheCreation1hInputTokens: int(row.cache_creation_1h_input_tokens),
+    cacheReadInputTokens: int(row.cache_read_input_tokens),
+    costUsd: String(row.cost_usd),
+    occurredAt: row.occurred_at,
+    recordedAt: row.recorded_at,
+  };
+}
+
+export interface CloudflareBackfillSubscriptionRow {
+  id: string;
+  userId: string;
+  provider: string;
+  status: string;
+  tier: string;
+  customerId: string | null;
+  subscriptionId: string | null;
+  priceId: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  providerEventAt: string | null;
+  verifiedAt: string;
+  raw: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * The one subscription named by its Supabase primary key.
+ *
+ * Deliberately separate from `stripeSubscriptionReplica` above: that lookup
+ * is keyed by `external_subscription_id` and assumes the row is Stripe's,
+ * because it exists only to answer a Stripe webhook. A backfill is handed a
+ * Supabase row id by domain-drift.ts and must not assume its provider, so
+ * this reads `provider` back rather than hard-coding it.
+ */
+export async function cloudflareBackfillSubscriptionRow(
+  id: string,
+): Promise<CloudflareBackfillSubscriptionRow | null> {
+  if (!isUuid(id)) return null;
+  let res: Response;
+  try {
+    res = await request(
+      `/rest/v1/subscriptions?id=eq.${encodeURIComponent(id)}` +
+        "&select=user_id,provider,status,tier,external_customer_id,external_subscription_id," +
+        "external_price_id,current_period_end,cancel_at_period_end,provider_event_at," +
+        "verified_at,raw,created_at,updated_at&limit=1",
+      { method: "GET", asServiceRole: true },
+    );
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  const rows = (await res.json().catch(() => null)) as Record<string, unknown>[] | null;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  const required = [row?.user_id, row?.provider, row?.status, row?.tier, row?.verified_at, row?.created_at, row?.updated_at];
+  if (!row || required.some((value) => typeof value !== "string" || value.length === 0)) return null;
+  const optional = (value: unknown) => typeof value === "string" && value.length > 0 ? value : null;
+  return {
+    id,
+    userId: row.user_id as string,
+    provider: row.provider as string,
+    status: row.status as string,
+    tier: row.tier as string,
+    customerId: optional(row.external_customer_id),
+    subscriptionId: optional(row.external_subscription_id),
+    priceId: optional(row.external_price_id),
+    currentPeriodEnd: optional(row.current_period_end),
+    cancelAtPeriodEnd: row.cancel_at_period_end === true,
+    providerEventAt: optional(row.provider_event_at),
+    verifiedAt: row.verified_at as string,
+    raw: row.raw,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
 /**
  * Delete named progress rows for one learner, rather than emptying them.
  *
@@ -789,6 +1761,7 @@ export async function deleteProgressSnapshots(
   const keys = storeKeys.filter(isProgressKey);
   if (keys.length !== storeKeys.length) return false;
   if (keys.length === 0) return true;
+  if (await cutoverWriteBarrierArmed("learner")) return false;
   const inList = keys.map((key) => `"${encodeURIComponent(key)}"`).join(",");
   try {
     const res = await request(
@@ -821,6 +1794,7 @@ export async function compareAndSwapProgressSnapshots(
   expected: ProgressSnapshotExpectation[],
   snapshots: ProgressSnapshotMutation[],
 ): Promise<ProgressSnapshotCasResult> {
+  if (await cutoverWriteBarrierArmed("learner")) return { status: "unavailable" };
   try {
     const response = await rpc<unknown>("compare_and_swap_progress_snapshots", {
       p_user_id: userId,

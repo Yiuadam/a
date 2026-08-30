@@ -1,10 +1,9 @@
 import { after, NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
 import {
-  supabaseConfigured,
   isProgressKey,
   organizationHistoryClearPolicy,
 } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { organizationDataMode } from "@/lib/cloudflare/bindings";
 import { cloudflareHistoryClearAllowed } from "@/lib/cloudflare/organizations";
 import {
@@ -124,7 +123,7 @@ function progressFailure(
 }
 
 async function requireUser(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) return { error: "off" as const };
+  if (!accountRuntimeEnabled()) return { error: "off" as const };
   const user = await getSessionUser(req);
   if (!user) return { error: "anon" as const };
   return { user };

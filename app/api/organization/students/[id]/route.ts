@@ -1,8 +1,7 @@
 import { after, NextResponse } from "next/server";
-import { accountsEnabled } from "@/lib/auth/env";
 import { logInternal, MESSAGES, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
-import { supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { withCors } from "@/lib/http/cors";
 import { organizationPreviewUser } from "@/lib/organizations/preview-auth";
 import { organizationStudentHistory } from "@/lib/organizations/server";
@@ -16,7 +15,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 async function handleGET(req: Request, ctx: RouteContext<"/api/organization/students/[id]">) {
   const previewUser = organizationPreviewUser(req);
-  if (!previewUser && (!accountsEnabled() || !supabaseConfigured())) {
+  if (!previewUser && !accountRuntimeEnabled()) {
     return NextResponse.json({ error: "Not found." }, {
       status: 404,
       headers: { "Cache-Control": "private, no-store, max-age=0" },

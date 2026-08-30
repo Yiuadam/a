@@ -1,14 +1,26 @@
 import { NextResponse } from "next/server";
 import { accountsEnabled } from "@/lib/auth/env";
-import { supabaseConfigured, rpc, enabledOAuthProviders } from "@/lib/auth/supabase";
+import {
+  supabaseConfigured,
+  rpc,
+  currentAccessGrants,
+  enabledOAuthProviders,
+} from "@/lib/auth/supabase";
 import { getSessionUser } from "@/lib/auth/session";
+import { entitlementRenews } from "@/lib/billing/access";
 import { resolveEntitlement, ANONYMOUS_ENTITLEMENT } from "@/lib/billing/entitlements";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { MONTH_WINDOW_SECONDS } from "@/lib/usage/limits";
 import { COSTED_ROUTES, ROUTE_BUDGETS } from "@/lib/ai/models";
 import { monthlyCap } from "@/lib/billing/tiers";
-import { OAUTH_PROVIDERS } from "@/lib/auth/oauth";
+import { OAUTH_PROVIDERS, providersReachableFrom } from "@/lib/auth/oauth";
 import { withCors } from "@/lib/http/cors";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
+import { domainReadsFromCloudflare } from "@/lib/cloudflare/cutover-domains";
+import {
+  cloudflareUsageDetail,
+  currentCloudflareAccessGrants,
+} from "@/lib/cloudflare/account-status";
 
 /*
   What the UI is allowed to know about the current account.
@@ -33,7 +45,8 @@ async function handleGET(req: Request) {
     return NextResponse.json({ enabled: false });
   }
 
-  if (!supabaseConfigured()) {
+  const nativeActive = nativeAuthCutoverActive();
+  if (!nativeActive && !supabaseConfigured()) {
     logInternal("account/status", new Error("ACCOUNTS_ENABLED=1 but Supabase is not configured"));
     return safeJsonError(MESSAGES.accountUnavailable, 503);
   }
@@ -62,16 +75,22 @@ async function handleGET(req: Request) {
     let byRoute: Record<string, number> = {};
     if (user) {
       try {
-        const detail = await rpc<{
-          used: number;
-          oldest_at: string | null;
-          by_route: Record<string, number>;
-        }>("usage_detail", {
-          p_user_id: user.id,
-          p_window_seconds: MONTH_WINDOW_SECONDS,
-        });
-        oldestAt = detail?.oldest_at ?? null;
-        byRoute = detail?.by_route ?? {};
+        if (domainReadsFromCloudflare("usage_quota_authority")) {
+          const detail = await cloudflareUsageDetail(user.id, MONTH_WINDOW_SECONDS);
+          oldestAt = detail.oldestAt;
+          byRoute = detail.byRoute;
+        } else {
+          const detail = await rpc<{
+            used: number;
+            oldest_at: string | null;
+            by_route: Record<string, number>;
+          }>("usage_detail", {
+            p_user_id: user.id,
+            p_window_seconds: MONTH_WINDOW_SECONDS,
+          });
+          oldestAt = detail?.oldest_at ?? null;
+          byRoute = detail?.by_route ?? {};
+        }
       } catch (err) {
         logInternal("account/status/usage_detail", err);
       }
@@ -103,9 +122,43 @@ async function handleGET(req: Request) {
       that this app has no button for is not offered, and a button this app
       could render for a provider that was never set up is not shown.
     */
-    const configured = await enabledOAuthProviders();
-    const providers =
-      configured === null ? [] : OAUTH_PROVIDERS.filter((p) => configured.includes(p));
+    const configured = nativeActive ? ["google"] : await enabledOAuthProviders();
+    const providers = providersReachableFrom(
+      req.headers.get("cf-ipcountry"),
+      configured === null ? [] : OAUTH_PROVIDERS.filter((p) => configured.includes(p)),
+    );
+
+    /*
+      Whether the date below is a renewal or an ending.
+
+      `expiresAt` alone does not say. A card subscription renews on that date; an
+      Alipay or WeChat Pay pass ends on it and the account drops back to Free.
+      Every screen printed "Renews on" for both, which for a pass holder is false
+      in the way that costs somebody their access with no warning — so the answer
+      is established here, where the database is, rather than guessed in a
+      browser.
+
+      Asked only when there is a date to explain, which excludes every free
+      account, the owner's own, and the free Pro trial (whose grant has no end).
+      So the extra read costs nothing on the great majority of requests to this
+      route, which is on nearly every page.
+
+      Null when it cannot be established — an unreachable read, or no row matching
+      the entitlement — and the screens then print the date with no claim about
+      what happens on it. That is also what a Cloudflare-authoritative deployment
+      would see, since this read is Supabase's.
+    */
+    let renews: boolean | null = null;
+    if (user && entitlement.expiresAt !== null) {
+      try {
+        const grants = domainReadsFromCloudflare("billing_entitlement_runtime")
+          ? await currentCloudflareAccessGrants(user.id)
+          : await currentAccessGrants(user.id);
+        renews = entitlementRenews(entitlement, grants);
+      } catch (err) {
+        logInternal("account/status/access_grants", err);
+      }
+    }
 
     return NextResponse.json({
       enabled: true,
@@ -126,6 +179,13 @@ async function handleGET(req: Request) {
         routes,
       },
       expiresAt: entitlement.expiresAt,
+      /*
+        True for a subscription that will charge again, false for a pass that will
+        simply end, null when there is no date or it could not be established. Not
+        "why", and not which provider — a screen needs to know which sentence to
+        print, and that is all this says.
+      */
+      renews,
     });
   } catch (err) {
     logInternal("account/status", err);

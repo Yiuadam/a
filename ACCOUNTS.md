@@ -600,6 +600,24 @@ lane: `/api/billing/wallet-checkout` creates a one-time Checkout Session,
 grants the chosen month/year, and a verified completed full refund revokes only
 that purchase. Wallet passes never create an automatic renewal.
 
+The card lane is the default and the wallet lane is the alternative, and that is
+a decision about the page rather than about either lane. The two cannot be one
+control — neither wallet can take a recurring charge, and Stripe refuses to put a
+subscription and a one-off on one Session — so `/pricing` draws the subscription
+as a full-width primary button whose label says it renews, with the wallets as a
+text link beneath it. Both work exactly as they did.
+
+One thing that follows from having two lanes and cost a real omission: a
+`subscriptions` row does not say which lane produced it, and
+`resolve_entitlement` returns only a tier and a date. Every billing screen
+therefore printed "Renews on" for a wallet pass, which is the opposite of what
+happens. `lib/billing/access.ts` establishes the difference from the row —
+`external_price_id` carries `wallet:<plan>` for a prepaid pass, which is the same
+marker `apply_stripe_prepaid_refund_event` already matches on — and
+`/api/account/status` answers it as `renews`: true for a subscription, false for a
+pass, null when it cannot be established, in which case the screens print the
+date and claim nothing about it.
+
 The request chooses a **plan id** — a name this app defined — and never a Price
 id, an amount or a customer. A request that could name a Price could name the
 one-cent Price somebody made while testing, and Stripe would honour it, because

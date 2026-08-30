@@ -9,6 +9,7 @@ import {
   subscribe as subscribeSession,
 } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import { useTier } from "@/lib/billing/useTier";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 
 /*
@@ -45,6 +46,19 @@ import { IS_MOBILE_BUILD } from "@/lib/platform";
   entitlement server-side and answers `payingWhileFree` only when the provider
   is Stripe or Apple — somebody actually being charged, not an admin holding Pro
   by role or a trialist holding it by grant.
+
+  ---------------------------------------------------------------------------
+  Two kinds of payer, and only one of them can cancel
+
+  "Cancel your subscription and take the free trial instead" was written when a
+  paid account meant a card subscription. Somebody who paid with Alipay or WeChat
+  Pay holds a pass: there is no next payment, so there is nothing to cancel, and
+  telling them to go and cancel one sends them looking for a button that is not
+  there. Their version of the same disclosure is the true one — the pass runs out
+  on its own date, and Pro is free until then anyway.
+
+  Which of the two comes from `renews` on /api/account/status, through useTier.
+  When it cannot be established the wording is the one that claims neither.
 */
 
 export default function PayingWhileFreeNotice() {
@@ -54,6 +68,9 @@ export default function PayingWhileFreeNotice() {
     getSessionServerSnapshot,
   );
   const [show, setShow] = useState(false);
+  /* Which kind of payer this is. Presentation only — whether the notice draws at
+     all is still the server's answer, above. */
+  const { renews } = useTier();
 
   useEffect(() => {
     // A sign-out or a sign-in re-runs this. `alive` keeps an older answer from
@@ -91,12 +108,21 @@ export default function PayingWhileFreeNotice() {
         for something other people are being given. We would rather tell you than have you find
         out.
       </p>
-      <p className="mt-3 text-[15px] leading-7 text-slate-700">
-        You are welcome to cancel your subscription and take the free trial instead — everything
-        you have written or practised stays where it is either way. Your subscription is very
-        welcome and it is not required. The free trial may be cancelled at any time in the
-        future, and if it ends, an account without a subscription goes back to the free plan.
-      </p>
+      {renews === false ? (
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          You paid once for a pass, so there is nothing to cancel and nothing further will be
+          charged — it simply runs to its date, which is on this page. Your payment is very welcome
+          and it was not required. The free trial may be cancelled at any time in the future, and
+          if it ends, an account with no paid access goes back to the free plan.
+        </p>
+      ) : (
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          You are welcome to cancel your subscription and take the free trial instead — everything
+          you have written or practised stays where it is either way. Your subscription is very
+          welcome and it is not required. The free trial may be cancelled at any time in the
+          future, and if it ends, an account without a subscription goes back to the free plan.
+        </p>
+      )}
       {/*
         No link to a purchase page in the iOS bundle: Apple requires digital
         content used in the app to be sold through In-App Purchase, and BandUp's
@@ -112,7 +138,7 @@ export default function PayingWhileFreeNotice() {
       ) : (
         <div className="mt-4 flex flex-wrap gap-2">
           <Link href="/pricing" className="btn-secondary">
-            Manage or cancel your subscription
+            {renews === false ? "See your plan and its dates" : "Manage or cancel your subscription"}
           </Link>
         </div>
       )}

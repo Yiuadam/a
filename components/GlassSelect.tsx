@@ -70,12 +70,21 @@ export function FloatingGlassPopover({
       const roomBelow = window.innerHeight - rect.bottom - gutter;
       const roomAbove = rect.top - gutter;
       const openAbove = roomBelow < 170 && roomAbove > roomBelow;
+      const left = Math.max(gutter, Math.min(rect.left, window.innerWidth - width - gutter));
       setPosition({
         position: "fixed",
         zIndex: 100,
-        left: Math.max(gutter, Math.min(rect.left, window.innerWidth - width - gutter)),
+        left,
         width,
         maxHeight: Math.max(112, Math.min(208, (openAbove ? roomAbove : roomBelow) - gutter)),
+        /*
+          The button can sit anywhere the popover then has to avoid running
+          off-screen from, so `left` above and this origin can diverge —
+          expressed as an offset from the popover's own left edge, in the
+          same box the animation itself transforms, rather than a viewport
+          coordinate the animation would have to re-derive.
+        */
+        transformOrigin: `${rect.left + rect.width / 2 - left}px ${openAbove ? "100%" : "0%"}`,
         ...(openAbove
           ? { bottom: window.innerHeight - rect.top + 6 }
           : { top: rect.bottom + 6 }),

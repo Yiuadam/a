@@ -2,10 +2,20 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { accountsEnabled, isAdminEmail } from "@/lib/auth/env";
 import { rpc, supabaseConfigured } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { billingSnapshot } from "@/lib/billing/stripe";
 import { stripeConfigured } from "@/lib/billing/env";
 import { withCors } from "@/lib/http/cors";
 import { logInternal } from "@/lib/auth/errors";
+import { domainReadsFromCloudflare } from "@/lib/cloudflare/cutover-domains";
+import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
+import {
+  cloudflareAdminSignupsDaily,
+  cloudflareAdminUserCount,
+  cloudflareAdminUsageDaily,
+  cloudflareAdminUsageBreakdown,
+  cloudflareAdminTierCounts,
+} from "@/lib/cloudflare/admin-stats";
 
 /*
   The numbers behind the owner's dashboard.
@@ -22,6 +32,22 @@ import { logInternal } from "@/lib/auth/errors";
 
   A null is drawn as "unavailable" rather than as zero. Zero subscribers and
   "we could not ask Stripe" are very different mornings.
+
+  ---------------------------------------------------------------------------
+  Which figures can move to D1, and which never will
+
+  `users` and `signups` move with native identity. Until the D1 identity
+  roster is authoritative they retain the legacy RPC source; afterwards the
+  dashboard counts only live `app_users`, exactly the accounts native sign-in
+  can resolve. This keeps the dashboard truthful through the final cutover
+  rather than presenting an old provider's roster as current.
+
+  `usage`, `usageBreakdown` and `tiers` read `usage_events` and the
+  entitlement resolver, neither of which is an identity read, so each has a
+  D1 path (lib/cloudflare/admin-stats.ts) used when `admin_statistics` reads
+  from Cloudflare. `tiers` counts D1's mirrored accounts, which can lag the
+  true Supabase Auth count (`users`) by the mirror's own gap — expect the two
+  not to sum identically until the mirror has caught up.
 */
 
 export const dynamic = "force-dynamic";
@@ -52,7 +78,7 @@ async function safe<T>(what: string, run: () => Promise<T>): Promise<T | null> {
 }
 
 async function handleGET(req: Request) {
-  if (!accountsEnabled() || !supabaseConfigured()) {
+  if (!accountsEnabled() || !accountRuntimeEnabled()) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const user = await getSessionUser(req).catch(() => null);
@@ -64,25 +90,38 @@ async function handleGET(req: Request) {
     In parallel, because they are independent and the slowest of them decides
     how long the owner stares at a spinner. Stripe is usually the slow one.
   */
+  const statisticsFromCloudflare = domainReadsFromCloudflare("admin_statistics");
+  const nativeIdentityFromCloudflare = !supabaseConfigured()
+    || (nativeAuthCutoverActive() && domainReadsFromCloudflare("admin_user_directory"));
   const [users, signups, usage, usageBreakdown, tiers, billing] = await Promise.all([
-    safe("users", () => rpc<number>("admin_user_count", {})),
-    safe("signups", () => rpc<DayRow[]>("admin_signups_daily", { p_days: DAYS })),
-    safe("usage", () =>
-      rpc<DayRow[]>("admin_usage_daily", {
-        p_days: DAYS,
-        p_admin_user_id: user.id,
-      }),
+    safe("users", () => nativeIdentityFromCloudflare
+      ? cloudflareAdminUserCount()
+      : rpc<number>("admin_user_count", {})),
+    safe<DayRow[]>("signups", () => nativeIdentityFromCloudflare
+      ? cloudflareAdminSignupsDaily(DAYS)
+      : rpc<DayRow[]>("admin_signups_daily", { p_days: DAYS })),
+    safe("usage", (): Promise<DayRow[]> =>
+      statisticsFromCloudflare
+        ? cloudflareAdminUsageDaily(DAYS, user.id)
+        : rpc<DayRow[]>("admin_usage_daily", {
+            p_days: DAYS,
+            p_admin_user_id: user.id,
+          }),
     ),
-    safe("usage-breakdown", () =>
-      rpc<UsageBreakdownRow[]>("admin_usage_breakdown", {
-        p_days: DAYS,
-        p_admin_user_id: user.id,
-      }),
+    safe("usage-breakdown", (): Promise<UsageBreakdownRow[]> =>
+      statisticsFromCloudflare
+        ? cloudflareAdminUsageBreakdown(DAYS, user.id)
+        : rpc<UsageBreakdownRow[]>("admin_usage_breakdown", {
+            p_days: DAYS,
+            p_admin_user_id: user.id,
+          }),
     ),
-    safe("tiers", () =>
-      rpc<{ tier: string; count: number }[]>("admin_tier_counts", {
-        p_admin_user_id: user.id,
-      }),
+    safe("tiers", (): Promise<{ tier: string; count: number }[]> =>
+      statisticsFromCloudflare
+        ? cloudflareAdminTierCounts(user.id)
+        : rpc<{ tier: string; count: number }[]>("admin_tier_counts", {
+            p_admin_user_id: user.id,
+          }),
     ),
     stripeConfigured() ? safe("billing", () => billingSnapshot()) : Promise.resolve(null),
   ]);

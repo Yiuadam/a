@@ -5,15 +5,52 @@ import test from "node:test";
 const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const theme = await readFile(new URL("../lib/theme.ts", import.meta.url), "utf8");
 
-test("the Light theme is neutral white rather than warm or tinted grey", () => {
+test("Light keeps a white canvas with neutral-grey interactive controls", () => {
   const lightBlock = css.match(/html\[data-theme="light"\] \{([\s\S]*?)\n\}/)?.[1] ?? "";
   assert.match(lightBlock, /--color-surface:\s*#ffffff;/);
-  assert.match(lightBlock, /--color-background:\s*#fafafa;/);
   assert.match(lightBlock, /--color-foreground:\s*#16171a;/);
-  assert.doesNotMatch(lightBlock, /#e8ebef|#f5f6f8|rgba\(92, 101, 121|rgba\(112, 126, 139/);
+  assert.match(lightBlock, /--color-indigo-600:\s*#c7ccd3;/);
+  assert.match(lightBlock, /--color-accent-fg:\s*#26282d;/);
+  assert.doesNotMatch(lightBlock, /#4f46e5|#4338ca/);
+  assert.match(css, /Light canvas theme/);
+  assert.match(css, /html\[data-theme="light"\] \.card,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 46%, transparent\);/);
+  assert.match(css, /html\[data-theme="light"\] a\.card\.card:hover,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-200\) 58%, transparent\);/);
+  assert.match(css, /html\[data-theme="light"\] \.btn-primary \{[\s\S]*?background:\s*var\(--color-indigo-600\);/);
+  assert.doesNotMatch(css, /html\[data-theme="warm"\] \.card \{[\s\S]*?background:\s*#fac69f;/);
 });
 
-test("browser chrome follows the neutral Light page without a colour flash", () => {
-  assert.match(theme, /light:\s*"#fafafa"/);
-  assert.doesNotMatch(theme, /light:\s*"#e8ebef"/);
+test("Warm keeps its original cream-paper canvas and clay browser chrome", () => {
+  assert.match(css, /--color-background:\s*#e7e0d8;/);
+  assert.match(css, /--color-surface:\s*#f4eee7;/);
+  assert.match(theme, /Cream paper and clay — easiest on the eyes/);
+  assert.match(theme, /warm:\s*"#e7e0d8"/);
+});
+
+test("the Light theme describes its neutral interactive accent", () => {
+  assert.match(theme, /White canvas with a light grey control accent/);
+});
+
+test("Dark remains a low-light theme with a graphite canvas", () => {
+  const darkBlock = css.match(/html\[data-theme="dark"\] \{([\s\S]*?)\n\}/)?.[1] ?? "";
+  assert.match(darkBlock, /color-scheme:\s*dark;/);
+  assert.match(darkBlock, /--color-background:\s*#111113;/);
+  assert.match(darkBlock, /--color-surface:\s*#1d1d20;/);
+  assert.match(theme, /Dark canvas with graphite cards and controls/);
+});
+
+test("Dark navigation keeps its opened header free of a containing blur", () => {
+  assert.match(
+    css,
+    /html\[data-theme="dark"\] \.nav-open-header \{[\s\S]*?-webkit-backdrop-filter:\s*none;[\s\S]*?backdrop-filter:\s*none;/,
+  );
+  assert.doesNotMatch(
+    css,
+    /html\[data-theme="dark"\] \.nav-open-header,[\s\S]*?backdrop-filter:\s*blur\(var\(--glass-blur\)\)/,
+  );
+});
+
+test("browser chrome follows the selected canvas", () => {
+  assert.match(theme, /light:\s*"#ffffff"/);
+  assert.match(theme, /dark:\s*"#111113"/);
+  assert.match(theme, /m\.content=\(\{warm:"#e7e0d8",light:"#ffffff",dark:"#111113"\}\)\[t\]/);
 });

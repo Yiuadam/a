@@ -6,6 +6,8 @@ import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import type { CloudflareDomainDriftReport } from "@/lib/cloudflare/domain-drift";
 import type { CloudflareMigrationReadinessReport } from "@/lib/cloudflare/migration-readiness";
+import type { CloudflarePayloadParityReport } from "@/lib/cloudflare/payload-parity";
+import type { AvatarObjectParityReport } from "@/lib/cloudflare/avatar-parity";
 
 function label(value: string): string {
   return value.replaceAll("_", " ");
@@ -23,6 +25,10 @@ export default function CloudflareMigrationReadiness() {
   const [failed, setFailed] = useState(false);
   const [drift, setDrift] = useState<CloudflareDomainDriftReport | null>(null);
   const [driftState, setDriftState] = useState<"idle" | "loading" | "failed">("idle");
+  const [payloadParity, setPayloadParity] = useState<CloudflarePayloadParityReport | null>(null);
+  const [payloadParityState, setPayloadParityState] = useState<"idle" | "loading" | "failed">("idle");
+  const [avatarParity, setAvatarParity] = useState<AvatarObjectParityReport | null>(null);
+  const [avatarParityState, setAvatarParityState] = useState<"idle" | "loading" | "failed">("idle");
 
   function nameDriftingRows() {
     setDriftState("loading");
@@ -35,6 +41,32 @@ export default function CloudflareMigrationReadiness() {
         setDriftState("idle");
       })
       .catch(() => setDriftState("failed"));
+  }
+
+  function verifyPayloadBytes() {
+    setPayloadParityState("loading");
+    void authedFetch(apiUrl("/api/admin/cloudflare/readiness?payloadParity=all"), { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("payload parity unavailable");
+        const next = await response.json() as { payloadParity: CloudflarePayloadParityReport | null };
+        if (!next.payloadParity) throw new Error("payload parity unavailable");
+        setPayloadParity(next.payloadParity);
+        setPayloadParityState("idle");
+      })
+      .catch(() => setPayloadParityState("failed"));
+  }
+
+  function checkAvatarObjectParity() {
+    setAvatarParityState("loading");
+    void authedFetch(apiUrl("/api/admin/cloudflare/readiness?avatarObjectParity=1"), { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("avatar parity unavailable");
+        const next = await response.json() as { avatarParity: AvatarObjectParityReport | null };
+        if (!next.avatarParity) throw new Error("avatar parity unavailable");
+        setAvatarParity(next.avatarParity);
+        setAvatarParityState("idle");
+      })
+      .catch(() => setAvatarParityState("failed"));
   }
 
   useEffect(() => {
@@ -55,12 +87,18 @@ export default function CloudflareMigrationReadiness() {
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Cloudflare-only readiness</h2>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
-            Exact source and target evidence. Supabase Auth is deliberately excluded and remains the sign-in authority.
+            {report?.supabaseAuth.authority === "cloudflare"
+              ? "Cloudflare-native sign-in is active. This shows the remaining compatibility work before Supabase can be retired."
+              : "Exact source and target evidence. Supabase Auth is deliberately excluded and remains the sign-in authority."}
           </p>
         </div>
         {report && (
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${report.readyForCloudflareOnly ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-800"}`}>
-            {report.readyForCloudflareOnly ? "Ready" : "Not ready"}
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            report.readyForCloudflareOnly
+              ? "bg-emerald-100 text-emerald-800"
+              : report.modes.learner === "cloudflare" ? "bg-indigo-100 text-indigo-800" : "bg-slate-200 text-slate-800"
+          }`}>
+            {report.readyForCloudflareOnly ? "Ready" : report.modes.learner === "cloudflare" ? "Cloudflare data active" : "Not ready"}
           </span>
         )}
       </div>
@@ -70,11 +108,27 @@ export default function CloudflareMigrationReadiness() {
 
       {report && (
         <>
+          {report.modes.learner === "cloudflare" && (
+            <div className="mt-3 rounded-xl border border-emerald-300/70 bg-emerald-50/60 px-3 py-3 text-xs text-emerald-900">
+              <strong className="block">Cloudflare learner data is active</strong>
+              <p className="mt-1 leading-5">
+                Writes stopped mirroring to Supabase the moment the write barrier armed and this mode took
+                effect, so Supabase&rsquo;s copy of learner data is now expected to drift further from D1 with
+                every new save — that is not a fault. The domain and blocker evidence below answers a question
+                that no longer gates anything (&ldquo;is it safe to flip once&rdquo;), kept only as a historical
+                record. {report.supabaseAuth.authority === "cloudflare"
+                  ? "Cloudflare-native sign-in is active too; compatibility items below must still be retired deliberately."
+                  : "Supabase Auth remains the sign-in authority until native identity is enabled."}
+              </p>
+            </div>
+          )}
           {report.sourceEvidence.status !== "available" && (
             <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/60 px-3 py-3 text-xs text-amber-900">
               <strong className="block">Supabase fingerprint evidence {report.sourceEvidence.status}</strong>
               <p className="mt-1 leading-5">
-                {report.sourceEvidence.status === "unavailable"
+                {report.sourceEvidence.status === "retired"
+                  ? "Supabase credentials have been removed after cutover. Historical row-by-row parity can no longer be recomputed; the cards now show D1's authoritative inventory rather than calling it a mismatch."
+                  : report.sourceEvidence.status === "unavailable"
                   ? "The restricted source-fingerprint RPC could not be read. Verify that Supabase migration 0029 is applied, its service-role grant is present, and PostgREST has reloaded before retrying."
                   : "The restricted source-fingerprint RPC returned incomplete or malformed evidence. The report stays fail-closed until it returns exactly one valid fingerprint for every domain."}
               </p>
@@ -138,6 +192,109 @@ export default function CloudflareMigrationReadiness() {
             )}
           </div>
 
+          <div className="mt-3 rounded-xl border border-slate-200/80 px-3 py-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-slate-800">Payload byte parity</strong>
+              <button
+                type="button"
+                onClick={verifyPayloadBytes}
+                disabled={payloadParityState === "loading"}
+                className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-slate-700 disabled:opacity-60"
+              >
+                {payloadParityState === "loading" ? "Reading payloads…" : "Verify payload bytes"}
+              </button>
+            </div>
+            <p className="mt-1 leading-5 text-slate-500">
+              Opens the progress, subscription and provider-event payload on both sides, canonicalises it
+              the same way, and hashes it. An equal row above only means the row&rsquo;s identity columns match —
+              this is what proves the stored content itself matches. Costs an R2 read per out-of-line payload.
+            </p>
+            {payloadParityState === "failed" && (
+              <p role="alert" className="mt-2 text-rose-700">Payload comparison could not be run.</p>
+            )}
+            {payloadParity && (
+              <ul className="mt-2 space-y-2">
+                {payloadParity.domains.map((entry) => (
+                  <li key={entry.domain} className="rounded-lg bg-slate-50 px-2.5 py-2">
+                    <strong className="text-slate-800">{label(entry.domain)}</strong>{" "}
+                    <span className={entry.status === "equal" ? "text-emerald-700" : "text-amber-700"}>{label(entry.status)}</span>
+                    <span className="mt-1 block tabular-nums text-slate-500">
+                      Missing from Cloudflare {entry.missingInTarget.total} · only in Cloudflare {entry.missingInSource.total}
+                      · payload differs {entry.payloadMismatch.total} · unreadable in Cloudflare {entry.targetPayloadUnavailable.total}
+                      {entry.complete ? "" : ` · compared ${entry.comparedSourceRows} source and ${entry.comparedTargetRows} target rows only`}
+                    </span>
+                    {entry.targetPayloadUnavailable.sample.length > 0 && (
+                      <span className="mt-1 block break-all text-slate-500">
+                        Unreadable in Cloudflare (missing or checksum-failed R2 object): {entry.targetPayloadUnavailable.sample.join(", ")}
+                      </span>
+                    )}
+                    {entry.payloadMismatch.sample.length > 0 && (
+                      <span className="mt-1 block break-all text-slate-500">Differing payloads: {entry.payloadMismatch.sample.join(", ")}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="mt-3 rounded-xl border border-slate-200/80 px-3 py-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-slate-800">Avatar object parity</strong>
+              <button
+                type="button"
+                onClick={checkAvatarObjectParity}
+                disabled={avatarParityState === "loading"}
+                className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-slate-700 disabled:opacity-60"
+              >
+                {avatarParityState === "loading" ? "Comparing avatars…" : "Check avatar object parity"}
+              </button>
+            </div>
+            <p className="mt-1 leading-5 text-slate-500">
+              Downloads and hashes real Supabase Storage and R2 objects, and counts profiles that would lose their picture at a read cutover. Not run automatically — this costs far more than the report above.
+            </p>
+            {avatarParityState === "failed" && (
+              <p role="alert" className="mt-2 text-rose-700">Avatar object parity could not be checked.</p>
+            )}
+            {avatarParity && (
+              <div className="mt-2 space-y-2">
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                  <strong className={avatarParity.disappearingFaces.total > 0 ? "text-rose-700" : "text-emerald-700"}>
+                    {avatarParity.disappearingFaces.total} face{avatarParity.disappearingFaces.total === 1 ? "" : "s"} would vanish at a read cutover
+                  </strong>
+                  <span className="mt-1 block tabular-nums text-slate-500">
+                    Supabase has an avatar, D1 does not
+                    {!avatarParity.presenceComplete && ` · compared ${avatarParity.comparedSourceRows} source and ${avatarParity.comparedTargetRows} target rows only`}
+                  </span>
+                  {avatarParity.disappearingFaces.sample.length > 0 && (
+                    <span className="mt-1 block break-all text-slate-500">{avatarParity.disappearingFaces.sample.join(", ")}</span>
+                  )}
+                </div>
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                  <strong className="text-slate-800">Only in Cloudflare</strong>{" "}
+                  <span className={avatarParity.targetOnly.total > 0 ? "text-amber-700" : "text-emerald-700"}>{avatarParity.targetOnly.total}</span>
+                  {avatarParity.targetOnly.sample.length > 0 && (
+                    <span className="mt-1 block break-all text-slate-500">{avatarParity.targetOnly.sample.join(", ")}</span>
+                  )}
+                </div>
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                  <strong className="text-slate-800">Byte comparison</strong>{" "}
+                  <span className={avatarParity.bytes.different.total + avatarParity.bytes.sourceUnreadable.total + avatarParity.bytes.targetUnreadable.total + avatarParity.bytes.bothUnreadable.total > 0 ? "text-rose-700" : "text-emerald-700"}>
+                    {avatarParity.bytes.equal.total} equal · {avatarParity.bytes.different.total} different · {avatarParity.bytes.sourceUnreadable.total} unreadable in Supabase · {avatarParity.bytes.targetUnreadable.total} unreadable in R2 · {avatarParity.bytes.bothUnreadable.total} unreadable on both
+                  </span>
+                  <span className="mt-1 block tabular-nums text-slate-500">
+                    Checked {avatarParity.bytes.checked} of {avatarParity.bytes.checked + avatarParity.bytes.skipped} matched avatars this call (limit {avatarParity.byteCheckLimit})
+                  </span>
+                  {avatarParity.bytes.targetUnreadable.sample.length > 0 && (
+                    <span className="mt-1 block break-all text-slate-500">Unreadable in R2 (recorded but would fail to serve): {avatarParity.bytes.targetUnreadable.sample.join(", ")}</span>
+                  )}
+                </div>
+                {!avatarParity.complete && (
+                  <p className="text-slate-500">Bounded check — not every avatar was compared this call. Re-run with a higher limit or repeat to cover more.</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-200/80 px-3 py-2.5 text-xs">
               <strong className="block text-slate-800">App settings</strong>
@@ -158,6 +315,19 @@ export default function CloudflareMigrationReadiness() {
               {report.outbox?.oldestPendingAt && (
                 <span className="mt-1 block text-slate-500">Oldest pending {new Date(report.outbox.oldestPendingAt).toLocaleString()}</span>
               )}
+            </div>
+            <div className="rounded-xl border border-slate-200/80 px-3 py-2.5 text-xs">
+              <strong className="block text-slate-800">Write barrier (learner)</strong>
+              <span className={report.writeBarrier?.status === "armed" ? "text-emerald-700" : "text-amber-700"}>
+                {report.writeBarrier?.status === "armed" && report.writeBarrier.barrierAt
+                  ? `Armed ${new Date(report.writeBarrier.barrierAt).toLocaleString()} by ${report.writeBarrier.recordedBy}`
+                  : report.writeBarrier
+                    ? "Not armed"
+                    : "Unavailable"}
+              </span>
+              <span className="mt-1 block text-slate-500">
+                Arming is a deliberate, one-way owner action from the write-barrier admin route — nothing here arms it automatically.
+              </span>
             </div>
           </div>
 
@@ -191,14 +361,24 @@ export default function CloudflareMigrationReadiness() {
           )}
 
           {report.unsupportedDomains.length > 0 && (
-            <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/60 px-3 py-3 text-xs text-amber-900">
-              <strong className="block">Runtime paths still using Supabase</strong>
+            <div className={`mt-3 rounded-xl border px-3 py-3 text-xs ${
+              report.modes.learner === "cloudflare"
+                ? "border-slate-200/80 text-slate-600"
+                : "border-amber-300/70 bg-amber-50/60 text-amber-900"
+            }`}>
+              <strong className="block">
+                {report.modes.learner === "cloudflare"
+                  ? "Named at cutover time as not yet proven — the flip already happened regardless"
+                  : "Runtime paths still using Supabase"}
+              </strong>
               <p className="mt-1 leading-5">{report.unsupportedDomains.map(label).join(" · ")}</p>
             </div>
           )}
           {report.blockers.length > 0 && (
             <div className="mt-3 rounded-xl border border-slate-200/80 px-3 py-3 text-xs text-slate-700">
-              <strong className="block text-slate-800">Cutover blockers</strong>
+              <strong className="block text-slate-800">
+                {report.modes.learner === "cloudflare" ? "What this check still flags, now historical" : "Cutover blockers"}
+              </strong>
               <ul className="mt-1 list-disc space-y-1 pl-4">
                 {report.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}
               </ul>

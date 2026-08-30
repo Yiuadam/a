@@ -1,15 +1,34 @@
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { accountsEnabled, isAdminEmail, usageFailOpen } from "@/lib/auth/env";
 import { supabaseConfigured, rpc } from "@/lib/auth/supabase";
+import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
-import { cloudflareDataMode } from "@/lib/cloudflare/bindings";
+import { mirrorsWritesToCloudflare } from "@/lib/cloudflare/bindings";
+import { cutoverWriteBarrierArmed } from "@/lib/cloudflare/write-barrier";
+import { domainWritesToCloudflareOnly } from "@/lib/cloudflare/cutover-domains";
+import {
+  admitUsageEventOnCloudflare,
+  CloudflareIdSequenceNotSeededError,
+  type UsageAuthorityDecision,
+} from "@/lib/cloudflare/usage-quota-authority";
 import {
   type UsageEventOutcome,
 } from "@/lib/cloudflare/usage-cost-replica";
 import { replicateUsageEventDurably } from "@/lib/cloudflare/replica-replay";
+import { resolveEntitlement } from "@/lib/billing/entitlements";
+import { MONTHLY_AI_CAPS, WEEKLY_AI_CAPS } from "@/lib/billing/tiers";
 import { clientIp, hashIp } from "./ip";
-import { limitsForDatabase, USAGE_WINDOW_SECONDS, type AiRoute } from "./limits";
+import {
+  ANONYMOUS_DAILY_AI_CALLS,
+  IP_DAILY_CEILING,
+  MONTH_WINDOW_SECONDS,
+  limitsForDatabase,
+  USAGE_WINDOW_SECONDS,
+  type AiRoute,
+} from "./limits";
+
+const USAGE_QUOTA_AUTHORITY_DOMAIN = "usage_quota_authority";
 
 /*
   The one call the four AI routes make.
@@ -82,6 +101,76 @@ async function mirrorUsageDecision(
 }
 
 /**
+ * The `usage_quota_authority` branch: D1 is the sole decision authority, no
+ * Supabase RPC is called, and nothing is mirrored — there is no separate
+ * Supabase write left to mirror from. See lib/cloudflare/usage-quota-
+ * authority.ts for the atomicity this depends on.
+ *
+ * `usageFailOpen()` still governs an ordinary D1 outage, exactly as it
+ * governs an ordinary Supabase outage in the branch below — two backends
+ * does not mean two default answers to "what if it's down". It does **not**
+ * govern `CloudflareIdSequenceNotSeededError`: that failure mode means the
+ * owner turned this domain's mode to `cloudflare` before running the id-
+ * counter seed SQL from the pull request that added this file, and failing
+ * open for it would silently uncap every paid route for as long as the
+ * mistake went unnoticed — the exact failure this whole design exists to
+ * rule out. It always fails closed, regardless of the flag.
+ */
+async function checkAiUsageOnCloudflare(
+  user: SessionUser | null,
+  userId: string | null,
+  ipHash: string | null,
+  route: AiRoute,
+): Promise<Response | null> {
+  let isAdmin: boolean;
+  let monthly: number | null;
+  let weekly: number | null;
+  try {
+    const entitlement = await resolveEntitlement(userId, user?.email ?? null);
+    isAdmin = entitlement.tier === "admin";
+    monthly = MONTHLY_AI_CAPS[entitlement.tier][route];
+    weekly = WEEKLY_AI_CAPS[entitlement.tier][route];
+  } catch (err) {
+    logInternal("checkAiUsage/cloudflare-entitlement", err);
+    return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
+  }
+
+  let decision: UsageAuthorityDecision;
+  try {
+    decision = await admitUsageEventOnCloudflare({
+      user,
+      userId,
+      ipHash,
+      route,
+      isAdmin,
+      caps: { monthly, weekly, ip: IP_DAILY_CEILING, anonymous: ANONYMOUS_DAILY_AI_CALLS },
+      monthWindowSeconds: MONTH_WINDOW_SECONDS,
+      windowSeconds: USAGE_WINDOW_SECONDS,
+    });
+  } catch (err) {
+    logInternal("checkAiUsage/cloudflare-authority", err);
+    if (err instanceof CloudflareIdSequenceNotSeededError) {
+      return safeJsonError(MESSAGES.unavailable, 503);
+    }
+    return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
+  }
+
+  /*
+    This branch is deliberately not phrased the same way the Supabase branch
+    below phrases its own "allowed means null" return. A source-text test
+    elsewhere in this repo locates that exact phrasing to prove the Supabase
+    branch returns only after its mirror attempt runs, using the first match
+    in the file — an identical phrasing up here would shadow it.
+  */
+  if (!decision.allowed) {
+    return decision.reason === "rate_limited"
+      ? safeJsonError(MESSAGES.rateLimited, 429)
+      : safeJsonError(MESSAGES.quotaExceeded, 429);
+  }
+  return null;
+}
+
+/**
  * Records the call and decides whether it may proceed.
  *
  * With the feature flag off this returns null before doing anything at all:
@@ -93,13 +182,25 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
   assertServerOnly(MODULE);
   if (!accountsEnabled()) return null;
 
-  if (!supabaseConfigured()) {
+  const cloudflareUsageAuthority = domainWritesToCloudflareOnly(USAGE_QUOTA_AUTHORITY_DOMAIN);
+  if (!accountRuntimeEnabled() || (!cloudflareUsageAuthority && !supabaseConfigured())) {
     // The flag is on but the backend is not configured. This is a deployment
     // mistake, and the two ways to be wrong about it are opposite: allow, and
     // the meter is decorative; refuse, and the app is down. Which one is
     // chosen is explicit rather than incidental.
     logInternal("checkAiUsage", new Error("ACCOUNTS_ENABLED=1 but Supabase is not configured"));
     return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
+  }
+
+  /*
+    Once this domain is D1-authoritative, no usage write reaches Supabase. The
+    learner barrier must therefore protect only the remaining Supabase branch:
+    applying it before the D1 branch would turn a successfully completed
+    cutover into an outage for every AI route.
+  */
+  if (!cloudflareUsageAuthority && await cutoverWriteBarrierArmed("learner")) {
+    logInternal("checkAiUsage", new Error("cutover write barrier is armed for learner writes"));
+    return safeJsonError(MESSAGES.unavailable, 503);
   }
 
   let user: SessionUser | null = null;
@@ -127,8 +228,14 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
     logInternal("checkAiUsage/session", err);
   }
 
+  if (cloudflareUsageAuthority) {
+    return checkAiUsageOnCloudflare(user, userId, ipHash, route);
+  }
+
   let decision: UsageDecision | null;
-  const dualWrite = cloudflareDataMode() === "dual";
+  // Only a mirrored write needs the committed event's identity back, so the
+  // RPC choice asks the same mirror question the write below does.
+  const shouldMirror = mirrorsWritesToCloudflare();
   try {
     const args = {
       p_user_id: userId,
@@ -137,7 +244,7 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
       p_window_seconds: USAGE_WINDOW_SECONDS,
       p_limits: limitsForDatabase(),
     };
-    decision = dualWrite
+    decision = shouldMirror
       ? await rpc<UsageDecision | null>("check_and_record_usage_with_event", args)
       : await rpc<UsageDecision | null>("check_and_record_usage", args);
   } catch (err) {
@@ -155,7 +262,7 @@ export async function checkAiUsage(req: Request, route: AiRoute): Promise<Respon
     return usageFailOpen() ? null : safeJsonError(MESSAGES.unavailable, 503);
   }
 
-  if (dualWrite) {
+  if (shouldMirror) {
     try {
       await mirrorUsageDecision(decision, user, userId, route, ipHash);
     } catch (err) {
