@@ -81,6 +81,19 @@ export type GlassRefractionMapOptions = {
    */
   magnify?: number;
   /**
+   * How thick the glass is, as how far in from the rim its edge starts
+   * rolling over. Higher is thicker.
+   *
+   * A hemisphere's slope is unbounded at the rim, so it has to be capped; the
+   * cap is what decides how much of the face the edge occupies. A high cap
+   * keeps the steep part in the last few percent — a thin lens with a sharp
+   * rim. A low one starts the roll-over much further in, so a wide band of
+   * the face is turning over toward the bottom, the backdrop compresses across
+   * all of it, and the pane reads as a deep slab whose edge curves down rather
+   * than a sheet with a bevelled border.
+   */
+  thickness?: number;
+  /**
    * How far a full-strength channel actually moves a pixel, as a fraction of
    * the pane's half-height.
    *
@@ -103,15 +116,16 @@ export function createGlassRefractionMap(
     bezelWidth = 0.16,
     dome = 0,
     magnify = 0,
+    thickness = 0.33,
     /* Uncapped by default, so the sitewide square map keeps exactly the shape
        it had. Only a caller that knows its own displacement scale can say
        what the bend must stay within. */
     maxDisplacement = Number.POSITIVE_INFINITY,
   } = options;
-  /* Where the dome's slope is treated as fully turned over. Past this the
-     profile is flat out, which keeps the tangle to a band at the rim rather
-     than letting a single row of pixels take the whole displacement. */
-  const SLOPE_CAP = 3;
+  /* Where the dome's slope is treated as fully turned over: past this the
+     profile is flat out. Expressed as thickness so a larger number means a
+     deeper slab, which is the inverse of the raw slope cap. */
+  const slopeCap = 1 / Math.max(thickness, 1e-3);
   const pixels = new Uint8ClampedArray(size * size * 4);
   const halfExtent = 0.98;
   /* Half-extents in height units. The rounded rectangle is inset by its own
@@ -187,8 +201,8 @@ export function createGlassRefractionMap(
       const domeSlope =
         Math.min(
           intoGlass / Math.sqrt(Math.max(1 - intoGlass * intoGlass, 1e-4)),
-          SLOPE_CAP,
-        ) / SLOPE_CAP;
+          slopeCap,
+        ) / slopeCap;
       /* The dome pulls inward along the same surface normal the bevel pushes
          outward along, so the two share one direction field. Inward means it
          can never ask for a sample from beyond the pane's own edge. */

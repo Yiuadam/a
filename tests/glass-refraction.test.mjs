@@ -322,11 +322,16 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // line to its strongest at the edge, so a line crossing behind the card is
   // bent by the same rule wherever it crosses.
   assert.match(filter, /NAV_BEZEL_WIDTH = 0;/);
-  assert.match(filter, /NAV_MAGNIFY = 0\.42;/);
+  assert.match(filter, /NAV_MAGNIFY = 0\.35;/);
   // Plus a dome for the rim: a hemisphere's refraction follows its surface
   // slope, gentle across the face and then climbing almost vertically in the
   // last stretch, which folds the backdrop into a tangled band at the edge.
-  assert.match(filter, /NAV_DOME = 0\.45;/);
+  assert.match(filter, /NAV_DOME = 1;/);
+  // And how far in from the rim it starts rolling over — its thickness. A
+  // small value keeps the roll in the last few percent, a thin sheet with a
+  // sharp border; this puts it across a wide band, so the pane reads as a deep
+  // slab whose edge curves down to its underside.
+  assert.match(filter, /NAV_THICKNESS = 0\.85;/);
   // The scale is derived from the measured box, not a constant: it is bounded
   // by the card's half-height while objectBoundingBox resolves it against the
   // diagonal, which on a wide card is set almost entirely by its width.
@@ -370,12 +375,18 @@ test("the nav card's rim has a wall behind it, not just an edge", () => {
   // material itself so the lens warps it with the surface it belongs to.
   // Brightest along the top and dimmest at the sides — an evenly lit wall
   // reads as a doubled border rather than as depth.
+  // Lit like a rolled edge rather than a flat inner face: bright along the top
+  // where the curve turns up into the light, dark underneath and at the sides
+  // where it turns away toward the pane's underside. That asymmetry is most of
+  // what reads as depth; an evenly lit wall reads as a doubled border.
   const before = css.match(/\n\.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
-  assert.match(before, /box-shadow:\s*\n\s*inset 0 1\.5px 2px -1px color-mix\(in srgb, white 58%/);
-  assert.match(before, /inset 1\.5px 0 2px -1px color-mix\(in srgb, white 20%/);
+  assert.match(before, /inset 0 2px 3px -1px color-mix\(in srgb, white 75%/);
+  assert.match(before, /inset 0 -3px 5px -2px color-mix\(in srgb, rgb\(40, 30, 22\) 30%/);
+  assert.match(before, /inset 3px 0 5px -3px color-mix\(in srgb, rgb\(40, 30, 22\) 16%/);
 
   const dark = css.match(/html\[data-theme="dark"\] \.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
-  assert.match(dark, /box-shadow:\s*\n\s*inset 0 1\.5px 2px -1px color-mix\(in srgb, white 26%/);
+  assert.match(dark, /inset 0 2px 3px -1px color-mix\(in srgb, white 34%/);
+  assert.match(dark, /inset 0 -3px 5px -2px color-mix\(in srgb, black 40%/);
   assert.ok(
     !/white (5[0-9]|[6-9][0-9])%/.test(dark.split("box-shadow:")[1]),
     "a dark-theme wall at light-theme strength reads as a second drawn border",
