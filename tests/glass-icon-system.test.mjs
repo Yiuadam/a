@@ -83,6 +83,14 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
   // no card happens to cover that spot.
   assert.match(css, /\.nav-paper \{[^}]*background: transparent;/);
   assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(28px\);/);
+  // .nav-paper also carries the .premade-glass class, which light/dark
+  // theme rules elsewhere paint with a real background colour — this
+  // explicit reset, placed after those rules, is what actually keeps the
+  // sheet transparent in every theme, not only the unthemed default one.
+  assert.match(
+    css,
+    /html\[data-theme="light"\] \.nav-paper,\nhtml\[data-theme="dark"\] \.nav-paper \{\n {2}background: transparent;\n\}/,
+  );
   // No inset highlight either — tuned for when this sheet carried real
   // visible material, it now reads as a stray grey line across the top of
   // the first row of cards.

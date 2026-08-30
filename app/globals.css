@@ -1047,18 +1047,14 @@ html[data-theme="dark"] .nav-menu-group {
   /* The same warm hue at a fraction of the light-theme mix — dark glass is
      already near-black, so 8% of a mid-brown would read as visible paint
      rather than a tint, and every dark-theme surface it neighbours is
-     built on translucency this thin. */
+     built on translucency this thin. The glow gets the same treatment:
+     full strength would paint a visible orange ring instead of a soft
+     ambient bloom. */
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 3%,
     color-mix(in srgb, var(--color-background) 84%, transparent)
   );
-}
-
-html[data-theme="dark"] .nav-menu-group {
-  /* A fainter glow than light's — the same reasoning as the background mix
-     just above: dark glass is already near-black, so full strength would
-     paint a visible orange ring instead of a soft ambient bloom. */
   box-shadow:
     0 1px 3px var(--glass-shadow),
     0 0 32px 6px color-mix(in srgb, rgb(142, 104, 78) 6%, transparent);
@@ -3561,7 +3557,6 @@ html[data-theme="light"] .interval-toggle-base,
 html[data-theme="light"] .notification-filter-base,
 html[data-theme="light"] .panel-toggle-base,
 html[data-theme="light"] .organization-view-tabs,
-html[data-theme="light"] .nav-paper,
 html[data-theme="light"] .nav-open-header,
 html[data-theme="light"] .input {
   border-color: var(--color-indigo-300);
@@ -3606,7 +3601,6 @@ html[data-theme="light"] .nav-menu-selector {
 html[data-theme="dark"] .liquid-glass,
 html[data-theme="dark"] .card,
 html[data-theme="dark"] .premade-glass,
-html[data-theme="dark"] .nav-paper,
 html[data-theme="dark"] .nav-open-header::before,
 html[data-theme="dark"] .theme-toggle-base,
 html[data-theme="dark"] .interval-toggle-base,
@@ -3622,6 +3616,19 @@ html[data-theme="dark"] .input {
     0 1px 3px var(--glass-shadow);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(104%) brightness(102%);
   backdrop-filter: blur(var(--glass-blur)) saturate(104%) brightness(102%);
+}
+
+/*
+  .nav-paper also carries the .premade-glass class (shared layout styling
+  unrelated to this), which the generic light/dark theme rules above (and
+  another at the top of this file) paint with a real background colour.
+  Equal-specificity selectors resolve by source order, so this, placed
+  after all three, is what actually keeps the sheet transparent in every
+  theme rather than only the default one this was verified against.
+*/
+html[data-theme="light"] .nav-paper,
+html[data-theme="dark"] .nav-paper {
+  background: transparent;
 }
 
 html[data-theme="dark"] .theme-toggle-selector,
