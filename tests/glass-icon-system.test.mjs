@@ -91,10 +91,13 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
     css,
     /html\[data-theme="light"\] \.nav-paper,\nhtml\[data-theme="dark"\] \.nav-paper \{\n {2}background: transparent;\n\}/,
   );
-  // No inset highlight either — tuned for when this sheet carried real
-  // visible material, it now reads as a stray grey line across the top of
-  // the first row of cards.
-  assert.doesNotMatch(css, /\.nav-paper \{[^}]*box-shadow:/);
+  // A soft warm glow spread across the whole sheet, at a fraction of each
+  // card's own — so the glow reads as bathing the panel the cards sit in,
+  // not as something that stops dead at a card's own edge. inset, since
+  // .nav-paper is the full sheet rather than a bounded shape with an edge
+  // to glow outward from.
+  assert.match(css, /\.nav-paper \{[^}]*box-shadow: inset 0 0 48px 12px/);
+  assert.match(css, /html\[data-theme="dark"\] \.nav-paper \{\s*box-shadow: inset 0 0 48px 12px/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: absolute;[^}]*inset: -1px/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer\[data-interactive\] > span \{[^}]*display: none !important/);
   assert.doesNotMatch(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: fixed/);
