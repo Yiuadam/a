@@ -13,10 +13,11 @@ const cssRule = (css, selector) => {
   return css.slice(start, end + 2);
 };
 
-test("adaptive glass has one delegated frame budget and preserves low-cost fallbacks", () => {
+test("live glass uses the browser compositor and preserves low-cost fallbacks", () => {
   const component = read("components/RefractiveGlassLayer.tsx");
   const gate = read("components/GlassPerformanceGate.tsx");
   const engine = read("components/PointerAttraction.tsx");
+  const refraction = read("components/GlassRefractionFilter.tsx");
   const css = read("app/globals.css");
 
   assert.match(component, /interactive = false/);
@@ -25,17 +26,14 @@ test("adaptive glass has one delegated frame budget and preserves low-cost fallb
   assert.doesNotMatch(component, /addEventListener|requestAnimationFrame|useState|useEffect/);
   assert.match(component, /globalMousePos=\{STILL_POINTER\}/);
   assert.match(component, /mouseOffset=\{STILL_POINTER\}/);
-  assert.match(engine, /GLASS_SURFACE = "\.card, \.liquid-glass, \.premade-glass/);
-  assert.match(engine, /REFLECTION_FRAME_MS = 32/);
+  assert.doesNotMatch(engine, /data-glass-reflecting|--glass-reflection-|REFLECTION_FRAME_MS/);
   assert.match(engine, /requestAnimationFrame\(draw\)/);
-  assert.match(engine, /connection\?\.saveData/);
-  assert.match(engine, /document\.visibilityState === "visible"/);
-  assert.match(engine, /rect\.bottom > 0[\s\S]*rect\.top < window\.innerHeight/);
-  assert.match(css, /\.card\[data-glass-reflecting\][\s\S]*radial-gradient/);
-  assert.doesNotMatch(css, /\.card\[data-glass-reflecting\][^{]*\{[^}]*position:\s*relative/);
-  assert.doesNotMatch(css, /\.card\[data-glass-reflecting\][^{]*\{[^}]*overflow:\s*hidden/);
+  assert.match(refraction, /supportsDetailedLiveRefraction/);
+  assert.match(refraction, /supportsDetailedGlass/);
+  assert.match(refraction, /connection\?\.saveData/);
+  assert.doesNotMatch(css, /data-glass-reflecting|--glass-reflection-/);
   assert.match(css, /@supports not \(\(-webkit-backdrop-filter:/);
-  assert.match(css, /@media \(hover: none\), \(pointer: coarse\), \(prefers-reduced-motion: reduce\)/);
+  assert.match(css, /@media \(hover: none\), \(pointer: coarse\), \(prefers-reduced-motion: reduce\), \(prefers-reduced-transparency: reduce\)/);
 });
 
 test("high-detail SVG refraction remains opt-in on selected controls", () => {
@@ -72,31 +70,89 @@ test("decorative navigation icons inherit one theme-aware token", () => {
   assert.match(header, /className="app-icon-control rounded-xl/);
 });
 
-test("the full navigation menu is one strongly blurred refractive surface", () => {
+test("the full navigation menu stays clearer than the cards it carries", () => {
   const css = read("app/globals.css");
   const header = read("components/SiteHeader.tsx");
 
   assert.match(header, /className="nav-paper premade-glass/);
   assert.match(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
-  assert.match(css, /\.nav-paper \{[\s\S]*backdrop-filter: blur\(42px\)/);
+  // The sheet itself carries no tint or refraction of its own — only the
+  // .nav-menu-group cards it holds do, layering their own heavier blur and
+  // colour on top. But it does carry a real, uniform blur so the gaps
+  // between cards read as a soft glow, not legible page text just because
+  // no card happens to cover that spot.
+  assert.match(css, /\.nav-paper \{[^}]*background: transparent;/);
+  assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(14px\);/);
+  // .nav-paper also carries the .premade-glass class, which light/dark
+  // theme rules elsewhere paint with a real background colour — this
+  // explicit reset, placed after those rules, is what actually keeps the
+  // sheet transparent in every theme, not only the unthemed default one.
+  assert.match(
+    css,
+    /html\[data-theme="light"\] \.nav-paper,\nhtml\[data-theme="dark"\] \.nav-paper \{\n {2}background: transparent;\n\}/,
+  );
+  // A soft warm glow spread across the whole sheet, at a fraction of each
+  // card's own — so the glow reads as bathing the panel the cards sit in,
+  // not as something that stops dead at a card's own edge. inset, since
+  // .nav-paper is the full sheet rather than a bounded shape with an edge
+  // to glow outward from.
+  assert.match(css, /\.nav-paper \{[^}]*box-shadow: inset 0 0 48px 12px/);
+  assert.match(css, /html\[data-theme="dark"\] \.nav-paper \{\s*box-shadow: inset 0 0 48px 12px/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: absolute;[^}]*inset: -1px/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer\[data-interactive\] > span \{[^}]*display: none !important/);
   assert.doesNotMatch(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: fixed/);
   assert.match(css, /@supports not[\s\S]*\.nav-paper \{[\s\S]*background: var\(--color-background\)/);
 });
 
-test("navigation opens immediately without stagger while keeping its fixed glass surface", () => {
+test("navigation keeps its fixed glass surface, and grows outward from the button that opened it", () => {
   const css = read("app/globals.css");
   const header = read("components/SiteHeader.tsx");
   const panel = cssRule(css, ".nav-paper");
 
   assert.match(header, /className="nav-menu-group liquid-glass/);
   assert.match(header, /className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-\[var\(--header-h\)\]/);
-  assert.match(panel, /backdrop-filter: blur\(42px\)/);
+  assert.match(panel, /background: transparent;/);
+  // The base rule stays motion-inert; the grow lives entirely in the
+  // reduced-motion-gated block below, same as every other glass panel.
   assert.doesNotMatch(panel, /\banimation(?:-\w+)?:/);
-  assert.doesNotMatch(css, /\.nav-menu-group\s*\{[^}]*\banimation(?:-\w+)?\s*:/);
+
+  // The sheet's own opening move is a scale-from-the-button grow — a
+  // clip-path circle reveal was tried and rejected: animating clip-path is
+  // not reliably GPU-compositor-accelerated the way transform/opacity are,
+  // and every .nav-menu-group card it holds carries its own live SVG
+  // refraction filter, genuinely expensive to re-evaluate every frame.
+  assert.match(css, /@keyframes nav-sheet-grow \{/);
+  assert.match(css, /@keyframes nav-sheet-grow \{[\s\S]*?transform: scale\(0\.06\)/);
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-paper \{[\s\S]*?transform-origin: var\(--nav-origin-x, 50%\) top;[\s\S]*?animation: nav-sheet-grow/,
+  );
+  // transform and opacity only — no clip-path/width/height — is what keeps
+  // this compositor-only at the full-viewport scale the sheet animates at.
+  const growStart = css.indexOf("@keyframes nav-sheet-grow {");
+  const growEnd = css.indexOf("\n}\n", growStart);
+  assert.doesNotMatch(css.slice(growStart, growEnd), /\bclip-path\s*:/);
+
+  assert.match(header, /--nav-origin-x/);
+
+  // Each card fades and rises into its own final position rather than
+  // reusing the popovers' squash-and-stretch bounce: a card that has
+  // already arrived has no reason to keep overshooting past its resting
+  // place and springing back.
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\.nav-menu-group \{[\s\S]*?animation: nav-card-settle\b/,
+  );
+  assert.match(css, /@keyframes nav-card-settle \{/);
+  const settleStart = css.indexOf("@keyframes nav-card-settle {");
+  const settleEnd = css.indexOf("\n}\n", settleStart);
+  const settleBody = css.slice(settleStart, settleEnd);
+  // Exactly a start and an end state — no intermediate overshoot step for
+  // the card to spring past its resting place and back from.
+  assert.equal((settleBody.match(/%\s*\{/g) ?? []).length, 2);
+  // The cascade is a handful of fixed per-card delays, not a formula fed by a
+  // custom property — nothing for SiteHeader itself to compute or clean up.
   assert.doesNotMatch(header, /--nav-group-(?:delay|touch-delay|flow-x)/);
-  assert.doesNotMatch(css, /@keyframes (?:glass-menu-open|nav-group-materialise|nav-group-touch-open)/);
 });
 
 test("the header icon ships a right-sized immutable static asset without image optimisation", () => {
@@ -130,8 +186,20 @@ test("the notification popover paints exactly one clipped outer glass boundary",
   const inbox = read("components/account/NotificationInbox.tsx");
   const popover = inbox.slice(inbox.indexOf('<div role="dialog" aria-label="Notifications"'), inbox.indexOf("export default function NotificationInbox"));
 
+  // Same Safari workaround as .nav-paper: an `isolate` ancestor with no
+  // filter of its own silently zeroes out a descendant's backdrop-filter
+  // on real iOS, even though the same CSS blurs fine in Chromium.
+  assert.match(css, /\[data-notification-bell-root\] \{[^}]*backdrop-filter: blur\(1px\);/);
   assert.match(popover, /className="notification-popover liquid-glass/);
   assert.doesNotMatch(popover, /RefractiveGlassLayer/);
   assert.doesNotMatch(popover, /premade-glass-content/);
   assert.match(css, /\.notification-popover \{[\s\S]*contain: paint;[\s\S]*clip-path: inset\(0 round var\(--radius-xl\)\)/);
+  // Same barely-there, live-refracted material as the nav list, not the
+  // heavier, more opaque frosted drawer this used to be.
+  assert.match(css, /\.notification-popover \{[\s\S]*?background-color: color-mix\(in srgb, var\(--color-surface\) 9%, transparent\)[\s\S]*?blur\(2px\)/);
+  assert.match(css, /\.notification-popover::before \{[\s\S]*?pointer-events: none;[\s\S]*?border-radius: inherit;[\s\S]*?inset 0 1px 0/);
+  assert.match(css, /\.notification-popover > \* \{[\s\S]*?position: relative;[\s\S]*?z-index: 1/);
+  // No more special-cased exclusion from the SVG lens: this popover now
+  // gets exactly the generic .liquid-glass refraction treatment.
+  assert.doesNotMatch(css, /html\[data-theme\]\[data-live-glass-refraction\] \.liquid-glass\.notification-popover/);
 });

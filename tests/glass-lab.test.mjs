@@ -44,15 +44,15 @@ test("the experiment is off by default, because nothing in this test run sets NE
   assert.equal(GLASS_LAB, false);
 });
 
-test("the enhanced rim reuses the delegated reflection engine and disables under the same power-aware query as everything else", () => {
+test("the enhanced rim is static material lighting and disables under the power-aware query", () => {
   const css = read("app", "globals.css");
   const rim = rule(css, '.refractive-glass-layer[data-optics="enhanced"]::after');
 
-  // The rim paints from --glass-reflection-x/y rather than owning any pointer
-  // math of its own, so it is riding the coordinates PointerAttraction was
-  // already writing for the adaptive background reflection.
-  assert.match(rim, /var\(--glass-reflection-x/);
-  assert.match(rim, /var\(--glass-reflection-y/);
+  // Material lighting is fixed to the pane. The live backdrop filter changes
+  // with page content; the rim must not chase a pointer.
+  assert.match(rim, /circle at 50% 0%/);
+  assert.match(rim, /circle at 50% 100%/);
+  assert.doesNotMatch(rim, /glass-reflection/);
   // The gradient-border technique lives or dies on the mask pair.
   assert.match(rim, /mask-composite:\s*exclude/);
   assert.match(rim, /-webkit-mask-composite:\s*xor/);
@@ -62,9 +62,8 @@ test("the enhanced rim reuses the delegated reflection engine and disables under
     in this file, so the check below anchors on the enhanced rim's selector
     landing immediately inside a media block's opening brace (only
     whitespace between them) rather than merely appearing somewhere after it
-    — otherwise this could pass by matching the unrelated, pre-existing
-    "Adaptive background reflection" query instead of the one guarding the
-    lab rules.
+    — otherwise it could pass by matching an unrelated coarse-pointer query
+    instead of the one guarding the lab rules.
   */
   assert.match(
     css,

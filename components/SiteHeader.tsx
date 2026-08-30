@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
@@ -127,6 +127,24 @@ export default function SiteHeader({
   const [menuPreview, setMenuPreview] = useState<{ group: number; item: number } | null>(null);
   const open = openPath !== null && openPath === pathname;
   const close = () => setOpenPath(null);
+
+  /*
+    The sheet is `fixed inset-x-0`, so its own left edge is always the
+    viewport's — the menu button's position within that width is the one
+    thing CSS alone cannot know. Read it here, before paint, and hand it to
+    the stylesheet as a variable: the opening animation reads from the
+    button outward instead of growing from the middle of the screen.
+    useLayoutEffect rather than the effect below it, so this is set on the
+    same frame the sheet mounts and the very first paint already has it —
+    an ordinary effect would let one frame render at the 50% fallback first.
+  */
+  useLayoutEffect(() => {
+    if (!open) return;
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) {
+      panelRef.current?.style.setProperty("--nav-origin-x", `${rect.left + rect.width / 2}px`);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -444,9 +462,9 @@ export default function SiteHeader({
                             onPointerEnter={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
                             onFocus={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
                             onBlur={() => setMenuPreview(null)}
-                            className={`relative z-10 flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[16px] transition-colors ${
+                            className={`relative z-10 flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[16px] font-semibold transition-colors ${
                               item.href === current
-                                ? "font-semibold text-slate-900"
+                                ? "text-slate-900"
                                 : "text-slate-700 hover:text-slate-900"
                             }`}
                           >

@@ -46,7 +46,11 @@ test("opening navigation keeps a real liquid-glass header surface", () => {
   // for the fixed navigation sheet. The visible surface therefore lives on
   // the pseudo-element; the header remains filter-free and the menu remains
   // a viewport-fixed layer beneath it.
-  assert.match(openHeader, /border-color:\s*var\(--glass-edge\)\s*;/);
+  // The closed header's border-b earns its keep against an opaque bar; open,
+  // it sits directly above .nav-paper's much clearer material (9% tint, 2px
+  // blur) and a solid line at that seam reads as a stray leftover rather
+  // than a deliberate divider.
+  assert.match(openHeader, /border-color:\s*transparent\s*;/);
   assert.match(openHeader, /isolation:\s*isolate\s*;/);
   assert.match(openHeader, /background:\s*color-mix\(in srgb, var\(--glass-fill\) 45%, transparent\)\s*;/);
   assert.match(openHeader, /box-shadow:\s*[\s\S]*?var\(--glass-highlight\) 45%/);
