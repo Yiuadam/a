@@ -1374,17 +1374,23 @@ html[data-theme="dark"] .nav-menu-group::before {
 }
 
 /*
-  The live SVG lens (bandup-nav-glass-lens) is deliberately NOT applied here
-  for now. `.nav-menu-group::before` carried a `display: none` bug (see the
-  comment on the rule above) for as long as this filter has existed, so the
-  filter has only ever run on an invisible, undisplayed layer — no one has
-  actually seen its output before. Turning both on together for the first
-  time showed why: instead of bending the backdrop at the rim, it inflates
-  the whole card into an obvious full-circle bulge, which reads as a bug, not
-  a lens. That is a displacement-map/scale problem worth solving on its own,
-  separately from fixing the display bug — so for now this card keeps only
-  the CSS wall and rim below, which already look correct on their own, and
-  the filter stays off until the bulge is understood and fixed.
+  The live SVG lens is deliberately NOT applied here. The nav card used to
+  solve its own dedicated displacement map from its own measured shape (see
+  git history for bandup-nav-glass-lens); that map was never actually seen
+  rendering correctly, because `.nav-menu-group::before` carried a `display:
+  none` bug (see the comment on the rule above) for as long as it existed.
+
+  Fixing the display bug and generating that map for the card's own real
+  shape — inspected directly, not just through the page — showed why nobody
+  had caught it: `magnify` is designed to ramp from nothing at the centre to
+  full strength at the rim across the *entire* face, not a thin bezel (see
+  its own doc comment in lib/glass-refraction.ts), and at the strength every
+  card currently shares that reads as a lens on a busy backdrop and as an
+  obvious pale blob on a plain one — which this card's backdrop, and the same
+  bucketed system every plain `.card` also uses, now both risk being. That is
+  a shared tuning problem worth a careful pass of its own, not a fix rushed
+  in on one card's complaint, so this card keeps only the CSS wall and rim
+  below until it lands.
 */
 
 html[data-theme="dark"] .nav-menu-group {
@@ -3846,12 +3852,63 @@ html[data-theme="light"] body {
   --glass-specular: rgba(22, 23, 26, 0.14);
   --glass-shadow: rgba(22, 23, 26, 0.07);
   --app-icon-color: var(--color-slate-700);
-  background: #ffffff;
+  /* A very light sky-blue wash, anchored to the bottom of the viewport and
+     fading up to pure white — the same fixed-attachment technique the Warm
+     theme's own corner washes use above (see the base `body` rule), just one
+     gradient running the full height instead of two pooling in the corners.
+     Every glass surface already samples whatever is behind it through its
+     own backdrop-filter, so every card's edge bends this wash exactly the
+     way it already bends page content underneath it — nothing about the
+     cards themselves needs to change for that to show. */
+  background: linear-gradient(to top, #8dc3ef 0%, #c3e2f7 40%, #ffffff 88%);
+  background-attachment: fixed;
   color: var(--color-foreground);
 }
 
 html[data-theme="light"] body[data-glass-lab] {
   background-image: none;
+}
+
+/*
+  Light's own glass has no colour of its own — unlike Warm, which mixes a
+  little of its cream-and-clay hue into every pane on purpose, Light is the
+  neutral-grey theme (see "Light primary controls" below), and its glass
+  should read as clear, not tinted. Without this, .nav-menu-group::before
+  still carried the Warm theme's own brown mixed in at the same strength
+  regardless of theme, which — now that the page behind it is a blue wash
+  rather than cream paper — muddied the blue into a grey-brown rather than
+  letting it show through. Same wall/rim formula as every other theme, just
+  with the page's own background as the only colour in the mix.
+*/
+html[data-theme="light"] .nav-menu-group::before {
+  --nav-tint: color-mix(in srgb, var(--color-background) 5%, transparent);
+  /* The wall's own shade was mixed from a warm near-black (rgb(40, 30, 22))
+     rather than true black — invisible next to Warm's cream paper, but a
+     second source of colour once the backdrop is Light's own blue wash.
+     Neutral black here, and each stop lighter than the base formula: with
+     --nav-tint also thinned above, the open nav list reads as almost pure
+     blur over the page's blue wash, with just enough of a highlight and a
+     shade to still describe an edge. */
+  --nav-wall-light: color-mix(in srgb, white 45%, transparent);
+  --nav-wall-shade: color-mix(in srgb, black 14%, transparent);
+  --nav-wall-shade-soft: color-mix(in srgb, black 7%, transparent);
+}
+
+/*
+  The same warm brown also drives two ambient glows that sit outside the
+  wall/tint layer above and so are not covered by overriding --nav-tint: the
+  soft lift under each open nav card, and .nav-paper's own glow bathing the
+  whole sheet behind them. Both keep their neutral shadow layers (the contact
+  shadow, the wider lift, the blur) and drop only the coloured one.
+*/
+html[data-theme="light"] .nav-paper {
+  box-shadow: none;
+}
+
+html[data-theme="light"] .nav-menu-group {
+  box-shadow:
+    0 1px 2px var(--glass-shadow),
+    0 8px 22px -8px color-mix(in srgb, black 18%, transparent);
 }
 
 /* Light primary controls use the same neutral-grey family as its cards. */
@@ -3871,12 +3928,11 @@ html[data-theme="light"] .btn-primary:hover:not(:disabled) {
   background: var(--color-indigo-700);
 }
 
-/* Light keeps every surface a quiet grey instead of leaving its controls or
-   clickable cards blue. The page itself stays pure white, preserving the
-   distinction between content canvas and something a learner can press. */
-html[data-theme="light"] .liquid-glass,
-html[data-theme="light"] .card,
-html[data-theme="light"] .premade-glass,
+/* Light keeps every control surface a quiet grey instead of leaving it blue,
+   so a button, toggle or input still reads as something to press rather than
+   as a pane of the page's own glass. The page itself stays pure white,
+   preserving the distinction between content canvas and something a learner
+   can press. */
 html[data-theme="light"] .btn-secondary,
 html[data-theme="light"] .theme-toggle-base,
 html[data-theme="light"] .interval-toggle-base,
@@ -3887,6 +3943,20 @@ html[data-theme="light"] .nav-open-header,
 html[data-theme="light"] .input {
   border-color: var(--color-indigo-300);
   background: color-mix(in srgb, var(--color-indigo-100) 46%, transparent);
+}
+
+/* Actual glass, unlike the controls above, has no colour and no opaque floor
+   of its own — it is meant to be seen through, with the page's own blue wash
+   glowing through the blur rather than sitting under a grey scrim. The mix
+   below is the same neutral indigo-100 the controls use (a near-white grey in
+   this theme, not an actual blue), just at a small fraction of their
+   strength: enough to give the rim something to catch the light against,
+   not enough to flatten the glow into a solid card. */
+html[data-theme="light"] .liquid-glass,
+html[data-theme="light"] .card,
+html[data-theme="light"] .premade-glass {
+  border-color: var(--color-indigo-300);
+  background: color-mix(in srgb, var(--color-indigo-100) 16%, transparent);
 }
 
 /* Keep the inbox at the card optical index in Light as well. The generic
