@@ -1037,7 +1037,7 @@ html[data-theme="dark"] .google-signin-glass {
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 8%,
-    color-mix(in srgb, var(--color-background) 48%, transparent)
+    color-mix(in srgb, var(--color-background) 34%, transparent)
   );
 }
 
@@ -1051,7 +1051,7 @@ html[data-theme="dark"] .nav-menu-group {
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 3%,
-    color-mix(in srgb, var(--color-background) 44%, transparent)
+    color-mix(in srgb, var(--color-background) 30%, transparent)
   );
   /* A dimmer top highlight than light's own — dark glass still catches a
      rim of light, just not as brightly as a pale card would. */
