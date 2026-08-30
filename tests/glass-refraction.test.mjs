@@ -90,7 +90,58 @@ test("the bevel is a uniform width in pixels once solved for a pane's aspect", (
   assert.deepEqual(pixel(map, size, mid, mid), [128, 128, 128, 255]);
 });
 
-test("magnification spreads the centre so the middle is not inert", () => {
+test("the dome bends along the surface normal, so the ends bend too", () => {
+  // A purely vertical magnification leaves the rounded ends flat, which is
+  // exactly what a dome does not do. Displacing along the surface normal makes
+  // the top and bottom bend vertically, the ends bend inward along their own
+  // curve, and the middle stay put.
+  const size = 512;
+  const map = glassRefractionModule.createGlassRefractionMap(size, {
+    aspect: 3,
+    cornerRadius: 0.98,
+    bezelWidth: 0,
+    magnify: 0.42,
+    dome: 0.45,
+    maxDisplacement: 0.85,
+  });
+  const mid = size / 2;
+  const at = (x, y) => [pixel(map, size, x, y)[0] - 128, pixel(map, size, x, y)[1] - 128];
+
+  const [topX, topY] = at(mid, 8);
+  const [endX, endY] = at(6, mid);
+  assert.deepEqual(at(mid, mid), [0, 0], "the middle of the glass stays put");
+  assert.ok(Math.abs(topY) > 20 && Math.abs(topY) > Math.abs(topX) * 4, "the top edge bends vertically");
+  assert.ok(Math.abs(endX) > 20 && Math.abs(endX) > Math.abs(endY) * 4, "the rounded end bends horizontally");
+  // both pull inward, which is what keeps every sample on the pane
+  assert.ok(topY > 0, "the top edge pulls down, into the glass");
+  assert.ok(endX > 0, "the left end pulls right, into the glass");
+});
+
+test("the dome's rim climbs far faster than a straight ramp", () => {
+  // The tangle at the edge comes from that late climb; a ramp has no steep
+  // part and cannot produce it at any strength.
+  const size = 512;
+  const shape = { aspect: 3, cornerRadius: 0.98, bezelWidth: 0, maxDisplacement: 0.85 };
+  const ramp = glassRefractionModule.createGlassRefractionMap(size, { ...shape, magnify: 1 });
+  const dome = glassRefractionModule.createGlassRefractionMap(size, { ...shape, dome: 1 });
+  const mid = size / 2;
+  const g = (m, row) => pixel(m, size, mid, row)[1] - 128;
+
+  // find the rim on the vertical centreline
+  let rim = 0;
+  while (rim < mid && g(ramp, rim) === 0) rim += 1;
+  const depth = (f) => rim + Math.round(f * (mid - rim));
+
+  // near the rim both are strong; a third of the way in the dome has already
+  // given most of its bend back while the ramp is still coasting down
+  assert.ok(g(dome, depth(0.02)) > g(ramp, depth(0.02)) * 0.8, "both bend hard at the rim");
+  assert.ok(
+    g(dome, depth(0.35)) < g(ramp, depth(0.35)) * 0.5,
+    "the dome should be far gentler than a ramp away from the rim",
+  );
+});
+
+test("a straight ramp spreads the centre so the middle is not inert", () => {
   // A bevel alone only bends what passes under the rim. With one, a line
   // crossing behind a pane comes out nudged where it enters and untouched
   // everywhere else, which reads as a blurred hole rather than as glass. A
@@ -271,7 +322,11 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // line to its strongest at the edge, so a line crossing behind the card is
   // bent by the same rule wherever it crosses.
   assert.match(filter, /NAV_BEZEL_WIDTH = 0;/);
-  assert.match(filter, /NAV_MAGNIFY = 0\.3;/);
+  assert.match(filter, /NAV_MAGNIFY = 0\.42;/);
+  // Plus a dome for the rim: a hemisphere's refraction follows its surface
+  // slope, gentle across the face and then climbing almost vertically in the
+  // last stretch, which folds the backdrop into a tangled band at the edge.
+  assert.match(filter, /NAV_DOME = 0\.45;/);
   // The scale is derived from the measured box, not a constant: it is bounded
   // by the card's half-height while objectBoundingBox resolves it against the
   // diagonal, which on a wide card is set almost entirely by its width.

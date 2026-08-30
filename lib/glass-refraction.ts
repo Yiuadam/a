@@ -45,20 +45,39 @@ export type GlassRefractionMapOptions = {
   /** Bevel width, as a fraction of the pane's half-height. */
   bezelWidth?: number;
   /**
-   * How much the flat centre magnifies, across the pane's short axis.
+   * Strength of a dome over the whole pane, displacing along its surface
+   * normal.
    *
-   * A bevel alone only bends what passes under the rim; the middle stays
-   * inert, which is why a pane with one reads as a blurred hole rather than
-   * as glass. A real lens does both — it spreads what is behind its centre
-   * and compresses it hard at the edge. That pairing is what makes a line
-   * crossing behind a pane come out thicker in the middle and hooked at the
-   * rim, instead of merely nudged where it enters.
+   * This is the pane modelled as a real piece of glass with a curved face
+   * rather than a flat sheet with a bevel stuck round it. Two things follow
+   * from taking that literally.
    *
-   * Applied across the short axis only. On a pane as wide as a navigation
-   * card, magnifying along the length would ask for a displacement of many
-   * times the card's height and drag in content from well outside it; across
-   * the height it is bounded by the height itself. That makes this a
-   * cylindrical lens, which is the right model for a long, thin pane.
+   * The direction is the surface normal at each point, not one fixed axis, so
+   * the top and bottom edges bend the backdrop downward and upward, the
+   * rounded ends bend it inward along their own curve, and the corners bend it
+   * diagonally. A purely vertical magnification leaves the ends flat, which is
+   * exactly what a dome does not do.
+   *
+   * The amount follows a hemisphere's surface slope, t / sqrt(1 - t²) for t
+   * running from the middle of the glass out to its rim. That stays gentle
+   * across most of the face and then climbs almost vertically in the last
+   * stretch, which is what folds the backdrop into a tight tangled band right
+   * at the edge — the look of the rim of a real glass dome. A straight ramp
+   * cannot produce it at any strength: it has no steep part.
+   *
+   * Displacement points inward, toward the thick middle of the glass, so it
+   * can never ask for a sample from beyond the pane's own edge.
+   */
+  dome?: number;
+  /**
+   * A straight ramp along the same inward normal, added under the dome.
+   *
+   * The dome alone is gentle across most of the face by construction — all
+   * its strength is saved for the rim — so on its own it leaves the body of
+   * the pane doing very little. This carries the body: displacement growing
+   * evenly from nothing in the middle to its full value at the rim, which is
+   * what gives the whole face a steady bend for the dome's tangle to sit on
+   * top of.
    */
   magnify?: number;
   /**
@@ -82,12 +101,17 @@ export function createGlassRefractionMap(
     aspect = 1,
     cornerRadius = 0.3,
     bezelWidth = 0.16,
+    dome = 0,
     magnify = 0,
     /* Uncapped by default, so the sitewide square map keeps exactly the shape
        it had. Only a caller that knows its own displacement scale can say
        what the bend must stay within. */
     maxDisplacement = Number.POSITIVE_INFINITY,
   } = options;
+  /* Where the dome's slope is treated as fully turned over. Past this the
+     profile is flat out, which keeps the tangle to a band at the rim rather
+     than letting a single row of pixels take the whole displacement. */
+  const SLOPE_CAP = 3;
   const pixels = new Uint8ClampedArray(size * size * 4);
   const halfExtent = 0.98;
   /* Half-extents in height units. The rounded rectangle is inset by its own
@@ -157,18 +181,22 @@ export function createGlassRefractionMap(
         }
       }
 
-      /* Magnification pulls each sample toward the centre line by an amount
-         proportional to how far from it that sample sits, which spreads the
-         backdrop outward. It applies across the whole pane, not only the
-         bevel, and is what keeps the middle from being inert; the bevel's
-         outward bend then compresses it again at the rim. Inside the shape
-         only — outside it there is no glass to magnify through. */
-      const magnified = signedDistance <= 0 ? -magnify * y : 0;
+      /* How far into the glass this sample sits, as a fraction of the way from
+         the rim to the thick middle: 1 at the rim, 0 in the middle. */
+      const intoGlass = clamp(1 - -signedDistance / halfExtent, 0, 1);
+      const domeSlope =
+        Math.min(
+          intoGlass / Math.sqrt(Math.max(1 - intoGlass * intoGlass, 1e-4)),
+          SLOPE_CAP,
+        ) / SLOPE_CAP;
+      /* The dome pulls inward along the same surface normal the bevel pushes
+         outward along, so the two share one direction field. Inward means it
+         can never ask for a sample from beyond the pane's own edge. */
+      const pull = dome * domeSlope + magnify * intoGlass;
+      const alongNormal = bend - (signedDistance <= 0 ? pull : 0);
 
-      pixels[index] = Math.round(NEUTRAL_CHANNEL + clamp(normalX * bend, -1, 1) * 127);
-      pixels[index + 1] = Math.round(
-        NEUTRAL_CHANNEL + clamp(normalY * bend + magnified, -1, 1) * 127,
-      );
+      pixels[index] = Math.round(NEUTRAL_CHANNEL + clamp(normalX * alongNormal, -1, 1) * 127);
+      pixels[index + 1] = Math.round(NEUTRAL_CHANNEL + clamp(normalY * alongNormal, -1, 1) * 127);
       pixels[index + 2] = NEUTRAL_CHANNEL;
       pixels[index + 3] = 255;
     }
