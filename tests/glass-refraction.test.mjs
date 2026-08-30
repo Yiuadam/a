@@ -45,7 +45,7 @@ test("live panels use the SVG displacement filter only after browser capability 
   assert.match(filter, /Safari parses[\s\S]*?false positive/);
   assert.match(filter, /Chromium\|Google Chrome\|Microsoft Edge\|Opera/);
   assert.match(filter, /primitiveUnits="objectBoundingBox"/);
-  assert.match(filter, /scale="0\.04"/);
+  assert.match(filter, /scale="0\.09"/);
   assert.match(filter, /CSS\.supports\([\s\S]*?backdrop-filter[\s\S]*?url\(#\$\{FILTER_ID\}\)/);
   assert.match(filter, /supportsDetailedLiveRefraction/);
   assert.match(filter, /supportsDetailedGlass/);

@@ -1018,10 +1018,17 @@ html[data-theme="dark"] .google-signin-glass {
   a stronger orange rather than a more opaque card.
 */
 .nav-menu-group {
+  /* Fully opaque was overcorrecting: at ~90% there was barely enough of
+     the page left showing through the card for the live refraction lens
+     below to have anything to bend, so the card read as flat blur instead
+     of the visibly warped material iOS folders and Control Center panels
+     both show at their edges. This is the middle ground — frosted and
+     substantially obscuring, but still translucent enough for the lens to
+     read as glass rather than paint. */
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 8%,
-    color-mix(in srgb, var(--color-background) 92%, transparent)
+    color-mix(in srgb, var(--color-background) 68%, transparent)
   );
 }
 
@@ -1033,7 +1040,7 @@ html[data-theme="dark"] .nav-menu-group {
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 3%,
-    color-mix(in srgb, var(--color-background) 88%, transparent)
+    color-mix(in srgb, var(--color-background) 64%, transparent)
   );
 }
 
