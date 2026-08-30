@@ -17,11 +17,6 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
-function smoothstep(from: number, to: number, value: number) {
-  const progress = clamp((value - from) / (to - from), 0, 1);
-  return progress * progress * (3 - 2 * progress);
-}
-
 /**
  * Builds an RGBA displacement map for a rounded square. SVG scales this map
  * to each pane, while the map itself keeps the centre optically flat and the
@@ -58,9 +53,21 @@ export function createGlassRefractionMap(size = GLASS_REFRACTION_MAP_SIZE) {
       let bend = 0;
 
       if (signedDistance <= 0) {
-        /* The inner portion is flat. Smoothly concentrate the bend in the
-           curved bevel, with the strongest displacement right at the rim. */
-        bend = 1 - smoothstep(0, bezelWidth, -signedDistance);
+        /* The inner portion is flat; the bevel follows an actual spherical
+           cross-section rather than a linear ramp. Take the bevel in
+           profile as a quarter circle that meets the flat centre tangentially
+           and turns down hard at the rim: surface height y = sqrt(1 - p²)
+           for p running 0 (inner edge) to 1 (rim), whose slope is
+           p / sqrt(1 - p²).
+
+           That slope is what the eye reads as glass thickness. It stays
+           near zero across the inner bevel and then climbs steeply through
+           the outer third, so a line of text passing under the pane runs
+           straight until it reaches the rim and then visibly bends — the
+           way it does under a real convex panel, instead of drifting
+           gently across the whole border the way an even falloff makes it. */
+        const p = clamp(1 - -signedDistance / bezelWidth, 0, 1);
+        bend = clamp(p / Math.sqrt(Math.max(1 - p * p, 0.02)), 0, 1);
 
         if (cornerDistance > 0.0001) {
           normalX = (x - clamp(x, -straightExtent, straightExtent)) / cornerDistance;

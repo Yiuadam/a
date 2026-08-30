@@ -41,11 +41,24 @@ test("the glass displacement map bends each edge outward and remains symmetric",
   assert.equal(128 - top[1], bottom[1] - 128);
 });
 
+test("the glass bevel follows a lens profile, not an even ramp", () => {
+  const size = 64;
+  const map = glassRefractionModule.createGlassRefractionMap(size);
+  const displacement = (x) => Math.abs(pixel(map, size, x, 32)[0] - 128);
+
+  // A real convex panel turns down hard at the rim and is flat well before
+  // the middle. The outer band saturates, so a line of text crossing it
+  // visibly bends; by a third of the way in there is nothing left to bend.
+  assert.ok(displacement(3) > 120, "the rim should bend at nearly full strength");
+  assert.ok(displacement(8) < displacement(3) / 2, "the bend should fall off steeply behind the rim");
+  assert.equal(displacement(14), 0, "the pane should be optically flat well before its middle");
+});
+
 test("live panels use the SVG displacement filter only after browser capability detection", () => {
   assert.match(filter, /Safari parses[\s\S]*?false positive/);
   assert.match(filter, /Chromium\|Google Chrome\|Microsoft Edge\|Opera/);
   assert.match(filter, /primitiveUnits="objectBoundingBox"/);
-  assert.match(filter, /scale="0\.14"/);
+  assert.match(filter, /scale="0\.24"/);
   assert.match(filter, /CSS\.supports\([\s\S]*?backdrop-filter[\s\S]*?url\(#\$\{FILTER_ID\}\)/);
   assert.match(filter, /supportsDetailedLiveRefraction/);
   assert.match(filter, /supportsDetailedGlass/);

@@ -213,7 +213,7 @@ export default function GlassRefractionFilter() {
           <feDisplacementMap
             in="SourceGraphic"
             in2="glass-normal-map"
-            scale="0.14"
+            scale="0.24"
             xChannelSelector="R"
             yChannelSelector="G"
           />
