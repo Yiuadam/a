@@ -1071,10 +1071,14 @@ html[data-theme="dark"] .nav-paper {
   /* As blurred and transparent as the sheet's own gaps (see .nav-paper) —
      the card is still a distinct surface via its tint and highlight, not
      because it hides more of what's behind it. */
+  /* Both halves come down together. The warm tint is mixed as an opaque
+     colour, so it sets a floor the scrim underneath can never get below —
+     thinning only the scrim would leave the card stuck at the tint's own
+     weight and just make it read browner rather than clearer. */
   background: color-mix(
     in srgb,
-    rgb(142, 104, 78) 8%,
-    color-mix(in srgb, var(--color-background) 24%, transparent)
+    rgb(142, 104, 78) 5%,
+    color-mix(in srgb, var(--color-background) 14%, transparent)
   );
   /* WebKit silently skips backdrop-filter on an element that never commits
      to its own compositing layer, which is easy to end up with two levels
@@ -1099,8 +1103,8 @@ html[data-theme="dark"] .nav-menu-group::before {
      built on translucency this thin. */
   background: color-mix(
     in srgb,
-    rgb(142, 104, 78) 3%,
-    color-mix(in srgb, var(--color-background) 20%, transparent)
+    rgb(142, 104, 78) 2%,
+    color-mix(in srgb, var(--color-background) 12%, transparent)
   );
 }
 
