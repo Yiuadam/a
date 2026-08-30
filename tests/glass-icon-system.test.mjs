@@ -76,15 +76,13 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
 
   assert.match(header, /className="nav-paper premade-glass/);
   assert.match(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
-  // The sheet itself carries no visible tint or refraction of its own —
-  // only the .nav-menu-group cards it holds do. A gap between cards must
-  // show the real page behind it, not a second, much bigger blurred/
-  // refracted layer stacked underneath every card's own. Its own blur is
-  // kept imperceptibly small (a Safari workaround: WebKit needs an
-  // ancestor's own filter layer for a descendant's backdrop-filter to
-  // render at all), not zero.
+  // The sheet itself carries no tint or refraction of its own — only the
+  // .nav-menu-group cards it holds do, layering their own heavier blur and
+  // colour on top. But it does carry a real, uniform blur so the gaps
+  // between cards read as a soft glow, not legible page text just because
+  // no card happens to cover that spot.
   assert.match(css, /\.nav-paper \{[^}]*background: transparent;/);
-  assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(1px\);/);
+  assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(28px\);/);
   // No inset highlight either — tuned for when this sheet carried real
   // visible material, it now reads as a stray grey line across the top of
   // the first row of cards.

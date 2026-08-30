@@ -909,8 +909,14 @@ html[data-theme="dark"] .google-signin-glass {
   overflow-x: hidden;
   overflow-y: auto;
   background: transparent;
-  -webkit-backdrop-filter: blur(1px);
-  backdrop-filter: blur(1px);
+  /* A real, uniform blur across the whole sheet — not just a tiny
+     Safari-compositing-layer shim — so the page behind reads as one soft,
+     glowing wash wherever it shows, including the gaps between cards, not
+     legible text everywhere the cards themselves don't happen to cover.
+     No tint and no url() lens here: those stay on the cards, which sit on
+     top of this and add their own heavier blur and colour. */
+  -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
 }
 
 /*
@@ -3680,6 +3686,23 @@ html[data-live-glass-refraction] .card.card,
 html[data-live-glass-refraction] .premade-glass {
   backdrop-filter:
     blur(8px)
+    saturate(115%)
+    brightness(104%)
+    contrast(102%)
+    url("#bandup-live-glass-refraction");
+}
+
+/*
+  8px is tuned for small controls, where a little sharpness is what makes
+  the lens read as glass rather than a plain wash. On the much larger nav
+  cards it left page text legible enough to double-expose against the
+  card's own labels instead of reading as a soft, unreadable glow — the
+  goal of a background seen through frosted glass, not a ghost of the page
+  underneath it. Heavier blur here, same lens and colour treatment.
+*/
+html[data-live-glass-refraction] .nav-menu-group {
+  backdrop-filter:
+    blur(48px)
     saturate(115%)
     brightness(104%)
     contrast(102%)
