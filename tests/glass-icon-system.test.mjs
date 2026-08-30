@@ -82,7 +82,7 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
   // between cards read as a soft glow, not legible page text just because
   // no card happens to cover that spot.
   assert.match(css, /\.nav-paper \{[^}]*background: transparent;/);
-  assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(28px\);/);
+  assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(14px\);/);
   // .nav-paper also carries the .premade-glass class, which light/dark
   // theme rules elsewhere paint with a real background colour — this
   // explicit reset, placed after those rules, is what actually keeps the

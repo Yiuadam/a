@@ -910,13 +910,15 @@ html[data-theme="dark"] .google-signin-glass {
   overflow-y: auto;
   background: transparent;
   /* A real, uniform blur across the whole sheet — not just a tiny
-     Safari-compositing-layer shim — so the page behind reads as one soft,
-     glowing wash wherever it shows, including the gaps between cards, not
-     legible text everywhere the cards themselves don't happen to cover.
+     Safari-compositing-layer shim — so the page behind reads as a rough
+     layout of soft shapes wherever it shows, including the gaps between
+     cards, not legible text or hard lines just because no card happens to
+     cover that spot. Light enough that shapes and colour blocks are still
+     recognisable at a glance, not washed into a single flat glow.
      No tint and no url() lens here: those stay on the cards, which sit on
      top of this and add their own heavier blur and colour. */
-  -webkit-backdrop-filter: blur(28px);
-  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 /*
@@ -1061,7 +1063,7 @@ html[data-theme="dark"] .nav-menu-group {
     inset 0 1px 0 color-mix(in srgb, white 18%, transparent),
     inset 0 -1px 0 color-mix(in srgb, black 24%, transparent),
     0 1px 3px var(--glass-shadow),
-    0 0 32px 6px color-mix(in srgb, rgb(142, 104, 78) 6%, transparent);
+    0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 4%, transparent);
 }
 
 /*
@@ -1086,7 +1088,7 @@ html[data-theme="dark"] .nav-menu-group {
     inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
     inset 0 -1px 0 color-mix(in srgb, black 6%, transparent),
     0 1px 3px var(--glass-shadow),
-    0 0 32px 6px color-mix(in srgb, rgb(142, 104, 78) 14%, transparent);
+    0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 8%, transparent);
   /* WebKit silently skips backdrop-filter on an element that never commits
      to its own compositing layer, which is easy to end up with two levels
      deep in a fixed, isolated sheet: the card just shows the page through
