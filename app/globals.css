@@ -1044,6 +1044,15 @@ html[data-theme="dark"] .nav-menu-group {
   );
 }
 
+html[data-theme="dark"] .nav-menu-group {
+  /* A fainter glow than light's — the same reasoning as the background mix
+     just above: dark glass is already near-black, so full strength would
+     paint a visible orange ring instead of a soft ambient bloom. */
+  box-shadow:
+    0 1px 3px var(--glass-shadow),
+    0 0 32px 6px color-mix(in srgb, rgb(142, 104, 78) 6%, transparent);
+}
+
 /*
   .liquid-glass's hairline top edge (inset 0 1px 0 var(--glass-highlight))
   and border-color are tuned for the app's usual, much more opaque glass.
@@ -1053,7 +1062,14 @@ html[data-theme="dark"] .nav-menu-group {
 */
 .nav-menu-group {
   border-color: transparent;
-  box-shadow: 0 1px 3px var(--glass-shadow);
+  /* The card's own crisp lift-shadow, plus a much softer, wider glow in the
+     same warm tint that fades outward past the card's own edges — the
+     "blur expanding out" look of an iOS app icon lifting off the grid, or
+     a Control Center panel's soft bloom, rather than the blur cutting off
+     sharply the instant it crosses the card's border. */
+  box-shadow:
+    0 1px 3px var(--glass-shadow),
+    0 0 32px 6px color-mix(in srgb, rgb(142, 104, 78) 14%, transparent);
   /* WebKit silently skips backdrop-filter on an element that never commits
      to its own compositing layer, which is easy to end up with two levels
      deep in a fixed, isolated sheet: the card just shows the page through
