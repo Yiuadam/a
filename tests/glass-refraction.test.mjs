@@ -53,11 +53,45 @@ test("live panels use the SVG displacement filter only after browser capability 
   assert.match(filter, /connection\?\.saveData/);
   assert.match(filter, /document\.documentElement\.dataset\.liveGlassRefraction/);
   assert.match(filter, /<feDisplacementMap[\s\S]*?in2="glass-normal-map"/);
-  assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass,[\s\S]*?blur\(8px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/);
+  // .nav-menu-group is explicitly excluded from the generic combined-syntax
+  // rule — it has its own dedicated lens (see the split-property test below)
+  // and matching it here too would stack a second, Chromium-only blur+lens
+  // directly on the outer element on top of that.
+  assert.match(
+    css,
+    /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),[\s\S]*?blur\(8px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/,
+  );
   // The sheet itself (.nav-paper) no longer carries its own refraction —
-  // only the .nav-menu-group cards it holds do, via the generic rule above.
-  // A second, much bigger lens wrapping the whole viewport double-refracted
-  // whatever showed through a card and scattered visible squiggles across
-  // page content in the gaps between cards.
+  // only the .nav-menu-group cards it holds do. A second, much bigger lens
+  // wrapping the whole viewport double-refracted whatever showed through a
+  // card and scattered visible squiggles across page content in the gaps
+  // between cards.
   assert.doesNotMatch(css, /html\[data-live-glass-refraction\] \.nav-paper \{/);
+});
+
+test("the nav card's own live lens runs through separate filter/backdrop-filter properties, not just Chromium", () => {
+  // The combined `backdrop-filter: blur() url()` syntax is what Safari
+  // silently drops the SVG stage from. Declaring `filter` and
+  // `backdrop-filter` as two separate properties on the same element sidesteps
+  // that: `filter` distorts the element's own already-rendered output
+  // (including whatever its own backdrop-filter produced) instead of being
+  // parsed as part of the backdrop-filter value, and Safari runs that
+  // combination fine.
+  assert.match(filter, /supportsSplitPropertyLens/);
+  assert.match(filter, /CSS\.supports\("filter", `url\(#\$\{FILTER_ID\}\)`\)/);
+  // No fine-pointer requirement — unlike supportsDetailedLiveRefraction,
+  // this path exists specifically to cover touchscreens too.
+  const splitFnStart = filter.indexOf("function supportsSplitPropertyLens");
+  const splitFnEnd = filter.indexOf("\n}", splitFnStart);
+  const splitFnBody = filter.slice(splitFnStart, splitFnEnd);
+  assert.match(splitFnBody, /finePointer:\s*true/);
+  assert.match(filter, /document\.documentElement\.dataset\.glassLensSplit/);
+
+  // .nav-menu-group's material lives on ::before so filter and
+  // backdrop-filter can be declared separately rather than combined.
+  assert.match(css, /\.nav-menu-group::before \{[^}]*backdrop-filter: blur\(14px\)/);
+  assert.match(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{\s*filter: url\("#bandup-live-glass-refraction"\);\s*\}/);
+  // Content sits in its own stacking layer above ::before so only the
+  // material warps, never the icons or labels.
+  assert.match(css, /\.nav-menu-group > \* \{\s*position: relative;\s*z-index: 1;\s*\}/);
 });

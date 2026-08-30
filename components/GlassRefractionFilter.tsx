@@ -79,18 +79,52 @@ function supportsDetailedLiveRefraction() {
 }
 
 /*
-  Chromium can run an SVG filter on the live backdrop itself. The SVG is
-  declared once for the whole document; individual panels only reference the
-  stable filter id in CSS, so opening a menu or hovering a control never
-  generates a new filter tree.
+  A second, browser-agnostic eligibility path. `supportsDetailedLiveRefraction`
+  above targets the combined `backdrop-filter: blur() url(#id)` syntax, which
+  Safari silently drops the SVG stage from — that's a real, narrow WebKit gap,
+  not a general "Safari can't do this" limitation. A `filter: url(#id)`
+  applied as its OWN property to an element that separately carries its own
+  `backdrop-filter: blur()` distorts that element's already-blurred output
+  instead, and Safari runs that combination fine — it's exactly what the
+  liquid-glass-react package this app already ships (RefractiveGlassLayer)
+  relies on, with no Chromium check of its own.
 
-  Safari currently drops SVG URLs from backdrop-filter. It deliberately keeps
-  the normal frosted-glass fallback there while the scene-copy lens is built;
-  claiming the CSS-only route works on iPhone would be a visual lie.
+  Consumers that use the split-property pattern read this flag instead of
+  `supportsDetailedLiveRefraction`'s Chromium-only one. No fine-pointer
+  requirement here — the whole point is covering the touchscreens the other
+  path excludes — but the hardware/motion/transparency/data-saver thresholds
+  still apply, since the GPU cost of the displacement stage doesn't change
+  with which CSS property triggers it.
+*/
+function supportsSplitPropertyLens() {
+  if (!CSS.supports("filter", `url(#${FILTER_ID})`)) return false;
+
+  const browser = navigator as PerformanceNavigator;
+  return supportsDetailedGlass({
+    finePointer: true,
+    reducedMotion: window.matchMedia(REDUCED_MOTION_QUERY).matches,
+    reducedTransparency: window.matchMedia(REDUCED_TRANSPARENCY_QUERY).matches,
+    saveData: Boolean(browser.connection?.saveData),
+    memoryGb: Number.isFinite(browser.deviceMemory) ? browser.deviceMemory ?? null : null,
+    cores: Number.isFinite(navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : null,
+  });
+}
+
+/*
+  The SVG is declared once for the whole document; individual panels only
+  reference the stable filter id in CSS, so opening a menu or hovering a
+  control never generates a new filter tree. Two eligibility paths share it:
+  the combined `backdrop-filter: blur() url(#id)` syntax (Chromium only —
+  see supportsDetailedLiveRefraction) and the split filter/backdrop-filter
+  pattern (see supportsSplitPropertyLens) that also runs on Safari. Mounted
+  whenever either path is eligible, so a consumer using only one of them
+  still finds the filter definition in the document.
 */
 export default function GlassRefractionFilter() {
   const [mapUrl, setMapUrl] = useState<string | null>(null);
   const [enabled, setEnabled] = useState(false);
+  const [splitLensEnabled, setSplitLensEnabled] = useState(false);
+  const filterNeeded = enabled || splitLensEnabled;
 
   useEffect(() => {
     const media = [
@@ -99,7 +133,10 @@ export default function GlassRefractionFilter() {
       window.matchMedia(REDUCED_TRANSPARENCY_QUERY),
     ];
     const connection = (navigator as PerformanceNavigator).connection;
-    const update = () => setEnabled(supportsDetailedLiveRefraction());
+    const update = () => {
+      setEnabled(supportsDetailedLiveRefraction());
+      setSplitLensEnabled(supportsSplitPropertyLens());
+    };
 
     update();
     for (const query of media) query.addEventListener("change", update);
@@ -112,7 +149,7 @@ export default function GlassRefractionFilter() {
   }, []);
 
   useEffect(() => {
-    if (!enabled || mapUrl) return;
+    if (!filterNeeded || mapUrl) return;
 
     const source = createMapUrl();
     if (!source) return;
@@ -124,7 +161,7 @@ export default function GlassRefractionFilter() {
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [enabled, mapUrl]);
+  }, [filterNeeded, mapUrl]);
 
   useEffect(() => {
     if (!mapUrl || !enabled) return;
@@ -135,7 +172,16 @@ export default function GlassRefractionFilter() {
     };
   }, [enabled, mapUrl]);
 
-  if (!mapUrl || !enabled) return null;
+  useEffect(() => {
+    if (!mapUrl || !splitLensEnabled) return;
+
+    document.documentElement.dataset.glassLensSplit = "";
+    return () => {
+      delete document.documentElement.dataset.glassLensSplit;
+    };
+  }, [splitLensEnabled, mapUrl]);
+
+  if (!mapUrl || !filterNeeded) return null;
 
   return (
     <svg

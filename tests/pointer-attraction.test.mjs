@@ -82,7 +82,7 @@ test("pointer attraction never drives the glass refraction itself", () => {
   assert.equal((source.match(/document\.addEventListener\("pointermove"/g) ?? []).length, 1);
   assert.match(source, /target === current/);
   assert.doesNotMatch(css, /data-glass-reflecting|--glass-reflection-/);
-  assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass,/);
+  assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),/);
 });
 
 test("pointer attraction moves only a decorative glass child, never a control's label", () => {
