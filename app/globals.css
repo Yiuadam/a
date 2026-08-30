@@ -1212,6 +1212,15 @@ html[data-theme="dark"] .nav-paper {
 
 .nav-menu-group::before {
   content: "";
+  /* The reset near the top of this file (`.liquid-glass::before, .card::before
+     { display: none; }`) matches this element too — .nav-menu-group also
+     carries the `liquid-glass` class — and nothing below ever set `display`
+     back, so this whole wall/tint layer was silently never painted: what
+     showed through the card was only the bare 8%-opacity base fill, thin
+     enough that ordinary dashboard content behind it read as a visible grey
+     smudge rather than a wash of light. content alone does not undo the
+     reset; the property itself has to be redeclared. */
+  display: block;
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -1297,6 +1306,9 @@ html[data-theme="dark"] .nav-paper {
 */
 .nav-menu-group::after {
   content: "";
+  /* Same reset gap as ::before above: this rim never painted either without
+     redeclaring display. */
+  display: block;
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -1361,16 +1373,19 @@ html[data-theme="dark"] .nav-menu-group::before {
   --nav-wall-shade-soft: color-mix(in srgb, black 22%, transparent);
 }
 
-html[data-glass-lens-split] .nav-menu-group::before {
-  /* Not the sitewide filter: the cards use their own, whose displacement map
-     is solved for their measured proportions. A map is a square bitmap
-     stretched onto its pane, so it is only correct for the aspect ratio it
-     was built for — and a nav card is roughly 7:1 where the generic glass
-     surfaces are nearly square. Sharing one put the bend across the middle
-     of the card instead of on its edge, which is why the backdrop never
-     visibly deformed. */
-  filter: url("#bandup-nav-glass-lens");
-}
+/*
+  The live SVG lens (bandup-nav-glass-lens) is deliberately NOT applied here
+  for now. `.nav-menu-group::before` carried a `display: none` bug (see the
+  comment on the rule above) for as long as this filter has existed, so the
+  filter has only ever run on an invisible, undisplayed layer — no one has
+  actually seen its output before. Turning both on together for the first
+  time showed why: instead of bending the backdrop at the rim, it inflates
+  the whole card into an obvious full-circle bulge, which reads as a bug, not
+  a lens. That is a displacement-map/scale problem worth solving on its own,
+  separately from fixing the display bug — so for now this card keeps only
+  the CSS wall and rim below, which already look correct on their own, and
+  the filter stays off until the bulge is understood and fixed.
+*/
 
 html[data-theme="dark"] .nav-menu-group {
   /* The rim itself is on ::after; what is left here is the lift off the

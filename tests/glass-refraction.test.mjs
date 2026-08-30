@@ -351,13 +351,24 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // frosted surface it rests on, and saturation and brightness rather than
   // more blur are what keep the backdrop reading as a scene behind glass.
   assert.match(css, /\.nav-menu-group::before \{[^}]*backdrop-filter: blur\(10px\)/);
-  // The cards use their own filter, not the sitewide one. A displacement map
-  // is only correct for the aspect ratio it was solved for, and a nav card is
-  // roughly 7:1 where the generic glass surfaces are nearly square — sharing
-  // one map put the bend across the middle of the card instead of on its edge,
-  // which is why the backdrop never visibly deformed.
-  assert.match(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{[\s\S]*?filter: url\("#bandup-nav-glass-lens"\);/);
+  // The live SVG lens is deliberately NOT wired to .nav-menu-group::before.
+  // That rule carried a `display: none` bug (from the shared
+  // `.liquid-glass::before { display: none; }` reset, never overridden) for
+  // as long as this filter existed, so the filter had only ever run on an
+  // invisible layer. Fixing the display bug and turning the filter on
+  // together, for the first time, showed why: it inflates the whole card
+  // into a full-circle bulge instead of bending only the rim. That is a
+  // separate displacement/scale bug, so the filter stays unapplied here
+  // until it is fixed on its own — the card keeps only the CSS wall and rim.
+  assert.doesNotMatch(
+    css,
+    /html\[data-glass-lens-split\] \.nav-menu-group::before \{[\s\S]*?filter: url\("#bandup-nav-glass-lens"\);/,
+  );
   assert.match(filter, /NAV_FILTER_ID = "bandup-nav-glass-lens"/);
+  // Both the wall and the rim now redeclare `display: block` — the property
+  // the reset above sets to `none`, which `content: ""` alone never undoes.
+  assert.match(css, /\.nav-menu-group::before \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
+  assert.match(css, /\.nav-menu-group::after \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
   // Measured from a real card rather than assumed, and rebuilt when that
   // measurement can have changed.
   assert.match(filter, /function measureNavPane/);
