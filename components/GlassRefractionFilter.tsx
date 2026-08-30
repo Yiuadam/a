@@ -74,11 +74,14 @@ const NAV_DISPLACEMENT_HEADROOM = 0.85;
    rounded ends. Four times the resolution puts that back under a pixel. */
 const NAV_MAP_SIZE = 512;
 /*
-  Every other content card, sitewide — see the long comment on .card::before
-  in globals.css for why `.liquid-glass`, `.premade-glass` and the two named
-  exceptions are left out: they either already carry their own hand-tuned
-  rim, run a separate live-refraction engine, or are a deliberately
-  flattened context that opted out of glass entirely.
+  Every card the SVG displacement filter applies to — not every card with the
+  wall/rim CSS, which also reaches `.premade-glass` cards (see .card::before
+  in globals.css). This selector is narrower on purpose: `.premade-glass`
+  already runs its own live liquid-glass-react displacement, and warping
+  those already-displaced pixels a second time is what produced visible
+  smudging, so its cards get the static wall/rim dressing but never this
+  filter. `.liquid-glass` and the two named exceptions are left out entirely,
+  per the same comment in globals.css.
 */
 const GENERIC_SELECTOR =
   ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass)";

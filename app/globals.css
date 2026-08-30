@@ -544,16 +544,16 @@ html[data-theme="dark"] body {
   `background: transparent; backdrop-filter: none` — an explicit request for
   no glass at all, which a wall and a rim would quietly reintroduce.
 
-  `.premade-glass` is also excluded here, not just carried along with
-  `.liquid-glass` above: several dashboard and exam surfaces combine
-  `card premade-glass` on the same element (the skill and trend cards on the
-  home page, the exam start window), so excluding it only from `.liquid-glass`
-  left this rule matching them anyway and stacking a second lens on top of
-  their own live liquid-glass-react refraction — the muddy, smudged patches
-  that showed through wherever one of those cards sat behind something
-  translucent.
+  `.premade-glass` cards (the dashboard's skill and trend cards, the exam
+  start window) get this same wall and rim: it is static shading behind and
+  around their own live liquid-glass-react layer, not a second lens on top of
+  it, so it only adds the same directional light the rest of the site now
+  has. What they do NOT get is the SVG displacement filter below — see the
+  html[data-glass-lens-split] rule underneath, which excludes them
+  specifically because warping premade-glass's own already-displaced pixels a
+  second time is what produced visible muddy smudging.
 */
-.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass)::before {
+.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::before {
   content: "";
   display: block;
   position: absolute;
@@ -616,7 +616,7 @@ html[data-glass-lens-split] .card:not(.organization-team-pairings-page):not(.org
   painted across the whole box, then masked down to just the ring, which is
   the only way to get a border whose colour varies around its own perimeter.
 */
-.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass)::after {
+.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::after {
   content: "";
   display: block;
   position: absolute;
@@ -648,7 +648,14 @@ html[data-glass-lens-split] .card:not(.organization-team-pairings-page):not(.org
 
 /* Real content sits in its own stacking layer above the material and below
    the rim, so only the backdrop itself ever warps — never the text or icons
-   a card actually exists to show. */
+   a card actually exists to show.
+
+   `.premade-glass` is excluded here specifically: its own
+   `.refractive-glass-layer` child already carries a hand-set `position:
+   absolute; z-index: 0` that this rule's own specificity would win over and
+   quietly override, and `.premade-glass-content` already gives real content
+   its own `z-index: 1` — so premade-glass cards need nothing from this rule
+   and excluding them is what keeps that layer's positioning intact. */
 .card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass) > * {
   position: relative;
   z-index: 1;

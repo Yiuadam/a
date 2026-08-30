@@ -472,13 +472,16 @@ test("every plain content card gets the same rim/wall lens as the nav cards, wit
   // carry their own hand-tuned rim (the notification popover) or their own
   // separate live-refraction engine (.premade-glass), and stacking a second,
   // independent lens on either would conflict with work already done rather
-  // than extend it. .premade-glass is excluded here too, in its own right —
-  // several dashboard/exam cards combine `card premade-glass` directly,
-  // without `.liquid-glass` in between, which is not covered by excluding it
-  // only alongside `.liquid-glass`. .card has no competing system anywhere in
-  // this file.
+  // than extend it. .card has no competing system anywhere in this file.
+  //
+  // .premade-glass cards (which are also .card, e.g. the dashboard's skill
+  // and trend cards) DO get the wall and rim below — it is static shading
+  // around their own live layer, not a second lens on top of it. Only the
+  // SVG displacement filter further down excludes them, since warping
+  // premade-glass's own already-displaced pixels a second time is what
+  // produced visible smudging.
   const genericSelector =
-    "\\.card:not\\(\\.organization-team-pairings-page\\):not\\(\\.organization-team-pairing-group\\):not\\(\\.premade-glass\\)";
+    "\\.card:not\\(\\.organization-team-pairings-page\\):not\\(\\.organization-team-pairing-group\\)";
   const beforeMatch = css.match(
     new RegExp(`\\n${genericSelector}::before \\{[\\s\\S]*?\\n\\}`),
   );
@@ -493,10 +496,12 @@ test("every plain content card gets the same rim/wall lens as the nav cards, wit
   assert.match(before, /backdrop-filter: blur\(1px\)/);
   assert.match(before, /radial-gradient\(/);
 
+  // The SVG lens filter alone excludes .premade-glass.
+  const lensSelector = `${genericSelector}:not\\(\\.premade-glass\\)`;
   assert.match(
     css,
     new RegExp(
-      `html\\[data-glass-lens-split\\] ${genericSelector}::before \\{[\\s\\S]*?filter: var\\(--glass-lens-filter, none\\);`,
+      `html\\[data-glass-lens-split\\] ${lensSelector}::before \\{[\\s\\S]*?filter: var\\(--glass-lens-filter, none\\);`,
     ),
   );
 
@@ -504,6 +509,14 @@ test("every plain content card gets the same rim/wall lens as the nav cards, wit
   assert.ok(afterMatch, "expected a .card::after rule for the caustic rim");
   assert.match(afterMatch[0], /mask-composite: exclude/);
   assert.match(afterMatch[0], /-webkit-mask-composite: xor/);
+
+  // The real-content z-index bump does exclude .premade-glass: its own
+  // .refractive-glass-layer child already carries a hand-set position and
+  // z-index that a same-specificity-or-higher rule here would override.
+  assert.match(
+    css,
+    new RegExp(`\\n${genericSelector}:not\\(\\.premade-glass\\) > \\* \\{`),
+  );
 
   // Only the reset (display: none) targets the bare .card::before/::after —
   // the two contexts that deliberately flatten .card to no glass at all
