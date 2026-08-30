@@ -1055,26 +1055,36 @@ html[data-theme="dark"] .nav-menu-group {
     rgb(142, 104, 78) 3%,
     color-mix(in srgb, var(--color-background) 84%, transparent)
   );
+  /* A dimmer top highlight than light's own — dark glass still catches a
+     rim of light, just not as brightly as a pale card would. */
   box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 18%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 24%, transparent),
     0 1px 3px var(--glass-shadow),
     0 0 32px 6px color-mix(in srgb, rgb(142, 104, 78) 6%, transparent);
 }
 
 /*
-  .liquid-glass's hairline top edge (inset 0 1px 0 var(--glass-highlight))
-  and border-color are tuned for the app's usual, much more opaque glass.
-  Against .nav-paper's 9%-tint/2px-blur material they show up as a flat grey
-  line across the top of every card instead of a subtle highlight, so this
-  menu draws neither: just the lift-and-shadow, no edge.
+  .liquid-glass's own hairline (inset 0 1px 0 var(--glass-highlight)) and
+  border-color were tuned for the app's usual, much more opaque glass and
+  read as a flat grey line back when this card was nearly see-through.
+  Now that it's back to a substantially opaque material, the same kind of
+  highlight Apple's own Control Center panels and app icons show — a bright
+  edge along the top, a touch of shade along the bottom for volume — is
+  what makes it read as curved glass catching light rather than a flat
+  tinted rectangle.
 */
 .nav-menu-group {
   border-color: transparent;
-  /* The card's own crisp lift-shadow, plus a much softer, wider glow in the
-     same warm tint that fades outward past the card's own edges — the
-     "blur expanding out" look of an iOS app icon lifting off the grid, or
-     a Control Center panel's soft bloom, rather than the blur cutting off
-     sharply the instant it crosses the card's border. */
+  /* Top-lit highlight and bottom shading for volume, the card's own crisp
+     lift-shadow, and a much softer, wider glow in the same warm tint that
+     fades outward past the card's own edges — the "blur expanding out"
+     look of an iOS app icon lifting off the grid, or a Control Center
+     panel's soft bloom, rather than the blur cutting off sharply the
+     instant it crosses the card's border. */
   box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 6%, transparent),
     0 1px 3px var(--glass-shadow),
     0 0 32px 6px color-mix(in srgb, rgb(142, 104, 78) 14%, transparent);
   /* WebKit silently skips backdrop-filter on an element that never commits
