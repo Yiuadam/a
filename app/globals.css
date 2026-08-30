@@ -192,16 +192,22 @@ html[data-theme="dark"] {
   --color-slate-800: #e5e5e8;
   --color-slate-900: #f4f4f5;
 
-  /* Interactive states stay monochrome rather than turning clay-orange. */
-  --color-indigo-50: #1a1a1d;
-  --color-indigo-100: #232327;
-  --color-indigo-200: #303035;
-  --color-indigo-300: #48484f;
-  --color-indigo-400: #5d5d66;
-  --color-indigo-500: #73737c;
-  --color-indigo-600: #5f5f68;
-  --color-indigo-700: #b5b5bc;
-  --color-indigo-800: #dedee2;
+  /* The same orange-brown accent as the logo and the Warm theme's own clay
+     glass, carried into Dark rather than left monochrome — the low numbers
+     stay dark, barely-there tints for a background a control sits on, the
+     high numbers climb to a bright, saturated orange for the icon, link,
+     focus-ring and active-state colour that actually needs to read against
+     a near-black canvas. Same inverted-ramp shape Dark already uses for its
+     slate, rose and emerald ramps, just applied to this one too. */
+  --color-indigo-50: #201510;
+  --color-indigo-100: #2e1e15;
+  --color-indigo-200: #43301f;
+  --color-indigo-300: #6b4a2c;
+  --color-indigo-400: #9c6a3e;
+  --color-indigo-500: #c98548;
+  --color-indigo-600: #e0954f;
+  --color-indigo-700: #eeb073;
+  --color-indigo-800: #f8cd9d;
 
   --color-emerald-50: #142219;
   --color-emerald-100: #1b3122;

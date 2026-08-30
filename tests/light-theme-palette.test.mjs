@@ -88,6 +88,26 @@ test("Dark remains a low-light theme with a graphite canvas", () => {
   assert.match(theme, /Dark canvas with graphite cards and controls/);
 });
 
+test("Dark carries the same orange-brown accent as the logo and Warm's own glass", () => {
+  const darkBlock = css.match(/html\[data-theme="dark"\] \{([\s\S]*?)\n\}/)?.[1] ?? "";
+  // The accent ramp, not the graphite slate/background tokens above — icons,
+  // links, focus rings and active states all resolve through --color-indigo-*
+  // via Tailwind's indigo-* utilities, so recolouring this one ramp is what
+  // carries the accent everywhere those are used, without touching every
+  // component that uses them.
+  assert.match(darkBlock, /--color-indigo-600:\s*#e0954f;/);
+  assert.doesNotMatch(darkBlock, /--color-indigo-600:\s*#5f5f68;/);
+  assert.doesNotMatch(darkBlock, /Interactive states stay monochrome/);
+  // Low numbers stay dark background tints, high numbers climb to a bright
+  // accent — the same inverted-ramp shape Dark already uses for slate, rose
+  // and emerald, so this one isn't the odd one out.
+  const indigo50 = darkBlock.match(/--color-indigo-50:\s*#([0-9a-f]{6});/)?.[1];
+  const indigo800 = darkBlock.match(/--color-indigo-800:\s*#([0-9a-f]{6});/)?.[1];
+  assert.ok(indigo50 && indigo800, "expected both indigo-50 and indigo-800 in the Dark block");
+  const luminance = (hex) => parseInt(hex.slice(0, 2), 16) + parseInt(hex.slice(2, 4), 16) + parseInt(hex.slice(4, 6), 16);
+  assert.ok(luminance(indigo50) < luminance(indigo800), "indigo-50 should be darker than indigo-800 in Dark");
+});
+
 test("Dark navigation keeps its opened header free of a containing blur", () => {
   assert.match(
     css,
