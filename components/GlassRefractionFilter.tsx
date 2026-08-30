@@ -40,8 +40,14 @@ const NAV_BEZEL_WIDTH = 0.35;
    displacement map can only rearrange what is already inside the element's own
    box — sampling past it returns nothing — so a lens that asks to move a pixel
    further than the pane's own short radius pulls emptiness into the rim. Kept
-   just under 1 so the strongest bend still lands on real backdrop. */
-const NAV_DISPLACEMENT_HEADROOM = 0.85;
+   just under 1 so the strongest bend still lands on real backdrop.
+
+   Raised from 0.85: the bevel band's own width (NAV_BEZEL_WIDTH) sets how
+   much of the rim participates, but it was this headroom — not the band
+   width — that kept the bend inside that band looking tame. Pushed close to
+   the 1.0 ceiling so whatever sits behind the rim visibly bends, rather than
+   just softly blurring, the way the reference glass's own edge does. */
+const NAV_DISPLACEMENT_HEADROOM = 0.97;
 /*
   Every card the SVG displacement filter applies to — not every card with the
   wall/rim CSS, which also reaches `.premade-glass` cards (see .card::before
@@ -290,7 +296,15 @@ export default function GlassRefractionFilter() {
   useEffect(() => {
     if (!filterNeeded || mapUrl) return;
 
-    const source = createMapUrl();
+    /* Same bevel width and displacement headroom as the bucketed system
+       below (NAV_BEZEL_WIDTH / NAV_DISPLACEMENT_HEADROOM), so this Chromium
+       combined-syntax path — the one plain .liquid-glass and .premade-glass
+       panels use — reads as the same strength of glass rather than a softer
+       one left on the library's own quieter defaults. */
+    const source = createMapUrl({
+      bezelWidth: NAV_BEZEL_WIDTH,
+      maxDisplacement: NAV_DISPLACEMENT_HEADROOM,
+    });
     if (!source) return;
 
     /* Defer the state update by one paint. This lets the rest of the page
@@ -435,11 +449,18 @@ export default function GlassRefractionFilter() {
             so the value stays small: the glass reads through its rim
             highlight and the bend at its edge, not through a displacement
             large enough to move the backdrop bodily.
+
+            Raised from 0.06 in step with the map's own higher headroom
+            above, so this Chromium-only combined path bends its backdrop as
+            visibly as the bucketed lens does — still held well under the
+            old 0.24 that caused the block-dragging bug, since this one
+            scale is shared by every arbitrarily-shaped panel rather than
+            solved per shape.
           */}
           <feDisplacementMap
             in="SourceGraphic"
             in2="glass-normal-map"
-            scale="0.06"
+            scale="0.08"
             xChannelSelector="R"
             yChannelSelector="G"
           />

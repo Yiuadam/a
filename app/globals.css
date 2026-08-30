@@ -587,12 +587,23 @@ html[data-theme="dark"] body {
      and to the left would catch the curve, dark where it turns away and
      down. Built from the same theme tokens the card's own hairline already
      used, so it re-tints itself automatically in dark theme, exam mode, or
-     any future theme without a second copy of these rules. */
+     any future theme without a second copy of these rules.
+
+     The top highlight is a tight, bright streak rather than a soft wash: a
+     small ellipse held close to the top edge, peaking near full strength and
+     falling away hard within a third of its own radius — a mirror-like catch
+     of light on the curve, the way the reference glass reads, rather than an
+     ambient glow spread across the card's whole upper third. Shrinking the
+     highlight's own footprint like this leaves more of the card genuinely
+     clear, which is also what a direct "more transparent" request already
+     asked for elsewhere on this same wall — concentrating the light instead
+     of spreading it thin serves both asks together. */
   background:
     radial-gradient(
-      130% 100% at 50% -30%,
-      color-mix(in srgb, var(--glass-specular) 55%, transparent),
-      transparent 62%
+      50% 36% at 50% -8%,
+      color-mix(in srgb, var(--glass-specular) 96%, transparent) 0%,
+      color-mix(in srgb, var(--glass-specular) 58%, transparent) 32%,
+      transparent 60%
     ),
     radial-gradient(
       150% 140% at 50% 130%,
@@ -1286,8 +1297,18 @@ html[data-theme="dark"] .nav-paper {
   --nav-wall-light: color-mix(in srgb, white 55%, transparent);
   --nav-wall-shade: color-mix(in srgb, rgb(40, 30, 22) 20%, transparent);
   --nav-wall-shade-soft: color-mix(in srgb, rgb(40, 30, 22) 10%, transparent);
+  /* Same tight mirror-streak shape as .card::before's own top highlight (see
+     the comment there): a small ellipse held close to the top edge instead
+     of the wide, gentle wash this used to be — reads as one bright catch of
+     light rather than a glow spread thin across the whole upper wall, and
+     leaves more of the card genuinely clear at the same time. */
   background:
-    radial-gradient(130% 100% at 50% -30%, var(--nav-wall-light), transparent 62%),
+    radial-gradient(
+      50% 36% at 50% -8%,
+      var(--nav-wall-light) 0%,
+      color-mix(in srgb, var(--nav-wall-light) 58%, transparent) 32%,
+      transparent 60%
+    ),
     radial-gradient(150% 140% at 50% 130%, var(--nav-wall-shade), transparent 58%),
     radial-gradient(100% 220% at -25% 50%, var(--nav-wall-shade-soft), transparent 58%),
     radial-gradient(100% 220% at 125% 50%, var(--nav-wall-shade-soft), transparent 58%),

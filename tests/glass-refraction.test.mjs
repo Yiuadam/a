@@ -339,8 +339,14 @@ test("live panels use the SVG displacement filter only after browser capability 
   // A 360x56 nav card has a ~258px diagonal, so 0.24 asked for up to 62px of
   // displacement on an element 56px tall and dragged content from outside the
   // card into the middle of it. The bound is the shortest pane sharing this
-  // filter, so the value stays small.
-  assert.match(filter, /scale="0\.06"/);
+  // filter, so the value stays small — raised from 0.06 only in step with the
+  // map's own higher displacement headroom (see NAV_DISPLACEMENT_HEADROOM),
+  // still held well under the old 0.24 that caused that bug.
+  assert.match(filter, /scale="0\.08"/);
+  // Shares the same bevel width and displacement headroom as the bucketed
+  // system below, rather than the library's own quieter defaults, so this
+  // Chromium-only combined path reads as the same strength of glass.
+  assert.match(filter, /createMapUrl\(\{\s*\n\s*bezelWidth: NAV_BEZEL_WIDTH,\s*\n\s*maxDisplacement: NAV_DISPLACEMENT_HEADROOM,\s*\n\s*\}\)/);
   // The filter region is the pane itself. Anything larger lets displaced
   // pixels paint outside its rounded rectangle — visible as a faint second
   // copy of each card hanging past its bottom-right corner.
@@ -446,7 +452,7 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // the pane's half-height while objectBoundingBox resolves it against the
   // diagonal — now shared with every other card via measureGenericPanes'
   // own reduction of that same formula (see the comment there).
-  assert.match(filter, /NAV_DISPLACEMENT_HEADROOM = 0\.85/);
+  assert.match(filter, /NAV_DISPLACEMENT_HEADROOM = 0\.97/);
   assert.match(filter, /GENERIC_DISPLACEMENT_HEADROOM = NAV_DISPLACEMENT_HEADROOM/);
   // Content sits in its own stacking layer above ::before so only the
   // material warps, never the icons or labels.
@@ -497,12 +503,16 @@ test("the nav card's rim has a wall behind it, not just an edge", () => {
   assert.match(before, /--nav-wall-light: color-mix\(in srgb, white 55%/);
   assert.match(before, /--nav-wall-shade: color-mix\(in srgb, rgb\(40, 30, 22\) 20%/);
   assert.match(before, /--nav-wall-shade-soft: color-mix\(in srgb, rgb\(40, 30, 22\) 10%/);
-  assert.match(before, /radial-gradient\(130% 100% at 50% -30%, var\(--nav-wall-light\)/);
+  // The top highlight is a tight, bright streak — a small ellipse held close
+  // to the top edge — rather than the wide, gentle wash this replaced, so it
+  // reads as one mirror-like catch of light and leaves more of the card
+  // genuinely clear.
+  assert.match(before, /radial-gradient\(\s*\n\s*50% 36% at 50% -8%,\s*\n\s*var\(--nav-wall-light\) 0%,/);
   assert.match(before, /radial-gradient\(150% 140% at 50% 130%, var\(--nav-wall-shade\)/);
   // Each ellipse fades to transparent well inside its own radius, so the wall
   // eases from transparent at the card's own edge into the glow rather than
   // stopping at a hard boundary partway across it.
-  assert.match(before, /var\(--nav-wall-light\), transparent 62%/);
+  assert.match(before, /var\(--nav-wall-light\) 0%,\s*\n\s*color-mix\(in srgb, var\(--nav-wall-light\) 58%, transparent\) 32%,\s*\n\s*transparent 60%/);
   assert.match(before, /var\(--nav-wall-shade\), transparent 58%/);
   // The tint sits behind the wall in the same declaration, not a separate one
   // dark theme has to reconstruct.
