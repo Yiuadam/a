@@ -46,19 +46,30 @@ test("the glass bevel follows a lens profile, not an even ramp", () => {
   const map = glassRefractionModule.createGlassRefractionMap(size);
   const displacement = (x) => Math.abs(pixel(map, size, x, 32)[0] - 128);
 
-  // A real convex panel turns down hard at the rim and is flat well before
-  // the middle. The outer band saturates, so a line of text crossing it
-  // visibly bends; by a third of the way in there is nothing left to bend.
-  assert.ok(displacement(3) > 120, "the rim should bend at nearly full strength");
-  assert.ok(displacement(8) < displacement(3) / 2, "the bend should fall off steeply behind the rim");
-  assert.equal(displacement(14), 0, "the pane should be optically flat well before its middle");
+  // A real convex panel turns down hard at the rim and is flat again within
+  // a few pixels of it. The bevel deliberately hugs the edge: this square
+  // map is stretched onto panes of any aspect ratio, so a bevel measured as
+  // a fraction of each axis is far wider horizontally than vertically on a
+  // wide card, and a generous value stops reading as an edge at all.
+  assert.ok(displacement(1) > 120, "the rim should bend at nearly full strength");
+  assert.ok(displacement(4) < displacement(1) / 2, "the bend should fall off steeply behind the rim");
+  assert.equal(displacement(8), 0, "the pane should be optically flat well before its middle");
 });
 
 test("live panels use the SVG displacement filter only after browser capability detection", () => {
   assert.match(filter, /Safari parses[\s\S]*?false positive/);
   assert.match(filter, /Chromium\|Google Chrome\|Microsoft Edge\|Opera/);
   assert.match(filter, /primitiveUnits="objectBoundingBox"/);
-  assert.match(filter, /scale="0\.24"/);
+  // This scale resolves against the pane's diagonal, not its shortest side.
+  // A 360x56 nav card has a ~258px diagonal, so 0.24 asked for up to 62px of
+  // displacement on an element 56px tall and dragged content from outside the
+  // card into the middle of it. The bound is the shortest pane sharing this
+  // filter, so the value stays small.
+  assert.match(filter, /scale="0\.06"/);
+  // The filter region is the pane itself. Anything larger lets displaced
+  // pixels paint outside its rounded rectangle — visible as a faint second
+  // copy of each card hanging past its bottom-right corner.
+  assert.match(filter, /x="0%"[\s\S]*?y="0%"[\s\S]*?width="100%"[\s\S]*?height="100%"/);
   assert.match(filter, /CSS\.supports\([\s\S]*?backdrop-filter[\s\S]*?url\(#\$\{FILTER_ID\}\)/);
   assert.match(filter, /supportsDetailedLiveRefraction/);
   assert.match(filter, /supportsDetailedGlass/);
@@ -108,10 +119,30 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   assert.match(filter, /document\.documentElement\.dataset\.glassLensSplit/);
 
   // .nav-menu-group's material lives on ::before so filter and
-  // backdrop-filter can be declared separately rather than combined.
-  assert.match(css, /\.nav-menu-group::before \{[^}]*backdrop-filter: blur\(14px\)/);
+  // backdrop-filter can be declared separately rather than combined. It is
+  // lighter than the sheet's own 14px: a pane of glass is clearer than the
+  // frosted surface it rests on, and saturation and brightness rather than
+  // more blur are what keep the backdrop reading as a scene behind glass.
+  assert.match(css, /\.nav-menu-group::before \{[^}]*backdrop-filter: blur\(10px\)/);
   assert.match(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{\s*filter: url\("#bandup-live-glass-refraction"\);\s*\}/);
   // Content sits in its own stacking layer above ::before so only the
   // material warps, never the icons or labels.
   assert.match(css, /\.nav-menu-group > \* \{\s*position: relative;\s*z-index: 1;\s*\}/);
+});
+
+test("the nav card's rim varies around its own perimeter", () => {
+  // A single flat inset highlight lights every edge identically, which is the
+  // one thing real glass never does. The rim is a gradient border — bright
+  // where a light above and to the left catches the top edge, almost gone
+  // along the sides, bright again where the bottom edge turns back toward the
+  // viewer — painted across the box and masked down to the border ring, which
+  // is the only way to vary a border's colour around its own perimeter.
+  assert.match(css, /\.nav-menu-group::after \{[\s\S]*?linear-gradient\(\s*148deg/);
+  assert.match(css, /\.nav-menu-group::after \{[\s\S]*?mask-composite: exclude/);
+  // Both syntaxes: Safari needs the -webkit- form, and this rim is the main
+  // thing carrying the glass read there.
+  assert.match(css, /\.nav-menu-group::after \{[\s\S]*?-webkit-mask-composite: xor/);
+  assert.match(css, /html\[data-theme="dark"\] \.nav-menu-group::after \{[\s\S]*?linear-gradient\(\s*148deg/);
+  // The old flat hairline must not come back alongside it.
+  assert.doesNotMatch(css, /\.nav-menu-group \{[^}]*inset 0 1px 0 color-mix\(in srgb, white 55%/);
 });

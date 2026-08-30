@@ -25,15 +25,17 @@ function clamp(value: number, minimum: number, maximum: number) {
  */
 export function createGlassRefractionMap(size = GLASS_REFRACTION_MAP_SIZE) {
   const pixels = new Uint8ClampedArray(size * size * 4);
-  const halfExtent = 0.94;
-  const cornerRadius = 0.32;
-  /* A clear, substantial bevel is what makes a pane read as a lens rather
-     than a soft blur. It still leaves the broad centre completely neutral.
-     Wider and rounder than before — every glass card here is rounded on
-     all four sides, not just at the corners, so the bend needs to read
-     like a real convex edge running around a curved 3D panel rather than
-     a thin ring concentrated only where the corners are tightest. */
-  const bezelWidth = 0.32;
+  const halfExtent = 0.98;
+  const cornerRadius = 0.3;
+  /* The bevel hugs the rim rather than reaching far inward.
+     This map is square but is stretched onto whatever pane references it,
+     so a bezel measured as a fraction of each axis is not the same width
+     on both: on a 360x56 navigation card, a bezel of 0.32 spans 115px
+     horizontally against 18px vertically. Wide values therefore do not
+     read as a thicker edge, they read as a band across the middle of the
+     card. Keeping it narrow keeps the bend on the edge at every aspect
+     ratio the app actually uses. */
+  const bezelWidth = 0.16;
   const straightExtent = halfExtent - cornerRadius;
 
   for (let row = 0; row < size; row += 1) {

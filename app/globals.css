@@ -1068,17 +1068,16 @@ html[data-theme="dark"] .nav-paper {
   z-index: 0;
   border-radius: inherit;
   pointer-events: none;
-  /* As blurred and transparent as the sheet's own gaps (see .nav-paper) —
-     the card is still a distinct surface via its tint and highlight, not
-     because it hides more of what's behind it. */
-  /* Both halves come down together. The warm tint is mixed as an opaque
+  /* The card is a distinct surface through its rim and its edge bend, not
+     because it hides what is behind it. The warm tint is mixed as an opaque
      colour, so it sets a floor the scrim underneath can never get below —
      thinning only the scrim would leave the card stuck at the tint's own
-     weight and just make it read browner rather than clearer. */
+     weight and just make it read browner rather than clearer, so both come
+     down together. */
   background: color-mix(
     in srgb,
-    rgb(142, 104, 78) 5%,
-    color-mix(in srgb, var(--color-background) 14%, transparent)
+    rgb(142, 104, 78) 4%,
+    color-mix(in srgb, var(--color-background) 10%, transparent)
   );
   /* WebKit silently skips backdrop-filter on an element that never commits
      to its own compositing layer, which is easy to end up with two levels
@@ -1088,12 +1087,67 @@ html[data-theme="dark"] .nav-paper {
      always-present 3D transform is. */
   transform: translateZ(0);
   will-change: transform;
-  /* An explicit value rather than inheriting the sitewide 56px .liquid-glass
-     default — that's tuned for surfaces meant to hide what's behind them
-     entirely, not for matching the sheet's own 14px gaps, which is the
-     goal here. */
-  -webkit-backdrop-filter: blur(14px) saturate(108%) brightness(103%);
-  backdrop-filter: blur(14px) saturate(108%) brightness(103%);
+  /* Lighter than the sheet's own 14px, and deliberately so: a pane of
+     glass is clearer than the frosted surface it rests on, and lifting
+     saturation and brightness rather than piling on blur is what keeps
+     what shows through reading as a real scene behind glass instead of a
+     grey wash. The sitewide 56px .liquid-glass default is for surfaces
+     meant to hide their backdrop entirely; this one is meant to show it. */
+  -webkit-backdrop-filter: blur(10px) saturate(122%) brightness(107%);
+  backdrop-filter: blur(10px) saturate(122%) brightness(107%);
+}
+
+/*
+  The rim, on its own layer above the material.
+
+  A single flat inset highlight lights every edge identically, which is the
+  one thing real glass never does. This is a 1.2px gradient border — bright
+  where a light above and to the left would catch the top edge, almost gone
+  along the sides, and bright again where the bottom edge turns back toward
+  the viewer. The gradient is painted across the whole box and then masked
+  down to just the border ring, which is the only way to get a border whose
+  colour varies around its own perimeter.
+*/
+.nav-menu-group::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1.2px;
+  background: linear-gradient(
+    148deg,
+    color-mix(in srgb, white 95%, transparent) 0%,
+    color-mix(in srgb, white 42%, transparent) 16%,
+    color-mix(in srgb, white 7%, transparent) 34%,
+    color-mix(in srgb, white 5%, transparent) 58%,
+    color-mix(in srgb, white 38%, transparent) 80%,
+    color-mix(in srgb, white 90%, transparent) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+html[data-theme="dark"] .nav-menu-group::after {
+  /* Dark glass catches the same light, but a rim at full strength against
+     a near-black card reads as a drawn white outline rather than a
+     reflection. */
+  background: linear-gradient(
+    148deg,
+    color-mix(in srgb, white 55%, transparent) 0%,
+    color-mix(in srgb, white 22%, transparent) 16%,
+    color-mix(in srgb, white 4%, transparent) 34%,
+    color-mix(in srgb, white 3%, transparent) 58%,
+    color-mix(in srgb, white 20%, transparent) 80%,
+    color-mix(in srgb, white 50%, transparent) 100%
+  );
 }
 
 html[data-theme="dark"] .nav-menu-group::before {
@@ -1104,7 +1158,7 @@ html[data-theme="dark"] .nav-menu-group::before {
   background: color-mix(
     in srgb,
     rgb(142, 104, 78) 2%,
-    color-mix(in srgb, var(--color-background) 12%, transparent)
+    color-mix(in srgb, var(--color-background) 9%, transparent)
   );
 }
 
@@ -1113,40 +1167,31 @@ html[data-glass-lens-split] .nav-menu-group::before {
 }
 
 html[data-theme="dark"] .nav-menu-group {
-  /* A dimmer top highlight than light's own — dark glass still catches a
-     rim of light, just not as brightly as a pale card would. The glow gets
-     the same treatment: full strength would paint a visible orange ring
-     instead of a soft ambient bloom. */
+  /* The rim itself is on ::after; what is left here is the lift off the
+     sheet, which a dark theme wants softer than a light one. */
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 18%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, black 24%, transparent),
-    0 1px 3px var(--glass-shadow),
+    0 1px 2px var(--glass-shadow),
+    0 8px 22px -8px color-mix(in srgb, black 34%, transparent),
     0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 4%, transparent);
 }
 
 /*
   .liquid-glass's own hairline (inset 0 1px 0 var(--glass-highlight)) and
   border-color were tuned for the app's usual, much more opaque glass and
-  read as a flat grey line back when this card was nearly see-through.
-  Now that it's back to a substantially opaque material, the same kind of
-  highlight Apple's own Control Center panels and app icons show — a bright
-  edge along the top, a touch of shade along the bottom for volume — is
-  what makes it read as curved glass catching light rather than a flat
-  tinted rectangle.
+  read as a flat grey line on a card this clear. The rim that replaces it
+  lives on ::after above, where it can vary around its own perimeter; what
+  stays here is only how the card sits off the sheet.
 */
 .nav-menu-group {
   border-color: transparent;
-  /* Top-lit highlight and bottom shading for volume, the card's own crisp
-     lift-shadow, and a much softer, wider glow in the same warm tint that
-     fades outward past the card's own edges — the "blur expanding out"
-     look of an iOS app icon lifting off the grid, or a Control Center
-     panel's soft bloom, rather than the blur cutting off sharply the
-     instant it crosses the card's border. */
+  /* A close contact shadow, a wider soft lift beneath it, and the warm
+     ambient glow that fades outward past the card's own edges — the "blur
+     expanding out" look of an iOS app icon lifting off the grid, rather
+     than the blur cutting off sharply the instant it crosses the border. */
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, black 6%, transparent),
-    0 1px 3px var(--glass-shadow),
-    0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 8%, transparent);
+    0 1px 2px var(--glass-shadow),
+    0 8px 22px -8px color-mix(in srgb, black 18%, transparent),
+    0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 7%, transparent);
 }
 
 .nav-paper > .refractive-glass-layer {
@@ -3395,8 +3440,8 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
 */
 @media (hover: none), (pointer: coarse) {
   .nav-menu-group::before {
-    -webkit-backdrop-filter: blur(14px) saturate(115%) brightness(104%) contrast(102%);
-    backdrop-filter: blur(14px) saturate(115%) brightness(104%) contrast(102%);
+    -webkit-backdrop-filter: blur(10px) saturate(126%) brightness(108%) contrast(102%);
+    backdrop-filter: blur(10px) saturate(126%) brightness(108%) contrast(102%);
   }
 }
 

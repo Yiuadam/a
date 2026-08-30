@@ -191,12 +191,18 @@ export default function GlassRefractionFilter() {
       height="0"
     >
       <defs>
+        {/*
+          The region is the pane itself, not a margin around it. A region
+          larger than the element lets displaced pixels paint outside its
+          own rounded rectangle, which showed up as a faint second copy of
+          each card hanging past its bottom-right corner.
+        */}
         <filter
           id={FILTER_ID}
-          x="-10%"
-          y="-10%"
-          width="120%"
-          height="120%"
+          x="0%"
+          y="0%"
+          width="100%"
+          height="100%"
           filterUnits="objectBoundingBox"
           primitiveUnits="objectBoundingBox"
           colorInterpolationFilters="sRGB"
@@ -210,10 +216,22 @@ export default function GlassRefractionFilter() {
             preserveAspectRatio="none"
             result="glass-normal-map"
           />
+          {/*
+            With primitiveUnits="objectBoundingBox" this scale resolves
+            against the pane's diagonal, not its shortest side. A navigation
+            card is 360x56, so its diagonal is around 258px and a scale of
+            0.24 asked for up to 62px of displacement on an element 56px
+            tall — more than its whole height, which dragged content from
+            outside the card into the middle of it as a hard-edged block.
+            The bound that matters is the shortest pane sharing this filter,
+            so the value stays small: the glass reads through its rim
+            highlight and the bend at its edge, not through a displacement
+            large enough to move the backdrop bodily.
+          */}
           <feDisplacementMap
             in="SourceGraphic"
             in2="glass-normal-map"
-            scale="0.24"
+            scale="0.06"
             xChannelSelector="R"
             yChannelSelector="G"
           />
