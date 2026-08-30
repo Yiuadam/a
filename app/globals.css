@@ -3277,18 +3277,28 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
     --glass-blur: 12px;
   }
 
-  /*
-    The nav list is the one glass surface this touch fallback visibly
-    undershoots: on a touch device (which is also where Safari lives —
-    the live SVG lens above never runs there at all) it fell back to this
-    12px value with no refraction to make up the difference, reading as
-    barely blurred next to the same cards on a capable desktop. Keep it at
-    the full, un-throttled blur radius everywhere so a phone gets the same
-    blur strength as desktop, not a reduced one.
-  */
+}
+
+/*
+  The nav list is the one glass surface the touch fallback above visibly
+  undershoots: touch devices are also where Safari lives, and Safari can
+  never run the live SVG lens above at all — WebKit doesn't implement a
+  url() filter stage inside backdrop-filter, which no amount of extra
+  processing power changes. Everything else CSS can do is pushed as far as
+  it goes to make up for the missing lens instead: a heavier blur than
+  even the desktop base radius, plus the same saturate/brightness/contrast
+  recipe the live-refraction path uses, so the two read as close to the
+  same intensity as a plain backdrop-filter can get.
+
+  Scoped to (hover: none), (pointer: coarse) only, deliberately separate
+  from the performance-safety query above — a person who has asked for
+  reduced motion or reduced transparency should not get a heavier, more
+  processed surface pushed at them in the name of matching desktop.
+*/
+@media (hover: none), (pointer: coarse) {
   .nav-menu-group {
-    -webkit-backdrop-filter: blur(56px) saturate(108%) brightness(103%);
-    backdrop-filter: blur(56px) saturate(108%) brightness(103%);
+    -webkit-backdrop-filter: blur(64px) saturate(115%) brightness(104%) contrast(102%);
+    backdrop-filter: blur(64px) saturate(115%) brightness(104%) contrast(102%);
   }
 }
 
