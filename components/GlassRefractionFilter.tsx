@@ -22,14 +22,22 @@ const FILTER_ID = "bandup-live-glass-refraction";
 */
 const NAV_FILTER_ID = "bandup-nav-glass-lens";
 const NAV_SELECTOR = ".nav-menu-group";
-/* Solved in half-height units: a bevel of 0.8 covers most of a card's curved
-   edge, which is what lets the bend actually gather the backdrop rather than
-   graze it. See the stripe tests in tests/glass-refraction.test.mjs. */
-const NAV_BEZEL_WIDTH = 0.8;
-/* How much the flat centre spreads what is behind it. A bevel alone only
-   bends what passes under the rim and leaves the middle inert, which reads as
-   a blurred hole rather than as glass. */
-const NAV_MAGNIFY = 0.18;
+/* No separate bevel band on the navigation cards.
+
+   A bevel only acts within its own width of the rim, so it puts a band of
+   behaviour around the perimeter that the middle of the card does not share:
+   the outer part stops obeying the same refraction as the inside, and the
+   join between them is visible. What is left is one smooth field — a
+   cylindrical magnifier whose displacement grows steadily from nothing at
+   the centre line to its strongest at the edge — so a line crossing behind
+   the card is bent by the same rule wherever it crosses, and the pane reads
+   as one piece of glass rather than as a middle with a rim stuck round it.
+
+   It is also inherently safe: magnification pulls each sample toward the
+   centre, so it can never ask for one from beyond the card's own edge, which
+   is what the outward bevel did and what drew the outer ring. */
+const NAV_BEZEL_WIDTH = 0;
+const NAV_MAGNIFY = 0.3;
 /* The displacement may reach this fraction of the card's half-height. A
    displacement map can only rearrange what is already inside the element's own
    box — sampling past it returns nothing — so a lens that asks to move a pixel

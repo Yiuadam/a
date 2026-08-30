@@ -126,7 +126,7 @@ export function createGlassRefractionMap(
            straight until it reaches the rim and then visibly bends — the
            way it does under a real convex panel, instead of drifting
            gently across the whole border the way an even falloff makes it. */
-        const p = clamp(1 - -signedDistance / bezelWidth, 0, 1);
+        const p = clamp(1 - -signedDistance / Math.max(bezelWidth, 1e-6), 0, 1);
         const profile = clamp(p / Math.sqrt(Math.max(1 - p * p, 0.02)), 0, 1);
 
         /* A pane can only refract what is behind it. The bevel bends outward,
