@@ -95,6 +95,7 @@ function looksTechnical(text) {
   if (/^(?:\/|https?:\/\/|@\/|\.?\.\/)/.test(value)) return true;
   if (/\b(?:SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|FROM|JOIN|WHERE)\b/i.test(value)) return true;
   if (/^\.[\w-]+(?:\s*,\s*\.[\w-]+)+$/.test(value)) return true;
+  if (/^\.[\w-]+(?::not\(\.[\w-]+\))*$/.test(value)) return true;
   if (/var\(--|--[a-z][\w-]*|\b(?:app|bg|border|duration|fill|font|gap|grid|h|hover|items|justify|max|min|opacity|overflow|p|px|py|rounded|shadow|shrink|sm|stroke|text|transition|w)-[^\s]+/.test(value)) return true;
   // Lowercase tokens such as action names, statuses, icon names and query keys
   // are code vocabulary, not prose. A visible one-word heading starts with a

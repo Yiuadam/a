@@ -399,6 +399,15 @@ html[data-theme="dark"] body {
     background 180ms ease;
 }
 
+/* A containing block for .card::before below, which anchors to it with
+   `position: absolute; inset: 0`. Scoped to `.card` alone, not the shared
+   rule above: `.liquid-glass` already has many callers that manage their
+   own positioning, and this changes nothing for an element that already
+   sets position some other way — it only supplies a default. */
+.card {
+  position: relative;
+}
+
 /*
   General Safari fix for the bug behind the nav list's and the notification
   popover's earlier zero-blur reports: WebKit needs an `isolate` ancestor to
@@ -510,6 +519,130 @@ html[data-theme="dark"] body {
 .liquid-glass::after,
 .card::after {
   display: none;
+}
+
+/*
+  Every plain content card gets the same edge treatment the navigation menu's
+  own cards do: a dome-shaped refraction at the rim (see NAV_DOME et al in
+  GlassRefractionFilter.tsx — this reuses the identical lens physics, keyed
+  to each card's own measured shape), a directional wall behind it, and a
+  caustic rim in place of a flat hairline.
+
+  `.liquid-glass` is deliberately left out here. Several surfaces built on
+  it already carry their own hand-tuned ::before rim (the notification
+  popover) or their own separate live-refraction engine (`.premade-glass`,
+  documented above as "the refraction engine from liquid-glass-react, not
+  its visual decoration") — adding a second, independent lens on top of
+  either would conflict with work already done rather than extend it.
+  `.card` has no such competing system anywhere in this file, which is what
+  makes it the safe, generic target: every one of its many uses (pricing,
+  dashboard, admin, exam mode, dark theme) sets only background,
+  backdrop-filter and box-shadow directly on the element, all of which stay
+  completely untouched below.
+
+  Two contexts are excluded because they deliberately flatten `.card` to
+  `background: transparent; backdrop-filter: none` — an explicit request for
+  no glass at all, which a wall and a rim would quietly reintroduce.
+*/
+.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::before {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* WebKit silently skips backdrop-filter on an element that never commits
+     to its own compositing layer; an explicit, always-present 3D transform
+     is a stronger signal than will-change alone (see .nav-menu-group::before
+     above, where this was first worked out). */
+  transform: translateZ(0);
+  will-change: transform;
+  /* This does not redeclare the card's own background or blur — every one of
+     the ~90 places that tune those directly on `.card` (dark theme, exam
+     mode, a hover state, a flattened context) keeps working untouched. A
+     small backdrop-filter here samples whatever that recipe already
+     produced, exactly the way `.isolate:has(...)` above forces its own
+     compositing layer without visibly adding blur of its own; `filter`
+     below then warps that already-correct material, not a second copy of
+     it. */
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+  /* The same directional wall as the nav cards': bright where a light above
+     and to the left would catch the curve, dark where it turns away and
+     down. Built from the same theme tokens the card's own hairline already
+     used, so it re-tints itself automatically in dark theme, exam mode, or
+     any future theme without a second copy of these rules. */
+  background:
+    radial-gradient(
+      130% 100% at 50% -30%,
+      color-mix(in srgb, var(--glass-specular) 55%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      150% 140% at 50% 130%,
+      color-mix(in srgb, var(--glass-edge-dark) 60%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      100% 220% at -25% 50%,
+      color-mix(in srgb, var(--glass-edge-dark) 32%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      100% 220% at 125% 50%,
+      color-mix(in srgb, var(--glass-edge-dark) 32%, transparent),
+      transparent 58%
+    );
+}
+
+html[data-glass-lens-split] .card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::before {
+  filter: var(--glass-lens-filter, none);
+}
+
+/*
+  The caustic rim, replacing the flat `inset 0 1px 0 var(--glass-highlight)`
+  hairline the base recipe still carries for browsers or cards this does not
+  reach. Same masked-gradient-border technique as .nav-menu-group::after:
+  painted across the whole box, then masked down to just the ring, which is
+  the only way to get a border whose colour varies around its own perimeter.
+*/
+.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1px;
+  background: linear-gradient(
+    148deg,
+    color-mix(in srgb, var(--glass-specular) 100%, transparent) 0%,
+    color-mix(in srgb, var(--glass-specular) 65%, transparent) 5%,
+    color-mix(in srgb, var(--glass-highlight) 26%, transparent) 14%,
+    transparent 31%,
+    transparent 62%,
+    color-mix(in srgb, var(--glass-highlight) 20%, transparent) 80%,
+    color-mix(in srgb, var(--glass-specular) 75%, transparent) 95%,
+    color-mix(in srgb, var(--glass-specular) 100%, transparent) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* Real content sits in its own stacking layer above the material and below
+   the rim, so only the backdrop itself ever warps — never the text or icons
+   a card actually exists to show. */
+.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group) > * {
+  position: relative;
+  z-index: 1;
 }
 
 .liquid-glass:focus-within,
@@ -3850,13 +3983,14 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
    make the refraction believable in the first place.
 --------------------------------------------------------------------------- */
 html[data-live-glass-refraction] .liquid-glass:not(.nav-menu-group),
-html[data-live-glass-refraction] .card,
-html[data-live-glass-refraction] .card.card,
 html[data-live-glass-refraction] .premade-glass {
   /* .nav-menu-group is excluded: it carries its own dedicated live-lens
      material on ::before (see html[data-glass-lens-split] above), which
      also runs on Safari. Matching it here too would stack this combined,
-     Chromium-only blur+lens directly on top of that. */
+     Chromium-only blur+lens directly on top of that. .card is excluded
+     for the same reason: every .card now carries the identical ::before
+     lens sitewide (see .card::before above), so matching it here would
+     double-lens it in Chromium. */
   backdrop-filter:
     blur(8px)
     saturate(115%)

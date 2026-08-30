@@ -466,3 +466,74 @@ test("the nav card's rim has a wall behind it, not just an edge", () => {
     "a dark-theme wall at light-theme strength reads as a second drawn border",
   );
 });
+
+test("every plain content card gets the same rim/wall lens as the nav cards, without disturbing its own background", () => {
+  // .liquid-glass is deliberately excluded: several of its surfaces already
+  // carry their own hand-tuned rim (the notification popover) or their own
+  // separate live-refraction engine (.premade-glass), and stacking a second,
+  // independent lens on either would conflict with work already done rather
+  // than extend it. .card has no competing system anywhere in this file.
+  const genericSelector =
+    "\\.card:not\\(\\.organization-team-pairings-page\\):not\\(\\.organization-team-pairing-group\\)";
+  const beforeMatch = css.match(
+    new RegExp(`\\n${genericSelector}::before \\{[\\s\\S]*?\\n\\}`),
+  );
+  assert.ok(beforeMatch, "expected a .card::before rule for the generic lens");
+  const before = beforeMatch[0];
+
+  // Samples whatever background the element's own (untouched) rule already
+  // produced, rather than redeclaring background/box-shadow itself — the
+  // dozen or so contexts that set those directly on .card (dark theme, exam
+  // mode, pricing, dashboard) stay exactly as they were.
+  assert.doesNotMatch(before, /\n {2}background-color:/);
+  assert.match(before, /backdrop-filter: blur\(1px\)/);
+  assert.match(before, /radial-gradient\(/);
+
+  assert.match(
+    css,
+    new RegExp(
+      `html\\[data-glass-lens-split\\] ${genericSelector}::before \\{[\\s\\S]*?filter: var\\(--glass-lens-filter, none\\);`,
+    ),
+  );
+
+  const afterMatch = css.match(new RegExp(`\\n${genericSelector}::after \\{[\\s\\S]*?\\n\\}`));
+  assert.ok(afterMatch, "expected a .card::after rule for the caustic rim");
+  assert.match(afterMatch[0], /mask-composite: exclude/);
+  assert.match(afterMatch[0], /-webkit-mask-composite: xor/);
+
+  // Only the reset (display: none) targets the bare .card::before/::after —
+  // the two contexts that deliberately flatten .card to no glass at all
+  // (background: transparent, backdrop-filter: none) opted out of glass
+  // entirely, and a wall and a rim would quietly reintroduce it.
+  const bareBefore = css.match(/\n\.card::before,?\s*\n?[^{]*\{[\s\S]*?\n\}/);
+  assert.ok(bareBefore, "expected the bare .card::before reset rule");
+  assert.match(bareBefore[0], /display: none;/);
+
+  // The old Chromium-only combined-syntax rule no longer matches .card: every
+  // card now carries its own split filter/backdrop-filter lens on ::before,
+  // so matching it there too would double-lens it in Chromium.
+  const oldRuleMatch = css.match(
+    /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),\s*\nhtml\[data-live-glass-refraction\] \.premade-glass \{/,
+  );
+  assert.ok(oldRuleMatch, "expected the old combined-syntax rule with .card excluded");
+});
+
+test("generic cards are reduced to a small fixed grid of shapes instead of one filter per element", () => {
+  assert.match(filter, /GENERIC_SELECTOR =/);
+  assert.match(filter, /function measureGenericPanes/);
+  assert.match(filter, /function nearest/);
+  assert.match(filter, /GENERIC_ASPECT_BUCKETS/);
+  assert.match(filter, /GENERIC_CORNER_BUCKETS/);
+  assert.match(filter, /GENERIC_MAX_BUCKETS/);
+  // Same lens physics as the nav cards — reused, not reinvented.
+  assert.match(filter, /GENERIC_MAGNIFY = NAV_MAGNIFY/);
+  assert.match(filter, /GENERIC_DOME = NAV_DOME/);
+  assert.match(filter, /GENERIC_THICKNESS = NAV_THICKNESS/);
+  assert.match(filter, /GENERIC_DISPLACEMENT_HEADROOM = NAV_DISPLACEMENT_HEADROOM/);
+  // Scale depends only on the bucket's own aspect ratio: height cancels out
+  // of both the displacement budget and the diagonal it is measured against.
+  assert.match(filter, /Math\.sqrt\(2 \* \(aspect \* aspect \+ 1\)\)/);
+  assert.match(filter, /--glass-lens-filter/);
+  assert.match(filter, /GENERIC_FILTER_PREFIX/);
+  assert.match(filter, /genericFilters\.map/);
+});
