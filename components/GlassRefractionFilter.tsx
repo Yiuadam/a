@@ -37,7 +37,11 @@ const NAV_SELECTOR = ".nav-menu-group";
    centre, so it can never ask for one from beyond the card's own edge, which
    is what the outward bevel did and what drew the outer ring. */
 const NAV_BEZEL_WIDTH = 0;
-const NAV_MAGNIFY = 0.35;
+/* .55 thickness read right; pushed a step further from there for a bit more
+   edge reflection, per direct request, while the wall's new radial-gradient
+   shading (see globals.css) keeps the rim from looking like it is folding
+   over a seam as the bend gets stronger. */
+const NAV_MAGNIFY = 0.55;
 /* The rim of a real glass dome, on top of that body. A hemisphere's
    refraction follows its surface slope, which stays gentle across the face
    and then climbs almost vertically in the last stretch — that late climb is
@@ -50,7 +54,7 @@ const NAV_DOME = 1;
    sharp border. This one puts it across a wide band, so the backdrop
    compresses all the way through it and the pane reads as a deep slab whose
    edge curves down to its underside. */
-const NAV_THICKNESS = 0.85;
+const NAV_THICKNESS = 0.6;
 /* The displacement may reach this fraction of the card's half-height. A
    displacement map can only rearrange what is already inside the element's own
    box — sampling past it returns nothing — so a lens that asks to move a pixel

@@ -322,7 +322,7 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // line to its strongest at the edge, so a line crossing behind the card is
   // bent by the same rule wherever it crosses.
   assert.match(filter, /NAV_BEZEL_WIDTH = 0;/);
-  assert.match(filter, /NAV_MAGNIFY = 0\.35;/);
+  assert.match(filter, /NAV_MAGNIFY = 0\.55;/);
   // Plus a dome for the rim: a hemisphere's refraction follows its surface
   // slope, gentle across the face and then climbing almost vertically in the
   // last stretch, which folds the backdrop into a tangled band at the edge.
@@ -331,7 +331,7 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // small value keeps the roll in the last few percent, a thin sheet with a
   // sharp border; this puts it across a wide band, so the pane reads as a deep
   // slab whose edge curves down to its underside.
-  assert.match(filter, /NAV_THICKNESS = 0\.85;/);
+  assert.match(filter, /NAV_THICKNESS = 0\.6;/);
   // The scale is derived from the measured box, not a constant: it is bounded
   // by the card's half-height while objectBoundingBox resolves it against the
   // diagonal, which on a wide card is set almost entirely by its width.
@@ -373,22 +373,45 @@ test("the nav card's rim has a wall behind it, not just an edge", () => {
   // Real glass has thickness, so its rim reads as two edges with a lit wall
   // between them. ::after draws the outer edge; the wall lives on the
   // material itself so the lens warps it with the surface it belongs to.
-  // Brightest along the top and dimmest at the sides — an evenly lit wall
-  // reads as a doubled border rather than as depth.
   // Lit like a rolled edge rather than a flat inner face: bright along the top
   // where the curve turns up into the light, dark underneath and at the sides
   // where it turns away toward the pane's underside. That asymmetry is most of
   // what reads as depth; an evenly lit wall reads as a doubled border.
+  //
+  // This is radial gradients now, not box-shadow. Four inset box-shadows each
+  // reduce their own effective corner radius by a different amount (their own
+  // offset and negative spread), so on a shape this rounded the four never
+  // shared one rounded outline — where two crossed, near the transition from a
+  // straight edge to a rounded end, the mismatch showed as a visible jagged
+  // seam. A radial-gradient has no per-corner geometry at all: it is a smooth
+  // function of distance from a point, so summing several can never produce a
+  // seam.
   const before = css.match(/\n\.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
-  assert.match(before, /inset 0 2px 3px -1px color-mix\(in srgb, white 75%/);
-  assert.match(before, /inset 0 -3px 5px -2px color-mix\(in srgb, rgb\(40, 30, 22\) 30%/);
-  assert.match(before, /inset 3px 0 5px -3px color-mix\(in srgb, rgb\(40, 30, 22\) 16%/);
+  assert.doesNotMatch(before, /box-shadow:/);
+  assert.match(before, /--nav-wall-light: color-mix\(in srgb, white 70%/);
+  assert.match(before, /--nav-wall-shade: color-mix\(in srgb, rgb\(40, 30, 22\) 26%/);
+  assert.match(before, /--nav-wall-shade-soft: color-mix\(in srgb, rgb\(40, 30, 22\) 14%/);
+  assert.match(before, /radial-gradient\(130% 100% at 50% -30%, var\(--nav-wall-light\)/);
+  assert.match(before, /radial-gradient\(150% 140% at 50% 130%, var\(--nav-wall-shade\)/);
+  // Each ellipse fades to transparent well inside its own radius, so the wall
+  // eases from transparent at the card's own edge into the glow rather than
+  // stopping at a hard boundary partway across it.
+  assert.match(before, /var\(--nav-wall-light\), transparent 62%/);
+  assert.match(before, /var\(--nav-wall-shade\), transparent 58%/);
+  // The tint sits behind the wall in the same declaration, not a separate one
+  // dark theme has to reconstruct.
+  assert.match(before, /--nav-tint: color-mix\(/);
+  assert.match(before, /var\(--nav-tint\);\s*\n\}/);
 
   const dark = css.match(/html\[data-theme="dark"\] \.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
-  assert.match(dark, /inset 0 2px 3px -1px color-mix\(in srgb, white 34%/);
-  assert.match(dark, /inset 0 -3px 5px -2px color-mix\(in srgb, black 40%/);
+  // Only the custom properties are overridden — no background/box-shadow
+  // redeclaration, so the layer structure above cannot drift from this.
+  assert.doesNotMatch(dark, /\n {2}background:/);
+  assert.doesNotMatch(dark, /box-shadow:/);
+  assert.match(dark, /--nav-wall-light: color-mix\(in srgb, white 34%/);
+  assert.match(dark, /--nav-wall-shade: color-mix\(in srgb, black 40%/);
   assert.ok(
-    !/white (5[0-9]|[6-9][0-9])%/.test(dark.split("box-shadow:")[1]),
+    !/white (5[0-9]|[6-9][0-9])%/.test(dark),
     "a dark-theme wall at light-theme strength reads as a second drawn border",
   );
 });
