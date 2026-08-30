@@ -1009,16 +1009,20 @@ html[data-theme="dark"] .google-signin-glass {
 }
 
 /*
-  Only these cards, not the sheet they sit in nor any other glass surface —
-  a warm, barely-there brown-orange rather than this menu's usual neutral
-  tint. Low saturation and high lightness are what keep it reading as
-  "glass with a little warmth" instead of a solid orange card; the same hue
-  the light theme already washes the page background with (--wash-one),
-  just concentrated enough here to actually register on a small card
-  instead of a whole page.
+  Reference: iOS Control Center's own cards, where the material is opaque
+  enough that nothing behind it is recognisable — a smooth frosted wash,
+  not a tint you can still read shapes through. Layer the same warm
+  brown-orange accent used before onto a much more opaque neutral scrim
+  (the page's own background colour, not --glass-fill's thin white/black
+  wash) rather than raising the warm mix itself, which would just read as
+  a stronger orange rather than a more opaque card.
 */
 .nav-menu-group {
-  background: color-mix(in srgb, rgb(142, 104, 78) 8%, var(--glass-fill));
+  background: color-mix(
+    in srgb,
+    rgb(142, 104, 78) 8%,
+    color-mix(in srgb, var(--color-background) 92%, transparent)
+  );
 }
 
 html[data-theme="dark"] .nav-menu-group {
@@ -1026,7 +1030,11 @@ html[data-theme="dark"] .nav-menu-group {
      already near-black, so 8% of a mid-brown would read as visible paint
      rather than a tint, and every dark-theme surface it neighbours is
      built on translucency this thin. */
-  background: color-mix(in srgb, rgb(142, 104, 78) 3%, var(--glass-fill));
+  background: color-mix(
+    in srgb,
+    rgb(142, 104, 78) 3%,
+    color-mix(in srgb, var(--color-background) 88%, transparent)
+  );
 }
 
 /*
