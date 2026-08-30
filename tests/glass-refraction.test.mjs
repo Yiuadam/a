@@ -145,4 +145,27 @@ test("the nav card's rim varies around its own perimeter", () => {
   assert.match(css, /html\[data-theme="dark"\] \.nav-menu-group::after \{[\s\S]*?linear-gradient\(\s*148deg/);
   // The old flat hairline must not come back alongside it.
   assert.doesNotMatch(css, /\.nav-menu-group \{[^}]*inset 0 1px 0 color-mix\(in srgb, white 55%/);
+
+  // Light through a curved edge concentrates into a caustic: a short,
+  // intense arc with almost nothing either side. The bright stop is held
+  // rather than eased through, so the rim does not read as a painted sheen.
+  assert.match(css, /\.nav-menu-group::after \{[\s\S]*?white 100%, transparent\) 0%,\s*color-mix\(in srgb, white 97%, transparent\) 5%/);
+});
+
+test("the nav card's rim has a wall behind it, not just an edge", () => {
+  // Real glass has thickness, so its rim reads as two edges with a lit wall
+  // between them. ::after draws the outer edge; the wall lives on the
+  // material itself so the lens warps it with the surface it belongs to.
+  // Brightest along the top and dimmest at the sides — an evenly lit wall
+  // reads as a doubled border rather than as depth.
+  const before = css.match(/\n\.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
+  assert.match(before, /box-shadow:\s*\n\s*inset 0 1\.5px 2px -1px color-mix\(in srgb, white 58%/);
+  assert.match(before, /inset 1\.5px 0 2px -1px color-mix\(in srgb, white 20%/);
+
+  const dark = css.match(/html\[data-theme="dark"\] \.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
+  assert.match(dark, /box-shadow:\s*\n\s*inset 0 1\.5px 2px -1px color-mix\(in srgb, white 26%/);
+  assert.ok(
+    !/white (5[0-9]|[6-9][0-9])%/.test(dark.split("box-shadow:")[1]),
+    "a dark-theme wall at light-theme strength reads as a second drawn border",
+  );
 });

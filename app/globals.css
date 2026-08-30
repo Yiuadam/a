@@ -1095,6 +1095,20 @@ html[data-theme="dark"] .nav-paper {
      meant to hide their backdrop entirely; this one is meant to show it. */
   -webkit-backdrop-filter: blur(10px) saturate(122%) brightness(107%);
   backdrop-filter: blur(10px) saturate(122%) brightness(107%);
+  /* The inside face of the glass wall. Real glass has thickness, so its rim
+     reads as two edges with a lit wall between them, not as one hairline —
+     an outer edge where the surface turns, and an inner one where the wall
+     meets the flat centre. The rim on ::after draws the outer edge; these
+     draw the wall behind it, brightest along the top where a light above
+     would strike it and dimmest along the sides, which is what stops the
+     pair reading as a doubled border. They sit on the material rather than
+     on the rim layer so the lens warps them with the surface they belong
+     to. */
+  box-shadow:
+    inset 0 1.5px 2px -1px color-mix(in srgb, white 58%, transparent),
+    inset 0 -1.5px 2px -1px color-mix(in srgb, white 34%, transparent),
+    inset 1.5px 0 2px -1px color-mix(in srgb, white 20%, transparent),
+    inset -1.5px 0 2px -1px color-mix(in srgb, white 20%, transparent);
 }
 
 /*
@@ -1107,6 +1121,11 @@ html[data-theme="dark"] .nav-paper {
   the viewer. The gradient is painted across the whole box and then masked
   down to just the border ring, which is the only way to get a border whose
   colour varies around its own perimeter.
+
+  The bright stops are narrow and held rather than eased through. Light
+  through a curved edge concentrates into a caustic — a short, intense arc
+  with almost nothing either side of it — and a gradient that fades evenly
+  from one end to the other reads as a painted sheen instead.
 */
 .nav-menu-group::after {
   content: "";
@@ -1118,12 +1137,14 @@ html[data-theme="dark"] .nav-paper {
   padding: 1.2px;
   background: linear-gradient(
     148deg,
-    color-mix(in srgb, white 95%, transparent) 0%,
-    color-mix(in srgb, white 42%, transparent) 16%,
-    color-mix(in srgb, white 7%, transparent) 34%,
-    color-mix(in srgb, white 5%, transparent) 58%,
-    color-mix(in srgb, white 38%, transparent) 80%,
-    color-mix(in srgb, white 90%, transparent) 100%
+    color-mix(in srgb, white 100%, transparent) 0%,
+    color-mix(in srgb, white 97%, transparent) 5%,
+    color-mix(in srgb, white 30%, transparent) 14%,
+    color-mix(in srgb, white 5%, transparent) 31%,
+    color-mix(in srgb, white 4%, transparent) 62%,
+    color-mix(in srgb, white 24%, transparent) 80%,
+    color-mix(in srgb, white 93%, transparent) 95%,
+    color-mix(in srgb, white 100%, transparent) 100%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -1141,12 +1162,14 @@ html[data-theme="dark"] .nav-menu-group::after {
      reflection. */
   background: linear-gradient(
     148deg,
-    color-mix(in srgb, white 55%, transparent) 0%,
-    color-mix(in srgb, white 22%, transparent) 16%,
-    color-mix(in srgb, white 4%, transparent) 34%,
-    color-mix(in srgb, white 3%, transparent) 58%,
-    color-mix(in srgb, white 20%, transparent) 80%,
-    color-mix(in srgb, white 50%, transparent) 100%
+    color-mix(in srgb, white 62%, transparent) 0%,
+    color-mix(in srgb, white 58%, transparent) 5%,
+    color-mix(in srgb, white 17%, transparent) 14%,
+    color-mix(in srgb, white 3%, transparent) 31%,
+    color-mix(in srgb, white 2%, transparent) 62%,
+    color-mix(in srgb, white 13%, transparent) 80%,
+    color-mix(in srgb, white 55%, transparent) 95%,
+    color-mix(in srgb, white 62%, transparent) 100%
   );
 }
 
@@ -1160,6 +1183,14 @@ html[data-theme="dark"] .nav-menu-group::before {
     rgb(142, 104, 78) 2%,
     color-mix(in srgb, var(--color-background) 9%, transparent)
   );
+  /* The same wall, lit for a dark room. At light-theme strength a white
+     inner face against a near-black card stops reading as glass thickness
+     and starts reading as a second drawn border. */
+  box-shadow:
+    inset 0 1.5px 2px -1px color-mix(in srgb, white 26%, transparent),
+    inset 0 -1.5px 2px -1px color-mix(in srgb, white 13%, transparent),
+    inset 1.5px 0 2px -1px color-mix(in srgb, white 8%, transparent),
+    inset -1.5px 0 2px -1px color-mix(in srgb, white 8%, transparent);
 }
 
 html[data-glass-lens-split] .nav-menu-group::before {
