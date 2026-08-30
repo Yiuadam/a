@@ -117,6 +117,31 @@ test("Dark carries the same orange-brown accent as the logo and Warm's own glass
   assert.ok(luminance(indigo50) < luminance(indigo800), "indigo-50 should be darker than indigo-800 in Dark");
 });
 
+test("primary buttons carry an accent-coloured perimeter, in Warm/Dark and neutral in Light", () => {
+  // The base rule mixes the accent into the existing --glass-edge rather
+  // than replacing it outright — an orange-brown perimeter in Warm and Dark,
+  // where the accent ramp actually is that colour, and Light's own neutral
+  // grey where it isn't (Light's .btn-primary is overridden separately
+  // below with its own solid, already-neutral-grey button).
+  const baseRule = css.match(/\n\.btn-primary \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(baseRule, "expected a base .btn-primary rule");
+  assert.match(baseRule, /border-color:\s*color-mix\(in srgb, var\(--color-indigo-600\) 55%, var\(--glass-edge\)\);/);
+
+  const hoverRule = css.match(/\n\.btn-primary:hover:not\(:disabled\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(hoverRule, "expected a base .btn-primary:hover rule");
+  assert.match(hoverRule, /border-color:\s*color-mix\(in srgb, var\(--color-indigo-600\) 70%, var\(--glass-specular\)\);/);
+
+  // Dark used to pin this to a plain white-based border from when its own
+  // accent ramp was kept deliberately monochrome — now that the ramp itself
+  // carries the logo's orange-brown, the border formula matches every other
+  // theme's, just mixed against Dark's own near-black glass edge instead of
+  // var(--glass-edge).
+  const darkRule = css.match(/html\[data-theme="dark"\] \.btn-primary,\nhtml\[data-theme="dark"\] \.btn-primary:hover:not\(:disabled\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(darkRule, "expected a Dark .btn-primary override");
+  assert.match(darkRule, /border-color:\s*color-mix\(in srgb, var\(--color-indigo-600\) 55%, rgba\(255, 255, 255, 0\.22\)\);/);
+  assert.doesNotMatch(darkRule, /border-color:\s*rgba\(255, 255, 255, 0\.22\);/);
+});
+
 test("Dark navigation keeps its opened header free of a containing blur", () => {
   assert.match(
     css,

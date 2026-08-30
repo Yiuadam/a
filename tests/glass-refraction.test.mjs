@@ -117,6 +117,54 @@ test("the dome bends along the surface normal, so the ends bend too", () => {
   assert.ok(endX > 0, "the left end pulls right, into the glass");
 });
 
+test("the normal direction blends smoothly across the diagonal seam instead of jumping", () => {
+  // Away from the rounded corners, every point on a flat side is closer to
+  // either the vertical or the horizontal edge. Switching abruptly between a
+  // purely horizontal and a purely vertical normal right at that boundary is
+  // a real discontinuity in direction — it showed up as a straight seam
+  // cutting the pane into visible triangles, however small the bend's own
+  // magnitude was on either side of it. The normal should rotate smoothly
+  // through the transition instead.
+  const size = 256;
+  const map = glassRefractionModule.createGlassRefractionMap(size, {
+    aspect: 1,
+    cornerRadius: 0.1,
+    bezelWidth: 0,
+    magnify: 0,
+    dome: 0.6,
+    thickness: 0.3,
+    maxDisplacement: 0.85,
+  });
+  // A square pane is symmetric under swapping x and y, so the diagonal
+  // qx = qy runs exactly along the line from the centre to each corner.
+  // This offset is inside straightExtent (0.88 here) but close enough to the
+  // rim to sit inside the dome's own thickness band (0.3), so it is testing
+  // the flat-side branch with a real, measurable bend — not the rounded
+  // corner's own (already smooth) formula, and not a point so far from the
+  // rim that dome contributes nothing for either branch to blend.
+  const mid = size / 2;
+  const offset = 100;
+  const onDiagonal = pixel(map, size, mid + offset, mid - offset).map((c) => c - 128);
+  assert.ok(
+    Math.abs(onDiagonal[0]) > 2 && Math.abs(onDiagonal[1]) > 2,
+    "both channels should carry some of the bend exactly on the diagonal, not just one",
+  );
+
+  // Either side of the diagonal, the dominant channel should hand off
+  // gradually — still blended a couple of pixels off-centre — rather than
+  // one channel already having snapped back to exactly neutral.
+  const justInside = pixel(map, size, mid + offset - 2, mid - offset).map((c) => c - 128);
+  const justOutside = pixel(map, size, mid + offset + 2, mid - offset).map((c) => c - 128);
+  assert.ok(
+    Math.abs(justInside[0]) > 2 && Math.abs(justInside[1]) > 2,
+    "still blended just to one side of the diagonal",
+  );
+  assert.ok(
+    Math.abs(justOutside[0]) > 2 && Math.abs(justOutside[1]) > 2,
+    "still blended just to the other side of the diagonal",
+  );
+});
+
 test("the dome's rim climbs far faster than a straight ramp, right at the true edge", () => {
   // The tangle at the edge comes from that late climb; a ramp has no steep
   // part and cannot produce it at any strength.

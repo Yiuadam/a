@@ -13,6 +13,17 @@ export const GLASS_REFRACTION_MAP_SIZE = 128;
 
 const NEUTRAL_CHANNEL = 128;
 
+/*
+  How wide a strip, in the same height-normalised units as the rest of this
+  file, the normal direction takes to rotate from vertical to horizontal
+  along the diagonal from the centre toward each corner — see the comment
+  where this is used below. Fixed rather than derived from any one card's own
+  shape, since the discontinuity it is smoothing over exists for every card
+  the same way regardless of aspect, corner radius, or how strong that card's
+  own bend is tuned.
+*/
+const SEAM_TRANSITION_WIDTH = 0.12;
+
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
 }
@@ -193,10 +204,30 @@ export function createGlassRefractionMap(
         if (cornerDistance > 0.0001) {
           normalX = (x - clamp(x, -straightExtentX, straightExtentX)) / cornerDistance;
           normalY = (y - clamp(y, -straightExtentY, straightExtentY)) / cornerDistance;
-        } else if (qx > qy) {
-          normalX = Math.sign(x) || 1;
         } else {
-          normalY = Math.sign(y) || 1;
+          /* Away from the rounded corners, every point on a flat side is
+             either closer to the vertical edges or closer to the horizontal
+             ones — qx > qy or the reverse — and a hard switch between a
+             purely horizontal and a purely vertical normal right at that
+             boundary is an actual discontinuity in direction. A sharp jump
+             in direction reads as a visible line even where the bend's own
+             magnitude is small on both sides of it — far more visible than a
+             smooth change of the same total size — and it runs from each
+             corner in toward the centre, which is what showed up as
+             straight seams cutting the pane into triangles.
+
+             Blended instead, over a fixed width in the same
+             height-normalised units signedDistance itself uses (not tied to
+             any one card's thickness or corner radius, so the seam softens
+             the same way regardless of shape): the normal rotates smoothly
+             from vertical to horizontal across the line qx = qy rather than
+             flipping there, and its own magnitude eases down through the
+             transition rather than staying pinned to 1 on both sides of a
+             cliff. */
+          const seamBlend = clamp((qx - qy) / SEAM_TRANSITION_WIDTH, -1, 1);
+          const horizontalWeight = (seamBlend + 1) / 2;
+          normalX = horizontalWeight * (Math.sign(x) || 1);
+          normalY = (1 - horizontalWeight) * (Math.sign(y) || 1);
         }
       }
 

@@ -3012,7 +3012,12 @@ a.card.card:hover {
    primary action without giving the glass an opaque colour of its own. */
 .btn-primary {
   @apply btn text-slate-900 active:translate-y-px;
-  border-color: var(--glass-edge);
+  /* Same accent-mixed-with-the-glass-edge formula .pricing-subscribe-button
+     already used below, generalised to every primary button rather than
+     just that one: an orange-brown perimeter in Warm and Dark, where the
+     accent ramp actually is that colour, and Light's own neutral grey where
+     it isn't (see the accent ramp itself, not this rule, for that split). */
+  border-color: color-mix(in srgb, var(--color-indigo-600) 55%, var(--glass-edge));
   background: var(--glass-fill-strong);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
@@ -3022,7 +3027,7 @@ a.card.card:hover {
 }
 
 .btn-primary:hover:not(:disabled) {
-  border-color: var(--glass-specular);
+  border-color: color-mix(in srgb, var(--color-indigo-600) 70%, var(--glass-specular));
   background: color-mix(in srgb, var(--glass-fill-strong) 88%, white 12%);
 }
 
@@ -3602,7 +3607,12 @@ html[data-theme="dark"] a.card:hover {
 html[data-theme="dark"] .btn-primary,
 html[data-theme="dark"] .btn-primary:hover:not(:disabled) {
   color: var(--color-slate-900);
-  border-color: rgba(255, 255, 255, 0.22);
+  /* Was a plain white-based border from when Dark's own accent ramp was kept
+     deliberately monochrome (see the comment on that ramp) — now that it
+     carries the same orange-brown as the logo, this reads as the same
+     accent-mixed-with-glass perimeter every other theme's primary button
+     gets, just against Dark's own near-black glass edge. */
+  border-color: color-mix(in srgb, var(--color-indigo-600) 55%, rgba(255, 255, 255, 0.22));
   background: var(--glass-fill-strong);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
   -webkit-backdrop-filter: blur(18px) saturate(105%) brightness(106%);
@@ -3610,7 +3620,7 @@ html[data-theme="dark"] .btn-primary:hover:not(:disabled) {
 }
 
 html[data-theme="dark"] .btn-primary:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: color-mix(in srgb, var(--color-indigo-600) 70%, rgba(255, 255, 255, 0.3));
   background: rgba(255, 255, 255, 0.09);
 }
 
