@@ -304,6 +304,33 @@ test("the nav card's rim varies around its own perimeter", () => {
   assert.match(css, /\.nav-menu-group::after \{[\s\S]*?white 100%, transparent\) 0%,\s*color-mix\(in srgb, white 97%, transparent\) 5%/);
 });
 
+test("the perimeter carries frost, so the frosted middle reaches the edge", () => {
+  // The bevel gathers the backdrop into a band just inside the rim, and
+  // gathering a blurred image squeezes its detail back into view: measured on
+  // a card, local contrast there ran five to ten times the middle's. It cannot
+  // be blurred away — a second blur after the displacement barely moved it,
+  // because the band is a smooth gradient rather than surviving detail. Frost
+  // is laid over it instead, so the bend still shows through but through glass
+  // rather than through a window.
+  const before = css.match(/\n\.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
+  assert.match(before, /--nav-frost: color-mix\(in srgb, var\(--color-background\) 38%/);
+  // Held across the band and released before the middle. A ramp that peaks at
+  // the very edge leaves its own falloff visible as a second band further in,
+  // which is what every rim-peaked profile measured.
+  assert.match(before, /to bottom,\s*var\(--nav-frost\) 0%,\s*var\(--nav-frost\) 28%,\s*transparent 50%/);
+  assert.match(before, /to right,\s*var\(--nav-frost\) 0%,\s*var\(--nav-frost\) 9%,\s*transparent 30%/);
+  // The tint is the last layer, so the frost sits over it rather than
+  // replacing it.
+  assert.match(before, /var\(--nav-frost\) 100%\s*\),\s*var\(--nav-tint\);/);
+
+  // Dark theme varies only the colours; overriding `background` there would
+  // silently drop the frost layers along with the tint.
+  const dark = css.match(/html\[data-theme="dark"\] \.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
+  assert.match(dark, /--nav-frost: color-mix\(in srgb, var\(--color-background\) 30%/);
+  assert.match(dark, /--nav-tint:/);
+  assert.doesNotMatch(dark, /\n {2}background:/);
+});
+
 test("the nav card's rim has a wall behind it, not just an edge", () => {
   // Real glass has thickness, so its rim reads as two edges with a lit wall
   // between them. ::after draws the outer edge; the wall lives on the

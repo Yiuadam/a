@@ -1074,11 +1074,46 @@ html[data-theme="dark"] .nav-paper {
      thinning only the scrim would leave the card stuck at the tint's own
      weight and just make it read browner rather than clearer, so both come
      down together. */
-  background: color-mix(
+  /* Frost around the perimeter, over the tint.
+
+     The bevel gathers the backdrop into a bright-to-dark band just inside the
+     rim, and gathering a blurred image squeezes its detail back into view: on
+     a card, local contrast there measured five to ten times the middle's,
+     which is why the edge reads sharper than the frosted centre while the
+     centre stays smooth. It cannot be blurred away — a second blur after the
+     displacement barely moved it, because the band is a smooth gradient
+     rather than surviving detail. So the frost is laid over it instead: the
+     bend still shows through, but through glass rather than through a window.
+
+     Held at full strength across the band and released well before the
+     middle. A ramp starting at the very edge leaves its own falloff visible
+     as a second band further in, which is what the measurements showed for
+     every profile that peaked at the rim. */
+  --nav-frost: color-mix(in srgb, var(--color-background) 38%, transparent);
+  --nav-tint: color-mix(
     in srgb,
     rgb(142, 104, 78) 4%,
     color-mix(in srgb, var(--color-background) 10%, transparent)
   );
+  background:
+    linear-gradient(
+      to bottom,
+      var(--nav-frost) 0%,
+      var(--nav-frost) 28%,
+      transparent 50%,
+      var(--nav-frost) 72%,
+      var(--nav-frost) 100%
+    ),
+    linear-gradient(
+      to right,
+      var(--nav-frost) 0%,
+      var(--nav-frost) 9%,
+      transparent 30%,
+      transparent 70%,
+      var(--nav-frost) 91%,
+      var(--nav-frost) 100%
+    ),
+    var(--nav-tint);
   /* WebKit silently skips backdrop-filter on an element that never commits
      to its own compositing layer, which is easy to end up with two levels
      deep in a fixed, isolated sheet: the card just shows the page through
@@ -1174,11 +1209,15 @@ html[data-theme="dark"] .nav-menu-group::after {
 }
 
 html[data-theme="dark"] .nav-menu-group::before {
-  /* The same warm hue at a fraction of the light-theme mix — dark glass is
-     already near-black, so 8% of a mid-brown would read as visible paint
-     rather than a tint, and every dark-theme surface it neighbours is
-     built on translucency this thin. */
-  background: color-mix(
+  /* Only the colours change; the layer structure above stays put, so the
+     perimeter frost is not dropped along with the tint. The same warm hue at
+     a fraction of the light-theme mix — dark glass is already near-black, so
+     8% of a mid-brown would read as visible paint rather than a tint, and
+     every dark-theme surface it neighbours is built on translucency this
+     thin. The frost is lighter too: a dark room needs less of it before the
+     edge stops reading as a window. */
+  --nav-frost: color-mix(in srgb, var(--color-background) 30%, transparent);
+  --nav-tint: color-mix(
     in srgb,
     rgb(142, 104, 78) 2%,
     color-mix(in srgb, var(--color-background) 9%, transparent)
