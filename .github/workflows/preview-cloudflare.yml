@@ -85,7 +85,13 @@ jobs:
         run: |
           set -o pipefail
           npx wrangler versions upload --preview-alias "pr-${{ github.event.pull_request.number }}" 2>&1 | tee /tmp/upload.log
-          url=$(grep -oE 'https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev' /tmp/upload.log | head -1)
+          # wrangler prints both a fresh, per-version "Preview URL" and the
+          # stable "Preview Alias URL" — grep for the alias line specifically,
+          # since a plain URL match picks up whichever comes first in the log.
+          url=$(grep -oE 'Version Preview Alias URL: https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev' /tmp/upload.log | grep -oE 'https://.*')
+          if [ -z "$url" ]; then
+            url=$(grep -oE 'https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev' /tmp/upload.log | head -1)
+          fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
           {
             echo "### Preview"
