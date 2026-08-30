@@ -98,13 +98,18 @@
     the deep continuous curve from the reference; smaller controls step down
     proportionally so their corners keep the same character without becoming
     circles.
+
+    Deepened again on a direct "more round, like this" request against a
+    second reference (an iOS Control Center screenshot) — every step raised
+    by roughly the same proportion so the family stays one recognisable
+    curve rather than the ratio between steps drifting.
   */
-  --radius-sm: 0.75rem;
-  --radius-md: 0.875rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.375rem;
-  --radius-2xl: 2rem;
-  --radius-3xl: 2.5rem;
+  --radius-sm: 0.875rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --radius-2xl: 2.5rem;
+  --radius-3xl: 3rem;
 
   /* Below Tailwind's smallest default, for the narrowest phones. */
   --breakpoint-xs: 25rem;
