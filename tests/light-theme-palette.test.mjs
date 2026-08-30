@@ -29,10 +29,13 @@ test("Light keeps a white canvas with neutral-grey interactive controls", () => 
   // Actual glass (.card/.liquid-glass/.premade-glass) is split out into its
   // own, much lighter fill: no colour of its own, and transparent enough
   // that the page's own background wash glows through the blur instead of
-  // sitting under a grey scrim.
+  // sitting under a grey scrim. .nav-menu-group is excluded even though it
+  // carries the .liquid-glass class: it has its own dedicated material on
+  // ::before instead, and matching it here too gave it a second, unwanted
+  // background (see the nav-menu-group test below).
   assert.match(
     css,
-    /html\[data-theme="light"\] \.liquid-glass,\nhtml\[data-theme="light"\] \.card,\nhtml\[data-theme="light"\] \.premade-glass \{[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 16%, transparent\);/,
+    /html\[data-theme="light"\] \.liquid-glass:not\(\.nav-menu-group\),\nhtml\[data-theme="light"\] \.card,\nhtml\[data-theme="light"\] \.premade-glass \{[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 16%, transparent\);/,
   );
   assert.match(css, /html\[data-theme="light"\] a\.card\.card:hover,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-200\) 58%, transparent\);/);
   assert.match(css, /html\[data-theme="light"\] \.btn-primary \{[\s\S]*?background:\s*var\(--color-indigo-600\);/);
@@ -72,13 +75,14 @@ test("Light's canvas is a flat light blue, and its glass carries no colour of it
   assert.match(lightNavBefore, /--nav-wall-shade:\s*color-mix\(in srgb, black 10%, transparent\);/);
   assert.match(lightNavBefore, /--nav-wall-shade-soft:\s*color-mix\(in srgb, black 5%, transparent\);/);
 
-  // The nav sheet's own base fill was also cut, specifically for the nav
-  // list rather than every plain card: it stacks several of these panes
-  // side by side, where the shared 16% indigo-100 fill below reads as a
-  // bank of pale grey tiles.
-  const lightNavGroupFill = css.match(/html\[data-theme="light"\] \.nav-menu-group \{\s*\n\s*background:[\s\S]*?\n\}/)?.[0];
-  assert.ok(lightNavGroupFill, "expected a Light .nav-menu-group background override");
-  assert.match(lightNavGroupFill, /background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 8%, transparent\);/);
+  // .nav-menu-group carries no background of its own in any theme (see the
+  // isolation comment on its base rule) — all its material lives on
+  // ::before, tuned just above. It used to also pick up a stray 16%
+  // indigo-100 background from the shared .liquid-glass rule (matched via
+  // that class), stacked underneath its own dedicated layer; excluding it
+  // there (see the test above) is what makes this element's own computed
+  // background plain transparent.
+  assert.doesNotMatch(css, /html\[data-theme="light"\] \.nav-menu-group \{\s*\n\s*background:/);
 
   // The two ambient ombre glows outside the wall/tint layer (the nav sheet's
   // own bathing glow, and the lift under each open card) also mix in the

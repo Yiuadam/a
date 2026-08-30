@@ -392,8 +392,18 @@ html[data-theme="dark"] body {
   Minimal colourless glass: the page supplies the colour; the component only
   blurs it, lifts it slightly, and draws one hairline edge. There are no
   decorative light streaks, texture layers or simulated reflections.
+
+  .nav-menu-group is excluded even though it carries the .liquid-glass class
+  (see the reset a little further down) — it has its own dedicated material
+  on ::before instead (see the big comment above .nav-menu-group::before),
+  and this rule matching it too was quietly giving it a second, unwanted
+  background plus its own 56px backdrop-filter blur stacked underneath that
+  dedicated layer. Two independently-blurred layers compositing on top of
+  each other is what read as a smudged, hard-edged patch rather than a clean
+  highlight — background content was getting blurred twice, at two different
+  radii, rather than once.
 */
-.liquid-glass,
+.liquid-glass:not(.nav-menu-group),
 .card {
   isolation: isolate;
   border-color: var(--glass-edge);
@@ -1225,6 +1235,11 @@ html[data-theme="dark"] .nav-paper {
 */
 .nav-menu-group {
   position: relative;
+  /* Independent of the generic .liquid-glass rule below (which this element
+     is about to be excluded from) — the ::before/::after layering above
+     needs its own stacking context regardless of what a shared catch-all
+     rule happens to declare. */
+  isolation: isolate;
 }
 
 .nav-menu-group > * {
@@ -1394,11 +1409,21 @@ html[data-theme="dark"] .nav-menu-group::before {
      neighbours is built on translucency this thin. The same wall, lit for a
      dark room: at light-theme strength a white inner face against a
      near-black card stops reading as glass thickness and starts reading as
-     a second drawn border. */
+     a second drawn border.
+
+     Raised from an earlier, much thinner pass (brown 1.2%, background
+     5.5%) on a direct "the glow isn't working normally" report: the nav
+     sheet is a fixed overlay sitting over whatever the current page shows,
+     and Dark's own near-black backdrop puts a lot of contrast between it
+     and whatever lighter panel happens to sit behind the nav (the
+     dashboard's own promo card, say) — even well blurred, that much
+     contrast survives as a visibly rectangular, harder-edged patch rather
+     than reading as a clean, even wash of light. This floor is high enough
+     to mute that without flattening the card into an opaque tile. */
   --nav-tint: color-mix(
     in srgb,
-    rgb(142, 104, 78) 1.2%,
-    color-mix(in srgb, var(--color-background) 5.5%, transparent)
+    rgb(142, 104, 78) 3%,
+    color-mix(in srgb, var(--color-background) 14%, transparent)
   );
   --nav-wall-light: color-mix(in srgb, white 26%, transparent);
   --nav-wall-shade: color-mix(in srgb, black 30%, transparent);
@@ -3569,7 +3594,7 @@ html[data-theme="dark"] body::before {
   display: none;
 }
 
-html[data-theme="dark"] .liquid-glass,
+html[data-theme="dark"] .liquid-glass:not(.nav-menu-group),
 html[data-theme="dark"] .card {
   border-color: var(--glass-edge);
   background: var(--glass-fill);
@@ -4035,23 +4060,11 @@ html[data-theme="light"] .btn-secondary {
    this theme, not an actual blue), just at a small fraction of their
    strength: enough to give the rim something to catch the light against,
    not enough to flatten the glow into a solid card. */
-html[data-theme="light"] .liquid-glass,
+html[data-theme="light"] .liquid-glass:not(.nav-menu-group),
 html[data-theme="light"] .card,
 html[data-theme="light"] .premade-glass {
   border-color: var(--color-indigo-300);
   background: color-mix(in srgb, var(--color-indigo-100) 16%, transparent);
-}
-
-/* The nav sheet stacks several of these panes side by side, where the same
-   16% fill above reads as a bank of pale grey tiles rather than glass —
-   halved again here, specifically for the nav list, on a direct "more
-   transparent" request: a pane of glass is clearer than the frosted surface
-   it rests on (the same reasoning `.nav-menu-group::before` already used for
-   its own lighter blur), extended to the base fill too. Comes after the
-   shared rule above so it wins the tie between two equally specific
-   selectors. */
-html[data-theme="light"] .nav-menu-group {
-  background: color-mix(in srgb, var(--color-indigo-100) 8%, transparent);
 }
 
 /* Keep the inbox at the card optical index in Light as well. The generic
@@ -4093,7 +4106,7 @@ html[data-theme="light"] .nav-menu-selector {
   background: var(--color-indigo-200);
 }
 
-html[data-theme="dark"] .liquid-glass,
+html[data-theme="dark"] .liquid-glass:not(.nav-menu-group),
 html[data-theme="dark"] .card,
 html[data-theme="dark"] .premade-glass,
 html[data-theme="dark"] .nav-open-header::before,

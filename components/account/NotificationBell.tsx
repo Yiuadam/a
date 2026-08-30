@@ -145,7 +145,7 @@ export default function NotificationBell({ previewRole = null }: { previewRole?:
         className="pointer-attract-glass premade-glass app-icon-control relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border transition-colors"
       >
         <RefractiveGlassLayer radius={999} interactive />
-        <svg className="app-icon-color relative z-10" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg className="app-icon-color relative z-10" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6.8 9.8a5.2 5.2 0 0 1 10.4 0c0 5.1 2.1 5.2 2.1 6.5H4.7c0-1.3 2.1-1.4 2.1-6.5Z" />
           <path d="M9.8 19a2.5 2.5 0 0 0 4.4 0" />
         </svg>

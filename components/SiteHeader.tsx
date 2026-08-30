@@ -328,7 +328,7 @@ export default function SiteHeader({
               height="22"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.7"
+              strokeWidth="1.3"
               strokeLinecap="round"
               aria-hidden="true"
             >
@@ -388,7 +388,7 @@ export default function SiteHeader({
                 height="20"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.6"
+                strokeWidth="1.3"
                 strokeLinecap="round"
                 aria-hidden="true"
               >

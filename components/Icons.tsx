@@ -13,7 +13,8 @@ import type { ReactNode } from "react";
   One system, so they look like a family rather than a collection:
 
     - a 24×24 box, which is the size they render at in the cards
-    - 1.6 stroke, round caps and joins
+    - 1.3 stroke, round caps and joins — thinned from 1.6 on a direct
+      request, closer to the hairline weight of iOS's own system glyphs
     - `currentColor` throughout, so a glyph inherits the text colour and works
       in all three themes from one definition
     - fills used sparingly, and only where a shape needs weight to survive at
@@ -29,7 +30,7 @@ const BOX = {
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 1.6,
+  strokeWidth: 1.3,
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;
