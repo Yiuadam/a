@@ -90,24 +90,23 @@ function supportsDetailedLiveRefraction() {
   relies on, with no Chromium check of its own.
 
   Consumers that use the split-property pattern read this flag instead of
-  `supportsDetailedLiveRefraction`'s Chromium-only one. No fine-pointer
-  requirement here — the whole point is covering the touchscreens the other
-  path excludes — but the hardware/motion/transparency/data-saver thresholds
-  still apply, since the GPU cost of the displacement stage doesn't change
-  with which CSS property triggers it.
+  `supportsDetailedLiveRefraction`'s Chromium-only one. Deliberately no
+  fine-pointer or reported-hardware requirement: the whole point is running
+  this for every real user regardless of device, not guessing which ones
+  have "enough" cores or memory — those guesses are exactly what excluded
+  this app's own headless-Chromium test environment (a real, if unusually
+  constrained, Chromium browser) during development. It still declines for
+  someone who has explicitly asked their OS for reduced motion, reduced
+  transparency, or a lighter page on a metered connection — those are
+  stated preferences, not a guess about their hardware.
 */
 function supportsSplitPropertyLens() {
   if (!CSS.supports("filter", `url(#${FILTER_ID})`)) return false;
+  if (window.matchMedia(REDUCED_MOTION_QUERY).matches) return false;
+  if (window.matchMedia(REDUCED_TRANSPARENCY_QUERY).matches) return false;
 
   const browser = navigator as PerformanceNavigator;
-  return supportsDetailedGlass({
-    finePointer: true,
-    reducedMotion: window.matchMedia(REDUCED_MOTION_QUERY).matches,
-    reducedTransparency: window.matchMedia(REDUCED_TRANSPARENCY_QUERY).matches,
-    saveData: Boolean(browser.connection?.saveData),
-    memoryGb: Number.isFinite(browser.deviceMemory) ? browser.deviceMemory ?? null : null,
-    cores: Number.isFinite(navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : null,
-  });
+  return !browser.connection?.saveData;
 }
 
 /*

@@ -79,12 +79,19 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // combination fine.
   assert.match(filter, /supportsSplitPropertyLens/);
   assert.match(filter, /CSS\.supports\("filter", `url\(#\$\{FILTER_ID\}\)`\)/);
-  // No fine-pointer requirement — unlike supportsDetailedLiveRefraction,
-  // this path exists specifically to cover touchscreens too.
+  // No fine-pointer or reported-hardware requirement — unlike
+  // supportsDetailedLiveRefraction, this path exists specifically to run
+  // for every real user regardless of device, not just ones that pass a
+  // guessed capability threshold. Only explicit OS-level accessibility
+  // preferences (reduced motion, reduced transparency) and a metered
+  // connection (data saver) opt someone out.
   const splitFnStart = filter.indexOf("function supportsSplitPropertyLens");
   const splitFnEnd = filter.indexOf("\n}", splitFnStart);
   const splitFnBody = filter.slice(splitFnStart, splitFnEnd);
-  assert.match(splitFnBody, /finePointer:\s*true/);
+  assert.doesNotMatch(splitFnBody, /finePointer|memoryGb|cores|supportsDetailedGlass/);
+  assert.match(splitFnBody, /REDUCED_MOTION_QUERY/);
+  assert.match(splitFnBody, /REDUCED_TRANSPARENCY_QUERY/);
+  assert.match(splitFnBody, /saveData/);
   assert.match(filter, /document\.documentElement\.dataset\.glassLensSplit/);
 
   // .nav-menu-group's material lives on ::before so filter and
