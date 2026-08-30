@@ -640,6 +640,19 @@ html[data-theme="dark"] .premade-glass {
   color: var(--app-icon-color);
 }
 
+/*
+  Same Safari workaround as .nav-paper above: WebKit needs an `isolate`
+  ancestor to have established its own filter/compositing layer for a
+  descendant's backdrop-filter to render at all, and NotificationBell's
+  root wrapper is `isolate` with no filter of its own. Without this, the
+  popover showed zero blur on a real iPhone even though the exact same CSS
+  blurred correctly in this app's own headless Chromium checks.
+*/
+[data-notification-bell-root] {
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+}
+
 /* Notifications are a floating glass card, sharing the same barely-there,
    live-refracted material as the nav list rather than a heavier, more
    opaque frosted drawer. */

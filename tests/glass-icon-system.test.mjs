@@ -177,6 +177,10 @@ test("the notification popover paints exactly one clipped outer glass boundary",
   const inbox = read("components/account/NotificationInbox.tsx");
   const popover = inbox.slice(inbox.indexOf('<div role="dialog" aria-label="Notifications"'), inbox.indexOf("export default function NotificationInbox"));
 
+  // Same Safari workaround as .nav-paper: an `isolate` ancestor with no
+  // filter of its own silently zeroes out a descendant's backdrop-filter
+  // on real iOS, even though the same CSS blurs fine in Chromium.
+  assert.match(css, /\[data-notification-bell-root\] \{[^}]*backdrop-filter: blur\(1px\);/);
   assert.match(popover, /className="notification-popover liquid-glass/);
   assert.doesNotMatch(popover, /RefractiveGlassLayer/);
   assert.doesNotMatch(popover, /premade-glass-content/);
