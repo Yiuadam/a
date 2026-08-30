@@ -12,61 +12,30 @@ import {
 } from "@/lib/glass-performance";
 
 const FILTER_ID = "bandup-live-glass-refraction";
-/* No separate bevel band on the navigation cards.
+/* A bevel confined to its own band at the rim, and nothing else — no dome,
+   no magnify. Both of those bend along the surface normal measured from the
+   *centre* outward, which is what a real lens does, but that same
+   centre-reference is exactly the problem: a rounded rectangle's true
+   distance-to-rim is shorter on the diagonal toward a corner than straight
+   out from the middle, so any centre-referenced pull — however tightly
+   `thickness` confines its strength to a thin band near the rim — still
+   traces the panel's own rounded-rectangle contour some distance inward. On
+   screen that read as a soft rounded shape sitting in the card's interior: a
+   "circle" the user kept seeing, then a "triangle" once the direction
+   discontinuity across it was smoothed away, and still a paler circle again
+   even after that band was cut to a sliver (thickness 0.75, then 0.06) —
+   because the shape was never the discontinuity or the band width, it was
+   the mechanism. There is no dome/magnify tuning that avoids drawing some
+   contour of itself across the flat part of the face.
 
-   A bevel only acts within its own width of the rim, so it puts a band of
-   behaviour around the perimeter that the middle of the card does not share:
-   the outer part stops obeying the same refraction as the inside, and the
-   join between them is visible. What is left is one smooth field — a
-   cylindrical magnifier whose displacement grows steadily from nothing at
-   the centre line to its strongest at the edge — so a line crossing behind
-   the card is bent by the same rule wherever it crosses, and the pane reads
-   as one piece of glass rather than as a middle with a rim stuck round it.
-
-   It is also inherently safe: magnification pulls each sample toward the
-   centre, so it can never ask for one from beyond the card's own edge, which
-   is what the outward bevel did and what drew the outer ring. */
-const NAV_BEZEL_WIDTH = 0;
-/* Was 0.55 — tuned up over several earlier rounds for "a bit more edge
-   reflection", against a display bug that meant nobody actually saw the
-   result (see the comment on `.nav-menu-group::before` in globals.css).
-   Rendering the map for real and sampling it directly (pixel deviation from
-   neutral along a line from the centre out to the rim) showed magnify
-   contributing real colour well before the rim — at 0.55, roughly a third of
-   full strength by the halfway point, entirely on its own account, since its
-   ramp runs across the whole face by design (see its doc comment in
-   lib/glass-refraction.ts) rather than being confined by `thickness` the way
-   `dome` is. That reads as an unwanted tint through the body of the card,
-   not an edge effect, so it is cut low enough to stay under the threshold
-   human colour vision actually notices against a neutral background —
-   enough that the body is not perfectly inert, not enough to compete with
-   dome for the rim. */
-const NAV_MAGNIFY = 0.03;
-/* The rim of a real glass dome, on top of that body. A hemisphere's
-   refraction follows its surface slope, which stays gentle across the face
-   and then climbs almost vertically in the last stretch — that late climb is
-   what folds the backdrop into a tight tangled band at the edge, on the
-   rounded ends as much as the long sides. A straight ramp cannot produce it
-   at any strength, because it has no steep part. */
-const NAV_DOME = 0.25;
-/* How far in from the rim the glass starts rolling over — its thickness,
-   the actual source of the wide "blob" this whole block of comments is
-   about, more than magnify above ever was. Was 0.75, on the belief that a
-   wider band reads as a deep slab; measured directly instead (render the
-   map for the card's own real shape, sample deviation from neutral along a
-   line out from the centre), a card is not just tall or wide but has
-   *corners*, and the true distance-to-rim near a corner is far shorter than
-   halfExtent would suggest — so a 0.75-wide band, meant to describe "most of
-   a deep slab", actually covered nearly the entire face once every direction
-   toward every edge and corner was accounted for, not just the one this file
-   used to check (straight out toward the middle of the long side). The dome
-   read as an even, room-filling wash rather than glass, however correct the
-   underlying hemisphere maths were. A band an order of magnitude narrower
-   confines that same steep climb to roughly the outer tenth of the face —
-   an actual thin bevel — while leaving dome's own peak slope at the true rim
-   completely untouched, since domeSlope's climb to its asymptote near the
-   rim doesn't depend on how wide the band leading up to it is. */
-const NAV_THICKNESS = 0.06;
+   A bevel doesn't have that problem: its own profile is purely a function of
+   distance from the rim, evaluated only inside its own band width
+   (bezelWidth), so nothing about it reaches back toward the centre by
+   construction — the flat part of the card is provably flat, not just tuned
+   small. That reads as "flat thick" rather than "triangular thick": a
+   uniform ring of bend at a chosen width around an inert middle, rather than
+   a shape radiating in from every edge no matter how gently. */
+const NAV_BEZEL_WIDTH = 0.35;
 /* The displacement may reach this fraction of the card's half-height. A
    displacement map can only rearrange what is already inside the element's own
    box — sampling past it returns nothing — so a lens that asks to move a pixel
@@ -89,14 +58,13 @@ const NAV_DISPLACEMENT_HEADROOM = 0.85;
   (generated for the nav card's own actual aspect 1.4, corner 0.12 shape and
   inspected directly, not just guessed at) showed colour spreading across
   nearly the whole face rather than staying confined to a thin rim band — see
-  NAV_MAGNIFY and especially NAV_THICKNESS below (shared as GENERIC_MAGNIFY
-  and GENERIC_THICKNESS) for what was actually wrong and how it was measured.
-  That read fine against a busy backdrop, where competing detail broke the
-  pattern up, but as an obvious pale blob against a plain one — which is what
-  the nav card's own backdrop now is. Retuned rather than reverted a second
-  time, since the same bug would otherwise still be sitting underneath every
-  other `.card` this filter reaches, just less visible against their busier
-  backdrops.
+  the comment on NAV_BEZEL_WIDTH above (shared as GENERIC_BEZEL_WIDTH) for
+  what was actually wrong and how it was fixed. That read fine against a
+  busy backdrop, where competing detail broke the pattern up, but as an
+  obvious pale shape against a plain one — which is what the nav card's own
+  backdrop now is. Retuned rather than reverted a second time, since the
+  same bug would otherwise still be sitting underneath every other `.card`
+  this filter reaches, just less visible against their busier backdrops.
 */
 const GENERIC_SELECTOR =
   ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass), .nav-menu-group";
@@ -117,9 +85,6 @@ const GENERIC_FILTER_PREFIX = "bandup-card-glass-lens";
    meant to read as the identical material everywhere it appears, not a
    watered-down copy for everyday cards and the real thing only in the nav. */
 const GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH;
-const GENERIC_MAGNIFY = NAV_MAGNIFY;
-const GENERIC_DOME = NAV_DOME;
-const GENERIC_THICKNESS = NAV_THICKNESS;
 const GENERIC_DISPLACEMENT_HEADROOM = NAV_DISPLACEMENT_HEADROOM;
 /* A page with an unusually long list of cards (an admin table, a long
    practice list) could in principle produce more distinct shape buckets than
@@ -362,9 +327,6 @@ export default function GlassRefractionFilter() {
             aspect: bucket.aspect,
             cornerRadius: bucket.cornerRadius,
             bezelWidth: GENERIC_BEZEL_WIDTH,
-            magnify: GENERIC_MAGNIFY,
-            dome: GENERIC_DOME,
-            thickness: GENERIC_THICKNESS,
             maxDisplacement: GENERIC_DISPLACEMENT_HEADROOM,
           },
           GENERIC_MAP_SIZE,

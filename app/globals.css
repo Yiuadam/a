@@ -529,10 +529,10 @@ html[data-theme="dark"] body {
 
 /*
   Every plain content card gets the same edge treatment the navigation menu's
-  own cards do: a dome-shaped refraction at the rim (see NAV_DOME et al in
-  GlassRefractionFilter.tsx — this reuses the identical lens physics, keyed
-  to each card's own measured shape), a directional wall behind it, and a
-  caustic rim in place of a flat hairline.
+  own cards do: a bevel confined to its own band at the rim (see
+  NAV_BEZEL_WIDTH in GlassRefractionFilter.tsx — this reuses the identical
+  lens physics, keyed to each card's own measured shape), a directional wall
+  behind it, and a caustic rim in place of a flat hairline.
 
   `.liquid-glass` is deliberately left out here. Several surfaces built on
   it already carry their own hand-tuned ::before rim (the notification
@@ -1386,14 +1386,14 @@ html[data-theme="dark"] .nav-menu-group::before {
   carried a `display: none` bug (see the comment on the rule above) for as
   long as it existed. Fixing the display bug and generating that map for the
   card's own real shape — inspected directly, not just through the page —
-  showed why nobody had caught it: colour spread across nearly the whole
-  face rather than staying confined to a thin rim band. GENERIC_MAGNIFY and
-  especially GENERIC_THICKNESS in GlassRefractionFilter.tsx (see the long
-  comment on NAV_THICKNESS there for the geometry of why a wide band reaches
-  so much further than it looks like it should once a shape has corners) are
-  now tuned narrow enough that the effect stays where it belongs, which is
-  what makes it safe for this card to share the SVG lens every other card
-  does, through the same `--glass-lens-filter` custom property.
+  showed why nobody had caught it: a centre-referenced dome/magnify pull
+  traces a rounded-rectangle shape into the interior regardless of how
+  narrow its own band is confined to the rim. GENERIC_BEZEL_WIDTH in
+  GlassRefractionFilter.tsx (see the long comment on NAV_BEZEL_WIDTH there
+  for why a bevel doesn't have that problem) drops dome and magnify
+  entirely, which is what makes it safe for this card to share the SVG lens
+  every other card does, through the same `--glass-lens-filter` custom
+  property.
 */
 html[data-glass-lens-split] .nav-menu-group::before {
   filter: var(--glass-lens-filter, none);

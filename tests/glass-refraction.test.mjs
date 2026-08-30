@@ -407,11 +407,12 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // as long as the nav card's own prior dedicated filter existed, so it had
   // only ever run on an invisible layer. Fixing the display bug and
   // generating that map for the card's own real shape — inspected directly —
-  // showed why nobody had caught it: at its old strength (0.55), `magnify`
-  // reached a third of full strength by the halfway point from centre to
-  // rim, which reads as an obvious pale blob on a plain backdrop rather than
-  // a lens. Cutting it to a fifth of that (see GENERIC_MAGNIFY/NAV_MAGNIFY)
-  // is what makes it safe to fold the nav card into the same shared system.
+  // showed why nobody had caught it: a centre-referenced dome/magnify pull
+  // traces a rounded-rectangle shape some distance into the interior no
+  // matter how it's tuned, which reads as an obvious pale shape on a plain
+  // backdrop rather than a lens. Dropping dome and magnify for a bevel
+  // confined to its own band at the rim (see NAV_BEZEL_WIDTH) is what makes
+  // it safe to fold the nav card into the same shared system.
   assert.match(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{\s*\n\s*filter: var\(--glass-lens-filter, none\);/);
   assert.doesNotMatch(filter, /NAV_FILTER_ID|measureNavPane/);
   // Both the wall and the rim redeclare `display: block` — the property the
@@ -428,30 +429,19 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   assert.match(filter, /borderTopLeftRadius/);
   assert.match(filter, /MutationObserver/);
   assert.match(filter, /addEventListener\("resize"/);
-  // One smooth field, no separate bevel band. A bevel only acts within its
-  // own width of the rim, so it gives the perimeter a behaviour the middle
-  // does not share — the outer part stops obeying the same refraction as the
-  // inside and the join between them shows. What is left is a cylindrical
-  // magnifier whose displacement grows steadily from nothing at the centre
-  // line to its strongest at the edge, so a line crossing behind the card is
-  // bent by the same rule wherever it crosses.
-  assert.match(filter, /NAV_BEZEL_WIDTH = 0;/);
-  // Cut low from its old strength (0.55): measured directly (render the map,
-  // sample pixel deviation from neutral along the centre line), the old
-  // value reached a third of full pull by the halfway point to the rim — a
-  // whole-face wash, not an edge lens. `dome`, not `magnify`, is what should
-  // carry the rim character.
-  assert.match(filter, /NAV_MAGNIFY = 0\.03;/);
-  // Plus a dome for the rim: a hemisphere's refraction follows its surface
-  // slope, gentle across the face and then climbing almost vertically in the
-  // last stretch, which folds the backdrop into a tangled band at the edge.
-  assert.match(filter, /NAV_DOME = 0\.25;/);
-  // And how far in from the rim it starts rolling over — its thickness. Cut
-  // from 0.75 (an order of magnitude): measured directly, a shape with
-  // corners reaches the true rim far sooner in most directions than the
-  // straight-out-from-centre case a wide band was sized for, so 0.75 covered
-  // nearly the whole face rather than a thin band at the edge.
-  assert.match(filter, /NAV_THICKNESS = 0\.06;/);
+  // A bevel confined to its own band at the rim, and nothing else — no dome,
+  // no magnify. Both of those bend along the surface normal measured from
+  // the centre outward, so however tightly `thickness` confines their
+  // strength to a thin band near the rim, they still trace the panel's own
+  // rounded-rectangle contour some distance into the interior — the "circle"
+  // that kept reappearing even after the direction discontinuity across it
+  // was smoothed and the band cut down to a sliver, because the shape was
+  // the mechanism, not the discontinuity or the band width. A bevel's own
+  // profile is purely a function of distance from the rim, evaluated only
+  // inside its own band width, so nothing about it reaches back toward the
+  // centre — a uniform ring of bend around a provably flat, inert middle.
+  assert.match(filter, /NAV_BEZEL_WIDTH = 0\.35;/);
+  assert.doesNotMatch(filter, /NAV_MAGNIFY|NAV_DOME|NAV_THICKNESS/);
   // The scale is derived from the measured box, not a constant: bounded by
   // the pane's half-height while objectBoundingBox resolves it against the
   // diagonal — now shared with every other card via measureGenericPanes'
@@ -608,9 +598,7 @@ test("generic cards are reduced to a small fixed grid of shapes instead of one f
   assert.match(filter, /GENERIC_CORNER_BUCKETS/);
   assert.match(filter, /GENERIC_MAX_BUCKETS/);
   // Same lens physics as the nav cards — reused, not reinvented.
-  assert.match(filter, /GENERIC_MAGNIFY = NAV_MAGNIFY/);
-  assert.match(filter, /GENERIC_DOME = NAV_DOME/);
-  assert.match(filter, /GENERIC_THICKNESS = NAV_THICKNESS/);
+  assert.match(filter, /GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH/);
   assert.match(filter, /GENERIC_DISPLACEMENT_HEADROOM = NAV_DISPLACEMENT_HEADROOM/);
   // Scale depends only on the bucket's own aspect ratio: height cancels out
   // of both the displacement budget and the diagonal it is measured against.
