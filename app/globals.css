@@ -399,6 +399,25 @@ html[data-theme="dark"] body {
     background 180ms ease;
 }
 
+/*
+  General Safari fix for the bug behind the nav list's and the notification
+  popover's earlier zero-blur reports: WebKit needs an `isolate` ancestor to
+  have established its own filter/compositing layer for a *descendant's*
+  backdrop-filter to render at all. Chromium has no such requirement, which
+  is why this only ever showed up on a real iPhone and never in this app's
+  own headless-Chromium checks.
+
+  Those two spots got a manual, near-invisible blur(1px) on their specific
+  wrapper. This rule finds the general case automatically: any element
+  carrying Tailwind's `isolate` utility that contains a glass surface
+  anywhere below it gets the same tiny workaround, so a future floating
+  glass panel doesn't need its own manual patch to blur correctly on iOS.
+*/
+.isolate:has(.liquid-glass, .card, .premade-glass, .notification-popover) {
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+}
+
 /* A window's copy remains a stable, ordinary layer. Only the glass rim gets
    the soft squash-and-settle motion, which makes a newly opened surface feel
    fluid without stretching a word or placing work on the pointer's path. */
