@@ -1380,24 +1380,24 @@ html[data-theme="dark"] .nav-menu-group::before {
 }
 
 /*
-  The live SVG lens is deliberately NOT applied here. The nav card used to
-  solve its own dedicated displacement map from its own measured shape (see
-  git history for bandup-nav-glass-lens); that map was never actually seen
-  rendering correctly, because `.nav-menu-group::before` carried a `display:
-  none` bug (see the comment on the rule above) for as long as it existed.
-
-  Fixing the display bug and generating that map for the card's own real
-  shape — inspected directly, not just through the page — showed why nobody
-  had caught it: `magnify` is designed to ramp from nothing at the centre to
-  full strength at the rim across the *entire* face, not a thin bezel (see
-  its own doc comment in lib/glass-refraction.ts), and at the strength every
-  card currently shares that reads as a lens on a busy backdrop and as an
-  obvious pale blob on a plain one — which this card's backdrop, and the same
-  bucketed system every plain `.card` also uses, now both risk being. That is
-  a shared tuning problem worth a careful pass of its own, not a fix rushed
-  in on one card's complaint, so this card keeps only the CSS wall and rim
-  below until it lands.
+  The nav card used to solve its own dedicated displacement map from its own
+  measured shape (see git history for bandup-nav-glass-lens); that map was
+  never actually seen rendering correctly, because `.nav-menu-group::before`
+  carried a `display: none` bug (see the comment on the rule above) for as
+  long as it existed. Fixing the display bug and generating that map for the
+  card's own real shape — inspected directly, not just through the page —
+  showed why nobody had caught it: colour spread across nearly the whole
+  face rather than staying confined to a thin rim band. GENERIC_MAGNIFY and
+  especially GENERIC_THICKNESS in GlassRefractionFilter.tsx (see the long
+  comment on NAV_THICKNESS there for the geometry of why a wide band reaches
+  so much further than it looks like it should once a shape has corners) are
+  now tuned narrow enough that the effect stays where it belongs, which is
+  what makes it safe for this card to share the SVG lens every other card
+  does, through the same `--glass-lens-filter` custom property.
 */
+html[data-glass-lens-split] .nav-menu-group::before {
+  filter: var(--glass-lens-filter, none);
+}
 
 html[data-theme="dark"] .nav-menu-group {
   /* The rim itself is on ::after; what is left here is the lift off the
@@ -3842,7 +3842,12 @@ html[data-theme="dark"] body[data-glass-lab] {
 --------------------------------------------------------------------------- */
 html[data-theme="light"] {
   color-scheme: light;
-  --color-background: #ffffff;
+  /* The page canvas, not the paper colour: --color-surface below stays white
+     for actual "paper" surfaces (modals, popovers) the same way Warm and
+     Dark each keep their own background/surface distinction, but the
+     canvas itself is now a flat light blue rather than white — see the
+     `body` rule below for where this actually paints. */
+  --color-background: #cfe7fb;
   --color-surface: #ffffff;
   --wash-one: transparent;
   --wash-two: transparent;
@@ -3858,16 +3863,13 @@ html[data-theme="light"] body {
   --glass-specular: rgba(22, 23, 26, 0.14);
   --glass-shadow: rgba(22, 23, 26, 0.07);
   --app-icon-color: var(--color-slate-700);
-  /* A very light sky-blue wash, anchored to the bottom of the viewport and
-     fading up to pure white — the same fixed-attachment technique the Warm
-     theme's own corner washes use above (see the base `body` rule), just one
-     gradient running the full height instead of two pooling in the corners.
-     Every glass surface already samples whatever is behind it through its
-     own backdrop-filter, so every card's edge bends this wash exactly the
-     way it already bends page content underneath it — nothing about the
-     cards themselves needs to change for that to show. */
-  background: linear-gradient(to top, #8dc3ef 0%, #c3e2f7 40%, #ffffff 88%);
-  background-attachment: fixed;
+  /* A flat light-blue canvas rather than a flat white one — per direct
+     request, replacing an earlier bottom-to-top gradient with one plain
+     colour for the whole page. Every glass surface already samples whatever
+     is behind it through its own backdrop-filter, so every card's edge bends
+     this colour exactly the way it already bent the gradient, without
+     needing to change anything about the cards themselves. */
+  background: #cfe7fb;
   color: var(--color-foreground);
 }
 

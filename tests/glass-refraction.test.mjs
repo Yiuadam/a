@@ -351,33 +351,31 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // frosted surface it rests on, and saturation and brightness rather than
   // more blur are what keep the backdrop reading as a scene behind glass.
   assert.match(css, /\.nav-menu-group::before \{[^}]*backdrop-filter: blur\(10px\)/);
-  // The live SVG lens is deliberately NOT wired to .nav-menu-group::before,
-  // and .nav-menu-group is not part of GENERIC_SELECTOR either — the shared
-  // bucketed lens every plain `.card` uses. That rule carried a `display:
-  // none` bug (from the shared `.liquid-glass::before { display: none; }`
-  // reset, never overridden) for as long as the nav card's own dedicated
-  // filter existed, so it had only ever run on an invisible layer. Fixing
-  // the display bug and generating that map for the card's own real shape —
-  // inspected directly — showed why nobody had caught it: `magnify` ramps
-  // from nothing at the centre to full strength at the rim across the
-  // *entire* face by design (see lib/glass-refraction.ts), which at the
-  // strength every card shares reads as an obvious pale blob on a plain
-  // backdrop rather than a lens. That is a shared tuning problem, not
-  // something to fix by rewiring one card, so the nav card keeps only the
-  // CSS wall and rim below until it lands.
-  assert.doesNotMatch(css, /filter: url\("#bandup-nav-glass-lens"\)/);
+  // The live SVG lens IS wired to .nav-menu-group::before, through the same
+  // shared `--glass-lens-filter` custom property every plain `.card` uses —
+  // .nav-menu-group is part of GENERIC_SELECTOR. This was tried once before
+  // and reverted: that rule carried a `display: none` bug (from the shared
+  // `.liquid-glass::before { display: none; }` reset, never overridden) for
+  // as long as the nav card's own prior dedicated filter existed, so it had
+  // only ever run on an invisible layer. Fixing the display bug and
+  // generating that map for the card's own real shape — inspected directly —
+  // showed why nobody had caught it: at its old strength (0.55), `magnify`
+  // reached a third of full strength by the halfway point from centre to
+  // rim, which reads as an obvious pale blob on a plain backdrop rather than
+  // a lens. Cutting it to a fifth of that (see GENERIC_MAGNIFY/NAV_MAGNIFY)
+  // is what makes it safe to fold the nav card into the same shared system.
+  assert.match(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{\s*\n\s*filter: var\(--glass-lens-filter, none\);/);
   assert.doesNotMatch(filter, /NAV_FILTER_ID|measureNavPane/);
-  assert.doesNotMatch(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{/);
-  // Both the wall and the rim now redeclare `display: block` — the property
-  // the reset above sets to `none`, which `content: ""` alone never undoes.
+  // Both the wall and the rim redeclare `display: block` — the property the
+  // reset above sets to `none`, which `content: ""` alone never undoes.
   assert.match(css, /\.nav-menu-group::before \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
   assert.match(css, /\.nav-menu-group::after \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
   // Measured from real cards rather than assumed, and rebuilt when that
   // measurement can have changed — the generic bucketed system every plain
   // `.card` uses (see measureGenericPanes and GENERIC_SELECTOR), which
-  // .nav-menu-group deliberately does not join, per the comment above.
+  // .nav-menu-group now joins directly.
   assert.match(filter, /function measureGenericPanes/);
-  assert.doesNotMatch(filter, /GENERIC_SELECTOR[\s\S]{0,20}nav-menu-group/);
+  assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}nav-menu-group/);
   assert.match(filter, /getBoundingClientRect/);
   assert.match(filter, /borderTopLeftRadius/);
   assert.match(filter, /MutationObserver/);
@@ -390,16 +388,22 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // line to its strongest at the edge, so a line crossing behind the card is
   // bent by the same rule wherever it crosses.
   assert.match(filter, /NAV_BEZEL_WIDTH = 0;/);
-  assert.match(filter, /NAV_MAGNIFY = 0\.55;/);
+  // Cut low from its old strength (0.55): measured directly (render the map,
+  // sample pixel deviation from neutral along the centre line), the old
+  // value reached a third of full pull by the halfway point to the rim — a
+  // whole-face wash, not an edge lens. `dome`, not `magnify`, is what should
+  // carry the rim character.
+  assert.match(filter, /NAV_MAGNIFY = 0\.03;/);
   // Plus a dome for the rim: a hemisphere's refraction follows its surface
   // slope, gentle across the face and then climbing almost vertically in the
   // last stretch, which folds the backdrop into a tangled band at the edge.
   assert.match(filter, /NAV_DOME = 0\.25;/);
-  // And how far in from the rim it starts rolling over — its thickness. A
-  // small value keeps the roll in the last few percent, a thin sheet with a
-  // sharp border; this puts it across a wide band, so the pane reads as a deep
-  // slab whose edge curves down to its underside.
-  assert.match(filter, /NAV_THICKNESS = 0\.75;/);
+  // And how far in from the rim it starts rolling over — its thickness. Cut
+  // from 0.75 (an order of magnitude): measured directly, a shape with
+  // corners reaches the true rim far sooner in most directions than the
+  // straight-out-from-centre case a wide band was sized for, so 0.75 covered
+  // nearly the whole face rather than a thin band at the edge.
+  assert.match(filter, /NAV_THICKNESS = 0\.06;/);
   // The scale is derived from the measured box, not a constant: bounded by
   // the pane's half-height while objectBoundingBox resolves it against the
   // diagonal — now shared with every other card via measureGenericPanes'
