@@ -1194,7 +1194,14 @@ html[data-theme="dark"] .nav-menu-group::before {
 }
 
 html[data-glass-lens-split] .nav-menu-group::before {
-  filter: url("#bandup-live-glass-refraction");
+  /* Not the sitewide filter: the cards use their own, whose displacement map
+     is solved for their measured proportions. A map is a square bitmap
+     stretched onto its pane, so it is only correct for the aspect ratio it
+     was built for — and a nav card is roughly 7:1 where the generic glass
+     surfaces are nearly square. Sharing one put the bend across the middle
+     of the card instead of on its edge, which is why the backdrop never
+     visibly deformed. */
+  filter: url("#bandup-nav-glass-lens");
 }
 
 html[data-theme="dark"] .nav-menu-group {

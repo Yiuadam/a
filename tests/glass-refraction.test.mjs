@@ -56,6 +56,87 @@ test("the glass bevel follows a lens profile, not an even ramp", () => {
   assert.equal(displacement(8), 0, "the pane should be optically flat well before its middle");
 });
 
+test("the bevel is a uniform width in pixels once solved for a pane's aspect", () => {
+  // The map is a square bitmap stretched onto its pane, so every horizontal
+  // distance in it is multiplied by the pane's aspect ratio on the way to the
+  // screen. Solving in height units means the bevel comes out the same number
+  // of pixels wide along the top as along the side; in the map itself that
+  // shows up as a horizontal band aspect-times narrower than the vertical one.
+  const size = 128;
+  const aspect = 8;
+  const map = glassRefractionModule.createGlassRefractionMap(size, {
+    aspect,
+    cornerRadius: 0.9,
+    bezelWidth: 0.8,
+  });
+  const mid = size / 2;
+  const bends = (read) => {
+    let count = 0;
+    for (let i = 0; i < mid; i += 1) if (read(i) !== 0) count += 1;
+    return count;
+  };
+  // how far the bend reaches inward from the left edge, and from the top
+  const acrossX = bends((i) => pixel(map, size, i, mid)[0] - 128);
+  const acrossY = bends((i) => pixel(map, size, mid, i)[1] - 128);
+
+  assert.ok(acrossX > 0 && acrossY > 0, "both axes should carry a bevel");
+  const ratio = acrossY / acrossX;
+  assert.ok(
+    ratio > aspect * 0.7 && ratio < aspect * 1.3,
+    `bevel should be ~${aspect}x narrower across the map's width; got ${ratio.toFixed(2)}x`,
+  );
+
+  // and it is still flat in the middle
+  assert.deepEqual(pixel(map, size, mid, mid), [128, 128, 128, 255]);
+});
+
+test("magnification spreads the centre so the middle is not inert", () => {
+  // A bevel alone only bends what passes under the rim. With one, a line
+  // crossing behind a pane comes out nudged where it enters and untouched
+  // everywhere else, which reads as a blurred hole rather than as glass. A
+  // real lens also spreads what is behind its centre — that is what makes the
+  // line thicker in the middle and compressed at the edge.
+  const size = 128;
+  const shape = { aspect: 4, cornerRadius: 0.9, bezelWidth: 0.8 };
+  const flat = glassRefractionModule.createGlassRefractionMap(size, shape);
+  const lens = glassRefractionModule.createGlassRefractionMap(size, { ...shape, magnify: 0.18 });
+  const mid = size / 2;
+  const quarter = Math.floor(size / 4);
+
+  // dead centre stays put — magnification is measured relative to it
+  assert.deepEqual(pixel(lens, size, mid, mid), [128, 128, 128, 255]);
+
+  // Away from the centre the lens adds a pull back toward it, on top of
+  // whatever the bevel is already doing. Differencing the two maps isolates
+  // exactly that term.
+  const added = (row) => pixel(lens, size, mid, row)[1] - pixel(flat, size, mid, row)[1];
+  const y = (row) => ((row + 0.5) / size) * 2 - 1;
+
+  assert.ok(Math.abs(added(quarter)) > 4, "the flat centre should magnify, not sit inert");
+  // it pulls inward: above the centre line pulls down, below it pulls up
+  assert.ok(y(quarter) < 0 && added(quarter) > 0);
+  assert.ok(y(size - 1 - quarter) > 0 && added(size - 1 - quarter) < 0);
+  // symmetric about the centre, to within the map's 8-bit rounding
+  assert.ok(Math.abs(added(quarter) + added(size - 1 - quarter)) <= 1);
+  // and proportional to distance from it, so the spread is even rather than
+  // bunched at one depth
+  const near = Math.floor(size * 0.375);
+  const expected = y(quarter) / y(near);
+  assert.ok(
+    Math.abs(added(quarter) / added(near) - expected) < 0.4,
+    `pull should scale with distance from the centre; expected ~${expected.toFixed(2)}x`,
+  );
+});
+
+test("an aspect of 1 leaves the map exactly as it was", () => {
+  // The generic sitewide filter still uses the square map, so the default must
+  // not drift when the option is added.
+  const size = 64;
+  const withDefaults = glassRefractionModule.createGlassRefractionMap(size);
+  const explicit = glassRefractionModule.createGlassRefractionMap(size, { aspect: 1 });
+  assert.deepEqual(Array.from(withDefaults), Array.from(explicit));
+});
+
 test("live panels use the SVG displacement filter only after browser capability detection", () => {
   assert.match(filter, /Safari parses[\s\S]*?false positive/);
   assert.match(filter, /Chromium\|Google Chrome\|Microsoft Edge\|Opera/);
@@ -124,7 +205,34 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // frosted surface it rests on, and saturation and brightness rather than
   // more blur are what keep the backdrop reading as a scene behind glass.
   assert.match(css, /\.nav-menu-group::before \{[^}]*backdrop-filter: blur\(10px\)/);
-  assert.match(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{\s*filter: url\("#bandup-live-glass-refraction"\);\s*\}/);
+  // The cards use their own filter, not the sitewide one. A displacement map
+  // is only correct for the aspect ratio it was solved for, and a nav card is
+  // roughly 7:1 where the generic glass surfaces are nearly square — sharing
+  // one map put the bend across the middle of the card instead of on its edge,
+  // which is why the backdrop never visibly deformed.
+  assert.match(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{[\s\S]*?filter: url\("#bandup-nav-glass-lens"\);/);
+  assert.match(filter, /NAV_FILTER_ID = "bandup-nav-glass-lens"/);
+  // Measured from a real card rather than assumed, and rebuilt when that
+  // measurement can have changed.
+  assert.match(filter, /function measureNavPane/);
+  assert.match(filter, /getBoundingClientRect/);
+  assert.match(filter, /borderTopLeftRadius/);
+  assert.match(filter, /MutationObserver/);
+  assert.match(filter, /addEventListener\("resize"/);
+  // Strong enough to gather the backdrop into the edge rather than graze it,
+  // and a magnified centre so the middle is not inert.
+  assert.match(filter, /NAV_BEZEL_WIDTH = 0\.8/);
+  assert.match(filter, /NAV_MAGNIFY = 0\.18/);
+  // The scale is derived from the measured box, not a constant: it is bounded
+  // by the card's half-height while objectBoundingBox resolves it against the
+  // diagonal, which on a wide card is set almost entirely by its width.
+  assert.match(filter, /NAV_DISPLACEMENT_HEADROOM = 0\.85/);
+  assert.match(filter, /scale: \(NAV_DISPLACEMENT_HEADROOM \* halfHeight\) \/ diagonal/);
+  assert.match(filter, /scale=\{navScale\}/);
+  // A square map stretched across a wide card gives each column several screen
+  // pixels; at the rounded ends the normal swings through most of its range
+  // within a few of them and the steps show as a staircase.
+  assert.match(filter, /NAV_MAP_SIZE = 512/);
   // Content sits in its own stacking layer above ::before so only the
   // material warps, never the icons or labels.
   assert.match(css, /\.nav-menu-group > \* \{\s*position: relative;\s*z-index: 1;\s*\}/);
