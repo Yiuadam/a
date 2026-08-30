@@ -48,13 +48,19 @@ const NAV_MAGNIFY = 0.55;
    what folds the backdrop into a tight tangled band at the edge, on the
    rounded ends as much as the long sides. A straight ramp cannot produce it
    at any strength, because it has no steep part. */
-const NAV_DOME = 1;
-/* How far in from the rim the glass starts rolling over — its thickness. A
-   small value keeps the roll in the last few percent, a thin sheet with a
-   sharp border. This one puts it across a wide band, so the backdrop
-   compresses all the way through it and the pane reads as a deep slab whose
-   edge curves down to its underside. */
-const NAV_THICKNESS = 0.6;
+/* Kept small on purpose: the un-normalised slope this now feeds saturates
+   the map's channel range in the last stretch of the band on its own,
+   without any help. A larger value saturates too much of the band at once,
+   which is what put the fold in the wrong place before this was fixed —
+   see thickness below. */
+const NAV_DOME = 0.25;
+/* How far in from the rim the glass starts rolling over — its thickness.
+   Wide, for a deep slab whose edge curves down across a broad band rather
+   than a thin sheet with a narrow bevel — the "thick slab" width. Because
+   the dome's slope is now solved to reach its steepest exactly at the true
+   rim (see lib/glass-refraction.ts), widening this band spreads the roll
+   over more of the face without ever relocating the sharp part inward. */
+const NAV_THICKNESS = 0.75;
 /* The displacement may reach this fraction of the card's half-height. A
    displacement map can only rearrange what is already inside the element's own
    box — sampling past it returns nothing — so a lens that asks to move a pixel

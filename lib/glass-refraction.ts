@@ -81,16 +81,25 @@ export type GlassRefractionMapOptions = {
    */
   magnify?: number;
   /**
-   * How thick the glass is, as how far in from the rim its edge starts
-   * rolling over. Higher is thicker.
+   * How thick the glass is: how far in from the rim the dome's curve begins,
+   * as a fraction of the pane's half-height. Higher is thicker.
    *
-   * A hemisphere's slope is unbounded at the rim, so it has to be capped; the
-   * cap is what decides how much of the face the edge occupies. A high cap
-   * keeps the steep part in the last few percent — a thin lens with a sharp
-   * rim. A low one starts the roll-over much further in, so a wide band of
-   * the face is turning over toward the bottom, the backdrop compresses across
-   * all of it, and the pane reads as a deep slab whose edge curves down rather
-   * than a sheet with a bevelled border.
+   * The dome's own hemisphere slope is solved inside this band alone, mapped
+   * so it always reaches its steepest exactly at the true rim — t = 1 right
+   * at the edge, whatever the band's width — rather than reaching a cap
+   * somewhere inside the band and running flat for the rest of the way out.
+   * A flat run at the end is backwards: it puts the busiest, most tangled
+   * bending part of the dome partway into the face and leaves the actual
+   * outer edge looking like an even, unremarkable compression — a thin lens
+   * turned inside out, not a thick one. The channel is clamped to its
+   * displayable range at the very end, which is what keeps the slope's
+   * approach to infinity at the true rim from doing anything worse than
+   * saturating the last handful of pixels there — exactly where a real
+   * dome's own bending goes into total internal reflection.
+   *
+   * A wide band spreads that climb over more of the face, which is what
+   * makes a thicker pane's tangle occupy a broader ring instead of hugging a
+   * hairline at the rim, without ever relocating the sharpest bend inward.
    */
   thickness?: number;
   /**
@@ -122,10 +131,6 @@ export function createGlassRefractionMap(
        what the bend must stay within. */
     maxDisplacement = Number.POSITIVE_INFINITY,
   } = options;
-  /* Where the dome's slope is treated as fully turned over: past this the
-     profile is flat out. Expressed as thickness so a larger number means a
-     deeper slab, which is the inverse of the raw slope cap. */
-  const slopeCap = 1 / Math.max(thickness, 1e-3);
   const pixels = new Uint8ClampedArray(size * size * 4);
   const halfExtent = 0.98;
   /* Half-extents in height units. The rounded rectangle is inset by its own
@@ -196,17 +201,21 @@ export function createGlassRefractionMap(
       }
 
       /* How far into the glass this sample sits, as a fraction of the way from
-         the rim to the thick middle: 1 at the rim, 0 in the middle. */
-      const intoGlass = clamp(1 - -signedDistance / halfExtent, 0, 1);
-      const domeSlope =
-        Math.min(
-          intoGlass / Math.sqrt(Math.max(1 - intoGlass * intoGlass, 1e-4)),
-          slopeCap,
-        ) / slopeCap;
+         the rim to the thick middle: 1 at the rim, 0 in the middle. This is
+         the ramp's own domain — the whole face — so its "regular" pattern
+         keeps spanning all the way from the centre to the edge. */
+      const intoGlassFull = clamp(1 - -signedDistance / halfExtent, 0, 1);
+      /* The dome's own domain is narrower: only the band of the given
+         thickness closest to the rim, remapped so 1 always lands exactly on
+         the true edge regardless of how wide that band is. Beyond it, toward
+         the centre, the dome contributes nothing — the tangle stays confined
+         to the rim's own band instead of bleeding into the flat middle. */
+      const intoGlassBand = clamp(1 - -signedDistance / Math.max(thickness, 1e-3), 0, 1);
+      const domeSlope = intoGlassBand / Math.sqrt(Math.max(1 - intoGlassBand * intoGlassBand, 1e-4));
       /* The dome pulls inward along the same surface normal the bevel pushes
          outward along, so the two share one direction field. Inward means it
          can never ask for a sample from beyond the pane's own edge. */
-      const pull = dome * domeSlope + magnify * intoGlass;
+      const pull = dome * domeSlope + magnify * intoGlassFull;
       const alongNormal = bend - (signedDistance <= 0 ? pull : 0);
 
       pixels[index] = Math.round(NEUTRAL_CHANNEL + clamp(normalX * alongNormal, -1, 1) * 127);

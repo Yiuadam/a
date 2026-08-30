@@ -117,13 +117,25 @@ test("the dome bends along the surface normal, so the ends bend too", () => {
   assert.ok(endX > 0, "the left end pulls right, into the glass");
 });
 
-test("the dome's rim climbs far faster than a straight ramp", () => {
+test("the dome's rim climbs far faster than a straight ramp, right at the true edge", () => {
   // The tangle at the edge comes from that late climb; a ramp has no steep
   // part and cannot produce it at any strength.
+  //
+  // This used to be normalised against a slope cap, which is exactly what put
+  // the fold in the wrong place: the cap was reached partway through the
+  // band, so the busiest, most rapidly changing part of the profile sat
+  // there, inset from the rim, while the band's outer sliver — the part
+  // actually at the card's edge — ran flat at the cap and looked like an
+  // ordinary, unremarkable compression. That is backwards from a real dome,
+  // whose most violent bending is at its own physical edge. The slope is now
+  // left unnormalised and only saturates through the final channel clamp, so
+  // the steepest, busiest change is pinned to the true rim (t = 1) however
+  // wide the band is, and it settles into the same kind of smooth, gentle
+  // curve as the ramp well before reaching the band's inner edge.
   const size = 512;
   const shape = { aspect: 3, cornerRadius: 0.98, bezelWidth: 0, maxDisplacement: 0.85 };
   const ramp = glassRefractionModule.createGlassRefractionMap(size, { ...shape, magnify: 1 });
-  const dome = glassRefractionModule.createGlassRefractionMap(size, { ...shape, dome: 1 });
+  const dome = glassRefractionModule.createGlassRefractionMap(size, { ...shape, dome: 0.25, thickness: 0.75 });
   const mid = size / 2;
   const g = (m, row) => pixel(m, size, mid, row)[1] - 128;
 
@@ -132,13 +144,52 @@ test("the dome's rim climbs far faster than a straight ramp", () => {
   while (rim < mid && g(ramp, rim) === 0) rim += 1;
   const depth = (f) => rim + Math.round(f * (mid - rim));
 
-  // near the rim both are strong; a third of the way in the dome has already
-  // given most of its bend back while the ramp is still coasting down
+  // right at the rim both are strong...
   assert.ok(g(dome, depth(0.02)) > g(ramp, depth(0.02)) * 0.8, "both bend hard at the rim");
+  // ...but the dome falls away steeply behind it, well before the band's own
+  // inner edge — the busy part stays a thin sliver hugging the true rim
+  // rather than a wide plateau reaching deep into the face.
   assert.ok(
-    g(dome, depth(0.35)) < g(ramp, depth(0.35)) * 0.5,
-    "the dome should be far gentler than a ramp away from the rim",
+    g(dome, depth(0.2)) < g(ramp, depth(0.2)) * 0.5,
+    "the dome should already be far gentler than a ramp a fifth of the way in",
   );
+  assert.ok(
+    g(dome, depth(0.5)) < g(dome, depth(0.2)),
+    "the dome should keep falling further from the rim, not plateau",
+  );
+});
+
+test("the dome's climb has no plateau anywhere inside its band", () => {
+  // The precise shape of the earlier bug: because domeSlope was normalised
+  // against a fixed cap, it ran perfectly flat across the whole outer stretch
+  // of the band where the raw slope exceeded that cap — a wide, unmoving
+  // plateau sitting right where the rim's own strongest bend should have
+  // been. A profile with no such flat run, anywhere between the rim and the
+  // band's inner edge, cannot have that plateau: it is monotonically
+  // decreasing at every step, all the way in.
+  const size = 512;
+  const map = glassRefractionModule.createGlassRefractionMap(size, {
+    aspect: 3,
+    cornerRadius: 0.98,
+    bezelWidth: 0,
+    dome: 0.25,
+    thickness: 0.75,
+    maxDisplacement: 0.85,
+  });
+  const mid = size / 2;
+  const g = (row) => Math.abs(pixel(map, size, mid, row)[1] - 128);
+
+  let rim = 0;
+  while (rim < mid && g(rim) === 0) rim += 1;
+
+  let sawDrop = false;
+  for (let row = rim; row < mid - 1; row += 1) {
+    const here = g(row);
+    const next = g(row + 1);
+    assert.ok(next <= here, `row ${row + 1} (${next}) should not exceed row ${row} (${here})`);
+    if (next < here) sawDrop = true;
+  }
+  assert.ok(sawDrop, "the profile should actually decrease somewhere, not sit flat the whole way");
 });
 
 test("a straight ramp spreads the centre so the middle is not inert", () => {
@@ -326,12 +377,12 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // Plus a dome for the rim: a hemisphere's refraction follows its surface
   // slope, gentle across the face and then climbing almost vertically in the
   // last stretch, which folds the backdrop into a tangled band at the edge.
-  assert.match(filter, /NAV_DOME = 1;/);
+  assert.match(filter, /NAV_DOME = 0\.25;/);
   // And how far in from the rim it starts rolling over — its thickness. A
   // small value keeps the roll in the last few percent, a thin sheet with a
   // sharp border; this puts it across a wide band, so the pane reads as a deep
   // slab whose edge curves down to its underside.
-  assert.match(filter, /NAV_THICKNESS = 0\.6;/);
+  assert.match(filter, /NAV_THICKNESS = 0\.75;/);
   // The scale is derived from the measured box, not a constant: it is bounded
   // by the card's half-height while objectBoundingBox resolves it against the
   // diagonal, which on a wide card is set almost entirely by its width.
