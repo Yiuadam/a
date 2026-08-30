@@ -75,13 +75,13 @@ const NAV_DISPLACEMENT_HEADROOM = 0.85;
 const NAV_MAP_SIZE = 512;
 /*
   Every other content card, sitewide — see the long comment on .card::before
-  in globals.css for why `.liquid-glass` and the two named exceptions are
-  left out: they either already carry their own hand-tuned rim, run a
-  separate live-refraction engine, or are a deliberately flattened context
-  that opted out of glass entirely.
+  in globals.css for why `.liquid-glass`, `.premade-glass` and the two named
+  exceptions are left out: they either already carry their own hand-tuned
+  rim, run a separate live-refraction engine, or are a deliberately
+  flattened context that opted out of glass entirely.
 */
 const GENERIC_SELECTOR =
-  ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)";
+  ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass)";
 /* Cards vary far more in shape than the handful of nav items ever did — a
    square icon tile and a full-width pricing card share nothing. Measuring
    each individually and building one filter per exact shape would mean a

@@ -472,9 +472,13 @@ test("every plain content card gets the same rim/wall lens as the nav cards, wit
   // carry their own hand-tuned rim (the notification popover) or their own
   // separate live-refraction engine (.premade-glass), and stacking a second,
   // independent lens on either would conflict with work already done rather
-  // than extend it. .card has no competing system anywhere in this file.
+  // than extend it. .premade-glass is excluded here too, in its own right —
+  // several dashboard/exam cards combine `card premade-glass` directly,
+  // without `.liquid-glass` in between, which is not covered by excluding it
+  // only alongside `.liquid-glass`. .card has no competing system anywhere in
+  // this file.
   const genericSelector =
-    "\\.card:not\\(\\.organization-team-pairings-page\\):not\\(\\.organization-team-pairing-group\\)";
+    "\\.card:not\\(\\.organization-team-pairings-page\\):not\\(\\.organization-team-pairing-group\\):not\\(\\.premade-glass\\)";
   const beforeMatch = css.match(
     new RegExp(`\\n${genericSelector}::before \\{[\\s\\S]*?\\n\\}`),
   );

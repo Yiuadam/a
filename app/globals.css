@@ -543,8 +543,17 @@ html[data-theme="dark"] body {
   Two contexts are excluded because they deliberately flatten `.card` to
   `background: transparent; backdrop-filter: none` — an explicit request for
   no glass at all, which a wall and a rim would quietly reintroduce.
+
+  `.premade-glass` is also excluded here, not just carried along with
+  `.liquid-glass` above: several dashboard and exam surfaces combine
+  `card premade-glass` on the same element (the skill and trend cards on the
+  home page, the exam start window), so excluding it only from `.liquid-glass`
+  left this rule matching them anyway and stacking a second lens on top of
+  their own live liquid-glass-react refraction — the muddy, smudged patches
+  that showed through wherever one of those cards sat behind something
+  translucent.
 */
-.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::before {
+.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass)::before {
   content: "";
   display: block;
   position: absolute;
@@ -596,7 +605,7 @@ html[data-theme="dark"] body {
     );
 }
 
-html[data-glass-lens-split] .card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::before {
+html[data-glass-lens-split] .card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass)::before {
   filter: var(--glass-lens-filter, none);
 }
 
@@ -607,7 +616,7 @@ html[data-glass-lens-split] .card:not(.organization-team-pairings-page):not(.org
   painted across the whole box, then masked down to just the ring, which is
   the only way to get a border whose colour varies around its own perimeter.
 */
-.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::after {
+.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass)::after {
   content: "";
   display: block;
   position: absolute;
@@ -640,7 +649,7 @@ html[data-glass-lens-split] .card:not(.organization-team-pairings-page):not(.org
 /* Real content sits in its own stacking layer above the material and below
    the rim, so only the backdrop itself ever warps — never the text or icons
    a card actually exists to show. */
-.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group) > * {
+.card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass) > * {
   position: relative;
   z-index: 1;
 }
