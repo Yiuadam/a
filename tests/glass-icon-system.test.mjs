@@ -84,7 +84,11 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
   // ancestor's own filter layer for a descendant's backdrop-filter to
   // render at all), not zero.
   assert.match(css, /\.nav-paper \{[^}]*background: transparent;/);
-  assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(0\.3px\);/);
+  assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(1px\);/);
+  // No inset highlight either — tuned for when this sheet carried real
+  // visible material, it now reads as a stray grey line across the top of
+  // the first row of cards.
+  assert.doesNotMatch(css, /\.nav-paper \{[^}]*box-shadow:/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: absolute;[^}]*inset: -1px/);
   assert.match(css, /\.nav-paper > \.refractive-glass-layer\[data-interactive\] > span \{[^}]*display: none !important/);
   assert.doesNotMatch(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: fixed/);
