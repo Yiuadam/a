@@ -124,7 +124,8 @@ const NAV_DISPLACEMENT_HEADROOM = 0.97;
   `.nav-menu-group::before` — went with this; cards keep their ordinary
   frosted backdrop glass, which is what the comparison preferred.
 */
-const GENERIC_SELECTOR = ".theme-toggle-selector, .segmented-knob";
+const GENERIC_SELECTOR =
+  ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group), .nav-menu-group, .theme-toggle-selector, .segmented-knob";
 /* Cards vary far more in shape than the handful of nav items ever did — a
    square icon tile and a full-width pricing card share nothing. Measuring
    each individually and building one filter per exact shape would mean a
@@ -134,9 +135,14 @@ const GENERIC_SELECTOR = ".theme-toggle-selector, .segmented-knob";
    rather than grown on the fly. A card between two grid points reads a bevel
    a few percent off from its own exact proportions, which is not visible at
    the strengths these constants use. */
-const GENERIC_ASPECT_BUCKETS = [0.4, 0.7, 1, 1.4, 2, 2.8, 4, 6, 9];
-const GENERIC_CORNER_BUCKETS = [0.12, 0.3, 0.55, 0.8, 0.98];
-const GENERIC_MAP_SIZE = 384;
+const GENERIC_ASPECT_STEP = 0.05;
+const GENERIC_CORNER_STEP = 0.02;
+/* Smaller than the 384 this was, and it can be: a map that describes the
+   pane's own exact shape does not need extra resolution to survive being
+   stretched onto a shape it does not match. What size buys now is only the
+   smoothness of the arc itself. Halving the area matters because there is
+   one of these per distinct shape on a page rather than per grid point. */
+const GENERIC_MAP_SIZE = 256;
 /*
   The knob's own maps are built far smaller than the cards'.
 
@@ -152,7 +158,25 @@ const GENERIC_FILTER_PREFIX = "bandup-card-glass-lens";
 /* Same lens physics as the navigation cards, at the same strength: this is
    meant to read as the identical material everywhere it appears, not a
    watered-down copy for everyday cards and the real thing only in the nav. */
-const GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH;
+/* Cards take the knob's band width rather than the nav slab's 0.85.
+
+   That 0.85 reaches 61% of a card's half-width, which is most of the face
+   turning over — it was chosen to read as a deep slab back when the map was
+   snapped to a coarse grid and the bend had to be broad to survive the
+   mismatch. Now that each pane's map is solved from its own measured shape,
+   the bend can sit where the glass actually turns, which is what was asked
+   for: refraction that begins at the card's edge instead of drawing a shape
+   across its middle.
+
+   Narrower than the knobs' own 0.5, though, and that is not inconsistency.
+   The width is a fraction of the pane's half-height, so the same number is a
+   very different band in absolute terms: 0.5 on a 42px knob is 10px and
+   reads as a rim, while 0.5 on a 400px poster is 100px and reads as most of
+   the card. Rendered at 0.5 the spectral fringe spread across the face in
+   washes rather than tracing the edge. 0.18 puts a card's band back in the
+   same tens-of-pixels range the knob's is, which is what makes it read as
+   the same material rather than the same number. */
+const GENERIC_BEZEL_WIDTH = 0.18;
 /*
   The theme knob is the one surface that wants the opposite of the slab.
 
@@ -331,7 +355,10 @@ const KNOB_SPECULAR = 3;
   yellow and magenta on 1.3px monochrome glyphs.
 */
 const KNOB_SPECTRUM = 0.85;
-const GENERIC_SPECTRUM = 0;
+/* And the same spectral rim — see KNOB_SPECTRUM. It is masked by the map's
+   own bend magnitude, so on a card it lands on the turn at the edge and is
+   nothing across the face where the content sits. */
+const GENERIC_SPECTRUM = KNOB_SPECTRUM;
 /*
   How far the three channels are driven apart. The map's own deviation from
   neutral is small — a rim peaks around 0.12 either side of 0.5 — so a
@@ -396,9 +423,16 @@ const KNOB_MAGNIFY = 0.2;
   running under it to reveal itself against.
 */
 const KNOB_INNER_EASE = 1;
-const GENERIC_INNER_EASE = 0;
+/* Eased, like the knobs. A hard stop at the band's inner edge is a corner
+   in the surface, and on a large pane a straight line crossing it comes
+   through bent and then abruptly straight. Cards used to keep the hard stop
+   because the slab's reach mattered more; with a narrower band there is no
+   depth to protect. */
+const GENERIC_INNER_EASE = 1;
 const GENERIC_MAGNIFY = 0;
-const GENERIC_SPECULAR = 0;
+/* The same solved highlight the knobs carry — see KNOB_SPECULAR. It costs
+   four primitives and is what stops the bent edge reading as lumpy. */
+const GENERIC_SPECULAR = 3;
 const NAV_ADAPTIVE_TINT = 0.12;
 const GENERIC_ADAPTIVE_TINT = 0;
 const NAV_TINT_SELECTOR = ".nav-menu-group";
@@ -435,10 +469,40 @@ function createMapUrl(options?: GlassRefractionMapOptions, size = GLASS_REFRACTI
 }
 
 
-function nearest(value: number, grid: number[]) {
-  return grid.reduce((closest, candidate) =>
-    Math.abs(candidate - value) < Math.abs(closest - value) ? candidate : closest,
-  );
+/*
+  Round a measured shape to a step, rather than snapping it to the nearest of
+  a handful of fixed values.
+
+  The grid this replaces held five corner radii, and real cards land between
+  them: an account card measures a corner ratio of 0.209 and was served a map
+  drawn for 0.12. A bevel solved for one arc and stretched over another has to
+  show the seam somewhere, and on a large flat card there is nothing to hide
+  it — which is exactly what the lens on cards was removed for.
+
+  Quantising instead of snapping keeps the reason the grid existed. Two cards
+  of the same shape still share one filter and one map, because identical
+  measurements round identically; what changes is that a shape no longer has
+  to be one of five. The steps are fine enough that the residual error is far
+  below a pixel of displacement on any real pane, and coarse enough that a
+  column of cards differing by a rounding hair does not each get their own.
+*/
+function quantise(value: number, step: number) {
+  return Math.round(value / step) * step;
+}
+
+/*
+  A pane's corner radius as the browser will actually draw it.
+
+  CSS scales every radius on a box down in proportion when adjacent ones would
+  overlap a side — a 40px radius on a 67px-tall card is drawn at 33.6px, not
+  40. getComputedStyle reports what was asked for, not what is used, so a map
+  solved from it describes a shape the element does not have. On short, wide
+  cards that is the single largest source of mismatch there is.
+*/
+function usedCornerRadius(specified: number, width: number, height: number) {
+  if (!(specified > 0)) return 0;
+  const shrink = Math.min(1, width / (2 * specified), height / (2 * specified));
+  return specified * shrink;
 }
 
 type GenericBucket = {
@@ -498,10 +562,14 @@ function measureGenericPanes(knobsOnly = false) {
     const { width, height } = pane.getBoundingClientRect();
     if (!(width > 0) || !(height > 0)) continue;
 
-    const radius = Number.parseFloat(getComputedStyle(pane).borderTopLeftRadius) || 0;
+    const specified = Number.parseFloat(getComputedStyle(pane).borderTopLeftRadius) || 0;
+    const radius = usedCornerRadius(specified, width, height);
     const halfHeight = height / 2;
-    const aspect = nearest(width / height, GENERIC_ASPECT_BUCKETS);
-    const cornerRadius = nearest(Math.min(radius / halfHeight, 0.98), GENERIC_CORNER_BUCKETS);
+    const aspect = quantise(width / height, GENERIC_ASPECT_STEP);
+    const cornerRadius = quantise(
+      Math.min(radius / halfHeight, 0.98),
+      GENERIC_CORNER_STEP,
+    );
     const knob = pane.matches(KNOB_SELECTOR);
     const bezelWidth = knob ? KNOB_BEZEL_WIDTH : GENERIC_BEZEL_WIDTH;
     const dispersion = knob ? KNOB_DISPERSION : GENERIC_DISPERSION;

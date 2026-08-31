@@ -600,18 +600,20 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // drawn for 0.3, so the bevel's arc and the card's arc do not coincide
   // and the seam shows at the corner. Compared side by side with the
   // filter off, the version without it was preferred.
-  assert.doesNotMatch(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{\s*\n\s*filter: var\(--glass-lens-filter, none\);/);
+  // The lens is back on this card, now that the map is solved from its own
+  // measured shape rather than snapped to a grid of five corner radii. The
+  // seam it was removed for was the two arcs disagreeing, not the lens.
+  assert.match(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{\s*\n\s*filter: var\(--glass-lens-filter, none\);/);
   assert.doesNotMatch(filter, /NAV_FILTER_ID|measureNavPane/);
   // Both the wall and the rim redeclare `display: block` — the property the
   // reset above sets to `none`, which `content: ""` alone never undoes.
   assert.match(css, /\.nav-menu-group::before \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
   assert.match(css, /\.nav-menu-group::after \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
-  // The bucketed measuring system is still there, and .nav-menu-group is no
-  // longer one of the shapes it measures. Nothing on this card references a
-  // generated filter any more, so measuring it would build a 384px map and a
-  // filter tree for a rule that no longer exists.
+  // The measuring system is still there and this card is one of the shapes it
+  // measures again, now that a shape is solved from its own measurements
+  // rather than snapped to the nearest of five.
   assert.match(filter, /function measureGenericPanes/);
-  assert.doesNotMatch(filter, /GENERIC_SELECTOR[\s\S]{0,400}nav-menu-group/);
+  assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}nav-menu-group/);
   assert.match(filter, /getBoundingClientRect/);
   assert.match(filter, /borderTopLeftRadius/);
   assert.match(filter, /MutationObserver/);
@@ -787,11 +789,13 @@ test("every plain content card gets the same rim/wall lens as the nav cards, wit
   // The knobs keep theirs and are asserted in segmented-controls and
   // theme-toggle-press: they measure as circles, which is the one shape the
   // grid holds exactly, so there is no mismatch to see.
-  const lensSelector = `${genericSelector}:not\\(\\.premade-glass\\)`;
-  assert.doesNotMatch(
+  // Cards bend their backdrop again. `.premade-glass` is no longer excluded
+  // either — the second, independent refraction engine that exclusion existed
+  // to avoid stacking against has been removed.
+  assert.match(
     css,
     new RegExp(
-      `html\\[data-glass-lens-split\\] ${lensSelector}::before \\{[\\s\\S]*?filter: var\\(--glass-lens-filter, none\\);`,
+      `html\\[data-glass-lens-split\\] ${genericSelector}::before \\{[\\s\\S]*?filter: var\\(--glass-lens-filter, none\\);`,
     ),
   );
 
@@ -828,12 +832,37 @@ test("every plain content card gets the same rim/wall lens as the nav cards, wit
 test("generic cards are reduced to a small fixed grid of shapes instead of one filter per element", () => {
   assert.match(filter, /GENERIC_SELECTOR =/);
   assert.match(filter, /function measureGenericPanes/);
-  assert.match(filter, /function nearest/);
-  assert.match(filter, /GENERIC_ASPECT_BUCKETS/);
-  assert.match(filter, /GENERIC_CORNER_BUCKETS/);
+  // Shapes are quantised to a fine step rather than snapped to a short grid,
+  // and the corner radius is the one the browser actually draws: CSS scales
+  // radii down when adjacent ones would overlap a side, so a 40px corner on a
+  // 67px-tall card is drawn at 33.6px. A map solved from the asked-for value
+  // describes a shape the element does not have, which is the seam cards had.
+  assert.match(filter, /function quantise/);
+  assert.match(filter, /function usedCornerRadius/);
+  assert.doesNotMatch(filter, /function nearest/);
+  // Steps rather than buckets. A fixed grid of nine aspects and five corner
+  // radii is what forced a card onto a shape it did not have; quantising to a
+  // fine step keeps the deduplication the grid was for — two cards of the same
+  // shape still round to the same key and share one filter — without making a
+  // shape be one of a handful.
+  assert.match(filter, /GENERIC_ASPECT_STEP/);
+  assert.match(filter, /GENERIC_CORNER_STEP/);
+  assert.doesNotMatch(filter, /GENERIC_ASPECT_BUCKETS/);
+  // The corner is measured as the browser draws it, not as the stylesheet
+  // asks for it: CSS scales radii down when adjacent ones would overlap a
+  // side, so a 40px corner on a 67px-tall card is drawn at 33.6px. On short,
+  // wide cards that was the largest single source of shape mismatch.
+  assert.match(filter, /usedCornerRadius\(specified, width, height\)/);
+  assert.doesNotMatch(filter, /GENERIC_CORNER_BUCKETS/);
   assert.match(filter, /GENERIC_MAX_BUCKETS/);
   // Same lens physics as the nav cards — reused, not reinvented.
-  assert.match(filter, /GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH/);
+  // Cards no longer share the nav slab's 0.85. The width is a fraction of the
+  // pane's half-height, so one number is a very different band in absolute
+  // terms: 0.5 on a 42px knob is 10px and reads as a rim, while 0.85 on a
+  // 400px poster is most of the card. 0.18 puts a card's band back in the
+  // same tens-of-pixels range the knob's is, which is what makes the two read
+  // as the same material rather than as the same number.
+  assert.match(filter, /const GENERIC_BEZEL_WIDTH = 0\.18;/);
   assert.match(filter, /GENERIC_DISPLACEMENT_HEADROOM = NAV_DISPLACEMENT_HEADROOM/);
   // Scale depends only on the bucket's own aspect ratio: height cancels out
   // of both the displacement budget and the diagonal it is measured against.
@@ -891,7 +920,9 @@ test("the highlight is solved from the pane's shape, not drawn across it", () =>
   // product against a light direction, which is what feColorMatrix's alpha
   // row computes. Light from the upper left is (0.5 - R) + (0.5 - G).
   assert.match(filter, /const KNOB_SPECULAR = 3;/);
-  assert.match(filter, /const GENERIC_SPECULAR = 0;/);
+  // Cards carry the knobs' solved highlight now, which is what keeps a bent
+  // edge from reading as lumpy.
+  assert.match(filter, /const GENERIC_SPECULAR = 3;/);
   assert.match(filter, /in="generic-normal-map"[\s\S]{0,200}\$\{-entry\.specular\} \$\{-entry\.specular\} 0 0 \$\{entry\.specular\}/);
   assert.match(filter, /result="specular-mask"/);
   assert.match(filter, /in="specular-light"\s*\n\s*in2="specular-mask"\s*\n\s*operator="in"/);
@@ -1003,7 +1034,10 @@ test("the knob's bevel eases its handover, while cards keep their depth", () => 
   // busy backdrops, where the crease has nothing straight running under it
   // to reveal itself against.
   assert.match(filter, /const KNOB_INNER_EASE = 1;/);
-  assert.match(filter, /const GENERIC_INNER_EASE = 0;/);
+  // And they ease the band's handover to the flat face, like the knobs. The
+  // hard stop was kept while the slab's reach was the point; with a band at
+  // 0.18 there is no depth left to protect.
+  assert.match(filter, /const GENERIC_INNER_EASE = 1;/);
   assert.match(filter, /const innerEase = knob \? KNOB_INNER_EASE : GENERIC_INNER_EASE;/);
   assert.match(filter, /innerEase: bucket\.innerEase,/);
   const source = readFileSync(join(process.cwd(), "lib", "glass-refraction.ts"), "utf8");

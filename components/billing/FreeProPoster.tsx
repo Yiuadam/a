@@ -180,29 +180,29 @@ export default function FreeProPoster() {
     return (
       <section className="card">
         <h2 className="text-[17px] font-semibold text-slate-900">Pro, free, if you want it</h2>
-        <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+        <p className="mt-1 text-[14px] leading-6 text-slate-600">
           Pro is the plan for the weeks before your exam. We are giving it to every new account
           for nothing. You do not have to pay, and you do not have to give a card.
         </p>
 
-        <ul className="mt-4 space-y-1.5">
+        <ul className="mt-3 space-y-1">
           {TIERS.pro.includes.slice(0, 4).map((line) => (
-            <li key={line} className="flex gap-2.5 text-[15px] leading-6 text-slate-700">
+            <li key={line} className="flex gap-2.5 text-[14px] leading-5 text-slate-700">
               <span
                 aria-hidden="true"
-                className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"
+                className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"
               />
               {line}
             </li>
           ))}
         </ul>
 
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[14px] leading-6 text-slate-700">
           Sign up free and it starts right away — no card, and it may be cancelled at any time in
           the future.
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-3.5 flex flex-wrap items-center gap-2">
           {/*
             An account is what makes the trial an entitlement rather than a
             promise, so "accept" for a guest has to mean "sign up" first.
@@ -234,7 +234,7 @@ export default function FreeProPoster() {
     return (
       <section className="card" aria-live="polite">
         <h2 className="text-[17px] font-semibold text-slate-900">Your free Pro trial has started</h2>
-        <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+        <p className="mt-1 text-[14px] leading-6 text-slate-600">
           Your account is on Pro now. Nothing has been charged and no card has been asked for.
           You can see what you have used on your account page, and give the trial up there
           whenever you like.
@@ -253,17 +253,17 @@ export default function FreeProPoster() {
   return (
     <section className="card">
       <h2 className="text-[17px] font-semibold text-slate-900">Pro, free, if you want it</h2>
-      <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+      <p className="mt-1 text-[14px] leading-6 text-slate-600">
         Pro is the plan for the weeks before your exam. We are giving it to every account for
         nothing. You do not have to pay, and you do not have to give a card.
       </p>
 
-      <ul className="mt-4 space-y-1.5">
+      <ul className="mt-3 space-y-1">
         {TIERS.pro.includes.slice(0, 4).map((line) => (
-          <li key={line} className="flex gap-2.5 text-[15px] leading-6 text-slate-700">
+          <li key={line} className="flex gap-2.5 text-[14px] leading-5 text-slate-700">
             <span
               aria-hidden="true"
-              className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"
+              className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"
             />
             {line}
           </li>
@@ -274,7 +274,7 @@ export default function FreeProPoster() {
         The part that must be read. Same size as the rest, in the body, above
         the button rather than under it.
       */}
-      <p className="mt-4 text-[15px] leading-7 text-slate-700">
+      <p className="mt-3 text-[14px] leading-6 text-slate-700">
         This is a free trial of Pro. It may be cancelled at any time in the future, and you can
         give it up yourself whenever you like, from your account page. If it ends, your account
         goes back to the free plan and everything you have written or practised stays where it is.
@@ -287,7 +287,7 @@ export default function FreeProPoster() {
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mt-3.5 flex flex-wrap items-center gap-2">
         <button type="button" className="btn-primary" onClick={accept} disabled={busy}>
           {busy ? "Starting…" : "Start my free Pro trial"}
         </button>

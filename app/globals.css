@@ -702,17 +702,26 @@ html[data-theme="dark"] body {
 }
 
 /*
-  Cards no longer take the SVG lens. Compared side by side against the same
-  page with it switched off, what it drew here was a bright rounded-
-  rectangle contour standing inside the card's own outline with a broken
-  corner arc, and the version without it was preferred. The cause is in
-  GENERIC_SELECTOR in GlassRefractionFilter.tsx: a card's shape is snapped
-  to a coarse grid before its map is solved, so the bevel's arc and the
-  card's own arc disagree, and on a large flat face there is nothing to hide
-  that. Cards keep their ordinary frosted backdrop glass above; only the
-  knobs, which measure as circles the grid holds exactly, still bend
-  anything.
+  Cards bend their backdrop again, now that the bend starts at the card's own
+  edge.
+
+  It was removed once, correctly: what it drew then was a bright rounded-
+  rectangle contour standing inside the card's outline with a broken corner
+  arc. That was never a tuning problem. A pane's shape was snapped to the
+  nearest of five corner radii before its map was solved, so the bevel's arc
+  and the card's arc were different curves, and on a large flat face there is
+  nothing to hide the seam between them.
+
+  Both causes are fixed in GlassRefractionFilter: the shape is quantised to a
+  fine step instead of snapped to a grid, and the radius is the one the
+  browser actually draws rather than the one the stylesheet asked for — CSS
+  scales radii down when adjacent ones would overlap a side, so a 40px corner
+  on a 67px-tall card is drawn at 33.6px, and a map solved from 40 describes
+  a shape that card does not have.
 */
+html[data-glass-lens-split] .card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::before {
+  filter: var(--glass-lens-filter, none);
+}
 
 /*
   The caustic rim, replacing the flat `inset 0 1px 0 var(--glass-highlight)`
@@ -1570,9 +1579,14 @@ html[data-theme="dark"] .nav-menu-group {
   bevel's arc and the card's arc do not coincide and the seam shows at the
   corner.
 
-  Compared side by side with the lens off, the version without it was
-  preferred. The frosted glass below is what the card keeps.
+  Compared side by side with the lens off at the time, the version without it
+  was preferred — and that comparison was between no lens and a lens solved
+  for the wrong shape. The shape is solved from this card's own measurements
+  now, so the bend follows its outline rather than cutting across it.
 */
+html[data-glass-lens-split] .nav-menu-group::before {
+  filter: var(--glass-lens-filter, none);
+}
 
 html[data-theme="dark"] .nav-menu-group {
   /* The rim itself is on ::after; what is left here is the lift off the
