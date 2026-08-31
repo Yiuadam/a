@@ -179,7 +179,13 @@ test("the pressed knob disperses for real, rather than painting a rainbow", () =
   // Three passes at three scales express it properly: the same normal map
   // slightly under, at, and over the true bend, with each pass then allowed
   // to contribute only the channel it was solved for.
-  assert.match(filter, /const KNOB_DISPERSION = 0\.16;/);
+    // 0.02, cut hard when the whole-face lens arrived: dispersion scales with
+  // the displacement it splits, and once the whole face bends rather than
+  // only the rim band, the same coefficient separated everywhere. This app's
+  // icons are 0.75px hairlines, so a per-channel offset of even a pixel put
+  // red and green edges on a monochrome glyph — an aberration fault however
+  // physical its derivation.
+  assert.match(filter, /const KNOB_DISPERSION = 0\.02;/);
   assert.match(filter, /const GENERIC_DISPERSION = 0;/);
   assert.match(filter, /scale=\{entry\.scale \* \(1 - entry\.dispersion\)\}/);
   assert.match(filter, /scale=\{entry\.scale \* \(1 \+ entry\.dispersion\)\}/);

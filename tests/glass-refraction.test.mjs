@@ -841,3 +841,43 @@ test("the highlight is solved from the pane's shape, not drawn across it", () =>
   assert.match(filter, /function bucketKey\([\s\S]{0,280}specular: number,/);
   assert.match(filter, /const specular = knob \? KNOB_SPECULAR : GENERIC_SPECULAR;/);
 });
+
+test("the knob lenses its whole face, so nothing inside stays where it was", () => {
+  // A bevel alone bends only its own band, which is right for a flat pane
+  // but leaves a line crossing the middle running dead straight — the same
+  // line visible twice, bent where it meets the rim and untouched between.
+  // The reference has no such remnant: everything behind the glass is
+  // displaced, because the whole face works rather than only its edge.
+  //
+  // This is the `magnify` term the map has always carried and never used: a
+  // straight ramp along the inward normal, nothing at the centre, growing to
+  // its full value at the rim. It pulls inward, so every sample stays on the
+  // pane.
+  assert.match(filter, /const KNOB_MAGNIFY = 0\.18;/);
+  assert.match(filter, /const GENERIC_MAGNIFY = 0;/);
+  assert.match(filter, /const magnify = knob \? KNOB_MAGNIFY : GENERIC_MAGNIFY;/);
+  assert.match(filter, /magnify: bucket\.magnify,/);
+  assert.match(filter, /function bucketKey\([\s\S]{0,340}magnify: number,/);
+
+  // Only the knob. magnify is measured from the centre outward, and on a
+  // rounded rectangle that traces the panel's own contour into the face —
+  // the pale shape that got dome and magnify dropped from the cards. On a
+  // circle that contour is concentric with the rim, so there is no shape to
+  // see: it is the knob.
+  const size = 192;
+  const circle = glassRefractionModule.createGlassRefractionMap(size, {
+    aspect: 1,
+    cornerRadius: 0.98,
+    bezelWidth: 0.14,
+    magnify: 0.18,
+    maxDisplacement: 0.97 / Math.sqrt(2 * 2),
+  });
+  const at = (x, y) => pixel(circle, size, x, y).slice(0, 2).map((c) => c - 128);
+  // Dead centre still does not move — which is why an icon sitting there
+  // comes through undistorted.
+  assert.deepEqual(at(size / 2, size / 2), [0, 0]);
+  // But a point well inside the old flat middle now does, which is the whole
+  // point: the bevel alone left this at zero.
+  const midway = at(size / 2, Math.round(size * 0.3));
+  assert.ok(Math.abs(midway[1]) > 2, `the face should lens, got ${midway}`);
+});

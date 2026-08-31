@@ -158,13 +158,19 @@ const KNOB_BEZEL_WIDTH = 0.14;
   little less than green, blue a little more, then each pass contributing
   only its own channel. See the filter itself for the recombination.
 
-  0.16 rather than something showier because the separation is a fraction
-  of a bend that is already confined to the rim band — the flat middle has
-  no displacement, so it gets no fringe, exactly as it should. Cards keep
+  0.05, cut from 0.16 when the whole-face lens (KNOB_MAGNIFY) arrived.
+  Dispersion scales with the displacement it is splitting, and while that
+  displacement lived only in the rim band a large coefficient was safe:
+  the flat middle had no bend, so it got no fringe. Once the whole face
+  bends, the same coefficient separates everywhere, and a monochrome icon
+  in the middle came out with red and green edges on every stroke — an
+  aberration fault rather than glass. Small enough now that the fringe is
+  perceptible only where the displacement is largest, which is still the
+  rim. Cards keep
   0 and their single pass: this is three times the displacement work, which
   is worth it for one 28px knob and not for every card on a page.
 */
-const KNOB_DISPERSION = 0.16;
+const KNOB_DISPERSION = 0.02;
 const GENERIC_DISPERSION = 0;
 /*
   Adaptive tint: glass that darkens over bright content and lightens over
@@ -226,6 +232,31 @@ const GENERIC_DISPERSION = 0;
   the bend because both are solved from the same map.
 */
 const KNOB_SPECULAR = 3;
+/*
+  A gentle whole-face lens on top of the rim bevel, so nothing inside the
+  knob stays where it was.
+
+  A bevel alone only bends its own band, which is right for a flat pane but
+  leaves a line crossing the middle running dead straight — so the same
+  line appears twice, bent where it meets the rim and untouched between.
+  The reference has no such remnant: everything behind the glass is
+  displaced, because the whole face is doing the work rather than only its
+  edge.
+
+  This is the `magnify` term the map has always carried and never used: a
+  straight ramp along the inward normal, nothing at the centre, growing to
+  its full value at the rim. It pulls inward, toward the thick middle, so
+  every sample stays on the pane.
+
+  Only the knob. magnify is measured from the centre outward, and on a
+  rounded rectangle that traces the panel's own contour some distance into
+  the face — the pale shape that got dome and magnify dropped from the
+  cards in the first place. On a circle that contour is concentric with the
+  knob's own rim, so there is no shape to see: it is the knob. Cards keep
+  0 and their bevel.
+*/
+const KNOB_MAGNIFY = 0.18;
+const GENERIC_MAGNIFY = 0;
 const GENERIC_SPECULAR = 0;
 const NAV_ADAPTIVE_TINT = 0.12;
 const GENERIC_ADAPTIVE_TINT = 0;
@@ -276,6 +307,7 @@ type GenericBucket = {
   dispersion: number;
   tint: number;
   specular: number;
+  magnify: number;
   scale: number;
 };
 
@@ -291,8 +323,9 @@ function bucketKey(
   dispersion: number,
   tint: number,
   specular: number,
+  magnify: number,
 ) {
-  return [aspect, cornerRadius, bezelWidth, dispersion, tint, specular]
+  return [aspect, cornerRadius, bezelWidth, dispersion, tint, specular, magnify]
     .map((value) => value.toFixed(2))
     .join(":");
 }
@@ -322,7 +355,8 @@ function measureGenericPanes() {
     const dispersion = knob ? KNOB_DISPERSION : GENERIC_DISPERSION;
     const tint = pane.matches(NAV_TINT_SELECTOR) ? NAV_ADAPTIVE_TINT : GENERIC_ADAPTIVE_TINT;
     const specular = knob ? KNOB_SPECULAR : GENERIC_SPECULAR;
-    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion, tint, specular);
+    const magnify = knob ? KNOB_MAGNIFY : GENERIC_MAGNIFY;
+    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion, tint, specular, magnify);
     assignments.set(pane, key);
 
     if (buckets.has(key) || buckets.size >= GENERIC_MAX_BUCKETS) continue;
@@ -342,6 +376,7 @@ function measureGenericPanes() {
       dispersion,
       tint,
       specular,
+      magnify,
       scale: GENERIC_DISPLACEMENT_HEADROOM / scaleDivisor,
     });
   }
@@ -529,6 +564,7 @@ export default function GlassRefractionFilter() {
             aspect: bucket.aspect,
             cornerRadius: bucket.cornerRadius,
             bezelWidth: bucket.bezelWidth,
+            magnify: bucket.magnify,
             maxDisplacement: GENERIC_DISPLACEMENT_HEADROOM,
           },
           GENERIC_MAP_SIZE,
