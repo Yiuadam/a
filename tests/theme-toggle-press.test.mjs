@@ -87,3 +87,27 @@ test("the dragged knob is clear glass: reformation only, no frost and no glow", 
   // resolves to `none` and the whole thing is an invisible no-op.
   assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}\.theme-toggle-selector/);
 });
+
+test("the pressed knob has something behind it to bend", () => {
+  // The lens was correct, active, and completely invisible: a
+  // backdrop-filter can only bend what is painted beneath it, and the
+  // buttons carry Tailwind's z-10 while the knob's z-index is auto — so the
+  // icons painted on top of the knob and its backdrop was nothing but the
+  // track's own flat wash. Bending flat colour looks exactly like flat
+  // colour, which is the same trap that made a 56px blur hide the card
+  // lens.
+  //
+  // So the two swap places for the length of the press. Both halves are
+  // load-bearing and neither works alone, which is why both are pinned.
+  const icons = rule(".theme-toggle-base[data-pressed] .app-icon-control");
+  assert.match(icons, /z-index: 0;/);
+
+  const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
+  assert.match(pressedKnob, /z-index: 2;/);
+
+  // Idle keeps the icons on top, because the resting knob is frosted at
+  // 18px and an icon read through that is a smear, not a control.
+  const idleBase = css.match(/\n\.theme-toggle-base \{[\s\S]*?\n\}/);
+  assert.ok(idleBase);
+  assert.doesNotMatch(idleBase[0], /z-index/);
+});

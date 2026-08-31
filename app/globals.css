@@ -1711,7 +1711,31 @@ html[data-theme="dark"] .nav-menu-group {
   instead of hiding behind it. What stays is the rim, because an edge is
   what makes a clear thing findable at all.
 */
+/*
+  While pressed, the knob changes places with the icons.
+
+  A backdrop-filter can only bend what is painted beneath it, and the
+  buttons carry z-10 while the knob's z-index is auto — so the icons were
+  painting on top of the knob, leaving its backdrop as nothing but the
+  track's own flat translucent wash. Bending flat colour looks exactly like
+  flat colour, which is why the lens was measurably active and still
+  invisible: correct filter, nothing behind it to refract.
+
+  So for the length of the press the icons drop below the knob and the knob
+  rises above them, putting them into its backdrop where the displacement
+  can actually reach them. That is also the reference's own arrangement:
+  what you see through the glass is the shape behind it, reformed.
+
+  Only while pressed, because the idle knob is frosted at 18px: icons
+  underneath that would be a smear rather than a control. Above it they
+  stay crisp, which is what the resting state needs.
+*/
+.theme-toggle-base[data-pressed] .app-icon-control {
+  z-index: 0;
+}
+
 .theme-toggle-base[data-pressed] .theme-toggle-selector {
+  z-index: 2;
   scale: 1.12;
   background: transparent;
   border-color: color-mix(in srgb, var(--glass-specular) 62%, transparent);
