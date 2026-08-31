@@ -599,14 +599,23 @@ html[data-theme="dark"] body {
   will-change: transform;
   /* This does not redeclare the card's own background or blur — every one of
      the ~90 places that tune those directly on `.card` (dark theme, exam
-     mode, a hover state, a flattened context) keeps working untouched. A
-     small backdrop-filter here samples whatever that recipe already
-     produced, exactly the way `.isolate:has(...)` above forces its own
-     compositing layer without visibly adding blur of its own; `filter`
-     below then warps that already-correct material, not a second copy of
-     it. */
-  -webkit-backdrop-filter: blur(1px);
-  backdrop-filter: blur(1px);
+     mode, a hover state, a flattened context) keeps working untouched. The
+     backdrop-filter here only asks for a sample of whatever that recipe
+     already produced; `filter` below then warps that already-correct
+     material, rather than a second copy of it.
+
+     Zero radius, not the 1px this carried for months. The 1px was believed
+     to be what made WebKit commit the layer and so sample a backdrop at
+     all — it is not, the explicit translateZ(0) just above is, and this
+     rule already had both. So the blur was buying nothing and costing the
+     one thing the lens exists to produce: a line crossing the rim has to
+     come out bent but still a line, and blurring the sample first makes it
+     arrive as a smear that happens to be displaced. Proved on the theme
+     knob, which carried the same borrowed 1px: measured against a
+     deliberately loud border, mushy at 1px and a sharp kink at 0. Same
+     mechanism here, same fix. */
+  -webkit-backdrop-filter: blur(0px);
+  backdrop-filter: blur(0px);
   /* The same directional wall as the nav cards': bright where a light above
      and to the left would catch the curve, dark where it turns away and
      down. Built from the same theme tokens the card's own hairline already

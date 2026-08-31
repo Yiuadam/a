@@ -697,7 +697,18 @@ test("every plain content card gets the same rim/wall lens as the nav cards, wit
   // dozen or so contexts that set those directly on .card (dark theme, exam
   // mode, pricing, dashboard) stay exactly as they were.
   assert.doesNotMatch(before, /\n {2}background-color:/);
-  assert.match(before, /backdrop-filter: blur\(1px\)/);
+  // Zero radius. This asked for 1px for months on the belief that the blur
+  // was what made WebKit commit the layer and so sample a backdrop at all.
+  // It is not — the explicit translateZ(0) in the same rule is — so the
+  // blur bought nothing and cost the one thing the lens exists to produce:
+  // a line crossing the rim has to come out bent but still a line, and
+  // blurring the sample first makes it arrive as a smear that happens to be
+  // displaced. Proved on the theme knob, which carried the same borrowed
+  // value: measured against a deliberately loud border, mushy at 1px and a
+  // sharp kink at 0.
+  assert.match(before, /transform: translateZ\(0\);/);
+  assert.match(before, /backdrop-filter: blur\(0px\)/);
+  assert.doesNotMatch(before, /backdrop-filter: blur\((?!0px)/);
   assert.match(before, /radial-gradient\(/);
 
   // The SVG lens filter alone excludes .premade-glass.
