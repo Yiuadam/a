@@ -129,9 +129,18 @@ const GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH;
 
   Real glass with a flat face and a rounded edge does not do that: the
   middle shows what is behind it undisturbed and only the rim compresses.
-  0.3 confines the bend to the outer 30% of the radius, so the centre is
-  provably inert — the map's centre pixel is exactly 128,128 — and the
+  A narrower band confines the bend to the outer part of the radius, so the
+  centre stays inert — the map's centre pixel is exactly 128,128 — and the
   background reforms only where the surface actually turns.
+
+  How narrow, though, is a trade the eye settles rather than the maths. At
+  0.14 the bend peaked at 1.8px on a 42px knob, which is a hairline: the
+  band was there, it was measurable, and it was not visible. The bend is
+  held to the distance still available before a sample would fall off the
+  pane, so widening the band is the only way to buy more of it — 0.5 peaks
+  around 5px and spreads it across a broad ring, which is what a thick
+  circle actually looks like. The centre is still flat; there is simply
+  more edge for the background to turn through.
 
   Cards keep GENERIC_BEZEL_WIDTH. This is a second bezel width in the same
   system, not a change to the first, and it is keyed into the bucket key so
@@ -141,7 +150,7 @@ const GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH;
    sections and the notification filter carry `.segmented-knob` alongside
    their own class so they read as the same material. */
 const KNOB_SELECTOR = ".theme-toggle-selector, .segmented-knob";
-const KNOB_BEZEL_WIDTH = 0.14;
+const KNOB_BEZEL_WIDTH = 0.5;
 /*
   How much harder blue bends than red, as a fraction of the green bend.
 
@@ -270,8 +279,14 @@ const KNOB_SPECULAR = 3;
   cards in the first place. On a circle that contour is concentric with the
   knob's own rim, so there is no shape to see: it is the knob. Cards keep
   0 and their bevel.
+
+  Kept small on purpose. Raising it to 0.5 does displace hard — 10px on a
+  42px knob — but it drags the rim's own highlight inward across the entire
+  face, and the disc turns into a bright wash with the background lost
+  behind it. More displacement, less visible refraction. The bevel band is
+  the honest lever for making the bend easier to see; this stays a garnish.
 */
-const KNOB_MAGNIFY = 0.18;
+const KNOB_MAGNIFY = 0.2;
 /*
   The knob eases its bevel's handover to the flat face; cards do not.
 

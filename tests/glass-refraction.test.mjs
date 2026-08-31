@@ -366,19 +366,27 @@ test("the theme knob keeps a flat face and bends only at its rim", () => {
       maxDisplacement,
     });
     let reach = 0;
+    let peak = 0;
     for (let dx = 0; dx < size / 2; dx += 1) {
       const bend = Math.abs(pixel(map, size, size - 1 - dx, row)[0] - 128) / 127;
       if (bend > 0.02) reach = dx;
+      peak = Math.max(peak, bend);
     }
-    return { map, reach: reach / (size / 2) };
+    return { map, reach: reach / (size / 2), peak };
   };
 
-  const knob = band(0.14);
+  const knob = band(0.5);
   const slab = band(0.85);
 
-  // A thin outer ring, not a third of the face: the middle has to read as
-  // plain open glass, with only the very edge doing anything.
-  assert.ok(knob.reach < 0.2, `knob bend should hug the rim, reached ${knob.reach}`);
+  // An outer ring, not the whole disc: the middle still has to read as plain
+  // open glass. This started at 0.14, which kept the centre flat but peaked
+  // at under a fifth of the available displacement — a bend that measured
+  // but could not be seen. The bend is held to what is available before a
+  // sample falls off the pane, so a wider band is the only way to buy more
+  // of it, and 0.5 roughly doubles the peak while still leaving the inner
+  // half untouched.
+  assert.ok(knob.reach <= 0.55, `knob bend should stay a ring, reached ${knob.reach}`);
+  assert.ok(knob.peak > 0.45, `knob bend should be worth seeing, peaked ${knob.peak}`);
   // And the slab width really would have bent nearly the whole disc — this
   // is the bug being prevented, not a hypothetical.
   assert.ok(slab.reach > 0.8, `0.85 on a circle should reach deep, got ${slab.reach}`);
@@ -386,12 +394,12 @@ test("the theme knob keeps a flat face and bends only at its rim", () => {
   // The face is provably inert, not merely tuned small: dead centre, and
   // well inside the flat region, both sit exactly on the neutral value.
   assert.deepEqual(pixel(knob.map, size, size / 2, row), [128, 128, 128, 255]);
-  assert.deepEqual(pixel(knob.map, size, Math.floor(size * 0.62), row), [128, 128, 128, 255]);
+  assert.deepEqual(pixel(knob.map, size, Math.floor(size * 0.7), row), [128, 128, 128, 255]);
 
   // The knob asks for its own bezel by name, and it is keyed into the bucket
   // so it can never share a filter with a square card that happens to
   // measure the same shape.
-  assert.match(filter, /const KNOB_BEZEL_WIDTH = 0\.14;/);
+  assert.match(filter, /const KNOB_BEZEL_WIDTH = 0\.5;/);
     // Now every option bar's knob, not just the theme control's — see
   // tests/segmented-controls.test.mjs.
   assert.match(filter, /KNOB_SELECTOR = "\.theme-toggle-selector, \.segmented-knob"/);
@@ -853,7 +861,7 @@ test("the knob lenses its whole face, so nothing inside stays where it was", () 
   // straight ramp along the inward normal, nothing at the centre, growing to
   // its full value at the rim. It pulls inward, so every sample stays on the
   // pane.
-  assert.match(filter, /const KNOB_MAGNIFY = 0\.18;/);
+  assert.match(filter, /const KNOB_MAGNIFY = 0\.2;/);
   assert.match(filter, /const GENERIC_MAGNIFY = 0;/);
   assert.match(filter, /const magnify = knob \? KNOB_MAGNIFY : GENERIC_MAGNIFY;/);
   assert.match(filter, /magnify: bucket\.magnify,/);
@@ -868,8 +876,8 @@ test("the knob lenses its whole face, so nothing inside stays where it was", () 
   const circle = glassRefractionModule.createGlassRefractionMap(size, {
     aspect: 1,
     cornerRadius: 0.98,
-    bezelWidth: 0.14,
-    magnify: 0.18,
+    bezelWidth: 0.5,
+    magnify: 0.2,
     maxDisplacement: 0.97 / Math.sqrt(2 * 2),
   });
   const at = (x, y) => pixel(circle, size, x, y).slice(0, 2).map((c) => c - 128);
@@ -897,8 +905,8 @@ test("the knob's bevel eases its handover, while cards keep their depth", () => 
   const shape = {
     aspect,
     cornerRadius: 0.98,
-    bezelWidth: 0.14,
-    magnify: 0.18,
+    bezelWidth: 0.5,
+    magnify: 0.2,
     maxDisplacement: 0.97 / Math.sqrt(2 * (aspect * aspect + 1)),
   };
   const creaseOf = (innerEase) => {
