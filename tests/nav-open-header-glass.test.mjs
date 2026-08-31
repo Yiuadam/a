@@ -52,7 +52,14 @@ test("opening navigation keeps a real liquid-glass header surface", () => {
   // than a deliberate divider.
   assert.match(openHeader, /border-color:\s*transparent\s*;/);
   assert.match(openHeader, /isolation:\s*isolate\s*;/);
-  assert.match(openHeader, /background:\s*color-mix\(in srgb, var\(--glass-fill\) 45%, transparent\)\s*;/);
+  // The bar is painted with the same scrim as the sheet below it, and
+  // declares it, because .nav-paper is this element's own child and has to
+  // inherit the identical value. Drifting apart is what went wrong before:
+  // the sheet was dimmed to give the cards something to stand out from and
+  // the bar was not, which left a bright strip across the top of a dimmed
+  // page reading as a piece of a different screen.
+  assert.match(openHeader, /--nav-scrim:\s*color-mix\(in srgb, rgb\(28, 20, 14\) 10%, transparent\);/);
+  assert.match(openHeader, /background:\s*var\(--nav-scrim\)\s*;/);
   assert.match(openHeader, /box-shadow:\s*[\s\S]*?var\(--glass-highlight\) 45%/);
   assert.match(openHeaderContent, /position:\s*relative\s*;/);
   assert.match(openHeaderContent, /z-index:\s*1\s*;/);

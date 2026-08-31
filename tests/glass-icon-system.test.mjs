@@ -108,15 +108,22 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
   // colour on top. But it does carry a real, uniform blur so the gaps
   // between cards read as a soft glow, not legible page text just because
   // no card happens to cover that spot.
-  assert.match(css, /\.nav-paper \{[^}]*background: transparent;/);
+  // The sheet now carries a scrim rather than nothing. Blur alone does not
+  // separate the cards from their ground: everything under the sheet is
+  // already soft, and cards made of the same light material on a field of
+  // the same brightness read as one continuous surface. Taking the ground
+  // down slightly gives them an edge to be forward of.
+  assert.match(css, /\.nav-paper \{[^}]*background: var\(--nav-scrim, transparent\);/);
   assert.match(css, /\.nav-paper \{[^}]*backdrop-filter: blur\(14px\);/);
   // .nav-paper also carries the .premade-glass class, which light/dark
   // theme rules elsewhere paint with a real background colour — this
-  // explicit reset, placed after those rules, is what actually keeps the
-  // sheet transparent in every theme, not only the unthemed default one.
+  // explicit rule, placed after those, is what actually decides the sheet
+  // in every theme rather than only the unthemed default. It has to hand
+  // back the same scrim, not `transparent`: returning nothing here dimmed
+  // the sheet in one theme and left it clear in the other two.
   assert.match(
     css,
-    /html\[data-theme="light"\] \.nav-paper,\nhtml\[data-theme="dark"\] \.nav-paper \{\n {2}background: transparent;\n\}/,
+    /html\[data-theme="light"\] \.nav-paper,\nhtml\[data-theme="dark"\] \.nav-paper \{[\s\S]*?background: var\(--nav-scrim, transparent\);\n\}/,
   );
   // A soft warm glow spread across the whole sheet, at a fraction of each
   // card's own — so the glow reads as bathing the panel the cards sit in,
@@ -136,7 +143,9 @@ test("navigation keeps its fixed glass surface, and grows outward from the butto
 
   assert.match(header, /className="nav-menu-group liquid-glass/);
   assert.match(header, /className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-\[var\(--header-h\)\]/);
-  assert.match(panel, /background: transparent;/);
+  // The sheet is painted with the scrim it inherits from the open header,
+  // which is what gives the cards on it something to stand out from.
+  assert.match(panel, /background: var\(--nav-scrim, transparent\);/);
   // The base rule stays motion-inert; the grow lives entirely in the
   // reduced-motion-gated block below, same as every other glass panel.
   assert.doesNotMatch(panel, /\banimation(?:-\w+)?:/);

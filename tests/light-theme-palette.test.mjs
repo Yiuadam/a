@@ -73,7 +73,12 @@ test("Light's canvas is a flat light blue, and its glass carries no colour of it
     /html\[data-theme="light"\] \.nav-menu-group \{[\s\S]*?\n\}/,
   )?.[0];
   assert.ok(lightNavGroupColors, "expected a Light override for .nav-menu-group");
-  assert.match(lightNavGroupColors, /--nav-tint:\s*color-mix\(in srgb, var\(--color-background\) 3%, transparent\);/);
+  // Raised from 3% alongside the sheet's scrim. The two move together by
+  // necessity: a translucent card sitting on a dimmed ground goes down with
+  // the ground, so lifting the card off it means the card's own fill has to
+  // come up by about as much as the ground went down. Move only one and the
+  // pair travels together and nothing separates.
+  assert.match(lightNavGroupColors, /--nav-tint:\s*color-mix\(in srgb, var\(--color-background\) 22%, transparent\);/);
   assert.match(lightNavGroupColors, /--nav-wall-light:\s*color-mix\(in srgb, white 35%, transparent\);/);
   assert.match(lightNavGroupColors, /--nav-wall-shade:\s*color-mix\(in srgb, black 10%, transparent\);/);
   assert.match(lightNavGroupColors, /--nav-wall-shade-soft:\s*color-mix\(in srgb, black 5%, transparent\);/);

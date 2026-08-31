@@ -386,6 +386,22 @@ html[data-theme="light"] body {
 
 html[data-theme="dark"] body {
   --glass-fill: rgba(255, 255, 255, 0.035);
+  /*
+    Cards carry a heavier fill than the rest of the glass in this theme, and
+    only in this theme.
+
+    The same separation the navigation menu got — the cards lifted a little
+    off their ground so the eye settles on them — cannot be had here by
+    dimming the ground, because on the home page the ground is the page
+    itself and dimming it would take every other surface down with it. So
+    only the card half of that pair moves.
+
+    Dark is where it is needed. 3.5% white over a #111113 page is about a
+    two-point difference in luminance, which is a card you have to look for;
+    Warm and Light already sit well clear of their own much lighter pages
+    and get no override, so their cards keep the shared fill.
+  */
+  --card-fill: rgba(255, 255, 255, 0.075);
   --glass-fill-strong: rgba(255, 255, 255, 0.07);
   --glass-edge: rgba(255, 255, 255, 0.115);
   --glass-highlight: rgba(255, 255, 255, 0.12);
@@ -436,6 +452,14 @@ html[data-theme="dark"] body {
    sets position some other way — it only supplies a default. */
 .card {
   position: relative;
+  /* A card may sit a little lighter than the rest of the glass, where its
+     theme asks for it — see --card-fill in the dark block above, which is
+     the only theme that sets one. Declared here rather than in the shared
+     rule with .liquid-glass, because it is cards that need to read as
+     objects lifted off the page; the other glass surfaces are chrome and
+     should stay level with it. Falls back to the shared fill, so a theme
+     that says nothing is unchanged. */
+  background: var(--card-fill, var(--glass-fill));
 }
 
 /*
@@ -616,22 +640,22 @@ html[data-theme="dark"] body {
      used, so it re-tints itself automatically in dark theme, exam mode, or
      any future theme without a second copy of these rules.
 
-     The top highlight is a tight, bright streak rather than a soft wash: a
-     small ellipse held close to the top edge, peaking near full strength and
-     falling away hard within a third of its own radius — a mirror-like catch
-     of light on the curve, the way the reference glass reads, rather than an
-     ambient glow spread across the card's whole upper third. Shrinking the
-     highlight's own footprint like this leaves more of the card genuinely
-     clear, which is also what a direct "more transparent" request already
-     asked for elsewhere on this same wall — concentrating the light instead
-     of spreading it thin serves both asks together. */
+     The top highlight is gone, and only the shading is left.
+
+     It was an ellipse hung off the top edge — `50% 36% at 50% -8%`, the
+     same figure the nav menu carried — and however it was described, what
+     it painted on screen was a pale patch across the upper third of every
+     card. It had already been shrunk once for reading as an ambient glow
+     rather than a catch of light, on the argument that concentrating it
+     would leave more of the card clear. Concentrating it made it smaller
+     and no less of a patch: the shape is the problem, not its radius.
+
+     A white wash laid over a backdrop is the opposite of glass you can see
+     through, which is what these surfaces are for. The card is now lit only
+     by its own rim (see ::after) and shaded from below and the sides, and
+     the light that reaches it comes from the page behind rather than from
+     a gradient drawn on top. */
   background:
-    radial-gradient(
-      50% 36% at 50% -8%,
-      color-mix(in srgb, var(--glass-specular) 96%, transparent) 0%,
-      color-mix(in srgb, var(--glass-specular) 58%, transparent) 32%,
-      transparent 60%
-    ),
     radial-gradient(
       150% 140% at 50% 130%,
       color-mix(in srgb, var(--glass-edge-dark) 60%, transparent),
@@ -1077,7 +1101,27 @@ html[data-theme="dark"] .google-signin-glass {
   isolation: isolate;
   overflow-x: hidden;
   overflow-y: auto;
-  background: transparent;
+  /*
+    A scrim, so the cards have something to stand out from.
+
+    Blur alone does not separate them: everything under this sheet is
+    already soft, and cards made of the same light material sitting on a
+    field of the same brightness read as one continuous surface. Taking the
+    ground down a little is what gives the cards an edge to be forward of.
+
+    Kept deliberately slight — the point is that the eye settles on the
+    cards, not that the page behind is hidden. It is also why the card's own
+    tint comes up at the same time (see --nav-tint): move only the ground
+    and the cards go down with it, because they are translucent and sit on
+    top of this. The separation is the difference between the two, so both
+    halves have to move.
+
+    Declared on .nav-open-header rather than here, because the header is
+    this sheet's parent and needs the identical value: the bar was the one
+    surface left at full brightness, and a bright strip across the top of a
+    dimmed page reads as a piece of a different screen.
+  */
+  background: var(--nav-scrim, transparent);
   /* A real, uniform blur across the whole sheet — not just a tiny
      Safari-compositing-layer shim — so the page behind reads as a rough
      layout of soft shapes wherever it shows, including the gaps between
@@ -1249,10 +1293,17 @@ html[data-theme="dark"] .nav-paper {
      inherit to a real sibling child the way one set on the element itself
      does. Values themselves are unchanged; only where they are declared
      moved. */
+  /* 26% of the page colour rather than 6%. The sheet behind these cards now
+     carries a scrim (see --nav-scrim), and a translucent card sitting on a
+     dimmed ground goes down with it — so the card's own fill has to come up
+     by roughly as much as the ground went down, or the two move together
+     and nothing separates. This is the half that makes the card the lighter
+     of the two; it is still well short of opaque, so the page stays legible
+     through it. */
   --nav-tint: color-mix(
     in srgb,
     rgb(142, 104, 78) 2.5%,
-    color-mix(in srgb, var(--color-background) 6%, transparent)
+    color-mix(in srgb, var(--color-background) 26%, transparent)
   );
   --nav-wall-light: color-mix(in srgb, white 55%, transparent);
   --nav-wall-shade: color-mix(in srgb, rgb(40, 30, 22) 20%, transparent);
@@ -1440,10 +1491,14 @@ html[data-theme="dark"] .nav-menu-group {
      contrast survives as a visibly rectangular, harder-edged patch rather
      than reading as a clean, even wash of light. This floor is high enough
      to mute that without flattening the card into an opaque tile. */
+  /* Raised alongside the scrim, for the reason on the base value above: the
+     ground moved down, so the card has to move up or they travel together.
+     Dark starts from a higher floor than the other themes and keeps that
+     lead — the reason for the floor is in the comment just above. */
   --nav-tint: color-mix(
     in srgb,
     rgb(142, 104, 78) 3%,
-    color-mix(in srgb, var(--color-background) 14%, transparent)
+    color-mix(in srgb, var(--color-background) 32%, transparent)
   );
   --nav-wall-light: color-mix(in srgb, white 26%, transparent);
   --nav-wall-shade: color-mix(in srgb, black 30%, transparent);
@@ -1520,6 +1575,18 @@ html[data-theme="dark"] .nav-menu-group {
      viewport-relative. */
   isolation: isolate;
   /*
+    The scrim both this bar and the sheet below it are painted with. It is
+    declared here because .nav-paper is this element's own child, so one
+    value reaches both and they cannot drift apart — and drifting apart is
+    exactly what went wrong: the sheet was dimmed to give the cards
+    something to stand out from and the bar was not, which left a bright
+    strip across the top reading as a piece of a different screen.
+
+    Slight on purpose. The cards are meant to come forward a little, not the
+    page to disappear.
+  */
+  --nav-scrim: color-mix(in srgb, rgb(28, 20, 14) 10%, transparent);
+  /*
     The closed header's border-b earns its keep against an opaque bar. Open,
     it sits directly above a sheet that is now mostly clear (.nav-paper's
     9% tint, 2px blur) — a solid line at that seam reads as a stray artifact
@@ -1527,7 +1594,7 @@ html[data-theme="dark"] .nav-menu-group {
     there is barely any material left on either side of it to divide.
   */
   border-color: transparent;
-  background: color-mix(in srgb, var(--glass-fill) 45%, transparent);
+  background: var(--nav-scrim);
   /* Just the inset highlight along the header's own top edge — the
      ::before layer below already paints the same drop shadow at this
      element's bottom edge (the header/sheet seam), and the two stacked on
@@ -2319,6 +2386,28 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   will-change: transform;
 }
 
+/*
+  The skill capsule's icon sits at the capsule's middle height, at every
+  size.
+
+  It used to be top-aligned with a small nudge down (`items-start` on its
+  row plus an `mt-0.5` on the glyph), which lines it up with the title
+  rather than with the capsule. That reads as slightly high whenever the
+  subtitle is on its own line, and worse as the capsule grows — and the
+  capsule grows whenever the subtitle wraps, which is a width question, so
+  the misalignment changed with the window.
+
+  Centring was already written for this and was sitting inside a
+  `max-width: 480px` block, so it was true on a phone and false everywhere
+  else. It belongs here, unconditionally: `align-self` centres the glyph
+  against its row whatever that row's height turns out to be, so there is no
+  size at which it drifts and no breakpoint to keep in step. The title and
+  its subtitle stay top-aligned, which is what keeps them reading as a block.
+*/
+.dashboard-card-icon {
+  align-self: center;
+}
+
 .dashboard-screen {
   display: flex;
   min-height: 0;
@@ -2481,10 +2570,6 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   .dashboard-skill-card > .premade-glass-content {
     width: 100%;
     align-items: center;
-  }
-  .dashboard-card-icon {
-    align-self: center;
-    margin-top: 0;
   }
   body[data-viewport-locked] footer p {
     display: none;
@@ -3894,7 +3979,11 @@ html[data-theme="dark"] .card:focus-within {
 
 
 html[data-theme="dark"] .nav-open-header {
-  background: color-mix(in srgb, var(--glass-fill) 45%, transparent);
+  /* The scrim, same as the sheet below it — see --nav-scrim. This theme had
+     its own fill here, which is exactly how the bar and the sheet came to
+     disagree: dimming one and not the other leaves a strip across the top
+     reading as a piece of a different screen. */
+  background: var(--nav-scrim);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 45%, transparent);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -4188,7 +4277,11 @@ html[data-theme="light"] body[data-glass-lab] {
   with the page's own background as the only colour in the mix.
 */
 html[data-theme="light"] .nav-menu-group {
-  --nav-tint: color-mix(in srgb, var(--color-background) 3%, transparent);
+  /* Raised alongside the scrim — same reasoning as the base value: a
+     translucent card on a dimmed ground goes down with the ground unless
+     its own fill comes up. Light's page colour is a pale blue wash, so the
+     same proportion reads cooler here than Warm's cream does. */
+  --nav-tint: color-mix(in srgb, var(--color-background) 22%, transparent);
   /* The wall's own shade was mixed from a warm near-black (rgb(40, 30, 22))
      rather than true black — invisible next to Warm's cream paper, but a
      second source of colour once the backdrop is Light's own blue wash.
@@ -4255,10 +4348,20 @@ html[data-theme="light"] .interval-toggle-base,
 html[data-theme="light"] .notification-filter-base,
 html[data-theme="light"] .panel-toggle-base,
 html[data-theme="light"] .organization-view-tabs,
-html[data-theme="light"] .nav-open-header,
 html[data-theme="light"] .input {
   border-color: var(--color-indigo-300);
   background: color-mix(in srgb, var(--color-indigo-100) 46%, transparent);
+}
+
+/* The open header keeps this theme's border but takes the scrim for its
+   fill, so the bar and the sheet below it are the same surface — see
+   --nav-scrim. It was in the list above and is pulled out rather than left
+   there, because that list is control chrome (toggles, inputs, tabs) and
+   this is the one member of it that has a whole dimmed page hanging off its
+   bottom edge. */
+html[data-theme="light"] .nav-open-header {
+  border-color: var(--color-indigo-300);
+  background: var(--nav-scrim);
 }
 
 html[data-theme="light"] .btn-secondary {
@@ -4340,6 +4443,24 @@ html[data-theme="dark"] .input {
 }
 
 /*
+  Cards take the heavier fill this theme sets for them — see --card-fill.
+
+  It has to be repeated here, after the two dark rules above that list
+  `.card` among many other selectors and paint them all with the shared
+  --glass-fill. Both outrank the plain `.card` rule that introduces
+  --card-fill, so without this the token resolves correctly, inherits
+  correctly, and is then overwritten. Same specificity as those two and
+  later in the file, which is what decides it.
+
+  Only .card. The other selectors in those lists are chrome — headers,
+  toggles, inputs — and should stay level with the page rather than lifting
+  off it.
+*/
+html[data-theme="dark"] .card {
+  background: var(--card-fill, var(--glass-fill));
+}
+
+/*
   .nav-paper also carries the .premade-glass class (shared layout styling
   unrelated to this), which the generic light/dark theme rules above (and
   another at the top of this file) paint with a real background colour.
@@ -4349,7 +4470,12 @@ html[data-theme="dark"] .input {
 */
 html[data-theme="light"] .nav-paper,
 html[data-theme="dark"] .nav-paper {
-  background: transparent;
+  /* The scrim, not `transparent`. This rule exists because .nav-paper also
+     carries .premade-glass, which the theme rules above paint with a real
+     colour — it has to keep winning that, and it does, but it must hand
+     back the same value the untimed rule sets rather than nothing, or the
+     sheet is dimmed in the default theme and clear in the other two. */
+  background: var(--nav-scrim, transparent);
 }
 
 html[data-theme="dark"] .theme-toggle-selector,

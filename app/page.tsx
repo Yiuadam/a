@@ -426,7 +426,7 @@ export default function Dashboard() {
                     <div key={m.key} className="dashboard-skill-card card premade-glass relative p-3.5 cursor-wait opacity-60" aria-busy="true">
                       <LoadingIndicator label="Checking access…" className="absolute right-3 top-3 z-10 text-sm text-indigo-600" textClassName="sr-only" />
                       <div className="premade-glass-content flex items-start gap-2.5">
-                        <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                        <Icon name={m.icon} className="dashboard-card-icon h-5 w-5 shrink-0 text-indigo-600" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <h3 className="text-base font-semibold text-slate-900 sm:text-sm">{m.label}</h3>
@@ -444,7 +444,7 @@ export default function Dashboard() {
                     <LockedCard key={m.key} reason={skill.reason} label={`${m.label} practice`} fill>
                       <div className="dashboard-skill-card card premade-glass p-3.5 h-full">
                         <div className="premade-glass-content flex items-start gap-2.5">
-                          <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                          <Icon name={m.icon} className="dashboard-card-icon h-5 w-5 shrink-0 text-indigo-600" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
                               <h3 className="text-base font-semibold text-slate-900 sm:text-sm">{m.label}</h3>
@@ -466,7 +466,7 @@ export default function Dashboard() {
                   >
                     <div className="premade-glass-content flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-start gap-2.5">
-                        <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                        <Icon name={m.icon} className="dashboard-card-icon h-5 w-5 shrink-0 text-indigo-600" />
                         <div className="min-w-0">
                           <h3 className="text-base font-semibold text-slate-900 sm:text-sm">{m.label}</h3>
                           <CardBlurb short={m.shortBlurb} full={m.blurb} />
@@ -505,7 +505,7 @@ export default function Dashboard() {
                   <IntentPrefetchLink key={s.href} href={s.href} className="dashboard-skill-card card premade-glass p-3.5 block">
                     <div className="premade-glass-content flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-start gap-2.5">
-                        <Icon name={s.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                        <Icon name={s.icon} className="dashboard-card-icon h-5 w-5 shrink-0 text-indigo-600" />
                         <div className="min-w-0">
                           <h3 className="text-base font-semibold text-slate-900 sm:text-sm">{s.label}</h3>
                           <CardBlurb short={s.shortBlurb} full={s.blurb} />
