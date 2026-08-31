@@ -22,20 +22,42 @@ export default function ThemeToggle() {
      this is the finger actually being down, which is what the knob's bloom
      and its clear-glass state are answering. */
   const [pressed, setPressed] = useState(false);
+  /*
+    Where the knob actually is under the finger, as a fractional stop.
+
+    A drag used to move it in whole stops, so it jumped between three fixed
+    positions and sat still in between — and a lens that never moves has
+    nothing new to bend. Carrying the position as a fraction of the same
+    --theme-index the CSS already multiplies by the stop pitch means the
+    knob tracks the pointer continuously, and every frame of that movement
+    re-samples a different piece of the background through the rim.
+  */
+  const [dragPosition, setDragPosition] = useState<number | null>(null);
   const dragging = useRef(false);
   const dragIndex = useRef<number | null>(null);
   const selectedIndex = Math.max(0, THEMES.findIndex((option) => option.id === theme));
   const visibleIndex = previewIndex ?? selectedIndex;
+  /* The fraction wins only while the finger is down; releasing hands the
+     knob back to whole stops so it settles onto the choice. */
+  const knobPosition = dragPosition ?? visibleIndex;
 
-  const indexAtPointer = (event: PointerEvent<HTMLDivElement>) => {
+  /* The pointer's position in stop units. Half a stop is subtracted because
+     the knob is placed by its left edge while the pointer aims at its
+     middle, and it is clamped to the real stops so the knob never travels
+     past either end of the track. */
+  const positionAtPointer = (event: PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const index = Math.floor(((event.clientX - rect.left) / rect.width) * THEMES.length);
-    return Math.max(0, Math.min(THEMES.length - 1, index));
+    const raw = ((event.clientX - rect.left) / rect.width) * THEMES.length - 0.5;
+    return Math.max(0, Math.min(THEMES.length - 1, raw));
   };
 
   const previewAtPointer = (event: PointerEvent<HTMLDivElement>) => {
-    const index = indexAtPointer(event);
+    const position = positionAtPointer(event);
+    /* Rounded, not floored: the stop the knob is nearest to is the one it
+       looks like it is on, and that has to be the one a release commits. */
+    const index = Math.round(position);
     dragIndex.current = index;
+    setDragPosition(position);
     setPreviewIndex(index);
   };
 
@@ -46,7 +68,7 @@ export default function ThemeToggle() {
       data-flowing={previewIndex !== null ? "" : undefined}
       data-pressed={pressed ? "" : undefined}
       className="theme-toggle-base premade-glass relative flex touch-none items-center gap-0.5 overflow-hidden rounded-xl p-0.5"
-      style={{ "--theme-index": visibleIndex } as CSSProperties}
+      style={{ "--theme-index": knobPosition } as CSSProperties}
       onPointerDown={(event) => {
         dragging.current = true;
         setPressed(true);
@@ -61,6 +83,7 @@ export default function ThemeToggle() {
         previewAtPointer(event);
         dragging.current = false;
         setPressed(false);
+        setDragPosition(null);
         const index = dragIndex.current;
         if (index !== null) setTheme(THEMES[index].id);
         dragIndex.current = null;
@@ -70,6 +93,7 @@ export default function ThemeToggle() {
       onPointerCancel={() => {
         dragging.current = false;
         setPressed(false);
+        setDragPosition(null);
         dragIndex.current = null;
         setPreviewIndex(null);
       }}

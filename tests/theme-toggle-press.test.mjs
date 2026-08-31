@@ -117,6 +117,40 @@ test("the dragged knob is clear glass: reformation only, no frost and no glow", 
   assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}\.theme-toggle-selector/);
 });
 
+test("the knob tracks the finger continuously, so the lens has something new to bend", () => {
+  // A drag used to move the knob in whole stops: it jumped between three
+  // fixed positions and sat still in between. A lens that does not move has
+  // nothing new to sample, so the refraction was effectively a still image
+  // that changed twice across a whole gesture.
+  //
+  // The position is now carried as a fraction of the same --theme-index the
+  // CSS already multiplies by the stop pitch, so no new geometry is needed
+  // and the knob follows the pointer frame by frame.
+  assert.match(toggle, /const \[dragPosition, setDragPosition\] = useState<number \| null>\(null\)/);
+  assert.match(toggle, /const knobPosition = dragPosition \?\? visibleIndex;/);
+  assert.match(toggle, /"--theme-index": knobPosition/);
+  // Not floored to a stop — the raw fractional position is what is stored.
+  assert.match(toggle, /const raw = \(\(event\.clientX - rect\.left\) \/ rect\.width\) \* THEMES\.length - 0\.5;/);
+  assert.match(toggle, /setDragPosition\(position\)/);
+  // Rounded for the commit, so releasing picks the stop it looks nearest.
+  assert.match(toggle, /const index = Math\.round\(position\);/);
+  // The fraction is only for the duration of the gesture; release and
+  // cancel both hand the knob back to whole stops to settle.
+  assert.match(toggle, /onPointerUp[\s\S]{0,400}setDragPosition\(null\)/);
+  assert.match(toggle, /onPointerCancel[\s\S]{0,300}setDragPosition\(null\)/);
+
+  // And the glide must not apply during the drag, or the knob chases the
+  // pointer several frames behind and the lens is always somewhere the
+  // finger is not — which reads as lag, not as glass. Everything else keeps
+  // its easing, so the bloom and the turn to clear glass still ease in.
+  const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
+  assert.match(pressedKnob, /transition:/);
+  assert.doesNotMatch(pressedKnob, /transition:[^;]*translate/);
+  assert.match(pressedKnob, /transition:[\s\S]*?transform 200ms/);
+  // The resting knob still glides between stops on release.
+  assert.match(rule(".theme-toggle-selector"), /transition:[\s\S]*?translate 440ms/);
+});
+
 test("the pressed knob disperses at its rim, the way the reference glass does", () => {
   // A real lens bends short wavelengths harder than long ones, so its edge
   // splits white light into a spectrum. feDisplacementMap cannot: it moves
