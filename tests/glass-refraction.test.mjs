@@ -278,6 +278,70 @@ test("a straight ramp spreads the centre so the middle is not inert", () => {
   );
 });
 
+test("the card reads as a thick slab: a wide roll-over band around a flat middle", () => {
+  // The thick slab's defining property, and the thing that separates it from
+  // a thin sheet with a bevel stuck round it: how far in from the rim the
+  // glass starts turning over. A narrow band keeps the roll-over in the last
+  // few percent — a sheet with a sharp border, however hard it bends there.
+  //
+  // Pinned as a measurement rather than as the constant alone, because the
+  // constant on its own does not say what it buys. Both halves matter: the
+  // band has to be wide, and the middle has to stay flat — a bevel is a
+  // function of distance from the rim, so widening it must never start
+  // pulling the centre the way the old centre-referenced dome did.
+  const size = 256;
+  const aspect = 1.4;
+  const shape = { aspect, cornerRadius: 0.12 };
+  const maxDisplacement = 0.97 / Math.sqrt(2 * (aspect * aspect + 1));
+  const row = size / 2;
+
+  const measure = (bezelWidth) => {
+    const map = glassRefractionModule.createGlassRefractionMap(size, {
+      ...shape,
+      bezelWidth,
+      maxDisplacement,
+    });
+    let band = 0;
+    let peak = 0;
+    let peakAt = 0;
+    for (let dx = 0; dx < size / 2; dx += 1) {
+      const bend = Math.abs(pixel(map, size, size - 1 - dx, row)[0] - 128) / 127;
+      if (bend > 0.02) band = dx;
+      if (bend > peak) {
+        peak = bend;
+        peakAt = dx;
+      }
+    }
+    return { band: band / (size / 2), peak, peakAt: peakAt / (size / 2) };
+  };
+
+  const slab = measure(0.85);
+  const sheet = measure(0.35);
+
+  // The band reaches well past half way in from the rim, and bends much
+  // harder, rather than hugging the edge.
+  assert.ok(slab.band > 0.5, `slab band should span over half the face, got ${slab.band}`);
+  assert.ok(slab.band > sheet.band * 2, "the slab's band should be far wider than a thin sheet's");
+  assert.ok(slab.peak > sheet.peak, "the slab should bend harder than a thin sheet");
+
+  // The steepest bend still sits out near the rim, where a real slab's edge
+  // rolls down to its underside — not relocated into the face.
+  assert.ok(slab.peakAt < 0.35, `the sharpest bend should stay near the rim, got ${slab.peakAt}`);
+
+  // And the middle is genuinely inert, which is the guarantee the bevel gives
+  // and the dome could not.
+  assert.deepEqual(pixel(
+    glassRefractionModule.createGlassRefractionMap(size, {
+      ...shape,
+      bezelWidth: 0.85,
+      maxDisplacement,
+    }),
+    size,
+    size / 2,
+    size / 2,
+  ), [128, 128, 128, 255]);
+});
+
 test("the bend never asks for a sample from beyond the pane's edge", () => {
   // A pane can only refract what is behind it. The bevel bends outward, so a
   // sample taken further out than the rim lands outside the element, where the
@@ -446,7 +510,12 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // profile is purely a function of distance from the rim, evaluated only
   // inside its own band width, so nothing about it reaches back toward the
   // centre — a uniform ring of bend around a provably flat, inert middle.
-  assert.match(filter, /NAV_BEZEL_WIDTH = 0\.35;/);
+  // 0.85 is the thick slab's own thickness, carried over to the band width:
+  // both are fractions of the pane's half-height, so the roll-over starts as
+  // far in as it did then — a wide compressed band all the way round rather
+  // than a thin sheet — but measured from the rim, which is what keeps the
+  // dome's circle from coming back with it.
+  assert.match(filter, /NAV_BEZEL_WIDTH = 0\.85;/);
   assert.doesNotMatch(filter, /NAV_MAGNIFY|NAV_DOME|NAV_THICKNESS/);
   // The scale is derived from the measured box, not a constant: bounded by
   // the pane's half-height while objectBoundingBox resolves it against the

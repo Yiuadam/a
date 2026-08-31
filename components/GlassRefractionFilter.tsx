@@ -34,8 +34,25 @@ const FILTER_ID = "bandup-live-glass-refraction";
    construction — the flat part of the card is provably flat, not just tuned
    small. That reads as "flat thick" rather than "triangular thick": a
    uniform ring of bend at a chosen width around an inert middle, rather than
-   a shape radiating in from every edge no matter how gently. */
-const NAV_BEZEL_WIDTH = 0.35;
+   a shape radiating in from every edge no matter how gently.
+
+   The width is the thick slab, restored through this mechanism rather than
+   the dome it was originally built on. What made that design read as a deep
+   slab was never the dome itself: it was how far in from the rim the glass
+   starts turning over — thickness 0.85, so the backdrop compresses across a
+   wide band all the way round and the edge curves down to its underside,
+   instead of a thin sheet whose roll-over hides in the last few percent.
+   That value transfers directly, because `thickness` and `bezelWidth` are
+   both fractions of the pane's half-height, and the bevel's own profile is
+   already the same quarter-circle turning down hard at the rim.
+
+   Measured on the nav card's own shape (aspect 1.4, corner 0.12), widening
+   this from 0.35 takes the band from 26% of the half-width to 61% and the
+   peak bend from 0.49 to 0.80, while the steepest bend stays out near the
+   rim at 24% in and the middle stays flat. That is the slab's depth without
+   the dome's centre-referenced contour — the one thing that could bring the
+   circle back. */
+const NAV_BEZEL_WIDTH = 0.85;
 /* The displacement may reach this fraction of the card's half-height. A
    displacement map can only rearrange what is already inside the element's own
    box — sampling past it returns nothing — so a lens that asks to move a pixel
