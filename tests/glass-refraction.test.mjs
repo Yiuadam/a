@@ -392,7 +392,9 @@ test("the theme knob keeps a flat face and bends only at its rim", () => {
   // so it can never share a filter with a square card that happens to
   // measure the same shape.
   assert.match(filter, /const KNOB_BEZEL_WIDTH = 0\.14;/);
-  assert.match(filter, /KNOB_SELECTOR = "\.theme-toggle-selector"/);
+    // Now every option bar's knob, not just the theme control's — see
+  // tests/segmented-controls.test.mjs.
+  assert.match(filter, /KNOB_SELECTOR = "\.theme-toggle-selector, \.segmented-knob"/);
   assert.match(filter, /const knob = pane\.matches\(KNOB_SELECTOR\);/);
   assert.match(filter, /const bezelWidth = knob \? KNOB_BEZEL_WIDTH : GENERIC_BEZEL_WIDTH;/);
   // Bezel width is part of the bucket identity, so the knob can never share

@@ -100,7 +100,7 @@ const NAV_DISPLACEMENT_HEADROOM = 0.97;
   globals.css, which are the only place it is switched on.
 */
 const GENERIC_SELECTOR =
-  ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass), .nav-menu-group, .theme-toggle-selector";
+  ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass), .nav-menu-group, .theme-toggle-selector, .segmented-knob";
 /* Cards vary far more in shape than the handful of nav items ever did — a
    square icon tile and a full-width pricing card share nothing. Measuring
    each individually and building one filter per exact shape would mean a
@@ -137,7 +137,10 @@ const GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH;
   system, not a change to the first, and it is keyed into the bucket key so
   the two never share a filter.
 */
-const KNOB_SELECTOR = ".theme-toggle-selector";
+/* Every option bar's knob, not just the theme control's — the organisation
+   sections and the notification filter carry `.segmented-knob` alongside
+   their own class so they read as the same material. */
+const KNOB_SELECTOR = ".theme-toggle-selector, .segmented-knob";
 const KNOB_BEZEL_WIDTH = 0.14;
 /*
   How much harder blue bends than red, as a fraction of the green bend.

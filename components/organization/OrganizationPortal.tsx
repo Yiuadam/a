@@ -3,7 +3,8 @@
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
 import LoadingIndicator from "@/components/LoadingIndicator";
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useSegmentedDrag } from "@/lib/segmented-drag";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import {
@@ -736,9 +737,7 @@ function OrganizationViewTabs({
   view: ManagerView;
   onOpen: (view: ManagerView) => void;
 }) {
-  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  const dragging = useRef(false);
-  const dragIndex = useRef<number | null>(null);
+
   const pending = (portal.requests ?? []).filter(
     (request) => request.status === "pending" && request.kind !== "invitation",
   ).length;
@@ -758,77 +757,47 @@ function OrganizationViewTabs({
       ? "members"
       : view;
   const selectedIndex = options.findIndex(([id]) => id === selectedView);
+  /* Shared with the theme control and the notification filter — see
+     lib/segmented-drag.ts for why this is one implementation rather than
+     three copies that drifted apart. */
+  const drag = useSegmentedDrag({
+    count: options.length,
+    selectedIndex,
+    onCommit: (index) => onOpen(options[index][0]),
+  });
+  const { previewIndex } = drag;
   const visibleIndex = previewIndex ?? Math.max(0, selectedIndex);
-
-  const indexAtPointer = (event: PointerEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const index = Math.floor(((event.clientX - rect.left) / rect.width) * options.length);
-    return Math.max(0, Math.min(options.length - 1, index));
-  };
-
-  const previewAtPointer = (event: PointerEvent<HTMLDivElement>) => {
-    const index = indexAtPointer(event);
-    dragIndex.current = index;
-    setPreviewIndex(index);
-  };
 
   return (
     <div
       role="tablist"
       aria-label="Organisation sections"
       data-flowing={previewIndex !== null ? "" : undefined}
+      data-pressed={drag.pressed ? "" : undefined}
       data-unselected={selectedIndex < 0 && previewIndex === null ? "" : undefined}
       className="organization-view-tabs premade-glass relative hidden min-w-0 touch-none grid-cols-5 items-center overflow-hidden rounded-[var(--radius-xl)] p-1 sm:grid"
       style={{
-        "--organization-view-index": visibleIndex,
+        "--organization-view-index": drag.position,
         "--organization-view-count": options.length,
       } as CSSProperties}
-      onPointerDown={(event) => {
-        dragging.current = true;
-        event.currentTarget.setPointerCapture(event.pointerId);
-        previewAtPointer(event);
-      }}
-      onPointerMove={(event) => {
-        if (dragging.current) previewAtPointer(event);
-      }}
-      onPointerUp={(event) => {
-        if (!dragging.current) return;
-        previewAtPointer(event);
-        dragging.current = false;
-        const index = dragIndex.current;
-        if (index !== null) onOpen(options[index][0]);
-        dragIndex.current = null;
-        setPreviewIndex(null);
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }}
-      onPointerCancel={() => {
-        dragging.current = false;
-        dragIndex.current = null;
-        setPreviewIndex(null);
-      }}
-      onPointerLeave={() => {
-        if (!dragging.current) setPreviewIndex(null);
-      }}
+      {...drag.handlers}
     >
       <RefractiveGlassLayer radius={18} interactive optics="enhanced" />
-      <span className="organization-view-selector" aria-hidden="true" />
+      <span className="organization-view-selector segmented-knob" aria-hidden="true" />
       {options.map(([id, label, count], index) => (
         <button
           key={id}
           type="button"
           role="tab"
           aria-selected={selectedView === id}
-          onPointerEnter={() => {
-            dragIndex.current = index;
-            setPreviewIndex(index);
-          }}
-          onFocus={() => setPreviewIndex(index)}
-          onBlur={() => setPreviewIndex(null)}
+          onPointerEnter={() => drag.preview(index)}
+          onFocus={() => drag.preview(index)}
+          onBlur={() => drag.preview(null)}
           onClick={() => {
             onOpen(id);
-            setPreviewIndex(null);
+            drag.preview(null);
           }}
-          className={`relative z-10 min-h-9 min-w-0 rounded-[calc(var(--radius-xl)-0.3rem)] px-1.5 text-[11px] font-semibold transition-colors lg:px-2 lg:text-[12px] ${visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
+          className={`segmented-option relative z-10 min-h-9 min-w-0 rounded-[calc(var(--radius-xl)-0.3rem)] px-1.5 text-[11px] font-semibold transition-colors lg:px-2 lg:text-[12px] ${visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
         >
           <span className="truncate">{label}</span>
           {count !== null && count > 0 && (

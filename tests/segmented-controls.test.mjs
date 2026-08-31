@@ -1,0 +1,107 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { join } from "node:path";
+import { readFileSync } from "node:fs";
+
+const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
+const hook = readFileSync(join(process.cwd(), "lib", "segmented-drag.ts"), "utf8");
+const filter = readFileSync(join(process.cwd(), "components", "GlassRefractionFilter.tsx"), "utf8");
+const org = readFileSync(join(process.cwd(), "components", "organization", "OrganizationPortal.tsx"), "utf8");
+const inbox = readFileSync(join(process.cwd(), "components", "account", "NotificationInbox.tsx"), "utf8");
+
+function rule(selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = css.match(new RegExp(`\\n${escaped} \\{[\\s\\S]*?\\n\\}`));
+  assert.ok(match, `expected a rule for ${selector}`);
+  return match[0];
+}
+
+test("every option bar drags through one implementation, not three copies", () => {
+  // The theme control, the organisation sections and the notification filter
+  // had each grown the same drag code independently — a dragging ref, a
+  // dragIndex ref, a previewIndex state, an indexAtPointer that floors a
+  // fraction of the width, and five handlers that have to agree about which
+  // one commits and which only previews.
+  //
+  // Three copies of something that fiddly is three chances to fix a bug in
+  // one and leave it in the others, which is exactly what happened: the
+  // theme control learned to track the finger continuously and to report
+  // being pressed, and the other two carried on jumping between whole stops.
+  assert.match(hook, /export function useSegmentedDrag/);
+  assert.match(hook, /const raw = \(\(event\.clientX - rect\.left\) \/ rect\.width\) \* count - 0\.5;/);
+  assert.match(hook, /const index = Math\.round\(next\);/);
+  assert.match(hook, /setPressed\(true\)/);
+
+  for (const [name, source] of [["organisation", org], ["notification inbox", inbox]]) {
+    assert.match(source, /useSegmentedDrag\(\{/, `${name} should use the shared hook`);
+    assert.match(source, /\{\.\.\.drag\.handlers\}/, `${name} should spread the shared handlers`);
+    assert.match(source, /data-pressed=\{drag\.pressed \? "" : undefined\}/, `${name} needs the press flag`);
+    // The knob's position is the fractional one, so it follows the finger
+    // rather than jumping between stops.
+    assert.match(source, /drag\.position/, `${name} should use the continuous position`);
+    // And none of the hand-rolled machinery should survive.
+    assert.doesNotMatch(source, /const dragging = useRef\(false\)/, `${name} still has its own drag state`);
+    assert.doesNotMatch(source, /indexAtPointer/, `${name} still has its own hit test`);
+  }
+});
+
+test("the pressed knob blooms without moving its own box", () => {
+  // These knobs travel by `translate3d(index * 100%)` — a percentage of
+  // their OWN width — so growing the box would lengthen every step and land
+  // the knob past its label. That is the same bug that put the theme knob
+  // half a stop out when its bloom was a `transform: scale`.
+  //
+  // Growing ::before and ::after with a negative inset leaves the box, and
+  // therefore the travel, exactly as it was. Verified in the browser: the
+  // knob measured 53.5px wide both idle and pressed.
+  const knob = rule(".segmented-knob");
+  assert.match(knob, /--segmented-grow: 0px;/);
+
+  const lens = rule(".segmented-knob::before");
+  assert.match(lens, /inset: calc\(0px - var\(--segmented-grow\)\);/);
+  const rim = rule(".segmented-knob::after");
+  assert.match(rim, /inset: calc\(0px - var\(--segmented-grow\)\);/);
+
+  const pressed = rule("[data-pressed] > .segmented-knob.segmented-knob");
+  assert.match(pressed, /--segmented-grow: 0\.4375rem;/);
+  // Nothing may resize or rescale the knob itself.
+  assert.doesNotMatch(pressed, /\n {2}width:/);
+  assert.doesNotMatch(pressed, /\n {2}height:/);
+  assert.doesNotMatch(pressed, /scale\(/);
+
+  // Doubled class on purpose: each of these knobs carries per-theme
+  // overrides selected as `html[data-theme="..."] .notification-filter-
+  // selector`, which outranks a plain `[data-pressed] > .segmented-knob` and
+  // was quietly keeping the frosted fill on while every other part of the
+  // press applied.
+  assert.match(css, /\[data-pressed\] > \.segmented-knob\.segmented-knob \{/);
+});
+
+test("the pressed knob is clear glass with a lens, wherever it appears", () => {
+  const pressed = rule("[data-pressed] > .segmented-knob.segmented-knob");
+  assert.match(pressed, /background: transparent;/);
+  assert.match(pressed, /backdrop-filter: none;/);
+  assert.match(pressed, /box-shadow: none;/);
+
+  // Zero blur: this samples the backdrop so `filter` can bend it, and
+  // blurring first turns a line crossing the rim into a smear that happens
+  // to be displaced. translateZ is what earns the sample; the blur never was.
+  const lensPressed = rule("[data-pressed] > .segmented-knob::before");
+  assert.match(lensPressed, /backdrop-filter: blur\(0px\);/);
+  assert.match(lensPressed, /transform: translateZ\(0\);/);
+  assert.match(
+    css,
+    /html\[data-glass-lens-split\] \[data-pressed\] > \.segmented-knob::before \{\s*\n\s*filter: var\(--glass-lens-filter, none\);/,
+  );
+
+  // The labels drop below the knob so the lens has something to bend: a
+  // backdrop-filter can only bend what is painted beneath it.
+  assert.match(rule("[data-pressed] .segmented-option"), /z-index: 0;/);
+  // And the track stops clipping, or the bloom stops at the rail.
+  assert.match(rule("[data-pressed]"), /overflow: visible;/);
+
+  // The knob has to actually be given a lens, or the variable resolves to
+  // `none` and the whole thing is an invisible no-op.
+  assert.match(filter, /KNOB_SELECTOR = "\.theme-toggle-selector, \.segmented-knob"/);
+  assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}\.segmented-knob/);
+});

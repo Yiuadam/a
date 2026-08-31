@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type PointerEvent,
 } from "react";
 import { accountIdentityComplete, accountUsernameReady } from "@/lib/auth/account-identity";
 import {
@@ -24,6 +23,7 @@ import { NOTIFICATIONS_CHANGED_EVENT, type AccountNotification } from "@/lib/not
 import type { OrganizationLivePreviewRole } from "@/lib/organizations/preview-client";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
+import { useSegmentedDrag } from "@/lib/segmented-drag";
 import { useAccountProfile } from "./AccountProfileProvider";
 
 interface FeedState {
@@ -340,76 +340,42 @@ function NotificationFilter({
     { id: "unread", label: unreadCount > 0 ? `Unread (${unreadCount})` : "Unread" },
   ];
   const selectedIndex = value === "unread" ? 1 : 0;
-  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  const dragging = useRef(false);
-  const dragIndex = useRef<number | null>(null);
+  /* Shared with the theme control and the organisation sections — see
+     lib/segmented-drag.ts. */
+  const drag = useSegmentedDrag({
+    count: options.length,
+    selectedIndex,
+    onCommit: (index) => onChange(options[index].id),
+  });
+  const { previewIndex } = drag;
   const visibleIndex = previewIndex ?? selectedIndex;
-
-  const indexAtPointer = (event: PointerEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const index = Math.floor(((event.clientX - rect.left) / rect.width) * options.length);
-    return Math.max(0, Math.min(options.length - 1, index));
-  };
-
-  const previewAtPointer = (event: PointerEvent<HTMLDivElement>) => {
-    const index = indexAtPointer(event);
-    dragIndex.current = index;
-    setPreviewIndex(index);
-  };
 
   return (
     <div
       role="tablist"
       aria-label="Notification filter"
       data-flowing={previewIndex !== null ? "" : undefined}
+      data-pressed={drag.pressed ? "" : undefined}
       className="notification-filter-base premade-glass relative grid min-w-0 touch-none grid-cols-2 items-center overflow-hidden rounded-full p-1"
-      style={{ "--notification-filter-index": visibleIndex } as CSSProperties}
-      onPointerDown={(event) => {
-        dragging.current = true;
-        event.currentTarget.setPointerCapture(event.pointerId);
-        previewAtPointer(event);
-      }}
-      onPointerMove={(event) => {
-        if (dragging.current) previewAtPointer(event);
-      }}
-      onPointerUp={(event) => {
-        if (!dragging.current) return;
-        previewAtPointer(event);
-        dragging.current = false;
-        const index = dragIndex.current;
-        if (index !== null) onChange(options[index].id);
-        dragIndex.current = null;
-        setPreviewIndex(null);
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }}
-      onPointerCancel={() => {
-        dragging.current = false;
-        dragIndex.current = null;
-        setPreviewIndex(null);
-      }}
-      onPointerLeave={() => {
-        if (!dragging.current) setPreviewIndex(null);
-      }}
+      style={{ "--notification-filter-index": drag.position } as CSSProperties}
+      {...drag.handlers}
     >
       <RefractiveGlassLayer radius={999} interactive />
-      <span className="notification-filter-selector" aria-hidden="true" />
+      <span className="notification-filter-selector segmented-knob" aria-hidden="true" />
       {options.map((option, index) => (
         <button
           key={option.id}
           type="button"
           role="tab"
           aria-selected={value === option.id}
-          onPointerEnter={() => {
-            dragIndex.current = index;
-            setPreviewIndex(index);
-          }}
-          onFocus={() => setPreviewIndex(index)}
-          onBlur={() => setPreviewIndex(null)}
+          onPointerEnter={() => drag.preview(index)}
+          onFocus={() => drag.preview(index)}
+          onBlur={() => drag.preview(null)}
           onClick={() => {
             onChange(option.id);
-            setPreviewIndex(null);
+            drag.preview(null);
           }}
-          className={`notification-filter-option relative z-10 min-w-0 rounded-full px-3 text-xs font-semibold transition-colors ${visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
+          className={`notification-filter-option segmented-option relative z-10 min-w-0 rounded-full px-3 text-xs font-semibold transition-colors ${visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
         >
           <span className="truncate">{option.label}</span>
         </button>

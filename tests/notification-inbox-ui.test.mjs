@@ -287,7 +287,10 @@ test("notification page keeps one compact title and one flowing filter lens", ()
   assert.equal((filter.match(/notification-filter-selector/g) ?? []).length, 1);
   assert.equal((filter.match(/<RefractiveGlassLayer/g) ?? []).length, 1);
   assert.match(filter, /--notification-filter-index/);
-  assert.match(filter, /onPointerMove/);
+  // Draggable, but through the shared implementation rather than its own
+  // copy — see lib/segmented-drag.ts and tests/segmented-controls.test.mjs.
+  assert.match(filter, /useSegmentedDrag\(\{/);
+  assert.match(filter, /\{\.\.\.drag\.handlers\}/);
   assert.match(css, /\.notification-filter-selector \{[\s\S]*translate3d\(calc\(var\(--notification-filter-index\) \* 100%\)/);
   assert.match(css, /@media \(hover: none\), \(pointer: coarse\) \{[\s\S]*\.notification-filter-option,[\s\S]*min-height: 2\.75rem/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*\.notification-filter-selector \{[\s\S]*transition: none/);
