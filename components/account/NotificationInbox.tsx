@@ -357,7 +357,12 @@ function NotificationFilter({
       data-flowing={previewIndex !== null ? "" : undefined}
       data-pressed={drag.pressed ? "" : undefined}
       className="notification-filter-base premade-glass relative grid min-w-0 touch-none grid-cols-2 items-center overflow-hidden rounded-full p-1"
-      style={{ "--notification-filter-index": drag.position } as CSSProperties}
+      style={
+        {
+          "--notification-filter-index": drag.position,
+          "--segmented-squash": drag.squash,
+        } as CSSProperties
+      }
       {...drag.handlers}
     >
       <RefractiveGlassLayer radius={999} interactive />

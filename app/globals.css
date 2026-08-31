@@ -1821,10 +1821,22 @@ html[data-theme="dark"] .nav-menu-group {
   /* Same centre as the resting knob: it grows by 0.875rem, so it starts
      half of that — 0.4375rem — further up and to the left. Offsetting
      rather than scaling is what keeps the backdrop sampled 1:1. */
-  left: calc(var(--theme-stop-inset) - var(--theme-stop-size) * (var(--theme-knob-bloom) - 1) / 2);
-  top: calc(var(--theme-stop-inset) - var(--theme-stop-size) * (var(--theme-knob-bloom) - 1) / 2);
-  width: calc(var(--theme-stop-size) * var(--theme-knob-bloom));
-  height: calc(var(--theme-stop-size) * var(--theme-knob-bloom));
+  /* The squash rides on top of the bloom. This control sizes its own box
+     rather than its layers — its travel is an absolute pitch, not a
+     percentage of its own width, so widening it does not lengthen its
+     step the way it would on the other knobs. Both edges move by the same
+     amount in opposite directions, so the knob stretches about its own
+     centre and stays under the finger. */
+  left: calc(
+    var(--theme-stop-inset) - var(--theme-stop-size) * (var(--theme-knob-bloom) - 1) / 2 -
+      var(--segmented-squash, 0) * 0.22rem
+  );
+  top: calc(
+    var(--theme-stop-inset) - var(--theme-stop-size) * (var(--theme-knob-bloom) - 1) / 2 +
+      var(--segmented-squash, 0) * 0.12rem
+  );
+  width: calc(var(--theme-stop-size) * var(--theme-knob-bloom) + var(--segmented-squash, 0) * 0.44rem);
+  height: calc(var(--theme-stop-size) * var(--theme-knob-bloom) - var(--segmented-squash, 0) * 0.24rem);
   /* No easing on `translate` while the finger is down. The 440ms glide is
      for settling onto a stop after a release; applied to a drag it makes
      the knob chase the pointer several frames behind, and a lens that is
@@ -4546,9 +4558,44 @@ html[data-live-glass-refraction] .premade-glass {
    absolute pitch rather than a percentage, so growing its box is safe there,
    and it is the one of these that has been verified against a real device.
 --------------------------------------------------------------------------- */
+/*
+  The squash. `--segmented-squash` is set on the track by useSegmentedDrag,
+  0 when the knob is still and 1 when it is being flung, and these two turn
+  it into lengths: the knob stretches along the direction it is travelling
+  and thins across it, then rounds back out when the finger stops.
+
+  Thinning by roughly half of what it stretches by is what keeps it reading
+  as one lump of something rather than a circle being scaled — a real soft
+  body pushed sideways gives up some of its height, but not all of what it
+  gains in width, because it is also free to bulge toward the viewer where
+  a flat screen cannot show it.
+
+  Declared here rather than on `.segmented-knob` itself: a custom property
+  set on an element beats the same property inherited from its parent, so
+  declaring `--segmented-squash` on the knob would shadow the value the
+  track is passing down. Every use site reads it with a `0` fallback
+  instead, which covers the static rendering where no drag has happened.
+*/
 .segmented-knob {
   --segmented-grow: 0px;
+  --segmented-stretch: calc(var(--segmented-squash, 0) * 0.22rem);
+  --segmented-thin: calc(var(--segmented-squash, 0) * 0.12rem);
   position: relative;
+}
+
+/*
+  Someone who has asked for less motion has asked for less of this. The knob
+  still blooms and still refracts — those say where the finger is, and
+  removing them would cost information. The squash says nothing the position
+  does not already say, so it is the part that goes.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .segmented-knob,
+  .theme-toggle-base[data-pressed] .theme-toggle-selector {
+    --segmented-squash: 0;
+    --segmented-stretch: 0px;
+    --segmented-thin: 0px;
+  }
 }
 
 /*
@@ -4561,7 +4608,11 @@ html[data-live-glass-refraction] .premade-glass {
   content: "";
   display: block;
   position: absolute;
-  inset: calc(0px - var(--segmented-grow));
+  /* Vertical first, horizontal second: the knob loses height and gains
+     width as it is thrown. */
+  inset:
+    calc(var(--segmented-thin) - var(--segmented-grow))
+    calc(0px - var(--segmented-grow) - var(--segmented-stretch));
   z-index: 0;
   border-radius: 999px;
   pointer-events: none;
@@ -4579,7 +4630,9 @@ html[data-live-glass-refraction] .premade-glass {
   content: "";
   display: block;
   position: absolute;
-  inset: calc(0px - var(--segmented-grow));
+  inset:
+    calc(var(--segmented-thin) - var(--segmented-grow))
+    calc(0px - var(--segmented-grow) - var(--segmented-stretch));
   z-index: 2;
   border-radius: 999px;
   pointer-events: none;

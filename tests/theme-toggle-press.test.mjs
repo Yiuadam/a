@@ -5,6 +5,10 @@ import { readFileSync } from "node:fs";
 
 const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
 const toggle = readFileSync(join(process.cwd(), "components", "ThemeToggle.tsx"), "utf8");
+/* The drag state moved into the shared hook, so the behaviour this file
+   pins now lives there — the theme control was the last of the three option
+   bars still carrying its own copy. */
+const hook = readFileSync(join(process.cwd(), "lib", "segmented-drag.ts"), "utf8");
 const filter = readFileSync(join(process.cwd(), "components", "GlassRefractionFilter.tsx"), "utf8");
 
 function rule(selector) {
@@ -23,13 +27,14 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   // which hover and keyboard focus also set — a pointer resting over the
   // control is not a press, and blooming for it would make the receipt
   // meaningless.
-  assert.match(toggle, /const \[pressed, setPressed\] = useState\(false\)/);
-  assert.match(toggle, /data-pressed=\{pressed \? "" : undefined\}/);
-  assert.match(toggle, /onPointerDown[\s\S]{0,200}setPressed\(true\)/);
+  assert.match(hook, /const \[pressed, setPressed\] = useState\(false\)/);
+  assert.match(toggle, /data-pressed=\{drag\.pressed \? "" : undefined\}/);
+  assert.match(hook, /onPointerDown[\s\S]{0,300}setPressed\(true\)/);
   // Released and cancelled both have to clear it, or a knob left mid-drag
-  // stays bloomed and clear for good.
-  assert.match(toggle, /onPointerUp[\s\S]{0,300}setPressed\(false\)/);
-  assert.match(toggle, /onPointerCancel[\s\S]{0,200}setPressed\(false\)/);
+  // stays bloomed and clear for good. Both route through one `end`.
+  assert.match(hook, /const end = \(\) => \{[\s\S]{0,200}setPressed\(false\);/);
+  assert.match(hook, /onPointerUp[\s\S]{0,300}end\(\);/);
+  assert.match(hook, /onPointerCancel: end,/);
 
   // It has to grow past the track, not inside it: breaking the outline is
   // the signal, and a bloom that stays within the rail reads as a highlight
@@ -48,12 +53,14 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   // with the same page just outside the rim, which reads as a second offset
   // copy rather than as something seen through glass, and every edge inside
   // was an upscaled resample, which is where the stair-stepping came from.
-  assert.match(pressedKnob, /width: calc\(var\(--theme-stop-size\) \* var\(--theme-knob-bloom\)\);/);
-  assert.match(pressedKnob, /height: calc\(var\(--theme-stop-size\) \* var\(--theme-knob-bloom\)\);/);
+  // The squash rides on top of the bloom, so each of these carries a second
+  // term that is zero whenever the knob is still.
+  assert.match(pressedKnob, /width: calc\(var\(--theme-stop-size\) \* var\(--theme-knob-bloom\) \+ /);
+  assert.match(pressedKnob, /height: calc\(var\(--theme-stop-size\) \* var\(--theme-knob-bloom\) - /);
   // Same centre: the offset is half the growth, so it comes from the same
   // number rather than being computed by hand alongside it.
-  assert.match(pressedKnob, /left: calc\(var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2\);/);
-  assert.match(pressedKnob, /top: calc\(var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2\);/);
+  assert.match(pressedKnob, /left: calc\(\s*var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2/);
+  assert.match(pressedKnob, /top: calc\(\s*var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2/);
   assert.doesNotMatch(pressedKnob, /scale\(/);
 
   // Which needs the track to stop clipping for exactly that long...
@@ -141,22 +148,24 @@ test("the knob tracks the finger continuously, so the lens has something new to 
   // The position is now carried as a fraction of the same --theme-index the
   // CSS already multiplies by the stop pitch, so no new geometry is needed
   // and the knob follows the pointer frame by frame.
-  assert.match(toggle, /const \[dragPosition, setDragPosition\] = useState<number \| null>\(null\)/);
-  assert.match(toggle, /const knobPosition = dragPosition \?\? visibleIndex;/);
-  assert.match(toggle, /"--theme-index": knobPosition/);
+  assert.match(hook, /const \[dragPosition, setDragPosition\] = useState<number \| null>\(null\)/);
+  assert.match(hook, /const position = dragPosition \?\? visibleIndex;/);
+  assert.match(toggle, /"--theme-index": drag\.position/);
   // Not floored to a stop — the raw fractional position is what is stored.
-  assert.match(toggle, /const raw = \(\(event\.clientX - rect\.left\) \/ rect\.width\) \* THEMES\.length - 0\.5;/);
+  assert.match(hook, /const raw = \(\(event\.clientX - rect\.left\) \/ rect\.width\) \* count - 0\.5;/);
   // The option buttons take their size from the same variable, so nothing
   // in the JSX can drift out of step with the knob that travels over them.
   assert.match(toggle, /className=\{`theme-toggle-option app-icon-control/);
   assert.doesNotMatch(toggle, /h-7 w-7/);
-  assert.match(toggle, /setDragPosition\(position\)/);
+  assert.match(hook, /setDragPosition\(next\)/);
   // Rounded for the commit, so releasing picks the stop it looks nearest.
-  assert.match(toggle, /const index = Math\.round\(position\);/);
+  assert.match(hook, /const index = Math\.round\(next\);/);
   // The fraction is only for the duration of the gesture; release and
-  // cancel both hand the knob back to whole stops to settle.
-  assert.match(toggle, /onPointerUp[\s\S]{0,400}setDragPosition\(null\)/);
-  assert.match(toggle, /onPointerCancel[\s\S]{0,300}setDragPosition\(null\)/);
+  // cancel both hand the knob back to whole stops to settle — through the
+  // one `end` they share.
+  assert.match(hook, /const end = \(\) => \{[\s\S]{0,240}setDragPosition\(null\);/);
+  assert.match(hook, /onPointerUp[\s\S]{0,300}end\(\);/);
+  assert.match(hook, /onPointerCancel: end,/);
 
   // And the glide must not apply during the drag, or the knob chases the
   // pointer several frames behind and the lens is always somewhere the

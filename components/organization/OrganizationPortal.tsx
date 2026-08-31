@@ -779,6 +779,7 @@ function OrganizationViewTabs({
       style={{
         "--organization-view-index": drag.position,
         "--organization-view-count": options.length,
+        "--segmented-squash": drag.squash,
       } as CSSProperties}
       {...drag.handlers}
     >
