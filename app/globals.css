@@ -4927,6 +4927,27 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selec
   background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+  /*
+    An edge, and something to sit above.
+
+    The clone fills the disc with a faithful copy of the track and the
+    header, which is exactly the problem at real size: faithful means the
+    same tones as everything around it, so the disc has almost nothing to
+    separate it from the pill it is lying on. Magnified it reads as glass,
+    because the bent arcs are large enough to see; at the size it actually
+    renders it reads as a pale patch.
+
+    What a real lens has that this was missing is an edge and a shadow. The
+    rim is drawn a good deal brighter than the resting knob's, and the disc
+    is given a lift beneath it — not a glow around it, which is the halo
+    that had to be taken off this control once already. The bend is
+    unchanged; this is only about being able to see it.
+  */
+  border-color: color-mix(in srgb, var(--glass-specular) 92%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 90%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 70%, transparent),
+    0 3px 10px var(--glass-shadow);
 }
 
 /*
@@ -4952,6 +4973,12 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refract
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* No blur ahead of the displacement. It does smooth the bent pill edge —
+     a displacement map moves whole samples, so a hard boundary comes out
+     stepped — but at any strength that helped the arc it also softened the
+     icon underneath, and a crisp icon is the more important of the two.
+     The stepping is also much heavier in this headless WebKit than on a
+     real device, where the same build renders the arc smoothly. */
   filter: var(--glass-lens-filter, none);
   /* What is behind the pill, so the bend never runs out of content.
 

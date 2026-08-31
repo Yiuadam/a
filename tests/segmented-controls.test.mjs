@@ -254,6 +254,15 @@ test("engines that cannot filter a backdrop bend a copy of it instead", () => {
   assert.match(cloneKnob, /overflow: hidden;/);
   assert.match(cloneKnob, /background: transparent;/);
 
+  // And an edge to be seen by. Filling the disc with a faithful copy of the
+  // track and header means it shares their tones, so at the size it renders
+  // there is almost nothing separating it from the pill it lies on — it
+  // reads as glass magnified and as a pale patch at 1x. A brighter rim and
+  // a lift underneath fix that without a glow around it, which is the halo
+  // this control already had taken off once.
+  assert.match(cloneKnob, /border-color: color-mix\(in srgb, var\(--glass-specular\) 92%, transparent\);/);
+  assert.match(cloneKnob, /0 3px 10px var\(--glass-shadow\);/);
+
   // Inert wherever the clone path is off, so Chromium is untouched by it.
   assert.match(rule(".theme-knob-refraction,\n.theme-knob-refraction-copy"), /display: none;/);
 });
