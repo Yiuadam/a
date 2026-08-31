@@ -1672,25 +1672,34 @@ html[data-theme="dark"] .nav-menu-group {
     0 1px 2px var(--glass-shadow);
   -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
   backdrop-filter: blur(18px) saturate(108%) brightness(104%);
-  transform: translate3d(calc(var(--theme-index) * 1.875rem), 0, 0);
-  /* `scale` as its own property rather than a second function inside
-     `transform`, so the press bloom can have a snappier curve than the
-     440ms glide between stops. One `transform` could only carry one
-     duration for both, and a press that answers as slowly as the travel
-     does not read as an answer. */
-  scale: 1;
+  /* Travel and size on separate properties, so the press bloom can have a
+     snappier curve than the 440ms glide between stops — one `transform`
+     could only carry one duration for both, and a press that answers as
+     slowly as the travel does not read as an answer.
+
+     Which property carries which is not interchangeable. The individual
+     `translate`/`rotate`/`scale` properties are applied *before*
+     `transform`, so a `scale` there multiplies whatever `transform`
+     translates by: at 1.5 the knob's 1.875rem step became 2.8125rem and it
+     landed half a stop past its own icon. Travel therefore goes on
+     `translate`, which is applied first and comes out unscaled, and size on
+     `transform`, which is applied last and scales about the already-moved
+     centre. The bug was invisible at the 1.12 this started at — 3.6px — and
+     obvious the moment the bloom grew. */
+  translate: calc(var(--theme-index) * 1.875rem) 0;
+  transform: scale(1);
   transition:
-    transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12),
-    scale 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    translate 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12),
+    transform 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
     background 200ms ease,
     box-shadow 200ms ease,
     -webkit-backdrop-filter 200ms ease,
     backdrop-filter 200ms ease;
-  will-change: transform;
+  will-change: translate, transform;
 }
 
 .theme-toggle-base[data-flowing] .theme-toggle-selector {
-  transform: translate3d(calc(var(--theme-index) * 1.875rem), 0, 0);
+  translate: calc(var(--theme-index) * 1.875rem) 0;
 }
 
 /*
@@ -1699,10 +1708,14 @@ html[data-theme="dark"] .nav-menu-group {
 
   The bloom is the press receipt — the control has no other way to say "yes,
   that one" during a drag, because the icon underneath only changes colour
-  once the choice commits. 1.12 rather than something more emphatic because
-  the track clips it: the selector is 1.75rem inside a 2rem border box, so
-  anything past about 1.14 has its top and bottom shaved off by the base's
-  own `overflow-hidden` — which the live glass layer underneath needs.
+  once the choice commits. It grows past the track rather than inside it,
+  the way the reference's selected pill stands proud of its own tab bar:
+  breaking the outline is the whole signal, and a knob that stays within it
+  reads as a highlight rather than as something lifted.
+
+  1.5 takes the 1.75rem knob to 2.625rem against a 2rem track, so it clears
+  the rail by a third of a rem top and bottom — unmistakable at a glance
+  without swallowing its neighbours.
 
   Clear rather than frosted, per the reference: no blur and no glow, only
   the reformation of what is behind. So the frosted fill, the 18px blur and
@@ -1734,9 +1747,32 @@ html[data-theme="dark"] .nav-menu-group {
   z-index: 0;
 }
 
+/*
+  Letting the knob out of the track for the length of the press. The base
+  clips — its own rule and `.premade-glass` both say overflow: hidden — and
+  a clipped bloom is a bloom that stops at the rail, which is exactly the
+  outline the press is meant to break.
+
+  The live glass layer underneath is fine without that clip: it carries its
+  own `overflow: hidden` and `border-radius: inherit`, so it already holds
+  its own shape. The one thing the parent was containing is its deliberate
+  1px overscan (see .refractive-glass-layer, where inset: -1px exists to
+  stop a hairline appearing between filtered and unfiltered pixels), so
+  that single pixel is pulled back in for exactly as long as nothing is
+  there to catch it. Without this the layer would show a 1px fringe past
+  the track's corners the moment the knob is pressed.
+*/
+.theme-toggle-base[data-pressed] {
+  overflow: visible;
+}
+
+.theme-toggle-base[data-pressed] > .refractive-glass-layer {
+  inset: 0;
+}
+
 .theme-toggle-base[data-pressed] .theme-toggle-selector {
   z-index: 2;
-  scale: 1.12;
+  transform: scale(1.5);
   background: transparent;
   border-color: color-mix(in srgb, var(--glass-specular) 62%, transparent);
   box-shadow:

@@ -31,15 +31,37 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   assert.match(toggle, /onPointerUp[\s\S]{0,300}setPressed\(false\)/);
   assert.match(toggle, /onPointerCancel[\s\S]{0,200}setPressed\(false\)/);
 
+  // It has to grow past the track, not inside it: breaking the outline is
+  // the signal, and a bloom that stays within the rail reads as a highlight
+  // rather than as something lifted. 1.5 takes the 1.75rem knob to
+  // 2.625rem against a 2rem track.
   const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
-  assert.match(pressedKnob, /scale: 1\.12;/);
+  assert.match(pressedKnob, /transform: scale\(1\.5\);/);
 
-  // Scale is its own property, not a second function inside `transform`: the
-  // press has to answer faster than the 440ms glide between stops, and one
-  // `transform` can only carry one duration for both.
+  // Which needs the track to stop clipping for exactly that long...
+  const pressedBase = rule(".theme-toggle-base[data-pressed]");
+  assert.match(pressedBase, /overflow: visible;/);
+  // ...and the live glass layer's deliberate 1px overscan pulled back in
+  // while the clip that was containing it is gone, or it fringes past the
+  // track's corners.
+  const pressedLayer = rule(".theme-toggle-base[data-pressed] > .refractive-glass-layer");
+  assert.match(pressedLayer, /inset: 0;/);
+
+  // Travel and size ride separate properties so the press can answer faster
+  // than the glide — but which carries which is not interchangeable. The
+  // individual translate/rotate/scale properties apply BEFORE `transform`,
+  // so putting scale there multiplies whatever transform translates: at 1.5
+  // the 1.875rem step became 2.8125rem and the knob landed half a stop past
+  // its own icon. Travel on `translate` (applied first, unscaled), size on
+  // `transform` (applied last, about the already-moved centre).
   const knob = rule(".theme-toggle-selector");
-  assert.match(knob, /\n  scale: 1;/);
-  assert.match(knob, /transition:[\s\S]*?transform 440ms[\s\S]*?scale 200ms/);
+  assert.match(knob, /\n  translate: calc\(var\(--theme-index\) \* 1\.875rem\) 0;/);
+  assert.match(knob, /\n  transform: scale\(1\);/);
+  assert.doesNotMatch(knob, /\n  scale: /);
+  assert.match(knob, /transition:[\s\S]*?translate 440ms[\s\S]*?transform 200ms/);
+  // The travel must never be expressed through `transform`, which is what
+  // reintroduces the scaled-step bug.
+  assert.doesNotMatch(knob, /transform:[^;]*translate/);
 });
 
 test("the dragged knob is clear glass: reformation only, no frost and no glow", () => {
