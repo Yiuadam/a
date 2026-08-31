@@ -236,8 +236,36 @@ test("engines that cannot filter a backdrop bend a copy of it instead", () => {
   const copy = rule(
     'html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy',
   );
-  assert.match(copy, /left: calc\(-1 \* \(var\(--knob-x\) \+ var\(--theme-index\) \* var\(--theme-stop-pitch\)\) - 2px\);/);
+  assert.match(copy, /left: calc\(-1 \* var\(--knob-x\) - 2px\);/);
   assert.match(copy, /top: calc\(-1 \* var\(--knob-y\) - 2px\);/);
+
+  // The travel is backed out on `translate` rather than folded into `left`
+  // with the rest, and that distinction is the whole point: the knob's own
+  // travel is a transition, so a compensation held in `left` jumps to the
+  // destination the moment a stop is tapped while the knob is still gliding
+  // there. Measured on a two-stop tap, that left the copy 78.5px away from
+  // the track it is standing in for, easing back to zero across the whole
+  // 440ms journey — which is visible as the copy's own pill outline sliding
+  // across the real one. On `translate` against the same transition below,
+  // the two interpolate together and the error stays under a pixel.
+  assert.match(
+    copy,
+    /translate: calc\(-1 \* var\(--theme-index\) \* var\(--theme-stop-pitch\)\) 0;/,
+  );
+  const copyTravel = rule(
+    "html[data-glass-lens-clone] .theme-toggle-base[data-pressed][data-settling] .theme-knob-refraction-copy",
+  );
+  const knobTravel = rule(".theme-toggle-base[data-pressed][data-settling] .theme-toggle-selector");
+  // Same duration and same curve, or they drift apart mid-journey. Read out
+  // of the knob's own rule rather than written twice, so a change to one
+  // that is not made to the other fails here instead of on a device.
+  const travelCurve = knobTravel.match(/translate (\d+ms cubic-bezier\([^)]*\))/)[1];
+  assert.match(copyTravel, new RegExp(`transition: translate ${travelCurve.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")};`));
+  // And no translate transition while a finger is down, matching the knob:
+  // a drag is placed frame by frame, so easing there makes the copy trail
+  // the track the same way easing the knob made it trail the finger.
+  assert.doesNotMatch(copy, /transition:/);
+
   // Measured: copy and track both land at 254.1,10.7 118.9x42.4 on WebKit.
   const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
   assert.match(pressedKnob, /left: var\(--knob-x\);/);

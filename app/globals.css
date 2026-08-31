@@ -4930,15 +4930,28 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refract
   position: absolute;
   align-items: center;
   gap: var(--theme-stop-gap);
-  /* Back out of the knob's own placement, including its travel, so the copy
-     lands exactly where the real track is. Two pixels on each axis, not
-     one: the knob is positioned inside the track's padding box, so the
-     track's own border is one, and the copy is positioned inside the
-     knob's padding box, so the knob's border is the other. Measured
-     rather than reasoned into place — at one pixel the copy sat exactly
-     one pixel right and one pixel down of the real track. */
-  left: calc(-1 * (var(--knob-x) + var(--theme-index) * var(--theme-stop-pitch)) - 2px);
+  /* Back out of the knob's own placement, so the copy lands exactly where
+     the real track is. Two pixels on each axis, not one: the knob is
+     positioned inside the track's padding box, so the track's own border
+     is one, and the copy is positioned inside the knob's padding box, so
+     the knob's border is the other. Measured rather than reasoned into
+     place — at one pixel the copy sat exactly one pixel right and one
+     pixel down of the real track.
+
+     The travel is backed out on `translate` rather than folded into `left`
+     with the rest, because the knob's own travel is a transition and this
+     has to stay equal to it at every instant, not just at both ends. Held
+     in `left`, the compensation jumped to the destination the moment the
+     stop was tapped while the knob was still gliding there — so for the
+     whole 440ms journey the copy sat somewhere the track was not, by as
+     much as the distance travelled (measured: 78.5px out on a two-stop
+     tap, easing back to 0 as the knob caught up). What that looks like is
+     the copy's own pill outline sliding across the real one. Same
+     property, same duration and same curve as the knob below, so the two
+     interpolate in lockstep and the difference stays zero throughout. */
+  left: calc(-1 * var(--knob-x) - 2px);
   top: calc(-1 * var(--knob-y) - 2px);
+  translate: calc(-1 * var(--theme-index) * var(--theme-stop-pitch)) 0;
   width: calc(3 * var(--theme-stop-size) + 2 * var(--theme-stop-gap) + 2 * var(--theme-stop-inset) + 2px);
   height: calc(var(--theme-stop-size) + 2 * var(--theme-stop-inset) + 2px);
   padding: var(--theme-stop-inset);
@@ -4954,6 +4967,14 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refract
      hide the original it is standing in for. */
   background: color-mix(in srgb, var(--color-surface) 48%, var(--color-background));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* The knob's travel curve, mirrored exactly — see the copy's own translate
+   above. A drag deliberately gives the knob no translate transition, and
+   the copy inherits that by having none here either, so the two stay
+   equal in both states without either having to know which one it is in. */
+html[data-glass-lens-clone] .theme-toggle-base[data-pressed][data-settling] .theme-knob-refraction-copy {
+  transition: translate 440ms cubic-bezier(0.5, 0.04, 0.25, 1.15);
 }
 
 /* The real options are buttons centring their glyph with utility classes.
