@@ -95,10 +95,17 @@ test("the dragged knob is clear glass: reformation only, no frost and no glow", 
 
   const lensPressed = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector::before");
   assert.match(lensPressed, /opacity: 1;/);
-  // 1px is not frost — it is the smallest value that reliably makes WebKit
-  // commit the layer so the backdrop is sampled at all, exactly as
-  // .card::before does it.
-  assert.match(lensPressed, /backdrop-filter: blur\(1px\);/);
+  // Zero radius, and the translateZ that actually earns the backdrop.
+  //
+  // This borrowed 1px from .card::before on the belief that the blur was
+  // what made WebKit commit the layer. It is not — the explicit translateZ
+  // is — and the blur cost real definition: a line crossing the rim has to
+  // come out bent but still a line. Blurred first it arrives as a smear
+  // that happens to be displaced, which reads as fog rather than glass.
+  // Measured against a loud track border: mushy at 1px, a sharp kink at 0.
+  assert.match(lensPressed, /transform: translateZ\(0\);/);
+  assert.match(lensPressed, /backdrop-filter: blur\(0px\);/);
+  assert.doesNotMatch(lensPressed, /blur\((?!0px)/);
 
   assert.match(
     css,

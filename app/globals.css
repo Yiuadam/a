@@ -1809,12 +1809,23 @@ html[data-theme="dark"] .nav-menu-group {
 
 /* The backdrop sampling and the compositing hint are declared only here, so
    an idle toggle — which is every toggle on the page most of the time —
-   carries no backdrop-filter layer at all. */
+   carries no backdrop-filter layer at all.
+
+   Zero radius, not the 1px this borrowed from .card::before. That 1px was
+   never doing the job it was credited with: what makes WebKit commit the
+   layer, and so sample a backdrop at all, is the explicit translateZ(0)
+   right above — the blur was along for the ride. And it cost real
+   definition. The whole point of this lens is that a line crossing the rim
+   comes out bent but still a line; blurred first, it arrives as a smear
+   that happens to be displaced, which reads as fog rather than as glass.
+   Measured against a deliberately loud track border: at 1px the bend was
+   there but mushy, at 0 the border kinks sharply at the rim and stays
+   crisp. */
 .theme-toggle-base[data-pressed] .theme-toggle-selector::before {
   opacity: 1;
   transform: translateZ(0);
-  -webkit-backdrop-filter: blur(1px);
-  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(0px);
+  backdrop-filter: blur(0px);
 }
 
 html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selector::before {
