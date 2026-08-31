@@ -150,6 +150,16 @@ export default function SpeakingSession({
   const [elapsed, setElapsed] = useState(0);
   const [grade, setGrade] = useState<SpeakingGrade | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+    /speaking is a normal document, not one of the viewport-locked exam
+    routes — so the window is the real scroll container. An interview can
+    run long enough to scroll well down the transcript, and the result
+    stage used to just appear there instead of at the band that heads it.
+  */
+  useEffect(() => {
+    if (stage === "result") window.scrollTo({ top: 0 });
+  }, [stage]);
   const [micBlocked, setMicBlocked] = useState(false);
   /*
     The microphone, held open for the whole interview.
