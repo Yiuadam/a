@@ -254,14 +254,13 @@ test("engines that cannot filter a backdrop bend a copy of it instead", () => {
   assert.match(cloneKnob, /overflow: hidden;/);
   assert.match(cloneKnob, /background: transparent;/);
 
-  // And an edge to be seen by. Filling the disc with a faithful copy of the
-  // track and header means it shares their tones, so at the size it renders
-  // there is almost nothing separating it from the pill it lies on — it
-  // reads as glass magnified and as a pale patch at 1x. A brighter rim and
-  // a lift underneath fix that without a glow around it, which is the halo
-  // this control already had taken off once.
-  assert.match(cloneKnob, /border-color: color-mix\(in srgb, var\(--glass-specular\) 92%, transparent\);/);
-  assert.match(cloneKnob, /0 3px 10px var\(--glass-shadow\);/);
+  // No rim or lift added here, and no opaque fill on the lens layer. Both
+  // were tried to make the disc read at 1x and both were rejected on a real
+  // device; the layer stays transparent outside the copy so the page shows
+  // through it unaltered.
+  assert.doesNotMatch(cloneKnob, /0 3px 10px/);
+  const lensLayer = rule('html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction');
+  assert.doesNotMatch(lensLayer, /background:/);
 
   // Inert wherever the clone path is off, so Chromium is untouched by it.
   assert.match(rule(".theme-knob-refraction,\n.theme-knob-refraction-copy"), /display: none;/);
@@ -341,19 +340,16 @@ test("the clone lens costs only what it uses", () => {
   assert.match(deadLayer, /display: none;/);
   assert.match(deadLayer, /backdrop-filter: none;/);
 
-  // The part of the knob that falls outside the track is filled with what
-  // the header actually resolves to, which is not derivable from the
-  // palette: the header is translucent white over the page and then
-  // brightened by its own backdrop-filter, and CSS cannot apply
-  // brightness() to a colour. Measured off a rendered frame per theme.
-  assert.match(css, /--knob-behind: rgb\(222, 214, 207\);/);
-  assert.match(css, /--knob-behind: rgb\(232, 240, 246\);/);
-  assert.match(css, /--knob-behind: rgb\(37, 37, 39\);/);
-  const layer = rule('html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction');
-  assert.match(layer, /background: var\(--knob-behind, var\(--color-background\)\);/);
+  // The lens layer is deliberately left transparent outside the copy. A
+  // measured per-theme fill was tried there, to stop the disc reading as a
+  // paler patch of the header, and it made it read as a flat one instead.
+  assert.doesNotMatch(css, /--knob-behind:/);
 
-  // The copy takes the track's own radius rather than a guess at it — at
-  // 0.75rem its ends were square beside a pill that rounds at 29.75px.
-  const copy = rule('html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy');
-  assert.match(copy, /border-radius: var\(--radius-xl\);/);
+  // Kept at the value the approved build used. The track actually rounds at
+  // 29.75px, and matching that is geometrically more faithful — but it was
+  // changed alongside two other things, the result was rejected on a real
+  // device, and the whole set went back. Left here as the owner signed it
+  // off, not as the more correct number.
+  const copy2 = rule('html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy');
+  assert.match(copy2, /border-radius: 0\.75rem;/);
 });

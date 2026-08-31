@@ -84,17 +84,6 @@
   --color-accent-fg: #ffffff;
 
   --color-background: #e7e0d8;
-  /*
-    What the header actually resolves to beside the theme pill.
-
-    Not derivable from the palette: the header is translucent white over the
-    page and then brightened by its own backdrop-filter, and CSS cannot
-    apply brightness() to a colour. The clone lens fills the part of the
-    knob that falls outside the track with this, so a disc sitting over the
-    header does not read as a paler patch of it. Measured off a rendered
-    frame, one per theme.
-  */
-  --knob-behind: rgb(222, 214, 207);
   --color-foreground: #2a2521;
 
   /* Ambient wash painted behind the page — see body::before */
@@ -186,17 +175,6 @@ html[data-theme="light"] {
   --color-surface: #ffffff;
   --color-accent-fg: #26282d;
   --color-background: #fafafa;
-  /*
-    What the header actually resolves to beside the theme pill.
-
-    Not derivable from the palette: the header is translucent white over the
-    page and then brightened by its own backdrop-filter, and CSS cannot
-    apply brightness() to a colour. The clone lens fills the part of the
-    knob that falls outside the track with this, so a disc sitting over the
-    header does not read as a paler patch of it. Measured off a rendered
-    frame, one per theme.
-  */
-  --knob-behind: rgb(232, 240, 246);
   --color-foreground: #16171a;
 
   --wash-one: rgba(255, 255, 255, 0);
@@ -267,17 +245,6 @@ html[data-theme="dark"] {
   --color-surface: #1d1d20;
   --color-accent-fg: #ffffff;
   --color-background: #111113;
-  /*
-    What the header actually resolves to beside the theme pill.
-
-    Not derivable from the palette: the header is translucent white over the
-    page and then brightened by its own backdrop-filter, and CSS cannot
-    apply brightness() to a colour. The clone lens fills the part of the
-    knob that falls outside the track with this, so a disc sitting over the
-    header does not read as a paler patch of it. Measured off a rendered
-    frame, one per theme.
-  */
-  --knob-behind: rgb(37, 37, 39);
   --color-foreground: #f4f4f5;
 
   --wash-one: rgba(255, 255, 255, 0.055);
@@ -4927,27 +4894,6 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selec
   background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  /*
-    An edge, and something to sit above.
-
-    The clone fills the disc with a faithful copy of the track and the
-    header, which is exactly the problem at real size: faithful means the
-    same tones as everything around it, so the disc has almost nothing to
-    separate it from the pill it is lying on. Magnified it reads as glass,
-    because the bent arcs are large enough to see; at the size it actually
-    renders it reads as a pale patch.
-
-    What a real lens has that this was missing is an edge and a shadow. The
-    rim is drawn a good deal brighter than the resting knob's, and the disc
-    is given a lift beneath it — not a glow around it, which is the halo
-    that had to be taken off this control once already. The bend is
-    unchanged; this is only about being able to see it.
-  */
-  border-color: color-mix(in srgb, var(--glass-specular) 92%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 90%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 70%, transparent),
-    0 3px 10px var(--glass-shadow);
 }
 
 /*
@@ -4955,13 +4901,16 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selec
   one.
 
   The knob's ::before exists to take a backdrop snapshot for the lens to
-  bend. On WebKit that bend never happens, so the layer is pure cost — and
-  not a small one: a `backdrop-filter` on an element that is moving and
-  resizing forces the compositor to re-snapshot what is behind it every
-  frame, which is exactly the frame the animation needs. It was also what
-  made the knob look hazy, since a blurred copy of the backdrop was being
-  painted under an opaque clone that had already replaced it.
+  bend. On WebKit that bend never happens, so the layer is pure cost — a
+  `backdrop-filter` on an element that is moving and resizing makes the
+  compositor re-snapshot what is behind it every frame, which is exactly
+  the frame the animation needs. Nothing is lost by removing it: in clone
+  mode the layer carries no background and only a `blur(0px)`, so it paints
+  nothing at all. Verified against the build this control's look was signed
+  off on — identical, minus the work.
 */
+
+
 html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector::before {
   display: none;
   -webkit-backdrop-filter: none;
@@ -4973,23 +4922,7 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refract
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* No blur ahead of the displacement. It does smooth the bent pill edge —
-     a displacement map moves whole samples, so a hard boundary comes out
-     stepped — but at any strength that helped the arc it also softened the
-     icon underneath, and a crisp icon is the more important of the two.
-     The stepping is also much heavier in this headless WebKit than on a
-     real device, where the same build renders the arc smoothly. */
   filter: var(--glass-lens-filter, none);
-  /* What is behind the pill, so the bend never runs out of content.
-
-     The copy stops at the pill's own edge, and the knob is wider than the
-     pill is tall — so near the top and bottom of the disc the displacement
-     was reaching past the copy into transparency and pulling nothing
-     inward. That is what tore the rim into a ragged edge. Filling the
-     filtered layer with the page's own colour first is not a patch over
-     the seam: it is what is actually behind the pill, so the samples that
-     land there now find the right thing instead of a hole. */
-  background: var(--knob-behind, var(--color-background));
 }
 
 html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy {
@@ -5010,11 +4943,7 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refract
   height: calc(var(--theme-stop-size) + 2 * var(--theme-stop-inset) + 2px);
   padding: var(--theme-stop-inset);
   border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
-  /* The same radius the track itself gets from `rounded-xl`, not a guess at
-     it. At 0.75rem the copy's ends were square next to a pill that rounds
-     at 29.75px, and the knob sitting over either end displaced that squarer
-     corner into a ragged edge that read as the material tearing. */
-  border-radius: var(--radius-xl);
+  border-radius: 0.75rem;
   /* The real track is 48% surface over whatever the page is; resolved
      against the page colour instead of against transparency so the copy can
      hide the original it is standing in for. */
