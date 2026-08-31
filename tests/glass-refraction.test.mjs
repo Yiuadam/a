@@ -826,7 +826,13 @@ test("the highlight is solved from the pane's shape, not drawn across it", () =>
   // That curvature is already in the normal map, so the highlight is a dot
   // product against a light direction, which is what feColorMatrix's alpha
   // row computes. Light from the upper left is (0.5 - R) + (0.5 - G).
-  assert.match(filter, /const KNOB_SPECULAR = 3;/);
+  // Off everywhere now. The machinery stays because it is shape-derived and
+  // correct, but on the knob it cost four filter primitives on every frame
+  // of a moving lens — the exact frames the drag and the travel need — and
+  // at the strength it had survived down to it was doing very little that
+  // was worth that. The knob's filter is two primitives now: the map and
+  // the displacement.
+  assert.match(filter, /const KNOB_SPECULAR = 0;/);
   assert.match(filter, /const GENERIC_SPECULAR = 0;/);
   assert.match(filter, /in="generic-normal-map"[\s\S]{0,200}\$\{-entry\.specular\} \$\{-entry\.specular\} 0 0 \$\{entry\.specular\}/);
   assert.match(filter, /result="specular-mask"/);
@@ -841,7 +847,12 @@ test("the highlight is solved from the pane's shape, not drawn across it", () =>
   // read from the backdrop bending through it and a whisper of colour at the
   // very edge, never from a lit ring drawn around it. A white arc on a dark
   // bar reads as a halo stuck to the knob rather than as light on a curve.
-  assert.ok(filter.includes("const KNOB_SPECULAR = 3;"));
+  //
+  // It went 12, then 3, then off. What settled it was not the look but the
+  // cost: the stage is four filter primitives, re-run on every frame a lens
+  // moves, and at 3 it was contributing very little for that. The knob's
+  // filter is now the map and the displacement, and nothing else.
+  assert.ok(filter.includes("const KNOB_SPECULAR = 0;"));
 
   // It lays over whichever stage actually ran, so tint and specular compose
   // rather than one silently replacing the other.

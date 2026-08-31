@@ -345,11 +345,12 @@ test("the clone lens costs only what it uses", () => {
   // paler patch of the header, and it made it read as a flat one instead.
   assert.doesNotMatch(css, /--knob-behind:/);
 
-  // Kept at the value the approved build used. The track actually rounds at
-  // 29.75px, and matching that is geometrically more faithful — but it was
-  // changed alongside two other things, the result was rejected on a real
-  // device, and the whole set went back. Left here as the owner signed it
-  // off, not as the more correct number.
+  // The track's own radius. At 0.75rem the copy's ends were nearly square,
+  // and a square corner pushed through a round lens comes out as a wedge —
+  // the triangle reported in the middle of the knob. The map itself is a
+  // clean ring, confirmed by dumping the generated PNG, so the angle was
+  // never the lens. This went in once before as part of a batch that was
+  // rejected as a whole; it is back on its own.
   const copy2 = rule('html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy');
-  assert.match(copy2, /border-radius: 0\.75rem;/);
+  assert.match(copy2, /border-radius: var\(--radius-xl\);/);
 });

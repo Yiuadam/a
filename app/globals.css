@@ -4943,7 +4943,12 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refract
   height: calc(var(--theme-stop-size) + 2 * var(--theme-stop-inset) + 2px);
   padding: var(--theme-stop-inset);
   border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
-  border-radius: 0.75rem;
+  /* The track's own radius, not a guess at it. The track rounds at 29.75px;
+     at 0.75rem the copy's ends were nearly square, and a square corner
+     pushed through a round lens comes out as a wedge — the triangle in the
+     middle of the knob. The map itself is a clean ring, checked by dumping
+     the generated PNG, so the angle was never the lens. */
+  border-radius: var(--radius-xl);
   /* The real track is 48% surface over whatever the page is; resolved
      against the page colour instead of against transparency so the copy can
      hide the original it is standing in for. */
