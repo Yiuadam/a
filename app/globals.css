@@ -907,15 +907,33 @@ html[data-theme="dark"] .premade-glass {
   contain: paint;
   clip-path: inset(0 round var(--radius-xl));
   border-color: color-mix(in srgb, var(--glass-highlight) 78%, transparent);
-  background-color: color-mix(in srgb, var(--color-surface) 9%, transparent);
+  /*
+    The same material as a nav menu card, because it is the same kind of
+    thing: a panel of content floating over the page rather than a pane of
+    the page's own glass.
+
+    It used to be 9% of the surface colour behind a 2px blur, which is very
+    nearly nothing — the page read straight through it and its own headings
+    collided with whatever was underneath. That was survivable while the
+    sitewide lens was displacing the backdrop into abstraction; with the lens
+    gone there is nothing between this panel and legible body text but two
+    pixels of blur.
+
+    A nav card gets to be thin because it is stacked on .nav-paper, which is
+    already blurring the whole viewport beneath it. This popover has no such
+    sheet under it, so it carries the equivalent on its own: the blur the two
+    layers add up to, and a fill deep enough that the page behind reads as
+    texture rather than as words.
+  */
+  background-color: color-mix(in srgb, var(--color-background) 64%, transparent);
   background-image:
     linear-gradient(
       145deg,
       color-mix(in srgb, var(--glass-specular) 14%, transparent),
       transparent
     );
-  -webkit-backdrop-filter: blur(2px) saturate(106%) brightness(102%);
-  backdrop-filter: blur(2px) saturate(106%) brightness(102%);
+  -webkit-backdrop-filter: blur(18px) saturate(118%) brightness(105%);
+  backdrop-filter: blur(18px) saturate(118%) brightness(105%);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 96%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 72%, transparent),
@@ -986,15 +1004,17 @@ html[data-theme="dark"] .notification-glass-backdrop {
 }
 
 html[data-theme="dark"] .liquid-glass.notification-popover {
-  background-color: color-mix(in srgb, var(--color-surface) 12%, transparent);
+  /* Same reasoning as the base rule: the fill and the blur come up together
+     so the panel reads over page content rather than through it. */
+  background-color: color-mix(in srgb, var(--color-background) 68%, transparent);
   background-image:
     linear-gradient(
       145deg,
       color-mix(in srgb, var(--glass-specular) 12%, transparent),
       transparent
     );
-  -webkit-backdrop-filter: blur(2px) saturate(104%) brightness(104%);
-  backdrop-filter: blur(2px) saturate(104%) brightness(104%);
+  -webkit-backdrop-filter: blur(18px) saturate(114%) brightness(104%);
+  backdrop-filter: blur(18px) saturate(114%) brightness(104%);
 }
 
 /* Notification actions are tiny, information-dense text. General glass/accent
@@ -3570,7 +3590,23 @@ html[data-theme="dark"] .btn-primary.pricing-subscribe-button:hover:not(:disable
 */
 .input {
   @apply min-w-0 max-w-full rounded-xl border px-4 py-2.5 text-[16px] text-slate-900 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100;
-  border-color: var(--glass-edge);
+  /*
+    A border drawn from the field's own text colour rather than from the
+    glass edge.
+
+    --glass-edge is white — 32% of it in Warm — which is a rim for something
+    sitting on a darker backdrop. On Warm's cream page a white hairline is
+    invisible, so the field had no visible boundary at all: a place to type
+    that gave no sign of where it began or ended. Dark got away with it
+    because there white *is* the contrasting colour, and Light had already
+    been given its own grey.
+
+    currentColor is the one value that is guaranteed to contrast with the
+    field's own contents in every theme, since it is what the text inside is
+    drawn in. 22% of it is quiet enough to stay a hairline rather than a box,
+    and it needs no per-theme override to keep working.
+  */
+  border-color: color-mix(in srgb, currentColor 22%, transparent);
   background: var(--glass-fill);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
   -webkit-backdrop-filter: blur(18px) saturate(122%) brightness(112%);
@@ -4458,7 +4494,8 @@ html[data-theme="light"] .organization-view-tabs {
    light interactive-surface rule is intentionally stronger for buttons, but
    would otherwise turn this floating glass into a flat grey rectangle. */
 html[data-theme="light"] .liquid-glass.notification-popover {
-  background-color: color-mix(in srgb, var(--color-surface) 9%, transparent);
+  /* Same reasoning as the base rule. */
+  background-color: color-mix(in srgb, var(--color-background) 64%, transparent);
   background-image:
     linear-gradient(
       145deg,

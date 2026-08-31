@@ -228,9 +228,20 @@ test("the notification popover paints exactly one clipped outer glass boundary",
   assert.doesNotMatch(popover, /RefractiveGlassLayer/);
   assert.doesNotMatch(popover, /premade-glass-content/);
   assert.match(css, /\.notification-popover \{[\s\S]*contain: paint;[\s\S]*clip-path: inset\(0 round var\(--radius-xl\)\)/);
-  // Same barely-there, live-refracted material as the nav list, not the
-  // heavier, more opaque frosted drawer this used to be.
-  assert.match(css, /\.notification-popover \{[\s\S]*?background-color: color-mix\(in srgb, var\(--color-surface\) 9%, transparent\)[\s\S]*?blur\(2px\)/);
+  // A real panel of glass, not a barely-there one.
+  //
+  // It was 9% of the surface colour behind a 2px blur, and that was right
+  // while the sitewide lens was displacing everything under it into
+  // abstraction — the material could be thin because the backdrop was
+  // already unreadable. With the lens gone there is nothing between this
+  // panel and legible body text but those two pixels, and the page read
+  // straight through it: its own headings collided with whatever was
+  // underneath.
+  //
+  // A nav card gets to stay thin because it is stacked on .nav-paper, which
+  // blurs the whole viewport beneath it first. This popover has no such
+  // sheet, so it carries the equivalent alone.
+  assert.match(css, /\.notification-popover \{[\s\S]*?background-color: color-mix\(in srgb, var\(--color-background\) 64%, transparent\)[\s\S]*?blur\(18px\)/);
   assert.match(css, /\.notification-popover::before \{[\s\S]*?pointer-events: none;[\s\S]*?border-radius: inherit;[\s\S]*?inset 0 1px 0/);
   assert.match(css, /\.notification-popover > \* \{[\s\S]*?position: relative;[\s\S]*?z-index: 1/);
   // No more special-cased exclusion from the SVG lens: this popover now
