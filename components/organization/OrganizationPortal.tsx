@@ -759,12 +759,9 @@ function OrganizationViewTabs({
   const selectedIndex = options.findIndex(([id]) => id === selectedView);
   /* Shared with the theme control and the notification filter — see
      lib/segmented-drag.ts for why this is one implementation rather than
-     three copies that drifted apart. */
-  const drag = useSegmentedDrag({
-    count: options.length,
-    selectedIndex,
-    onCommit: (index) => onOpen(options[index][0]),
-  });
+     three copies that drifted apart. The section is opened in the option's
+     own click just below, so the hook only has the knob to look after. */
+  const drag = useSegmentedDrag({ selectedIndex });
   const { previewIndex } = drag;
   const visibleIndex = previewIndex ?? Math.max(0, selectedIndex);
 
@@ -776,7 +773,7 @@ function OrganizationViewTabs({
       data-pressed={drag.pressed ? "" : undefined}
       data-settling={drag.settling ? "" : undefined}
       data-unselected={selectedIndex < 0 && previewIndex === null ? "" : undefined}
-      className="organization-view-tabs premade-glass relative hidden min-w-0 touch-none grid-cols-5 items-center overflow-hidden rounded-[var(--radius-xl)] p-1 sm:grid"
+      className="organization-view-tabs premade-glass relative hidden min-w-0 grid-cols-5 items-center overflow-hidden rounded-[var(--radius-xl)] p-1 sm:grid"
       style={{
         "--organization-view-index": drag.position,
         "--organization-view-count": options.length,

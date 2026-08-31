@@ -341,12 +341,9 @@ function NotificationFilter({
   ];
   const selectedIndex = value === "unread" ? 1 : 0;
   /* Shared with the theme control and the organisation sections — see
-     lib/segmented-drag.ts. */
-  const drag = useSegmentedDrag({
-    count: options.length,
-    selectedIndex,
-    onCommit: (index) => onChange(options[index].id),
-  });
+     lib/segmented-drag.ts. The choice is committed in the option's own click
+     just below, so the hook only has the knob to look after. */
+  const drag = useSegmentedDrag({ selectedIndex });
   const { previewIndex } = drag;
   const visibleIndex = previewIndex ?? selectedIndex;
 
@@ -357,7 +354,7 @@ function NotificationFilter({
       data-flowing={previewIndex !== null ? "" : undefined}
       data-pressed={drag.pressed ? "" : undefined}
       data-settling={drag.settling ? "" : undefined}
-      className="notification-filter-base premade-glass relative grid min-w-0 touch-none grid-cols-2 items-center overflow-hidden rounded-full p-1"
+      className="notification-filter-base premade-glass relative grid min-w-0 grid-cols-2 items-center overflow-hidden rounded-full p-1"
       style={
         {
           "--notification-filter-index": drag.position,

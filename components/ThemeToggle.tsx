@@ -16,21 +16,20 @@ import {
  * A three-way segmented control rather than a cycling button: all the options
  * are visible, and you can see which one you are on without clicking anything.
  *
- * The drag itself lives in useSegmentedDrag, shared with the organisation
- * sections and the notification filter. This control had its own copy of that
- * logic for a while — it was the one that learned to track a finger
- * continuously, and the other two were left jumping between whole stops until
- * the behaviour was lifted out. Keeping it here again would mean the squash
- * had to be written three times to reach every option bar.
+ * How it answers a pointer lives in useSegmentedDrag, shared with the
+ * organisation sections and the notification filter. This control had its own
+ * copy of that logic for a while — it was the one that learned to lift the
+ * knob and deform it, and the other two were left jumping between whole stops
+ * until the behaviour was lifted out. Keeping it here again would mean writing
+ * that three times to reach every option bar.
+ *
+ * The choice itself is committed here, in the option's own click, which is why
+ * the hook has nothing to say about committing.
  */
 export default function ThemeToggle() {
   const theme = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
   const selectedIndex = Math.max(0, THEMES.findIndex((option) => option.id === theme));
-  const drag = useSegmentedDrag({
-    count: THEMES.length,
-    selectedIndex,
-    onCommit: (index) => setTheme(THEMES[index].id),
-  });
+  const drag = useSegmentedDrag({ selectedIndex });
   const visibleIndex = drag.previewIndex ?? selectedIndex;
 
   return (
@@ -40,7 +39,7 @@ export default function ThemeToggle() {
       data-flowing={drag.previewIndex !== null ? "" : undefined}
       data-pressed={drag.pressed ? "" : undefined}
       data-settling={drag.settling ? "" : undefined}
-      className="theme-toggle-base premade-glass relative flex touch-none items-center gap-0.5 overflow-hidden rounded-xl p-0.5"
+      className="theme-toggle-base premade-glass relative flex items-center gap-0.5 overflow-hidden rounded-xl p-0.5"
       style={
         {
           "--theme-index": drag.position,

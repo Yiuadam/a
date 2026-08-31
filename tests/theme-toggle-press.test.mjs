@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 
 const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
 const toggle = readFileSync(join(process.cwd(), "components", "ThemeToggle.tsx"), "utf8");
-/* The drag state moved into the shared hook, so the behaviour this file
+/* The knob's state moved into the shared hook, so the behaviour this file
    pins now lives there — the theme control was the last of the three option
    bars still carrying its own copy. */
 const hook = readFileSync(join(process.cwd(), "lib", "segmented-drag.ts"), "utf8");
@@ -18,23 +18,26 @@ function rule(selector) {
   return match[0];
 }
 
-test("pressing the theme toggle is answered by the knob, not only by the commit", () => {
+test("pointing at the theme toggle is answered by the knob, not only by the commit", () => {
   // The icon under the knob only changes colour once the choice commits, so
-  // during a drag the control had nothing at all to say "yes, that one".
-  // The bloom is that receipt.
+  // until then the control had nothing at all to say "yes, that one". The
+  // bloom is that receipt, and it is hover that earns it: the knob lifts
+  // while a pointer is over the bar and drops when it goes.
   //
-  // It hangs off its own attribute rather than the existing `data-flowing`,
-  // which hover and keyboard focus also set — a pointer resting over the
-  // control is not a press, and blooming for it would make the receipt
-  // meaningless.
-  assert.match(hook, /const \[pressed, setPressed\] = useState\(false\)/);
+  // This answered a press until the owner asked for the two to swap — the
+  // press came with a drag nobody wanted, and lifting for a press meant the
+  // effect only ever appeared once a finger was already committed to the
+  // control.
+  assert.match(hook, /const \[hovering, setHovering\] = useState\(false\)/);
   assert.match(toggle, /data-pressed=\{drag\.pressed \? "" : undefined\}/);
-  assert.match(hook, /onPointerDown[\s\S]{0,300}setPressed\(true\)/);
-  // Released and cancelled both have to clear it, or a knob left mid-drag
-  // stays bloomed and clear for good. Both route through one `end`.
-  assert.match(hook, /const end = \(\) => \{[\s\S]{0,200}setPressed\(false\);/);
-  assert.match(hook, /onPointerUp[\s\S]{0,600}end\(\);/);
-  assert.match(hook, /onPointerCancel: end,/);
+  assert.match(hook, /onPointerEnter: \(\) => setHovering\(true\),/);
+  // Leaving and cancelling both have to clear it, or a knob the pointer has
+  // left stays bloomed and clear for good — and a touch that turns into a
+  // page scroll is cancelled rather than left. Both route through one
+  // `leave`.
+  assert.match(hook, /const leave = \(\) => \{\s*\n\s*setHovering\(false\);/);
+  assert.match(hook, /onPointerLeave: leave,/);
+  assert.match(hook, /onPointerCancel: leave,/);
 
   // It has to grow past the track, not inside it: breaking the outline is
   // the signal, and a bloom that stays within the rail reads as a highlight
@@ -90,10 +93,10 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   assert.match(knob, /transition:[\s\S]*?translate 440ms[\s\S]*?width 200ms/);
 });
 
-test("the dragged knob is clear glass: reformation only, no frost and no glow", () => {
+test("the lifted knob is clear glass: reformation only, no frost and no glow", () => {
   // The reference is a clear lens, not a frosted pill — what is behind it
   // bends, rather than being hidden. So every part of the frosted recipe
-  // comes off while the finger is down.
+  // comes off while the pointer is over the control.
   //
   // But only where the lens can actually run. Clearing the frost on an
   // engine that never displaces the backdrop leaves a plain transparent
@@ -156,43 +159,41 @@ test("the dragged knob is clear glass: reformation only, no frost and no glow", 
   assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}\.theme-toggle-selector/);
 });
 
-test("the knob tracks the finger continuously, so the lens has something new to bend", () => {
-  // A drag used to move the knob in whole stops: it jumped between three
-  // fixed positions and sat still in between. A lens that does not move has
-  // nothing new to sample, so the refraction was effectively a still image
-  // that changed twice across a whole gesture.
+test("the knob stands on whole stops, and one number moves it between them", () => {
+  // The knob was placed frame by frame from the pointer's own position for
+  // as long as a finger could carry it: a fraction of the same --theme-index
+  // the CSS multiplies by the stop pitch, written on every pointermove.
   //
-  // The position is now carried as a fraction of the same --theme-index the
-  // CSS already multiplies by the stop pitch, so no new geometry is needed
-  // and the knob follows the pointer frame by frame.
-  assert.match(hook, /const \[dragPosition, setDragPosition\] = useState<number \| null>\(null\)/);
-  assert.match(hook, /const position = dragPosition \?\? visibleIndex;/);
+  // Nothing carries it now, so a fraction has no source and nothing to mean.
+  // The knob stands on the stop being previewed, or on the selected one when
+  // there is nothing to preview, and the journey between them is a CSS
+  // transition rather than a value pushed a frame at a time. The clamp
+  // stays: the organisation bar reports -1 while no section is open.
+  assert.match(hook, /const position = previewIndex \?\? Math\.max\(0, selectedIndex\);/);
   assert.match(toggle, /"--theme-index": drag\.position/);
-  // Not floored to a stop — the raw fractional position is what is stored.
-  assert.match(hook, /const raw = \(\(event\.clientX - rect\.left\) \/ rect\.width\) \* count - 0\.5;/);
+  // So none of the machinery that read a pointer's coordinates survives.
+  assert.doesNotMatch(hook, /getBoundingClientRect/);
+  assert.doesNotMatch(hook, /clientX/);
+  assert.doesNotMatch(hook, /setPointerCapture/);
+  assert.doesNotMatch(hook, /onPointerMove/);
   // The option buttons take their size from the same variable, so nothing
   // in the JSX can drift out of step with the knob that travels over them.
   assert.match(toggle, /className=\{`theme-toggle-option app-icon-control/);
   assert.doesNotMatch(toggle, /h-7 w-7/);
-  assert.match(hook, /setDragPosition\(next\)/);
-  // Rounded for the commit, so releasing picks the stop it looks nearest.
-  assert.match(hook, /const index = Math\.round\(next\);/);
-  // The fraction is only for the duration of the gesture; release and
-  // cancel both hand the knob back to whole stops to settle — through the
-  // one `end` they share.
-  assert.match(hook, /const end = \(\) => \{[\s\S]{0,240}setDragPosition\(null\);/);
-  assert.match(hook, /onPointerUp[\s\S]{0,600}end\(\);/);
-  assert.match(hook, /onPointerCancel: end,/);
 
-  // And the glide must not apply during the drag, or the knob chases the
-  // pointer several frames behind and the lens is always somewhere the
-  // finger is not — which reads as lag, not as glass. Everything else keeps
-  // its easing, so the bloom and the turn to clear glass still ease in.
+  // A knob under a pointer has no glide of its own — the pressed rule drops
+  // `translate` from the transition, which is what stopped the lens trailing
+  // a finger it was meant to be under. That rule is exactly why moving
+  // between options cannot simply change the index: it would teleport. Every
+  // move has to go through the travel below, which puts the glide back for
+  // the length of the journey. Everything else keeps its easing, so the
+  // bloom and the turn to clear glass still ease in.
   const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
   assert.match(pressedKnob, /transition:/);
   assert.doesNotMatch(pressedKnob, /transition:[^;]*translate/);
   assert.match(pressedKnob, /transition:[\s\S]*?width 200ms/);
-  // The resting knob still glides between stops on release.
+  // And the resting knob glides, which is what carries it home once the
+  // pointer has gone and the lift with it.
   assert.match(rule(".theme-toggle-selector"), /transition:[\s\S]*?translate 440ms/);
 });
 
