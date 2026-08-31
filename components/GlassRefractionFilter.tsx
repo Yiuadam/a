@@ -89,8 +89,18 @@ const NAV_DISPLACEMENT_HEADROOM = 0.97;
   same bug would otherwise still be sitting underneath every other `.card`
   this filter reaches, just less visible against their busier backdrops.
 */
+/*
+  `.theme-toggle-selector` joins them so the theme control's knob can be the
+  clear version of this material while it is being dragged: displacement
+  only, no frost and no glow, so the icons and track behind it visibly
+  reform rather than being hidden behind a frosted pill. It measures as a
+  circle (aspect 1, corner clamped to 0.98), which the bucket grid already
+  carries, so it costs no filter the page was not going to generate anyway.
+  Only the CSS decides when to use it — see the [data-pressed] rules in
+  globals.css, which are the only place it is switched on.
+*/
 const GENERIC_SELECTOR =
-  ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass), .nav-menu-group";
+  ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass), .nav-menu-group, .theme-toggle-selector";
 /* Cards vary far more in shape than the handful of nav items ever did — a
    square icon tile and a full-width pricing card share nothing. Measuring
    each individually and building one filter per exact shape would mean a

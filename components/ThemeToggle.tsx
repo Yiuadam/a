@@ -18,6 +18,10 @@ import {
 export default function ThemeToggle() {
   const theme = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  /* Distinct from `data-flowing`, which hover and keyboard focus also set:
+     this is the finger actually being down, which is what the knob's bloom
+     and its clear-glass state are answering. */
+  const [pressed, setPressed] = useState(false);
   const dragging = useRef(false);
   const dragIndex = useRef<number | null>(null);
   const selectedIndex = Math.max(0, THEMES.findIndex((option) => option.id === theme));
@@ -40,10 +44,12 @@ export default function ThemeToggle() {
       role="radiogroup"
       aria-label="Colour theme"
       data-flowing={previewIndex !== null ? "" : undefined}
+      data-pressed={pressed ? "" : undefined}
       className="theme-toggle-base premade-glass relative flex touch-none items-center gap-0.5 overflow-hidden rounded-xl p-0.5"
       style={{ "--theme-index": visibleIndex } as CSSProperties}
       onPointerDown={(event) => {
         dragging.current = true;
+        setPressed(true);
         event.currentTarget.setPointerCapture(event.pointerId);
         previewAtPointer(event);
       }}
@@ -54,6 +60,7 @@ export default function ThemeToggle() {
         if (!dragging.current) return;
         previewAtPointer(event);
         dragging.current = false;
+        setPressed(false);
         const index = dragIndex.current;
         if (index !== null) setTheme(THEMES[index].id);
         dragIndex.current = null;
@@ -62,6 +69,7 @@ export default function ThemeToggle() {
       }}
       onPointerCancel={() => {
         dragging.current = false;
+        setPressed(false);
         dragIndex.current = null;
         setPreviewIndex(null);
       }}
