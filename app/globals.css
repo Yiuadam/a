@@ -294,7 +294,19 @@ body {
   --glass-fill-strong: rgba(255, 255, 255, 0.16);
   --glass-edge: rgba(255, 255, 255, 0.32);
   --glass-highlight: rgba(255, 255, 255, 0.34);
-  --glass-edge-dark: rgba(45, 35, 27, 0.12);
+  /* Neutral, like the other two themes' equivalents. This was rgb(45, 35, 27)
+     — a warm brown — and it is the colour the glass shades itself with: the
+     three radial gradients that make up a card's wall all mix from it. On a
+     small card that reads as shading. On a large one it spreads across the
+     whole face as a visible cream wash, which is what made the home page's
+     poster look tinted next to the skill cards beside it, even though every
+     other layer of the two was identical.
+
+     Shading should be the absence of light rather than a colour of its own.
+     The theme keeps its warmth where it belongs — in the page beneath the
+     glass and in the accent ramp — and the glass stops adding any. Same
+     darkness, just no hue: the old mix averaged 36 and this is 36. */
+  --glass-edge-dark: rgba(36, 36, 38, 0.12);
   --glass-specular: rgba(255, 255, 255, 0.48);
   --glass-shadow: rgba(42, 31, 24, 0.1);
   /* Cut from 56px, which was defeating the lens. A displacement map bends
@@ -3519,9 +3531,20 @@ html[data-theme="dark"] .btn-primary.pricing-subscribe-button:hover:not(:disable
   border-color: color-mix(in srgb, var(--color-indigo-500) 76%, var(--glass-specular));
 }
 
+/* The secondary button carries the theme's accent as a ring too, at a
+   lighter weight than the primary's.
+
+   Light already did this and the other two did not, so "No thanks" beside a
+   ringed "Sign up free" read as a different family of control depending on
+   which theme you were in. The pair should differ in weight rather than in
+   kind: both are choices on the same poster, one just louder than the other.
+
+   45% against the primary's 55%, mixed into the same glass edge, so the
+   subordinate reading survives — and the same 45% Light was already using,
+   which is where the number comes from. */
 .btn-secondary {
   @apply btn border text-slate-700 active:translate-y-px;
-  border-color: var(--glass-edge);
+  border-color: color-mix(in srgb, var(--color-indigo-600) 45%, var(--glass-edge));
   background: var(--glass-fill);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
@@ -3531,7 +3554,7 @@ html[data-theme="dark"] .btn-primary.pricing-subscribe-button:hover:not(:disable
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: var(--glass-specular);
+  border-color: color-mix(in srgb, var(--color-indigo-600) 60%, var(--glass-specular));
   background: var(--glass-fill-strong);
 }
 
@@ -4076,7 +4099,6 @@ html[data-theme="dark"] .btn-primary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.09);
 }
 
-html[data-theme="dark"] .btn-secondary,
 html[data-theme="dark"] .input {
   border-color: rgba(255, 255, 255, 0.16);
   background: var(--glass-fill);
@@ -4087,7 +4109,7 @@ html[data-theme="dark"] .input {
 }
 
 html[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.27);
+  border-color: color-mix(in srgb, var(--color-indigo-600) 60%, var(--glass-specular));
   background: var(--glass-fill-strong);
 }
 
@@ -4480,7 +4502,6 @@ html[data-theme="dark"] .interval-toggle-base,
 html[data-theme="dark"] .notification-filter-base,
 html[data-theme="dark"] .panel-toggle-base,
 html[data-theme="dark"] .organization-view-tabs,
-html[data-theme="dark"] .btn-secondary,
 html[data-theme="dark"] .input {
   border-color: var(--glass-edge);
   background: var(--glass-fill);
