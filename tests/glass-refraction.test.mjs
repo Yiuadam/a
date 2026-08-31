@@ -498,32 +498,43 @@ test("the nav card's rim has a wall behind it, not just an edge", () => {
   // seam. A radial-gradient has no per-corner geometry at all: it is a smooth
   // function of distance from a point, so summing several can never produce a
   // seam.
+  // The custom properties themselves live on .nav-menu-group, not ::before —
+  // both ::before (the warped material) and .nav-menu-group-sheen (the
+  // unwarped highlight, see the test below) read them by inheritance, so
+  // moved to their shared ancestor rather than declared on either alone.
+  const group = css.match(/\n\.nav-menu-group \{[\s\S]*?\n\}/)[0];
+  assert.match(group, /--nav-wall-light: color-mix\(in srgb, white 55%/);
+  assert.match(group, /--nav-wall-shade: color-mix\(in srgb, rgb\(40, 30, 22\) 20%/);
+  assert.match(group, /--nav-wall-shade-soft: color-mix\(in srgb, rgb\(40, 30, 22\) 10%/);
+  assert.match(group, /--nav-tint: color-mix\(/);
+
   const before = css.match(/\n\.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
   assert.doesNotMatch(before, /box-shadow:/);
-  assert.match(before, /--nav-wall-light: color-mix\(in srgb, white 55%/);
-  assert.match(before, /--nav-wall-shade: color-mix\(in srgb, rgb\(40, 30, 22\) 20%/);
-  assert.match(before, /--nav-wall-shade-soft: color-mix\(in srgb, rgb\(40, 30, 22\) 10%/);
-  // The top highlight is a tight, bright streak — a small ellipse held close
-  // to the top edge — rather than the wide, gentle wash this replaced, so it
-  // reads as one mirror-like catch of light and leaves more of the card
-  // genuinely clear.
-  assert.match(before, /radial-gradient\(\s*\n\s*50% 36% at 50% -8%,\s*\n\s*var\(--nav-wall-light\) 0%,/);
   assert.match(before, /radial-gradient\(150% 140% at 50% 130%, var\(--nav-wall-shade\)/);
   // Each ellipse fades to transparent well inside its own radius, so the wall
   // eases from transparent at the card's own edge into the glow rather than
   // stopping at a hard boundary partway across it.
-  assert.match(before, /var\(--nav-wall-light\) 0%,\s*\n\s*color-mix\(in srgb, var\(--nav-wall-light\) 58%, transparent\) 32%,\s*\n\s*transparent 60%/);
   assert.match(before, /var\(--nav-wall-shade\), transparent 58%/);
   // The tint sits behind the wall in the same declaration, not a separate one
   // dark theme has to reconstruct.
-  assert.match(before, /--nav-tint: color-mix\(/);
   assert.match(before, /var\(--nav-tint\);\s*\n\}/);
 
-  const dark = css.match(/html\[data-theme="dark"\] \.nav-menu-group::before \{[\s\S]*?\n\}/)[0];
+  // The top highlight moved off ::before entirely, onto a real, unwarped
+  // sibling child — see the big comment on .nav-menu-group-sheen for why: a
+  // tight ellipse sheared into a visible trapezoid wherever the SVG lens's
+  // own bend direction wasn't uniform underneath it, on a real device where
+  // the lens actually distorts what's under it. It reads the same
+  // --nav-wall-light custom property by inheritance from .nav-menu-group.
+  assert.doesNotMatch(before, /radial-gradient\(\s*\n\s*50% 36% at 50% -8%/);
+  const sheen = css.match(/\n\.nav-menu-group-sheen \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(sheen, "expected a .nav-menu-group-sheen rule");
+  assert.match(sheen, /radial-gradient\(\s*\n\s*50% 36% at 50% -8%,\s*\n\s*var\(--nav-wall-light\) 0%,/);
+  assert.match(sheen, /var\(--nav-wall-light\) 0%,\s*\n\s*color-mix\(in srgb, var\(--nav-wall-light\) 58%, transparent\) 32%,\s*\n\s*transparent 60%/);
+
+  const dark = css.match(/html\[data-theme="dark"\] \.nav-menu-group \{[\s\S]*?\n\}/)[0];
   // Only the custom properties are overridden — no background/box-shadow
   // redeclaration, so the layer structure above cannot drift from this.
   assert.doesNotMatch(dark, /\n {2}background:/);
-  assert.doesNotMatch(dark, /box-shadow:/);
   assert.match(dark, /--nav-wall-light: color-mix\(in srgb, white 26%/);
   assert.match(dark, /--nav-wall-shade: color-mix\(in srgb, black 30%/);
   assert.ok(

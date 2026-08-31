@@ -59,21 +59,23 @@ test("Light's canvas is a flat light blue, and its glass carries no colour of it
   assert.ok(lightBody, "expected a Light body override that sets background");
   assert.match(lightBody, /background:\s*#cfe7fb;/);
   assert.doesNotMatch(lightBody, /linear-gradient/);
-  // .nav-menu-group::before still carries the Warm theme's own brown tint
-  // and warm-black wall shade by default (see its base rule) — Light
-  // overrides just those custom properties with colourless mixes, rather
-  // than redeclaring the whole layered wall/rim formula. Thinned down from
+  // .nav-menu-group still carries the Warm theme's own brown tint and
+  // warm-black wall shade by default (see its base rule) — Light overrides
+  // just those custom properties with colourless mixes, rather than
+  // redeclaring the whole layered wall/rim formula. Thinned down from
   // Warm's own strength too, so the nav list reads as more transparent
   // glow-blur over Light's own blue wash — and thinned again on a later,
-  // direct "more transparent" request.
-  const lightNavBefore = css.match(
-    /html\[data-theme="light"\] \.nav-menu-group::before \{[\s\S]*?\n\}/,
+  // direct "more transparent" request. Held on .nav-menu-group itself
+  // (not ::before) so both the warped wall/tint layer and the unwarped
+  // highlight sheen (see the glass-refraction tests) read the same colours.
+  const lightNavGroupColors = css.match(
+    /html\[data-theme="light"\] \.nav-menu-group \{[\s\S]*?\n\}/,
   )?.[0];
-  assert.ok(lightNavBefore, "expected a Light override for .nav-menu-group::before");
-  assert.match(lightNavBefore, /--nav-tint:\s*color-mix\(in srgb, var\(--color-background\) 3%, transparent\);/);
-  assert.match(lightNavBefore, /--nav-wall-light:\s*color-mix\(in srgb, white 35%, transparent\);/);
-  assert.match(lightNavBefore, /--nav-wall-shade:\s*color-mix\(in srgb, black 10%, transparent\);/);
-  assert.match(lightNavBefore, /--nav-wall-shade-soft:\s*color-mix\(in srgb, black 5%, transparent\);/);
+  assert.ok(lightNavGroupColors, "expected a Light override for .nav-menu-group");
+  assert.match(lightNavGroupColors, /--nav-tint:\s*color-mix\(in srgb, var\(--color-background\) 3%, transparent\);/);
+  assert.match(lightNavGroupColors, /--nav-wall-light:\s*color-mix\(in srgb, white 35%, transparent\);/);
+  assert.match(lightNavGroupColors, /--nav-wall-shade:\s*color-mix\(in srgb, black 10%, transparent\);/);
+  assert.match(lightNavGroupColors, /--nav-wall-shade-soft:\s*color-mix\(in srgb, black 5%, transparent\);/);
 
   // .nav-menu-group carries no background of its own in any theme (see the
   // isolation comment on its base rule) — all its material lives on
@@ -89,12 +91,14 @@ test("Light's canvas is a flat light blue, and its glass carries no colour of it
   // Warm theme's brown by default — Light drops the coloured layer from
   // each and keeps only the neutral shadow.
   assert.match(css, /html\[data-theme="light"\] \.nav-paper \{\s*\n\s*box-shadow:\s*none;\s*\n\}/);
-  const lightNavGroup = css.match(
-    /html\[data-theme="light"\] \.nav-menu-group \{[\s\S]*?\n\}/,
-  )?.[0];
-  assert.ok(lightNavGroup, "expected a Light override for .nav-menu-group");
-  assert.match(lightNavGroup, /color-mix\(in srgb, black 18%, transparent\)/);
-  assert.doesNotMatch(lightNavGroup, /rgb\(142, 104, 78\)/);
+  // Two `html[data-theme="light"] .nav-menu-group` blocks exist now (the
+  // colours above, and this lift-off-sheet box-shadow); find the one that
+  // actually sets box-shadow rather than assuming match order.
+  const lightNavGroupBlocks = css.match(/html\[data-theme="light"\] \.nav-menu-group \{[\s\S]*?\n\}/g) ?? [];
+  const lightNavGroupShadow = lightNavGroupBlocks.find((block) => block.includes("box-shadow:"));
+  assert.ok(lightNavGroupShadow, "expected a Light .nav-menu-group override that sets box-shadow");
+  assert.match(lightNavGroupShadow, /color-mix\(in srgb, black 18%, transparent\)/);
+  assert.doesNotMatch(lightNavGroupShadow, /rgb\(142, 104, 78\)/);
 });
 
 test("Warm keeps its original cream-paper canvas and clay browser chrome", () => {

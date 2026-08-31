@@ -1240,11 +1240,54 @@ html[data-theme="dark"] .nav-paper {
      needs its own stacking context regardless of what a shared catch-all
      rule happens to declare. */
   isolation: isolate;
+  /* Held here rather than on ::before, which is where they used to live:
+     both ::before (the warped material) and .nav-menu-group-sheen (the
+     unwarped highlight, see the comment there) need to read the same
+     colours, and a custom property set on a pseudo-element does not
+     inherit to a real sibling child the way one set on the element itself
+     does. Values themselves are unchanged; only where they are declared
+     moved. */
+  --nav-tint: color-mix(
+    in srgb,
+    rgb(142, 104, 78) 2.5%,
+    color-mix(in srgb, var(--color-background) 6%, transparent)
+  );
+  --nav-wall-light: color-mix(in srgb, white 55%, transparent);
+  --nav-wall-shade: color-mix(in srgb, rgb(40, 30, 22) 20%, transparent);
+  --nav-wall-shade-soft: color-mix(in srgb, rgb(40, 30, 22) 10%, transparent);
 }
 
 .nav-menu-group > * {
   position: relative;
   z-index: 1;
+}
+
+/*
+  The top highlight, unwarped — on a real child element rather than in
+  ::before's own background. The SVG lens filter below applies to ::before
+  alone (`filter: var(--glass-lens-filter, none)`), and warps everything
+  painted there together: the blurred backdrop it is meant to bend, but
+  also, inescapably, this element's own decorative gradients sitting on
+  top of it. A tight, small ellipse positioned right at the rim — exactly
+  where the bevel's own bend is strongest and least uniform, since the
+  bend direction rotates through a wide arc near every rounded corner — is
+  exactly the shape most likely to come out sheared into a trapezoid or
+  parallelogram rather than the round highlight it started as. Painting it
+  on its own layer, after ::before in paint order but still beneath real
+  content, keeps the shape the CSS itself describes instead of whatever
+  the displacement map happens to do to it.
+*/
+.nav-menu-group-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    50% 36% at 50% -8%,
+    var(--nav-wall-light) 0%,
+    color-mix(in srgb, var(--nav-wall-light) 58%, transparent) 32%,
+    transparent 60%
+  );
 }
 
 .nav-menu-group::before {
@@ -1263,19 +1306,6 @@ html[data-theme="dark"] .nav-paper {
   z-index: 0;
   border-radius: inherit;
   pointer-events: none;
-  /* The card is a distinct surface through its rim and its edge bend, not
-     because it hides what is behind it. The warm tint is mixed as an opaque
-     colour, so it sets a floor the scrim underneath can never get below —
-     thinning only the scrim would leave the card stuck at the tint's own
-     weight and just make it read browner rather than clearer, so both come
-     down together. Held in a custom property, along with the wall's own
-     colours just below, so dark theme can override the colours alone
-     without redeclaring this whole layered background. */
-  --nav-tint: color-mix(
-    in srgb,
-    rgb(142, 104, 78) 2.5%,
-    color-mix(in srgb, var(--color-background) 6%, transparent)
-  );
   /* WebKit silently skips backdrop-filter on an element that never commits
      to its own compositing layer, which is easy to end up with two levels
      deep in a fixed, isolated sheet: the card just shows the page through
@@ -1313,22 +1343,18 @@ html[data-theme="dark"] .nav-paper {
      well past it, so every one fades out gradually — transparent at the
      card's own edge, strongest toward the middle of whichever side it
      lights — rather than stopping at a hard boundary partway across the
-     wall. */
-  --nav-wall-light: color-mix(in srgb, white 55%, transparent);
-  --nav-wall-shade: color-mix(in srgb, rgb(40, 30, 22) 20%, transparent);
-  --nav-wall-shade-soft: color-mix(in srgb, rgb(40, 30, 22) 10%, transparent);
-  /* Same tight mirror-streak shape as .card::before's own top highlight (see
-     the comment there): a small ellipse held close to the top edge instead
-     of the wide, gentle wash this used to be — reads as one bright catch of
-     light rather than a glow spread thin across the whole upper wall, and
-     leaves more of the card genuinely clear at the same time. */
+     wall.
+
+     The top highlight used to be a fourth layer right here — moved out to
+     .nav-menu-group-sheen, a real unwarped child, because this element is
+     also where the SVG lens filter attaches (see html[data-glass-lens-split]
+     below), and a highlight painted here got bent along with the backdrop:
+     a tight ellipse sheared into a visible trapezoid wherever the bevel's
+     own bend direction wasn't perfectly uniform underneath it. --nav-tint
+     and --nav-wall-* are read here by inheritance now, declared once on
+     .nav-menu-group itself so both this warped layer and the unwarped one
+     stay in sync from a single source. */
   background:
-    radial-gradient(
-      50% 36% at 50% -8%,
-      var(--nav-wall-light) 0%,
-      color-mix(in srgb, var(--nav-wall-light) 58%, transparent) 32%,
-      transparent 60%
-    ),
     radial-gradient(150% 140% at 50% 130%, var(--nav-wall-shade), transparent 58%),
     radial-gradient(100% 220% at -25% 50%, var(--nav-wall-shade-soft), transparent 58%),
     radial-gradient(100% 220% at 125% 50%, var(--nav-wall-shade-soft), transparent 58%),
@@ -1400,7 +1426,7 @@ html[data-theme="dark"] .nav-menu-group::after {
   );
 }
 
-html[data-theme="dark"] .nav-menu-group::before {
+html[data-theme="dark"] .nav-menu-group {
   /* Only the colours held in these custom properties change; the layered
      background formula that consumes them is declared once, above, and is
      not repeated here. The same warm hue at a fraction of the light-theme
@@ -3974,7 +4000,7 @@ html[data-theme="light"] body[data-glass-lab] {
   letting it show through. Same wall/rim formula as every other theme, just
   with the page's own background as the only colour in the mix.
 */
-html[data-theme="light"] .nav-menu-group::before {
+html[data-theme="light"] .nav-menu-group {
   --nav-tint: color-mix(in srgb, var(--color-background) 3%, transparent);
   /* The wall's own shade was mixed from a warm near-black (rgb(40, 30, 22))
      rather than true black — invisible next to Warm's cream paper, but a
