@@ -160,34 +160,57 @@ test("the knob tracks the finger continuously, so the lens has something new to 
   assert.match(rule(".theme-toggle-selector"), /transition:[\s\S]*?translate 440ms/);
 });
 
-test("the pressed knob disperses at its rim, the way the reference glass does", () => {
-  // A real lens bends short wavelengths harder than long ones, so its edge
-  // splits white light into a spectrum. feDisplacementMap cannot: it moves
-  // all three channels by one vector, bending the backdrop without ever
-  // separating it. Doing it honestly would be three filter passes at three
-  // scales, on a 28px knob, for an effect a couple of pixels wide.
+test("the pressed knob disperses for real, rather than painting a rainbow", () => {
+  // A prism separates because its refractive index depends on wavelength:
+  // blue bends hardest, red least. One feDisplacementMap moves all three
+  // channels by a single vector, so it bends without ever separating —
+  // which is why the fringe used to be a drawn gradient ring.
   //
-  // So the fringe is painted, on the same masked-gradient-border as
-  // .card::after — the only way to get a border whose colour varies around
-  // its own perimeter. Painted also means it survives a flat backdrop,
-  // where a real split would have nothing to separate.
+  // Three passes at three scales express it properly: the same normal map
+  // slightly under, at, and over the true bend, with each pass then allowed
+  // to contribute only the channel it was solved for.
+  assert.match(filter, /const KNOB_DISPERSION = 0\.16;/);
+  assert.match(filter, /const GENERIC_DISPERSION = 0;/);
+  assert.match(filter, /scale=\{entry\.scale \* \(1 - entry\.dispersion\)\}/);
+  assert.match(filter, /scale=\{entry\.scale \* \(1 \+ entry\.dispersion\)\}/);
+  assert.match(filter, /result="lens-red"/);
+  assert.match(filter, /result="lens-green"/);
+  assert.match(filter, /result="lens-blue"/);
+
+  // Each matrix keeps one channel and passes alpha through. Alpha has to
+  // survive: the passes are composited additively, and a channel carried on
+  // zero alpha is premultiplied away to nothing before it can be added.
+  assert.match(filter, /values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/);
+  assert.match(filter, /values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"/);
+  assert.match(filter, /values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"/);
+  assert.match(filter, /operator="arithmetic"[\s\S]{0,80}k2="1"[\s\S]{0,40}k3="1"/);
+
+  // Dispersion is part of the bucket identity, so a card can never pick up
+  // the knob's three-pass filter by measuring the same shape — three times
+  // the displacement work is worth it for one 28px knob, not for every card
+  // on a page.
+  assert.match(filter, /function bucketKey\(\s*\n\s*aspect: number,\s*\n\s*cornerRadius: number,\s*\n\s*bezelWidth: number,\s*\n\s*dispersion: number,/);
+  assert.match(filter, /const dispersion = knob \? KNOB_DISPERSION : GENERIC_DISPERSION;/);
+  // Cards keep the single pass.
+  assert.match(filter, /entry\.dispersion > 0 \?/);
+
+  // And the drawn spectrum is gone from the rim. It was not merely
+  // redundant once the lens disperses: a painted rainbow fires over a flat
+  // backdrop, where a real prism has nothing to split and shows nothing —
+  // so the one place the two disagreed was the place the drawing lied.
+  // Verified both ways: strong derived fringe over a hard black/white edge,
+  // none over flat grey.
   const rim = rule(".theme-toggle-selector::after");
-  // Sub-pixel: a spectrum at the edge of real glass is the thinnest thing
-  // about it, and a full pixel ring reads as a coloured border drawn around
-  // the knob rather than as light coming apart in it.
+  assert.doesNotMatch(rim, /rgba\(126, 228, 255/);
+  assert.doesNotMatch(rim, /rgba\(255, 184, 116/);
+  assert.doesNotMatch(rim, /rgba\(158, 152, 255/);
+  // What is left is the part dispersion does not explain: a rim catches the
+  // light above it, and that catch is white. Same geometry, same mask.
   assert.match(rim, /padding: 0\.5px;/);
   assert.match(rim, /mask-composite: exclude;/);
-  assert.match(rim, /-webkit-mask-composite: xor;/);
-  // Cool at one end of the sweep, warm at the other — dispersion has an
-  // order, and a rim that ran one hue would just be a coloured border.
-  assert.match(rim, /rgba\(126, 228, 255/);
-  assert.match(rim, /rgba\(255, 184, 116/);
-  // Sits above both the lens layer and the knob's own rim.
-  assert.match(rim, /z-index: 3;/);
-  assert.match(rim, /opacity: 0;/);
+  assert.match(rim, /var\(--glass-specular\)/);
+  assert.doesNotMatch(rim, /rgba\(/);
 
-  // Pressed only. A frosted pane scatters light rather than splitting it,
-  // so a rainbow on the resting knob would describe the wrong material.
   const rimPressed = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector::after");
   assert.match(rimPressed, /opacity: 1;/);
 });

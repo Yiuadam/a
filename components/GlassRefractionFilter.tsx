@@ -139,6 +139,30 @@ const GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH;
 */
 const KNOB_SELECTOR = ".theme-toggle-selector";
 const KNOB_BEZEL_WIDTH = 0.14;
+/*
+  How much harder blue bends than red, as a fraction of the green bend.
+
+  This is the dispersion the reference glass actually shows at its rim, and
+  until now it was a painted rainbow: a fixed gradient ring, the same hues
+  in the same places whatever was behind the glass. That is a drawing of
+  the effect rather than the effect. Real glass has a different refractive
+  index per wavelength, so its edge pulls the backdrop's own colours apart
+  by different amounts — which means the fringe is made of whatever is
+  behind it, and a knob over plain grey shows none at all.
+
+  One feDisplacementMap moves all three channels by one vector, so it can
+  bend without ever separating. Three passes at three scales can: red a
+  little less than green, blue a little more, then each pass contributing
+  only its own channel. See the filter itself for the recombination.
+
+  0.16 rather than something showier because the separation is a fraction
+  of a bend that is already confined to the rim band — the flat middle has
+  no displacement, so it gets no fringe, exactly as it should. Cards keep
+  0 and their single pass: this is three times the displacement work, which
+  is worth it for one 28px knob and not for every card on a page.
+*/
+const KNOB_DISPERSION = 0.16;
+const GENERIC_DISPERSION = 0;
 const GENERIC_DISPLACEMENT_HEADROOM = NAV_DISPLACEMENT_HEADROOM;
 /* A page with an unusually long list of cards (an admin table, a long
    practice list) could in principle produce more distinct shape buckets than
@@ -182,6 +206,7 @@ type GenericBucket = {
   aspect: number;
   cornerRadius: number;
   bezelWidth: number;
+  dispersion: number;
   scale: number;
 };
 
@@ -190,8 +215,15 @@ type GenericBucket = {
    their face turning over — see KNOB_BEZEL_WIDTH. Keying it here is what
    stops the knob and a square card sharing one filter and one of them
    silently winning. */
-function bucketKey(aspect: number, cornerRadius: number, bezelWidth: number) {
-  return `${aspect.toFixed(2)}:${cornerRadius.toFixed(2)}:${bezelWidth.toFixed(2)}`;
+function bucketKey(
+  aspect: number,
+  cornerRadius: number,
+  bezelWidth: number,
+  dispersion: number,
+) {
+  return [aspect, cornerRadius, bezelWidth, dispersion]
+    .map((value) => value.toFixed(2))
+    .join(":");
 }
 
 /*
@@ -214,8 +246,10 @@ function measureGenericPanes() {
     const halfHeight = height / 2;
     const aspect = nearest(width / height, GENERIC_ASPECT_BUCKETS);
     const cornerRadius = nearest(Math.min(radius / halfHeight, 0.98), GENERIC_CORNER_BUCKETS);
-    const bezelWidth = pane.matches(KNOB_SELECTOR) ? KNOB_BEZEL_WIDTH : GENERIC_BEZEL_WIDTH;
-    const key = bucketKey(aspect, cornerRadius, bezelWidth);
+    const knob = pane.matches(KNOB_SELECTOR);
+    const bezelWidth = knob ? KNOB_BEZEL_WIDTH : GENERIC_BEZEL_WIDTH;
+    const dispersion = knob ? KNOB_DISPERSION : GENERIC_DISPERSION;
+    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion);
     assignments.set(pane, key);
 
     if (buckets.has(key) || buckets.size >= GENERIC_MAX_BUCKETS) continue;
@@ -232,6 +266,7 @@ function measureGenericPanes() {
       aspect,
       cornerRadius,
       bezelWidth,
+      dispersion,
       scale: GENERIC_DISPLACEMENT_HEADROOM / scaleDivisor,
     });
   }
@@ -325,7 +360,7 @@ function supportsSplitPropertyLens() {
 export default function GlassRefractionFilter() {
   const [mapUrl, setMapUrl] = useState<string | null>(null);
   const [genericFilters, setGenericFilters] = useState<
-    Array<{ key: string; id: string; url: string; scale: number }>
+    Array<{ key: string; id: string; url: string; scale: number; dispersion: number }>
   >([]);
   const [enabled, setEnabled] = useState(false);
   const [splitLensEnabled, setSplitLensEnabled] = useState(false);
@@ -386,7 +421,10 @@ export default function GlassRefractionFilter() {
   useEffect(() => {
     if (!splitLensEnabled) return;
 
-    const known = new Map<string, { id: string; url: string; scale: number }>();
+    const known = new Map<
+      string,
+      { id: string; url: string; scale: number; dispersion: number }
+    >();
     let frame = 0;
 
     const rebuild = () => {
@@ -411,6 +449,7 @@ export default function GlassRefractionFilter() {
           id: `${GENERIC_FILTER_PREFIX}-${known.size}`,
           url: source,
           scale: bucket.scale,
+          dispersion: bucket.dispersion,
         });
         changed = true;
       }
@@ -553,13 +592,105 @@ export default function GlassRefractionFilter() {
               preserveAspectRatio="none"
               result="generic-normal-map"
             />
-            <feDisplacementMap
-              in="SourceGraphic"
-              in2="generic-normal-map"
-              scale={entry.scale}
-              xChannelSelector="R"
-              yChannelSelector="G"
-            />
+            {entry.dispersion > 0 ? (
+              <>
+                {/*
+                  Real dispersion, in place of a painted rainbow.
+
+                  A prism separates because its refractive index depends on
+                  wavelength: blue bends hardest, red least. One
+                  feDisplacementMap cannot express that — it moves all three
+                  channels by a single vector, so it bends without ever
+                  separating, which is why the fringe had to be drawn on by
+                  hand as a fixed gradient ring.
+
+                  Three passes can. The same normal map, at three scales
+                  either side of the true one, and then each pass allowed to
+                  contribute only the channel it was solved for: red from the
+                  gentlest bend, green from the middle, blue from the
+                  strongest. Recombining them gives an edge whose colours
+                  come apart the way the reference glass's do — made of
+                  whatever is actually behind the pane, so a knob over flat
+                  grey shows no fringe at all, and one over a hard edge
+                  shows it exactly there.
+
+                  The separation follows the bend, which is already confined
+                  to the rim band, so the flat middle disperses nothing.
+                */}
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="generic-normal-map"
+                  scale={entry.scale * (1 - entry.dispersion)}
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                  result="lens-red"
+                />
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="generic-normal-map"
+                  scale={entry.scale}
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                  result="lens-green"
+                />
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="generic-normal-map"
+                  scale={entry.scale * (1 + entry.dispersion)}
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                  result="lens-blue"
+                />
+                {/*
+                  Each matrix keeps one colour channel and passes alpha
+                  through untouched. Alpha has to survive: these are
+                  composited additively below, and a channel carried on zero
+                  alpha is premultiplied away to nothing before it can be
+                  added.
+                */}
+                <feColorMatrix
+                  in="lens-red"
+                  type="matrix"
+                  values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"
+                  result="only-red"
+                />
+                <feColorMatrix
+                  in="lens-green"
+                  type="matrix"
+                  values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"
+                  result="only-green"
+                />
+                <feColorMatrix
+                  in="lens-blue"
+                  type="matrix"
+                  values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"
+                  result="only-blue"
+                />
+                <feComposite
+                  in="only-red"
+                  in2="only-green"
+                  operator="arithmetic"
+                  k2="1"
+                  k3="1"
+                  result="red-green"
+                />
+                <feComposite
+                  in="red-green"
+                  in2="only-blue"
+                  operator="arithmetic"
+                  k2="1"
+                  k3="1"
+                />
+              </>
+            ) : (
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="generic-normal-map"
+                scale={entry.scale}
+                xChannelSelector="R"
+                yChannelSelector="G"
+              />
+            )}
           </filter>
         ))}
       </defs>

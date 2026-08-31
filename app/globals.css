@@ -1864,26 +1864,26 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
 }
 
 /*
-  The prismatic rim — the fringe of colour along the edge of the reference
-  glass, cyan through violet at one end and magenta into amber at the other.
+  The specular catch along the rim — light landing on the curve, not light
+  coming apart in it.
 
-  A real lens disperses: it bends short wavelengths harder than long ones,
-  so its edge splits white light into a spectrum. The displacement below
-  cannot do that — feDisplacementMap moves all three channels by the same
-  vector, so it bends the backdrop without ever separating it — and doing
-  it honestly would mean three filter passes at three scales, on a 28px
-  knob, for an effect that is a couple of pixels wide.
+  This used to paint the spectrum too: a fixed cyan-through-amber gradient
+  ring, because a single feDisplacementMap moves all three channels by one
+  vector and so bends the backdrop without ever separating it. The filter
+  now disperses for real, in three passes at three scales (see
+  KNOB_DISPERSION), which means the fringe is made of whatever is actually
+  behind the knob.
 
-  So it is painted, on the same masked-gradient-border as .card::after:
-  drawn across the whole box, then masked down to just the ring, which is
-  the only way to get a border whose colour varies around its own
-  perimeter. Painted rather than derived also means it survives a flat
-  backdrop, where a genuine split would have nothing to separate — which is
-  most of what makes the knob read as glass rather than as a hole.
+  That makes the painted rainbow worse than redundant. A drawn spectrum
+  fires over a flat grey backdrop, where a real prism has nothing to split
+  and shows nothing at all — so the one place the two disagreed was the
+  place the drawing was lying. Verified both ways: over a hard black/white
+  edge the derived fringe is strong and lands exactly on the contrast; over
+  flat grey it vanishes.
 
-  Pressed only, and deliberately: dispersion belongs to the clear state.
-  A frosted pane scatters light rather than splitting it, so a rainbow on
-  the resting knob would be describing the wrong material.
+  What is left is the part dispersion does not explain. A rim still catches
+  the light above it, and that catch is white — so this keeps the geometry
+  and the mask, and drops the hues.
 */
 .theme-toggle-selector::after {
   content: "";
@@ -1903,14 +1903,14 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   opacity: 0;
   background: linear-gradient(
     158deg,
-    rgba(126, 228, 255, 0.82) 0%,
-    rgba(158, 152, 255, 0.6) 15%,
-    rgba(255, 255, 255, 0.26) 31%,
+    color-mix(in srgb, var(--glass-specular) 92%, transparent) 0%,
+    color-mix(in srgb, var(--glass-specular) 60%, transparent) 15%,
+    color-mix(in srgb, var(--glass-highlight) 26%, transparent) 31%,
     transparent 44%,
     transparent 57%,
-    rgba(255, 255, 255, 0.28) 71%,
-    rgba(255, 164, 220, 0.64) 87%,
-    rgba(255, 184, 116, 0.82) 100%
+    color-mix(in srgb, var(--glass-highlight) 28%, transparent) 71%,
+    color-mix(in srgb, var(--glass-specular) 58%, transparent) 87%,
+    color-mix(in srgb, var(--glass-specular) 88%, transparent) 100%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
