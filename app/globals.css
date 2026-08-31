@@ -3519,10 +3519,6 @@ html[data-theme="dark"] .btn-primary.pricing-subscribe-button:hover:not(:disable
   border-color: color-mix(in srgb, var(--color-indigo-500) 76%, var(--glass-specular));
 }
 
-html[data-theme="light"] .btn-primary.pricing-subscribe-button:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--color-accent-blue) 76%, var(--glass-specular));
-}
-
 .btn-secondary {
   @apply btn border text-slate-700 active:translate-y-px;
   border-color: var(--glass-edge);
@@ -4330,26 +4326,37 @@ html[data-theme="light"] .nav-menu-group {
     0 8px 22px -8px color-mix(in srgb, black 18%, transparent);
 }
 
-/* Light primary controls keep the same neutral-grey fill as its cards — see
-   "Light keeps every control surface a quiet grey" below — but the
-   perimeter is the one part of the button carrying this theme's own blue
-   (--color-accent-blue above), per a direct request: the grey face still
-   reads as something to press, and the blue ring ties it back to the page's
-   own blue wash instead of the neutral ramp everything else here uses. */
+/* Light's primary button is blue, face and all.
+
+   It used to be a grey face with a blue ring, on the reasoning that the ring
+   was enough to tie it to the page's blue wash while the fill stayed with the
+   theme's neutral ramp. On the page that read as a grey button: --color-indigo-600
+   is #c7ccd3 here, and a primary action drawn in the same near-white as the
+   chrome around it does not look like the thing to press. So the blue this
+   theme already reserves for exactly this button now fills it.
+
+   Slightly deeper than the token itself, and that part is not taste. White on
+   #0284c7 measures 4.11:1, which is under the 4.5 a button label at this size
+   needs; taking 12% black out of it lands about #0274af and 5.1:1, which
+   clears it with room to spare while still plainly reading as the same blue.
+
+   The label goes white with it. --color-accent-fg is #26282d in this theme —
+   right for the grey face it was written for, and unreadable on a saturated
+   blue one. */
 html[data-theme="light"] .btn-primary {
-  color: var(--color-accent-fg);
+  color: #ffffff;
   border-color: color-mix(in srgb, var(--color-accent-blue) 60%, transparent);
-  background: var(--color-indigo-600);
+  background: color-mix(in srgb, var(--color-accent-blue) 88%, black);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 28%, transparent),
-    0 5px 14px color-mix(in srgb, var(--color-indigo-700) 20%, transparent);
+    inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+    0 5px 14px color-mix(in srgb, var(--color-accent-blue) 28%, transparent);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 
 html[data-theme="light"] .btn-primary:hover:not(:disabled) {
   border-color: var(--color-accent-blue);
-  background: var(--color-indigo-700);
+  background: color-mix(in srgb, var(--color-accent-blue) 78%, black);
 }
 
 /* Light keeps every control surface a quiet grey instead of leaving it blue,
@@ -4397,6 +4404,32 @@ html[data-theme="light"] .card,
 html[data-theme="light"] .premade-glass {
   border-color: var(--color-indigo-300);
   background: color-mix(in srgb, var(--color-indigo-100) 16%, transparent);
+}
+
+/*
+  The option bars sit a little darker than the surfaces around them.
+
+  They were taking the `.premade-glass` recipe below — 16% of a near-white
+  grey — which against this theme's pale blue page left the track almost
+  invisible: a control you had to already know was there. A track is not a
+  card; it is the groove a knob runs in, and it reads as one only if it is
+  darker than the page rather than another shade of it.
+
+  Mixed from a dark neutral rather than from the ramp, because every step of
+  this theme's accent ramp is itself a near-white. 7% is slight on purpose —
+  enough to separate the groove from the page, not enough to turn a light
+  theme's chrome into a band of grey.
+
+  `.input` is deliberately not here. It shares the rule this overrides, but a
+  field is a place to put something rather than a track something slides
+  along, and it should stay level with the card it sits on.
+*/
+html[data-theme="light"] .theme-toggle-base,
+html[data-theme="light"] .interval-toggle-base,
+html[data-theme="light"] .notification-filter-base,
+html[data-theme="light"] .panel-toggle-base,
+html[data-theme="light"] .organization-view-tabs {
+  background: color-mix(in srgb, rgb(22, 23, 26) 7%, transparent);
 }
 
 /* Keep the inbox at the card optical index in Light as well. The generic

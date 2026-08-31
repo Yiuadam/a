@@ -38,7 +38,17 @@ test("Light keeps a white canvas with neutral-grey interactive controls", () => 
     /html\[data-theme="light"\] \.liquid-glass:not\(\.nav-menu-group\),\nhtml\[data-theme="light"\] \.card,\nhtml\[data-theme="light"\] \.premade-glass \{[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 16%, transparent\);/,
   );
   assert.match(css, /html\[data-theme="light"\] a\.card\.card:hover,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-200\) 58%, transparent\);/);
-  assert.match(css, /html\[data-theme="light"\] \.btn-primary \{[\s\S]*?background:\s*var\(--color-indigo-600\);/);
+  // The primary button is the exception to the grey: it is filled with this
+  // theme's blue rather than the neutral ramp. A grey face on a grey page
+  // did not read as the thing to press — --color-indigo-600 is #c7ccd3 here,
+  // near enough the chrome around it to disappear. Deeper than the token by
+  // 12% black, because white on #0284c7 measures 4.11:1 and a button label
+  // at this size needs 4.5; the mix lands about 5.1:1.
+  assert.match(
+    css,
+    /html\[data-theme="light"\] \.btn-primary \{[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-accent-blue\) 88%, black\);/,
+  );
+  assert.match(css, /html\[data-theme="light"\] \.btn-primary \{[\s\S]*?color:\s*#ffffff;/);
   assert.doesNotMatch(css, /html\[data-theme="warm"\] \.card \{[\s\S]*?background:\s*#fac69f;/);
 });
 
