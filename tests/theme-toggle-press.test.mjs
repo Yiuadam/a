@@ -280,3 +280,39 @@ test("the theme control is exactly as tall as the account button beside it", () 
   assert.match(knob, /height: var\(--theme-stop-size\);/);
   assert.match(knob, /left: var\(--theme-stop-inset\);/);
 });
+
+test("the theme knob is visible on a light track, not only in dark", () => {
+  // Every other segmented knob gets an explicit fill per theme — the
+  // `html[data-theme="light"] .notification-filter-selector, ...` list names
+  // six of them. The theme control was the one left off it, so it alone fell
+  // through to the shared --glass-fill-strong: white at 16% with a white
+  // edge at 32%. Over Warm's cream paper or Light's pale blue that is very
+  // nearly nothing, and which theme was selected could only be read from the
+  // icon's own colour.
+  //
+  // Scoped by :not([data-theme="dark"]) rather than by naming Warm and Light
+  // separately, because Dark is the only one of the three that already had a
+  // fill of its own — which is exactly why the bug showed up in the other
+  // two and not there.
+  const lit = rule('html:not([data-theme="dark"]) .theme-toggle-selector');
+  assert.match(lit, /background: color-mix\(in srgb, var\(--color-surface\) 88%, transparent\);/);
+  assert.match(lit, /border-color:/);
+  assert.match(lit, /box-shadow:/);
+  // Dark keeps its own, older override untouched.
+  assert.match(css, /html\[data-theme="dark"\] \.theme-toggle-selector,/);
+
+  // And the press still strips it: a clear knob is the point of the pressed
+  // state, and this rule has to outrank the shared one that clears it.
+  const litPressed = rule(
+    'html:not([data-theme="dark"]) .theme-toggle-base[data-pressed] .theme-toggle-selector',
+  );
+  assert.match(litPressed, /background: transparent;/);
+  assert.doesNotMatch(litPressed, /--color-surface/);
+});
+
+test("the account button sits clear of the theme control", () => {
+  // The cluster is right-aligned, so the gap between these two is what moves
+  // the account button left rather than any change to the account button.
+  const header = readFileSync(join(process.cwd(), "components", "SiteHeader.tsx"), "utf8");
+  assert.match(header, /className="ml-2 sm:ml-3">\s*\n\s*<ThemeToggle \/>/);
+});

@@ -396,7 +396,12 @@ export default function SiteHeader({
               </svg>
             )}
           </SignInLink>
-          <ThemeToggle />
+          {/* Held off the theme control so the account button sits clear of
+              it rather than crowding its rim — the cluster is right-aligned,
+              so widening this gap moves the account (and the menu) left. */}
+          <div className="ml-2 sm:ml-3">
+            <ThemeToggle />
+          </div>
         </div>
       </div>
 
