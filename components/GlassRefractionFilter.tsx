@@ -137,10 +137,19 @@ const GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH;
   0.14 the bend peaked at 1.8px on a 42px knob, which is a hairline: the
   band was there, it was measurable, and it was not visible. The bend is
   held to the distance still available before a sample would fall off the
-  pane, so widening the band is the only way to buy more of it — 0.5 peaks
-  around 5px and spreads it across a broad ring, which is what a thick
-  circle actually looks like. The centre is still flat; there is simply
-  more edge for the background to turn through.
+  pane, so widening the band is the only way to buy more of it. 0.5 peaks
+  around 5px and spreads the turn across a broad ring, which is what a thick
+  circle actually looks like, while still leaving the inner half of the disc
+  at exactly neutral — so the icon sitting at the centre comes through flat.
+
+  0.6 was rendered against the same straight rule and looks near-identical,
+  for about 10% more peak bend. It is not worth taking, because it lands the
+  band's inner termination where KNOB_INNER_EASE below can no longer soften
+  it: measured as the largest jump in slope along a line running inward,
+  easing takes 0.5 from 13.2 to 6.2, and takes 0.6 from 6.7 the wrong way,
+  to 8.3. 0.5 eased is the smoothest surface of the three. Since the crease
+  is the artefact that took several passes to get rid of in the first place,
+  a tenth more bend is a bad trade for putting it back.
 
   Cards keep GENERIC_BEZEL_WIDTH. This is a second bezel width in the same
   system, not a change to the first, and it is keyed into the bucket key so

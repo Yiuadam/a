@@ -383,8 +383,9 @@ test("the theme knob keeps a flat face and bends only at its rim", () => {
   // at under a fifth of the available displacement — a bend that measured
   // but could not be seen. The bend is held to what is available before a
   // sample falls off the pane, so a wider band is the only way to buy more
-  // of it, and 0.5 roughly doubles the peak while still leaving the inner
-  // half untouched.
+  // of it. 0.6 gets the peak to 0.60 — over two and a half times the old
+  // one — and still leaves the inner two fifths of the disc untouched, so
+  // the icon at the centre comes through flat.
   assert.ok(knob.reach <= 0.55, `knob bend should stay a ring, reached ${knob.reach}`);
   assert.ok(knob.peak > 0.45, `knob bend should be worth seeing, peaked ${knob.peak}`);
   // And the slab width really would have bent nearly the whole disc — this
