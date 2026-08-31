@@ -158,7 +158,23 @@ const KNOB_BEZEL_WIDTH = 0.14;
   little less than green, blue a little more, then each pass contributing
   only its own channel. See the filter itself for the recombination.
 
-  0.05, cut from 0.16 when the whole-face lens (KNOB_MAGNIFY) arrived.
+  0 — off, after being cut from 0.16 to 0.05 to 0.02 and still showing.
+
+  This is a real mechanism and it was worth building: three passes at three
+  scales genuinely separate the backdrop's own colours, and over a hard
+  edge it produced a fringe that appeared only where there was contrast to
+  split. But it was safe only while the displacement lived in the rim band.
+  Once the whole face bends (KNOB_MAGNIFY), the same split reaches
+  everything the knob covers — including this app's 1.3px icon strokes,
+  which came through with yellow and magenta on them. A monochrome glyph
+  with coloured edges reads as a fault however physically it was derived,
+  and the reference's own icon shows no colour at all.
+
+  Kept in the code rather than deleted: the machinery is correct and a
+  larger pane with a rim-only bevel could still use it. It is this knob,
+  at this size, with a whole-face lens over hairline artwork, that cannot.
+
+  Historical note on the values it passed through:
   Dispersion scales with the displacement it is splitting, and while that
   displacement lived only in the rim band a large coefficient was safe:
   the flat middle had no bend, so it got no fringe. Once the whole face
@@ -170,7 +186,7 @@ const KNOB_BEZEL_WIDTH = 0.14;
   0 and their single pass: this is three times the displacement work, which
   is worth it for one 28px knob and not for every card on a page.
 */
-const KNOB_DISPERSION = 0.02;
+const KNOB_DISPERSION = 0;
 const GENERIC_DISPERSION = 0;
 /*
   Adaptive tint: glass that darkens over bright content and lightens over

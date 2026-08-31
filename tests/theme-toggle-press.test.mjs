@@ -185,7 +185,13 @@ test("the pressed knob disperses for real, rather than painting a rainbow", () =
   // icons are 0.75px hairlines, so a per-channel offset of even a pixel put
   // red and green edges on a monochrome glyph — an aberration fault however
   // physical its derivation.
-  assert.match(filter, /const KNOB_DISPERSION = 0\.02;/);
+  // Off. Three passes at three scales genuinely separate the backdrop's own
+  // colours, but that was only safe while displacement lived in the rim band.
+  // Once the whole face bends the split reaches everything the knob covers,
+  // including this app's 1.3px icon strokes, which came through with yellow
+  // and magenta on them. A monochrome glyph with coloured edges reads as a
+  // fault however physically derived; the reference's icon shows no colour.
+  assert.match(filter, /const KNOB_DISPERSION = 0;/);
   assert.match(filter, /const GENERIC_DISPERSION = 0;/);
   assert.match(filter, /scale=\{entry\.scale \* \(1 - entry\.dispersion\)\}/);
   assert.match(filter, /scale=\{entry\.scale \* \(1 \+ entry\.dispersion\)\}/);
