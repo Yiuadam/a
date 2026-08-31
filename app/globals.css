@@ -1785,6 +1785,64 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   filter: var(--glass-lens-filter, none);
 }
 
+/*
+  The prismatic rim — the fringe of colour along the edge of the reference
+  glass, cyan through violet at one end and magenta into amber at the other.
+
+  A real lens disperses: it bends short wavelengths harder than long ones,
+  so its edge splits white light into a spectrum. The displacement below
+  cannot do that — feDisplacementMap moves all three channels by the same
+  vector, so it bends the backdrop without ever separating it — and doing
+  it honestly would mean three filter passes at three scales, on a 28px
+  knob, for an effect that is a couple of pixels wide.
+
+  So it is painted, on the same masked-gradient-border as .card::after:
+  drawn across the whole box, then masked down to just the ring, which is
+  the only way to get a border whose colour varies around its own
+  perimeter. Painted rather than derived also means it survives a flat
+  backdrop, where a genuine split would have nothing to separate — which is
+  most of what makes the knob read as glass rather than as a hole.
+
+  Pressed only, and deliberately: dispersion belongs to the clear state.
+  A frosted pane scatters light rather than splitting it, so a rainbow on
+  the resting knob would be describing the wrong material.
+*/
+.theme-toggle-selector::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1px;
+  opacity: 0;
+  background: linear-gradient(
+    158deg,
+    rgba(126, 228, 255, 0.95) 0%,
+    rgba(158, 152, 255, 0.72) 15%,
+    rgba(255, 255, 255, 0.34) 31%,
+    transparent 44%,
+    transparent 57%,
+    rgba(255, 255, 255, 0.38) 71%,
+    rgba(255, 164, 220, 0.78) 87%,
+    rgba(255, 184, 116, 0.95) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  transition: opacity 200ms ease;
+}
+
+.theme-toggle-base[data-pressed] .theme-toggle-selector::after {
+  opacity: 1;
+}
+
 /* The organization sections use the same single flowing lens as the theme
    control. Hover, keyboard focus and a touch drag preview the destination;
    release or click commits it. */

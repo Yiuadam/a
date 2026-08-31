@@ -88,6 +88,35 @@ test("the dragged knob is clear glass: reformation only, no frost and no glow", 
   assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}\.theme-toggle-selector/);
 });
 
+test("the pressed knob disperses at its rim, the way the reference glass does", () => {
+  // A real lens bends short wavelengths harder than long ones, so its edge
+  // splits white light into a spectrum. feDisplacementMap cannot: it moves
+  // all three channels by one vector, bending the backdrop without ever
+  // separating it. Doing it honestly would be three filter passes at three
+  // scales, on a 28px knob, for an effect a couple of pixels wide.
+  //
+  // So the fringe is painted, on the same masked-gradient-border as
+  // .card::after — the only way to get a border whose colour varies around
+  // its own perimeter. Painted also means it survives a flat backdrop,
+  // where a real split would have nothing to separate.
+  const rim = rule(".theme-toggle-selector::after");
+  assert.match(rim, /padding: 1px;/);
+  assert.match(rim, /mask-composite: exclude;/);
+  assert.match(rim, /-webkit-mask-composite: xor;/);
+  // Cool at one end of the sweep, warm at the other — dispersion has an
+  // order, and a rim that ran one hue would just be a coloured border.
+  assert.match(rim, /rgba\(126, 228, 255/);
+  assert.match(rim, /rgba\(255, 184, 116/);
+  // Sits above both the lens layer and the knob's own rim.
+  assert.match(rim, /z-index: 3;/);
+  assert.match(rim, /opacity: 0;/);
+
+  // Pressed only. A frosted pane scatters light rather than splitting it,
+  // so a rainbow on the resting knob would describe the wrong material.
+  const rimPressed = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector::after");
+  assert.match(rimPressed, /opacity: 1;/);
+});
+
 test("the pressed knob has something behind it to bend", () => {
   // The lens was correct, active, and completely invisible: a
   // backdrop-filter can only bend what is painted beneath it, and the
