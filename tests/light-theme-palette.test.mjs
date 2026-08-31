@@ -45,10 +45,11 @@ test("Light keeps a white canvas with neutral-grey interactive controls", () => 
 test("Light's canvas is a flat light blue, and its glass carries no colour of its own", () => {
   // A flat colour for the whole page — not white, and (per a later direct
   // request) not a gradient either; an earlier bottom-to-top blue gradient
-  // was replaced with one plain colour.
+  // was replaced with one plain colour. Lightened and desaturated once from
+  // the original #cfe7fb, on a direct request for a softer wash.
   assert.match(
     css,
-    /html\[data-theme="light"\] \{[\s\S]*?--color-background:\s*#cfe7fb;/,
+    /html\[data-theme="light"\] \{[\s\S]*?--color-background:\s*#dfecf6;/,
   );
   assert.doesNotMatch(css, /html\[data-theme="light"\][\s\S]{0,2000}linear-gradient\(to top, #8dc3ef/);
   // Two `html[data-theme="light"] body` blocks exist (an earlier one only
@@ -57,7 +58,7 @@ test("Light's canvas is a flat light blue, and its glass carries no colour of it
   const lightBodyBlocks = css.match(/html\[data-theme="light"\] body \{[\s\S]*?\n\}/g) ?? [];
   const lightBody = lightBodyBlocks.find((block) => block.includes("background:"));
   assert.ok(lightBody, "expected a Light body override that sets background");
-  assert.match(lightBody, /background:\s*#cfe7fb;/);
+  assert.match(lightBody, /background:\s*#dfecf6;/);
   assert.doesNotMatch(lightBody, /linear-gradient/);
   // .nav-menu-group still carries the Warm theme's own brown tint and
   // warm-black wall shade by default (see its base rule) — Light overrides

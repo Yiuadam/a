@@ -3926,8 +3926,10 @@ html[data-theme="light"] {
      for actual "paper" surfaces (modals, popovers) the same way Warm and
      Dark each keep their own background/surface distinction, but the
      canvas itself is now a flat light blue rather than white — see the
-     `body` rule below for where this actually paints. */
-  --color-background: #cfe7fb;
+     `body` rule below for where this actually paints. Lightened and
+     desaturated once from the original #cfe7fb, on a direct request for a
+     softer wash — same hue, pulled further toward white. */
+  --color-background: #dfecf6;
   --color-surface: #ffffff;
   --wash-one: transparent;
   --wash-two: transparent;
@@ -3955,8 +3957,9 @@ html[data-theme="light"] body {
      colour for the whole page. Every glass surface already samples whatever
      is behind it through its own backdrop-filter, so every card's edge bends
      this colour exactly the way it already bent the gradient, without
-     needing to change anything about the cards themselves. */
-  background: #cfe7fb;
+     needing to change anything about the cards themselves. Softened once
+     from #cfe7fb to the lighter, less saturated --color-background above. */
+  background: #dfecf6;
   color: var(--color-foreground);
 }
 
