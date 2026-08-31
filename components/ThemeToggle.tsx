@@ -39,6 +39,7 @@ export default function ThemeToggle() {
       aria-label="Colour theme"
       data-flowing={drag.previewIndex !== null ? "" : undefined}
       data-pressed={drag.pressed ? "" : undefined}
+      data-settling={drag.settling ? "" : undefined}
       className="theme-toggle-base premade-glass relative flex touch-none items-center gap-0.5 overflow-hidden rounded-xl p-0.5"
       style={
         {

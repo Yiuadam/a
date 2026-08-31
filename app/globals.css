@@ -4835,6 +4835,57 @@ html:not([data-theme="dark"]) .theme-toggle-base[data-pressed] .theme-toggle-sel
   display: none;
 }
 
+/* ---------------------------------------------------------------------------
+   Travelling to a tapped stop.
+
+   A drag has the finger to follow, so the knob is placed frame by frame and
+   the glide is deliberately switched off — easing there just makes the lens
+   trail behind the pointer. A tap has nothing to follow: the knob has to
+   make the journey itself, and while it does it is still a pressed knob,
+   lifted and clear, so it keeps every other part of the pressed state and
+   only gets its glide back.
+
+   The water comes from the two curves disagreeing. Travel runs over 440ms,
+   the squash eases in and out over 200ms on a curve that overshoots, so a
+   single held value comes out as a shape that stretches as it leaves,
+   holds while it crosses, and springs back past round before settling —
+   which is what a thrown drop does.
+--------------------------------------------------------------------------- */
+.theme-toggle-base[data-pressed][data-settling] .theme-toggle-selector {
+  transition:
+    /* A different curve from the drag-release glide above, on purpose.
+       That one is front-loaded: it leaves at once and eases into its stop,
+       which is right for a knob catching up to a finger that has already
+       stopped, and wrong for a tap, where the leaving is the part you are
+       meant to see. This one holds still for a moment, accelerates across,
+       and overshoots before coming back — which is what being drawn to
+       something looks like.
+
+       Chosen by eye from the curve's shape, not measured: the headless
+       browsers here throttle rAF to a few frames a second, so travel
+       timing cannot be sampled honestly in this environment. The state
+       schedule around it is measured; this curve is a judgement, and worth
+       a look on a real device. */
+    translate 440ms cubic-bezier(0.5, 0.04, 0.25, 1.15),
+    inset 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    width 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    height 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    background 200ms ease,
+    box-shadow 200ms ease,
+    -webkit-backdrop-filter 200ms ease,
+    backdrop-filter 200ms ease;
+}
+
+/* The other option bars travel by a percentage of their own width; same
+   idea, and their knobs keep the glide they already had while settling. */
+[data-pressed][data-settling] > .segmented-knob.segmented-knob {
+  transition:
+    transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12),
+    translate 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12),
+    background 200ms ease,
+    box-shadow 200ms ease;
+}
+
 html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector {
   /* Clip to the disc. The filter runs on the child, so this clips the
      already-bent result rather than limiting what the bend can reach. */

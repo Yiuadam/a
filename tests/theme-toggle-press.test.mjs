@@ -33,7 +33,7 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   // Released and cancelled both have to clear it, or a knob left mid-drag
   // stays bloomed and clear for good. Both route through one `end`.
   assert.match(hook, /const end = \(\) => \{[\s\S]{0,200}setPressed\(false\);/);
-  assert.match(hook, /onPointerUp[\s\S]{0,300}end\(\);/);
+  assert.match(hook, /onPointerUp[\s\S]{0,600}end\(\);/);
   assert.match(hook, /onPointerCancel: end,/);
 
   // It has to grow past the track, not inside it: breaking the outline is
@@ -181,7 +181,7 @@ test("the knob tracks the finger continuously, so the lens has something new to 
   // cancel both hand the knob back to whole stops to settle — through the
   // one `end` they share.
   assert.match(hook, /const end = \(\) => \{[\s\S]{0,240}setDragPosition\(null\);/);
-  assert.match(hook, /onPointerUp[\s\S]{0,300}end\(\);/);
+  assert.match(hook, /onPointerUp[\s\S]{0,600}end\(\);/);
   assert.match(hook, /onPointerCancel: end,/);
 
   // And the glide must not apply during the drag, or the knob chases the

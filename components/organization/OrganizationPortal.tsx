@@ -774,6 +774,7 @@ function OrganizationViewTabs({
       aria-label="Organisation sections"
       data-flowing={previewIndex !== null ? "" : undefined}
       data-pressed={drag.pressed ? "" : undefined}
+      data-settling={drag.settling ? "" : undefined}
       data-unselected={selectedIndex < 0 && previewIndex === null ? "" : undefined}
       className="organization-view-tabs premade-glass relative hidden min-w-0 touch-none grid-cols-5 items-center overflow-hidden rounded-[var(--radius-xl)] p-1 sm:grid"
       style={{

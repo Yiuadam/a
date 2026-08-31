@@ -46,6 +46,16 @@ export type SegmentedDrag = {
    * vary is just an animation playing.
    */
   squash: number;
+  /**
+   * True while a tapped knob is travelling to the stop it was sent to.
+   *
+   * A tap is not a drag: nothing is under the finger to follow, so the knob
+   * has to make the journey itself. It stays lifted and deformed for the
+   * length of that journey and settles at the end of it, which is what
+   * makes it read as being drawn to the icon rather than teleporting onto
+   * it.
+   */
+  settling: boolean;
   /** Preview a stop without committing — for hover and keyboard focus. */
   preview: (index: number | null) => void;
   /** Spread onto the track element. */
@@ -77,8 +87,17 @@ export function useSegmentedDrag({
   const [pressed, setPressed] = useState(false);
   const [dragPosition, setDragPosition] = useState<number | null>(null);
   const [squash, setSquash] = useState(0);
+  const [settling, setSettling] = useState(false);
   const dragging = useRef(false);
+  /*
+    Whether this gesture has become a drag yet. A press alone must not move
+    the knob: if it jumps to the finger on pointerdown then a tap teleports
+    it, and the travel a tap is supposed to make never happens.
+  */
+  const moved = useRef(false);
+  const downPosition = useRef<number | null>(null);
   const dragIndex = useRef<number | null>(null);
+  const settleTravel = useRef<ReturnType<typeof setTimeout> | null>(null);
   /* The previous sample, for the speed the squash is solved from. */
   const lastMove = useRef<{ position: number; at: number } | null>(null);
   /* pointermove stops firing the instant a finger holds still, so nothing
@@ -92,7 +111,20 @@ export function useSegmentedDrag({
     }
   };
 
-  useEffect(() => cancelSettle, []);
+  const cancelTravel = () => {
+    if (settleTravel.current !== null) {
+      clearTimeout(settleTravel.current);
+      settleTravel.current = null;
+    }
+  };
+
+  useEffect(
+    () => () => {
+      cancelSettle();
+      cancelTravel();
+    },
+    [],
+  );
 
   const visibleIndex = previewIndex ?? Math.max(0, selectedIndex);
   const position = dragPosition ?? visibleIndex;
@@ -153,8 +185,64 @@ export function useSegmentedDrag({
     setPreviewIndex(index);
   };
 
+  /*
+    How far the finger has to travel before the gesture counts as a drag, in
+    stop units. Small enough that a deliberate drag is never mistaken for a
+    tap, large enough that the shake in an ordinary tap is.
+  */
+  const DRAG_THRESHOLD = 0.06;
+  /* Matches the knob's own glide in globals.css. */
+  const TRAVEL_MS = 440;
+  /* And its width/height easing, which is what the reform actually runs on. */
+  const REFORM_MS = 200;
+
+  /*
+    Send the knob to a stop it is not on, as a thrown drop of water rather
+    than a jump: lifted and stretched along the way, round again on
+    arrival.
+
+    The deformation is a single value held for the length of the journey,
+    not a curve traced by hand. It does not need to be one — CSS is already
+    easing the width and height into it and out of it on an overshooting
+    curve, so a square input comes out as a stretch that grows, holds and
+    then springs back past round before settling. Further stops mean a
+    faster journey over the same duration, so the stretch scales with the
+    distance.
+  */
+  const travelTo = (index: number) => {
+    const distance = Math.abs(index - (dragPosition ?? Math.max(0, selectedIndex)));
+    if (distance < 0.5) return;
+    cancelTravel();
+    setSettling(true);
+    setSquash(Math.min(1, 0.4 + distance * 0.3));
+
+    /*
+      The stretch is released before the knob lands, not when it lands.
+      Returning to round is itself a 200ms eased change, so releasing it on
+      arrival means the knob is still reforming well after it has stopped —
+      it arrives as an oval and rounds out afterwards, which reads as two
+      events rather than one. Released at REFORM_MS before the end, the
+      reform finishes as the travel does.
+    */
+    settleTravel.current = setTimeout(() => {
+      setSquash(0);
+      /*
+        And the lifted state outlasts the travel by the same amount. The
+        squash lives on the pressed rule, so dropping `pressed` the instant
+        the knob lands would take the shape change away mid-reform and snap
+        it round.
+      */
+      settleTravel.current = setTimeout(() => {
+        setSettling(false);
+        settleTravel.current = null;
+      }, REFORM_MS * 2);
+    }, TRAVEL_MS - REFORM_MS);
+  };
+
   const end = () => {
     dragging.current = false;
+    moved.current = false;
+    downPosition.current = null;
     setPressed(false);
     setDragPosition(null);
     dragIndex.current = null;
@@ -167,31 +255,53 @@ export function useSegmentedDrag({
 
   return {
     previewIndex,
-    pressed,
+    /* A settling knob is still lifted: it has not arrived yet, and dropping
+       the bloom mid-flight would make it shrink away from the icon it is
+       being drawn to. */
+    pressed: pressed || settling,
     position,
     squash,
+    settling,
     preview: setPreviewIndex,
     handlers: {
       onPointerDown: (event) => {
         dragging.current = true;
+        moved.current = false;
         setPressed(true);
+        cancelTravel();
+        setSettling(false);
         /* A press is not a move. Starting from no history means the first
            pointermove has nothing to measure against and leaves the knob
            round, so touching it does not make it flinch. */
         lastMove.current = null;
+        downPosition.current = positionAtPointer(event);
         event.currentTarget.setPointerCapture(event.pointerId);
-        trackPointer(event);
+        /* Deliberately not tracking yet. Moving the knob here is what made
+           a tap teleport it under the finger, which left nothing for the
+           travel to animate. */
       },
       onPointerMove: (event) => {
-        if (dragging.current) trackPointer(event);
+        if (!dragging.current) return;
+        if (!moved.current) {
+          const from = downPosition.current;
+          if (from !== null && Math.abs(positionAtPointer(event) - from) < DRAG_THRESHOLD) return;
+          moved.current = true;
+        }
+        trackPointer(event);
       },
       onPointerUp: (event) => {
         if (!dragging.current) return;
-        trackPointer(event);
-        const index = dragIndex.current;
+        const dragged = moved.current;
+        const index = dragged ? dragIndex.current : Math.round(positionAtPointer(event));
         event.currentTarget.releasePointerCapture(event.pointerId);
+        /* Read the target before `end` clears the gesture's state, and
+           start the travel after it, so the knob is already back on whole
+           stops when it begins moving. A dragged knob is by definition
+           already where it was put, so only a tap travels. */
         end();
-        if (index !== null) onCommit(index);
+        if (index === null) return;
+        if (!dragged) travelTo(index);
+        onCommit(index);
       },
       onPointerCancel: end,
       onPointerLeave: () => {

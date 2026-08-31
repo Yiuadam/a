@@ -148,13 +148,13 @@ test("the knob squashes as it is thrown and rounds out when it stops", () => {
   // pointermove stops firing the moment a finger holds still, so without a
   // timer nothing would ever tell the knob it had come to rest.
   assert.match(hook, /settleTimer\.current = setTimeout\(\(\) => setSquash\(0\), 90\);/);
-  assert.match(hook, /useEffect\(\(\) => cancelSettle, \[\]\);/);
+  assert.match(hook, /cancelSettle\(\);\n\s*cancelTravel\(\);/);
 
   // A press is not a move: clearing the history on pointerdown means the
   // first pointermove has nothing to measure against, so touching the
   // control does not make it flinch. Verified in the browser — the first
   // sample of a driven drag reads exactly 0.
-  assert.match(hook, /setPressed\(true\);\n\s*\/\*[\s\S]{0,240}?\*\/\n\s*lastMove\.current = null;/);
+  assert.match(hook, /onPointerDown:[\s\S]{0,700}?lastMove\.current = null;/);
   // And letting go is a stop, however fast it was going a frame earlier.
   assert.match(hook, /setSquash\(0\);\n\s*\};/);
 
@@ -256,4 +256,50 @@ test("engines that cannot filter a backdrop bend a copy of it instead", () => {
 
   // Inert wherever the clone path is off, so Chromium is untouched by it.
   assert.match(rule(".theme-knob-refraction,\n.theme-knob-refraction-copy"), /display: none;/);
+});
+
+test("a tapped knob travels to its stop instead of teleporting under the finger", () => {
+  // A press used to move the knob on pointerdown, which meant a tap put it
+  // under the finger instantly and there was no journey left to animate.
+  // Nothing moves until the pointer has actually travelled far enough to
+  // count as a drag.
+  assert.match(hook, /const DRAG_THRESHOLD = 0\.06;/);
+  assert.match(hook, /const moved = useRef\(false\);/);
+  assert.match(hook, /if \(from !== null && Math\.abs\(positionAtPointer\(event\) - from\) < DRAG_THRESHOLD\) return;/);
+  // Only a tap travels — a dragged knob is by definition already where it
+  // was put.
+  assert.match(hook, /if \(!dragged\) travelTo\(index\);/);
+
+  // The stretch is released BEFORE the knob lands, not when it lands:
+  // returning to round is itself a 200ms eased change, so releasing it on
+  // arrival leaves the knob reforming after it has already stopped, which
+  // reads as two events rather than one.
+  assert.match(hook, /const TRAVEL_MS = 440;/);
+  assert.match(hook, /const REFORM_MS = 200;/);
+  assert.match(hook, /\}, TRAVEL_MS - REFORM_MS\);/);
+  // And the lifted state outlasts the landing, or the squash rule is taken
+  // away mid-reform and the shape snaps round.
+  assert.match(hook, /setSettling\(false\);\n\s*settleTravel\.current = null;\n\s*\}, REFORM_MS \* 2\);/);
+  // Measured in the browser, tapping two stops away: press at 24ms with
+  // squash 0, launch at 98ms with squash 1, released at 314ms, settled at
+  // 720ms.
+  assert.match(hook, /setSquash\(Math\.min\(1, 0\.4 \+ distance \* 0\.3\)\);/);
+
+  // Still lifted while it flies, or it would shrink away from the icon it
+  // is being drawn to.
+  assert.match(hook, /pressed: pressed \|\| settling,/);
+  for (const [name, source] of [
+    ["organisation", org],
+    ["notification inbox", inbox],
+    ["theme toggle", themeToggle],
+  ]) {
+    assert.match(source, /data-settling=\{drag\.settling \? "" : undefined\}/, `${name} needs the settling flag`);
+  }
+
+  // The drag deliberately has no glide — easing there just makes the lens
+  // trail the pointer — so travelling has to put one back.
+  const settling = rule('.theme-toggle-base[data-pressed][data-settling] .theme-toggle-selector');
+  assert.match(settling, /translate 440ms/);
+  const pressed = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
+  assert.doesNotMatch(pressed, /transition:[^;]*translate/);
 });

@@ -356,6 +356,7 @@ function NotificationFilter({
       aria-label="Notification filter"
       data-flowing={previewIndex !== null ? "" : undefined}
       data-pressed={drag.pressed ? "" : undefined}
+      data-settling={drag.settling ? "" : undefined}
       className="notification-filter-base premade-glass relative grid min-w-0 touch-none grid-cols-2 items-center overflow-hidden rounded-full p-1"
       style={
         {
