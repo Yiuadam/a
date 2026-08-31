@@ -13,9 +13,13 @@ import type { ReactNode } from "react";
   One system, so they look like a family rather than a collection:
 
     - a 24×24 box, which is the size they render at in the cards
-    - 0.75 stroke, round caps and joins — thinned from 1.6, then 1.3, then
-      1.0, on direct requests, closer to the hairline weight of iOS's own
-      system glyphs
+    - 1.3 stroke, round caps and joins. This went 1.6 to 1.3 to 1.0 to 0.75
+      over a run of "thinner" requests, and 0.75 turned out to be too far:
+      the hairline read as faint beside the account and menu glyphs in the
+      header, which had stayed at 1.3 throughout. Back to that weight, and
+      the whole set now shares it — see CardIcon, SiteHeader's menu and
+      account marks, and the notification bell, which are the icons these
+      sit next to.
     - `currentColor` throughout, so a glyph inherits the text colour and works
       in all three themes from one definition
     - fills used sparingly, and only where a shape needs weight to survive at
@@ -31,7 +35,7 @@ const BOX = {
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 0.75,
+  strokeWidth: 1.3,
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;

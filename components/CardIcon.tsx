@@ -159,7 +159,7 @@ export default function CardIcon({
       height={size}
       fill="none"
       stroke="currentColor"
-      strokeWidth="0.75"
+      strokeWidth="1.3"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
