@@ -436,8 +436,31 @@ export default function SiteHeader({
               <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
                 {groups.map((group, groupIndex) => {
                   const selectedIndex = group.items.findIndex((item) => item.href === current);
-                  const visibleIndex =
-                    menuPreview?.group === groupIndex ? menuPreview.item : selectedIndex;
+                  /*
+                    One highlight in the whole menu, not one per group.
+
+                    Each group used to fall back to its own selected row
+                    whenever the pointer was somewhere else, which meant
+                    hovering a row in one group lit it up while the group
+                    holding the current page went on showing its own — two
+                    pills at once, and neither of them obviously the live
+                    one. So a group that is not being pointed at yields its
+                    highlight entirely: while any group has the pointer, only
+                    that group draws one.
+
+                    The pinned row is not a separate thing that gets hidden,
+                    it is the same single highlight moving. Hovering inside
+                    the group that holds the current page slides it from that
+                    row to the pointer's, on the 440ms travel the selector
+                    already had, and letting go returns it. Across groups the
+                    move cannot be a slide — each selector is positioned
+                    inside its own list, and the groups are separate boxes in
+                    a grid that reflows from three columns to one — so it
+                    changes place rather than travelling there.
+                  */
+                  const visibleIndex = menuPreview
+                    ? (menuPreview.group === groupIndex ? menuPreview.item : -1)
+                    : selectedIndex;
                   return (
                   <div
                     key={group.title}
