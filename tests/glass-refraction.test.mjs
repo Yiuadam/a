@@ -767,3 +767,41 @@ test("generic cards are reduced to a small fixed grid of shapes instead of one f
   assert.match(filter, /GENERIC_FILTER_PREFIX/);
   assert.match(filter, /genericFilters\.map/);
 });
+
+test("the nav glass answers its own backdrop instead of carrying a fixed fill", () => {
+  // The trait that most separates the reference material from a translucent
+  // panel. A fixed fill has to be a compromise — light enough not to smother
+  // a dark backdrop, dark enough to keep content legible over a bright one —
+  // and it fails at both ends. Glass that answers its backdrop does neither.
+  //
+  // Derived rather than guessed: the filter already holds the sampled,
+  // already-bent backdrop, so luminanceToAlpha turns it into a per-pixel
+  // luminance mask. Black flooded through that mask veils the bright parts;
+  // white flooded through its inverse — the same ramp turned over, slope -t
+  // and intercept t — lifts the dark ones.
+  assert.match(filter, /const NAV_ADAPTIVE_TINT = 0\.12;/);
+  assert.match(filter, /const GENERIC_ADAPTIVE_TINT = 0;/);
+  assert.match(filter, /const NAV_TINT_SELECTOR = "\.nav-menu-group";/);
+  assert.match(filter, /type="luminanceToAlpha"/);
+  assert.match(filter, /<feFuncA type="linear" slope=\{entry\.tint\} intercept="0" \/>/);
+  assert.match(filter, /<feFuncA type="linear" slope=\{-entry\.tint\} intercept=\{entry\.tint\} \/>/);
+  assert.match(filter, /floodColor="#000000"/);
+  assert.match(filter, /floodColor="#ffffff"/);
+
+  // Both veils are laid over the lens output, so the tint reads the bent
+  // backdrop rather than the unbent page.
+  assert.match(filter, /in="veil" in2="lens-out" operator="over"/);
+  assert.match(filter, /in="lift" in2="veiled" operator="over"/);
+  // Both branches of the dispersion split have to name their output, or the
+  // tint stage would chain off nothing for cards.
+  assert.match(filter, /k3="1"\s*\n\s*result="lens-out"/);
+  assert.match(filter, /yChannelSelector="G"\s*\n\s*result="lens-out"/);
+
+  // Tint is part of the bucket identity, so a plain card can never inherit
+  // the nav's tinted filter by measuring the same shape.
+  assert.match(filter, /function bucketKey\([\s\S]{0,220}tint: number,/);
+  assert.match(filter, /pane\.matches\(NAV_TINT_SELECTOR\) \? NAV_ADAPTIVE_TINT : GENERIC_ADAPTIVE_TINT/);
+  // Deliberately not sitewide: `.card` is ~90 usages and mostly sits on the
+  // page's own wash, where there is little for this to answer.
+  assert.match(filter, /entry\.tint > 0 \?/);
+});

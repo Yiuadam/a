@@ -163,6 +163,33 @@ const KNOB_BEZEL_WIDTH = 0.14;
 */
 const KNOB_DISPERSION = 0.16;
 const GENERIC_DISPERSION = 0;
+/*
+  Adaptive tint: glass that darkens over bright content and lightens over
+  dark, rather than carrying one fixed fill whatever it happens to cover.
+
+  This is the trait that most separates the reference material from a
+  translucent panel. A fixed fill has to be a compromise — light enough not
+  to smother a dark backdrop, dark enough to keep white text legible over a
+  bright one — and it fails at both ends. Glass that answers its own
+  backdrop does neither: it takes luminance out of whatever is behind it, so
+  contrast under the pane is compressed toward the middle and the content on
+  top stays readable over anything.
+
+  Derived, not guessed. The filter already holds the sampled backdrop, so
+  luminanceToAlpha turns it into a per-pixel luminance mask; black flooded
+  through that mask veils the bright parts, white flooded through its
+  inverse lifts the dark ones. Both are local, so one pane crossing a hard
+  edge is veiled on one side and lifted on the other — which is exactly what
+  a fixed fill cannot express.
+
+  Only the nav cards, which are the surface that actually sits over
+  arbitrary page content. `.card` mostly sits on the page's own wash, where
+  there is little for this to answer, and it is ~90 usages — not somewhere
+  to make a sitewide change on a mechanism this new.
+*/
+const NAV_ADAPTIVE_TINT = 0.12;
+const GENERIC_ADAPTIVE_TINT = 0;
+const NAV_TINT_SELECTOR = ".nav-menu-group";
 const GENERIC_DISPLACEMENT_HEADROOM = NAV_DISPLACEMENT_HEADROOM;
 /* A page with an unusually long list of cards (an admin table, a long
    practice list) could in principle produce more distinct shape buckets than
@@ -207,6 +234,7 @@ type GenericBucket = {
   cornerRadius: number;
   bezelWidth: number;
   dispersion: number;
+  tint: number;
   scale: number;
 };
 
@@ -220,8 +248,9 @@ function bucketKey(
   cornerRadius: number,
   bezelWidth: number,
   dispersion: number,
+  tint: number,
 ) {
-  return [aspect, cornerRadius, bezelWidth, dispersion]
+  return [aspect, cornerRadius, bezelWidth, dispersion, tint]
     .map((value) => value.toFixed(2))
     .join(":");
 }
@@ -249,7 +278,8 @@ function measureGenericPanes() {
     const knob = pane.matches(KNOB_SELECTOR);
     const bezelWidth = knob ? KNOB_BEZEL_WIDTH : GENERIC_BEZEL_WIDTH;
     const dispersion = knob ? KNOB_DISPERSION : GENERIC_DISPERSION;
-    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion);
+    const tint = pane.matches(NAV_TINT_SELECTOR) ? NAV_ADAPTIVE_TINT : GENERIC_ADAPTIVE_TINT;
+    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion, tint);
     assignments.set(pane, key);
 
     if (buckets.has(key) || buckets.size >= GENERIC_MAX_BUCKETS) continue;
@@ -267,6 +297,7 @@ function measureGenericPanes() {
       cornerRadius,
       bezelWidth,
       dispersion,
+      tint,
       scale: GENERIC_DISPLACEMENT_HEADROOM / scaleDivisor,
     });
   }
@@ -360,7 +391,14 @@ function supportsSplitPropertyLens() {
 export default function GlassRefractionFilter() {
   const [mapUrl, setMapUrl] = useState<string | null>(null);
   const [genericFilters, setGenericFilters] = useState<
-    Array<{ key: string; id: string; url: string; scale: number; dispersion: number }>
+    Array<{
+      key: string;
+      id: string;
+      url: string;
+      scale: number;
+      dispersion: number;
+      tint: number;
+    }>
   >([]);
   const [enabled, setEnabled] = useState(false);
   const [splitLensEnabled, setSplitLensEnabled] = useState(false);
@@ -423,7 +461,7 @@ export default function GlassRefractionFilter() {
 
     const known = new Map<
       string,
-      { id: string; url: string; scale: number; dispersion: number }
+      { id: string; url: string; scale: number; dispersion: number; tint: number }
     >();
     let frame = 0;
 
@@ -450,6 +488,7 @@ export default function GlassRefractionFilter() {
           url: source,
           scale: bucket.scale,
           dispersion: bucket.dispersion,
+          tint: bucket.tint,
         });
         changed = true;
       }
@@ -680,6 +719,7 @@ export default function GlassRefractionFilter() {
                   operator="arithmetic"
                   k2="1"
                   k3="1"
+                  result="lens-out"
                 />
               </>
             ) : (
@@ -689,8 +729,43 @@ export default function GlassRefractionFilter() {
                 scale={entry.scale}
                 xChannelSelector="R"
                 yChannelSelector="G"
+                result="lens-out"
               />
             )}
+            {entry.tint > 0 ? (
+              <>
+                {/*
+                  Adaptive tint: the pane answers its own backdrop instead of
+                  carrying one fixed fill.
+
+                  luminanceToAlpha turns the sampled, already-bent backdrop
+                  into a per-pixel luminance mask. Black flooded through that
+                  mask veils wherever the backdrop is bright; white flooded
+                  through its inverse — the same mask with the ramp turned
+                  over, slope -t and intercept t — lifts wherever it is dark.
+
+                  Both are local, which is the whole point: one pane crossing
+                  a hard edge is veiled on the light side and lifted on the
+                  dark side at the same time, which no fixed fill can
+                  express. Net effect is that contrast under the glass is
+                  compressed toward the middle, so whatever sits on top of it
+                  stays legible over anything.
+                */}
+                <feColorMatrix in="lens-out" type="luminanceToAlpha" result="lens-luminance" />
+                <feComponentTransfer in="lens-luminance" result="veil-mask">
+                  <feFuncA type="linear" slope={entry.tint} intercept="0" />
+                </feComponentTransfer>
+                <feFlood floodColor="#000000" result="veil-ink" />
+                <feComposite in="veil-ink" in2="veil-mask" operator="in" result="veil" />
+                <feComponentTransfer in="lens-luminance" result="lift-mask">
+                  <feFuncA type="linear" slope={-entry.tint} intercept={entry.tint} />
+                </feComponentTransfer>
+                <feFlood floodColor="#ffffff" result="lift-light" />
+                <feComposite in="lift-light" in2="lift-mask" operator="in" result="lift" />
+                <feComposite in="veil" in2="lens-out" operator="over" result="veiled" />
+                <feComposite in="lift" in2="veiled" operator="over" />
+              </>
+            ) : null}
           </filter>
         ))}
       </defs>
