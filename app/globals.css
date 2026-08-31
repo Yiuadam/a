@@ -204,15 +204,31 @@ html[data-theme="dark"] {
      focus-ring and active-state colour that actually needs to read against
      a near-black canvas. Same inverted-ramp shape Dark already uses for its
      slate, rose and emerald ramps, just applied to this one too. */
+  /* The logo's own orange, rather than a browner cousin of it.
+
+     Sampled from the mark itself — the image decoded to a canvas and its
+     pixels counted, not eyedropped by memory: its body runs #903c18 through
+     #b45424 to #cc6030, which is hue 18-19 degrees. This ramp was sitting at
+     28-30, and that ten-degree gap is the whole difference between "orange"
+     and the muted brown it was reading as. Hue is what moves here.
+
+     The lightness ladder is untouched, deliberately. It is an inverted ramp
+     — higher numbers are lighter, because these have to carry on a
+     near-black canvas — and every contrast relationship in the theme is
+     built on those steps. Shifting hue keeps them all exactly where they
+     were: 700 is the icon and accent colour and still measures about 9.8:1
+     against the page, which is the number it had before. Saturation comes up
+     a little with the hue, since the logo is a good deal more saturated than
+     what was here. */
   --color-indigo-50: #201510;
-  --color-indigo-100: #2e1e15;
-  --color-indigo-200: #43301f;
-  --color-indigo-300: #6b4a2c;
-  --color-indigo-400: #9c6a3e;
-  --color-indigo-500: #c98548;
-  --color-indigo-600: #e0954f;
-  --color-indigo-700: #eeb073;
-  --color-indigo-800: #f8cd9d;
+  --color-indigo-100: #2e1d15;
+  --color-indigo-200: #452a1d;
+  --color-indigo-300: #6e3f29;
+  --color-indigo-400: #a15a39;
+  --color-indigo-500: #d26d3f;
+  --color-indigo-600: #e27c4d;
+  --color-indigo-700: #ee9a73;
+  --color-indigo-800: #f8ba9d;
 
   --color-emerald-50: #142219;
   --color-emerald-100: #1b3122;

@@ -133,7 +133,16 @@ test("Dark carries the same orange-brown accent as the logo and Warm's own glass
   // via Tailwind's indigo-* utilities, so recolouring this one ramp is what
   // carries the accent everywhere those are used, without touching every
   // component that uses them.
-  assert.match(darkBlock, /--color-indigo-600:\s*#e0954f;/);
+  // The ramp sits on the logo's own hue rather than a browner cousin of it.
+  // The mark was decoded to a canvas and its pixels counted rather than
+  // eyedropped by memory: its body runs #903c18 through #b45424 to #cc6030,
+  // which is hue 18-19 degrees, and this ramp had been sitting at 28-30.
+  // That ten-degree gap is the whole difference between reading as orange
+  // and reading as brown, so hue is what moved; the lightness ladder is
+  // untouched, which is what keeps every contrast relationship in the theme
+  // where it was.
+  assert.match(darkBlock, /--color-indigo-600:\s*#e27c4d;/);
+  assert.match(darkBlock, /--color-indigo-700:\s*#ee9a73;/);
   assert.doesNotMatch(darkBlock, /--color-indigo-600:\s*#5f5f68;/);
   assert.doesNotMatch(darkBlock, /Interactive states stay monochrome/);
   // Low numbers stay dark background tints, high numbers climb to a bright
