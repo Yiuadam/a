@@ -757,13 +757,25 @@ function OrganizationViewTabs({
   const selectedIndex = options.findIndex(([id]) => id === selectedView);
   /* Shared with the theme control and the notification filter — see
      lib/segmented-drag.ts for why this is one implementation rather than
-     three copies that drifted apart. The section is opened in the option's
-     own click just below, so the hook only has the knob to look after. */
-  const drag = useSegmentedDrag({ selectedIndex });
+     three copies that drifted apart. A tap opens the section in the option's
+     own click just below; a drag ends over an option that never sees a
+     click, so it opens through onCommit instead. The two are exclusive by
+     construction, which matters more here than in the other two bars:
+     opening a section pushes a history entry, so committing the same section
+     twice would cost the reader two presses of the back button. */
+  const drag = useSegmentedDrag({
+    count: options.length,
+    selectedIndex,
+    onCommit: (index) => onOpen(options[index][0]),
+  });
   const { previewIndex } = drag;
   const visibleIndex = previewIndex ?? Math.max(0, selectedIndex);
 
   return (
+    /* touch-none is what the drag costs: a finger sliding across this bar
+       carries the knob rather than scrolling the workspace behind it. This
+       bar is `hidden sm:grid`, so on the phone-sized screens where a page
+       scroll under a thumb matters most it is not on the page at all. */
     <div
       role="tablist"
       aria-label="Organisation sections"
@@ -771,7 +783,7 @@ function OrganizationViewTabs({
       data-pressed={drag.pressed ? "" : undefined}
       data-settling={drag.settling ? "" : undefined}
       data-unselected={selectedIndex < 0 && previewIndex === null ? "" : undefined}
-      className="organization-view-tabs premade-glass relative hidden min-w-0 grid-cols-5 items-center overflow-hidden rounded-[var(--radius-xl)] p-1 sm:grid"
+      className="organization-view-tabs premade-glass relative hidden min-w-0 touch-none grid-cols-5 items-center overflow-hidden rounded-[var(--radius-xl)] p-1 sm:grid"
       style={{
         "--organization-view-index": drag.position,
         "--organization-view-count": options.length,

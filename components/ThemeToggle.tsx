@@ -18,27 +18,37 @@ import {
  * How it answers a pointer lives in useSegmentedDrag, shared with the
  * organisation sections and the notification filter. This control had its own
  * copy of that logic for a while — it was the one that learned to lift the
- * knob and deform it, and the other two were left jumping between whole stops
- * until the behaviour was lifted out. Keeping it here again would mean writing
- * that three times to reach every option bar.
+ * knob, deform it and carry it under a finger, and the other two were left
+ * jumping between whole stops until the behaviour was lifted out. Keeping it
+ * here again would mean writing that three times to reach every option bar.
  *
- * The choice itself is committed here, in the option's own click, which is why
- * the hook has nothing to say about committing.
+ * A tap commits below, in the option's own click. A drag has no click on the
+ * option it ends over, so it commits through the hook's onCommit instead —
+ * one or the other fires, never both.
  */
 export default function ThemeToggle() {
   const theme = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
   const selectedIndex = Math.max(0, THEMES.findIndex((option) => option.id === theme));
-  const drag = useSegmentedDrag({ selectedIndex });
+  const drag = useSegmentedDrag({
+    count: THEMES.length,
+    selectedIndex,
+    onCommit: (index) => setTheme(THEMES[index].id),
+  });
   const visibleIndex = drag.previewIndex ?? selectedIndex;
 
   return (
+    /* touch-none is what the drag costs the page: a finger sliding across
+       this bar carries the knob rather than scrolling, so the control keeps a
+       gesture the page would otherwise have had. Worth it here because it is
+       a small target in the header, not a wide band a thumb lands on by
+       accident on the way down a long page. */
     <div
       role="radiogroup"
       aria-label="Colour theme"
       data-flowing={drag.previewIndex !== null ? "" : undefined}
       data-pressed={drag.pressed ? "" : undefined}
       data-settling={drag.settling ? "" : undefined}
-      className="theme-toggle-base premade-glass relative flex items-center gap-0.5 overflow-hidden rounded-xl p-0.5"
+      className="theme-toggle-base premade-glass relative flex touch-none items-center gap-0.5 overflow-hidden rounded-xl p-0.5"
       style={
         {
           "--theme-index": drag.position,

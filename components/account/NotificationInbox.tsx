@@ -340,20 +340,30 @@ function NotificationFilter({
   ];
   const selectedIndex = value === "unread" ? 1 : 0;
   /* Shared with the theme control and the organisation sections — see
-     lib/segmented-drag.ts. The choice is committed in the option's own click
-     just below, so the hook only has the knob to look after. */
-  const drag = useSegmentedDrag({ selectedIndex });
+     lib/segmented-drag.ts. A tap commits in the option's own click just
+     below; a drag ends over an option that never sees a click, so it commits
+     through onCommit instead. Exactly one of the two fires per gesture. */
+  const drag = useSegmentedDrag({
+    count: options.length,
+    selectedIndex,
+    onCommit: (index) => onChange(options[index].id),
+  });
   const { previewIndex } = drag;
   const visibleIndex = previewIndex ?? selectedIndex;
 
   return (
+    /* touch-none is what the drag costs: a finger sliding across this bar
+       carries the knob rather than scrolling the popover behind it. The bar
+       is two stops wide and sits at the top of a scrolling list, so this is
+       the one of the three where the trade is felt — a thumb that starts on
+       the filter cannot flick the notifications underneath. */
     <div
       role="tablist"
       aria-label="Notification filter"
       data-flowing={previewIndex !== null ? "" : undefined}
       data-pressed={drag.pressed ? "" : undefined}
       data-settling={drag.settling ? "" : undefined}
-      className="notification-filter-base premade-glass relative grid min-w-0 grid-cols-2 items-center overflow-hidden rounded-full p-1"
+      className="notification-filter-base premade-glass relative grid min-w-0 touch-none grid-cols-2 items-center overflow-hidden rounded-full p-1"
       style={
         {
           "--notification-filter-index": drag.position,

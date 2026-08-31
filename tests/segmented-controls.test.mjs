@@ -29,9 +29,22 @@ test("every option bar answers a pointer through one implementation, not three c
   // theme control learned to lift its knob and deform it, and the other two
   // carried on jumping between whole stops with nothing to show for it.
   assert.match(hook, /export function useSegmentedDrag/);
+
+  // Two gestures reach the same knob and both live here. Hover lifts it and
+  // throws it between options; a press that moves carries it under the
+  // pointer. They were built one after the other and each time only one
+  // survived — the drag was taken out so hover could have the effect, and
+  // hover kept it — so what is worth pinning is that both are present at
+  // once rather than either one on its own.
   assert.match(hook, /onPointerEnter: \(\) => setHovering\(true\),/);
   assert.match(hook, /const travelTo = \(index: number\) => \{/);
-  assert.match(hook, /pressed: hovering \|\| settling,/);
+  assert.match(hook, /onPointerDown: \(event\) => \{/);
+  assert.match(hook, /onPointerMove: \(event\) => \{/);
+  assert.match(hook, /onPointerUp: \(event\) => \{/);
+  assert.match(hook, /const trackPointer = \(event: PointerEvent<HTMLDivElement>\) => \{/);
+  // And the lift answers all three states, so it covers a pointer resting on
+  // the bar, a finger carrying the knob, and a knob still in the air.
+  assert.match(hook, /pressed: hovering \|\| pressing \|\| settling,/);
 
   for (const [name, source, commit] of [
     ["organisation", org, /onClick=\{\(\) => \{\s*onOpen\(id\);/],
@@ -46,21 +59,28 @@ test("every option bar answers a pointer through one implementation, not three c
     assert.match(source, /\{\.\.\.drag\.handlers\}/, `${name} should spread the shared handlers`);
     assert.match(source, /data-pressed=\{drag\.pressed \? "" : undefined\}/, `${name} needs the lift flag`);
     assert.match(source, /drag\.position/, `${name} should place its knob from the shared position`);
-    // Choosing is a click, and each bar has always made it in the option's
-    // own handler. The hook used to take an onCommit as well and fire it
-    // from pointerup, which meant two paths to the same commit for as long
-    // as it had a pointerup to fire from; it does not, and a dead option
-    // left on the signature is an invitation to wire the second one back.
-    assert.match(source, commit, `${name} should commit in the option's own click`);
-    assert.doesNotMatch(source, /onCommit/, `${name} should not hand the hook a commit as well`);
+    // The hit test clamps to the ends of the bar, which it can only do if it
+    // is told how many stops there are.
+    assert.match(source, /\n\s*count: [A-Za-z][\w.]*\.length,/, `${name} should say how many stops it has`);
+    // Two commit paths, one per gesture, and never both for the same
+    // gesture. A tap commits in the option's own click, which is how all
+    // three bars have always chosen. A drag ends over an option that gets no
+    // click at all — the track captures the pointer the moment the gesture
+    // becomes a drag, and the compatibility click is retargeted to the track
+    // with it — so the drag commits through the hook instead. Dropping
+    // either one loses a whole gesture; firing both would commit twice, and
+    // the organisation bar pushes a history entry per commit.
+    assert.match(source, commit, `${name} should commit a tap in the option's own click`);
+    assert.match(source, /onCommit: \(index\) =>/, `${name} should give the drag somewhere to commit`);
     // And none of the hand-rolled machinery should survive.
     assert.doesNotMatch(source, /const dragging = useRef\(false\)/, `${name} still has its own drag state`);
     assert.doesNotMatch(source, /indexAtPointer/, `${name} still has its own hit test`);
-    // touch-none was there to own the drag gesture, so that a finger sliding
-    // across the bar moved the knob instead of scrolling the page. With no
-    // drag to own, all it does is refuse to scroll a page from a control
-    // that happens to be under the thumb.
-    assert.doesNotMatch(source, /touch-none/, `${name} should not take the page's scroll gesture`);
+    // touch-none is what the drag costs the page, and it is deliberate: a
+    // finger sliding across the bar has to carry the knob rather than scroll
+    // whatever is behind it, and it cannot do both. It came off while there
+    // was no drag to own the gesture, because then all it did was refuse to
+    // scroll a page from a control that happens to be under a thumb.
+    assert.match(source, /touch-none/, `${name} needs the gesture its drag runs on`);
   }
 });
 
@@ -141,33 +161,51 @@ test("the pressed knob is clear glass with a lens, wherever it appears", () => {
   assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}\.segmented-knob/);
 });
 
-test("the knob squashes as it is thrown and rounds out as it lands", () => {
+test("the knob squashes as it moves and rounds out as it stops, however it is moved", () => {
   // A knob that deforms the whole time it is lifted is a shape, not a
-  // response. The deformation belongs to the journey and to nothing else:
-  // set when the knob is thrown, scaled by how far it has to go, released as
-  // it lands.
+  // response. The deformation belongs to the motion and to nothing else.
   //
-  // It used to be solved from the pointer's own speed, sampled move by move,
-  // which is the one thing a pointer that carries the knob can say and a
-  // pointer that only names a stop cannot. With the drag gone there is no
-  // speed to read, so the distance is the whole of it — a flick across five
-  // stops deforms fully, a step to the neighbour barely ovals.
+  // Where the number comes from depends on which gesture is doing the
+  // moving, because the two have different measurements to hand. A drag can
+  // read the pointer's own speed, move by move, so it does: a slow
+  // deliberate drag barely ovals and a flick deforms fully. A hover or a tap
+  // only names a stop and leaves, so there is no speed to read and the
+  // distance is the whole of it — crossing five stops deforms more than
+  // stepping to the neighbour. One value, two ways of solving it, because
+  // neither gesture can be expressed in the other's terms.
   assert.match(hook, /squash: number;/);
+  assert.match(hook, /const SQUASH_FULL_SPEED = 4;/);
+  assert.match(hook, /setSquash\(Math\.min\(1, speed \/ SQUASH_FULL_SPEED\)\);/);
   assert.match(hook, /setSquash\(Math\.min\(1, 0\.4 \+ distance \* 0\.3\)\);/);
-  assert.doesNotMatch(hook, /SQUASH_FULL_SPEED/);
-  assert.doesNotMatch(hook, /performance\.now\(\)/);
+  // performance.now, not Date.now: this is an elapsed-time measurement and
+  // it must not move when the wall clock is adjusted.
+  assert.match(hook, /performance\.now\(\)/);
+  assert.doesNotMatch(hook, /Date\.now\(\)/);
 
-  // Both of them inside the travel, so there is one schedule to read rather
-  // than a value nudged from several handlers — which is what made the old
-  // one take a settle timer of its own to notice a finger holding still.
-  assert.equal((hook.match(/setSquash\(/g) ?? []).length, 2);
+  // Each source owns its whole schedule — a value and the thing that takes
+  // it away again — so there is one place to read either one rather than a
+  // number nudged from several handlers.
   const travel = hook.match(/const travelTo = \(index: number\) => \{[\s\S]*?\n {2}\};/);
   assert.ok(travel, "expected a travelTo");
   assert.equal((travel[0].match(/setSquash\(/g) ?? []).length, 2);
+  const sampler = hook.match(/const sampleSpeed = \(next: number\) => \{[\s\S]*?\n {2}\};/);
+  assert.ok(sampler, "expected a sampleSpeed");
+  assert.equal((sampler[0].match(/setSquash\(/g) ?? []).length, 2);
+  // pointermove stops firing the instant a finger holds still, so without a
+  // timer of its own nothing would ever tell a dragged knob it had stopped.
+  assert.match(sampler[0], /settleTimer\.current = setTimeout\(\(\) => setSquash\(0\), 90\);/);
+  // And letting go is a stop, however fast it was travelling a frame ago.
+  const end = hook.match(/const end = \(dragged: boolean\) => \{[\s\S]*?\n {2}\};/);
+  assert.ok(end, "expected an end");
+  assert.match(end[0], /cancelSettle\(\);\s*\n\s*setSquash\(0\);/);
 
-  // The one timer left has to be cleared on unmount, or a journey that
-  // outlives its control sets state on something that is gone.
-  assert.match(hook, /useEffect\(\(\) => cancelTravel, \[\]\);/);
+  // Both timers have to be cleared on unmount, or a journey — or a squash
+  // waiting to round out — outlives its control and sets state on something
+  // that is gone.
+  assert.match(
+    hook,
+    /useEffect\(\s*\n\s*\(\) => \(\) => \{\s*\n\s*cancelSettle\(\);\s*\n\s*cancelTravel\(\);\s*\n\s*\},\s*\n\s*\[\],\s*\n\s*\);/,
+  );
 
   // Every option bar hands the value to the CSS.
   for (const [name, source] of [
@@ -312,19 +350,63 @@ test("a knob sent to a stop travels there instead of teleporting onto it", () =>
   // Naming a stop is all a hover does, and all a tap does: there is nothing
   // under the pointer for the knob to follow, so it has to make the journey
   // itself. Every route that names a stop — hovering an option, focusing one
-  // with the keyboard — goes through the one travel.
+  // with the keyboard, releasing a press that never moved — goes through the
+  // one travel.
   assert.match(hook, /if \(index !== null\) travelTo\(index\);/);
   assert.match(hook, /const distance = Math\.abs\(index - position\);/);
   // A knob already on the stop has no journey to make, and starting one
   // would deform it on the spot.
   assert.match(hook, /if \(distance < 0\.5\) return;/);
-  // Nothing follows a pointer any more, so none of the gesture that used to
-  // is left: no press to move the knob on, no capture to hold, no threshold
-  // to decide whether a tap had become a drag.
-  assert.doesNotMatch(hook, /DRAG_THRESHOLD/);
-  assert.doesNotMatch(hook, /setPointerCapture/);
-  assert.doesNotMatch(hook, /onPointerDown/);
-  assert.doesNotMatch(hook, /onPointerUp/);
+
+  // A press is not a journey and it is not a drag either, not yet. The knob
+  // must not jump to the finger on pointerdown: that is what made a tap
+  // teleport it, leaving the travel above nothing to animate. So the gesture
+  // has to move a real distance before it counts as one, and only then does
+  // the knob come off its stop.
+  assert.match(hook, /const DRAG_THRESHOLD = 0\.06;/);
+  assert.match(hook, /const moved = useRef\(false\);/);
+  assert.match(
+    hook,
+    /if \(from !== null && Math\.abs\(positionAtPointer\(event\) - from\) < DRAG_THRESHOLD\) return;\s*\n\s*moved\.current = true;/,
+  );
+  // And a release that never crossed it goes the same way a hover does —
+  // name the stop, then travel to it — rather than committing a position the
+  // knob was never carried to.
+  assert.match(hook, /const dragged = moved\.current;/);
+  assert.match(hook, /setPreviewIndex\(index\);\s*\n\s*travelTo\(index\);/);
+
+  // The two gestures must not fight over the position. A hover that lands
+  // mid-drag would put the 440ms glide back on a knob that is meant to be
+  // pinned under the pointer, and name a stop the finger has already left,
+  // so `preview` stands down for as long as a gesture is running.
+  assert.match(hook, /if \(dragging\.current\) return;\s*\n\s*setPreviewIndex\(index\);/);
+  // And the throw hover may have started a moment ago is called off at the
+  // threshold — not on pointerdown, which would cut short the journey toward
+  // the very option being pressed.
+  const move = hook.match(/onPointerMove: \(event\) => \{[\s\S]*?\n {6}\},/);
+  assert.ok(move, "expected an onPointerMove");
+  assert.match(move[0], /cancelTravel\(\);/);
+  assert.match(move[0], /setSettling\(false\);/);
+  const down = hook.match(/onPointerDown: \(event\) => \{[\s\S]*?\n {6}\},/);
+  assert.ok(down, "expected an onPointerDown");
+  assert.doesNotMatch(down[0], /cancelTravel\(/);
+  assert.doesNotMatch(down[0], /setSettling\(/);
+  // Nor does it move or capture anything. Both wait for the threshold.
+  assert.doesNotMatch(down[0], /setDragPosition\(/);
+  assert.doesNotMatch(down[0], /setPointerCapture\(/);
+
+  // The capture is taken at the same moment, and the commit path hangs off
+  // it: while the track holds the pointer the compatibility click is
+  // retargeted to the track, which has no handler, so a drag can only commit
+  // through onCommit — and a tap, which never captures, can only commit
+  // through the option's own click. Capturing on pointerdown instead would
+  // have taken the click away from taps too, leaving two paths racing for
+  // one commit.
+  assert.match(move[0], /event\.currentTarget\.setPointerCapture\(event\.pointerId\);/);
+  const up = hook.match(/onPointerUp: \(event\) => \{[\s\S]*?\n {6}\},/);
+  assert.ok(up, "expected an onPointerUp");
+  assert.match(up[0], /if \(dragged\) \{[\s\S]*?onCommit\(index\);/);
+  assert.match(up[0], /event\.currentTarget\.releasePointerCapture\(event\.pointerId\);/);
 
   // Which leaves touch, where there is no hover to answer at all. A tap
   // fires pointerenter on its way in, so the knob is thrown before the click
@@ -354,8 +436,10 @@ test("a knob sent to a stop travels there instead of teleporting onto it", () =>
 
   // Still lifted while it flies, or it would shrink away from the icon it
   // is being drawn to — and on touch this is the whole of the lift, since
-  // the pointer has left before the knob has landed.
-  assert.match(hook, /pressed: hovering \|\| settling,/);
+  // the pointer has left before the knob has landed. The lift covers all
+  // three states: a pointer resting on the bar, a finger carrying the knob,
+  // and a knob still in the air after both have gone.
+  assert.match(hook, /pressed: hovering \|\| pressing \|\| settling,/);
   for (const [name, source] of [
     ["organisation", org],
     ["notification inbox", inbox],
@@ -364,10 +448,13 @@ test("a knob sent to a stop travels there instead of teleporting onto it", () =>
     assert.match(source, /data-settling=\{drag\.settling \? "" : undefined\}/, `${name} needs the settling flag`);
   }
 
-  // A lifted knob deliberately has no glide — that rule was written for a
+  // A lifted knob deliberately has no glide — that rule is written for the
   // drag, where easing only makes the lens trail the finger — so travelling
   // has to put one back. Which makes the travel load-bearing rather than
-  // decorative: without it a hover move would teleport the knob.
+  // decorative in both directions: without it a hover move would teleport
+  // the knob, and with it left switched on a drag would lag behind the
+  // pointer. Settling is therefore the one flag that separates them, and the
+  // drag clears it at the threshold.
   const settling = rule('.theme-toggle-base[data-pressed][data-settling] .theme-toggle-selector');
   assert.match(settling, /translate 440ms/);
   const pressed = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");

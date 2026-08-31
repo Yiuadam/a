@@ -7,7 +7,7 @@ const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
 const toggle = readFileSync(join(process.cwd(), "components", "ThemeToggle.tsx"), "utf8");
 /* The knob's state moved into the shared hook, so the behaviour this file
    pins now lives there — the theme control was the last of the three option
-   bars still carrying its own copy. */
+   bars still carrying its own copy, and the one the copy was lifted from. */
 const hook = readFileSync(join(process.cwd(), "lib", "segmented-drag.ts"), "utf8");
 const filter = readFileSync(join(process.cwd(), "components", "GlassRefractionFilter.tsx"), "utf8");
 
@@ -21,23 +21,34 @@ function rule(selector) {
 test("pointing at the theme toggle is answered by the knob, not only by the commit", () => {
   // The icon under the knob only changes colour once the choice commits, so
   // until then the control had nothing at all to say "yes, that one". The
-  // bloom is that receipt, and it is hover that earns it: the knob lifts
-  // while a pointer is over the bar and drops when it goes.
+  // bloom is that receipt, and three different things can earn it: a pointer
+  // resting over the bar, a finger carrying the knob, and a knob still in
+  // the air after being thrown.
   //
-  // This answered a press until the owner asked for the two to swap — the
-  // press came with a drag nobody wanted, and lifting for a press meant the
-  // effect only ever appeared once a finger was already committed to the
-  // control.
+  // Each of those is tracked separately because each is cleared by something
+  // different — leaving, releasing, and landing — and only their union
+  // decides whether the knob is lifted. Collapsing them into one flag is how
+  // this got rewritten twice: the effect answered a press only, so it never
+  // appeared until a finger was already committed to the control; then it
+  // answered hover only, and the drag lost its receipt entirely.
   assert.match(hook, /const \[hovering, setHovering\] = useState\(false\)/);
+  assert.match(hook, /const \[pressing, setPressing\] = useState\(false\)/);
+  assert.match(hook, /pressed: hovering \|\| pressing \|\| settling,/);
   assert.match(toggle, /data-pressed=\{drag\.pressed \? "" : undefined\}/);
   assert.match(hook, /onPointerEnter: \(\) => setHovering\(true\),/);
-  // Leaving and cancelling both have to clear it, or a knob the pointer has
-  // left stays bloomed and clear for good — and a touch that turns into a
-  // page scroll is cancelled rather than left. Both route through one
-  // `leave`.
+  assert.match(hook, /onPointerDown: \(event\) => \{\s*\n\s*dragging\.current = true;/);
+  assert.match(hook, /setPressing\(true\);/);
+  // Leaving and cancelling both have to clear the hover, or a knob the
+  // pointer has left stays bloomed and clear for good — and a touch that the
+  // browser takes back is cancelled rather than left. Both route through one
+  // `leave`, and a cancel additionally ends the gesture, because there is no
+  // pointerup coming to do it.
   assert.match(hook, /const leave = \(\) => \{\s*\n\s*setHovering\(false\);/);
-  assert.match(hook, /onPointerLeave: leave,/);
-  assert.match(hook, /onPointerCancel: leave,/);
+  assert.match(hook, /onPointerLeave: \(\) => \{[\s\S]{0,300}if \(!dragging\.current\) leave\(\);/);
+  assert.match(hook, /onPointerCancel: \(\) => \{\s*\n\s*end\(moved\.current\);\s*\n\s*leave\(\);/);
+  // And releasing clears the press, or a knob let go of stays lifted with
+  // nothing on it.
+  assert.match(hook, /const end = \(dragged: boolean\) => \{[\s\S]*?setPressing\(false\);/);
 
   // It has to grow past the track, not inside it: breaking the outline is
   // the signal, and a bloom that stays within the rail reads as a highlight
@@ -161,39 +172,53 @@ test("the lifted knob is clear glass: reformation only, no frost and no glow", (
   assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}\.theme-toggle-selector/);
 });
 
-test("the knob stands on whole stops, and one number moves it between them", () => {
-  // The knob was placed frame by frame from the pointer's own position for
-  // as long as a finger could carry it: a fraction of the same --theme-index
-  // the CSS multiplies by the stop pitch, written on every pointermove.
+test("the knob is a fraction under a finger and a whole stop otherwise", () => {
+  // One number places the knob — a multiple of --theme-index, which the CSS
+  // multiplies by the stop pitch — and what it means depends on which
+  // gesture is moving it.
   //
-  // Nothing carries it now, so a fraction has no source and nothing to mean.
-  // The knob stands on the stop being previewed, or on the selected one when
-  // there is nothing to preview, and the journey between them is a CSS
-  // transition rather than a value pushed a frame at a time. The clamp
-  // stays: the organisation bar reports -1 while no section is open.
-  assert.match(hook, /const position = previewIndex \?\? Math\.max\(0, selectedIndex\);/);
+  // A drag writes a fraction of it on every pointermove, because a lens that
+  // does not move has nothing new to sample: a knob that jumped between
+  // three fixed positions made the refraction a still image that changed
+  // twice across a whole gesture. Everything else writes a whole stop, and
+  // the journey between stops is a CSS transition rather than a value pushed
+  // a frame at a time. The clamp is for the organisation bar, which reports
+  // -1 while no section is open.
+  assert.match(hook, /const visibleIndex = previewIndex \?\? Math\.max\(0, selectedIndex\);/);
+  assert.match(hook, /const position = dragPosition \?\? visibleIndex;/);
   assert.match(toggle, /"--theme-index": drag\.position/);
-  // So none of the machinery that read a pointer's coordinates survives.
-  assert.doesNotMatch(hook, /getBoundingClientRect/);
-  assert.doesNotMatch(hook, /clientX/);
-  assert.doesNotMatch(hook, /setPointerCapture/);
-  assert.doesNotMatch(hook, /onPointerMove/);
+  // Not floored to a stop — the raw fractional position is what is stored.
+  assert.match(hook, /const raw = \(\(event\.clientX - rect\.left\) \/ rect\.width\) \* count - 0\.5;/);
+  assert.match(hook, /setDragPosition\(next\)/);
+  // Rounded for the commit, so releasing picks the stop it looks nearest.
+  assert.match(hook, /const index = Math\.round\(next\);/);
+  // And the fraction lasts exactly as long as the gesture does: release and
+  // cancel both hand the knob back to whole stops to settle, through the one
+  // `end` they share.
+  assert.match(hook, /const end = \(dragged: boolean\) => \{[\s\S]*?setDragPosition\(null\);/);
+  assert.match(hook, /onPointerUp: \(event\) => \{[\s\S]*?end\(dragged\);/);
+  assert.match(hook, /onPointerCancel: \(\) => \{\s*\n\s*end\(moved\.current\);/);
   // The option buttons take their size from the same variable, so nothing
   // in the JSX can drift out of step with the knob that travels over them.
   assert.match(toggle, /className=\{`theme-toggle-option app-icon-control/);
   assert.doesNotMatch(toggle, /h-7 w-7/);
 
-  // A knob under a pointer has no glide of its own — the pressed rule drops
-  // `translate` from the transition, which is what stopped the lens trailing
-  // a finger it was meant to be under. That rule is exactly why moving
-  // between options cannot simply change the index: it would teleport. Every
-  // move has to go through the travel below, which puts the glide back for
-  // the length of the journey. Everything else keeps its easing, so the
-  // bloom and the turn to clear glass still ease in.
+  // A lifted knob has no glide of its own — the pressed rule drops
+  // `translate` from the transition, which is what stops the lens trailing a
+  // finger it is meant to be under. That rule is exactly why a hover move
+  // cannot simply change the index: it would teleport. So the two gestures
+  // divide on `settling`, which puts the glide back for the length of a
+  // journey and is never set while something is carrying the knob.
+  // Everything else keeps its easing either way, so the bloom and the turn
+  // to clear glass still ease in.
   const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
   assert.match(pressedKnob, /transition:/);
   assert.doesNotMatch(pressedKnob, /transition:[^;]*translate/);
   assert.match(pressedKnob, /transition:[\s\S]*?width 200ms/);
+  assert.match(
+    rule(".theme-toggle-base[data-pressed][data-settling] .theme-toggle-selector"),
+    /translate 440ms/,
+  );
   // And the resting knob glides, which is what carries it home once the
   // pointer has gone and the lift with it.
   assert.match(rule(".theme-toggle-selector"), /transition:[\s\S]*?translate 440ms/);
