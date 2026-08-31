@@ -1594,7 +1594,30 @@ html[data-theme="dark"] .nav-menu-group {
   moves rather than repainting three buttons, so it reads as one piece of
   material flowing between fixed destinations.
 */
+/*
+  One stop's worth of geometry, in one place.
+
+  The control's size used to be five separate magic numbers — the option
+  buttons in the JSX, the knob's own box, the pitch it travels, and the
+  bloom's size and offset — which had to be re-derived by hand and kept in
+  agreement. They are all functions of a single measurement, so they are
+  written as one here.
+
+  2.125rem is chosen to make the whole control exactly as tall as the
+  account button beside it: 2.125 for the option, plus 0.125 of padding
+  each side, plus a 1px border each side, is 2.5rem — the account button's
+  own h-10. Matching that outer height is the point, so it is the outer
+  height that the value is solved for rather than the option's.
+*/
 .theme-toggle-base {
+  --theme-stop-size: 2.125rem;
+  /* Matches the `gap-0.5` between the option buttons in ThemeToggle.tsx. */
+  --theme-stop-gap: 0.125rem;
+  --theme-stop-pitch: calc(var(--theme-stop-size) + var(--theme-stop-gap));
+  --theme-stop-inset: 0.125rem;
+  /* How much the knob grows on press. The offset that keeps it centred is
+     half the growth, so both come from this one number. */
+  --theme-knob-bloom: 1.5;
   border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
   background: color-mix(in srgb, var(--color-surface) 48%, transparent);
   box-shadow:
@@ -1666,12 +1689,17 @@ html[data-theme="dark"] .nav-menu-group {
   will-change: transform;
 }
 
+.theme-toggle-option {
+  width: var(--theme-stop-size);
+  height: var(--theme-stop-size);
+}
+
 .theme-toggle-selector {
   position: absolute;
-  left: 0.125rem;
-  top: 0.125rem;
-  width: 1.75rem;
-  height: 1.75rem;
+  left: var(--theme-stop-inset);
+  top: var(--theme-stop-inset);
+  width: var(--theme-stop-size);
+  height: var(--theme-stop-size);
   border: 1px solid var(--glass-edge);
   border-radius: var(--radius-xl);
   pointer-events: none;
@@ -1701,7 +1729,7 @@ html[data-theme="dark"] .nav-menu-group {
      1.875rem step became 2.8125rem and it landed half a stop past its own
      icon. Nothing scales any more, but travel stays where it cannot be
      multiplied by anything. */
-  translate: calc(var(--theme-index) * 1.875rem) 0;
+  translate: calc(var(--theme-index) * var(--theme-stop-pitch)) 0;
   transition:
     translate 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12),
     inset 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
@@ -1715,7 +1743,7 @@ html[data-theme="dark"] .nav-menu-group {
 }
 
 .theme-toggle-base[data-flowing] .theme-toggle-selector {
-  translate: calc(var(--theme-index) * 1.875rem) 0;
+  translate: calc(var(--theme-index) * var(--theme-stop-pitch)) 0;
 }
 
 /*
@@ -1793,10 +1821,10 @@ html[data-theme="dark"] .nav-menu-group {
   /* Same centre as the resting knob: it grows by 0.875rem, so it starts
      half of that — 0.4375rem — further up and to the left. Offsetting
      rather than scaling is what keeps the backdrop sampled 1:1. */
-  left: -0.3125rem;
-  top: -0.3125rem;
-  width: 2.625rem;
-  height: 2.625rem;
+  left: calc(var(--theme-stop-inset) - var(--theme-stop-size) * (var(--theme-knob-bloom) - 1) / 2);
+  top: calc(var(--theme-stop-inset) - var(--theme-stop-size) * (var(--theme-knob-bloom) - 1) / 2);
+  width: calc(var(--theme-stop-size) * var(--theme-knob-bloom));
+  height: calc(var(--theme-stop-size) * var(--theme-knob-bloom));
   /* No easing on `translate` while the finger is down. The 440ms glide is
      for settling onto a stop after a release; applied to a drag it makes
      the knob chase the pointer several frames behind, and a lens that is

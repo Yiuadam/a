@@ -124,7 +124,7 @@ export default function ThemeToggle() {
               setTheme(t.id);
               setPreviewIndex(null);
             }}
-            className={`app-icon-control relative z-10 flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-colors focus-visible:outline-none ${
+            className={`theme-toggle-option app-icon-control relative z-10 flex items-center justify-center rounded-lg text-sm transition-colors focus-visible:outline-none ${
               visible ? "text-slate-900" : "text-slate-500 hover:text-slate-800"
             }`}
           >

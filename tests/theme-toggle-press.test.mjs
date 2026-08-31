@@ -33,8 +33,14 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
 
   // It has to grow past the track, not inside it: breaking the outline is
   // the signal, and a bloom that stays within the rail reads as a highlight
-  // rather than as something lifted. 1.5 takes the 1.75rem knob to
-  // 2.625rem against a 2rem track.
+  // rather than as something lifted.
+  //
+  // Expressed against the control's one measurement rather than restated as
+  // a number. The size used to be five separate magic values — the option
+  // buttons, the knob, its travel, and the bloom's size and offset — which
+  // had to be re-derived by hand and kept in agreement; matching the account
+  // button's height meant changing all five. They are all functions of
+  // --theme-stop-size now, so the outer height is the only thing set.
   const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
   // Grown by layout, never by `transform: scale`. A backdrop-filter on a
   // scaled element samples its backdrop through that scale, so scaling
@@ -42,12 +48,12 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   // with the same page just outside the rim, which reads as a second offset
   // copy rather than as something seen through glass, and every edge inside
   // was an upscaled resample, which is where the stair-stepping came from.
-  assert.match(pressedKnob, /width: 2\.625rem;/);
-  assert.match(pressedKnob, /height: 2\.625rem;/);
-  // Same centre: it grows by 0.875rem, so it starts half of that further up
-  // and to the left.
-  assert.match(pressedKnob, /left: -0\.3125rem;/);
-  assert.match(pressedKnob, /top: -0\.3125rem;/);
+  assert.match(pressedKnob, /width: calc\(var\(--theme-stop-size\) \* var\(--theme-knob-bloom\)\);/);
+  assert.match(pressedKnob, /height: calc\(var\(--theme-stop-size\) \* var\(--theme-knob-bloom\)\);/);
+  // Same centre: the offset is half the growth, so it comes from the same
+  // number rather than being computed by hand alongside it.
+  assert.match(pressedKnob, /left: calc\(var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2\);/);
+  assert.match(pressedKnob, /top: calc\(var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2\);/);
   assert.doesNotMatch(pressedKnob, /scale\(/);
 
   // Which needs the track to stop clipping for exactly that long...
@@ -67,7 +73,7 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   // its own icon. Travel on `translate` (applied first, unscaled), size on
   // `transform` (applied last, about the already-moved centre).
   const knob = rule(".theme-toggle-selector");
-  assert.match(knob, /\n  translate: calc\(var\(--theme-index\) \* 1\.875rem\) 0;/);
+  assert.match(knob, /\n  translate: calc\(var\(--theme-index\) \* var\(--theme-stop-pitch\)\) 0;/);
   assert.doesNotMatch(knob, /\n  scale: /);
   assert.doesNotMatch(knob, /\n  transform: /);
   assert.match(knob, /transition:[\s\S]*?translate 440ms[\s\S]*?width 200ms/);
@@ -140,6 +146,10 @@ test("the knob tracks the finger continuously, so the lens has something new to 
   assert.match(toggle, /"--theme-index": knobPosition/);
   // Not floored to a stop — the raw fractional position is what is stored.
   assert.match(toggle, /const raw = \(\(event\.clientX - rect\.left\) \/ rect\.width\) \* THEMES\.length - 0\.5;/);
+  // The option buttons take their size from the same variable, so nothing
+  // in the JSX can drift out of step with the knob that travels over them.
+  assert.match(toggle, /className=\{`theme-toggle-option app-icon-control/);
+  assert.doesNotMatch(toggle, /h-7 w-7/);
   assert.match(toggle, /setDragPosition\(position\)/);
   // Rounded for the commit, so releasing picks the stop it looks nearest.
   assert.match(toggle, /const index = Math\.round\(position\);/);
@@ -237,4 +247,32 @@ test("the pressed knob has something behind it to bend", () => {
   const idleBase = css.match(/\n\.theme-toggle-base \{[\s\S]*?\n\}/);
   assert.ok(idleBase);
   assert.doesNotMatch(idleBase[0], /z-index/);
+});
+
+test("the theme control is exactly as tall as the account button beside it", () => {
+  // They sit side by side in the header, so a few pixels of difference in
+  // height reads as a misalignment rather than as two sizes.
+  //
+  // Solved for the OUTER height, which is the thing being matched: the
+  // account button is h-10, so 2.5rem total, and the control adds 0.125rem
+  // of padding and a 1px border on each side around its option — leaving
+  // 2.125rem for the option itself.
+  const base = rule(".theme-toggle-base");
+  assert.match(base, /--theme-stop-size: 2\.125rem;/);
+  assert.match(base, /--theme-stop-inset: 0\.125rem;/);
+  assert.match(base, /--theme-stop-gap: 0\.125rem;/);
+  // Pitch is derived, so the knob's travel can never disagree with the
+  // spacing of the buttons it travels between.
+  assert.match(base, /--theme-stop-pitch: calc\(var\(--theme-stop-size\) \+ var\(--theme-stop-gap\)\);/);
+  assert.match(base, /--theme-knob-bloom: 1\.5;/);
+  // The account button's own height, which the value above is solved against.
+  const header = readFileSync(join(process.cwd(), "components", "SiteHeader.tsx"), "utf8");
+  assert.match(header, /aria-label="Your account"[\s\S]{0,400}h-10 w-10/);
+
+  // Option and knob both read the one measurement.
+  assert.match(rule(".theme-toggle-option"), /width: var\(--theme-stop-size\);\s*\n\s*height: var\(--theme-stop-size\);/);
+  const knob = rule(".theme-toggle-selector");
+  assert.match(knob, /width: var\(--theme-stop-size\);/);
+  assert.match(knob, /height: var\(--theme-stop-size\);/);
+  assert.match(knob, /left: var\(--theme-stop-inset\);/);
 });
