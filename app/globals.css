@@ -4454,8 +4454,23 @@ html[data-theme="dark"] .input {
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 1px 3px var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(104%) brightness(102%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(104%) brightness(102%);
+  /*
+    Blur alone in this theme — no saturation boost and no brightness lift.
+
+    Those two are what made Dark's glass read as milky rather than clear.
+    Saturation pushed whatever colour was behind the pane a little further
+    from grey, so the material picked up a cast of whatever it happened to
+    be over instead of staying neutral; brightness raised the whole sample,
+    which on a near-black page is exactly the flat grey veil that reads as
+    fog. Neither is doing the work here: what makes these surfaces glass is
+    the blur, the fill and the rim, and on a dark canvas a 2% lift buys no
+    visible depth while costing the clarity.
+
+    The lighter themes keep theirs. There the backdrop is already bright and
+    colourful, so the same two are lifting detail rather than veiling it.
+  */
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 /*
