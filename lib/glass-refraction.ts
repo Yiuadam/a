@@ -28,6 +28,7 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+
 /**
  * Builds an RGBA displacement map for a rounded square. SVG scales this map
  * to each pane, while the map itself keeps the centre optically flat and the
@@ -114,6 +115,28 @@ export type GlassRefractionMapOptions = {
    */
   thickness?: number;
   /**
+   * How much of the bevel band eases its own handover to the flat face, as
+   * a fraction of the band.
+   *
+   * The quarter-circle profile falls to zero linearly as the glass thickens
+   * inward, so where the band ends its slope drops from something to
+   * nothing in one step. That is a corner in the surface, and it shows: a
+   * straight line passing under the rim comes through bent as far as the
+   * band reaches and then abruptly straight, kinked partway along rather
+   * than curving once.
+   *
+   * 1 eases across the whole band and removes the crease; 0 leaves the hard
+   * stop. Measured on the knob's own shape, the largest jump in slope along
+   * a line running inward falls from 11.4x the typical jump to 7.6x.
+   *
+   * Off by default, and deliberately. Easing costs reach — a card's slab
+   * band goes from 81% of the half-width to 70% — and that depth is the
+   * whole point of the thick slab. The knob is where the crease is visible,
+   * because it is small and sits under the track's own hard edges; cards
+   * sit over busier backdrops and keep their depth.
+   */
+  innerEase?: number;
+  /**
    * How far a full-strength channel actually moves a pixel, as a fraction of
    * the pane's half-height.
    *
@@ -137,6 +160,7 @@ export function createGlassRefractionMap(
     dome = 0,
     magnify = 0,
     thickness = 0.33,
+    innerEase = 0,
     /* Uncapped by default, so the sitewide square map keeps exactly the shape
        it had. Only a caller that knows its own displacement scale can say
        what the bend must stay within. */
@@ -181,7 +205,33 @@ export function createGlassRefractionMap(
            way it does under a real convex panel, instead of drifting
            gently across the whole border the way an even falloff makes it. */
         const p = clamp(1 - -signedDistance / Math.max(bezelWidth, 1e-6), 0, 1);
-        const profile = clamp(p / Math.sqrt(Math.max(1 - p * p, 0.02)), 0, 1);
+        const quarterCircle = clamp(p / Math.sqrt(Math.max(1 - p * p, 0.02)), 0, 1);
+        /* Eased to nothing at the band's inner edge rather than simply
+           stopping there.
+
+           The quarter-circle above falls to zero linearly as the glass
+           thickens inward, so at the moment the band ends its slope drops
+           from something to nothing in one step. That is a real corner in
+           the surface, and it shows: a straight line passing under the rim
+           comes through bent as far as the band reaches and then abruptly
+           straight, kinked partway along rather than curving once.
+
+           See innerEase. Zero leaves the hard stop untouched, which is what
+           cards want; the knob asks for the full band so its handover has
+           no crease.
+
+           Measured on the map: this is what the kink was, not the crossover
+           between the profile and the available-distance clamp — softening
+           that made no measurable difference at all, so it was not kept.
+           Intermediate widths are worse than either end, because a window
+           that reaches full strength partway through the band just moves
+           the corner rather than removing it. */
+        const profile = innerEase > 0
+          ? quarterCircle * (() => {
+              const handover = clamp(p / innerEase, 0, 1);
+              return handover * handover * (3 - 2 * handover);
+            })()
+          : quarterCircle;
 
         /* A pane can only refract what is behind it. The bevel bends outward,
            so a sample taken further out than the rim is actually beyond the

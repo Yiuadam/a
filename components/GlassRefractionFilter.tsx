@@ -256,6 +256,24 @@ const KNOB_SPECULAR = 3;
   0 and their bevel.
 */
 const KNOB_MAGNIFY = 0.18;
+/*
+  The knob eases its bevel's handover to the flat face; cards do not.
+
+  A hard stop at the band's inner edge is a corner in the surface, and on
+  the knob it shows plainly: a straight line passing under the rim came
+  through bent as far as the band reached and then abruptly straight,
+  kinked partway along rather than curving once. Easing removes it — the
+  largest jump in slope along a line running inward falls from 11.4x the
+  typical jump to 7.6x.
+
+  It is not free: easing costs reach, and a card's slab band goes from 81%
+  of the half-width to 70%. That depth is the whole point of the thick
+  slab, so cards keep the hard stop. They can afford to — they are large
+  and sit over busy backdrops, where the crease has nothing straight
+  running under it to reveal itself against.
+*/
+const KNOB_INNER_EASE = 1;
+const GENERIC_INNER_EASE = 0;
 const GENERIC_MAGNIFY = 0;
 const GENERIC_SPECULAR = 0;
 const NAV_ADAPTIVE_TINT = 0.12;
@@ -308,6 +326,7 @@ type GenericBucket = {
   tint: number;
   specular: number;
   magnify: number;
+  innerEase: number;
   scale: number;
 };
 
@@ -324,8 +343,9 @@ function bucketKey(
   tint: number,
   specular: number,
   magnify: number,
+  innerEase: number,
 ) {
-  return [aspect, cornerRadius, bezelWidth, dispersion, tint, specular, magnify]
+  return [aspect, cornerRadius, bezelWidth, dispersion, tint, specular, magnify, innerEase]
     .map((value) => value.toFixed(2))
     .join(":");
 }
@@ -356,7 +376,8 @@ function measureGenericPanes() {
     const tint = pane.matches(NAV_TINT_SELECTOR) ? NAV_ADAPTIVE_TINT : GENERIC_ADAPTIVE_TINT;
     const specular = knob ? KNOB_SPECULAR : GENERIC_SPECULAR;
     const magnify = knob ? KNOB_MAGNIFY : GENERIC_MAGNIFY;
-    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion, tint, specular, magnify);
+    const innerEase = knob ? KNOB_INNER_EASE : GENERIC_INNER_EASE;
+    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion, tint, specular, magnify, innerEase);
     assignments.set(pane, key);
 
     if (buckets.has(key) || buckets.size >= GENERIC_MAX_BUCKETS) continue;
@@ -377,6 +398,7 @@ function measureGenericPanes() {
       tint,
       specular,
       magnify,
+      innerEase,
       scale: GENERIC_DISPLACEMENT_HEADROOM / scaleDivisor,
     });
   }
@@ -565,6 +587,7 @@ export default function GlassRefractionFilter() {
             cornerRadius: bucket.cornerRadius,
             bezelWidth: bucket.bezelWidth,
             magnify: bucket.magnify,
+            innerEase: bucket.innerEase,
             maxDisplacement: GENERIC_DISPLACEMENT_HEADROOM,
           },
           GENERIC_MAP_SIZE,

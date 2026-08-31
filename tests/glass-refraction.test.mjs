@@ -881,3 +881,51 @@ test("the knob lenses its whole face, so nothing inside stays where it was", () 
   const midway = at(size / 2, Math.round(size * 0.3));
   assert.ok(Math.abs(midway[1]) > 2, `the face should lens, got ${midway}`);
 });
+
+test("the knob's bevel eases its handover, while cards keep their depth", () => {
+  // The quarter-circle profile falls to zero linearly as the glass thickens
+  // inward, so where the band ends its slope drops from something to nothing
+  // in one step. That is a corner in the surface, and on the knob it shows: a
+  // straight line passing under the rim came through bent as far as the band
+  // reached and then abruptly straight, kinked partway along rather than
+  // curving once.
+  //
+  // Measured as the largest jump in slope along a line running inward, as a
+  // ratio against the typical jump so it does not depend on absolute scale.
+  const size = 512;
+  const aspect = 1;
+  const shape = {
+    aspect,
+    cornerRadius: 0.98,
+    bezelWidth: 0.14,
+    magnify: 0.18,
+    maxDisplacement: 0.97 / Math.sqrt(2 * (aspect * aspect + 1)),
+  };
+  const creaseOf = (innerEase) => {
+    const map = glassRefractionModule.createGlassRefractionMap(size, { ...shape, innerEase });
+    const walk = [];
+    // Started inside the pane's own edge: that boundary is a genuine step,
+    // since the map is neutral outside the shape and magnify is already at
+    // full strength just within it.
+    for (let y = Math.round(size * 0.03); y < size * 0.35; y += 1) {
+      walk.push((pixel(map, size, size / 2, y)[1] - 128) / 127);
+    }
+    const slope = walk.slice(1).map((v, i) => v - walk[i]);
+    const change = slope.slice(1).map((v, i) => Math.abs(v - slope[i]));
+    return Math.max(...change) / (change.reduce((a, b) => a + b, 0) / change.length);
+  };
+
+  assert.ok(creaseOf(1) < creaseOf(0) * 0.8, "easing should measurably soften the handover");
+  assert.ok(creaseOf(1) < 9, `the knob should hand over smoothly, got ${creaseOf(1).toFixed(1)}x`);
+
+  // Off by default, because it is not free: easing costs reach, and that
+  // depth is the whole point of the thick slab. Cards are large and sit over
+  // busy backdrops, where the crease has nothing straight running under it
+  // to reveal itself against.
+  assert.match(filter, /const KNOB_INNER_EASE = 1;/);
+  assert.match(filter, /const GENERIC_INNER_EASE = 0;/);
+  assert.match(filter, /const innerEase = knob \? KNOB_INNER_EASE : GENERIC_INNER_EASE;/);
+  assert.match(filter, /innerEase: bucket\.innerEase,/);
+  const source = readFileSync(join(process.cwd(), "lib", "glass-refraction.ts"), "utf8");
+  assert.match(source, /innerEase = 0,/);
+});
