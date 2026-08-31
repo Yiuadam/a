@@ -193,7 +193,11 @@ test("the pressed knob disperses for real, rather than painting a rainbow", () =
   assert.match(filter, /values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/);
   assert.match(filter, /values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"/);
   assert.match(filter, /values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"/);
-  assert.match(filter, /operator="arithmetic"[\s\S]{0,80}k2="1"[\s\S]{0,40}k3="1"/);
+  // Recombined with screen rather than an arithmetic sum: adding three
+  // opaque premultiplied passes yields alpha 3, which both divides the
+  // colours down and makes anything composited over it afterwards vanish.
+  assert.match(filter, /<feBlend in="only-red" in2="only-green" mode="screen"/);
+  assert.match(filter, /<feBlend in="red-green" in2="only-blue" mode="screen"/);
 
   // Dispersion is part of the bucket identity, so a card can never pick up
   // the knob's three-pass filter by measuring the same shape — three times

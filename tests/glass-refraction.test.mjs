@@ -794,7 +794,7 @@ test("the nav glass answers its own backdrop instead of carrying a fixed fill", 
   assert.match(filter, /in="lift" in2="veiled" operator="over"/);
   // Both branches of the dispersion split have to name their output, or the
   // tint stage would chain off nothing for cards.
-  assert.match(filter, /k3="1"\s*\n\s*result="lens-out"/);
+  assert.match(filter, /mode="screen" result="lens-out"/);
   assert.match(filter, /yChannelSelector="G"\s*\n\s*result="lens-out"/);
 
   // Tint is part of the bucket identity, so a plain card can never inherit
@@ -804,4 +804,34 @@ test("the nav glass answers its own backdrop instead of carrying a fixed fill", 
   // Deliberately not sitewide: `.card` is ~90 usages and mostly sits on the
   // page's own wash, where there is little for this to answer.
   assert.match(filter, /entry\.tint > 0 \?/);
+});
+
+test("the highlight is solved from the pane's shape, not drawn across it", () => {
+  // A painted highlight cannot know what it is lighting: one gradient reads
+  // plausibly on a circle and wrongly on a wide card, because a highlight is
+  // not an angle across the face — it is wherever the surface turns toward
+  // the light, which depends entirely on the shape's curvature.
+  //
+  // That curvature is already in the normal map, so the highlight is a dot
+  // product against a light direction, which is what feColorMatrix's alpha
+  // row computes. Light from the upper left is (0.5 - R) + (0.5 - G).
+  assert.match(filter, /const KNOB_SPECULAR = 12;/);
+  assert.match(filter, /const GENERIC_SPECULAR = 0;/);
+  assert.match(filter, /in="generic-normal-map"[\s\S]{0,200}\$\{-entry\.specular\} \$\{-entry\.specular\} 0 0 \$\{entry\.specular\}/);
+  assert.match(filter, /result="specular-mask"/);
+  assert.match(filter, /in="specular-light"\s*\n\s*in2="specular-mask"\s*\n\s*operator="in"/);
+
+  // The coefficient is large on purpose. The map stores normal TIMES bend
+  // magnitude rather than a unit normal, and that magnitude is small — the
+  // rim deviates about 30/255 at its peak and less at the very edge, where
+  // the map's own clamp takes the bend to zero. A coefficient near 1 gives a
+  // mask of a few percent, which is invisible against an already-bright rim.
+  assert.ok(filter.includes("const KNOB_SPECULAR = 12;"));
+
+  // It lays over whichever stage actually ran, so tint and specular compose
+  // rather than one silently replacing the other.
+  assert.match(filter, /in2=\{entry\.tint > 0 \? "tinted-out" : "lens-out"\}/);
+  // Part of the bucket identity, so a card cannot inherit it by shape.
+  assert.match(filter, /function bucketKey\([\s\S]{0,280}specular: number,/);
+  assert.match(filter, /const specular = knob \? KNOB_SPECULAR : GENERIC_SPECULAR;/);
 });

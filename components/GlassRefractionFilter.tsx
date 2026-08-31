@@ -187,6 +187,36 @@ const GENERIC_DISPERSION = 0;
   there is little for this to answer, and it is ~90 usages — not somewhere
   to make a sitewide change on a mechanism this new.
 */
+/*
+  A specular highlight solved from the pane's own shape, rather than a
+  gradient drawn across it at a fixed angle.
+
+  A painted highlight cannot know what it is lighting. One linear gradient
+  reads plausibly on a circle and wrongly on a wide card, because a real
+  highlight is not an angle across the face — it is wherever the surface
+  turns toward the light, which depends entirely on the shape's curvature.
+
+  That curvature is already solved and sitting in the normal map: R and G
+  encode which way the surface faces, neutral at 128 where it is flat. So
+  the highlight is a dot product against a light direction, which is
+  exactly what feColorMatrix's alpha row computes. With light from the
+  upper left that is (0.5 - R) + (0.5 - G), scaled by this constant:
+  brightest where the surface tips toward the light, clamped to nothing
+  where it tips away, and exactly zero across the flat middle where both
+  channels sit at 0.5.
+
+  The scale is large because the map stores normal *times* bend magnitude
+  rather than a unit normal, and that magnitude is small — the rim deviates
+  around 30/255 at its peak and less at the very edge, where the map's own
+  clamp takes the bend to zero. So a coefficient near 1 produces a mask of
+  a few percent, which is invisible against an already-bright rim. 12 puts
+  the peak in the range where it reads as a catch of light.
+
+  Being derived, it follows any shape for free, and it cannot disagree with
+  the bend because both are solved from the same map.
+*/
+const KNOB_SPECULAR = 12;
+const GENERIC_SPECULAR = 0;
 const NAV_ADAPTIVE_TINT = 0.12;
 const GENERIC_ADAPTIVE_TINT = 0;
 const NAV_TINT_SELECTOR = ".nav-menu-group";
@@ -235,6 +265,7 @@ type GenericBucket = {
   bezelWidth: number;
   dispersion: number;
   tint: number;
+  specular: number;
   scale: number;
 };
 
@@ -249,8 +280,9 @@ function bucketKey(
   bezelWidth: number,
   dispersion: number,
   tint: number,
+  specular: number,
 ) {
-  return [aspect, cornerRadius, bezelWidth, dispersion, tint]
+  return [aspect, cornerRadius, bezelWidth, dispersion, tint, specular]
     .map((value) => value.toFixed(2))
     .join(":");
 }
@@ -279,7 +311,8 @@ function measureGenericPanes() {
     const bezelWidth = knob ? KNOB_BEZEL_WIDTH : GENERIC_BEZEL_WIDTH;
     const dispersion = knob ? KNOB_DISPERSION : GENERIC_DISPERSION;
     const tint = pane.matches(NAV_TINT_SELECTOR) ? NAV_ADAPTIVE_TINT : GENERIC_ADAPTIVE_TINT;
-    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion, tint);
+    const specular = knob ? KNOB_SPECULAR : GENERIC_SPECULAR;
+    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion, tint, specular);
     assignments.set(pane, key);
 
     if (buckets.has(key) || buckets.size >= GENERIC_MAX_BUCKETS) continue;
@@ -298,6 +331,7 @@ function measureGenericPanes() {
       bezelWidth,
       dispersion,
       tint,
+      specular,
       scale: GENERIC_DISPLACEMENT_HEADROOM / scaleDivisor,
     });
   }
@@ -398,6 +432,7 @@ export default function GlassRefractionFilter() {
       scale: number;
       dispersion: number;
       tint: number;
+      specular: number;
     }>
   >([]);
   const [enabled, setEnabled] = useState(false);
@@ -461,7 +496,14 @@ export default function GlassRefractionFilter() {
 
     const known = new Map<
       string,
-      { id: string; url: string; scale: number; dispersion: number; tint: number }
+      {
+        id: string;
+        url: string;
+        scale: number;
+        dispersion: number;
+        tint: number;
+        specular: number;
+      }
     >();
     let frame = 0;
 
@@ -489,6 +531,7 @@ export default function GlassRefractionFilter() {
           scale: bucket.scale,
           dispersion: bucket.dispersion,
           tint: bucket.tint,
+          specular: bucket.specular,
         });
         changed = true;
       }
@@ -705,22 +748,28 @@ export default function GlassRefractionFilter() {
                   values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"
                   result="only-blue"
                 />
-                <feComposite
-                  in="only-red"
-                  in2="only-green"
-                  operator="arithmetic"
-                  k2="1"
-                  k3="1"
-                  result="red-green"
-                />
-                <feComposite
-                  in="red-green"
-                  in2="only-blue"
-                  operator="arithmetic"
-                  k2="1"
-                  k3="1"
-                  result="lens-out"
-                />
+                {/*
+                  Screen, not an arithmetic sum.
+
+                  Adding them looks like the obvious way to put three
+                  single-channel images back together, and it is wrong twice
+                  over. feComposite arithmetic works on premultiplied colour,
+                  so summing three opaque passes yields alpha 3; converting
+                  back to straight colour then divides every channel by that
+                  3 and the pane comes out a third as bright. And an image
+                  carrying alpha 3 is not well-formed, so anything composited
+                  OVER it afterwards is weighted against that 3 and vanishes
+                  entirely — which is precisely what silently swallowed the
+                  specular stage below, a stage that rendered correctly
+                  everywhere it was tested on its own.
+
+                  Screen has neither problem here. Each input has exactly one
+                  non-zero channel, so 1-(1-a)(1-b) returns whichever of the
+                  two is non-zero, and alpha stays 1 because both inputs are
+                  already opaque.
+                */}
+                <feBlend in="only-red" in2="only-green" mode="screen" result="red-green" />
+                <feBlend in="red-green" in2="only-blue" mode="screen" result="lens-out" />
               </>
             ) : (
               <feDisplacementMap
@@ -763,7 +812,36 @@ export default function GlassRefractionFilter() {
                 <feFlood floodColor="#ffffff" result="lift-light" />
                 <feComposite in="lift-light" in2="lift-mask" operator="in" result="lift" />
                 <feComposite in="veil" in2="lens-out" operator="over" result="veiled" />
-                <feComposite in="lift" in2="veiled" operator="over" />
+                <feComposite in="lift" in2="veiled" operator="over" result="tinted-out" />
+              </>
+            ) : null}
+            {entry.specular > 0 ? (
+              <>
+                {/*
+                  The highlight, solved from the pane's own curvature — see
+                  KNOB_SPECULAR. The alpha row below is the dot product
+                  against a light sitting up and to the left; the flood is
+                  the light itself, kept only where that dot product is
+                  positive.
+                */}
+                <feColorMatrix
+                  in="generic-normal-map"
+                  type="matrix"
+                  values={`0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  ${-entry.specular} ${-entry.specular} 0 0 ${entry.specular}`}
+                  result="specular-mask"
+                />
+                <feFlood floodColor="#ffffff" result="specular-light" />
+                <feComposite
+                  in="specular-light"
+                  in2="specular-mask"
+                  operator="in"
+                  result="specular"
+                />
+                <feComposite
+                  in="specular"
+                  in2={entry.tint > 0 ? "tinted-out" : "lens-out"}
+                  operator="over"
+                />
               </>
             ) : null}
           </filter>
