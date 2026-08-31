@@ -59,8 +59,12 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   assert.match(pressedKnob, /height: calc\(var\(--theme-stop-size\) \* var\(--theme-knob-bloom\) - /);
   // Same centre: the offset is half the growth, so it comes from the same
   // number rather than being computed by hand alongside it.
-  assert.match(pressedKnob, /left: calc\(\s*var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2/);
-  assert.match(pressedKnob, /top: calc\(\s*var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2/);
+  // Named once, because the clone lens has to place its copy by the exact
+  // negative of this and two copies of the arithmetic would drift apart.
+  assert.match(pressedKnob, /--knob-x: calc\(\s*var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2/);
+  assert.match(pressedKnob, /--knob-y: calc\(\s*var\(--theme-stop-inset\) - var\(--theme-stop-size\) \* \(var\(--theme-knob-bloom\) - 1\) \/ 2/);
+  assert.match(pressedKnob, /left: var\(--knob-x\);/);
+  assert.match(pressedKnob, /top: var\(--knob-y\);/);
   assert.doesNotMatch(pressedKnob, /scale\(/);
 
   // Which needs the track to stop clipping for exactly that long...

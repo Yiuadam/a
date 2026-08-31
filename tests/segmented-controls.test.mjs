@@ -203,13 +203,57 @@ test("the lens is only promised where the engine can actually deliver it", () =>
   // WebKit does filter an element's OWN painted content; the backdrop never
   // enters the filter.
   assert.match(filter, /function displacesBackdropContent\(\)/);
-  assert.match(
-    filter,
-    /return !CSS\.supports\("-webkit-backdrop-filter", `blur\(0px\) url\(#\$\{FILTER_ID\}\)`\);/,
-  );
   assert.match(filter, /if \(!displacesBackdropContent\(\)\) return false;/);
-  // Capability, not user-agent string — scoped to this check's own body,
-  // since the Chromium combined-syntax path above does sniff deliberately.
+
+  // Asked as a positive test for the engine family that does it, not as a
+  // test against the one that does not. Keying off a WebKit quirk excluded
+  // Safari correctly and then let Firefox through, which implements neither
+  // the prefixed property nor backdrop displacement. Everything that is not
+  // Chromium belongs on the clone path, which is the safe side to be wrong
+  // on — the clone needs nothing from the backdrop compositor.
   const body = filter.match(/function displacesBackdropContent\(\) \{[\s\S]*?\n\}/)[0];
-  assert.doesNotMatch(body, /navigator\.userAgent/);
+  assert.match(body, /return isChromium\(\);/);
+  assert.match(filter, /function isChromium\(\)/);
+});
+
+test("engines that cannot filter a backdrop bend a copy of it instead", () => {
+  // WebKit filters an element's own painted content perfectly well; it just
+  // will not put a backdrop through a filter. So the knob stops asking to
+  // bend what is behind it and carries a copy of what is behind it.
+  assert.match(filter, /function supportsCloneLens\(\)/);
+  assert.match(filter, /if \(displacesBackdropContent\(\)\) return false;/);
+  assert.match(filter, /document\.documentElement\.dataset\.glassLensClone = "";/);
+  // The filter definitions have to be mounted for it, or the CSS points at
+  // a filter id that is not in the document and nothing bends.
+  assert.match(filter, /const filterNeeded = enabled \|\| splitLensEnabled \|\| cloneLensEnabled;/);
+  // And the bucketed per-shape filters too — the knob's circle is one.
+  assert.match(filter, /const bucketedLensNeeded = splitLensEnabled \|\| cloneLensEnabled;/);
+
+  // The copy has to be registered to the original to the pixel, or it reads
+  // as a second offset image rather than as the same thing seen through
+  // glass. It is placed by the negative of the knob's own position, so
+  // there is one definition of that position rather than two.
+  const copy = rule(
+    'html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy',
+  );
+  assert.match(copy, /left: calc\(-1 \* \(var\(--knob-x\) \+ var\(--theme-index\) \* var\(--theme-stop-pitch\)\) - 2px\);/);
+  assert.match(copy, /top: calc\(-1 \* var\(--knob-y\) - 2px\);/);
+  // Measured: copy and track both land at 254.1,10.7 118.9x42.4 on WebKit.
+  const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
+  assert.match(pressedKnob, /left: var\(--knob-x\);/);
+  assert.match(pressedKnob, /top: var\(--knob-y\);/);
+
+  // Opaque, or the untouched original shows through and every line appears
+  // twice — once bent, once not.
+  assert.match(copy, /background: color-mix\(in srgb, var\(--color-surface\) 48%, var\(--color-background\)\);/);
+  // The clip is on the knob, so it happens after the filter: the copy is
+  // deliberately larger than the disc so the bend has content to pull in.
+  const cloneKnob = rule(
+    'html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector',
+  );
+  assert.match(cloneKnob, /overflow: hidden;/);
+  assert.match(cloneKnob, /background: transparent;/);
+
+  // Inert wherever the clone path is off, so Chromium is untouched by it.
+  assert.match(rule(".theme-knob-refraction,\n.theme-knob-refraction-copy"), /display: none;/);
 });

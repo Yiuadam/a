@@ -49,7 +49,29 @@ export default function ThemeToggle() {
       {...drag.handlers}
     >
       <RefractiveGlassLayer radius={14} interactive />
-      <span className="theme-toggle-selector" aria-hidden="true" />
+      {/*
+        The knob. On engines that displace a backdrop it is an empty disc
+        and the lens does the rest; on WebKit, which will not filter a
+        backdrop by any route, it carries its own copy of the track and
+        bends that instead — see supportsCloneLens in
+        GlassRefractionFilter. The copy is inert in both cases when the
+        clone path is off, because the CSS only paints it under
+        html[data-glass-lens-clone].
+      */}
+      <span className="theme-toggle-selector" aria-hidden="true">
+        <span className="theme-knob-refraction">
+          <span className="theme-knob-refraction-copy">
+            {THEMES.map((t) => (
+              <span className="theme-toggle-option app-icon-control" key={t.id}>
+                <Icon
+                  name={t.icon}
+                  className={`h-4 w-4 ${t.id === "warm" ? "-translate-y-0.5" : ""}`}
+                />
+              </span>
+            ))}
+          </span>
+        </span>
+      </span>
       {THEMES.map((t, index) => {
         const active = theme === t.id;
         const visible = visibleIndex === index;

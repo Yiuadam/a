@@ -1827,14 +1827,16 @@ html[data-theme="dark"] .nav-menu-group {
      step the way it would on the other knobs. Both edges move by the same
      amount in opposite directions, so the knob stretches about its own
      centre and stays under the finger. */
-  left: calc(
+  --knob-x: calc(
     var(--theme-stop-inset) - var(--theme-stop-size) * (var(--theme-knob-bloom) - 1) / 2 -
       var(--segmented-squash, 0) * 0.22rem
   );
-  top: calc(
+  --knob-y: calc(
     var(--theme-stop-inset) - var(--theme-stop-size) * (var(--theme-knob-bloom) - 1) / 2 +
       var(--segmented-squash, 0) * 0.12rem
   );
+  left: var(--knob-x);
+  top: var(--knob-y);
   width: calc(var(--theme-stop-size) * var(--theme-knob-bloom) + var(--segmented-squash, 0) * 0.44rem);
   height: calc(var(--theme-stop-size) * var(--theme-knob-bloom) - var(--segmented-squash, 0) * 0.24rem);
   /* No easing on `translate` while the finger is down. The 440ms glide is
@@ -4795,4 +4797,94 @@ html:not([data-theme="dark"]) .theme-toggle-base[data-pressed] .theme-toggle-sel
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 70%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 55%, transparent);
+}
+
+
+/* ---------------------------------------------------------------------------
+   The clone lens: real refraction on WebKit, and therefore on iPhone.
+
+   WebKit will not put a backdrop through a filter — measured four ways, see
+   displacesBackdropContent in GlassRefractionFilter.tsx — but it filters an
+   element's OWN painted content perfectly well. So the knob stops asking to
+   bend what is behind it and instead carries a copy of what is behind it,
+   which is content, and bends that.
+
+   Three things have to be true for the illusion to hold:
+
+     - the copy is registered to the original to the pixel, which is why it
+       is offset by exactly the negative of the knob's own position. That
+       position is --knob-x/--knob-y plus the travel, all of which the knob
+       is already placed by, so there is one definition rather than two that
+       have to be kept in agreement.
+     - the copy is opaque, or the untouched original shows through it and
+       every line appears twice — once bent, once not. The track's real
+       background is translucent over the page, so the copy uses the same
+       mix resolved against the page colour instead of against transparency.
+     - the clip happens after the filter, not before. The knob clips to its
+       disc and the copy inside it is deliberately larger, so the
+       displacement at the rim has real content to pull inward rather than
+       the empty space beyond a pre-clipped edge.
+
+   What it cannot bend is the page behind the control, since a copy only
+   contains what it is given. On this control that is nearly all of the
+   visible detail anyway: the pill's rim and the three icons are what a knob
+   passing over them visibly distorts.
+--------------------------------------------------------------------------- */
+.theme-knob-refraction,
+.theme-knob-refraction-copy {
+  display: none;
+}
+
+html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector {
+  /* Clip to the disc. The filter runs on the child, so this clips the
+     already-bent result rather than limiting what the bend can reach. */
+  overflow: hidden;
+  /* The copy is opaque, so nothing may sit behind it: no frost, no fill. */
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction {
+  display: block;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  filter: var(--glass-lens-filter, none);
+}
+
+html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy {
+  display: flex;
+  position: absolute;
+  align-items: center;
+  gap: var(--theme-stop-gap);
+  /* Back out of the knob's own placement, including its travel, so the copy
+     lands exactly where the real track is. Two pixels on each axis, not
+     one: the knob is positioned inside the track's padding box, so the
+     track's own border is one, and the copy is positioned inside the
+     knob's padding box, so the knob's border is the other. Measured
+     rather than reasoned into place — at one pixel the copy sat exactly
+     one pixel right and one pixel down of the real track. */
+  left: calc(-1 * (var(--knob-x) + var(--theme-index) * var(--theme-stop-pitch)) - 2px);
+  top: calc(-1 * var(--knob-y) - 2px);
+  width: calc(3 * var(--theme-stop-size) + 2 * var(--theme-stop-gap) + 2 * var(--theme-stop-inset) + 2px);
+  height: calc(var(--theme-stop-size) + 2 * var(--theme-stop-inset) + 2px);
+  padding: var(--theme-stop-inset);
+  border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
+  border-radius: 0.75rem;
+  /* The real track is 48% surface over whatever the page is; resolved
+     against the page colour instead of against transparency so the copy can
+     hide the original it is standing in for. */
+  background: color-mix(in srgb, var(--color-surface) 48%, var(--color-background));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* The real options are buttons centring their glyph with utility classes.
+   The copy is plain spans, so it has to be told — without this the icon
+   sits in the corner of its stop and the bend appears to move it. */
+html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy
+  .theme-toggle-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

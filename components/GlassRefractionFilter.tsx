@@ -446,11 +446,7 @@ function measureGenericPanes() {
   return { buckets, assignments };
 }
 
-function supportsLiveBackdropRefraction() {
-  /* Safari parses `url(#filter)` in this property but drops the SVG stage at
-     paint time. CSS.supports alone would therefore give a false positive and
-     can make an iPhone panel disappear. The direct-live path is limited to
-     Chromium, whose backdrop compositor actually runs the displacement map. */
+function isChromium() {
   const browser = navigator as Navigator & {
     userAgentData?: { brands?: Array<{ brand: string }> };
   };
@@ -460,8 +456,15 @@ function supportsLiveBackdropRefraction() {
   );
   const chromiumUserAgent = /(?:Chrome|Chromium|Edg|OPR)\//.test(navigator.userAgent)
     && !/CriOS|FxiOS/.test(navigator.userAgent);
+  return chromiumBrand || chromiumUserAgent;
+}
 
-  return (chromiumBrand || chromiumUserAgent) && CSS.supports(
+function supportsLiveBackdropRefraction() {
+  /* Safari parses `url(#filter)` in this property but drops the SVG stage at
+     paint time. CSS.supports alone would therefore give a false positive and
+     can make an iPhone panel disappear. The direct-live path is limited to
+     Chromium, whose backdrop compositor actually runs the displacement map. */
+  return isChromium() && CSS.supports(
     "backdrop-filter",
     `blur(1px) saturate(100%) url(#${FILTER_ID})`,
   );
@@ -531,18 +534,59 @@ function supportsDetailedLiveRefraction() {
   element's own content, which is what liquid-glass-react does and is not
   what this needs.
 
-  Detected by capability rather than by user-agent string: Chromium does not
-  implement the *prefixed* `-webkit-backdrop-filter` with a url() stage,
-  while WebKit does. It is an oblique signal, so it is worth saying what it
-  is standing in for — there is no way to ask an engine "do you displace
-  backdrops?", and the honest alternatives are a UA sniff or reading back
-  rendered pixels, which cannot be done for a DOM element. Both failure
-  directions are safe: a future Chromium that adds the prefixed form would
-  fall back to ordinary frosted glass, and a future Safari that learns to
-  displace backdrops would keep it until this is revisited.
+  Asked as a positive test for the one engine family known to do it rather
+  than as a test against the one known not to. An earlier version keyed off
+  a WebKit quirk — Chromium does not implement the *prefixed*
+  `-webkit-backdrop-filter` with a url() stage, WebKit does — which
+  correctly excluded Safari and then wrongly let Firefox through, since
+  Firefox implements neither the prefixed property nor backdrop
+  displacement. Naming the engine that works leaves everything else on the
+  clone path below, which is the safe side to be wrong on: the clone needs
+  nothing of the backdrop compositor.
+
+  There is no way to ask an engine "do you displace backdrops?" — CSS
+  parses the declaration either way, and a DOM element's rendered pixels
+  cannot be read back — so this is a sniff, deliberately, with the
+  measurement it stands in for recorded above it.
 */
 function displacesBackdropContent() {
-  return !CSS.supports("-webkit-backdrop-filter", `blur(0px) url(#${FILTER_ID})`);
+  return isChromium();
+}
+
+/*
+  The preferences every lens path respects, whichever mechanism it uses.
+  These are things a person has asked their operating system for, rather
+  than guesses about their hardware.
+*/
+function lensPreferencesAllow() {
+  if (window.matchMedia(REDUCED_MOTION_QUERY).matches) return false;
+  if (window.matchMedia(REDUCED_TRANSPARENCY_QUERY).matches) return false;
+  return !(navigator as PerformanceNavigator).connection?.saveData;
+}
+
+/*
+  The path for engines that will not displace a backdrop but will displace
+  an element's own painted content — which is WebKit, and therefore every
+  browser on iOS, since they all run it.
+
+  Instead of asking the knob to bend what is behind it, the knob carries a
+  copy of what is behind it and bends that. The copy is real painted
+  content, so WebKit filters it; it is clipped to the knob's disc and offset
+  by exactly the knob's own position, so it lands on top of the original
+  registered to the pixel. See ThemeToggle and the .theme-knob-refraction
+  rules in globals.css.
+
+  What it can bend is the control's own track and icons rather than the
+  whole page behind it — a clone can only contain what it is given. On this
+  control that is nearly all of the visible detail anyway: the pill's rim
+  and the three icons are what a knob passing over them visibly distorts,
+  and the header behind is close to a flat colour, which looks the same
+  bent or not.
+*/
+function supportsCloneLens() {
+  if (!CSS.supports("filter", `url(#${FILTER_ID})`)) return false;
+  if (displacesBackdropContent()) return false;
+  return lensPreferencesAllow();
 }
 
 function supportsSplitPropertyLens() {
@@ -580,7 +624,8 @@ export default function GlassRefractionFilter() {
   >([]);
   const [enabled, setEnabled] = useState(false);
   const [splitLensEnabled, setSplitLensEnabled] = useState(false);
-  const filterNeeded = enabled || splitLensEnabled;
+  const [cloneLensEnabled, setCloneLensEnabled] = useState(false);
+  const filterNeeded = enabled || splitLensEnabled || cloneLensEnabled;
 
   useEffect(() => {
     const media = [
@@ -592,6 +637,7 @@ export default function GlassRefractionFilter() {
     const update = () => {
       setEnabled(supportsDetailedLiveRefraction());
       setSplitLensEnabled(supportsSplitPropertyLens());
+      setCloneLensEnabled(supportsCloneLens());
     };
 
     update();
@@ -634,8 +680,10 @@ export default function GlassRefractionFilter() {
     mount and unmount constantly across the site (route changes, tab
     switches, lists loading) in a way the nav menu's fixed set never does.
   */
+  const bucketedLensNeeded = splitLensEnabled || cloneLensEnabled;
+
   useEffect(() => {
-    if (!splitLensEnabled) return;
+    if (!bucketedLensNeeded) return;
 
     const known = new Map<
       string,
@@ -708,7 +756,7 @@ export default function GlassRefractionFilter() {
       window.removeEventListener("resize", schedule);
       observer.disconnect();
     };
-  }, [splitLensEnabled]);
+  }, [bucketedLensNeeded]);
 
   useEffect(() => {
     if (!mapUrl || !enabled) return;
@@ -727,6 +775,15 @@ export default function GlassRefractionFilter() {
       delete document.documentElement.dataset.glassLensSplit;
     };
   }, [splitLensEnabled, mapUrl]);
+
+  useEffect(() => {
+    if (!mapUrl || !cloneLensEnabled) return;
+
+    document.documentElement.dataset.glassLensClone = "";
+    return () => {
+      delete document.documentElement.dataset.glassLensClone;
+    };
+  }, [cloneLensEnabled, mapUrl]);
 
   if (!mapUrl || !filterNeeded) return null;
 
