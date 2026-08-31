@@ -138,7 +138,7 @@ const GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH;
   the two never share a filter.
 */
 const KNOB_SELECTOR = ".theme-toggle-selector";
-const KNOB_BEZEL_WIDTH = 0.3;
+const KNOB_BEZEL_WIDTH = 0.14;
 const GENERIC_DISPLACEMENT_HEADROOM = NAV_DISPLACEMENT_HEADROOM;
 /* A page with an unusually long list of cards (an admin table, a long
    practice list) could in principle produce more distinct shape buckets than

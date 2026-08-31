@@ -373,11 +373,12 @@ test("the theme knob keeps a flat face and bends only at its rim", () => {
     return { map, reach: reach / (size / 2) };
   };
 
-  const knob = band(0.3);
+  const knob = band(0.14);
   const slab = band(0.85);
 
-  // Confined to the outer third, where the surface actually turns.
-  assert.ok(knob.reach < 0.35, `knob bend should hug the rim, reached ${knob.reach}`);
+  // A thin outer ring, not a third of the face: the middle has to read as
+  // plain open glass, with only the very edge doing anything.
+  assert.ok(knob.reach < 0.2, `knob bend should hug the rim, reached ${knob.reach}`);
   // And the slab width really would have bent nearly the whole disc — this
   // is the bug being prevented, not a hypothetical.
   assert.ok(slab.reach > 0.8, `0.85 on a circle should reach deep, got ${slab.reach}`);
@@ -390,7 +391,7 @@ test("the theme knob keeps a flat face and bends only at its rim", () => {
   // The knob asks for its own bezel by name, and it is keyed into the bucket
   // so it can never share a filter with a square card that happens to
   // measure the same shape.
-  assert.match(filter, /const KNOB_BEZEL_WIDTH = 0\.3;/);
+  assert.match(filter, /const KNOB_BEZEL_WIDTH = 0\.14;/);
   assert.match(filter, /KNOB_SELECTOR = "\.theme-toggle-selector"/);
   assert.match(filter, /pane\.matches\(KNOB_SELECTOR\) \? KNOB_BEZEL_WIDTH : GENERIC_BEZEL_WIDTH/);
   assert.match(filter, /function bucketKey\(aspect: number, cornerRadius: number, bezelWidth: number\)/);
