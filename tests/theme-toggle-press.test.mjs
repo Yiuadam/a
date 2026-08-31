@@ -70,14 +70,16 @@ test("pointing at the theme toggle is answered by the knob, not only by the comm
   assert.match(pressedKnob, /top: var\(--knob-y\);/);
   assert.doesNotMatch(pressedKnob, /scale\(/);
 
-  // Which needs the track to stop clipping for exactly that long...
+  // Which needs the track to stop clipping for exactly that long.
   const pressedBase = rule(".theme-toggle-base[data-pressed]");
   assert.match(pressedBase, /overflow: visible;/);
-  // ...and the live glass layer's deliberate 1px overscan pulled back in
-  // while the clip that was containing it is gone, or it fringes past the
-  // track's corners.
-  const pressedLayer = rule(".theme-toggle-base[data-pressed] > .refractive-glass-layer");
-  assert.match(pressedLayer, /inset: 0;/);
+  /* A companion rule used to pull the glass layer's deliberate 1px overscan
+     back in for the same moment, so it did not fringe past the track's corners
+     while the clip was off. There is no layer to pull in now — refraction was
+     removed site-wide, rejected on look — and the track's own tint is painted
+     on the element rather than on a child, so releasing the clip lets nothing
+     out but the knob. */
+  assert.doesNotMatch(css, /refractive-glass-layer/);
 
   // Travel and size ride separate properties so the press can answer faster
   // than the glide — but which carries which is not interchangeable. The

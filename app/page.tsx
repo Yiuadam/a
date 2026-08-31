@@ -11,7 +11,6 @@ import FreeProPoster from "@/components/billing/FreeProPoster";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import type { ModuleName, ModuleResult, PlacementResult } from "@/lib/types";
 import { Icon } from "@/components/Icons";
-import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import CardIcon from "@/components/CardIcon";
 import NewBadge from "@/components/NewBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
@@ -171,7 +170,6 @@ function OrganisationHero({ organization }: { organization: HomeOrganizationShor
       className="dashboard-organization-card card premade-glass block min-w-0 shrink-0 p-4 sm:p-5"
       aria-label={`Open ${organization.name} organisation dashboard`}
     >
-      <RefractiveGlassLayer interactive />
       <div className="premade-glass-content flex min-w-0 items-center justify-between gap-4">
         <span className="flex min-w-0 items-center gap-3">
           <CardIcon name="organization" size={28} />
@@ -231,7 +229,6 @@ function ScoreTrendCard({
       className="dashboard-trend-card card premade-glass block min-w-0 p-3.5"
       aria-label={`Open ${label} score history`}
     >
-      <RefractiveGlassLayer interactive />
       <span className="premade-glass-content block min-w-0">
         <span className="flex items-start justify-between gap-2">
           <span className="flex min-w-0 items-center gap-2">
@@ -297,11 +294,9 @@ function ScoreTrendOverview({
         </span>
         <span className="flex flex-wrap items-center justify-end gap-2">
           <IntentPrefetchLink href="/plan" className="btn-primary premade-glass shrink-0 whitespace-nowrap">
-            <RefractiveGlassLayer radius={999} interactive />
             <span className="premade-glass-content">See what to do next</span>
           </IntentPrefetchLink>
           <IntentPrefetchLink href="/placement" className="btn-secondary premade-glass shrink-0 whitespace-nowrap">
-            <RefractiveGlassLayer radius={999} interactive />
             <span className="premade-glass-content">Re-test</span>
           </IntentPrefetchLink>
         </span>
@@ -429,7 +424,6 @@ export default function Dashboard() {
                 if (skill.pending) {
                   return (
                     <div key={m.key} className="dashboard-skill-card card premade-glass relative p-3.5 cursor-wait opacity-60" aria-busy="true">
-                      <RefractiveGlassLayer />
                       <LoadingIndicator label="Checking access…" className="absolute right-3 top-3 z-10 text-sm text-indigo-600" textClassName="sr-only" />
                       <div className="premade-glass-content flex items-start gap-2.5">
                         <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
@@ -449,7 +443,6 @@ export default function Dashboard() {
                   return (
                     <LockedCard key={m.key} reason={skill.reason} label={`${m.label} practice`} fill>
                       <div className="dashboard-skill-card card premade-glass p-3.5 h-full">
-                        <RefractiveGlassLayer />
                         <div className="premade-glass-content flex items-start gap-2.5">
                           <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
                           <div className="min-w-0">
@@ -471,7 +464,6 @@ export default function Dashboard() {
                     href={m.href}
                     className="dashboard-skill-card card premade-glass p-3.5 block"
                   >
-                    <RefractiveGlassLayer interactive />
                     <div className="premade-glass-content flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-start gap-2.5">
                         <Icon name={m.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
@@ -511,7 +503,6 @@ export default function Dashboard() {
                 const isNew = drillSectionNeedsNewBadge(scores, s.key);
                 return (
                   <IntentPrefetchLink key={s.href} href={s.href} className="dashboard-skill-card card premade-glass p-3.5 block">
-                    <RefractiveGlassLayer interactive />
                     <div className="premade-glass-content flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-start gap-2.5">
                         <Icon name={s.icon} className="dashboard-card-icon mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />

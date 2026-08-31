@@ -68,10 +68,9 @@ const NAV_DISPLACEMENT_HEADROOM = 0.97;
 /*
   Every card the SVG displacement filter applies to — not every card with the
   wall/rim CSS, which also reaches `.premade-glass` cards (see .card::before
-  in globals.css). `.premade-glass` is left out here: it already runs its own
-  live liquid-glass-react displacement, and warping those already-displaced
-  pixels a second time is what produced visible smudging, so its cards get
-  the static wall/rim dressing but never this filter. The two named `.card`
+  in globals.css). `.premade-glass` is left out here deliberately: those
+  surfaces are meant to be clear frosted glass and nothing more, so they get
+  the static wall/rim dressing but never a lens. The two named `.card`
   exceptions are contexts that deliberately flatten to no glass at all, per
   the same comment in globals.css.
 
@@ -574,8 +573,7 @@ function supportsDetailedLiveRefraction() {
 
   So the comment that used to sit here, claiming Safari runs the split
   combination fine, was wrong. What Safari runs fine is a filter over an
-  element's own content, which is what liquid-glass-react does and is not
-  what this needs.
+  element's own content, which is not what this needs.
 
   Asked as a positive test for the one engine family known to do it rather
   than as a test against the one known not to. An earlier version keyed off

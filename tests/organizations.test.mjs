@@ -521,7 +521,15 @@ test("manager pages separate practice work from teacher-student team grouping", 
   assert.match(ui, /type ManagerView = [^;]+"team-pairings"/);
   assert.match(ui, /section", nextView/);
   assert.match(ui, /organization-view-tabs premade-glass/);
-  assert.match(ui, /<RefractiveGlassLayer radius=\{18\} interactive/);
+  /* The tab rail was the last surface still opted into the enhanced optics
+     experiment, on top of the ordinary displacement layer every glass control
+     carried. Both are gone: refraction was rejected across the site for making
+     glass look fogged rather than clear. The rail keeps `premade-glass` above,
+     which is its tint and clip, and the knob that slides along it keeps its
+     own small lens — that one is a disc over backdrop it fully covers, not a
+     pane over page content, and it was never what the objection was about. */
+  assert.doesNotMatch(ui, /RefractiveGlassLayer/);
+  assert.match(ui, /organization-view-selector segmented-knob/);
 });
 
 test("practice assignment controls share one standard height", () => {

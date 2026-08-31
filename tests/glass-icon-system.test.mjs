@@ -14,18 +14,30 @@ const cssRule = (css, selector) => {
 };
 
 test("live glass uses the browser compositor and preserves low-cost fallbacks", () => {
-  const component = read("components/RefractiveGlassLayer.tsx");
-  const gate = read("components/GlassPerformanceGate.tsx");
   const engine = read("components/PointerAttraction.tsx");
   const refraction = read("components/GlassRefractionFilter.tsx");
   const css = read("app/globals.css");
 
-  assert.match(component, /interactive = false/);
-  assert.match(component, /<GlassPerformanceGate>/);
-  assert.match(gate, /return enabled \? children : null/);
-  assert.doesNotMatch(component, /addEventListener|requestAnimationFrame|useState|useEffect/);
-  assert.match(component, /globalMousePos=\{STILL_POINTER\}/);
-  assert.match(component, /mouseOffset=\{STILL_POINTER\}/);
+  /*
+    This test used to open components/RefractiveGlassLayer.tsx and its
+    capability gate, and check that the displacement pane they mounted did its
+    work on the compositor rather than in a render loop. Both files are gone.
+
+    The reason matters more than the deletion: the layer was not too expensive,
+    it was wrong to look at. What the owner asked for is glass you can see
+    through, and a displacement pane over live page content reads as fog and
+    smearing instead — the text behind it bends and nothing underneath is
+    legible. So the whole site is frosted material now, and the only refraction
+    left anywhere is the option-bar knob below, which bends a small disc of
+    backdrop it fully covers rather than a card-sized pane of the page.
+
+    Asserting the absence rather than dropping the test, because a layer like
+    this is easy to reintroduce one card at a time.
+  */
+  assert.doesNotMatch(refraction, /RefractiveGlassLayer|GlassPerformanceGate/);
+  assert.doesNotMatch(engine, /liquid-glass-react/);
+  assert.doesNotMatch(css, /refractive-glass-layer|refractive-glass-core/);
+
   assert.doesNotMatch(engine, /data-glass-reflecting|--glass-reflection-|REFLECTION_FRAME_MS/);
   assert.match(engine, /requestAnimationFrame\(draw\)/);
   assert.match(refraction, /supportsDetailedLiveRefraction/);
@@ -36,22 +48,33 @@ test("live glass uses the browser compositor and preserves low-cost fallbacks", 
   assert.match(css, /@media \(hover: none\), \(pointer: coarse\), \(prefers-reduced-motion: reduce\), \(prefers-reduced-transparency: reduce\)/);
 });
 
-test("high-detail SVG refraction remains opt-in on selected controls", () => {
+test("no surface carries a displacement layer, only frosted material", () => {
   const home = read("app/page.tsx");
   const bell = read("components/account/NotificationBell.tsx");
   const inbox = read("components/account/NotificationInbox.tsx");
   const theme = read("components/ThemeToggle.tsx");
 
-  // The dashboard-hero placement card this used to anchor on is gone — the
-  // free Pro trial poster took over its slot (tests/free-pro-trial.test.mjs,
-  // tests/dashboard-home.test.mjs) — so this now anchors on a skill card,
-  // another still-selective use of the base non-interactive variant.
-  assert.match(home, /dashboard-skill-card[\s\S]*?<RefractiveGlassLayer \/>/);
-  assert.match(home, /btn-primary premade-glass[\s\S]*?<RefractiveGlassLayer radius=\{999\} interactive \/>/);
-  assert.match(bell, /<RefractiveGlassLayer radius=\{999\} interactive \/>/);
+  /*
+    The opposite of what this test used to check. It named the surfaces that
+    had opted in to a displacement pane — a skill card, the primary dashboard
+    button, the notification bell, the theme toggle — and held them to it.
+
+    Every one of those opt-ins is gone, and the list is kept here pointing the
+    other way because these were the exact places the layer reached. The owner
+    turned refraction down on look rather than on cost: it fogged the surfaces
+    it was meant to make glassy. What stays on all of them is the material —
+    `premade-glass` for tint and clip, the border, the backdrop blur — which is
+    what makes them glass in the first place.
+  */
+  assert.doesNotMatch(home, /RefractiveGlassLayer/);
+  assert.doesNotMatch(bell, /RefractiveGlassLayer/);
+  assert.doesNotMatch(theme, /RefractiveGlassLayer/);
+  assert.match(home, /dashboard-skill-card card premade-glass/);
+  assert.match(home, /btn-primary premade-glass/);
+  assert.match(bell, /pointer-attract-glass premade-glass/);
+  assert.match(theme, /theme-toggle-base premade-glass/);
   assert.match(inbox, /notification-popover liquid-glass/);
   assert.doesNotMatch(inbox, /notification-popover[^\n]*premade-glass/);
-  assert.match(theme, /<RefractiveGlassLayer radius=\{14\} interactive \/>/);
 });
 
 test("decorative navigation icons inherit one theme-aware token", () => {
@@ -75,14 +98,11 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
   const header = read("components/SiteHeader.tsx");
 
   assert.match(header, /className="nav-paper premade-glass/);
-  // No live RefractiveGlassLayer on the sheet: it is the one place this
-  // component was ever asked to cover a full-viewport surface rather than a
-  // small card, and its upstream centring (an inline top/left: 50%,
-  // width/height: 100% box meant to be recentred by a transform the library
-  // applies itself) came out covering only the middle of the sheet on a
-  // real device, not the whole viewport — the plain CSS blur below is what
-  // actually still reaches the edges.
-  assert.doesNotMatch(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
+  // The sheet was the first surface to lose its displacement layer and is now
+  // simply one of many without one — refraction is gone site-wide, rejected
+  // for fogging what it covered. The plain CSS blur below is the whole of this
+  // sheet's material, and it is what reaches the edges.
+  assert.doesNotMatch(header, /RefractiveGlassLayer/);
   // The sheet itself carries no tint or refraction of its own — only the
   // .nav-menu-group cards it holds do, layering their own heavier blur and
   // colour on top. But it does carry a real, uniform blur so the gaps

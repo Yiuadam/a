@@ -13,14 +13,6 @@ const { GLASS_LAB, resolveOptics } = await import(
 
 const read = (...parts) => readFileSync(join(process.cwd(), ...parts), "utf8");
 
-function rule(css, selector) {
-  const start = css.indexOf(`${selector} {`);
-  assert.notEqual(start, -1, `missing ${selector} rule`);
-  const end = css.indexOf("\n}", start);
-  assert.notEqual(end, -1, `unterminated ${selector} rule`);
-  return css.slice(start, end + 2);
-}
-
 function tsxFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
@@ -44,42 +36,37 @@ test("the experiment is off by default, because nothing in this test run sets NE
   assert.equal(GLASS_LAB, false);
 });
 
-test("the enhanced rim is static material lighting and disables under the power-aware query", () => {
+test("the enhanced rim went with the layer it was drawn on", () => {
   const css = read("app", "globals.css");
-  const rim = rule(css, '.refractive-glass-layer[data-optics="enhanced"]::after');
-
-  // Material lighting is fixed to the pane. The live backdrop filter changes
-  // with page content; the rim must not chase a pointer.
-  assert.match(rim, /circle at 50% 0%/);
-  assert.match(rim, /circle at 50% 100%/);
-  assert.doesNotMatch(rim, /glass-reflection/);
-  // The gradient-border technique lives or dies on the mask pair.
-  assert.match(rim, /mask-composite:\s*exclude/);
-  assert.match(rim, /-webkit-mask-composite:\s*xor/);
 
   /*
-    Two rules share the exact same coarse-pointer/reduced-motion query text
-    in this file, so the check below anchors on the enhanced rim's selector
-    landing immediately inside a media block's opening brace (only
-    whitespace between them) rather than merely appearing somewhere after it
-    — otherwise it could pass by matching an unrelated coarse-pointer query
-    instead of the one guarding the lab rules.
+    This used to open the enhanced rim's rule and check its two radial
+    gradients, its mask pair and the coarse-pointer query that switched it off.
+    The rim was painted as an ::after on the refraction layer, so it could not
+    outlive it, and the layer was removed because the owner rejected refraction
+    on look: it made glass read as fog rather than as something clear.
+
+    Checked by absence rather than dropped, because the rim was the most
+    convincing part of the experiment and is the piece most likely to be
+    reached for again. Bringing it back means giving it a surface of its own
+    first, not re-attaching it to a lens.
   */
-  assert.match(
-    css,
-    /@media \(hover: none\), \(pointer: coarse\), \(prefers-reduced-motion: reduce\), \(prefers-reduced-transparency: reduce\) \{\s*\.refractive-glass-layer\[data-optics="enhanced"\]::after \{\s*display: none;\s*\}\s*\.refractive-glass-layer\[data-optics="enhanced"\] > \.refractive-glass-core \{\s*scale: 1;\s*\}\s*\}/,
-  );
+  assert.doesNotMatch(css, /data-optics/);
+  assert.doesNotMatch(css, /--glass-rim-lit|--glass-rim-shade/);
 });
 
-test('optics="enhanced" is opted into by exactly one call site: the organisation view tabs', () => {
-  // The other of the original two, the homepage placement CTA
-  // (IntentPrefetchLink href="/placement" in PlacementHero), no longer
-  // exists — the free Pro trial poster took over that slot in the
-  // dashboard, always, and its own buttons are plain btn-primary/
-  // btn-secondary rather than the premade-glass treatment PlacementHero
-  // used. Whether the poster's primary action should opt into the
-  // enhanced budget is a design call for whoever next revisits this list,
-  // not something this rename should decide on its own.
+test('optics="enhanced" has no call sites left anywhere', () => {
+  /*
+    The count this guards used to be one — the organisation view tabs, the last
+    surface still opted into the enhanced treatment. It is zero now: the prop
+    was only ever read by the refraction layer, and that went with the rest of
+    the site's refraction, which the owner turned down for fogging the very
+    surfaces it was supposed to make glassy.
+
+    The sweep is kept, rather than the test deleted, because it is the cheap
+    way to catch the experiment creeping back one call site at a time — which
+    is exactly how it spread the first time.
+  */
   const roots = [join(process.cwd(), "app"), join(process.cwd(), "components")];
   const hits = roots.flatMap(tsxFiles).flatMap((path) => {
     const count = (readFileSync(path, "utf8").match(/optics="enhanced"/g) ?? []).length;
@@ -89,37 +76,47 @@ test('optics="enhanced" is opted into by exactly one call site: the organisation
   const total = hits.reduce((sum, hit) => sum + hit.count, 0);
   assert.equal(
     total,
-    1,
-    `expected exactly 1 occurrence of optics="enhanced", found ${total} (${hits.map((hit) => `${hit.file}: ${hit.count}`).join(", ")})`,
-  );
-  assert.deepEqual(
-    hits.map((hit) => hit.file).sort(),
-    ["components/organization/OrganizationPortal.tsx"],
+    0,
+    `expected no occurrences of optics="enhanced", found ${total} (${hits.map((hit) => `${hit.file}: ${hit.count}`).join(", ")})`,
   );
 });
 
 test("the full-viewport navigation lens is not mounted at all, in any build", () => {
-  // Used to be gated behind the lab flag on cost grounds alone; on a real
-  // device it also turned out to be a correctness bug, not just an expense —
-  // the package's own centring (an inline top/left: 50%, width/height: 100%
-  // box, meant to be recentred by a transform the library applies itself)
-  // came out covering only the middle of the sheet rather than the whole
-  // viewport it was meant to fill. Every other surface this component sits
-  // on is a small, card-sized box; the nav sheet was the one place it was
-  // ever asked to cover a full-viewport surface instead. Removed outright
-  // rather than re-gated, since the plain CSS blur on .nav-paper already
-  // covers the whole sheet on its own.
+  // The nav sheet lost its lens before the rest of the site did, and for its
+  // own reason: it was the one full-viewport surface the layer was ever asked
+  // to cover, and the package's centring left it covering only the middle of
+  // the sheet on a real device. That head start is now moot — refraction is
+  // gone everywhere, rejected on look — but the header is still worth pinning,
+  // because a full-viewport lens is the single most expensive thing this page
+  // could be made to paint. The CSS blur on .nav-paper covers the sheet.
   const header = read("components", "SiteHeader.tsx");
   assert.doesNotMatch(header, /import \{ GLASS_LAB \} from "@\/lib\/glass-lab";/);
-  assert.doesNotMatch(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
+  assert.doesNotMatch(header, /RefractiveGlassLayer/);
 });
 
-test("the enhanced variant is pure CSS: the package's frozen pointer and cornerRadius still stand and no shader mode was enabled", () => {
-  const layer = read("components", "RefractiveGlassLayer.tsx");
-  assert.match(layer, /elasticity=\{0\}/);
-  assert.match(layer, /globalMousePos=\{STILL_POINTER\}/);
-  assert.match(layer, /mouseOffset=\{STILL_POINTER\}/);
-  assert.doesNotMatch(layer, /mode=(?:"shader"|'shader')/);
+test("nothing imports the displacement package any more, and it is out of the manifest", () => {
+  /*
+    What this checked was that the enhanced variant stayed pure CSS: the
+    third-party layer's pointer was frozen, its elasticity zeroed and its
+    shader mode never switched on, so the look came from stylesheet rules
+    rather than from the package animating anything.
+
+    The layer is deleted and the package with it. Kept as a dependency check
+    because that is the durable version of the same guarantee — a package that
+    is not installed cannot start animating anything — and because the removal
+    of the manifest entry is the part a lockfile update could quietly undo.
+  */
+  const roots = [join(process.cwd(), "app"), join(process.cwd(), "components")];
+  for (const path of roots.flatMap(tsxFiles)) {
+    assert.doesNotMatch(
+      readFileSync(path, "utf8"),
+      /from "liquid-glass-react"|import\("liquid-glass-react"\)/,
+      `${path.slice(process.cwd().length + 1)} still imports liquid-glass-react`,
+    );
+  }
+  const pkg = JSON.parse(read("package.json"));
+  assert.equal("liquid-glass-react" in (pkg.dependencies ?? {}), false);
+  assert.equal("liquid-glass-react" in (pkg.devDependencies ?? {}), false);
 });
 
 test("the ruled test backdrop only exists when the layout is built with the flag", () => {

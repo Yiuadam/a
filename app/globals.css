@@ -559,29 +559,23 @@ html[data-theme="dark"] body {
   behind it, and a caustic rim in place of a flat hairline.
 
   `.liquid-glass` is deliberately left out here. Several surfaces built on
-  it already carry their own hand-tuned ::before rim (the notification
-  popover) or their own separate live-refraction engine (`.premade-glass`,
-  documented above as "the refraction engine from liquid-glass-react, not
-  its visual decoration") — adding a second, independent lens on top of
-  either would conflict with work already done rather than extend it.
-  `.card` has no such competing system anywhere in this file, which is what
-  makes it the safe, generic target: every one of its many uses (pricing,
-  dashboard, admin, exam mode, dark theme) sets only background,
-  backdrop-filter and box-shadow directly on the element, all of which stay
-  completely untouched below.
+  it already carry their own hand-tuned ::before rim — the notification
+  popover — and a second, independent rim on top of that would conflict with
+  work already done rather than extend it. `.card` has no such competing
+  system anywhere in this file, which is what makes it the safe, generic
+  target: every one of its many uses (pricing, dashboard, admin, exam mode,
+  dark theme) sets only background, backdrop-filter and box-shadow directly
+  on the element, all of which stay completely untouched below.
 
   Two contexts are excluded because they deliberately flatten `.card` to
   `background: transparent; backdrop-filter: none` — an explicit request for
   no glass at all, which a wall and a rim would quietly reintroduce.
 
   `.premade-glass` cards (the dashboard's skill and trend cards, the exam
-  start window) get this same wall and rim: it is static shading behind and
-  around their own live liquid-glass-react layer, not a second lens on top of
-  it, so it only adds the same directional light the rest of the site now
-  has. What they do NOT get is the SVG displacement filter below — see the
-  html[data-glass-lens-split] rule underneath, which excludes them
-  specifically because warping premade-glass's own already-displaced pixels a
-  second time is what produced visible muddy smudging.
+  start window) get this same wall and rim, and it now carries all of their
+  directional light rather than sitting as static shading around a live lens.
+  That is the reason to keep it: with refraction gone it is the only thing
+  standing between those cards and a plain tinted rectangle.
 */
 .card:not(.organization-team-pairings-page):not(.organization-team-pairing-group)::before {
   content: "";
@@ -706,15 +700,15 @@ html[data-theme="dark"] body {
 }
 
 /* Real content sits in its own stacking layer above the material and below
-   the rim, so only the backdrop itself ever warps — never the text or icons
-   a card actually exists to show.
+   the rim, so the shading a card paints for itself never lands on the text
+   or icons that card exists to show.
 
-   `.premade-glass` is excluded here specifically: its own
-   `.refractive-glass-layer` child already carries a hand-set `position:
-   absolute; z-index: 0` that this rule's own specificity would win over and
-   quietly override, and `.premade-glass-content` already gives real content
-   its own `z-index: 1` — so premade-glass cards need nothing from this rule
-   and excluding them is what keeps that layer's positioning intact. */
+   `.premade-glass` is excluded here specifically: it already names the
+   element that should be lifted, `.premade-glass-content`, and lifts only
+   that one. Sweeping every direct child up instead would also promote the
+   decorative ones those surfaces carry — the segmented knobs, which are
+   siblings of the content wrapper rather than part of it — into positioned,
+   z-indexed boxes that nothing asked them to be. */
 .card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass) > * {
   position: relative;
   z-index: 1;
@@ -768,91 +762,29 @@ html[data-theme="dark"] body {
 }
 
 /*
-  The homepage prototype uses the refraction engine from liquid-glass-react,
-  not its visual decoration. The package's two tint layers, moving highlight
-  rims, text shadow and heavy drop shadow are hidden here; only its SVG
-  displacement map and live backdrop blur remain. Real content stays above
-  this pointer-events-none layer, so links and text are never duplicated.
+  `.premade-glass` marks the surfaces that once hosted a live displacement
+  layer. The layer is gone — refraction was rejected on how it looked, not on
+  what it cost — but the class stays, because the lens was never what made
+  these surfaces read as glass. The tint is: a wash lighter than the plain
+  `.card` recipe, which is what still separates a dashboard card from the
+  page behind it. The clip stays with it, since every one of these surfaces
+  relies on `overflow: hidden` to hold its own corner radius.
 */
 .premade-glass {
   overflow: hidden;
   background: color-mix(in srgb, var(--glass-fill) 28%, transparent);
 }
 
-.refractive-glass-layer {
-  position: absolute;
-  /*
-    Absolute inset 0 stops at the card's padding edge, just inside its 1px
-    translucent border. The filtered and unfiltered pixels can then land on
-    different device-pixel rows after a responsive resize or pointer scale,
-    which shows up as an intermittent clear hairline. Overscan by that single
-    CSS pixel; the card already clips the layer, so nothing escapes its shape
-    and the existing thin edge remains the only visible boundary.
-  */
-  inset: -1px;
-  z-index: 0;
-  display: block;
-  overflow: hidden;
-  border-radius: inherit;
-  opacity: 0.82;
-  pointer-events: none;
-}
-
 html[data-theme="dark"] .premade-glass {
   background: rgba(255, 255, 255, 0.018);
 }
 
-.refractive-glass-layer > div:not(.refractive-glass-core),
-.refractive-glass-layer:not([data-interactive]) > span {
-  display: none !important;
-}
-
-/* The installed liquid-glass-react package computes its edge refraction from
-   the actual pixels behind the control. Only opt-in, fine-pointer surfaces
-   expose its live directional rim; touch/mobile and reduced-motion users keep
-   the cheaper CSS backdrop glass below. Safari and Firefox retain that CSS
-   fallback when SVG displacement is only partially supported. */
-.refractive-glass-layer[data-interactive] {
-  opacity: 0.94;
-}
-
-.refractive-glass-layer[data-interactive] > span {
-  display: block !important;
-  opacity: 0.42 !important;
-}
-
-@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
-  .refractive-glass-layer[data-interactive] > span {
-    display: none !important;
-  }
-}
-
-@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .refractive-glass-layer {
-    display: none;
-  }
-}
-
-.refractive-glass-core {
-  pointer-events: none !important;
-}
-
-.refractive-glass-core > svg {
-  inset: 0;
-}
-
-.refractive-glass-core > .glass {
-  display: flex !important;
-  width: 100% !important;
-  height: 100% !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-}
-
-.refractive-glass-core > .glass > div {
-  display: none !important;
-}
-
+/*
+  Real content still needs a stacking layer of its own. `.premade-glass` is
+  excluded from the generic `.card > *` rule above, so this is the only thing
+  lifting text and icons clear of the wall and rim their surface paints at
+  z-index 0 — without it that shading would land on top of the words.
+*/
 .premade-glass-content {
   position: relative;
   z-index: 1;
@@ -1844,21 +1776,13 @@ html[data-theme="dark"] .nav-menu-group {
   a clipped bloom is a bloom that stops at the rail, which is exactly the
   outline the press is meant to break.
 
-  The live glass layer underneath is fine without that clip: it carries its
-  own `overflow: hidden` and `border-radius: inherit`, so it already holds
-  its own shape. The one thing the parent was containing is its deliberate
-  1px overscan (see .refractive-glass-layer, where inset: -1px exists to
-  stop a hairline appearing between filtered and unfiltered pixels), so
-  that single pixel is pulled back in for exactly as long as nothing is
-  there to catch it. Without this the layer would show a 1px fringe past
-  the track's corners the moment the knob is pressed.
+  Nothing else inside the track needs the clip. The track's own tint is
+  painted on the element itself rather than on a child, so releasing
+  `overflow` for the duration of the press lets the knob past the rail
+  without anything else spilling with it.
 */
 .theme-toggle-base[data-pressed] {
   overflow: visible;
-}
-
-.theme-toggle-base[data-pressed] > .refractive-glass-layer {
-  inset: 0;
 }
 
 .theme-toggle-base[data-pressed] .theme-toggle-selector {
@@ -2259,8 +2183,16 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
 
 /* A restrained magnetic response shared by selected glass controls. The
    control itself is deliberately stationary: its words, icon, hit target and
-   focus outline must not chase the pointer. Only the already-separate,
-   decorative refraction layer moves and stretches by a few pixels. */
+   focus outline must not chase the pointer — only a separate decorative
+   layer was ever allowed to move.
+
+   That layer was the refraction pane, and it is gone. These properties are
+   still published by components/PointerAttraction.tsx, but nothing reads
+   them any more, so the response is dormant rather than removed: the engine
+   only ever marks a control ready when it finds such a layer inside it, and
+   no control has one now. They are left here, and the engine with them,
+   because whether the magnetism comes back on some other decorative layer is
+   a design decision rather than a consequence of dropping refraction. */
 [data-pointer-attract-ready] {
   --pointer-drift-x: 0px;
   --pointer-drift-y: 0px;
@@ -2270,34 +2202,12 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   --pointer-origin-y: 50%;
 }
 
-[data-pointer-attract-ready] > .refractive-glass-layer {
-  translate: var(--pointer-drift-x) var(--pointer-drift-y);
-  scale: var(--pointer-stretch-x) var(--pointer-stretch-y);
-  transform-origin: var(--pointer-origin-x) var(--pointer-origin-y);
-  transition-property: translate, scale;
-  transition-duration: 420ms, 420ms;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: translate, scale;
-}
-
-[data-pointer-attract-ready][data-pointer-attracting] > .refractive-glass-layer {
-  /* Track the pointer almost immediately. Longer easing here reads as input
-     lag because every pointer frame starts another transition. */
-  transition-duration: 28ms, 36ms;
-  transition-timing-function: linear, linear;
-}
-
-/* While the lens is stretching, it is the only painted edge. Leaving the
-   semantic button's normal border in place creates a second, static ring
-   beneath it (especially noticeable on round icon controls). The hit target
-   and keyboard focus geometry remain on the button; only its base rim fades
-   until the lens comes to rest. */
+/* Whatever moves, the semantic button's own border must not double it: a
+   static ring under a drifting one reads as two edges, most obviously on
+   round icon controls. The hit target and keyboard focus geometry stay on
+   the button; only its base rim fades while the response is running. */
 [data-pointer-attract-ready][data-pointer-attracting] {
   border-color: transparent;
-}
-
-[data-pointer-attract-ready][data-pointer-attract-touch] > .refractive-glass-layer {
-  transition-duration: 24ms, 32ms;
 }
 
 .pointer-attract-glass {
@@ -3642,13 +3552,6 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-pointer-attract-ready] > .refractive-glass-layer {
-    translate: none;
-    scale: none;
-    transition: none;
-    will-change: auto;
-  }
-
   a.card,
   .btn {
     transition: none;
@@ -4137,99 +4040,26 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
 }
 
 /* ---------------------------------------------------------------------------
-   Glass lab: enhanced optics (NEXT_PUBLIC_GLASS_LAB)
+   Glass lab: ruled test backdrop (NEXT_PUBLIC_GLASS_LAB)
 
-   Everything under [data-optics="enhanced"] is reachable only through the
-   data-optics attribute that components/RefractiveGlassLayer.tsx writes, and
-   it can only write "enhanced" when the app was built with
-   NEXT_PUBLIC_GLASS_LAB=1 (see lib/glass-lab.ts). Next.js substitutes that
-   check at build time, so a production build made without the variable never
-   emits the attribute at all. These rules still ship in the stylesheet, but
-   with nothing to match they are inert weight rather than a hidden feature
-   waiting to be switched on at runtime. That is what makes it safe to leave
-   the experiment in the tree while the decision is still open on whether the
-   look belongs in production.
+   What used to live here as well was an enhanced-optics rim, drawn on the
+   refraction layer. Both it and the layer are gone; the grid below is what
+   remains of the lab, and it is still worth keeping because judging any glass
+   material against a background with no straight edge in it is guesswork.
 
-   The rim is a static material response to the page's light direction. It has
-   no pointer listener or animation loop: the live SVG backdrop filter does
-   the dynamic work as real website content moves behind the pane. And like
-   every other refractive layer this is aria-hidden and pointer-events: none,
-   so it moves no semantic content: the button or tab underneath keeps exactly
-   the label, link and focus outline it already had.
+   The `data-glass-lab` attribute comes from app/layout.tsx and can only be
+   written when the app was built with NEXT_PUBLIC_GLASS_LAB=1 (see
+   lib/glass-lab.ts). Next.js substitutes that check at build time, so a
+   production build made without the variable never emits the attribute and
+   these rules have nothing to match.
 --------------------------------------------------------------------------- */
-/* The rim needs a strength of its own. --glass-specular is tuned to be a fill
-   tint — 0.18 alpha in dark — so a 1px ring mixed from it is invisible at any
-   mix ratio, which is exactly what the first attempt here produced. These two
-   variables give the rim its own per-theme value without touching a token any
-   other rule depends on. */
-.refractive-glass-layer[data-optics="enhanced"] {
-  --glass-rim-lit: rgba(255, 255, 255, 0.92);
-  --glass-rim-shade: rgba(28, 22, 17, 0.3);
-  opacity: 0.74;
-}
-
-/* Dark needs the lit edge pulled back and the shaded edge pushed further, or
-   the rim reads as a drawn border rather than light falling on a surface. */
-html[data-theme="dark"] .refractive-glass-layer[data-optics="enhanced"] {
-  --glass-rim-lit: rgba(255, 255, 255, 0.58);
-  --glass-rim-shade: rgba(0, 0, 0, 0.55);
-}
-
-.refractive-glass-layer[data-optics="enhanced"][data-interactive] {
-  opacity: 0.86;
-}
-
-/* The layer clips its own children, so scaling the lens slightly deepens the
-   warp without letting it escape the card's shape. Scaling the layer itself
-   would grow its box instead, and `scale` rather than `transform` because the
-   package owns the core's transform for centring. */
-.refractive-glass-layer[data-optics="enhanced"] > .refractive-glass-core {
-  scale: 1.015;
-}
-
-/* Two full-box radial gradients are painted here, but the mask keeps only the
-   thin ring that `padding` carves out between the border-box and content-box
-   layers below — the standard "gradient border" technique. That is what turns
-   two corner-to-corner gradients into a narrow specular rim traced around the
-   surface, rather than a wash across its whole face.
-
-   `inset: 1px` rather than 0 because the layer itself sits at inset: -1px to
-   overscan the card's hairline. Drawing the ring on the layer's own edge put
-   it a pixel outside the card, where the card's overflow: hidden clipped most
-   of it away; measured against a rim-removed control, pulling it back inside
-   recovered about half the pixels the rim was supposed to be painting. */
-.refractive-glass-layer[data-optics="enhanced"]::after {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: inherit;
-  padding: 1.25px;
-  background:
-    radial-gradient(
-      circle at 50% 0%,
-      var(--glass-rim-lit) 0%,
-      color-mix(in srgb, var(--glass-rim-lit) 45%, transparent) 24%,
-      transparent 56%
-    ),
-    radial-gradient(
-      circle at 50% 100%,
-      var(--glass-rim-shade) 0%,
-      transparent 52%
-    );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
 /* A ruled test backdrop, for the lab only.
 
-   Refraction is only visible in what it bends, and BandUp's own background is
+   Glass is only visible in what it changes, and BandUp's own background is
    two broad radial washes without a straight edge anywhere in them — which is
-   why the lens read as almost nothing in the first screenshots of it. A grid
-   of hairlines gives the displacement map something to distort, so the warp,
-   the rim and the pointer's effect on both can be judged rather than guessed.
+   why every material tried against it read as almost nothing in the first
+   screenshots. A grid of hairlines gives blur, tint and rim something with a
+   known shape to act on, so the result can be judged rather than guessed.
 
    This is the body's own background-image rather than a pseudo-element, and
    that is not a stylistic preference. A `z-index: -1` pseudo-element paints
@@ -4271,16 +4101,6 @@ html[data-theme="dark"] body[data-glass-lab] {
       transparent 1px 24px
     );
   background-attachment: fixed;
-}
-
-@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
-  .refractive-glass-layer[data-optics="enhanced"]::after {
-    display: none;
-  }
-
-  .refractive-glass-layer[data-optics="enhanced"] > .refractive-glass-core {
-    scale: 1;
-  }
 }
 
 /* The selection lookup trigger is a fixed annotation of the selected word.
@@ -4329,9 +4149,9 @@ html[data-theme="light"] body {
   --glass-edge-dark: rgba(22, 23, 26, 0.07);
   /* White, like every other theme's. This slot had a near-black in it
      (rgba(22, 23, 26, 0.14)), which is a dark value in the one token whose
-     whole job is the bright catch of light — see the comment above
-     .refractive-glass-layer[data-optics="enhanced"], which describes it as a
-     fill tint at 0.18 alpha in Dark. Every consumer treats it as light: the
+     whole job is the bright catch of light — it is a pale fill tint
+     everywhere else, 0.18 alpha in Dark included. Every consumer treats it
+     as light: the
      top highlight on .card::before, the caustic rim, the hover border. The
      visible symptom was the worst of them — that top highlight is a
      half-card-wide ellipse, so a dark specular painted a grey wash over the

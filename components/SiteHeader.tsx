@@ -10,7 +10,6 @@ import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref } from "@/lib/nav";
 import { useTier } from "@/lib/billing/useTier";
 import CardIcon, { type CardIconName } from "@/components/CardIcon";
 import { Icon } from "@/components/Icons";
-import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import HeaderNotificationBell from "@/components/account/HeaderNotificationBell";
 import { useAccountProfile } from "@/components/account/AccountProfileProvider";
@@ -365,7 +364,6 @@ export default function SiteHeader({
             data-pointer-attract-strength="icon"
             className="pointer-attract-glass premade-glass app-icon-control relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border text-sm transition-all"
           >
-            <RefractiveGlassLayer radius={999} interactive />
             {account.signedIn && profile?.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -415,23 +413,6 @@ export default function SiteHeader({
           tabIndex={-1}
           className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 overflow-y-auto outline-none"
         >
-            {/*
-              No RefractiveGlassLayer here, on top of the cost concern that
-              already kept it out under the lab flag: a full-viewport SVG
-              displacement map is the single most expensive thing this page
-              can paint, re-sampling every pixel behind the whole navigation
-              sheet on every frame something behind it moves. On a real
-              device that live layer's own sizing (an upstream
-              top/left: 50%, width/height: 100% box, meant to be recentred
-              by a transform the library applies itself) came out covering
-              only the middle of the sheet rather than the whole viewport it
-              is meant to fill — every other surface this component sits on
-              is a small, card-sized box, and this was the one place it was
-              ever asked to cover a full-viewport surface instead. The sheet
-              is already a real material without it: .nav-paper carries its
-              own CSS backdrop blur and tint (see the rule in globals.css),
-              which is what actually still covers the edges now.
-            */}
             <nav aria-label="All pages" className="premade-glass-content mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-7 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
               <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
                 {groups.map((group, groupIndex) => {

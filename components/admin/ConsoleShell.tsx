@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
-import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import styles from "@/components/admin/AdminConsole.module.css";
 
 /*
@@ -36,7 +35,6 @@ export default function ConsoleShell({
       <aside
         className={`${styles.sidebar} premade-glass relative hidden w-60 shrink-0 overflow-hidden p-3 lg:flex`}
       >
-        <RefractiveGlassLayer radius={32} interactive />
         <div className={styles.sidebarContent}>
           <Link href="/" prefetch={false} className={styles.brand}>
             <span className={styles.brandMark}>

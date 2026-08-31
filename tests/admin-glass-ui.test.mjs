@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 const read = (...parts) => readFileSync(join(process.cwd(), ...parts), "utf8");
 
-test("the owner console uses the BandUp glass shell with one gated refractive layer", () => {
+test("the owner console uses the BandUp glass shell, frosted rather than refracting", () => {
   const shell = read("components", "admin", "ConsoleShell.tsx");
   const layout = read("app", "admin", "layout.tsx");
   const styles = read("components", "admin", "AdminConsole.module.css");
@@ -14,7 +14,11 @@ test("the owner console uses the BandUp glass shell with one gated refractive la
   assert.match(shell, /styles\.sidebar/);
   assert.match(shell, /styles\.pageHeader/);
   assert.match(shell, /premade-glass/);
-  assert.equal(shell.match(/<RefractiveGlassLayer\b/g)?.length, 1);
+  /* The sidebar had one displacement layer, and it is not coming back: the
+     owner rejected refraction across the site on look rather than on cost,
+     asking for glass that is transparent instead of foggy. `premade-glass`
+     above and the blur below are the whole of the material now. */
+  assert.doesNotMatch(shell, /RefractiveGlassLayer/);
   assert.match(styles, /backdrop-filter: blur\(30px\)/);
   assert.match(styles, /var\(--color-indigo-600\)/);
   assert.match(styles, /@media \(prefers-reduced-transparency: reduce\)/);

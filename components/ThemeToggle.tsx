@@ -2,7 +2,6 @@
 
 import { useSyncExternalStore, type CSSProperties } from "react";
 import { Icon } from "@/components/Icons";
-import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import { useSegmentedDrag } from "@/lib/segmented-drag";
 import {
   THEMES,
@@ -48,7 +47,6 @@ export default function ThemeToggle() {
       }
       {...drag.handlers}
     >
-      <RefractiveGlassLayer radius={14} interactive />
       {/*
         The knob. On engines that displace a backdrop it is an empty disc
         and the lens does the rest; on WebKit, which will not filter a

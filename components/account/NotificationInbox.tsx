@@ -22,7 +22,6 @@ import {
 import { NOTIFICATIONS_CHANGED_EVENT, type AccountNotification } from "@/lib/notifications/types";
 import type { OrganizationLivePreviewRole } from "@/lib/organizations/preview-client";
 import LoadingIndicator from "@/components/LoadingIndicator";
-import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import { useSegmentedDrag } from "@/lib/segmented-drag";
 import { useAccountProfile } from "./AccountProfileProvider";
 
@@ -363,7 +362,6 @@ function NotificationFilter({
       }
       {...drag.handlers}
     >
-      <RefractiveGlassLayer radius={999} interactive />
       <span className="notification-filter-selector segmented-knob" aria-hidden="true" />
       {options.map((option, index) => (
         <button

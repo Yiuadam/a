@@ -11,7 +11,6 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 
 export interface GlassSelectOption {
   value: string;
@@ -128,7 +127,6 @@ export function FloatingGlassPopover({
       style={position}
       className="liquid-glass organization-picker-popover premade-glass overflow-y-auto rounded-xl border border-slate-200 p-1.5 shadow-lg"
     >
-      <RefractiveGlassLayer radius={12} interactive />
       <div className="premade-glass-content">{children}</div>
     </div>,
     document.body,

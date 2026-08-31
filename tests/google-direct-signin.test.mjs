@@ -65,6 +65,11 @@ test("web Google sign-in falls back to the established full-navigation flow", ()
 test("Google sign-in uses its supported pill inside BandUp glass", () => {
   assert.match(component, /shape:\s*"pill"/);
   assert.match(component, /google-signin-glass premade-glass/);
-  assert.match(component, /RefractiveGlassLayer/);
+  /* The glass frame around Google's own button is frosted material and
+     nothing else. It used to carry a displacement layer as well; that was
+     rejected on how it looked — the ask is transparent glass, not a fogged
+     or bent one — so the surface keeps its tint, border and blur and the
+     lens does not come back. */
+  assert.doesNotMatch(component, /RefractiveGlassLayer/);
   assert.match(component, /theme === "dark" \? "filled_black" : "outline"/);
 });

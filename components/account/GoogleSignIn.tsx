@@ -7,7 +7,6 @@ import { saveSession } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import { getServerTheme, getTheme, subscribeTheme } from "@/lib/theme";
-import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { consumeAuthReturnPath } from "@/lib/auth/return-path";
 
@@ -226,7 +225,6 @@ export default function GoogleSignIn() {
         onError={() => setLoadFailed(true)}
       />
       <div className="google-signin-glass premade-glass relative mx-auto w-full max-w-[406px] rounded-full p-[3px]">
-        <RefractiveGlassLayer radius={999} interactive />
         <div className="google-signin-viewport premade-glass-content relative overflow-hidden rounded-full">
           <div
             ref={hostRef}

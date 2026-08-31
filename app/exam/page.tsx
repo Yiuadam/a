@@ -7,7 +7,6 @@ import MockListening from "@/components/exam/MockListening";
 import MockReading from "@/components/exam/MockReading";
 import MockResults from "@/components/exam/MockResults";
 import MockWriting from "@/components/exam/MockWriting";
-import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import { useMounted } from "@/lib/hooks";
 import {
   MODULE_MINUTES,
@@ -242,7 +241,6 @@ function StartScreen({ onStart }: { onStart: () => void }) {
   return (
     <section className="exam-start mx-auto flex h-[calc(100dvh-3.75rem)] w-full max-w-6xl items-center overflow-y-auto px-3 sm:px-5">
       <div className="exam-start-window card premade-glass relative mx-auto w-full overflow-hidden !p-[clamp(1rem,3vw,2rem)]">
-        <RefractiveGlassLayer radius={32} />
         <div className="exam-start-content premade-glass-content mx-auto w-full space-y-[clamp(0.75rem,2.4vh,1.5rem)]">
         <header className="max-w-2xl">
           <p className="liquid-glass mb-2 inline-flex min-h-7 items-center rounded-full border px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700">
@@ -282,7 +280,6 @@ function StartScreen({ onStart }: { onStart: () => void }) {
 
         <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
           <button className="btn-primary premade-glass min-w-44" onClick={onStart}>
-            <RefractiveGlassLayer radius={999} interactive />
             <span className="premade-glass-content">Start exam</span>
           </button>
           <p className="exam-start-alternative text-xs text-slate-500 sm:pl-2">

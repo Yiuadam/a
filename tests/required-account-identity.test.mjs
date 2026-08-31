@@ -181,7 +181,11 @@ test("Google's owned surface is clipped to the same capsule as BandUp glass", ()
   const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
   assert.match(component, /shape: "pill"/);
   assert.match(component, /google-signin-glass[^\n]+rounded-full/);
-  assert.match(component, /RefractiveGlassLayer radius=\{999\}/);
+  /* The capsule is now held by the CSS below alone. A displacement layer used
+     to round its own corners to match; it was removed with the rest of the
+     site's refraction, which the owner rejected on look, so the shape has to
+     survive on `rounded-full` and the iframe clip rather than on a lens. */
+  assert.doesNotMatch(component, /RefractiveGlassLayer/);
   assert.match(css, /\.google-signin-host iframe[^}]+border-radius: 999px !important/s);
   assert.match(css, /clip-path: inset\(0 round 999px\)/);
 });

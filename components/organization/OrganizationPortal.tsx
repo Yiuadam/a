@@ -26,7 +26,6 @@ import type {
 import { OrganizationCreateForm, JoinOrganizationForm } from "./OrganizationForms";
 import CardIcon, { type CardIconName } from "@/components/CardIcon";
 import GlassSelect, { FloatingGlassPopover } from "@/components/GlassSelect";
-import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import {
   organizationPreviewRequestHeaders,
   type OrganizationLivePreviewRole,
@@ -722,7 +721,6 @@ function OrganizationSettingsButton({
       title="Organisation settings"
       onClick={onClick}
     >
-      <RefractiveGlassLayer radius={22} interactive />
       <CardIcon name="gear" size={18} className="relative z-10" />
     </button>
   );
@@ -781,7 +779,6 @@ function OrganizationViewTabs({
       } as CSSProperties}
       {...drag.handlers}
     >
-      <RefractiveGlassLayer radius={18} interactive optics="enhanced" />
       <span className="organization-view-selector segmented-knob" aria-hidden="true" />
       {options.map(([id, label, count], index) => (
         <button
@@ -1888,7 +1885,6 @@ function MobileDashboardBack({
         aria-label={ariaLabel}
         className="liquid-glass premade-glass order-first grid size-10 shrink-0 place-items-center overflow-hidden rounded-full border border-slate-200/75 bg-surface/55 !p-0 shadow-sm sm:hidden"
       >
-        <RefractiveGlassLayer radius={999} interactive />
         <svg viewBox="0 0 24 24" aria-hidden="true" className="app-icon-color relative z-10 size-5 fill-current">
           <path d="m7.5 12 9-6.5v13Z" />
         </svg>

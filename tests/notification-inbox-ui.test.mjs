@@ -285,7 +285,11 @@ test("notification page keeps one compact title and one flowing filter lens", ()
     assert.doesNotMatch(`${page}\n${inbox}`, new RegExp(redundant.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.equal((filter.match(/notification-filter-selector/g) ?? []).length, 1);
-  assert.equal((filter.match(/<RefractiveGlassLayer/g) ?? []).length, 1);
+  /* One selector knob and no displacement pane behind it. The rail used to
+     carry one; refraction came out of the whole site because it fogged the
+     surfaces it covered, and the knob's own lens — small, and over backdrop it
+     fully covers — is the only one left anywhere. */
+  assert.doesNotMatch(filter, /RefractiveGlassLayer/);
   assert.match(filter, /--notification-filter-index/);
   // Draggable, but through the shared implementation rather than its own
   // copy — see lib/segmented-drag.ts and tests/segmented-controls.test.mjs.

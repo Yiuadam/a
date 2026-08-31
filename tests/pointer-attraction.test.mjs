@@ -85,27 +85,36 @@ test("pointer attraction never drives the glass refraction itself", () => {
   assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),/);
 });
 
-test("pointer attraction moves only a decorative glass child, never a control's label", () => {
+test("pointer attraction is dormant: it still moves nothing a control's label sits on", () => {
   const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
   const engine = readFileSync(join(process.cwd(), "components", "PointerAttraction.tsx"), "utf8");
   const target = rule(css, "[data-pointer-attract-ready]");
-  const glass = rule(css, "[data-pointer-attract-ready] > .refractive-glass-layer");
 
   // The target is the semantic button/link. It may publish values, but must
   // never translate or stretch its children (including visible words/icons).
+  // This is the half of the contract that has never depended on what consumes
+  // the values, and it still holds.
   assert.match(target, /--pointer-drift-x: 0px/);
   assert.match(target, /--pointer-stretch-x: 1/);
   assert.doesNotMatch(target, /\n\s*(?:translate|scale|transform(?:-origin)?|will-change)\s*:/);
 
-  // Motion belongs to the aria-hidden refractive layer, which is a direct
-  // child of the control and paints underneath its regular content.
-  assert.match(glass, /translate: var\(--pointer-drift-x\) var\(--pointer-drift-y\)/);
-  assert.match(glass, /scale: var\(--pointer-stretch-x\) var\(--pointer-stretch-y\)/);
-  assert.match(glass, /transform-origin: var\(--pointer-origin-x\) var\(--pointer-origin-y\)/);
-  assert.match(glass, /will-change: translate, scale/);
-  assert.match(css, /\[data-pointer-attract-ready\]\[data-pointer-attracting\] > \.refractive-glass-layer \{[\s\S]*?transition-duration:/);
-  assert.match(css, /\[data-pointer-attract-ready\]\[data-pointer-attract-touch\] > \.refractive-glass-layer \{[\s\S]*?transition-duration:/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\[data-pointer-attract-ready\] > \.refractive-glass-layer \{[\s\S]*?translate: none;[\s\S]*?scale: none;[\s\S]*?transition: none/);
+  /*
+    The other half is currently unfulfilled, deliberately. Every drift and
+    stretch this engine published was applied to one thing: the decorative
+    refraction layer inside the control. That layer is deleted — refraction
+    came out of the whole site because the owner judged it to fog the glass
+    rather than clarify it — so nothing consumes these properties, and the
+    engine's own gate (a `:scope > .refractive-glass-layer` lookup) now matches
+    nothing, which means it never marks a control ready in the first place.
+
+    The engine is left installed rather than deleted because whether the
+    magnetism returns on some other decorative layer is a design decision, not
+    a consequence of dropping refraction. What this test pins is that it stays
+    harmless while that decision is open: no rule may reintroduce the movement
+    by pointing it at a control itself or at anything carrying its label.
+  */
+  assert.doesNotMatch(css, /\[data-pointer-attract-ready\][^{]*>[^{]*\{[^}]*translate:/);
+  assert.doesNotMatch(css, /refractive-glass-layer/);
 
   // Segmented controls use a dedicated selector layer. Do not also apply the
   // generic attraction marker to their individual text buttons.
@@ -119,10 +128,6 @@ test("pointer attraction moves only a decorative glass child, never a control's 
     assert.match(engine, new RegExp(control.replace(/\./g, "\\.")));
   }
   assert.equal((engine.match(/target\.closest\(FLOWING_CONTROL\)/g) ?? []).length, 2);
-  assert.match(engine, /REFRACTIVE_GLASS_LAYER = ":scope > \.refractive-glass-layer"/);
-  assert.match(engine, /function hasDirectRefractiveGlassLayer\(target: HTMLElement\)/);
-  assert.match(engine, /return hasDirectRefractiveGlassLayer\(target\) \? target : null/);
-  assert.match(engine, /if \(!hasDirectRefractiveGlassLayer\(target\)\) return null/);
 });
 
 test("a stretched lens suppresses the static control rim without removing focus", () => {
