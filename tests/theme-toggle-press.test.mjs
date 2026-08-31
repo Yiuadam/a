@@ -296,10 +296,17 @@ test("the theme knob is visible on a light track, not only in dark", () => {
   // separately, because Dark is the only one of the three that already had a
   // fill of its own — which is exactly why the bug showed up in the other
   // two and not there.
+  // Lifted, not outlined, which is how the reference does it on a light bar:
+  // its selected knob carries no stroke at all, is the same white as the bar
+  // behind it, and is separated only by a soft shadow underneath. The first
+  // attempt here reached for a border — the one thing the reference does not
+  // have. A stroke on a pale track reads as a drawn outline; a shadow reads
+  // as height.
   const lit = rule('html:not([data-theme="dark"]) .theme-toggle-selector');
-  assert.match(lit, /background: color-mix\(in srgb, var\(--color-surface\) 88%, transparent\);/);
-  assert.match(lit, /border-color:/);
-  assert.match(lit, /box-shadow:/);
+  assert.match(lit, /background: color-mix\(in srgb, var\(--color-surface\) 97%, transparent\);/);
+  assert.match(lit, /border-color: transparent;/);
+  // Two shadows: a tight one to seat it and a wider one to lift it.
+  assert.match(lit, /box-shadow:\s*\n\s*0 1px 2px[\s\S]*?0 4px 10px/);
   // Dark keeps its own, older override untouched.
   assert.match(css, /html\[data-theme="dark"\] \.theme-toggle-selector,/);
 
