@@ -58,28 +58,26 @@ export default function ThemeToggle() {
       {...drag.handlers}
     >
       {/*
-        The knob. On engines that displace a backdrop it is an empty disc
-        and the lens does the rest; on WebKit, which will not filter a
-        backdrop by any route, it carries its own copy of the track and
-        bends that instead — see supportsCloneLens in
-        GlassRefractionFilter. The copy is inert in both cases when the
-        clone path is off, because the CSS only paints it under
-        html[data-glass-lens-clone].
+        The knob, an empty disc in every engine now.
+
+        It used to carry a full copy of the track inside it, for WebKit,
+        which will not put a backdrop through a filter by any route. The
+        copy was real painted content, so WebKit would filter that instead,
+        and it worked — measured on a real iPhone, the copy's own outline
+        arrives visibly warped.
+
+        It was invisible anyway. A copy holds only what it is given, and
+        what this one held was the track: a near-flat wash of the page's own
+        colour with three small glyphs on it. Bending flat cream against a
+        cream page moves pixels that all look the same. The thing with
+        contrast worth bending is the page behind the header, which is
+        exactly what a copy cannot contain and what WebKit will not filter.
+
+        So WebKit gets a drawn edge instead — see the
+        html[data-glass-lens-clone] rules in globals.css — and this element
+        goes back to being what Chromium always used it as.
       */}
-      <span className="theme-toggle-selector" aria-hidden="true">
-        <span className="theme-knob-refraction">
-          <span className="theme-knob-refraction-copy">
-            {THEMES.map((t) => (
-              <span className="theme-toggle-option app-icon-control" key={t.id}>
-                <Icon
-                  name={t.icon}
-                  className={`h-4 w-4 ${t.id === "warm" ? "-translate-y-0.5" : ""}`}
-                />
-              </span>
-            ))}
-          </span>
-        </span>
-      </span>
+      <span className="theme-toggle-selector" aria-hidden="true" />
       {THEMES.map((t, index) => {
         const active = theme === t.id;
         const visible = visibleIndex === index;

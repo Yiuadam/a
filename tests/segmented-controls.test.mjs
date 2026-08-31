@@ -265,85 +265,69 @@ test("the lens is only promised where the engine can actually deliver it", () =>
   assert.match(filter, /function isChromium\(\)/);
 });
 
-test("engines that cannot filter a backdrop bend a copy of it instead", () => {
-  // WebKit filters an element's own painted content perfectly well; it just
-  // will not put a backdrop through a filter. So the knob stops asking to
-  // bend what is behind it and carries a copy of what is behind it.
+test("WebKit gets a drawn edge, because a bent copy of a flat surface shows nothing", () => {
+  // The detection stays, and it is still correct: WebKit will not put a
+  // backdrop through a filter by any route, so it never joins the split path.
   assert.match(filter, /function supportsCloneLens\(\)/);
   assert.match(filter, /if \(displacesBackdropContent\(\)\) return false;/);
   assert.match(filter, /document\.documentElement\.dataset\.glassLensClone = "";/);
-  // The filter definitions have to be mounted for it, or the CSS points at
-  // a filter id that is not in the document and nothing bends.
-  assert.match(filter, /const filterNeeded = enabled \|\| splitLensEnabled \|\| cloneLensEnabled;/);
-  // And the bucketed per-shape filters too — the knob's circle is one.
-  assert.match(filter, /const bucketedLensNeeded = splitLensEnabled \|\| cloneLensEnabled;/);
 
-  // The copy has to be registered to the original to the pixel, or it reads
-  // as a second offset image rather than as the same thing seen through
-  // glass. It is placed by the negative of the knob's own position, so
-  // there is one definition of that position rather than two.
-  const copy = rule(
-    'html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy',
-  );
-  assert.match(copy, /left: calc\(-1 \* var\(--knob-x\) - 2px\);/);
-  assert.match(copy, /top: calc\(-1 \* var\(--knob-y\) - 2px\);/);
+  // What changed is what that path then does. It used to hand the knob a
+  // full copy of the track and bend that instead, on the reasoning that
+  // WebKit filters an element's own painted content perfectly well.
+  //
+  // Every part of that was true, and it was measured on a real iPhone
+  // simulator (iOS 18.7, AppleWebKit 605.1.15) rather than inferred: a
+  // filter over an element's own content bends it hard, the same filter as
+  // a backdrop-filter leaves the identical stripes dead straight, feImage
+  // resolves a plain href, supportsCloneLens() returns true, the flag is set
+  // on the document, and outlining the copy showed its own boundary arriving
+  // visibly warped. The clone path was running, on the device, correctly.
+  //
+  // It was invisible anyway, and no tuning reaches that. A copy holds only
+  // what it is given, and what this one held was the track: a near-flat wash
+  // of the page's own colour with three small glyphs on it. Bending flat
+  // cream against a cream page moves pixels that all look the same. The
+  // thing with contrast worth bending is the page behind the header, which
+  // is exactly what a copy cannot contain and what WebKit will not filter.
+  //
+  // So the copy is gone from the stylesheet and from the markup.
+  assert.doesNotMatch(css, /theme-knob-refraction/);
+  assert.doesNotMatch(themeToggle, /theme-knob-refraction/);
 
-  // The travel is backed out on `translate` rather than folded into `left`
-  // with the rest, and that distinction is the whole point: the knob's own
-  // travel is a transition, so a compensation held in `left` jumps to the
-  // destination the moment a stop is tapped while the knob is still gliding
-  // there. Measured on a two-stop tap, that left the copy 78.5px away from
-  // the track it is standing in for, easing back to zero across the whole
-  // 440ms journey — which is visible as the copy's own pill outline sliding
-  // across the real one. On `translate` against the same transition below,
-  // the two interpolate together and the error stays under a pixel.
-  assert.match(
-    copy,
-    /translate: calc\(-1 \* var\(--theme-index\) \* var\(--theme-stop-pitch\)\) 0;/,
-  );
-  const copyTravel = rule(
-    "html[data-glass-lens-clone] .theme-toggle-base[data-pressed][data-settling] .theme-knob-refraction-copy",
-  );
-  const knobTravel = rule(".theme-toggle-base[data-pressed][data-settling] .theme-toggle-selector");
-  // Same duration and same curve, or they drift apart mid-journey. Read out
-  // of the knob's own rule rather than written twice, so a change to one
-  // that is not made to the other fails here instead of on a device.
-  const travelCurve = knobTravel.match(/translate (\d+ms cubic-bezier\([^)]*\))/)[1];
-  assert.match(copyTravel, new RegExp(`transition: translate ${travelCurve.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")};`));
-  // And none on the base rule, matching the knob: the two have to ease at
-  // exactly the same moments and never at any others, and the settling rule
-  // above is the one place both are given that easing. A transition here
-  // would run the copy on changes the knob makes without one, and a copy
-  // that eases while the track under it does not is a second pill outline
-  // sliding across the real one.
-  assert.doesNotMatch(copy, /transition:/);
-
-  // Measured: copy and track both land at 254.1,10.7 118.9x42.4 on WebKit.
-  const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
-  assert.match(pressedKnob, /left: var\(--knob-x\);/);
-  assert.match(pressedKnob, /top: var\(--knob-y\);/);
-
-  // Opaque, or the untouched original shows through and every line appears
-  // twice — once bent, once not.
-  assert.match(copy, /background: color-mix\(in srgb, var\(--color-surface\) 48%, var\(--color-background\)\);/);
-  // The clip is on the knob, so it happens after the filter: the copy is
-  // deliberately larger than the disc so the bend has content to pull in.
+  // In its place, real frosted glass — which WebKit does support — so the
+  // icon and track under the knob stay visible through it rather than being
+  // replaced by an opaque copy of themselves.
   const cloneKnob = rule(
     'html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector',
   );
-  assert.match(cloneKnob, /overflow: hidden;/);
-  assert.match(cloneKnob, /background: transparent;/);
+  assert.match(cloneKnob, /backdrop-filter: blur\(9px\)/);
+  assert.doesNotMatch(cloneKnob, /background: transparent;/);
+  // And a drawn edge: a bright inner hairline where a lens catches the
+  // light, a lift under the top rim and a shade under the bottom one,
+  // standing in for the compression a solved bevel would produce.
+  assert.match(cloneKnob, /inset 0 0 0 1px/);
 
-  // No rim or lift added here, and no opaque fill on the lens layer. Both
-  // were tried to make the disc read at 1x and both were rejected on a real
-  // device; the layer stays transparent outside the copy so the page shows
-  // through it unaltered.
-  assert.doesNotMatch(cloneKnob, /0 3px 10px/);
-  const lensLayer = rule('html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction');
-  assert.doesNotMatch(lensLayer, /background:/);
+  // The spectral ring, drawn as a cone of hue and masked to the rim. On
+  // Chromium the same ring is solved from the displacement map's own bend
+  // magnitude; here there is no solved surface to read, so the mask is a
+  // radius instead — which on a circle is the same place, because a circle's
+  // rim is a radius.
+  const ring = rule(
+    'html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector::after',
+  );
+  assert.match(ring, /conic-gradient\(/);
+  assert.match(ring, /mask: radial-gradient\(closest-side, transparent 62%, #000 88%\);/);
+  // The base rule builds its hairline from padding plus a two-layer xor
+  // mask, and both have to be undone here or the ring is masked twice and
+  // comes out as nothing.
+  assert.match(ring, /padding: 0;/);
+  assert.match(ring, /mask-composite: add;/);
 
-  // Inert wherever the clone path is off, so Chromium is untouched by it.
-  assert.match(rule(".theme-knob-refraction,\n.theme-knob-refraction-copy"), /display: none;/);
+  // Costing nothing per frame is the other half of this. The live path was
+  // re-running a filter over a moving element every frame for a result
+  // nobody could see, which is what "laggy" was.
+  assert.doesNotMatch(cloneKnob, /filter: var\(--glass-lens-filter/);
 });
 
 test("a knob sent to a stop travels there instead of teleporting onto it", () => {
@@ -496,12 +480,10 @@ test("the clone lens costs only what it uses", () => {
   // paler patch of the header, and it made it read as a flat one instead.
   assert.doesNotMatch(css, /--knob-behind:/);
 
-  // The track's own radius. At 0.75rem the copy's ends were nearly square,
-  // and a square corner pushed through a round lens comes out as a wedge —
-  // the triangle reported in the middle of the knob. The map itself is a
-  // clean ring, confirmed by dumping the generated PNG, so the angle was
-  // never the lens. This went in once before as part of a batch that was
-  // rejected as a whole; it is back on its own.
-  const copy2 = rule('html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy');
-  assert.match(copy2, /border-radius: var\(--radius-xl\);/);
+  // The copy's own corner radius used to be asserted here — it had to match
+  // the track's, because a square corner pushed through a round lens came
+  // out as a wedge, the triangle once reported in the middle of the knob.
+  // There is no copy any more, so there is no corner to match: see the
+  // drawn-edge test above for what WebKit gets instead and why.
+  assert.doesNotMatch(css, /theme-knob-refraction-copy/);
 });

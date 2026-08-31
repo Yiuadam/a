@@ -4976,10 +4976,7 @@ html:not([data-theme="dark"]) .theme-toggle-base[data-pressed] .theme-toggle-sel
    visible detail anyway: the pill's rim and the three icons are what a knob
    passing over them visibly distorts.
 --------------------------------------------------------------------------- */
-.theme-knob-refraction,
-.theme-knob-refraction-copy {
-  display: none;
-}
+
 
 /* ---------------------------------------------------------------------------
    Travelling to a tapped stop.
@@ -5032,15 +5029,94 @@ html:not([data-theme="dark"]) .theme-toggle-base[data-pressed] .theme-toggle-sel
     box-shadow 200ms ease;
 }
 
+/*
+  WebKit gets a drawn lens rather than a live one, and this is the evidence
+  for why.
+
+  Measured on a real iPhone simulator (iOS 18.7, AppleWebKit 605.1.15), not
+  inferred: a `filter: url()` over an element's own painted content bends it
+  hard, a `backdrop-filter: url()` over the same stripes leaves them dead
+  straight, `feImage` resolves a plain `href` perfectly well, and
+  supportsCloneLens() returns true. So every piece of the clone path works on
+  the device, and the knob was indeed running it — outlining the copy showed
+  its own boundary arriving visibly warped.
+
+  It is invisible anyway, and that is the part no amount of tuning reaches. A
+  clone can only contain what it is given, and what this one is given is the
+  track: a near-flat wash of the page's own colour with three small glyphs on
+  it. Bending flat cream against a cream page moves pixels that all look the
+  same, so the bend is real, measurable, and produces nothing for the eye.
+  The page behind the header — the thing with contrast worth bending — is
+  exactly what a copy cannot hold, and what WebKit will not put through a
+  filter.
+
+  So the refraction here is drawn instead of solved. That is a real downgrade
+  in honesty and it is the right trade: a glass edge that is visible and
+  wrong-by-a-little beats one that is correct and invisible. It also costs
+  nothing per frame, which is the other half of the original complaint — the
+  live path was re-running a filter over a moving element for a result nobody
+  could see.
+
+  Chromium keeps the solved lens. Nothing above this rule changes.
+*/
 html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector {
-  /* Clip to the disc. The filter runs on the child, so this clips the
-     already-bent result rather than limiting what the bend can reach. */
+  /* Clip the drawn ring to the disc. */
   overflow: hidden;
-  /* The copy is opaque, so nothing may sit behind it: no frost, no fill. */
-  background: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  /* Real frosted glass, which WebKit does support: the icon and the track
+     under the knob stay visible through it rather than being replaced by an
+     opaque copy of themselves. */
+  background: color-mix(in srgb, var(--color-surface) 14%, transparent);
+  -webkit-backdrop-filter: blur(9px) saturate(128%) brightness(106%);
+  backdrop-filter: blur(9px) saturate(128%) brightness(106%);
+  /* The edge, drawn: a bright inner hairline where a lens catches the light,
+     a lift under the top rim and a shade under the bottom one. Three inset
+     shadows stand in for the compression a real bevel would produce. */
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--glass-specular) 52%, transparent),
+    inset 0 7px 11px -7px color-mix(in srgb, var(--glass-specular) 78%, transparent),
+    inset 0 -8px 12px -8px color-mix(in srgb, var(--glass-edge-dark) 85%, transparent),
+    0 2px 6px var(--glass-shadow);
 }
+
+/*
+  The spectral ring, drawn as a cone of hue and masked to the rim.
+
+  On Chromium this same ring is solved from the displacement map's own bend
+  magnitude, so it sits exactly where the surface turns. Here there is no
+  solved surface to read, so the mask is a radius instead — which is the one
+  honest difference between the two, and it is invisible on a circle, because
+  a circle's rim IS a radius. The hue order and the rim-only placement match
+  what the solved version produces.
+*/
+html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  /* The base rule builds its hairline from `padding` plus a two-layer xor
+     mask. Both have to be undone here, or the ring is masked twice and comes
+     out as nothing. */
+  padding: 0;
+  opacity: 0.55;
+  background: conic-gradient(
+    from 210deg,
+    rgba(255, 122, 92, 0.55),
+    rgba(255, 214, 96, 0.5),
+    rgba(126, 231, 165, 0.45),
+    rgba(112, 189, 255, 0.55),
+    rgba(191, 133, 255, 0.5),
+    rgba(255, 122, 92, 0.55)
+  );
+  -webkit-mask: radial-gradient(closest-side, transparent 62%, #000 88%);
+  -webkit-mask-composite: source-over;
+  mask: radial-gradient(closest-side, transparent 62%, #000 88%);
+  mask-composite: add;
+}
+
+
 
 /*
   Nothing samples a backdrop on the clone path, so nothing should pay for
@@ -5063,72 +5139,17 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selec
   backdrop-filter: none;
 }
 
-html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction {
-  display: block;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  filter: var(--glass-lens-filter, none);
-}
 
-html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy {
-  display: flex;
-  position: absolute;
-  align-items: center;
-  gap: var(--theme-stop-gap);
-  /* Back out of the knob's own placement, so the copy lands exactly where
-     the real track is. Two pixels on each axis, not one: the knob is
-     positioned inside the track's padding box, so the track's own border
-     is one, and the copy is positioned inside the knob's padding box, so
-     the knob's border is the other. Measured rather than reasoned into
-     place — at one pixel the copy sat exactly one pixel right and one
-     pixel down of the real track.
 
-     The travel is backed out on `translate` rather than folded into `left`
-     with the rest, because the knob's own travel is a transition and this
-     has to stay equal to it at every instant, not just at both ends. Held
-     in `left`, the compensation jumped to the destination the moment the
-     stop was tapped while the knob was still gliding there — so for the
-     whole 440ms journey the copy sat somewhere the track was not, by as
-     much as the distance travelled (measured: 78.5px out on a two-stop
-     tap, easing back to 0 as the knob caught up). What that looks like is
-     the copy's own pill outline sliding across the real one. Same
-     property, same duration and same curve as the knob below, so the two
-     interpolate in lockstep and the difference stays zero throughout. */
-  left: calc(-1 * var(--knob-x) - 2px);
-  top: calc(-1 * var(--knob-y) - 2px);
-  translate: calc(-1 * var(--theme-index) * var(--theme-stop-pitch)) 0;
-  width: calc(3 * var(--theme-stop-size) + 2 * var(--theme-stop-gap) + 2 * var(--theme-stop-inset) + 2px);
-  height: calc(var(--theme-stop-size) + 2 * var(--theme-stop-inset) + 2px);
-  padding: var(--theme-stop-inset);
-  border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
-  /* The track's own radius, not a guess at it. The track rounds at 29.75px;
-     at 0.75rem the copy's ends were nearly square, and a square corner
-     pushed through a round lens comes out as a wedge — the triangle in the
-     middle of the knob. The map itself is a clean ring, checked by dumping
-     the generated PNG, so the angle was never the lens. */
-  border-radius: var(--radius-xl);
-  /* The real track is 48% surface over whatever the page is; resolved
-     against the page colour instead of against transparency so the copy can
-     hide the original it is standing in for. */
-  background: color-mix(in srgb, var(--color-surface) 48%, var(--color-background));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
+
 
 /* The knob's travel curve, mirrored exactly — see the copy's own translate
    above. A drag deliberately gives the knob no translate transition, and
    the copy inherits that by having none here either, so the two stay
    equal in both states without either having to know which one it is in. */
-html[data-glass-lens-clone] .theme-toggle-base[data-pressed][data-settling] .theme-knob-refraction-copy {
-  transition: translate 440ms cubic-bezier(0.5, 0.04, 0.25, 1.15);
-}
+
 
 /* The real options are buttons centring their glyph with utility classes.
    The copy is plain spans, so it has to be told — without this the icon
    sits in the corner of its stop and the bend appears to move it. */
-html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy
-  .theme-toggle-option {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+
