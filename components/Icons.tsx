@@ -17,9 +17,14 @@ import type { ReactNode } from "react";
       over a run of "thinner" requests, and 0.75 turned out to be too far:
       the hairline read as faint beside the account and menu glyphs in the
       header, which had stayed at 1.3 throughout. Back to that weight, and
-      the whole set now shares it — see CardIcon, SiteHeader's menu and
-      account marks, and the notification bell, which are the icons these
-      sit next to.
+      it is now the reference the rest of the app is matched against rather
+      than one number among several — the nav menu had drifted to 2.8 and
+      lost these glyphs' internal detail entirely.
+
+      The weight itself is applied from CSS (`--app-icon-stroke` in
+      globals.css); the attribute below is the fallback. That is what lets
+      the header's smaller controls take a slightly heavier line without
+      either icon component growing a prop for it.
     - `currentColor` throughout, so a glyph inherits the text colour and works
       in all three themes from one definition
     - fills used sparingly, and only where a shape needs weight to survive at

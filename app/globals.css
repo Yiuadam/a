@@ -854,6 +854,35 @@ html[data-theme="dark"] .premade-glass {
   color: var(--app-icon-color);
 }
 
+/*
+  Icon stroke weight, set here rather than in the two icon components, so a
+  context can ask for a different weight without either of them growing a
+  prop for it.
+
+  The rule has to land on the `svg` itself, which is where `.app-icon-color`
+  sits. Both components also carry `stroke-width` as a presentation
+  attribute, and a presentation attribute is an author declaration of
+  specificity zero — which still beats an inherited value. Setting this on a
+  wrapper would therefore lose to the attribute and do nothing.
+
+  1.3 is the weight the card icons on the home page have, and it is the
+  reference the rest of the set is now matched against rather than a number
+  chosen on its own — see `.nav-menu-group svg` below, which was the one
+  place that had drifted far off it.
+*/
+.app-icon-color {
+  stroke-width: var(--app-icon-stroke, 1.3);
+}
+
+/* The header's own controls — the menu mark, the account glyph, the bell,
+   the theme icons — render at 16-20px rather than the cards' 20-32, and a
+   line that is right on a card reads thin on a control a third the size.
+   The nav menu lives inside this header too but takes its weight from its
+   own rule below, which is more specific than the variable this sets. */
+.site-header {
+  --app-icon-stroke: 1.45;
+}
+
 .app-icon-control:hover {
   color: var(--app-icon-color);
 }
@@ -1218,17 +1247,31 @@ html[data-theme="dark"] .nav-paper {
 /*
   This menu sits over the clearest, least-blurred glass in the app (see
   .nav-paper above) — busy page content behind it competes with the icons'
-  own 1.6-1.7 stroke, the weight this same icon set uses at 24px everywhere
-  else it's legible against a plain card. A heavier stroke here is scoped to
-  the menu rather than raised globally: a request for the nav list to read
-  clearly is not a request to redraw the icon set BandUp uses everywhere
-  else, most of which sit on much more opaque backgrounds already. CSS wins
-  this override for free — `stroke-width` set here as a property beats the
-  `strokeWidth` the icon components set as a plain SVG attribute, so no
-  prop needs threading through CardIcon or Icon for one screen.
+  own stroke, the weight this same icon set uses everywhere else it's
+  legible against a plain card. A heavier stroke here is scoped to the menu
+  rather than raised globally: a request for the nav list to read clearly is
+  not a request to redraw the icon set BandUp uses everywhere else, most of
+  which sit on much more opaque backgrounds already. CSS wins this override
+  for free — `stroke-width` set here as a property beats the `strokeWidth`
+  the icon components set as a plain SVG attribute, so no prop needs
+  threading through CardIcon or Icon for one screen.
+
+  That reasoning held while the menu was the only place these glyphs had to
+  survive a busy backdrop, and it took the weight much too far. At 2.8 the
+  marks that carry internal detail stopped reading as themselves — the mock
+  exam rosette, the Organisation figures and the Vocabulary cards all closed
+  up into blobs, which is the exact failure this set was drawn at 24px to
+  avoid.
+
+  So it is matched to the home page's cards instead of set on its own. These
+  render at 21px against a 24 viewBox and the cards at 20px, so the on-screen
+  line is `units x box / 24` and the two are within 5% of each other — 1.25
+  here against the cards' 1.3 puts both at almost exactly 1.08px of actual
+  ink. Legibility over the glass comes back from the menu's own contrast,
+  not from thickening the artwork until it loses its shape.
 */
 .nav-menu-group svg {
-  stroke-width: 2.8;
+  stroke-width: 1.25;
 }
 
 /*
