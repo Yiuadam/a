@@ -3949,7 +3949,18 @@ html[data-theme="light"] body {
   --glass-edge: rgba(22, 23, 26, 0.09);
   --glass-highlight: rgba(255, 255, 255, 0.98);
   --glass-edge-dark: rgba(22, 23, 26, 0.07);
-  --glass-specular: rgba(22, 23, 26, 0.14);
+  /* White, like every other theme's. This slot had a near-black in it
+     (rgba(22, 23, 26, 0.14)), which is a dark value in the one token whose
+     whole job is the bright catch of light — see the comment above
+     .refractive-glass-layer[data-optics="enhanced"], which describes it as a
+     fill tint at 0.18 alpha in Dark. Every consumer treats it as light: the
+     top highlight on .card::before, the caustic rim, the hover border. The
+     visible symptom was the worst of them — that top highlight is a
+     half-card-wide ellipse, so a dark specular painted a grey wash over the
+     top third of every card in Light and read as a shadow lying on top of
+     the card. 0.55 rather than the 0.96 an earlier Light block used: a catch
+     of light on a pale blue canvas, not a white cap. */
+  --glass-specular: rgba(255, 255, 255, 0.55);
   --glass-shadow: rgba(22, 23, 26, 0.07);
   --app-icon-color: var(--color-slate-700);
   /* A flat light-blue canvas rather than a flat white one — per direct
