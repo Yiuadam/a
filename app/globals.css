@@ -1853,11 +1853,39 @@ html[data-theme="dark"] .nav-menu-group {
     box-shadow 200ms ease,
     -webkit-backdrop-filter 200ms ease,
     backdrop-filter 200ms ease;
-  background: transparent;
   border-color: color-mix(in srgb, var(--glass-specular) 62%, transparent);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 70%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 55%, transparent);
+  /* The fallback material, for engines that cannot displace a backdrop.
+     The resting knob is nearly opaque, which is right when it is small and
+     sitting on one option, and wrong the moment it blooms to half again its
+     size: it becomes a solid disc covering the icon underneath. Thinned and
+     given a real blur instead, so the icon and the page still read through
+     it. Overridden to nothing just below wherever the lens can run. */
+  background: color-mix(in srgb, var(--color-surface) 24%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(122%) brightness(112%);
+  backdrop-filter: blur(14px) saturate(122%) brightness(112%);
+}
+
+/*
+  Clearing the frost is only safe where a lens is actually going to arrive.
+
+  These two declarations empty the knob out so the displaced backdrop can be
+  the whole of what you see. On an engine that never runs the displacement
+  they empty it out and nothing fills it, which is what put a plain
+  transparent hole in the middle of the control on iPhone — the knob went
+  clear on press and then simply stayed clear, because WebKit does not
+  displace backdrops at all (see displacesBackdropContent in
+  GlassRefractionFilter.tsx for what was measured).
+
+  Gated on the flag the filter sets only when its lens will really render,
+  so anywhere the lens cannot run the knob keeps its ordinary frosted glass
+  — which is a real material, rather than a hole waiting for one.
+*/
+html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selector,
+html[data-live-glass-refraction] .theme-toggle-base[data-pressed] .theme-toggle-selector {
+  background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -4675,6 +4703,16 @@ html[data-live-glass-refraction] .premade-glass {
 [data-pressed] > .segmented-knob.segmented-knob {
   --segmented-grow: 0.4375rem;
   z-index: 2;
+  /* Same fallback material as the theme knob — see the comment there. */
+  background: color-mix(in srgb, var(--color-surface) 24%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(122%) brightness(112%);
+  backdrop-filter: blur(14px) saturate(122%) brightness(112%);
+}
+
+/* Same gate, same reason as the theme knob above: empty the knob out only
+   where the lens that is meant to fill it can actually run. */
+html[data-glass-lens-split] [data-pressed] > .segmented-knob.segmented-knob,
+html[data-live-glass-refraction] [data-pressed] > .segmented-knob.segmented-knob {
   background: transparent;
   border-color: transparent;
   box-shadow: none;

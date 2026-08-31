@@ -495,9 +495,10 @@ function supportsDetailedLiveRefraction() {
   not a general "Safari can't do this" limitation. A `filter: url(#id)`
   applied as its OWN property to an element that separately carries its own
   `backdrop-filter: blur()` distorts that element's already-blurred output
-  instead, and Safari runs that combination fine — it's exactly what the
-  liquid-glass-react package this app already ships (RefractiveGlassLayer)
-  relies on, with no Chromium check of its own.
+  instead. That was believed to run on Safari too; it does not — see
+  displacesBackdropContent below for what was measured. It remains the path
+  for Chromium contexts the hardware gate above turns away, which is what
+  it is now kept for.
 
   Consumers that use the split-property pattern read this flag instead of
   `supportsDetailedLiveRefraction`'s Chromium-only one. Deliberately no
@@ -510,8 +511,43 @@ function supportsDetailedLiveRefraction() {
   transparency, or a lighter page on a metered connection — those are
   stated preferences, not a guess about their hardware.
 */
+/*
+  Whether this engine will displace what is BEHIND an element, as opposed to
+  only what the element paints itself.
+
+  This is the question the split-property pattern turns on, and the answer
+  for WebKit is no — measured, not assumed. Four arrangements were rendered
+  in WebKit against a striped backdrop with a strong radial displacement
+  map: `backdrop-filter: url(#lens)`, `backdrop-filter: blur(0px)
+  url(#lens)`, the unprefixed form of each, and `filter: url(#lens)` on an
+  element separately carrying `backdrop-filter: blur(0px)`. Every one left
+  the stripes dead straight. The same markup in Chromium bends them plainly.
+  WebKit does apply the filter to an element's own painted content — an
+  element given a 1%-white background shows that content being displaced —
+  but the backdrop never enters the filter at all.
+
+  So the comment that used to sit here, claiming Safari runs the split
+  combination fine, was wrong. What Safari runs fine is a filter over an
+  element's own content, which is what liquid-glass-react does and is not
+  what this needs.
+
+  Detected by capability rather than by user-agent string: Chromium does not
+  implement the *prefixed* `-webkit-backdrop-filter` with a url() stage,
+  while WebKit does. It is an oblique signal, so it is worth saying what it
+  is standing in for — there is no way to ask an engine "do you displace
+  backdrops?", and the honest alternatives are a UA sniff or reading back
+  rendered pixels, which cannot be done for a DOM element. Both failure
+  directions are safe: a future Chromium that adds the prefixed form would
+  fall back to ordinary frosted glass, and a future Safari that learns to
+  displace backdrops would keep it until this is revisited.
+*/
+function displacesBackdropContent() {
+  return !CSS.supports("-webkit-backdrop-filter", `blur(0px) url(#${FILTER_ID})`);
+}
+
 function supportsSplitPropertyLens() {
   if (!CSS.supports("filter", `url(#${FILTER_ID})`)) return false;
+  if (!displacesBackdropContent()) return false;
   if (window.matchMedia(REDUCED_MOTION_QUERY).matches) return false;
   if (window.matchMedia(REDUCED_TRANSPARENCY_QUERY).matches) return false;
 

@@ -90,14 +90,27 @@ test("the dragged knob is clear glass: reformation only, no frost and no glow", 
   // The reference is a clear lens, not a frosted pill — what is behind it
   // bends, rather than being hidden. So every part of the frosted recipe
   // comes off while the finger is down.
+  //
+  // But only where the lens can actually run. Clearing the frost on an
+  // engine that never displaces the backdrop leaves a plain transparent
+  // hole in the control, which is what iPhone was showing: WebKit does not
+  // displace backdrops at all, by any of the four arrangements measured in
+  // GlassRefractionFilter's displacesBackdropContent.
+  const clear = rule(
+    'html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selector,\nhtml[data-live-glass-refraction] .theme-toggle-base[data-pressed] .theme-toggle-selector',
+  );
+  assert.match(clear, /background: transparent;/);
+  assert.match(clear, /backdrop-filter: none;/);
+  assert.match(clear, /-webkit-backdrop-filter: none;/);
+  assert.doesNotMatch(clear, /blur\(/);
+
+  // And where it cannot, the knob keeps a real material rather than a hole.
+  // Thinner than the resting knob, which is nearly opaque: that is right at
+  // its resting size and wrong once it blooms to half again as large, where
+  // it becomes a solid disc over the icon underneath.
   const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
-  assert.match(pressedKnob, /background: transparent;/);
-  assert.match(pressedKnob, /backdrop-filter: none;/);
-  assert.match(pressedKnob, /-webkit-backdrop-filter: none;/);
-  // No blur and no brightness lift survive into the pressed state.
-  assert.doesNotMatch(pressedKnob, /blur\(/);
-  assert.doesNotMatch(pressedKnob, /brightness\(/);
-  assert.doesNotMatch(pressedKnob, /saturate\(/);
+  assert.match(pressedKnob, /background: color-mix\(in srgb, var\(--color-surface\) 24%, transparent\);/);
+  assert.match(pressedKnob, /backdrop-filter: blur\(14px\)/);
   // The rim stays: an edge is what makes a clear thing findable at all.
   assert.match(pressedKnob, /box-shadow:/);
   assert.match(pressedKnob, /border-color:/);

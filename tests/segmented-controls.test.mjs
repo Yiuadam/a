@@ -92,10 +92,21 @@ test("the pressed knob blooms without moving its own box", () => {
 });
 
 test("the pressed knob is clear glass with a lens, wherever it appears", () => {
+  // Clearing the frost is gated on the lens really being able to run.
+  // WebKit does not displace backdrops by any arrangement — see
+  // displacesBackdropContent in GlassRefractionFilter.tsx — so clearing it
+  // unconditionally left a transparent hole where the glass should be.
+  const clear = rule(
+    'html[data-glass-lens-split] [data-pressed] > .segmented-knob.segmented-knob,\nhtml[data-live-glass-refraction] [data-pressed] > .segmented-knob.segmented-knob',
+  );
+  assert.match(clear, /background: transparent;/);
+  assert.match(clear, /backdrop-filter: none;/);
+  assert.match(clear, /box-shadow: none;/);
+
+  // Where it cannot run, the knob keeps a real frosted material instead.
   const pressed = rule("[data-pressed] > .segmented-knob.segmented-knob");
-  assert.match(pressed, /background: transparent;/);
-  assert.match(pressed, /backdrop-filter: none;/);
-  assert.match(pressed, /box-shadow: none;/);
+  assert.match(pressed, /background: color-mix\(in srgb, var\(--color-surface\) 24%, transparent\);/);
+  assert.match(pressed, /backdrop-filter: blur\(14px\)/);
 
   // Zero blur: this samples the backdrop so `filter` can bend it, and
   // blurring first turns a line crossing the rim into a smear that happens
@@ -180,4 +191,25 @@ test("the knob squashes as it is thrown and rounds out when it stops", () => {
     css,
     /@media \(prefers-reduced-motion: reduce\) \{\s*\n\s*\.segmented-knob,\s*\n\s*\.theme-toggle-base\[data-pressed\] \.theme-toggle-selector \{\s*\n\s*--segmented-squash: 0;/,
   );
+});
+
+test("the lens is only promised where the engine can actually deliver it", () => {
+  // The split-property pattern was believed to run on Safari. It does not.
+  // Four arrangements were rendered in WebKit against a striped backdrop
+  // with a strong radial map — backdrop-filter: url(), backdrop-filter:
+  // blur() url(), their unprefixed forms, and filter: url() on an element
+  // separately carrying backdrop-filter: blur() — and every one left the
+  // stripes straight, where the same markup in Chromium bends them plainly.
+  // WebKit does filter an element's OWN painted content; the backdrop never
+  // enters the filter.
+  assert.match(filter, /function displacesBackdropContent\(\)/);
+  assert.match(
+    filter,
+    /return !CSS\.supports\("-webkit-backdrop-filter", `blur\(0px\) url\(#\$\{FILTER_ID\}\)`\);/,
+  );
+  assert.match(filter, /if \(!displacesBackdropContent\(\)\) return false;/);
+  // Capability, not user-agent string — scoped to this check's own body,
+  // since the Chromium combined-syntax path above does sniff deliberately.
+  const body = filter.match(/function displacesBackdropContent\(\) \{[\s\S]*?\n\}/)[0];
+  assert.doesNotMatch(body, /navigator\.userAgent/);
 });
