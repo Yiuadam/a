@@ -118,6 +118,27 @@ const GENERIC_FILTER_PREFIX = "bandup-card-glass-lens";
    meant to read as the identical material everywhere it appears, not a
    watered-down copy for everyday cards and the real thing only in the nav. */
 const GENERIC_BEZEL_WIDTH = NAV_BEZEL_WIDTH;
+/*
+  The theme knob is the one surface that wants the opposite of the slab.
+
+  A card is a wide, shallow pane, so a band reaching 61% of its half-width
+  still reads as an edge rolling under. The knob is a circle, and on a
+  circle that same 0.85 reaches 84% of the way in from the rim — the whole
+  disc bends, which is what domed the icon underneath instead of leaving it
+  sitting flat behind glass.
+
+  Real glass with a flat face and a rounded edge does not do that: the
+  middle shows what is behind it undisturbed and only the rim compresses.
+  0.3 confines the bend to the outer 30% of the radius, so the centre is
+  provably inert — the map's centre pixel is exactly 128,128 — and the
+  background reforms only where the surface actually turns.
+
+  Cards keep GENERIC_BEZEL_WIDTH. This is a second bezel width in the same
+  system, not a change to the first, and it is keyed into the bucket key so
+  the two never share a filter.
+*/
+const KNOB_SELECTOR = ".theme-toggle-selector";
+const KNOB_BEZEL_WIDTH = 0.3;
 const GENERIC_DISPLACEMENT_HEADROOM = NAV_DISPLACEMENT_HEADROOM;
 /* A page with an unusually long list of cards (an admin table, a long
    practice list) could in principle produce more distinct shape buckets than
@@ -157,10 +178,20 @@ function nearest(value: number, grid: number[]) {
   );
 }
 
-type GenericBucket = { aspect: number; cornerRadius: number; scale: number };
+type GenericBucket = {
+  aspect: number;
+  cornerRadius: number;
+  bezelWidth: number;
+  scale: number;
+};
 
-function bucketKey(aspect: number, cornerRadius: number) {
-  return `${aspect.toFixed(2)}:${cornerRadius.toFixed(2)}`;
+/* Bezel width is part of the identity, not just the shape: two panes can
+   measure to the same rounded rectangle and still want different amounts of
+   their face turning over — see KNOB_BEZEL_WIDTH. Keying it here is what
+   stops the knob and a square card sharing one filter and one of them
+   silently winning. */
+function bucketKey(aspect: number, cornerRadius: number, bezelWidth: number) {
+  return `${aspect.toFixed(2)}:${cornerRadius.toFixed(2)}:${bezelWidth.toFixed(2)}`;
 }
 
 /*
@@ -183,7 +214,8 @@ function measureGenericPanes() {
     const halfHeight = height / 2;
     const aspect = nearest(width / height, GENERIC_ASPECT_BUCKETS);
     const cornerRadius = nearest(Math.min(radius / halfHeight, 0.98), GENERIC_CORNER_BUCKETS);
-    const key = bucketKey(aspect, cornerRadius);
+    const bezelWidth = pane.matches(KNOB_SELECTOR) ? KNOB_BEZEL_WIDTH : GENERIC_BEZEL_WIDTH;
+    const key = bucketKey(aspect, cornerRadius, bezelWidth);
     assignments.set(pane, key);
 
     if (buckets.has(key) || buckets.size >= GENERIC_MAX_BUCKETS) continue;
@@ -199,6 +231,7 @@ function measureGenericPanes() {
     buckets.set(key, {
       aspect,
       cornerRadius,
+      bezelWidth,
       scale: GENERIC_DISPLACEMENT_HEADROOM / scaleDivisor,
     });
   }
@@ -367,7 +400,7 @@ export default function GlassRefractionFilter() {
           {
             aspect: bucket.aspect,
             cornerRadius: bucket.cornerRadius,
-            bezelWidth: GENERIC_BEZEL_WIDTH,
+            bezelWidth: bucket.bezelWidth,
             maxDisplacement: GENERIC_DISPLACEMENT_HEADROOM,
           },
           GENERIC_MAP_SIZE,

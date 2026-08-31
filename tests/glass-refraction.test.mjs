@@ -342,6 +342,61 @@ test("the card reads as a thick slab: a wide roll-over band around a flat middle
   ), [128, 128, 128, 255]);
 });
 
+test("the theme knob keeps a flat face and bends only at its rim", () => {
+  // The knob wants the opposite of the cards' slab. A card is a wide,
+  // shallow pane, so a band reaching 61% of its half-width still reads as an
+  // edge rolling under. The knob measures as a circle, and on a circle that
+  // same 0.85 reaches 84% of the way in from the rim — the whole disc bends,
+  // which domes whatever sits behind it instead of leaving it flat behind
+  // glass.
+  //
+  // Real glass with a flat face and a rounded edge shows its middle
+  // undisturbed and compresses only at the rim. That is what is pinned here,
+  // as the measurement rather than the constant: two bezel widths now live
+  // in one system and the whole point is that they behave differently.
+  const size = 256;
+  const shape = { aspect: 1, cornerRadius: 0.98 };
+  const maxDisplacement = 0.97 / Math.sqrt(2 * (1 * 1 + 1));
+  const row = size / 2;
+
+  const band = (bezelWidth) => {
+    const map = glassRefractionModule.createGlassRefractionMap(size, {
+      ...shape,
+      bezelWidth,
+      maxDisplacement,
+    });
+    let reach = 0;
+    for (let dx = 0; dx < size / 2; dx += 1) {
+      const bend = Math.abs(pixel(map, size, size - 1 - dx, row)[0] - 128) / 127;
+      if (bend > 0.02) reach = dx;
+    }
+    return { map, reach: reach / (size / 2) };
+  };
+
+  const knob = band(0.3);
+  const slab = band(0.85);
+
+  // Confined to the outer third, where the surface actually turns.
+  assert.ok(knob.reach < 0.35, `knob bend should hug the rim, reached ${knob.reach}`);
+  // And the slab width really would have bent nearly the whole disc — this
+  // is the bug being prevented, not a hypothetical.
+  assert.ok(slab.reach > 0.8, `0.85 on a circle should reach deep, got ${slab.reach}`);
+
+  // The face is provably inert, not merely tuned small: dead centre, and
+  // well inside the flat region, both sit exactly on the neutral value.
+  assert.deepEqual(pixel(knob.map, size, size / 2, row), [128, 128, 128, 255]);
+  assert.deepEqual(pixel(knob.map, size, Math.floor(size * 0.62), row), [128, 128, 128, 255]);
+
+  // The knob asks for its own bezel by name, and it is keyed into the bucket
+  // so it can never share a filter with a square card that happens to
+  // measure the same shape.
+  assert.match(filter, /const KNOB_BEZEL_WIDTH = 0\.3;/);
+  assert.match(filter, /KNOB_SELECTOR = "\.theme-toggle-selector"/);
+  assert.match(filter, /pane\.matches\(KNOB_SELECTOR\) \? KNOB_BEZEL_WIDTH : GENERIC_BEZEL_WIDTH/);
+  assert.match(filter, /function bucketKey\(aspect: number, cornerRadius: number, bezelWidth: number\)/);
+  assert.match(filter, /bezelWidth: bucket\.bezelWidth,/);
+});
+
 test("the bend never asks for a sample from beyond the pane's edge", () => {
   // A pane can only refract what is behind it. The bevel bends outward, so a
   // sample taken further out than the rim lands outside the element, where the

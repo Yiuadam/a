@@ -1851,18 +1851,24 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   z-index: 3;
   border-radius: inherit;
   pointer-events: none;
-  padding: 1px;
+  /* Half a pixel, not one. A spectrum at the edge of real glass is the
+     thinnest thing about it — a full pixel ring reads as a coloured border
+     drawn around the knob rather than as light coming apart in it. Sub-pixel
+     resolves as an antialiased hairline, which is exactly the register this
+     wants; on a 2x or 3x screen, where this control actually lives, it is a
+     genuine one- or one-and-a-half-pixel line. */
+  padding: 0.5px;
   opacity: 0;
   background: linear-gradient(
     158deg,
-    rgba(126, 228, 255, 0.95) 0%,
-    rgba(158, 152, 255, 0.72) 15%,
-    rgba(255, 255, 255, 0.34) 31%,
+    rgba(126, 228, 255, 0.82) 0%,
+    rgba(158, 152, 255, 0.6) 15%,
+    rgba(255, 255, 255, 0.26) 31%,
     transparent 44%,
     transparent 57%,
-    rgba(255, 255, 255, 0.38) 71%,
-    rgba(255, 164, 220, 0.78) 87%,
-    rgba(255, 184, 116, 0.95) 100%
+    rgba(255, 255, 255, 0.28) 71%,
+    rgba(255, 164, 220, 0.64) 87%,
+    rgba(255, 184, 116, 0.82) 100%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,

@@ -122,7 +122,10 @@ test("the pressed knob disperses at its rim, the way the reference glass does", 
   // its own perimeter. Painted also means it survives a flat backdrop,
   // where a real split would have nothing to separate.
   const rim = rule(".theme-toggle-selector::after");
-  assert.match(rim, /padding: 1px;/);
+  // Sub-pixel: a spectrum at the edge of real glass is the thinnest thing
+  // about it, and a full pixel ring reads as a coloured border drawn around
+  // the knob rather than as light coming apart in it.
+  assert.match(rim, /padding: 0\.5px;/);
   assert.match(rim, /mask-composite: exclude;/);
   assert.match(rim, /-webkit-mask-composite: xor;/);
   // Cool at one end of the sweep, warm at the other — dispersion has an
