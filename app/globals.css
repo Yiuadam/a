@@ -281,13 +281,22 @@ body {
   --glass-edge-dark: rgba(45, 35, 27, 0.12);
   --glass-specular: rgba(255, 255, 255, 0.48);
   --glass-shadow: rgba(42, 31, 24, 0.1);
-  /* Raised to match the notification popover and the nav list: the same
-     heavy frosted blur everywhere reads as one consistent material instead
-     of cards being a thinner, half-hearted version of the panels that use
-     the real thing. The touch/reduced-motion fallback just below keeps its
-     own lighter value — that path exists specifically to bound cost on
-     less capable hardware. */
-  --glass-blur: 56px;
+  /* Cut from 56px, which was defeating the lens. A displacement map bends
+     the backdrop the glass samples, so it can only show what that backdrop
+     still has left to bend: at 56px everything behind a card is smeared to
+     flat colour before the map ever touches it, and bending flat colour
+     looks exactly like flat colour. All the refraction work — the slab's
+     wide roll-over band, the caustic rim — was being blurred out of
+     existence before it could be seen.
+
+     Low enough that edges and text behind the glass survive as structure
+     the rim can visibly bend, and the presence lost with the frost is put
+     back as glow instead: the shared recipes below lift brightness and
+     saturation rather than radius, so the material still reads as lit glass
+     rather than as a plain clear window. The touch/reduced-motion fallback
+     just below keeps its own lighter value — that path exists specifically
+     to bound cost on less capable hardware, and is now close to this one. */
+  --glass-blur: 18px;
   /* One decorative/navigation icon ink across every control. The token, not
      each component, changes with the active colour theme. Semantic success,
      warning and error marks intentionally keep their own status colours. */
@@ -411,8 +420,8 @@ html[data-theme="dark"] body {
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 1px 3px var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(122%) brightness(112%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(122%) brightness(112%);
   transition:
     border-color 180ms ease,
     box-shadow 240ms ease,
@@ -1553,8 +1562,8 @@ html[data-theme="dark"] .nav-menu-group {
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 1px 3px var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(122%) brightness(112%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(122%) brightness(112%);
 }
 
 /* The material belongs below the real controls. The fixed navigation panel
@@ -1928,8 +1937,8 @@ html[data-theme="dark"] .nav-menu-group {
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 1px 2px var(--glass-shadow);
-  -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(103%);
-  backdrop-filter: blur(18px) saturate(108%) brightness(103%);
+  -webkit-backdrop-filter: blur(18px) saturate(122%) brightness(112%);
+  backdrop-filter: blur(18px) saturate(122%) brightness(112%);
 }
 
 .pointer-attract-glass:hover {
@@ -3015,8 +3024,8 @@ body::before {
   padding-inline: var(--window-text-inset) !important;
   padding-left: var(--window-text-inset) !important;
   padding-right: var(--window-text-inset) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(122%) brightness(112%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(122%) brightness(112%);
 }
 
 /*
@@ -3165,8 +3174,8 @@ html[data-theme="light"] .btn-primary.pricing-subscribe-button:hover:not(:disabl
   border-color: var(--glass-edge);
   background: var(--glass-fill);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
-  -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(103%);
-  backdrop-filter: blur(18px) saturate(108%) brightness(103%);
+  -webkit-backdrop-filter: blur(18px) saturate(122%) brightness(112%);
+  backdrop-filter: blur(18px) saturate(122%) brightness(112%);
 }
 
 /* The profile form keeps every account field and its save action above the
@@ -3322,8 +3331,8 @@ textarea {
   border-radius: var(--radius-2xl);
   border-color: color-mix(in srgb, white 34%, var(--exam-line));
   background: color-mix(in srgb, var(--exam-chrome) 34%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(108%) brightness(103%);
-  backdrop-filter: blur(20px) saturate(108%) brightness(103%);
+  -webkit-backdrop-filter: blur(20px) saturate(122%) brightness(112%);
+  backdrop-filter: blur(20px) saturate(122%) brightness(112%);
   transition:
     border-color 160ms ease,
     background-color 160ms ease,
@@ -3337,8 +3346,8 @@ textarea {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
     0 1px 2px color-mix(in srgb, var(--exam-fg) 6%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(108%) brightness(103%);
-  backdrop-filter: blur(22px) saturate(108%) brightness(103%);
+  -webkit-backdrop-filter: blur(22px) saturate(122%) brightness(112%);
+  backdrop-filter: blur(22px) saturate(122%) brightness(112%);
 }
 
 [data-exam] .exam-shell-header {
@@ -3365,8 +3374,8 @@ textarea {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, white 24%, transparent),
     0 1px 2px color-mix(in srgb, var(--exam-fg) 6%, transparent);
-  -webkit-backdrop-filter: blur(24px) saturate(108%) brightness(103%);
-  backdrop-filter: blur(24px) saturate(108%) brightness(103%);
+  -webkit-backdrop-filter: blur(24px) saturate(122%) brightness(112%);
+  backdrop-filter: blur(24px) saturate(122%) brightness(112%);
 }
 
 [data-exam] .exam-settings-trigger {

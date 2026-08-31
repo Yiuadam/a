@@ -30,8 +30,8 @@ test("opening navigation keeps a real liquid-glass header surface", () => {
   assert.match(openHeaderSurface, /inset:\s*0\s*;/);
   assert.match(openHeaderSurface, /pointer-events:\s*none\s*;/);
   assert.match(openHeaderSurface, /background:\s*var\(--glass-fill\)\s*;/);
-  assert.match(openHeaderSurface, /-webkit-backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(108%\)\s+brightness\(103%\)\s*;/);
-  assert.match(openHeaderSurface, /backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(108%\)\s+brightness\(103%\)\s*;/);
+  assert.match(openHeaderSurface, /-webkit-backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(122%\)\s+brightness\(112%\)\s*;/);
+  assert.match(openHeaderSurface, /backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(122%\)\s+brightness\(112%\)\s*;/);
 
   // Dark mode needs the same translucent glass material rather than a bare,
   // transparent header. Keeping this explicit catches a future dark-only
