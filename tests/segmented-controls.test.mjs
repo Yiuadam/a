@@ -303,3 +303,48 @@ test("a tapped knob travels to its stop instead of teleporting under the finger"
   const pressed = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
   assert.doesNotMatch(pressed, /transition:[^;]*translate/);
 });
+
+test("the clone lens costs only what it uses", () => {
+  // Every filter is a full displacement map: a PNG built, decoded and then
+  // sampled again on every frame the lens moves, because the content under
+  // a moving lens changes. On the clone path only knobs use one — a card
+  // cannot carry a copy of a whole page behind it — so measuring every card
+  // and building maps for shapes nothing references is pure cost.
+  assert.match(filter, /function measureGenericPanes\(knobsOnly = false\)/);
+  assert.match(filter, /knobsOnly \? KNOB_SELECTOR : GENERIC_SELECTOR/);
+  assert.match(filter, /measureGenericPanes\(cloneLensEnabled && !splitLensEnabled\)/);
+
+  // And the knob's map is built at a fraction of a card's. A displacement
+  // map is a smooth gradient stretched onto its pane, so its useful
+  // resolution is set by what it lands on: a card is hundreds of pixels
+  // across, a knob is about fifty. Verified indistinguishable at 192.
+  assert.match(filter, /const KNOB_MAP_SIZE = 96;/);
+  assert.match(filter, /bucket\.bezelWidth === KNOB_BEZEL_WIDTH \? KNOB_MAP_SIZE : GENERIC_MAP_SIZE,/);
+  // Measured on an emulated iPhone: 5 filters before, 2 after.
+
+  // The backdrop layer is switched off where nothing can bend it. A
+  // backdrop-filter on a moving, resizing element makes the compositor
+  // re-snapshot what is behind it every frame — the frame the animation
+  // needs — and on WebKit that snapshot is then thrown away.
+  const deadLayer = rule(
+    'html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector::before',
+  );
+  assert.match(deadLayer, /display: none;/);
+  assert.match(deadLayer, /backdrop-filter: none;/);
+
+  // The part of the knob that falls outside the track is filled with what
+  // the header actually resolves to, which is not derivable from the
+  // palette: the header is translucent white over the page and then
+  // brightened by its own backdrop-filter, and CSS cannot apply
+  // brightness() to a colour. Measured off a rendered frame per theme.
+  assert.match(css, /--knob-behind: rgb\(222, 214, 207\);/);
+  assert.match(css, /--knob-behind: rgb\(232, 240, 246\);/);
+  assert.match(css, /--knob-behind: rgb\(37, 37, 39\);/);
+  const layer = rule('html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction');
+  assert.match(layer, /background: var\(--knob-behind, var\(--color-background\)\);/);
+
+  // The copy takes the track's own radius rather than a guess at it — at
+  // 0.75rem its ends were square beside a pill that rounds at 29.75px.
+  const copy = rule('html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-knob-refraction-copy');
+  assert.match(copy, /border-radius: var\(--radius-xl\);/);
+});

@@ -113,6 +113,17 @@ const GENERIC_SELECTOR =
 const GENERIC_ASPECT_BUCKETS = [0.4, 0.7, 1, 1.4, 2, 2.8, 4, 6, 9];
 const GENERIC_CORNER_BUCKETS = [0.12, 0.3, 0.55, 0.8, 0.98];
 const GENERIC_MAP_SIZE = 384;
+/*
+  The knob's own maps are built far smaller than the cards'.
+
+  A displacement map is a smooth gradient stretched onto whatever it is
+  applied to, so its useful resolution is set by the element it lands on. A
+  card is hundreds of pixels across and wants 384. A knob is about 52, and
+  at 384 the phone decodes and samples a bitmap more than seven times finer
+  than anything it can show — every frame it moves, because the content
+  under a moving lens changes and the filter has to run again.
+*/
+const KNOB_MAP_SIZE = 96;
 const GENERIC_FILTER_PREFIX = "bandup-card-glass-lens";
 /* Same lens physics as the navigation cards, at the same strength: this is
    meant to read as the identical material everywhere it appears, not a
@@ -397,8 +408,15 @@ function bucketKey(
   wide pricing card are both real, simultaneous shapes on the same page, not
   variations on one card that should share a filter.
 */
-function measureGenericPanes() {
-  const panes = Array.from(document.querySelectorAll<HTMLElement>(GENERIC_SELECTOR));
+function measureGenericPanes(knobsOnly = false) {
+  /* On the clone path only the knobs actually use a filter — the cards keep
+     ordinary frosted glass there, because a card cannot carry a copy of a
+     whole page behind it. Measuring and building maps for every card anyway
+     costs a full-size PNG per distinct card shape, decoded and held in
+     memory, for filters nothing references. */
+  const panes = Array.from(
+    document.querySelectorAll<HTMLElement>(knobsOnly ? KNOB_SELECTOR : GENERIC_SELECTOR),
+  );
   const buckets = new Map<string, GenericBucket>();
   const assignments = new Map<HTMLElement, string>();
 
@@ -699,7 +717,7 @@ export default function GlassRefractionFilter() {
     let frame = 0;
 
     const rebuild = () => {
-      const { buckets, assignments } = measureGenericPanes();
+      const { buckets, assignments } = measureGenericPanes(cloneLensEnabled && !splitLensEnabled);
       let changed = false;
 
       for (const [key, bucket] of buckets) {
@@ -714,7 +732,7 @@ export default function GlassRefractionFilter() {
             innerEase: bucket.innerEase,
             maxDisplacement: GENERIC_DISPLACEMENT_HEADROOM,
           },
-          GENERIC_MAP_SIZE,
+          bucket.bezelWidth === KNOB_BEZEL_WIDTH ? KNOB_MAP_SIZE : GENERIC_MAP_SIZE,
         );
         if (!source) continue;
 
@@ -756,7 +774,7 @@ export default function GlassRefractionFilter() {
       window.removeEventListener("resize", schedule);
       observer.disconnect();
     };
-  }, [bucketedLensNeeded]);
+  }, [bucketedLensNeeded, cloneLensEnabled, splitLensEnabled]);
 
   useEffect(() => {
     if (!mapUrl || !enabled) return;
