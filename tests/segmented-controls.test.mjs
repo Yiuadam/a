@@ -328,7 +328,9 @@ test("the clone lens costs only what it uses", () => {
   // across, a knob is about fifty. Verified indistinguishable at 192.
   assert.match(filter, /const KNOB_MAP_SIZE = 96;/);
   assert.match(filter, /bucket\.bezelWidth === KNOB_BEZEL_WIDTH \? KNOB_MAP_SIZE : GENERIC_MAP_SIZE,/);
-  // Measured on an emulated iPhone: 5 filters before, 2 after.
+  // Measured on an emulated iPhone: 5 filters before, 2 after. The size
+  // itself was checked against 192 and 384 and the rendering is
+  // indistinguishable, so the smallest is kept.
 
   // The backdrop layer is switched off where nothing can bend it. A
   // backdrop-filter on a moving, resizing element makes the compositor

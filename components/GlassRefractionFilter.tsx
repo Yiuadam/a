@@ -276,7 +276,7 @@ const GENERIC_DISPERSION = 0;
   Being derived, it follows any shape for free, and it cannot disagree with
   the bend because both are solved from the same map.
 */
-const KNOB_SPECULAR = 0;
+const KNOB_SPECULAR = 3;
 /*
   A gentle whole-face lens on top of the rim bevel, so nothing inside the
   knob stays where it was.
