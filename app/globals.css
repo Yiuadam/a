@@ -1673,29 +1673,36 @@ html[data-theme="dark"] .nav-menu-group {
   -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
   backdrop-filter: blur(18px) saturate(108%) brightness(104%);
   /* Travel and size on separate properties, so the press bloom can have a
-     snappier curve than the 440ms glide between stops — one `transform`
-     could only carry one duration for both, and a press that answers as
-     slowly as the travel does not read as an answer.
+     snappier curve than the 440ms glide between stops — a press that
+     answers as slowly as the travel does not read as an answer.
 
-     Which property carries which is not interchangeable. The individual
-     `translate`/`rotate`/`scale` properties are applied *before*
-     `transform`, so a `scale` there multiplies whatever `transform`
-     translates by: at 1.5 the knob's 1.875rem step became 2.8125rem and it
-     landed half a stop past its own icon. Travel therefore goes on
-     `translate`, which is applied first and comes out unscaled, and size on
-     `transform`, which is applied last and scales about the already-moved
-     centre. The bug was invisible at the 1.12 this started at — 3.6px — and
-     obvious the moment the bloom grew. */
+     The bloom is a real size change, not a `transform: scale`, and that is
+     the whole point. A backdrop-filter on a scaled element samples its
+     backdrop through that scale, so scaling the knob magnified the page
+     behind it: the image inside stopped lining up with the same page just
+     outside the rim — which reads as a second, offset copy rather than as
+     something seen through glass — and every edge inside it was an upscaled
+     resample, which is where the stair-stepping came from. Growing by
+     layout keeps the backdrop at 1:1, so the only thing moving pixels is
+     the lens.
+
+     Travel stays on `translate` rather than `transform`. The individual
+     translate/rotate/scale properties are applied before `transform`, so a
+     scale there multiplies whatever transform translates: at 1.5 the knob's
+     1.875rem step became 2.8125rem and it landed half a stop past its own
+     icon. Nothing scales any more, but travel stays where it cannot be
+     multiplied by anything. */
   translate: calc(var(--theme-index) * 1.875rem) 0;
-  transform: scale(1);
   transition:
     translate 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12),
-    transform 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    inset 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    width 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    height 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
     background 200ms ease,
     box-shadow 200ms ease,
     -webkit-backdrop-filter 200ms ease,
     backdrop-filter 200ms ease;
-  will-change: translate, transform;
+  will-change: translate;
 }
 
 .theme-toggle-base[data-flowing] .theme-toggle-selector {
@@ -1713,9 +1720,11 @@ html[data-theme="dark"] .nav-menu-group {
   breaking the outline is the whole signal, and a knob that stays within it
   reads as a highlight rather than as something lifted.
 
-  1.5 takes the 1.75rem knob to 2.625rem against a 2rem track, so it clears
-  the rail by a third of a rem top and bottom — unmistakable at a glance
-  without swallowing its neighbours.
+  2.625rem against a 1.75rem knob and a 2rem track, so it clears the rail by
+  a third of a rem top and bottom — unmistakable at a glance without
+  swallowing its neighbours. Stated as a size with a matching negative
+  offset, which keeps the same centre while leaving the backdrop unscaled;
+  see the comment on the base rule for why that matters.
 
   Clear rather than frosted, per the reference: no blur and no glow, only
   the reformation of what is behind. So the frosted fill, the 18px blur and
@@ -1772,7 +1781,13 @@ html[data-theme="dark"] .nav-menu-group {
 
 .theme-toggle-base[data-pressed] .theme-toggle-selector {
   z-index: 2;
-  transform: scale(1.5);
+  /* Same centre as the resting knob: it grows by 0.875rem, so it starts
+     half of that — 0.4375rem — further up and to the left. Offsetting
+     rather than scaling is what keeps the backdrop sampled 1:1. */
+  left: -0.3125rem;
+  top: -0.3125rem;
+  width: 2.625rem;
+  height: 2.625rem;
   /* No easing on `translate` while the finger is down. The 440ms glide is
      for settling onto a stop after a release; applied to a drag it makes
      the knob chase the pointer several frames behind, and a lens that is
@@ -1782,7 +1797,9 @@ html[data-theme="dark"] .nav-menu-group {
      fractional stop on each pointermove, so the movement is already
      per-frame — the transition is the only thing that was smearing it. */
   transition:
-    transform 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    inset 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    width 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    height 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
     background 200ms ease,
     box-shadow 200ms ease,
     -webkit-backdrop-filter 200ms ease,

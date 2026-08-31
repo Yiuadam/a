@@ -36,7 +36,19 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   // rather than as something lifted. 1.5 takes the 1.75rem knob to
   // 2.625rem against a 2rem track.
   const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
-  assert.match(pressedKnob, /transform: scale\(1\.5\);/);
+  // Grown by layout, never by `transform: scale`. A backdrop-filter on a
+  // scaled element samples its backdrop through that scale, so scaling
+  // magnified the page behind the knob: the image inside stopped lining up
+  // with the same page just outside the rim, which reads as a second offset
+  // copy rather than as something seen through glass, and every edge inside
+  // was an upscaled resample, which is where the stair-stepping came from.
+  assert.match(pressedKnob, /width: 2\.625rem;/);
+  assert.match(pressedKnob, /height: 2\.625rem;/);
+  // Same centre: it grows by 0.875rem, so it starts half of that further up
+  // and to the left.
+  assert.match(pressedKnob, /left: -0\.3125rem;/);
+  assert.match(pressedKnob, /top: -0\.3125rem;/);
+  assert.doesNotMatch(pressedKnob, /scale\(/);
 
   // Which needs the track to stop clipping for exactly that long...
   const pressedBase = rule(".theme-toggle-base[data-pressed]");
@@ -56,12 +68,9 @@ test("pressing the theme toggle is answered by the knob, not only by the commit"
   // `transform` (applied last, about the already-moved centre).
   const knob = rule(".theme-toggle-selector");
   assert.match(knob, /\n  translate: calc\(var\(--theme-index\) \* 1\.875rem\) 0;/);
-  assert.match(knob, /\n  transform: scale\(1\);/);
   assert.doesNotMatch(knob, /\n  scale: /);
-  assert.match(knob, /transition:[\s\S]*?translate 440ms[\s\S]*?transform 200ms/);
-  // The travel must never be expressed through `transform`, which is what
-  // reintroduces the scaled-step bug.
-  assert.doesNotMatch(knob, /transform:[^;]*translate/);
+  assert.doesNotMatch(knob, /\n  transform: /);
+  assert.match(knob, /transition:[\s\S]*?translate 440ms[\s\S]*?width 200ms/);
 });
 
 test("the dragged knob is clear glass: reformation only, no frost and no glow", () => {
@@ -146,7 +155,7 @@ test("the knob tracks the finger continuously, so the lens has something new to 
   const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
   assert.match(pressedKnob, /transition:/);
   assert.doesNotMatch(pressedKnob, /transition:[^;]*translate/);
-  assert.match(pressedKnob, /transition:[\s\S]*?transform 200ms/);
+  assert.match(pressedKnob, /transition:[\s\S]*?width 200ms/);
   // The resting knob still glides between stops on release.
   assert.match(rule(".theme-toggle-selector"), /transition:[\s\S]*?translate 440ms/);
 });
