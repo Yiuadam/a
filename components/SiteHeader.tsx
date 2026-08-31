@@ -12,7 +12,6 @@ import CardIcon, { type CardIconName } from "@/components/CardIcon";
 import { Icon } from "@/components/Icons";
 import RefractiveGlassLayer from "@/components/RefractiveGlassLayer";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
-import { GLASS_LAB } from "@/lib/glass-lab";
 import HeaderNotificationBell from "@/components/account/HeaderNotificationBell";
 import { useAccountProfile } from "@/components/account/AccountProfileProvider";
 import bandupMarkRear from "@/components/assets/steps-five-layer-rear-108.png";
@@ -412,18 +411,22 @@ export default function SiteHeader({
           className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 overflow-y-auto outline-none"
         >
             {/*
-              A full-viewport SVG displacement map is the single most
-              expensive thing this page can paint: it re-samples every pixel
-              behind the whole navigation sheet, every time the pointer or the
-              content beneath it moves. The sheet is already a real material
-              without it — .nav-paper carries its own 42px CSS backdrop blur
-              and tint — so under the lab flag this higher-detail lens is
-              simply never mounted here, rather than mounted and hidden.
-              Every other surface keeps it; this is the one place its cost is
-              paid across the whole screen at once, for a refinement most of
-              the sheet's area is too plain to show off.
+              No RefractiveGlassLayer here, on top of the cost concern that
+              already kept it out under the lab flag: a full-viewport SVG
+              displacement map is the single most expensive thing this page
+              can paint, re-sampling every pixel behind the whole navigation
+              sheet on every frame something behind it moves. On a real
+              device that live layer's own sizing (an upstream
+              top/left: 50%, width/height: 100% box, meant to be recentred
+              by a transform the library applies itself) came out covering
+              only the middle of the sheet rather than the whole viewport it
+              is meant to fill — every other surface this component sits on
+              is a small, card-sized box, and this was the one place it was
+              ever asked to cover a full-viewport surface instead. The sheet
+              is already a real material without it: .nav-paper carries its
+              own CSS backdrop blur and tint (see the rule in globals.css),
+              which is what actually still covers the edges now.
             */}
-            {!GLASS_LAB && <RefractiveGlassLayer radius={0} interactive />}
             <nav aria-label="All pages" className="premade-glass-content mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-7 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
               <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
                 {groups.map((group, groupIndex) => {

@@ -1504,31 +1504,6 @@ html[data-theme="dark"] .nav-menu-group {
     0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 7%, transparent);
 }
 
-.nav-paper > .refractive-glass-layer {
-  /* The panel already starts below the header. A second fixed header inset
-     moved this layer down by another row, so the package's full-surface rim
-     appeared as a horizontal line through the navigation cards (and as a
-     vertical line at the viewport edge). Fill the panel itself instead. */
-  position: absolute;
-  inset: -1px;
-  border-radius: 0;
-  opacity: 0.26;
-}
-
-/* LiquidGlass adds two decorative edge spans around each interactive lens.
-   They are useful on buttons, but a viewport-sized lens turns them into page
-   dividers behind the menu cards. The warp layer remains active, so the menu
-   keeps its live background refraction without the false outer window. */
-.nav-paper > .refractive-glass-layer[data-interactive] > span {
-  display: none !important;
-}
-
-@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
-  .nav-paper > .refractive-glass-layer {
-    display: none;
-  }
-}
-
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .nav-paper {
     background: var(--color-background);

@@ -98,10 +98,20 @@ test('optics="enhanced" is opted into by exactly one call site: the organisation
   );
 });
 
-test("the full-viewport navigation lens is not mounted at all under the lab flag, not merely hidden", () => {
+test("the full-viewport navigation lens is not mounted at all, in any build", () => {
+  // Used to be gated behind the lab flag on cost grounds alone; on a real
+  // device it also turned out to be a correctness bug, not just an expense —
+  // the package's own centring (an inline top/left: 50%, width/height: 100%
+  // box, meant to be recentred by a transform the library applies itself)
+  // came out covering only the middle of the sheet rather than the whole
+  // viewport it was meant to fill. Every other surface this component sits
+  // on is a small, card-sized box; the nav sheet was the one place it was
+  // ever asked to cover a full-viewport surface instead. Removed outright
+  // rather than re-gated, since the plain CSS blur on .nav-paper already
+  // covers the whole sheet on its own.
   const header = read("components", "SiteHeader.tsx");
-  assert.match(header, /import \{ GLASS_LAB \} from "@\/lib\/glass-lab";/);
-  assert.match(header, /\{!GLASS_LAB && <RefractiveGlassLayer radius=\{0\} interactive \/>\}/);
+  assert.doesNotMatch(header, /import \{ GLASS_LAB \} from "@\/lib\/glass-lab";/);
+  assert.doesNotMatch(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
 });
 
 test("the enhanced variant is pure CSS: the package's frozen pointer and cornerRadius still stand and no shader mode was enabled", () => {

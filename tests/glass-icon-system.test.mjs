@@ -75,7 +75,14 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
   const header = read("components/SiteHeader.tsx");
 
   assert.match(header, /className="nav-paper premade-glass/);
-  assert.match(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
+  // No live RefractiveGlassLayer on the sheet: it is the one place this
+  // component was ever asked to cover a full-viewport surface rather than a
+  // small card, and its upstream centring (an inline top/left: 50%,
+  // width/height: 100% box meant to be recentred by a transform the library
+  // applies itself) came out covering only the middle of the sheet on a
+  // real device, not the whole viewport — the plain CSS blur below is what
+  // actually still reaches the edges.
+  assert.doesNotMatch(header, /<RefractiveGlassLayer radius=\{0\} interactive \/>/);
   // The sheet itself carries no tint or refraction of its own — only the
   // .nav-menu-group cards it holds do, layering their own heavier blur and
   // colour on top. But it does carry a real, uniform blur so the gaps
@@ -98,9 +105,7 @@ test("the full navigation menu stays clearer than the cards it carries", () => {
   // to glow outward from.
   assert.match(css, /\.nav-paper \{[^}]*box-shadow: inset 0 0 48px 12px/);
   assert.match(css, /html\[data-theme="dark"\] \.nav-paper \{\s*box-shadow: inset 0 0 48px 12px/);
-  assert.match(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: absolute;[^}]*inset: -1px/);
-  assert.match(css, /\.nav-paper > \.refractive-glass-layer\[data-interactive\] > span \{[^}]*display: none !important/);
-  assert.doesNotMatch(css, /\.nav-paper > \.refractive-glass-layer \{[^}]*position: fixed/);
+  assert.doesNotMatch(css, /\.nav-paper > \.refractive-glass-layer/);
   assert.match(css, /@supports not[\s\S]*\.nav-paper \{[\s\S]*background: var\(--color-background\)/);
 });
 
