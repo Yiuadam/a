@@ -443,7 +443,6 @@ export default function SiteHeader({
                     key={group.title}
                     className="nav-menu-group liquid-glass rounded-2xl border p-3 sm:p-4"
                   >
-                    <span className="nav-menu-group-sheen" aria-hidden="true" />
                     <h2 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
                       {group.title}
                     </h2>

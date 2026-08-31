@@ -99,8 +99,33 @@ const NAV_DISPLACEMENT_HEADROOM = 0.97;
   Only the CSS decides when to use it — see the [data-pressed] rules in
   globals.css, which are the only place it is switched on.
 */
-const GENERIC_SELECTOR =
-  ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass), .nav-menu-group, .theme-toggle-selector, .segmented-knob";
+/*
+  Cards and the nav menu used to be in this list and are not any more.
+
+  The lens was rejected on look, side by side against the same page with it
+  switched off: what it actually drew on a card was a bright rounded-
+  rectangle contour standing inside the card's own outline, with the corner
+  arc visibly broken where the two disagreed. That disagreement is inherent
+  to bucketing rather than a tuning error. A pane's shape is snapped to the
+  nearest of a fixed grid before its map is solved, and the grid is coarse
+  where real cards actually live: the account card measures a corner ratio
+  of 0.209 and is given a map drawn for 0.12, which is 43% off, and the nav
+  menu's 0.258 is served by 0.3. A bevel solved for one arc, stretched over
+  another, has to show the seam somewhere, and on a large flat card there is
+  nothing to hide it.
+
+  Finer buckets would narrow that gap and not close it, at the cost of more
+  filters and a bigger map per shape. The knobs keep the lens and want it:
+  they are small, they measure as circles, and a circle is the one shape the
+  grid holds exactly (aspect 1, corner clamped to 0.98), so there is no
+  mismatch to see. Every card on the page also stops generating a 384px map
+  and a filter tree it no longer references.
+
+  The two CSS rules that applied it — `.card::before` and
+  `.nav-menu-group::before` — went with this; cards keep their ordinary
+  frosted backdrop glass, which is what the comparison preferred.
+*/
+const GENERIC_SELECTOR = ".theme-toggle-selector, .segmented-knob";
 /* Cards vary far more in shape than the handful of nav items ever did — a
    square icon tile and a full-width pricing card share nothing. Measuring
    each individually and building one filter per exact shape would mean a

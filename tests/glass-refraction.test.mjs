@@ -539,32 +539,33 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // frosted surface it rests on, and saturation and brightness rather than
   // more blur are what keep the backdrop reading as a scene behind glass.
   assert.match(css, /\.nav-menu-group::before \{[^}]*backdrop-filter: blur\(10px\)/);
-  // The live SVG lens IS wired to .nav-menu-group::before, through the same
-  // shared `--glass-lens-filter` custom property every plain `.card` uses —
-  // .nav-menu-group is part of GENERIC_SELECTOR. This was tried once before
-  // and reverted: that rule carried a `display: none` bug (from the shared
-  // `.liquid-glass::before { display: none; }` reset, never overridden) for
-  // as long as the nav card's own prior dedicated filter existed, so it had
-  // only ever run on an invisible layer. Fixing the display bug and
-  // generating that map for the card's own real shape — inspected directly —
-  // showed why nobody had caught it: a centre-referenced dome/magnify pull
-  // traces a rounded-rectangle shape some distance into the interior no
-  // matter how it's tuned, which reads as an obvious pale shape on a plain
-  // backdrop rather than a lens. Dropping dome and magnify for a bevel
-  // confined to its own band at the rim (see NAV_BEZEL_WIDTH) is what makes
-  // it safe to fold the nav card into the same shared system.
-  assert.match(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{\s*\n\s*filter: var\(--glass-lens-filter, none\);/);
+  // The nav card takes no SVG lens, and neither does any other card — see
+  // the matching assertion in the generic-card test below for why.
+  //
+  // Its own history is the argument for keeping this asserted rather than
+  // just deleted, because the shape kept coming back through different
+  // mechanisms. First a dedicated map that had never actually rendered, on
+  // account of a `display: none` bug in the shared
+  // `.liquid-glass::before` reset that nothing overrode. Then, with that
+  // fixed, a centre-referenced dome/magnify pull that traced a rounded
+  // rectangle into the interior however narrowly its band was confined.
+  // Then a pure bevel, which removed that mechanism and left a third: this
+  // card measures a corner ratio of 0.258 and is served a bucketed map
+  // drawn for 0.3, so the bevel's arc and the card's arc do not coincide
+  // and the seam shows at the corner. Compared side by side with the
+  // filter off, the version without it was preferred.
+  assert.doesNotMatch(css, /html\[data-glass-lens-split\] \.nav-menu-group::before \{\s*\n\s*filter: var\(--glass-lens-filter, none\);/);
   assert.doesNotMatch(filter, /NAV_FILTER_ID|measureNavPane/);
   // Both the wall and the rim redeclare `display: block` — the property the
   // reset above sets to `none`, which `content: ""` alone never undoes.
   assert.match(css, /\.nav-menu-group::before \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
   assert.match(css, /\.nav-menu-group::after \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
-  // Measured from real cards rather than assumed, and rebuilt when that
-  // measurement can have changed — the generic bucketed system every plain
-  // `.card` uses (see measureGenericPanes and GENERIC_SELECTOR), which
-  // .nav-menu-group now joins directly.
+  // The bucketed measuring system is still there, and .nav-menu-group is no
+  // longer one of the shapes it measures. Nothing on this card references a
+  // generated filter any more, so measuring it would build a 384px map and a
+  // filter tree for a rule that no longer exists.
   assert.match(filter, /function measureGenericPanes/);
-  assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}nav-menu-group/);
+  assert.doesNotMatch(filter, /GENERIC_SELECTOR[\s\S]{0,400}nav-menu-group/);
   assert.match(filter, /getBoundingClientRect/);
   assert.match(filter, /borderTopLeftRadius/);
   assert.match(filter, /MutationObserver/);
@@ -658,17 +659,18 @@ test("the nav card's rim has a wall behind it, not just an edge", () => {
   // dark theme has to reconstruct.
   assert.match(before, /var\(--nav-tint\);\s*\n\}/);
 
-  // The top highlight moved off ::before entirely, onto a real, unwarped
-  // sibling child — see the big comment on .nav-menu-group-sheen for why: a
-  // tight ellipse sheared into a visible trapezoid wherever the SVG lens's
-  // own bend direction wasn't uniform underneath it, on a real device where
-  // the lens actually distorts what's under it. It reads the same
-  // --nav-wall-light custom property by inheritance from .nav-menu-group.
+  // The top highlight is gone from both places it has ever lived: ::before's
+  // own background, and the unwarped sibling child it was moved onto when
+  // the SVG lens was still shearing it into a trapezoid.
+  //
+  // It was a 55%-white ellipse hung off the top edge, and what it produced
+  // was a pale foggy patch across the upper third of every menu card — the
+  // thing that makes glass read as milky instead of as something you are
+  // looking through. Asserted absent rather than merely deleted, because the
+  // rule was reintroduced once already as a fix for a lens artefact, and the
+  // lens it was working around is itself no longer applied to any card.
   assert.doesNotMatch(before, /radial-gradient\(\s*\n\s*50% 36% at 50% -8%/);
-  const sheen = css.match(/\n\.nav-menu-group-sheen \{[\s\S]*?\n\}/)?.[0];
-  assert.ok(sheen, "expected a .nav-menu-group-sheen rule");
-  assert.match(sheen, /radial-gradient\(\s*\n\s*50% 36% at 50% -8%,\s*\n\s*var\(--nav-wall-light\) 0%,/);
-  assert.match(sheen, /var\(--nav-wall-light\) 0%,\s*\n\s*color-mix\(in srgb, var\(--nav-wall-light\) 58%, transparent\) 32%,\s*\n\s*transparent 60%/);
+  assert.doesNotMatch(css, /\n\.nav-menu-group-sheen \{/);
 
   const dark = css.match(/html\[data-theme="dark"\] \.nav-menu-group \{[\s\S]*?\n\}/)[0];
   // Only the custom properties are overridden — no background/box-shadow
@@ -722,9 +724,25 @@ test("every plain content card gets the same rim/wall lens as the nav cards, wit
   assert.doesNotMatch(before, /backdrop-filter: blur\((?!0px)/);
   assert.match(before, /radial-gradient\(/);
 
-  // The SVG lens filter alone excludes .premade-glass.
+  // Cards take no SVG lens at all any more, so there is no rule left for
+  // .premade-glass to be excluded from.
+  //
+  // It was removed on look, compared side by side against the same page with
+  // the filter switched off: on a card it drew a bright rounded-rectangle
+  // contour standing inside the card's own outline, with the corner arc
+  // visibly broken where the two disagreed. That is inherent to bucketing
+  // rather than a tuning error — a pane's shape is snapped to the nearest of
+  // a coarse fixed grid before its map is solved, and real cards land
+  // between grid points: the account card measures a corner ratio of 0.209
+  // and is served a map drawn for 0.12. A bevel solved for one arc and
+  // stretched over another has to show the seam somewhere, and a large flat
+  // card has nothing to hide it behind.
+  //
+  // The knobs keep theirs and are asserted in segmented-controls and
+  // theme-toggle-press: they measure as circles, which is the one shape the
+  // grid holds exactly, so there is no mismatch to see.
   const lensSelector = `${genericSelector}:not\\(\\.premade-glass\\)`;
-  assert.match(
+  assert.doesNotMatch(
     css,
     new RegExp(
       `html\\[data-glass-lens-split\\] ${lensSelector}::before \\{[\\s\\S]*?filter: var\\(--glass-lens-filter, none\\);`,

@@ -655,9 +655,18 @@ html[data-theme="dark"] body {
     );
 }
 
-html[data-glass-lens-split] .card:not(.organization-team-pairings-page):not(.organization-team-pairing-group):not(.premade-glass)::before {
-  filter: var(--glass-lens-filter, none);
-}
+/*
+  Cards no longer take the SVG lens. Compared side by side against the same
+  page with it switched off, what it drew here was a bright rounded-
+  rectangle contour standing inside the card's own outline with a broken
+  corner arc, and the version without it was preferred. The cause is in
+  GENERIC_SELECTOR in GlassRefractionFilter.tsx: a card's shape is snapped
+  to a coarse grid before its map is solved, so the bevel's arc and the
+  card's own arc disagree, and on a large flat face there is nothing to hide
+  that. Cards keep their ordinary frosted backdrop glass above; only the
+  knobs, which measure as circles the grid holds exactly, still bend
+  anything.
+*/
 
 /*
   The caustic rim, replacing the flat `inset 0 1px 0 var(--glass-highlight)`
@@ -1324,32 +1333,24 @@ html[data-theme="dark"] .nav-paper {
 }
 
 /*
-  The top highlight, unwarped — on a real child element rather than in
-  ::before's own background. The SVG lens filter below applies to ::before
-  alone (`filter: var(--glass-lens-filter, none)`), and warps everything
-  painted there together: the blurred backdrop it is meant to bend, but
-  also, inescapably, this element's own decorative gradients sitting on
-  top of it. A tight, small ellipse positioned right at the rim — exactly
-  where the bevel's own bend is strongest and least uniform, since the
-  bend direction rotates through a wide arc near every rounded corner — is
-  exactly the shape most likely to come out sheared into a trapezoid or
-  parallelogram rather than the round highlight it started as. Painting it
-  on its own layer, after ::before in paint order but still beneath real
-  content, keeps the shape the CSS itself describes instead of whatever
-  the displacement map happens to do to it.
+  The top highlight is gone, and so is the element that carried it.
+
+  It was a 55%-white ellipse hung off the top edge of every menu card, and
+  what it actually produced was a pale foggy patch sitting across the upper
+  third of the panel — the thing that makes glass read as milky rather than
+  as something you are looking through. Removed on that ground: this
+  material is meant to be transparent and crisp, and a white wash painted
+  over the backdrop is the opposite of both.
+
+  It had a second reason to exist that has also expired. It lived on a real
+  child rather than in ::before's own background because the SVG lens ran on
+  ::before and warped everything painted there together — and a tight
+  ellipse at the rim, where a bevel's bend rotates through a wide arc, is
+  the shape most likely to come out sheared into a parallelogram. That lens
+  is no longer applied to any card, so there is nothing left to shear.
+
+  The span it needed in SiteHeader went with it.
 */
-.nav-menu-group-sheen {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(
-    50% 36% at 50% -8%,
-    var(--nav-wall-light) 0%,
-    color-mix(in srgb, var(--nav-wall-light) 58%, transparent) 32%,
-    transparent 60%
-  );
-}
 
 .nav-menu-group::before {
   content: "";
@@ -1519,23 +1520,24 @@ html[data-theme="dark"] .nav-menu-group {
 
 /*
   The nav card used to solve its own dedicated displacement map from its own
-  measured shape (see git history for bandup-nav-glass-lens); that map was
-  never actually seen rendering correctly, because `.nav-menu-group::before`
-  carried a `display: none` bug (see the comment on the rule above) for as
-  long as it existed. Fixing the display bug and generating that map for the
-  card's own real shape — inspected directly, not just through the page —
-  showed why nobody had caught it: a centre-referenced dome/magnify pull
-  traces a rounded-rectangle shape into the interior regardless of how
-  narrow its own band is confined to the rim. GENERIC_BEZEL_WIDTH in
-  GlassRefractionFilter.tsx (see the long comment on NAV_BEZEL_WIDTH there
-  for why a bevel doesn't have that problem) drops dome and magnify
-  entirely, which is what makes it safe for this card to share the SVG lens
-  every other card does, through the same `--glass-lens-filter` custom
-  property.
+  measured shape (see git history for bandup-nav-glass-lens), then shared
+  the bucketed one every other card used. It now takes no SVG lens at all.
+
+  The history is worth keeping, because each step fixed something real and
+  the shape kept coming back. The dedicated map was never actually seen
+  rendering, because `.nav-menu-group::before` carried a `display: none` bug
+  for as long as it existed. Fixing that and inspecting the map directly
+  showed a centre-referenced dome/magnify pull tracing a rounded rectangle
+  into the interior however narrowly its band was confined to the rim.
+  Dropping dome and magnify for a pure bevel removed that mechanism — and a
+  contour still appeared, because the remaining one is bucketing: this card
+  measures a corner ratio of 0.258 and is served a map drawn for 0.3, so the
+  bevel's arc and the card's arc do not coincide and the seam shows at the
+  corner.
+
+  Compared side by side with the lens off, the version without it was
+  preferred. The frosted glass below is what the card keeps.
 */
-html[data-glass-lens-split] .nav-menu-group::before {
-  filter: var(--glass-lens-filter, none);
-}
 
 html[data-theme="dark"] .nav-menu-group {
   /* The rim itself is on ::after; what is left here is the lift off the
