@@ -4590,19 +4590,38 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
 --------------------------------------------------------------------------- */
 html[data-live-glass-refraction] .liquid-glass:not(.nav-menu-group),
 html[data-live-glass-refraction] .premade-glass {
-  /* .nav-menu-group is excluded: it carries its own dedicated live-lens
-     material on ::before (see html[data-glass-lens-split] above), which
-     also runs on Safari. Matching it here too would stack this combined,
-     Chromium-only blur+lens directly on top of that. .card is excluded
-     for the same reason: every .card now carries the identical ::before
-     lens sitewide (see .card::before above), so matching it here would
-     double-lens it in Chromium. */
+  /*
+    The frosted material only. The displacement stage that used to end this
+    declaration — url("#bandup-live-glass-refraction") — is gone, and it is
+    worth being precise about why, because the filter itself was working
+    exactly as written.
+
+    Its map is built with no aspect and no corner radius (see the
+    createMapUrl call in GlassRefractionFilter), so it falls back to a
+    square with a corner of 0.3 half-heights, and is then stretched over
+    whatever pane references it with preserveAspectRatio="none". One map,
+    every shape. On the 494x61 header, the 225x67 dashboard tiles and the
+    full-height .nav-paper sheet alike, the contour where that map's bevel
+    turns over lands nowhere near the pane's own outline — it lands in the
+    middle of the face, as a soft rounded-rectangle shape with no
+    relationship to anything on screen.
+
+    That is the artefact, described from the page rather than the code as
+    "bending the background into an inward shape" instead of bending it
+    along the edge of the cards. A lens whose map does not know the shape it
+    is applied to cannot start its bend at that shape's edge, by
+    construction — there is no strength or width to tune that would move the
+    contour onto the outline.
+
+    Refraction that is anchored to a real measured shape still runs: the
+    knobs, whose maps are solved per shape and which measure as circles, so
+    their bevel and their rim are the same curve.
+  */
   backdrop-filter:
     blur(8px)
     saturate(115%)
     brightness(104%)
-    contrast(102%)
-    url("#bandup-live-glass-refraction");
+    contrast(102%);
 }
 
 /*

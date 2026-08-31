@@ -492,14 +492,31 @@ test("live panels use the SVG displacement filter only after browser capability 
   assert.match(filter, /connection\?\.saveData/);
   assert.match(filter, /document\.documentElement\.dataset\.liveGlassRefraction/);
   assert.match(filter, /<feDisplacementMap[\s\S]*?in2="glass-normal-map"/);
-  // .nav-menu-group is explicitly excluded from the generic combined-syntax
-  // rule — it has its own dedicated lens (see the split-property test below)
-  // and matching it here too would stack a second, Chromium-only blur+lens
-  // directly on the outer element on top of that.
-  assert.match(
-    css,
-    /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),[\s\S]*?blur\(8px\)[\s\S]*?url\("#bandup-live-glass-refraction"\)/,
-  );
+  // The generic combined-syntax rule keeps its frosted material and no
+  // longer ends in a displacement stage.
+  //
+  // The filter was working exactly as written; the problem is that its map
+  // is built with no aspect and no corner radius, so it falls back to a
+  // square with a 0.3 corner and is then stretched with
+  // preserveAspectRatio="none" over every pane that references it — a
+  // 494x61 header, a 225x67 dashboard tile, a full-height .nav-paper sheet.
+  // The contour where that map's bevel turns over therefore lands in the
+  // middle of a pane's face rather than on its outline, as a soft
+  // rounded-rectangle shape unrelated to anything on screen.
+  //
+  // A lens whose map does not know the shape it is applied to cannot start
+  // its bend at that shape's edge, by construction — no strength or width
+  // moves the contour onto the outline. Refraction anchored to a real
+  // measured shape still runs on the knobs, whose maps are solved per shape.
+  const sitewideRule = css.match(
+    /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),[\s\S]*?\n\}/,
+  )?.[0];
+  assert.ok(sitewideRule, "expected the sitewide combined-syntax glass rule");
+  assert.match(sitewideRule, /backdrop-filter:\s*\n\s*blur\(8px\)/);
+  // Scoped to the declaration rather than the whole rule: the comment above
+  // it names the filter id it used to end with, and a looser pattern would
+  // match that instead of the CSS.
+  assert.doesNotMatch(sitewideRule, /backdrop-filter:[\s\S]*?url\(/);
   // The sheet itself (.nav-paper) no longer carries its own refraction —
   // only the .nav-menu-group cards it holds do. A second, much bigger lens
   // wrapping the whole viewport double-refracted whatever showed through a
