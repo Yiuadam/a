@@ -219,7 +219,9 @@ test("the pressed knob disperses for real, rather than painting a rainbow", () =
   assert.doesNotMatch(rim, /rgba\(255, 184, 116/);
   assert.doesNotMatch(rim, /rgba\(158, 152, 255/);
   // What is left is the part dispersion does not explain: a rim catches the
-  // light above it, and that catch is white. Same geometry, same mask.
+  // light above it, and that catch is white. Same geometry, same mask — but
+  // held far back. The reference's rim is very nearly invisible, so a strong
+  // white ring reads as a halo stuck to the knob rather than as glass.
   assert.match(rim, /padding: 0\.5px;/);
   assert.match(rim, /mask-composite: exclude;/);
   assert.match(rim, /var\(--glass-specular\)/);

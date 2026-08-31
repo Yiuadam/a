@@ -1940,14 +1940,14 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   opacity: 0;
   background: linear-gradient(
     158deg,
-    color-mix(in srgb, var(--glass-specular) 92%, transparent) 0%,
-    color-mix(in srgb, var(--glass-specular) 60%, transparent) 15%,
-    color-mix(in srgb, var(--glass-highlight) 26%, transparent) 31%,
+    color-mix(in srgb, var(--glass-specular) 34%, transparent) 0%,
+    color-mix(in srgb, var(--glass-specular) 22%, transparent) 15%,
+    color-mix(in srgb, var(--glass-highlight) 10%, transparent) 31%,
     transparent 44%,
     transparent 57%,
-    color-mix(in srgb, var(--glass-highlight) 28%, transparent) 71%,
-    color-mix(in srgb, var(--glass-specular) 58%, transparent) 87%,
-    color-mix(in srgb, var(--glass-specular) 88%, transparent) 100%
+    color-mix(in srgb, var(--glass-highlight) 10%, transparent) 71%,
+    color-mix(in srgb, var(--glass-specular) 20%, transparent) 87%,
+    color-mix(in srgb, var(--glass-specular) 30%, transparent) 100%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -4587,14 +4587,14 @@ html[data-live-glass-refraction] .premade-glass {
   opacity: 0;
   background: linear-gradient(
     158deg,
-    color-mix(in srgb, var(--glass-specular) 92%, transparent) 0%,
-    color-mix(in srgb, var(--glass-specular) 60%, transparent) 15%,
-    color-mix(in srgb, var(--glass-highlight) 26%, transparent) 31%,
+    color-mix(in srgb, var(--glass-specular) 34%, transparent) 0%,
+    color-mix(in srgb, var(--glass-specular) 22%, transparent) 15%,
+    color-mix(in srgb, var(--glass-highlight) 10%, transparent) 31%,
     transparent 44%,
     transparent 57%,
-    color-mix(in srgb, var(--glass-highlight) 28%, transparent) 71%,
-    color-mix(in srgb, var(--glass-specular) 58%, transparent) 87%,
-    color-mix(in srgb, var(--glass-specular) 88%, transparent) 100%
+    color-mix(in srgb, var(--glass-highlight) 10%, transparent) 71%,
+    color-mix(in srgb, var(--glass-specular) 20%, transparent) 87%,
+    color-mix(in srgb, var(--glass-specular) 30%, transparent) 100%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,

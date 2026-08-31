@@ -208,17 +208,24 @@ const GENERIC_DISPERSION = 0;
   where it tips away, and exactly zero across the flat middle where both
   channels sit at 0.5.
 
-  The scale is large because the map stores normal *times* bend magnitude
-  rather than a unit normal, and that magnitude is small — the rim deviates
-  around 30/255 at its peak and less at the very edge, where the map's own
-  clamp takes the bend to zero. So a coefficient near 1 produces a mask of
-  a few percent, which is invisible against an already-bright rim. 12 puts
-  the peak in the range where it reads as a catch of light.
+  The scale compensates for the map storing normal *times* bend magnitude
+  rather than a unit normal: the rim deviates only about 30/255 at its peak
+  and less at the very edge, where the map's own clamp takes the bend to
+  zero, so a coefficient near 1 produces a mask of a couple of percent.
+
+  3 rather than the 12 this started at. 12 made a bright white crescent, and
+  against the reference that is plainly wrong: there the rim is very nearly
+  invisible — the glass is read from the backdrop bending through it and a
+  whisper of colour at the very edge, never from a lit ring drawn around it.
+  A white arc on a dark bar reads as a halo stuck to the knob rather than as
+  light landing on a curve. Kept rather than removed because at this
+  strength it still does the one thing dispersion cannot: it tells the eye
+  which way the surface is tipped.
 
   Being derived, it follows any shape for free, and it cannot disagree with
   the bend because both are solved from the same map.
 */
-const KNOB_SPECULAR = 12;
+const KNOB_SPECULAR = 3;
 const GENERIC_SPECULAR = 0;
 const NAV_ADAPTIVE_TINT = 0.12;
 const GENERIC_ADAPTIVE_TINT = 0;

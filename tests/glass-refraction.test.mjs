@@ -817,18 +817,22 @@ test("the highlight is solved from the pane's shape, not drawn across it", () =>
   // That curvature is already in the normal map, so the highlight is a dot
   // product against a light direction, which is what feColorMatrix's alpha
   // row computes. Light from the upper left is (0.5 - R) + (0.5 - G).
-  assert.match(filter, /const KNOB_SPECULAR = 12;/);
+  assert.match(filter, /const KNOB_SPECULAR = 3;/);
   assert.match(filter, /const GENERIC_SPECULAR = 0;/);
   assert.match(filter, /in="generic-normal-map"[\s\S]{0,200}\$\{-entry\.specular\} \$\{-entry\.specular\} 0 0 \$\{entry\.specular\}/);
   assert.match(filter, /result="specular-mask"/);
   assert.match(filter, /in="specular-light"\s*\n\s*in2="specular-mask"\s*\n\s*operator="in"/);
 
-  // The coefficient is large on purpose. The map stores normal TIMES bend
-  // magnitude rather than a unit normal, and that magnitude is small — the
-  // rim deviates about 30/255 at its peak and less at the very edge, where
-  // the map's own clamp takes the bend to zero. A coefficient near 1 gives a
-  // mask of a few percent, which is invisible against an already-bright rim.
-  assert.ok(filter.includes("const KNOB_SPECULAR = 12;"));
+  // The coefficient compensates for the map storing normal TIMES bend
+  // magnitude rather than a unit normal — the rim deviates only about 30/255
+  // at its peak — but it is deliberately small.
+  //
+  // 12 made a bright white crescent, and against the reference that is
+  // plainly wrong: there the rim is very nearly invisible, and the glass is
+  // read from the backdrop bending through it and a whisper of colour at the
+  // very edge, never from a lit ring drawn around it. A white arc on a dark
+  // bar reads as a halo stuck to the knob rather than as light on a curve.
+  assert.ok(filter.includes("const KNOB_SPECULAR = 3;"));
 
   // It lays over whichever stage actually ran, so tint and specular compose
   // rather than one silently replacing the other.
