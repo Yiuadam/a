@@ -302,6 +302,54 @@ const GENERIC_DISPERSION = 0;
 */
 const KNOB_SPECULAR = 3;
 /*
+  A spectral fringe around the knob's rim, and the one place this app draws
+  colour that is not taken from the backdrop.
+
+  That needs saying plainly, because the honest version does not work here.
+  Real dispersion separates what is *behind* the glass: a prism has a
+  different refractive index per wavelength, so the edge pulls the backdrop's
+  own colours apart by different amounts. This filter can express that, and
+  did — three displacement passes at three scales, each contributing only its
+  own channel. But a split of the backdrop can only show what the backdrop
+  has to give, and Light's is a near-flat pale wash. Over that, a physically
+  faithful dispersion separates almost nothing and is invisible, which is
+  exactly the complaint: the effect is too subtle to see in that theme.
+
+  So the colour is emitted rather than refracted, and only its placement and
+  its variation are derived. Where it sits comes from the map's blue channel,
+  which now carries how hard the surface is bending — so the fringe lands
+  precisely on the turn of the glass and is nothing across the flat middle,
+  by construction rather than by tuning a radius. What colour it is at any
+  point around that ring comes from the surface normal in R and G: the three
+  output channels peak at three different facings, so the hue travels around
+  the rim as the surface rotates, the way an edge caustic does. It cannot
+  disagree with the bend, because both are read from the same map.
+
+  Kept off the icons for free. The mask is the bend magnitude, and the middle
+  of the knob has none — which is the constraint that killed the previous
+  attempt at this, where dispersion scaled with a whole-face lens and put
+  yellow and magenta on 1.3px monochrome glyphs.
+*/
+const KNOB_SPECTRUM = 0.85;
+const GENERIC_SPECTRUM = 0;
+/*
+  How far the three channels are driven apart. The map's own deviation from
+  neutral is small — a rim peaks around 0.12 either side of 0.5 — so a
+  coefficient near 1 would produce three nearly identical channels and a grey
+  ring. 4 spreads them across most of the range, which is what makes it read
+  as a spectrum rather than as a smudge.
+*/
+const SPECTRUM_SPREAD = 4;
+/*
+  How sharply the fringe collapses onto the rim. The bend magnitude the mask
+  is built from is not itself a rim — the knob's bevel reaches half its
+  radius and the whole-face lens leaves some bend nearly everywhere — so
+  used raw it paints the whole disc. Raising it to this power keeps the
+  geometry deciding where the colour goes while letting only the strongest
+  part of it through.
+*/
+const SPECTRUM_FALLOFF = 3;
+/*
   A gentle whole-face lens on top of the rim bevel, so nothing inside the
   knob stays where it was.
 
@@ -400,6 +448,7 @@ type GenericBucket = {
   dispersion: number;
   tint: number;
   specular: number;
+  spectrum: number;
   magnify: number;
   innerEase: number;
   scale: number;
@@ -417,10 +466,11 @@ function bucketKey(
   dispersion: number,
   tint: number,
   specular: number,
+  spectrum: number,
   magnify: number,
   innerEase: number,
 ) {
-  return [aspect, cornerRadius, bezelWidth, dispersion, tint, specular, magnify, innerEase]
+  return [aspect, cornerRadius, bezelWidth, dispersion, tint, specular, spectrum, magnify, innerEase]
     .map((value) => value.toFixed(2))
     .join(":");
 }
@@ -457,9 +507,10 @@ function measureGenericPanes(knobsOnly = false) {
     const dispersion = knob ? KNOB_DISPERSION : GENERIC_DISPERSION;
     const tint = pane.matches(NAV_TINT_SELECTOR) ? NAV_ADAPTIVE_TINT : GENERIC_ADAPTIVE_TINT;
     const specular = knob ? KNOB_SPECULAR : GENERIC_SPECULAR;
+    const spectrum = knob ? KNOB_SPECTRUM : GENERIC_SPECTRUM;
     const magnify = knob ? KNOB_MAGNIFY : GENERIC_MAGNIFY;
     const innerEase = knob ? KNOB_INNER_EASE : GENERIC_INNER_EASE;
-    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion, tint, specular, magnify, innerEase);
+    const key = bucketKey(aspect, cornerRadius, bezelWidth, dispersion, tint, specular, spectrum, magnify, innerEase);
     assignments.set(pane, key);
 
     if (buckets.has(key) || buckets.size >= GENERIC_MAX_BUCKETS) continue;
@@ -479,6 +530,7 @@ function measureGenericPanes(knobsOnly = false) {
       dispersion,
       tint,
       specular,
+      spectrum,
       magnify,
       innerEase,
       scale: GENERIC_DISPLACEMENT_HEADROOM / scaleDivisor,
@@ -661,6 +713,7 @@ export default function GlassRefractionFilter() {
       dispersion: number;
       tint: number;
       specular: number;
+      spectrum: number;
     }>
   >([]);
   const [enabled, setEnabled] = useState(false);
@@ -735,6 +788,7 @@ export default function GlassRefractionFilter() {
         dispersion: number;
         tint: number;
         specular: number;
+        spectrum: number;
       }
     >();
     let frame = 0;
@@ -766,6 +820,7 @@ export default function GlassRefractionFilter() {
           dispersion: bucket.dispersion,
           tint: bucket.tint,
           specular: bucket.specular,
+          spectrum: bucket.spectrum,
         });
         changed = true;
       }
@@ -1083,6 +1138,89 @@ export default function GlassRefractionFilter() {
                 <feComposite
                   in="specular"
                   in2={entry.tint > 0 ? "tinted-out" : "lens-out"}
+                  operator="over"
+                  result="lit"
+                />
+              </>
+            ) : null}
+            {entry.spectrum > 0 ? (
+              <>
+                {/*
+                  The spectral rim — see KNOB_SPECTRUM for why this one is
+                  emitted rather than split out of the backdrop.
+
+                  One primitive does all of it, because the map was built to
+                  let it. Alpha comes from blue, which carries how hard the
+                  surface is bending: nothing across the flat middle, peaking
+                  where the glass turns over, so the fringe lands on the rim
+                  by construction and never reaches the icons. Colour comes
+                  from R and G, the surface normal: the three channels are
+                  driven from two different facings and opposite signs, so
+                  each peaks at a different point around the ring and the hue
+                  travels round it as the surface rotates.
+
+                  The offsets are what keep it centred. Each channel is
+                  (value - 0.5) x spread + 0.5, which as a matrix row is the
+                  spread in the channel's own column and 0.5 - spread/2 in
+                  the constant — so a flat, neutral pixel comes out mid-grey
+                  and only deviation from neutral produces colour.
+                */}
+                <feColorMatrix
+                  in="generic-normal-map"
+                  type="matrix"
+                  values={[
+                    `${SPECTRUM_SPREAD} 0 0 0 ${0.5 - SPECTRUM_SPREAD / 2}`,
+                    `0 ${SPECTRUM_SPREAD} 0 0 ${0.5 - SPECTRUM_SPREAD / 2}`,
+                    `${-SPECTRUM_SPREAD} 0 0 0 ${0.5 + SPECTRUM_SPREAD / 2}`,
+                    `0 0 1 0 0`,
+                  ].join("  ")}
+                  result="spectrum-raw"
+                />
+                {/*
+                  Concentrate the fringe onto the turn of the glass.
+
+                  Alpha out of the matrix above is the raw bend magnitude,
+                  and that is not a rim: the knob's bevel reaches half its
+                  radius and the whole-face lens on top of it leaves some
+                  bend nearly everywhere, so used directly it painted a
+                  rainbow across the entire disc — which is both wrong and
+                  the exact thing that put colour on the icons last time
+                  this was attempted.
+
+                  Raising it to a power fixes that without inventing a
+                  radius to clip against: the bend still decides where the
+                  colour goes, but only the strongest part of it survives.
+                  At 3, half-strength bend keeps an eighth of its alpha
+                  and the flat middle keeps none, so the fringe collapses
+                  onto the rim where the surface is actually turning
+                  hardest. Amplitude carries the overall strength, so the
+                  falloff applies to the bend rather than to an
+                  already-dimmed value.
+                */}
+                <feComponentTransfer in="spectrum-raw" result="spectrum">
+                  <feFuncA
+                    type="gamma"
+                    amplitude={entry.spectrum}
+                    exponent={SPECTRUM_FALLOFF}
+                    offset={0}
+                  />
+                </feComponentTransfer>
+                {/*
+                  Painted over rather than screened. Screen is the natural
+                  choice for a light on glass and is the wrong one here: the
+                  theme this exists for has a near-white backdrop, and
+                  screening a colour onto white returns white, which is
+                  precisely the invisibility being fixed.
+                */}
+                <feComposite
+                  in="spectrum"
+                  in2={
+                    entry.specular > 0
+                      ? "lit"
+                      : entry.tint > 0
+                        ? "tinted-out"
+                        : "lens-out"
+                  }
                   operator="over"
                 />
               </>

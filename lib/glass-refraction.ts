@@ -301,7 +301,27 @@ export function createGlassRefractionMap(
 
       pixels[index] = Math.round(NEUTRAL_CHANNEL + clamp(normalX * alongNormal, -1, 1) * 127);
       pixels[index + 1] = Math.round(NEUTRAL_CHANNEL + clamp(normalY * alongNormal, -1, 1) * 127);
-      pixels[index + 2] = NEUTRAL_CHANNEL;
+      /*
+        Blue carries how hard the surface is bending here, unsigned — zero
+        across the flat middle, rising to its peak where the glass turns
+        over at the rim.
+
+        It used to be a flat neutral, and it was free to use: feDisplacementMap
+        reads only the two channels named in xChannelSelector and
+        yChannelSelector, which are R and G, and the specular stage's matrix
+        touches only those two as well. So this costs the map nothing and
+        saves a filter the several primitives it would otherwise take to
+        recover the same number — folding a signed deviation back to an
+        absolute value needs a matrix per direction per sign, then blends to
+        put them together, and all of it re-runs on every frame the lens
+        moves.
+
+        What reads it is the spectral rim in GlassRefractionFilter: a fringe
+        has to sit exactly where the surface turns, and this is that, solved
+        from the same geometry as the bend rather than guessed at with a
+        radius.
+      */
+      pixels[index + 2] = Math.round(clamp(Math.abs(alongNormal), 0, 1) * 255);
       pixels[index + 3] = 255;
     }
   }

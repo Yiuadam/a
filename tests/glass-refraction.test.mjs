@@ -22,7 +22,36 @@ function pixel(map, size, x, y) {
 test("the glass displacement map keeps its centre optically flat", () => {
   const size = 64;
   const map = glassRefractionModule.createGlassRefractionMap(size);
-  assert.deepEqual(pixel(map, size, 32, 32), [128, 128, 128, 255]);
+  /* Blue is 0 wherever the surface is flat, not the neutral 128 the other
+     two channels use. R and G store a signed direction, so they need a
+     midpoint to sit at; blue stores how hard the surface is bending, which
+     is unsigned and genuinely zero across the flat middle. The spectral rim
+     in GlassRefractionFilter reads it as its mask, which is what keeps that
+     fringe on the turn of the glass and off the icons. */
+  assert.deepEqual(pixel(map, size, 32, 32), [128, 128, 0, 255]);
+});
+
+test("blue carries the bend magnitude, so a fringe can be masked to the rim", () => {
+  // This is what keeps the spectral rim off the icons. The knob's bevel
+  // reaches half its radius and a whole-face lens sits on top of it, so
+  // there is no radius to clip a fringe against — the mask has to come from
+  // the geometry. Blue is that: unsigned bend magnitude, zero where the
+  // surface is flat and highest where it turns over.
+  const size = 64;
+  const map = glassRefractionModule.createGlassRefractionMap(size);
+  const blue = (x, y) => pixel(map, size, x, y)[2];
+
+  assert.equal(blue(32, 32), 0, "the flat middle should carry no bend at all");
+  assert.ok(blue(1, 32) > 0, "the rim should carry bend");
+  assert.ok(
+    blue(1, 32) > blue(8, 32),
+    "bend should fall off going inward from the rim",
+  );
+  // And it has to agree with the two channels the displacement itself reads,
+  // or the fringe would sit somewhere the glass is not bending.
+  const rimShift = Math.abs(pixel(map, size, 1, 32)[0] - 128);
+  const innerShift = Math.abs(pixel(map, size, 8, 32)[0] - 128);
+  assert.ok(rimShift > innerShift, "the same ordering should hold in red");
 });
 
 test("the glass displacement map bends each edge outward and remains symmetric", () => {
@@ -87,7 +116,7 @@ test("the bevel is a uniform width in pixels once solved for a pane's aspect", (
   );
 
   // and it is still flat in the middle
-  assert.deepEqual(pixel(map, size, mid, mid), [128, 128, 128, 255]);
+  assert.deepEqual(pixel(map, size, mid, mid), [128, 128, 0, 255]);
 });
 
 test("the dome bends along the surface normal, so the ends bend too", () => {
@@ -254,7 +283,7 @@ test("a straight ramp spreads the centre so the middle is not inert", () => {
   const quarter = Math.floor(size / 4);
 
   // dead centre stays put — magnification is measured relative to it
-  assert.deepEqual(pixel(lens, size, mid, mid), [128, 128, 128, 255]);
+  assert.deepEqual(pixel(lens, size, mid, mid), [128, 128, 0, 255]);
 
   // Away from the centre the lens adds a pull back toward it, on top of
   // whatever the bevel is already doing. Differencing the two maps isolates
@@ -339,7 +368,7 @@ test("the card reads as a thick slab: a wide roll-over band around a flat middle
     size,
     size / 2,
     size / 2,
-  ), [128, 128, 128, 255]);
+  ), [128, 128, 0, 255]);
 });
 
 test("the theme knob keeps a flat face and bends only at its rim", () => {
@@ -394,8 +423,8 @@ test("the theme knob keeps a flat face and bends only at its rim", () => {
 
   // The face is provably inert, not merely tuned small: dead centre, and
   // well inside the flat region, both sit exactly on the neutral value.
-  assert.deepEqual(pixel(knob.map, size, size / 2, row), [128, 128, 128, 255]);
-  assert.deepEqual(pixel(knob.map, size, Math.floor(size * 0.7), row), [128, 128, 128, 255]);
+  assert.deepEqual(pixel(knob.map, size, size / 2, row), [128, 128, 0, 255]);
+  assert.deepEqual(pixel(knob.map, size, Math.floor(size * 0.7), row), [128, 128, 0, 255]);
 
   // The knob asks for its own bezel by name, and it is keyed into the bucket
   // so it can never share a filter with a square card that happens to
