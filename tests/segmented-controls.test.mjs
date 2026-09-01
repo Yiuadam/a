@@ -186,9 +186,14 @@ test("the pressed knob is clear glass with a lens, wherever it appears", () => {
     /html\[data-glass-lens-split\] \[data-pressed\] > \.segmented-knob::before \{\s*\n\s*filter: var\(--glass-lens-filter, none\);/,
   );
 
-  // The labels drop below the knob so the lens has something to bend: a
-  // backdrop-filter can only bend what is painted beneath it.
-  assert.match(rule("[data-pressed] .segmented-option"), /z-index: 0;/);
+  // The labels stay above the knob, press included. They used to drop below
+  // it so the lens had something to bend, which only worked where the press
+  // clears the frost — and on WebKit it never does, because the lens it would
+  // hand over to cannot run there at all. The word underneath was read
+  // through a 9px blur for as long as a finger was down, reported from an
+  // iPhone as a white blob with a smudge in it. The theme control settled
+  // this first and keeps its glyphs on top.
+  assert.doesNotMatch(css, /\[data-pressed\] \.segmented-option \{/);
   // And the track stops clipping, or the bloom stops at the rail.
   assert.match(rule("[data-pressed]"), /overflow: visible;/);
 
@@ -212,8 +217,36 @@ test("the knob squashes as it moves and rounds out as it stops, however it is mo
   // neither gesture can be expressed in the other's terms.
   assert.match(hook, /squash: number;/);
   assert.match(hook, /const SQUASH_FULL_SPEED = 4;/);
-  assert.match(hook, /setSquash\(Math\.min\(1, speed \/ SQUASH_FULL_SPEED\)\);/);
-  assert.match(hook, /setSquash\(Math\.min\(1, 0\.4 \+ distance \* 0\.3\)\);/);
+
+  // A drag's reading is filtered before it becomes a shape, and filtered
+  // asymmetrically. One sample is a raw derivative — one distance over one
+  // gap between pointer events — and those gaps are uneven enough that a
+  // late frame reads as a flick and a doubled event reads as a stop. Fed
+  // straight to the knob it fluttered between fat and thin under a steady
+  // finger, reporting the event timer rather than the gesture. Rising faster
+  // than it falls is what makes the recovery read as a material: thrown
+  // water deforms at once and takes its time coming back.
+  assert.match(hook, /const SQUASH_RISE = 0\.5;/);
+  assert.match(hook, /const SQUASH_FALL = 0\.2;/);
+  assert.match(hook, /const target = Math\.min\(1, speed \/ SQUASH_FULL_SPEED\);/);
+  assert.match(
+    hook,
+    /const level = current \+ \(target - current\) \* \(target > current \? SQUASH_RISE : SQUASH_FALL\);/,
+  );
+  // And a change too small to see does not cost a render. A pointer can fire
+  // far more often than the screen refreshes, and a hundredth of a squash is
+  // a fraction of a pixel.
+  assert.match(hook, /if \(Math\.abs\(level - squash\) >= 0\.01\) setSquash\(level\);/);
+
+  // A throw is not filtered: the distance is known in full at that point, so
+  // there is nothing to smooth against. It sets the level outright, and
+  // carries the filter's own level with it so a drag beginning before the
+  // throw has landed continues from the shape on screen rather than from
+  // whatever the filter last held.
+  assert.match(hook, /squashLevel\.current = Math\.min\(1, 0\.4 \+ distance \* 0\.3\);/);
+  assert.match(hook, /setSquash\(squashLevel\.current\);/);
+  // Every reset clears the filter too, or the next gesture starts mid-squash.
+  assert.equal((hook.match(/squashLevel\.current = 0;/g) ?? []).length, 3);
   // performance.now, not Date.now: this is an elapsed-time measurement and
   // it must not move when the wall clock is adjusted.
   assert.match(hook, /performance\.now\(\)/);
@@ -230,11 +263,14 @@ test("the knob squashes as it moves and rounds out as it stops, however it is mo
   assert.equal((sampler[0].match(/setSquash\(/g) ?? []).length, 2);
   // pointermove stops firing the instant a finger holds still, so without a
   // timer of its own nothing would ever tell a dragged knob it had stopped.
-  assert.match(sampler[0], /settleTimer\.current = setTimeout\(\(\) => setSquash\(0\), 90\);/);
+  assert.match(
+    sampler[0],
+    /settleTimer\.current = setTimeout\(\(\) => \{\s*\n\s*squashLevel\.current = 0;\s*\n\s*setSquash\(0\);\s*\n\s*\}, 90\);/,
+  );
   // And letting go is a stop, however fast it was travelling a frame ago.
   const end = hook.match(/const end = \(dragged: boolean\) => \{[\s\S]*?\n {2}\};/);
   assert.ok(end, "expected an end");
-  assert.match(end[0], /cancelSettle\(\);\s*\n\s*setSquash\(0\);/);
+  assert.match(end[0], /cancelSettle\(\);\s*\n\s*squashLevel\.current = 0;\s*\n\s*setSquash\(0\);/);
 
   // Both timers have to be cleared on unmount, or a journey — or a squash
   // waiting to round out — outlives its control and sets state on something
@@ -474,7 +510,7 @@ test("a knob sent to a stop travels there instead of teleporting onto it", () =>
   // The schedule this pins was measured in the browser on a tap two stops
   // away: launch with squash 1, released at 314ms, settled at 720ms. It is
   // the same schedule either way — what changed is what starts it.
-  assert.match(hook, /setSquash\(Math\.min\(1, 0\.4 \+ distance \* 0\.3\)\);/);
+  assert.match(hook, /squashLevel\.current = Math\.min\(1, 0\.4 \+ distance \* 0\.3\);/);
 
   // Still lifted while it flies, or it would shrink away from the icon it
   // is being drawn to — and on touch this is the whole of the lift, since

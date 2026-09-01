@@ -4957,10 +4957,20 @@ html[data-live-glass-refraction] .premade-glass {
      travel loses its easing so the knob tracks the pointer exactly, while
      the swell keeps its own. A 440ms glide applied to a drag leaves the
      knob several frames behind the finger, which reads as lag rather than
-     as weight. The settling rule below hands the glide back for the throw. */
+     as weight. The settling rule below hands the glide back for the throw.
+
+     The shape eases differently here than it does anywhere else, and shorter.
+     Everywhere else this is a discrete change — round to stretched, small to
+     bloomed — and an overshooting curve is exactly right for one of those:
+     it arrives with a little weight behind it. Under a finger it is not
+     discrete. The squash is re-aimed on every pointer event, so each new
+     target interrupts a curve that was still overshooting the last one, and
+     the overshoots compound into a wobble that has nothing to do with how the
+     hand is moving. A plain decelerating curve, over about the gap between
+     two events, tracks a moving target smoothly instead of fighting it. */
   transition:
-    inset 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
-    width 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    inset 140ms cubic-bezier(0.33, 1, 0.68, 1),
+    width 140ms cubic-bezier(0.33, 1, 0.68, 1),
     background 200ms ease,
     box-shadow 200ms ease,
     -webkit-backdrop-filter 200ms ease,
@@ -4994,15 +5004,25 @@ html[data-glass-lens-split] [data-pressed] > .segmented-knob::before {
 }
 
 /*
-  The labels drop below the knob for the length of the press, which is what
-  gives the lens something to bend: a backdrop-filter can only bend what is
-  painted beneath it, and these buttons otherwise sit on top. Only while
-  pressed — the resting knob is frosted, and a label read through that is a
-  smear rather than a control.
+  The labels stay above the knob, including through the press.
+
+  They used to drop below it, to give the lens something to bend — a
+  backdrop-filter can only bend what is painted beneath it. The rule carried
+  its own warning: a label read through frosted glass "is a smear rather than
+  a control", and it relied on the press clearing the frost first.
+
+  On WebKit the press never clears it. The knob keeps a frosted material
+  there because the lens it would otherwise hand over to cannot run at all,
+  so the word underneath was read through a 9px blur for as long as a finger
+  was down — reported from an iPhone, and unmistakable: the selected option
+  was a white blob with a smudge in it.
+
+  The theme control settled this already. It keeps its glyphs above its knob,
+  having removed the identical rule for the identical reason, and that is the
+  bar these are meant to match. The lens still has the track and the page
+  behind it to bend, which is most of what was ever under it; what it loses
+  is the one piece of content that has to stay legible to be worth bending.
 */
-[data-pressed] .segmented-option {
-  z-index: 0;
-}
 
 /* And the track has to stop clipping, or the bloom stops at the rail — which
    is the outline the press exists to break. */

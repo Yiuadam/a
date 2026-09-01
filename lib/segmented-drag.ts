@@ -155,6 +155,9 @@ export function useSegmentedDrag({
   const settleTravel = useRef<ReturnType<typeof setTimeout> | null>(null);
   /* The previous sample, for the speed the drag's squash is solved from. */
   const lastMove = useRef<{ position: number; at: number } | null>(null);
+  /* The squash actually in force, kept outside React so each sample can be
+     filtered against the last one without waiting for a render. */
+  const squashLevel = useRef(0);
   /* pointermove stops firing the instant a finger holds still, so nothing
      would ever tell the knob it had come to rest. This does. */
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -211,6 +214,26 @@ export function useSegmentedDrag({
     is a shape change, not a response to speed.
   */
   const SQUASH_FULL_SPEED = 4;
+  /*
+    How much of each new reading is taken, and it is deliberately not the same
+    in both directions.
+
+    A single sample is a raw derivative — one distance over one gap between
+    two pointer events — and those gaps are not even. A frame the browser was
+    late to deliver reads as a flick; two events inside the same few
+    milliseconds read as a stop. Feeding that straight to the shape made the
+    knob flutter between fat and thin while a finger moved steadily, which is
+    the opposite of liquid: the deformation was reporting the event timer, not
+    the gesture.
+
+    Filtering it fixes that, and filtering it asymmetrically is what makes it
+    read as a material rather than a slider. Water thrown sideways deforms
+    the moment it is thrown and takes its time coming back, so the rise is
+    quick enough to catch the start of a flick and the fall is slow enough
+    that the knob relaxes instead of snapping flat between samples.
+  */
+  const SQUASH_RISE = 0.5;
+  const SQUASH_FALL = 0.2;
   const sampleSpeed = (next: number) => {
     /* performance.now, not Date.now: this is an elapsed-time measurement,
        and it should not be affected by the wall clock being adjusted. */
@@ -225,12 +248,23 @@ export function useSegmentedDrag({
        going. */
     if (elapsed <= 0 || elapsed > 120) return;
     const speed = (Math.abs(next - previous.position) / elapsed) * 1000;
-    setSquash(Math.min(1, speed / SQUASH_FULL_SPEED));
+    const target = Math.min(1, speed / SQUASH_FULL_SPEED);
+    const current = squashLevel.current;
+    const level = current + (target - current) * (target > current ? SQUASH_RISE : SQUASH_FALL);
+    squashLevel.current = level;
+    /* Only re-render when the shape would actually differ. A pointer can fire
+       far more often than the screen refreshes, and a hundredth of a squash
+       is a fraction of a pixel — rendering those costs frames to show
+       nothing, during the one gesture that cannot afford to drop any. */
+    if (Math.abs(level - squash) >= 0.01) setSquash(level);
 
     /* Held still for longer than a couple of frames, and it has stopped —
        round it back out. The spring itself is the CSS transition. */
     cancelSettle();
-    settleTimer.current = setTimeout(() => setSquash(0), 90);
+    settleTimer.current = setTimeout(() => {
+      squashLevel.current = 0;
+      setSquash(0);
+    }, 90);
   };
 
   const trackPointer = (event: PointerEvent<HTMLDivElement>) => {
@@ -278,7 +312,12 @@ export function useSegmentedDrag({
     if (distance < 0.5) return;
     cancelTravel();
     setSettling(true);
-    setSquash(Math.min(1, 0.4 + distance * 0.3));
+    /* A throw sets the shape outright rather than filtering toward it — the
+       distance is known in full at this point, so there is nothing to smooth
+       against. The filter's own level is brought along so a drag that starts
+       before this one has finished carries on from the shape on screen. */
+    squashLevel.current = Math.min(1, 0.4 + distance * 0.3);
+    setSquash(squashLevel.current);
 
     /*
       The stretch is released before the knob lands, not when it lands.
@@ -289,6 +328,7 @@ export function useSegmentedDrag({
       reform finishes as the travel does.
     */
     settleTravel.current = setTimeout(() => {
+      squashLevel.current = 0;
       setSquash(0);
       /*
         And the lifted state outlasts the travel by the same amount. The
@@ -324,6 +364,7 @@ export function useSegmentedDrag({
     setPreviewIndex(null);
     /* Letting go is a stop, however fast it was travelling a frame ago. */
     cancelSettle();
+    squashLevel.current = 0;
     setSquash(0);
   };
 
