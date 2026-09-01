@@ -98,33 +98,56 @@ test("every option bar answers a pointer through one implementation, not three c
   }
 });
 
-test("the pressed knob blooms without moving its own box", () => {
-  // These knobs travel by `translate3d(index * 100%)` — a percentage of
-  // their OWN width — so growing the box would lengthen every step and land
-  // the knob past its label. That is the same bug that put the theme knob
-  // half a stop out when its bloom was a `transform: scale`.
+test("the pressed knob blooms its own box, and its stride stays one stop", () => {
+  // The bloom is the box's now, not its layers'. It used to grow ::before and
+  // ::after outward with a negative inset and leave the box alone, because
+  // the knob stepped by `translate3d(index * 100%)` — a percentage of its OWN
+  // width — and a wider box would have lengthened every step and landed the
+  // knob past its label. The cost was that the pill never actually expanded:
+  // measured in the browser, 53.5px wide idle and pressed alike, while the
+  // theme knob went 36.1px to 54.2px. Only a ring bloomed around a box that
+  // sat still, which is not the same gesture at all.
   //
-  // Growing ::before and ::after with a negative inset leaves the box, and
-  // therefore the travel, exactly as it was. Verified in the browser: the
-  // knob measured 53.5px wide both idle and pressed.
+  // Subtracting the growth back off the stride is what freed the box. Every
+  // term below is the element's own border box, so what remains after the
+  // swell comes off is exactly one stop, whatever the knob currently measures.
   const knob = rule(".segmented-knob");
   assert.match(knob, /--segmented-grow: 0px;/);
+  assert.match(
+    knob,
+    /translate3d\(\s*calc\(\s*var\(--segmented-index, 0\) \*\s*\(100% - 2 \* var\(--segmented-grow\) - 2 \* var\(--segmented-stretch\)\)\s*\)/,
+  );
+  // It must not step by the span. A percentage resolves against the
+  // containing block in `width` but the element's own border box in
+  // `transform`, so --segmented-span sizes the knob correctly and would step
+  // it by a fraction of itself — measured at 38.5px against a true pitch of
+  // 86.1px, i.e. never leaving the first stop.
+  assert.doesNotMatch(knob, /translate3d\(\s*calc\(\s*var\(--segmented-index, 0\) \* var\(--segmented-span\)\)/);
 
-  // Two-value inset: vertical first, horizontal second, because the squash
-  // takes height and gives width. Both still resolve to -grow when the knob
-  // is still, which is what leaves the box alone.
+  // The box carries bloom and squash together, and grows about its own centre:
+  // the left edge gives up half of what the width gains.
+  assert.match(knob, /width: calc\(var\(--segmented-span\) \+ 2 \* var\(--segmented-stretch\) \+ 2 \* var\(--segmented-grow\)\);/);
+  assert.match(knob, /left: calc\(var\(--segmented-inset\) - var\(--segmented-stretch\) - var\(--segmented-grow\)\);/);
+  assert.match(knob, /inset-block: calc\(var\(--segmented-inset\) \+ var\(--segmented-thin\) - var\(--segmented-grow\)\);/);
+
+  // Position belongs to this rule now. It was `relative` here once, which at
+  // equal specificity beat the `absolute` each knob set in its own earlier
+  // rule: the knob fell back into flow, took a grid column of its own and
+  // pushed the options along by one.
+  assert.match(knob, /position: absolute;/);
+  assert.doesNotMatch(knob, /position: relative;/);
+
+  // The layers are flush with the box, since they no longer fake its growth.
   const lens = rule(".segmented-knob::before");
-  assert.match(lens, /calc\(var\(--segmented-thin\) - var\(--segmented-grow\)\)/);
-  assert.match(lens, /calc\(0px - var\(--segmented-grow\) - var\(--segmented-stretch\)\)/);
+  assert.match(lens, /\n {2}inset: 0;/);
   const rim = rule(".segmented-knob::after");
-  assert.match(rim, /calc\(var\(--segmented-thin\) - var\(--segmented-grow\)\)/);
-  assert.match(rim, /calc\(0px - var\(--segmented-grow\) - var\(--segmented-stretch\)\)/);
+  assert.match(rim, /\n {2}inset: 0;/);
 
   const pressed = rule("[data-pressed] > .segmented-knob.segmented-knob");
   assert.match(pressed, /--segmented-grow: 0\.4375rem;/);
-  // Nothing may resize or rescale the knob itself.
-  assert.doesNotMatch(pressed, /\n {2}width:/);
-  assert.doesNotMatch(pressed, /\n {2}height:/);
+  // Offsets, never a scale: growing by a transform would stretch the backdrop
+  // the lens is sampling along with the knob, and the glass would stop
+  // reading as glass.
   assert.doesNotMatch(pressed, /scale\(/);
 
   // Doubled class on purpose: each of these knobs carries per-theme

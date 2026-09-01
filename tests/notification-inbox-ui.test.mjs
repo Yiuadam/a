@@ -295,9 +295,22 @@ test("notification page keeps one compact title and one flowing filter lens", ()
   // copy — see lib/segmented-drag.ts and tests/segmented-controls.test.mjs.
   assert.match(filter, /useSegmentedDrag\(\{/);
   assert.match(filter, /\{\.\.\.drag\.handlers\}/);
-  assert.match(css, /\.notification-filter-selector \{[\s\S]*translate3d\(calc\(var\(--notification-filter-index\) \* 100%\)/);
+  /* The knob's travel is the shared one now. This rule used to carry its own
+     `translate3d(calc(var(--notification-filter-index) * 100%))`, alongside
+     an identical copy in each of the other option bars; the geometry lives on
+     .segmented-knob and this selector just says which stop it is on and how
+     many there are. See tests/segmented-controls.test.mjs for the stride
+     itself. */
+  assert.match(css, /\.notification-filter-selector \{[\s\S]*?--segmented-index: var\(--notification-filter-index, 0\);/);
+  assert.match(css, /\.notification-filter-selector \{[\s\S]*?--segmented-count: 2;/);
   assert.match(css, /@media \(hover: none\), \(pointer: coarse\) \{[\s\S]*\.notification-filter-option,[\s\S]*min-height: 2\.75rem/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*\.notification-filter-selector \{[\s\S]*transition: none/);
+  /* Reduced motion is honoured through the shared knob too. This bar used to
+     be the only one that stood its glide down, via its own copy of the rule
+     near the top of the file — which stopped working the moment the shared
+     rule declared a transition of its own, being earlier at equal
+     specificity. Asserting the shared rule keeps the preference covered for
+     all four bars rather than one. */
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*\.segmented-knob \{\n {4}transition: none;\n {4}will-change: auto;/);
 });
 
 test("dark notification actions keep explicit high-contrast text roles", () => {

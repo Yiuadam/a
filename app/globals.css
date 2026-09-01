@@ -1108,13 +1108,6 @@ html[data-theme="dark"] .notification-action {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .notification-filter-selector {
-    transition: none;
-    will-change: auto;
-  }
-}
-
 /*
   Google owns the sign-in button inside its cross-origin iframe, so its fill,
   logo and type remain untouched. BandUp owns the surrounding material: the
@@ -1806,10 +1799,8 @@ html[data-theme="dark"] .nav-menu-group {
 }
 
 .notification-filter-selector {
-  position: absolute;
-  inset-block: 0.25rem;
-  left: 0.25rem;
-  width: calc((100% - 0.5rem) / 2);
+  --segmented-count: 2;
+  --segmented-index: var(--notification-filter-index, 0);
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
   pointer-events: none;
@@ -1819,9 +1810,6 @@ html[data-theme="dark"] .nav-menu-group {
     0 1px 2px var(--glass-shadow);
   -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
   backdrop-filter: blur(18px) saturate(108%) brightness(104%);
-  transform: translate3d(calc(var(--notification-filter-index) * 100%), 0, 0);
-  transition: transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
-  will-change: transform;
 }
 
 .notification-filter-option,
@@ -1830,10 +1818,8 @@ html[data-theme="dark"] .nav-menu-group {
 }
 
 .interval-toggle-selector {
-  position: absolute;
-  inset-block: 0.25rem;
-  left: 0.25rem;
-  width: calc((100% - 0.5rem) / 2);
+  --segmented-count: 2;
+  --segmented-index: var(--interval-index, 0);
   border: 1px solid var(--glass-edge);
   border-radius: var(--radius-lg);
   pointer-events: none;
@@ -1843,9 +1829,6 @@ html[data-theme="dark"] .nav-menu-group {
     0 1px 2px var(--glass-shadow);
   -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
   backdrop-filter: blur(18px) saturate(108%) brightness(104%);
-  transform: translate3d(calc(var(--interval-index) * 100%), 0, 0);
-  transition: transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
-  will-change: transform;
 }
 
 .theme-toggle-option {
@@ -2164,10 +2147,8 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
 }
 
 .organization-view-selector {
-  position: absolute;
-  inset-block: 0.25rem;
-  left: 0.25rem;
-  width: calc((100% - 0.5rem) / var(--organization-view-count, 3));
+  --segmented-count: var(--organization-view-count, 3);
+  --segmented-index: var(--organization-view-index, 0);
   border: 1px solid var(--glass-edge);
   border-radius: calc(var(--radius-xl) - 0.25rem);
   pointer-events: none;
@@ -2177,9 +2158,6 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
     0 1px 2px var(--glass-shadow);
   -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
   backdrop-filter: blur(18px) saturate(108%) brightness(104%);
-  transform: translate3d(calc(var(--organization-view-index) * 100%), 0, 0);
-  transition: transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
-  will-change: transform;
 }
 
 .organization-view-tabs[data-unselected] .organization-view-selector {
@@ -4803,27 +4781,66 @@ html[data-live-glass-refraction] .premade-glass {
   track is passing down. Every use site reads it with a `0` fallback
   instead, which covers the static rendering where no drag has happened.
 */
+/*
+  The knob's geometry, owned in one place.
+
+  This class used to describe only how a knob deforms and leave every knob to
+  place itself, which meant three rules repeating the same four declarations
+  and one of them — `position` — repeating it wrongly. It carried
+  `position: relative`, meant only to give the lens something to sit against,
+  and every element wearing the class also sets `position: absolute` in its
+  own rule, earlier in this file. At equal specificity this one won, so the
+  knob was never taken out of flow: it claimed a grid column of its own and
+  pushed the options along by one.
+
+  So the whole box lives here now, expressed against two numbers each track
+  supplies — how many stops it has, and which one the knob is on. The tracks
+  keep what is actually theirs, which is how the knob looks: its radius, its
+  fill, its edge.
+*/
 .segmented-knob {
   --segmented-grow: 0px;
   --segmented-stretch: calc(var(--segmented-squash, 0) * 0.22rem);
   --segmented-thin: calc(var(--segmented-squash, 0) * 0.12rem);
-  /*
-    Deliberately no `position` here.
+  --segmented-inset: 0.25rem;
+  --segmented-span: calc((100% - 2 * var(--segmented-inset)) / var(--segmented-count, 2));
+  position: absolute;
+  /* Bloom and squash both land on the box, never on a scale. Growing by an
+     offset keeps the backdrop under the lens sampled 1:1; scaling would
+     stretch the sample with it and the glass would stop reading as glass.
+     The left edge moves out by half of what the width gains, so the knob
+     grows about its own centre and stays under the finger. */
+  inset-block: calc(var(--segmented-inset) + var(--segmented-thin) - var(--segmented-grow));
+  left: calc(var(--segmented-inset) - var(--segmented-stretch) - var(--segmented-grow));
+  width: calc(var(--segmented-span) + 2 * var(--segmented-stretch) + 2 * var(--segmented-grow));
+  /* Travel is one stop pitch, and the pitch has to be the knob's *unbloomed*
+     width — which is the whole reason the bloom can live on the box at all.
+     A knob that steps by a plain `100%` steps further the moment it grows,
+     so the old geometry had to leave the box alone and bloom the layers
+     instead, and the pill itself never expanded.
 
-    It carried `position: relative` — meant only to give the lens and the
-    hairline something to sit against — and that quietly took the control
-    apart. Every element that wears this class also sets `position: absolute`
-    in its own rule, and every one of those rules is written earlier in this
-    file, so at equal specificity this one won: the knob stopped being taken
-    out of flow and became an ordinary grid item. It then claimed a column of
-    its own, pushing the options along by one and wrapping the last of them
-    onto a second line.
-
-    Nothing needed it. `absolute` establishes a containing block for the
-    pseudo-elements exactly as `relative` does, so the knobs already had what
-    this was for. Leaving position to the element itself is also the honest
-    split: this class describes how a knob deforms, not where it sits.
-  */
+     Subtracting the swell back off is what makes the stride constant. It
+     cannot be `var(--segmented-span)` instead: a percentage means the
+     containing block in `width` but the element's own border box in
+     `transform`, so the same token that sizes the knob correctly would step
+     it by a fraction of itself — measured here at 38.5px against a true
+     pitch of 86.1px. Everything on this line is the element's own box, and
+     what is left after the growth comes off is exactly one stop. */
+  transform: translate3d(
+    calc(
+      var(--segmented-index, 0) *
+        (100% - 2 * var(--segmented-grow) - 2 * var(--segmented-stretch))
+    ),
+    0,
+    0
+  );
+  /* `inset` and `width` are here, not only on the pressed rule, so the knob
+     eases back down when the press ends as smoothly as it swelled. */
+  transition:
+    transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12),
+    inset 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    width 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15);
+  will-change: transform;
 }
 
 /*
@@ -4839,6 +4856,23 @@ html[data-live-glass-refraction] .premade-glass {
     --segmented-stretch: 0px;
     --segmented-thin: 0px;
   }
+
+  /*
+    And the glide across the bar, which is the largest movement any of these
+    make. The knob still changes stops — that is the state, not decoration —
+    it simply arrives rather than travels.
+
+    This has to sit here, below .segmented-knob, rather than where it used to:
+    the inbox filter carried its own copy near the top of the file, and once
+    the shared rule started declaring `transition` that copy lost the cascade
+    outright — same specificity, earlier in the file. It only ever covered
+    that one bar in any case, so the other three were quietly ignoring the
+    preference the whole time.
+  */
+  .segmented-knob {
+    transition: none;
+    will-change: auto;
+  }
 }
 
 /*
@@ -4851,11 +4885,10 @@ html[data-live-glass-refraction] .premade-glass {
   content: "";
   display: block;
   position: absolute;
-  /* Vertical first, horizontal second: the knob loses height and gains
-     width as it is thrown. */
-  inset:
-    calc(var(--segmented-thin) - var(--segmented-grow))
-    calc(0px - var(--segmented-grow) - var(--segmented-stretch));
+  /* Flush with the knob. The bloom and the squash are the box's own now, so
+     the layers simply fill whatever the box currently is — they used to be
+     offset outward to fake a growth the box never had. */
+  inset: 0;
   z-index: 0;
   border-radius: 999px;
   pointer-events: none;
@@ -4873,9 +4906,7 @@ html[data-live-glass-refraction] .premade-glass {
   content: "";
   display: block;
   position: absolute;
-  inset:
-    calc(var(--segmented-thin) - var(--segmented-grow))
-    calc(0px - var(--segmented-grow) - var(--segmented-stretch));
+  inset: 0;
   z-index: 2;
   border-radius: 999px;
   pointer-events: none;
@@ -4922,6 +4953,18 @@ html[data-live-glass-refraction] .premade-glass {
   background: color-mix(in srgb, var(--color-surface) 24%, transparent);
   -webkit-backdrop-filter: blur(14px) saturate(122%) brightness(112%);
   backdrop-filter: blur(14px) saturate(122%) brightness(112%);
+  /* And the same trade the theme knob makes while a finger is down: the
+     travel loses its easing so the knob tracks the pointer exactly, while
+     the swell keeps its own. A 440ms glide applied to a drag leaves the
+     knob several frames behind the finger, which reads as lag rather than
+     as weight. The settling rule below hands the glide back for the throw. */
+  transition:
+    inset 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    width 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    background 200ms ease,
+    box-shadow 200ms ease,
+    -webkit-backdrop-filter 200ms ease,
+    backdrop-filter 200ms ease;
 }
 
 /* Same gate, same reason as the theme knob above: empty the knob out only
@@ -5086,12 +5129,16 @@ html:not([data-theme="dark"]) .theme-toggle-base[data-pressed] .theme-toggle-sel
     backdrop-filter 200ms ease;
 }
 
-/* The other option bars travel by a percentage of their own width; same
-   idea, and their knobs keep the glide they already had while settling. */
+/* The other option bars travel by a stop pitch rather than a fraction of the
+   knob; same idea, and their knobs take the glide back for the throw. The
+   swell keeps easing on the way down, so a knob that is still shrinking when
+   it is released finishes the movement instead of snapping to size. */
 [data-pressed][data-settling] > .segmented-knob.segmented-knob {
   transition:
     transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12),
     translate 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12),
+    inset 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    width 200ms cubic-bezier(0.2, 0.9, 0.25, 1.15),
     background 200ms ease,
     box-shadow 200ms ease;
 }
