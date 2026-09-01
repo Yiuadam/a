@@ -30,8 +30,9 @@ import { sizeInPx } from "@/lib/exam/display";
   custom properties and everything inside reads them, so standard follows the
   site while the optional reverse mode stays consistently white on black.
 
-  BandUp's accent marks the current question. A separate calm blue marks hard
-  questions, so learners can scan the bottom strip and return to them quickly.
+  BandUp's accent marks the question being read — the strip follows the paper
+  as it is scrolled. A separate calm blue marks hard questions, so learners can
+  scan the bottom strip and return to them quickly.
 */
 
 const SCHEME_VARS: Record<string, Record<string, string>> = {
@@ -72,7 +73,6 @@ export default function ExamShell({
   onPrev,
   onNext,
   onToggleReview,
-  onNextFlagged,
   topRight,
   bottomLeft,
   bottomRight,
@@ -108,7 +108,6 @@ export default function ExamShell({
   onPrev?: () => void;
   onNext?: () => void;
   onToggleReview?: () => void;
-  onNextFlagged?: () => void;
   bottomLeft?: ReactNode;
   bottomRight?: ReactNode;
   /** Anything the section adds beside Settings — Listening puts volume here. */
@@ -234,7 +233,6 @@ export default function ExamShell({
           onPrev={onPrev ?? (() => {})}
           onNext={onNext ?? (() => {})}
           onToggleReview={onToggleReview ?? (() => {})}
-          onNextFlagged={onNextFlagged ?? (() => {})}
         />
       ) : (
         <div className="flex items-center justify-between gap-3 border-t border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-3 py-2 text-xs text-[color:var(--exam-fg)]">

@@ -203,7 +203,6 @@ export default function MockListening({
       onPrev={nav.prev}
       onNext={nav.next}
       onToggleReview={nav.toggleReview}
-      onNextFlagged={nav.nextFlagged}
       topRight={
         playingPart !== null ? (
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--exam-fg)]">

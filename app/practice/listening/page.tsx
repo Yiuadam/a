@@ -720,7 +720,6 @@ function ListeningTestPageRunner() {
       onPrev={nav.prev}
       onNext={nav.next}
       onToggleReview={nav.toggleReview}
-      onNextFlagged={nav.nextFlagged}
       bottomLeft={submitted && band !== null ? `Band ${band} · ${raw}/${flat.length}` : "Practice complete"}
       topRight={
         <div className="flex items-center gap-1.5">

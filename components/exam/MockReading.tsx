@@ -141,7 +141,6 @@ export default function MockReading({
       onPrev={nav.prev}
       onNext={nav.next}
       onToggleReview={nav.toggleReview}
-      onNextFlagged={nav.nextFlagged}
       topRight={
         /*
           The passage switcher, where the exam puts its part tabs. Numbers only

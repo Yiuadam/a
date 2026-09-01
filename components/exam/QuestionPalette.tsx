@@ -1,10 +1,22 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { scrollBehaviour } from "@/lib/exam/reading-position";
+
 /*
   The bottom question strip uses one plain learner-facing concept: "hard".
-  Pressing the button marks the current question blue, and Next hard cycles
-  through every blue question. The number keeps the same shape in every state,
-  so marking a question never looks like a layout change or a new control.
+  Pressing the button marks the current question blue and the number stays blue
+  until it is pressed again, so a question worth coming back to can be found at
+  a glance and reached with one tap. The number keeps the same shape in every
+  state, so marking a question never looks like a layout change or a new
+  control.
+
+  The highlighted number is not a cursor the learner has to drive. It reports
+  the paper: whichever question is at the reading line is the one lit here, so
+  scrolling down to 23 lights 23 — see lib/exam/reading-position.ts. That is
+  also why this component has to scroll itself. Forty numbers do not fit across
+  a phone, and a strip that highlighted 23 while showing 1 to 12 would be
+  highlighting nothing the learner can see.
 */
 
 export interface PaletteItem {
@@ -22,7 +34,6 @@ export default function QuestionPalette({
   onPrev,
   onNext,
   onToggleReview,
-  onNextFlagged,
 }: {
   items: PaletteItem[];
   currentId: string | null;
@@ -30,10 +41,36 @@ export default function QuestionPalette({
   onPrev: () => void;
   onNext: () => void;
   onToggleReview: () => void;
-  onNextFlagged: () => void;
 }) {
   const current = items.find((i) => i.id === currentId) ?? null;
-  const flaggedCount = items.filter((i) => i.flagged).length;
+
+  const strip = useRef<HTMLOListElement | null>(null);
+  const lit = useRef<HTMLButtonElement | null>(null);
+
+  /*
+    Bring the highlighted number into the strip's own view.
+
+    Deliberately the strip's scroll and not `scrollIntoView`, which would also
+    walk up the tree and scroll whatever ancestors it decided needed moving —
+    on a bar pinned to the bottom of the exam frame that means scrolling the
+    page underneath the learner to reveal a bar that was already on screen.
+  */
+  useEffect(() => {
+    const list = strip.current;
+    const button = lit.current;
+    if (!list || !button) return;
+
+    const track = list.getBoundingClientRect();
+    const box = button.getBoundingClientRect();
+    /* Already readable where it is. Moving it would be motion for its own
+       sake, and during a scroll that is motion on top of motion. */
+    if (box.left >= track.left && box.right <= track.right) return;
+
+    list.scrollTo({
+      left: list.scrollLeft + box.left - track.left - (track.width - box.width) / 2,
+      behavior: scrollBehaviour(),
+    });
+  }, [currentId]);
 
   return (
     <div className="exam-glass mx-2 mb-2 flex items-center gap-3 rounded-xl border px-2.5 py-2 sm:rounded-2xl sm:px-3">
@@ -56,17 +93,6 @@ export default function QuestionPalette({
         >
           {current?.flagged ? `Q${current.number} marked hard` : `Mark Q${current?.number ?? ""} hard`}
         </button>
-
-        {flaggedCount > 0 && (
-          <button
-            type="button"
-            onClick={onNextFlagged}
-            title="Go to the next question marked hard"
-            className="rounded-lg border border-[color:var(--exam-hard)] px-2 py-1.5 text-xs font-semibold text-[color:var(--exam-hard)] transition-colors hover:bg-[color:color-mix(in_srgb,var(--exam-hard)_12%,transparent)]"
-          >
-            Next hard · {flaggedCount}
-          </button>
-        )}
       </div>
 
       {/*
@@ -74,13 +100,17 @@ export default function QuestionPalette({
         buttons wrapped onto four rows on a phone would push the questions off
         the screen — and the exam's strip is one line.
       */}
-      <ol className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-0.5">
+      <ol
+        ref={strip}
+        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-0.5"
+      >
         {items.map((item) => {
           const isCurrent = item.id === currentId;
           return (
             <li key={item.id} className="shrink-0">
               <button
                 type="button"
+                ref={isCurrent ? lit : null}
                 onClick={() => onJump(item.id)}
                 aria-current={isCurrent ? "true" : undefined}
                 aria-label={

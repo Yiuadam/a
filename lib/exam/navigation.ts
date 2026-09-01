@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { PaletteItem } from "@/components/exam/QuestionPalette";
+import { scrollBehaviour, useReadingPosition } from "@/lib/exam/reading-position";
 
 /*
   Which question you are on, and which ones you have flagged.
@@ -12,6 +13,12 @@ import type { PaletteItem } from "@/components/exam/QuestionPalette";
   across every group and every passage. A page that numbered each group from 1
   would look right on screen and be wrong the moment somebody said "I'm stuck
   on 23".
+
+  "Which question you are on" is answered by the paper rather than by the last
+  tap: scrolling down to question 23 makes 23 the current one, exactly as if it
+  had been tapped. Taps and the arrows still work, and still scroll — they are
+  now one of two ways to move rather than the only one. See
+  lib/exam/reading-position.ts for how the paper is read.
 */
 
 export interface NavQuestion {
@@ -45,20 +52,36 @@ export function useExamNavigation(questions: NavQuestion[]) {
     questions.findIndex((q) => q.id === currentId),
   );
 
-  const jump = useCallback((id: string) => {
-    setCurrentId(id);
-    /*
-      Scrolling is the page's job, not this hook's, but every caller wants it,
-      so it is done here against a stable id convention rather than repeated.
-      `block: "center"` because "start" puts the question under the sticky
-      chrome on a short screen.
-    */
-    if (typeof document !== "undefined") {
-      document
-        .querySelector(`[data-question-id="${CSS.escape(id)}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, []);
+  const ids = useMemo(() => questions.map((q) => q.id), [questions]);
+  const { holdWhileScrolling } = useReadingPosition(ids, setCurrentId);
+
+  const jump = useCallback(
+    (id: string) => {
+      /*
+        The scroll started below sweeps every question between here and there
+        through the reading line, and each of them would otherwise be reported
+        as the one being read. Hold the strip still until the movement this
+        press caused has finished, or a press on 23 ends up highlighting
+        whichever number the animation's last frame happened to be passing.
+      */
+      holdWhileScrolling();
+      setCurrentId(id);
+      /*
+        Scrolling is the page's job, not this hook's, but every caller wants it,
+        so it is done here against a stable id convention rather than repeated.
+        `block: "center"` because "start" puts the question under the sticky
+        chrome on a short screen — and because the reading line the strip
+        follows is the middle of the pane, so centring is what makes a jump
+        agree with the highlight it leaves behind.
+      */
+      if (typeof document !== "undefined") {
+        document
+          .querySelector(`[data-question-id="${CSS.escape(id)}"]`)
+          ?.scrollIntoView({ behavior: scrollBehaviour(), block: "center" });
+      }
+    },
+    [holdWhileScrolling],
+  );
 
   const step = useCallback(
     (delta: number) => {
@@ -79,23 +102,15 @@ export function useExamNavigation(questions: NavQuestion[]) {
   }, [currentId]);
 
   /*
-    Round-robin through the flagged questions, from wherever you are.
-
-    Wrapping matters: a candidate who flags three and reaches the last one
-    expects the next press to take them back to the first, not to do nothing.
-    Without the wrap the control appears broken exactly when it has finished
-    being useful.
+    There is no control that walks between the marked questions any more, and
+    none is needed: a marked question keeps its number blue in the strip, the
+    strip now follows the paper so those blue numbers come past as you work,
+    and one tap on one goes there. A button for it was a second way to do the
+    same thing, on a bar with no room to spare.
   */
-  const nextFlagged = useCallback(() => {
-    const flaggedIds = questions.map((q) => q.id).filter((id) => flagged[id]);
-    if (flaggedIds.length === 0) return;
-    const after = flaggedIds.find((id) => questions.findIndex((q) => q.id === id) > index);
-    jump(after ?? flaggedIds[0]);
-  }, [questions, flagged, index, jump]);
 
   return {
     items,
-    nextFlagged,
     currentId: questions[index]?.id ?? null,
     jump,
     prev: useCallback(() => step(-1), [step]),
