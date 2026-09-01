@@ -1,0 +1,11 @@
+{
+  "pages": ["pages/index/index"],
+  "window": {
+    "navigationBarTitleText": "BandUp",
+    "navigationBarBackgroundColor": "#fbf7f2",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#fbf7f2",
+    "backgroundTextStyle": "light"
+  },
+  "sitemapLocation": "sitemap.json"
+}

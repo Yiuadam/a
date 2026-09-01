@@ -574,9 +574,21 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   const splitFnEnd = filter.indexOf("\n}", splitFnStart);
   const splitFnBody = filter.slice(splitFnStart, splitFnEnd);
   assert.doesNotMatch(splitFnBody, /finePointer|memoryGb|cores|supportsDetailedGlass/);
-  assert.match(splitFnBody, /REDUCED_MOTION_QUERY/);
-  assert.match(splitFnBody, /REDUCED_TRANSPARENCY_QUERY/);
-  assert.match(splitFnBody, /saveData/);
+  /*
+    Those preferences are still the only way out, but they are asked once now
+    rather than twice. This function spelled out the same three checks the
+    clone path spelled out, and two copies of one decision can drift apart —
+    which is exactly what would have happened when the mini program shell was
+    added to one of them. Whether a lens is wanted at all is one question;
+    which engine draws it is the separate one these two functions answer.
+  */
+  assert.match(splitFnBody, /return lensPreferencesAllow\(\);/);
+  const allowStart = filter.indexOf("function lensPreferencesAllow");
+  const allowBody = filter.slice(allowStart, filter.indexOf("\n}", allowStart));
+  assert.match(allowBody, /REDUCED_MOTION_QUERY/);
+  assert.match(allowBody, /REDUCED_TRANSPARENCY_QUERY/);
+  assert.match(allowBody, /saveData/);
+  assert.doesNotMatch(allowBody, /finePointer|memoryGb|cores|supportsDetailedGlass/);
   assert.match(filter, /document\.documentElement\.dataset\.glassLensSplit/);
 
   // .nav-menu-group's material lives on ::before so filter and

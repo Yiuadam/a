@@ -43,6 +43,33 @@ const eslintConfig = defineConfig([
     // generated distribution bundle.
     "public/vendor/kokoro/**",
   ]),
+  {
+    /*
+      The WeChat mini program shell.
+
+      Linted rather than ignored — it is hand-written source that ships, and
+      the generated iOS project above is not. But it does not run in this
+      project's runtime: WeChat's is CommonJS, and App, Page and wx are
+      globals it provides. The TypeScript preset reads `require` as a mistake
+      because in a Next.js file it would be one, and reads the globals as
+      undefined because in a browser they are.
+    */
+    files: ["miniprogram/**/*.js"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: {
+        App: "readonly",
+        Page: "readonly",
+        wx: "readonly",
+        console: "readonly",
+        module: "writable",
+        require: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

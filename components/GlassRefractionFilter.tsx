@@ -10,6 +10,7 @@ import {
   GLASS_PERFORMANCE_QUERY,
   supportsDetailedGlass,
 } from "@/lib/glass-performance";
+import { isMiniProgramShell } from "@/lib/platform";
 
 const FILTER_ID = "bandup-live-glass-refraction";
 /* A bevel confined to its own band at the rim, and nothing else — no dome,
@@ -680,6 +681,16 @@ function supportsLiveBackdropRefraction() {
 */
 function supportsDetailedLiveRefraction() {
   if (!supportsLiveBackdropRefraction()) return false;
+  /*
+    The mini program declines this too, and says so rather than relying on
+    the capability gate below to reach the same answer by accident. It would:
+    a web-view is a coarse pointer, and finePointer is the first thing
+    supportsDetailedGlass asks about. But that is a fact about phones, not a
+    decision about the shell — a mini program opened on a device that reports
+    a fine pointer would quietly switch the heaviest path back on, and the
+    reason for declining has nothing to do with the pointer.
+  */
+  if (isMiniProgramShell()) return false;
 
   const browser = navigator as PerformanceNavigator;
   return supportsDetailedGlass({
@@ -761,6 +772,20 @@ function displacesBackdropContent() {
 function lensPreferencesAllow() {
   if (window.matchMedia(REDUCED_MOTION_QUERY).matches) return false;
   if (window.matchMedia(REDUCED_TRANSPARENCY_QUERY).matches) return false;
+  /*
+    And not inside the WeChat mini program.
+
+    The shell is a `<web-view>` around the live site, so the same bundle that
+    serves a desktop browser serves it — nothing about the build says the
+    glass should be cheaper here, and the engine underneath is capable enough
+    that no capability check would decline it either. The reason is the
+    surface, not the hardware: a web-view is a page hosted inside another
+    app's scroll, and a per-frame displacement filter running there competes
+    with the host for the same compositor while giving up the one thing it
+    exists for, since a lens bends what is behind it and behind it is
+    somebody else's chrome.
+  */
+  if (isMiniProgramShell()) return false;
   return !(navigator as PerformanceNavigator).connection?.saveData;
 }
 
@@ -792,11 +817,11 @@ function supportsCloneLens() {
 function supportsSplitPropertyLens() {
   if (!CSS.supports("filter", `url(#${FILTER_ID})`)) return false;
   if (!displacesBackdropContent()) return false;
-  if (window.matchMedia(REDUCED_MOTION_QUERY).matches) return false;
-  if (window.matchMedia(REDUCED_TRANSPARENCY_QUERY).matches) return false;
-
-  const browser = navigator as PerformanceNavigator;
-  return !browser.connection?.saveData;
+  /* The same preference gate as the clone path, which this had spelled out
+     itself in the same three checks. Sharing it is what keeps the two paths
+     declining together: they are one decision about whether a lens is wanted
+     at all, and only then a decision about which engine draws it. */
+  return lensPreferencesAllow();
 }
 
 /*

@@ -39,3 +39,48 @@ export const IS_MOBILE_BUILD = process.env.NEXT_PUBLIC_MOBILE_BUILD === "1";
  * guidelines are actually about.
  */
 export const WEB_HOME = "bandup.life";
+
+/**
+ * True when the page is running inside the WeChat mini program's web-view.
+ *
+ * Runtime rather than build-time, unlike IS_MOBILE_BUILD, and it has to be:
+ * the mini program does not carry its own copy of the site the way the iOS
+ * app does. It points a `<web-view>` at the live deployment, so the same
+ * bundle serves the browser and the mini program and only the page itself can
+ * tell which it is in.
+ *
+ * Three signals, because no one of them is reliable on its own. WeChat sets
+ * `__wxjs_environment` on the window, but not until its own bridge script has
+ * run, which can be after first paint. The user agent carries "miniProgram"
+ * on most clients and not on all of them. So the mini program also puts a
+ * marker in the URL it opens, which is true from the very first frame — see
+ * miniprogram/pages/index/index.js, which appends it.
+ */
+export function isMiniProgramShell() {
+  if (typeof window === "undefined") return false;
+  const wx = window as unknown as { __wxjs_environment?: string };
+  if (wx.__wxjs_environment === "miniprogram") return true;
+  if (/miniprogram/i.test(navigator.userAgent)) return true;
+  try {
+    if (new URLSearchParams(window.location.search).get("shell") === MINIPROGRAM_SHELL) {
+      /* Remembered as it is read. Only the first page the mini program opens
+         carries the query string; every link followed from it is an ordinary
+         in-app navigation that would otherwise look like a plain browser
+         again, and the glass would come back halfway through a session. */
+      window.sessionStorage.setItem(MINIPROGRAM_SHELL_STORE, "1");
+      return true;
+    }
+    return window.sessionStorage.getItem(MINIPROGRAM_SHELL_STORE) === "1";
+  } catch {
+    /* Private modes and embedded web-views can both throw on storage rather
+       than return null. Not being able to read the marker is not evidence
+       either way, and the two signals above have already had their say. */
+    return false;
+  }
+}
+
+/** The value of the `shell` query parameter the mini program opens with. */
+export const MINIPROGRAM_SHELL = "miniprogram";
+
+/** Where that marker is remembered for the rest of the session. */
+export const MINIPROGRAM_SHELL_STORE = "bandup.shell.miniprogram";

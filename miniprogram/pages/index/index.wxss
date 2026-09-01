@@ -1,0 +1,6 @@
+/* A web-view is full-screen by definition in WeChat; this only makes the
+   page behind it match while it loads. */
+page {
+  height: 100%;
+  background-color: #fbf7f2;
+}

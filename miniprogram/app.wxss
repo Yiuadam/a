@@ -1,0 +1,11 @@
+/*
+  The shell paints the page's own background rather than white.
+
+  A `<web-view>` fills the screen, but it is not instant — there is a moment
+  between the page appearing and the site painting, and on a white shell that
+  moment is a flash. This is the same colour the iOS app uses for the same
+  reason (see capacitor.config.ts), and the same as the site's warm theme.
+*/
+page {
+  background-color: #fbf7f2;
+}

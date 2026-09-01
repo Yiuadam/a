@@ -1,0 +1,24 @@
+{
+  "description": "BandUp — WeChat mini program shell. See README.md.",
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "file",
+        "value": "README.md"
+      }
+    ]
+  },
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "coverView": false
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.5.5",
+  "appid": "",
+  "projectname": "BandUp",
+  "miniprogramRoot": "./"
+}

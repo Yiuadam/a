@@ -1,0 +1,6 @@
+<!--
+  Rendered only once the URL is built. A `<web-view>` given an empty src
+  navigates to nothing and then has to be navigated again, which shows as a
+  flash of blank followed by a reload.
+-->
+<web-view wx:if="{{url}}" src="{{url}}" binderror="onError"></web-view>
