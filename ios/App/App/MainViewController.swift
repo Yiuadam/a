@@ -1,0 +1,35 @@
+import Capacitor
+import UIKit
+
+/*
+  Exists for one reason: these plugins ship as App-target source rather than
+  as installed npm packages, so `npx cap sync` never learns their class names
+  and capacitor.config.json's packageClassList — the file that drives ordinary
+  plugin auto-registration — stays silent about both. NativeChrome has no npm
+  package at all; SpeechRecognition's package exists and its JS half is used
+  as normal, but its iOS half was never wired into CapApp-SPM/Package.swift —
+  see the comment atop SpeechRecognitionPlugin.swift for why. capacitorDidLoad()
+  is the hook Capacitor itself calls once the bridge exists and before the web
+  view starts loading, which makes registerPluginInstance here the earliest
+  and the only place a script's first check of `Capacitor.Plugins.NativeChrome`
+  or `Capacitor.Plugins.SpeechRecognition` is guaranteed to already find it.
+
+  The same override point is also where the bar's height is kept honest
+  across rotation: viewSafeAreaInsetsDidChange is a UIViewController callback
+  the plugin has no way to receive on its own, since it owns a view rather
+  than a view controller.
+*/
+final class MainViewController: CAPBridgeViewController {
+  private let nativeChrome = NativeChromePlugin()
+  private let speechRecognition = SpeechRecognitionPlugin()
+
+  override func capacitorDidLoad() {
+    bridge?.registerPluginInstance(nativeChrome)
+    bridge?.registerPluginInstance(speechRecognition)
+  }
+
+  override func viewSafeAreaInsetsDidChange() {
+    super.viewSafeAreaInsetsDidChange()
+    nativeChrome.updateForSafeAreaChange()
+  }
+}

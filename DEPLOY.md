@@ -166,6 +166,7 @@ because Secrets are encrypted at rest and hidden from the dashboard once saved.
 | `AVATAR_URL_SIGNING_KEY` | private R2 avatar delivery once learner reads move to Cloudflare (`CLOUDFLARE_DATA_MODE=read_cloudflare` or `cloudflare` — the code gates on *reading*, not on write authority); generate with `openssl rand -hex 32` and store as a Secret |
 | `USAGE_IP_HASH_SALT` | per-address rate limiting; without it that limit is skipped rather than done badly |
 | `ACCOUNTS_ALLOWED_ORIGINS` | the iOS app; `capacitor://localhost,https://localhost` |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google sign-in **in the iOS app**, and nowhere else. Store as a Secret. Without it `/api/auth/google/config` answers `serverFlow: false` and the app draws "Google sign-in is being updated. Please try again shortly." where the button belongs, while the website's own Google button carries on working — so it fails in exactly one place and looks like a transient outage rather than a missing key. `GOOGLE_OAUTH_APP_ORIGIN` is already set in `wrangler.jsonc`; this is the half that cannot live there. Confirm with `curl -s https://bandup.life/api/auth/google/config`, which should say `"serverFlow":true` |
 | `STRIPE_SECRET_KEY` | subscriptions: creating a Checkout Session and a billing portal session |
 | `STRIPE_WEBHOOK_SECRET` | subscriptions: verifying that a webhook delivery really came from Stripe |
 | `STRIPE_PRICE_STANDARD_MONTHLY` | the Stripe Price id behind Standard, monthly |

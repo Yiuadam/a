@@ -1,0 +1,558 @@
+import UIKit
+
+/*
+  The app's top bar, in real glass.
+
+  Everything below this view is still the web app rendered by WKWebView. This
+  is the one piece of BandUp that is not HTML, and the reason is narrow: the
+  refractive glass the site draws in CSS cannot run in WebKit at all. That was
+  measured rather than assumed — a displacement filter over a backdrop was
+  tried through the combined `backdrop-filter: blur() url()` syntax, through
+  `filter` and `backdrop-filter` as separate properties, and with the filter
+  on a parent of the blurred element. On a real iPhone all three left the
+  backdrop pixel-identical to a control with no filter at all, including one
+  deliberately given no blur to hide behind. WebKit will filter an element's
+  own painted content and will not filter what is behind it.
+
+  So the site falls back to a drawn bevel there, and the app does not have to:
+  UIGlassEffect is the genuine article, and it does the one thing CSS could
+  not — bend and brighten what is actually behind it, per frame, for free.
+
+  The controls come with the glass because they have to. A native view cannot
+  be interleaved with the DOM: there is no arrangement in which this bar's
+  glass sits behind HTML buttons. Either the bar is native with its buttons,
+  or it is web with its buttons.
+*/
+final class NativeChromeView: UIView {
+  /// Raised when the user taps a control the web app owns the response to.
+  var onMenu: (() -> Void)?
+  var onAccount: (() -> Void)?
+  var onTheme: ((String) -> Void)?
+
+  /// The bar's content strip, below whatever the status bar and notch take.
+  /// NativeChromePlugin adds the safe-area inset to this for the total height,
+  /// so the two sides agree by sharing the number rather than repeating it.
+  static let barContentHeight: CGFloat = 60
+
+  /// The three stops, in the order the web control shows them.
+  static let themes = ["warm", "light", "dark"]
+  private static let themeAssets = ["IconThemeWarm", "IconThemeLight", "IconThemeDark"]
+  private static let themeLabels = ["Warm theme", "Light theme", "Dark theme"]
+
+  private let barEffectView: UIVisualEffectView
+  /// Wraps the account circle and the theme track so their glass can flow
+  /// together in motion the way the site's two pills never do on their own —
+  /// see containerEffect() below. It carries no fill or border of its own;
+  /// everything visible about this pair comes from the two views inside it.
+  private let containerEffectView: UIVisualEffectView
+  private let accountEffectView: UIVisualEffectView
+  private let menuButton = UIButton(type: .system)
+  private let accountButton = UIButton(type: .system)
+  private let themeTrack: UIVisualEffectView
+  private let themeStack = UIStackView()
+  private var themeButtons: [UIButton] = []
+  private let knob: UIVisualEffectView
+  /* The knob's position, as a constraint rather than a frame. A frame set
+     from a parent's layoutSubviews races the stack view's own layout pass:
+     the stop's frame gets read before the stack has placed it, so the first
+     layout puts the knob at zero and every rotation puts it back there. A
+     constant on a leading constraint is resolved in the same pass that places
+     the stops, whichever order the two happen in. */
+  private var knobLeading: NSLayoutConstraint?
+  private let wordmark = UILabel()
+  private let logoView = UIImageView()
+  private let divider = UIView()
+
+  private var selectedTheme = "warm"
+
+  override init(frame: CGRect) {
+    /* themeColors is a type-level table, so it can be read here safely even
+       though self is not yet a valid instance — reading the selectedTheme
+       property instead would not be, this early. Whatever it seeds each
+       glass surface with is provisional anyway: build() calls applyTheme()
+       before the view is ever displayed, and that pass is what actually
+       has to be correct. */
+    let initial = NativeChromeView.themeColors["warm"]!
+    barEffectView = UIVisualEffectView(effect: NativeChromeView.barEffect(tint: initial.barFill))
+    containerEffectView = UIVisualEffectView(effect: NativeChromeView.containerEffect())
+    accountEffectView = UIVisualEffectView(effect: NativeChromeView.pillEffect(tint: initial.accountFill))
+    themeTrack = UIVisualEffectView(effect: NativeChromeView.pillEffect(tint: initial.trackFill))
+    knob = UIVisualEffectView(effect: NativeChromeView.knobEffect(tint: initial.knobFill))
+    super.init(frame: frame)
+    build()
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  // MARK: - Effects
+
+  /*
+    Every effect is behind an availability check with a blur underneath it.
+    UIGlassEffect is iOS 26, and an app that only looks right on the newest
+    release is an app most of its users see broken — the fallback is the same
+    material the site's own CSS uses, so older iOS gets the web app's look
+    rather than a hole where the bar should be.
+
+    Below 26 that fallback blur cannot carry a tint of its own — UIBlurEffect
+    has no such property — which is why applyTheme() also paints one straight
+    onto contentView down there. It is the one place in this file a fill sits
+    over the glass instead of inside it, and only because the material leaves
+    nothing else to colour.
+  */
+  private static func barEffect(tint: UIColor) -> UIVisualEffect {
+    if #available(iOS 26.0, *) {
+      /*
+        .regular, not .clear.
+
+        .clear was the obvious choice for a bar meant to let the page show
+        through, and on a still screen it looked right. Scrolling it proved
+        otherwise: a sign-in form passing underneath stayed legible through
+        the glass, so its headings collided with the wordmark and its links
+        ran through the theme control — two layers of type competing in the
+        same strip. The website's own header is not that transparent either;
+        it blurs what passes under it to a wash.
+
+        This is the authentic material either way. .clear is for glass with
+        something worth seeing behind it; a bar with controls on it is the
+        case .regular exists for.
+      */
+      let effect = UIGlassEffect(style: .regular)
+      effect.tintColor = tint
+      return effect
+    }
+    return UIBlurEffect(style: .systemThinMaterial)
+  }
+
+  private static func pillEffect(tint: UIColor) -> UIVisualEffect {
+    if #available(iOS 26.0, *) {
+      /* .regular rather than the bar's .clear: the account circle and the
+         theme track are meant to read as their own pieces of glass, the way
+         the site paints them as two pills with their own fill and border
+         rather than controls resting on the bar's material directly. Both
+         are real controls a finger lands on, so both are interactive. */
+      let effect = UIGlassEffect(style: .regular)
+      effect.tintColor = tint
+      effect.isInteractive = true
+      return effect
+    }
+    return UIBlurEffect(style: .systemThinMaterial)
+  }
+
+  private static func knobEffect(tint: UIColor) -> UIVisualEffect {
+    if #available(iOS 26.0, *) {
+      let effect = UIGlassEffect(style: .regular)
+      effect.tintColor = tint
+      /* The press and deform the web knob spends a pointer-speed filter and a
+         squash curve on. Here the system owns it, and it responds to the
+         real touch rather than to a sampled derivative of one. */
+      effect.isInteractive = true
+      return effect
+    }
+    return UIBlurEffect(style: .systemMaterial)
+  }
+
+  private static func containerEffect() -> UIVisualEffect {
+    if #available(iOS 26.0, *) {
+      let effect = UIGlassContainerEffect()
+      /* What makes two pieces of glass read as one substance rather than two
+         stickers: inside this distance they flow together as they move. It is
+         the effect the site spends a filter and a displacement map imitating
+         and never quite reaches, and here it is a number. The account circle
+         and the theme track keep their own shape, fill, and border regardless
+         — this only governs how those two behave near each other in motion,
+         which is exactly why the site's static, unmerged look still matches. */
+      effect.spacing = 12
+      return effect
+    }
+    return UIBlurEffect(style: .systemThinMaterial)
+  }
+
+  // MARK: - Theme colours
+
+  /// One frosted-glass colour, as the site's inspector reports it: an sRGB
+  /// triple out of 255 plus the alpha the glass is left to show through,
+  /// rather than the 0-1 components UIColor itself expects.
+  private static func rgba(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat) -> UIColor {
+    UIColor(red: r / 255, green: g / 255, blue: b / 255, alpha: a)
+  }
+
+  /// Every colour a theme touches, gathered in one place so applyTheme() is a
+  /// list of assignments rather than three copies of the same nine values.
+  private struct ThemeColors {
+    let barFill: UIColor
+    let divider: UIColor
+    let trackFill: UIColor
+    let trackBorder: UIColor
+    let accountFill: UIColor
+    let accountBorder: UIColor
+    let iconTint: UIColor
+    let foreground: UIColor
+    let knobFill: UIColor
+    let knobBorder: UIColor?
+  }
+
+  private static let themeColors: [String: ThemeColors] = [
+    "warm": ThemeColors(
+      barFill: rgba(255, 255, 255, 0.08),
+      divider: rgba(255, 255, 255, 0.463),
+      trackFill: rgba(244, 238, 231, 0.48),
+      trackBorder: rgba(162, 150, 138, 0.24),
+      accountFill: rgba(255, 255, 255, 0.08),
+      accountBorder: rgba(255, 255, 255, 0.314),
+      iconTint: rgba(169, 93, 47, 1),
+      foreground: rgba(42, 37, 33, 1),
+      knobFill: rgba(247, 244, 240, 0.97),
+      knobBorder: nil
+    ),
+    "light": ThemeColors(
+      barFill: rgba(246, 247, 248, 0.539),
+      divider: rgba(221, 225, 230, 0.957),
+      trackFill: rgba(22, 23, 26, 0.07),
+      trackBorder: rgba(231, 233, 236, 1.0),
+      accountFill: rgba(250, 250, 250, 0.147),
+      accountBorder: rgba(232, 234, 237, 0.89),
+      iconTint: rgba(58, 61, 67, 1),
+      foreground: rgba(22, 23, 26, 1),
+      knobFill: rgba(252, 252, 253, 0.97),
+      knobBorder: nil
+    ),
+    "dark": ThemeColors(
+      barFill: rgba(253, 253, 253, 0.044),
+      divider: rgba(245, 247, 248, 0.15),
+      trackFill: rgba(255, 255, 255, 0.035),
+      trackBorder: rgba(255, 255, 255, 0.114),
+      accountFill: rgba(255, 255, 255, 0.045),
+      accountBorder: rgba(241, 242, 244, 0.25),
+      iconTint: rgba(238, 154, 115, 1),
+      foreground: rgba(244, 244, 245, 1),
+      knobFill: rgba(92, 88, 86, 0.99),
+      knobBorder: rgba(218, 135, 98, 0.42)
+    ),
+  ]
+
+  // MARK: - Build
+
+  private func build() {
+    backgroundColor = .clear
+
+    barEffectView.translatesAutoresizingMaskIntoConstraints = false
+    addSubview(barEffectView)
+    NSLayoutConstraint.activate([
+      barEffectView.leadingAnchor.constraint(equalTo: leadingAnchor),
+      barEffectView.trailingAnchor.constraint(equalTo: trailingAnchor),
+      barEffectView.topAnchor.constraint(equalTo: topAnchor),
+      barEffectView.bottomAnchor.constraint(equalTo: bottomAnchor),
+    ])
+
+    let content = barEffectView.contentView
+
+    /* A dedicated image set rather than the app icon. An icon in an
+       AppIcon.appiconset is not an ordinary named image — UIImage(named:)
+       does not reliably resolve it, and the bar would have shown a blank
+       square. BandUpMark holds the same artwork at the three sizes a 32pt
+       view actually needs, instead of decoding a 1024px icon to draw it. */
+    logoView.image = UIImage(named: "BandUpMark")
+    logoView.contentMode = .scaleAspectFill
+    logoView.clipsToBounds = true
+    logoView.layer.cornerRadius = 16
+    logoView.layer.cornerCurve = .continuous
+    logoView.translatesAutoresizingMaskIntoConstraints = false
+    content.addSubview(logoView)
+
+    wordmark.text = "BandUp"
+    wordmark.font = .systemFont(ofSize: 17, weight: .semibold)
+    wordmark.adjustsFontForContentSizeCategory = true
+    wordmark.translatesAutoresizingMaskIntoConstraints = false
+    content.addSubview(wordmark)
+
+    /* A bare glyph, same as the site: the menu button has no surface behind
+       it there, so it does not get one here either. Inventing glass for a
+       control the site does not give any is the same drift as leaving glass
+       off a control the site does have — either way the two stop matching. */
+    configure(menuButton, asset: "IconMenu", size: 22, label: "Open menu")
+    menuButton.addTarget(self, action: #selector(menuTapped), for: .touchUpInside)
+    menuButton.translatesAutoresizingMaskIntoConstraints = false
+    content.addSubview(menuButton)
+
+    accountEffectView.translatesAutoresizingMaskIntoConstraints = false
+    accountEffectView.layer.cornerRadius = NativeChromeView.accountSize / 2
+    accountEffectView.layer.cornerCurve = .continuous
+    accountEffectView.clipsToBounds = true
+    accountEffectView.layer.borderWidth = 1
+
+    configure(accountButton, asset: "IconAccount", size: 20, label: "Your account")
+    accountButton.addTarget(self, action: #selector(accountTapped), for: .touchUpInside)
+    accountButton.translatesAutoresizingMaskIntoConstraints = false
+    accountEffectView.contentView.addSubview(accountButton)
+
+    buildThemeControl()
+
+    /* The 10pt gap between the two pills, and nothing else — this stack has
+       no material of its own, unlike containerEffectView below it. */
+    let group = UIStackView(arrangedSubviews: [accountEffectView, themeTrack])
+    group.axis = .horizontal
+    group.spacing = 10
+    group.alignment = .center
+    group.translatesAutoresizingMaskIntoConstraints = false
+
+    containerEffectView.translatesAutoresizingMaskIntoConstraints = false
+    containerEffectView.contentView.addSubview(group)
+    content.addSubview(containerEffectView)
+
+    /* The hairline the web draws between the header and the page. Without
+       it the bar's glass just stops, and the seam between native and web
+       content is exactly where the eye lands. */
+    divider.translatesAutoresizingMaskIntoConstraints = false
+    content.addSubview(divider)
+
+    /*
+      Everything is centred on the bar's bottom strip rather than on the bar.
+
+      The glass deliberately runs the full height, up under the status bar, so
+      that the clock and the signal bars sit on the same material as the rest
+      of the bar. Centring the controls in that whole height then pushes them
+      up into it — the wordmark collided with the carrier label and the time,
+      which is exactly what the first run on the simulator showed. The strip
+      below the safe area is the part meant to hold controls, so that is what
+      they are centred in.
+    */
+    let centreY = NativeChromeView.barContentHeight / 2
+
+    NSLayoutConstraint.activate([
+      logoView.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
+      logoView.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
+      logoView.widthAnchor.constraint(equalToConstant: 32),
+      logoView.heightAnchor.constraint(equalToConstant: 32),
+
+      wordmark.leadingAnchor.constraint(equalTo: logoView.trailingAnchor, constant: 10),
+      wordmark.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
+
+      menuButton.leadingAnchor.constraint(greaterThanOrEqualTo: wordmark.trailingAnchor, constant: 12),
+      menuButton.trailingAnchor.constraint(equalTo: containerEffectView.leadingAnchor, constant: -10),
+      menuButton.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
+      menuButton.widthAnchor.constraint(equalToConstant: 40),
+      menuButton.heightAnchor.constraint(equalToConstant: 40),
+
+      containerEffectView.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -14),
+      containerEffectView.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
+
+      group.leadingAnchor.constraint(equalTo: containerEffectView.contentView.leadingAnchor),
+      group.trailingAnchor.constraint(equalTo: containerEffectView.contentView.trailingAnchor),
+      group.topAnchor.constraint(equalTo: containerEffectView.contentView.topAnchor),
+      group.bottomAnchor.constraint(equalTo: containerEffectView.contentView.bottomAnchor),
+
+      accountEffectView.widthAnchor.constraint(equalToConstant: NativeChromeView.accountSize),
+      accountEffectView.heightAnchor.constraint(equalToConstant: NativeChromeView.accountSize),
+
+      accountButton.leadingAnchor.constraint(equalTo: accountEffectView.contentView.leadingAnchor),
+      accountButton.trailingAnchor.constraint(equalTo: accountEffectView.contentView.trailingAnchor),
+      accountButton.topAnchor.constraint(equalTo: accountEffectView.contentView.topAnchor),
+      accountButton.bottomAnchor.constraint(equalTo: accountEffectView.contentView.bottomAnchor),
+
+      divider.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+      divider.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+      divider.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+      divider.heightAnchor.constraint(equalToConstant: 1),
+    ])
+
+    applyTheme(animated: false)
+    applyThemeSelection(animated: false)
+  }
+
+  /// Every glyph button shares this shape: a plain, non-interactive image
+  /// view laid out to an exact size rather than left to
+  /// button.setImage(_:for:), which would size it at the asset's own native
+  /// point size — the menu glyph's native size and the theme glyphs' both
+  /// differ from what the site renders them at, so the size the site
+  /// measured is the one Auto Layout is told to hit.
+  private func configure(_ button: UIButton, asset: String, size: CGFloat, label: String) {
+    /* A miss here — the asset not having made it into the bundle —
+       leaves the button glyph-less rather than reaching for a system symbol
+       that would not match the site's icon either way; a wrong-looking
+       glyph is worse than none. */
+    let imageView = UIImageView(image: UIImage(named: asset)?.withRenderingMode(.alwaysTemplate))
+    imageView.contentMode = .scaleAspectFit
+    imageView.isUserInteractionEnabled = false
+    imageView.translatesAutoresizingMaskIntoConstraints = false
+    button.addSubview(imageView)
+    NSLayoutConstraint.activate([
+      imageView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+      imageView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+      imageView.widthAnchor.constraint(equalToConstant: size),
+      imageView.heightAnchor.constraint(equalToConstant: size),
+    ])
+    button.accessibilityLabel = label
+  }
+
+  /// Stop size, the gap between stops, and the track's own inset — together
+  /// these give the knob's pitch and the track's footprint, so the measured
+  /// 110x38 pill falls out of the same numbers rather than being restated.
+  private static let stopSize: CGFloat = 34
+  private static let stopGap: CGFloat = 2
+  private static let trackPadding: CGFloat = 2
+  private static var stopPitch: CGFloat { stopSize + stopGap }
+
+  /// The account circle's own diameter, sized directly since nothing but its
+  /// glyph sits inside it.
+  private static let accountSize: CGFloat = 40
+
+  private func buildThemeControl() {
+    themeTrack.translatesAutoresizingMaskIntoConstraints = false
+    themeTrack.layer.cornerRadius = NativeChromeView.stopSize / 2 + NativeChromeView.trackPadding
+    themeTrack.layer.cornerCurve = .continuous
+    themeTrack.clipsToBounds = true
+    themeTrack.layer.borderWidth = 1
+
+    themeStack.axis = .horizontal
+    themeStack.spacing = NativeChromeView.stopGap
+    themeStack.alignment = .center
+    themeStack.translatesAutoresizingMaskIntoConstraints = false
+
+    /* The knob goes in first so it sits under the glyphs. The web control
+       spent a long time learning that a label read through frosted glass is a
+       smear; the same is true here, and the same answer applies. */
+    knob.translatesAutoresizingMaskIntoConstraints = false
+    knob.isUserInteractionEnabled = false
+    knob.layer.cornerRadius = NativeChromeView.stopSize / 2
+    knob.layer.cornerCurve = .continuous
+    knob.clipsToBounds = true
+    themeTrack.contentView.addSubview(knob)
+    themeTrack.contentView.addSubview(themeStack)
+
+    let leading = knob.leadingAnchor.constraint(
+      equalTo: themeTrack.contentView.leadingAnchor, constant: NativeChromeView.trackPadding
+    )
+    knobLeading = leading
+    NSLayoutConstraint.activate([
+      leading,
+      knob.centerYAnchor.constraint(equalTo: themeTrack.contentView.centerYAnchor),
+      knob.widthAnchor.constraint(equalToConstant: NativeChromeView.stopSize),
+      knob.heightAnchor.constraint(equalToConstant: NativeChromeView.stopSize),
+
+      themeStack.leadingAnchor.constraint(equalTo: themeTrack.contentView.leadingAnchor, constant: NativeChromeView.trackPadding),
+      themeStack.trailingAnchor.constraint(equalTo: themeTrack.contentView.trailingAnchor, constant: -NativeChromeView.trackPadding),
+      themeStack.topAnchor.constraint(equalTo: themeTrack.contentView.topAnchor, constant: NativeChromeView.trackPadding),
+      themeStack.bottomAnchor.constraint(equalTo: themeTrack.contentView.bottomAnchor, constant: -NativeChromeView.trackPadding),
+    ])
+
+    for (index, asset) in NativeChromeView.themeAssets.enumerated() {
+      let button = UIButton(type: .system)
+      configure(button, asset: asset, size: 20, label: NativeChromeView.themeLabels[index])
+      button.tag = index
+      button.addTarget(self, action: #selector(themeTapped(_:)), for: .touchUpInside)
+      button.translatesAutoresizingMaskIntoConstraints = false
+      NSLayoutConstraint.activate([
+        button.widthAnchor.constraint(equalToConstant: NativeChromeView.stopSize),
+        button.heightAnchor.constraint(equalToConstant: NativeChromeView.stopSize),
+      ])
+      themeButtons.append(button)
+      themeStack.addArrangedSubview(button)
+    }
+  }
+
+  // MARK: - Selection
+
+  /// Called by the web app when the theme changes there, so the two agree.
+  func setTheme(_ theme: String, animated: Bool = true) {
+    guard NativeChromeView.themes.contains(theme), theme != selectedTheme else { return }
+    selectedTheme = theme
+    applyTheme(animated: animated)
+    applyThemeSelection(animated: animated)
+  }
+
+  /// contentView.backgroundColor is the only place a translucent tint can
+  /// live pre-26, since UIBlurEffect carries no colour of its own. On 26 the
+  /// tint lives on the glass effect handed to `effect` instead, so this
+  /// stays clear there and leaves the glass to carry the colour by itself.
+  private func paintFallbackTint(_ view: UIVisualEffectView, _ tint: UIColor) {
+    if #available(iOS 26.0, *) {
+      view.contentView.backgroundColor = .clear
+    } else {
+      view.contentView.backgroundColor = tint
+    }
+  }
+
+  /// Every colour above, read from selectedTheme and pushed onto the views
+  /// that carry it — called from build() for the first paint and from
+  /// setTheme(_:) for every change after, whether it began with a native tap
+  /// or arrived from the web through the plugin.
+  private func applyTheme(animated: Bool = true) {
+    let colors = NativeChromeView.themeColors[selectedTheme] ?? NativeChromeView.themeColors["warm"]!
+
+    /* Tint, not fill: each of these gets a freshly built UIGlassEffect with
+       the theme's colour already on it, rather than a coloured layer painted
+       over the existing one — a layer opaque enough to read as the site's
+       fill would be opaque enough to hide the refraction under it, which is
+       the entire reason this bar is native rather than more CSS. Reassigning
+       `effect` inside the animator is also the only handle UIKit gives you
+       on animating a glass or blur change at all, so it does double duty. */
+    let retint = {
+      self.barEffectView.effect = NativeChromeView.barEffect(tint: colors.barFill)
+      self.accountEffectView.effect = NativeChromeView.pillEffect(tint: colors.accountFill)
+      self.themeTrack.effect = NativeChromeView.pillEffect(tint: colors.trackFill)
+      self.knob.effect = NativeChromeView.knobEffect(tint: colors.knobFill)
+    }
+    if animated {
+      UIViewPropertyAnimator(duration: 0.3, curve: .easeInOut, animations: retint).startAnimation()
+    } else {
+      retint()
+    }
+
+    paintFallbackTint(barEffectView, colors.barFill)
+    paintFallbackTint(accountEffectView, colors.accountFill)
+    paintFallbackTint(themeTrack, colors.trackFill)
+    paintFallbackTint(knob, colors.knobFill)
+
+    divider.backgroundColor = colors.divider
+
+    accountEffectView.layer.borderColor = colors.accountBorder.cgColor
+    themeTrack.layer.borderColor = colors.trackBorder.cgColor
+
+    /* The knob's border is dark-only, same as the site: warm and light give
+       it none at all, rather than one dialled to zero opacity. */
+    knob.layer.borderWidth = colors.knobBorder == nil ? 0 : 1
+    knob.layer.borderColor = colors.knobBorder?.cgColor
+
+    accountButton.tintColor = colors.iconTint
+    menuButton.tintColor = colors.iconTint
+    wordmark.textColor = colors.foreground
+
+    let dimmedTint = colors.iconTint.withAlphaComponent(0.55)
+    let selectedIndex = NativeChromeView.themes.firstIndex(of: selectedTheme)
+    for (position, button) in themeButtons.enumerated() {
+      button.tintColor = position == selectedIndex ? colors.iconTint : dimmedTint
+    }
+  }
+
+  private func applyThemeSelection(animated: Bool) {
+    guard let index = NativeChromeView.themes.firstIndex(of: selectedTheme) else { return }
+    knobLeading?.constant = NativeChromeView.trackPadding + CGFloat(index) * NativeChromeView.stopPitch
+
+    let move = {
+      self.layoutIfNeeded()
+      for (position, button) in self.themeButtons.enumerated() {
+        button.accessibilityTraits = position == index ? [.button, .selected] : [.button]
+      }
+    }
+
+    if animated {
+      /* A spring rather than a curve. The web control approximates one with a
+         cubic-bezier that overshoots by 12%; this is the real thing, and it
+         carries the knob's own momentum when a tap lands mid-flight. */
+      UIViewPropertyAnimator(duration: 0.44, dampingRatio: 0.72, animations: move).startAnimation()
+    } else {
+      move()
+    }
+  }
+
+  // MARK: - Actions
+
+  @objc private func menuTapped() { onMenu?() }
+  @objc private func accountTapped() { onAccount?() }
+
+  @objc private func themeTapped(_ sender: UIButton) {
+    let theme = NativeChromeView.themes[sender.tag]
+    setTheme(theme)
+    onTheme?(theme)
+  }
+}

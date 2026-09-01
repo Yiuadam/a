@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref } from "@/lib/nav";
 import { useTier } from "@/lib/billing/useTier";
@@ -14,6 +14,8 @@ import { IS_MOBILE_BUILD } from "@/lib/platform";
 import HeaderNotificationBell from "@/components/account/HeaderNotificationBell";
 import { useAccountProfile } from "@/components/account/AccountProfileProvider";
 import bandupMarkRear from "@/components/assets/steps-five-layer-rear-108.png";
+import { enableNativeChrome, syncNativeTheme } from "@/lib/native-chrome";
+import { getServerTheme, getTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
 
 const HOMEPAGE_MENU_ICONS: Partial<Record<string, string>> = {
   "/practice/listening": "listening",
@@ -23,6 +25,17 @@ const HOMEPAGE_MENU_ICONS: Partial<Record<string, string>> = {
   "/grammar": "grammar",
   "/vocabulary": "vocabulary",
 };
+
+/*
+  Mirrors the unexported guard of the same name in lib/theme.ts. Duplicated
+  rather than imported because it isn't exported there — everywhere in that
+  file already knows its strings come from THEMES, and this is the one caller
+  outside it that takes a theme from somewhere else entirely: the native bar,
+  arriving as a plain string off the other side of the Capacitor bridge.
+*/
+function isTheme(value: string): value is Theme {
+  return value === "warm" || value === "light" || value === "dark";
+}
 
 const MENU_ICONS: Partial<Record<string, CardIconName>> = {
   "/": "home",
@@ -127,6 +140,14 @@ export default function SiteHeader({
   const close = () => setOpenPath(null);
 
   /*
+    Set once NativeChromeView is actually up and has reported its height;
+    null covers both "not the iOS app" and "the iOS app, but the bridge call
+    has not resolved yet". See the effect below for why that second state is
+    unavoidable rather than merely unhandled.
+  */
+  const [nativeChromeHeight, setNativeChromeHeight] = useState<number | null>(null);
+
+  /*
     The sheet is `fixed inset-x-0`, so its own left edge is always the
     viewport's — the menu button's position within that width is the one
     thing CSS alone cannot know. Read it here, before paint, and hand it to
@@ -194,9 +215,239 @@ export default function SiteHeader({
     };
   }, [open]);
 
+  const router = useRouter();
+  /*
+    The handlers registered below are set up once, on mount, and outlive
+    every navigation — see the effect two below for why. A ref is what lets
+    them still answer with the page a tap actually landed on rather than
+    whichever page happened to be current when `enable` was called; it is
+    kept current from its own effect; refs cannot be written during render.
+  */
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  /*
+    The theme this tab is showing, read only to hand it to the native bar.
+    Nothing here draws with it — every visible use of the theme still lives
+    in ThemeToggle, which keeps its own subscription to the same store.
+  */
+  const theme = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
+  useEffect(() => {
+    syncNativeTheme(theme);
+  }, [theme]);
+
+  /*
+    NativeChromeView replacing this component's own <header> entirely, on
+    the one platform that has it. `enable` is an async bridge call, so the
+    very first frame inside the iOS app still paints the ordinary web header
+    below — there is no way to know synchronously, on first render, that a
+    native replacement is coming without the server (which has never heard
+    of Capacitor) and the client disagreeing about that first frame. It
+    settles within one bridge round trip, which is the compromise made here
+    rather than a defect: brief, and only ever on cold start.
+
+    The effect itself runs once rather than on every pathname change —
+    `enable` creates the native view a single time, and re-running it on
+    navigation would tear the glass bar down and rebuild it on every link
+    tapped from the very menu it draws. `router` is a stable reference from
+    Next.js for the life of the app, so this fires on mount and cleans up on
+    unmount and nowhere in between.
+  */
+  useEffect(() => {
+    let cancelled = false;
+    let dispose: (() => void) | null = null;
+
+    enableNativeChrome({
+      onMenu: () => {
+        setOpenPath((current) => (current === pathnameRef.current ? null : pathnameRef.current));
+      },
+      onAccount: () => router.push("/account"),
+      onTheme: (nextTheme) => {
+        if (isTheme(nextTheme)) setTheme(nextTheme);
+      },
+      onHeightChange: (height) => setNativeChromeHeight(height),
+    }).then((result) => {
+      if (!result) return;
+      if (cancelled) {
+        result.dispose();
+        return;
+      }
+      dispose = result.dispose;
+      setNativeChromeHeight(result.height);
+      // The bar is built with its own "warm" default and has no way to know
+      // otherwise; the ongoing sync above only fires on a later *change*, so
+      // whatever this tab is already showing has to be pushed once, now.
+      syncNativeTheme(getTheme());
+    }).catch(() => {
+      // enable() rejects only if the app's own view hierarchy is not there
+      // to attach to, which is not a state this tab can recover from. The
+      // web header this effect leaves standing is the correct fallback, not
+      // a broken one — it is the same header every other platform already
+      // renders — so there is nothing to do here beyond not crashing on it.
+    });
+
+    return () => {
+      cancelled = true;
+      dispose?.();
+    };
+  }, [router]);
+
   const current = currentHref(pathname);
 
   if (onConsole) return null;
+
+  /*
+    The navigation sheet — every destination, not just the five-word row
+    above it — is the same list in both branches below, so it is built once
+    here rather than twice. Two separate copies is exactly how the native
+    bar's menu button went dead: this JSX used to live only in the web
+    branch, inside the very `<header>` the native branch never rendered, so
+    toggling `open` had nothing left to show for it. A plain function rather
+    than a component used as `<NavSheet />` is deliberate — a component
+    defined inside another component's render gets a new identity on every
+    render, and React remounts it instead of updating it, which would replay
+    the opening animation and drop focus every time a pointer moves over a
+    row and `menuPreview` changes. Calling this and inlining its return value
+    instead produces the exact same element at the exact same place in the
+    tree, so reconciliation treats it exactly as it did when this JSX sat
+    here directly.
+  */
+  function renderNavSheet() {
+    if (!open) return null;
+    return (
+      <div
+        ref={panelRef}
+        id="nav-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site navigation"
+        tabIndex={-1}
+        className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 overflow-y-auto outline-none"
+      >
+          <nav aria-label="All pages" className="premade-glass-content mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-7 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
+            <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+              {groups.map((group, groupIndex) => {
+                const selectedIndex = group.items.findIndex((item) => item.href === current);
+                /*
+                  One highlight in the whole menu, not one per group.
+
+                  Each group used to fall back to its own selected row
+                  whenever the pointer was somewhere else, which meant
+                  hovering a row in one group lit it up while the group
+                  holding the current page went on showing its own — two
+                  pills at once, and neither of them obviously the live
+                  one. So a group that is not being pointed at yields its
+                  highlight entirely: while any group has the pointer, only
+                  that group draws one.
+
+                  The pinned row is not a separate thing that gets hidden,
+                  it is the same single highlight moving. Hovering inside
+                  the group that holds the current page slides it from that
+                  row to the pointer's, on the 440ms travel the selector
+                  already had, and letting go returns it. Across groups the
+                  move cannot be a slide — each selector is positioned
+                  inside its own list, and the groups are separate boxes in
+                  a grid that reflows from three columns to one — so it
+                  changes place rather than travelling there.
+                */
+                const visibleIndex = menuPreview
+                  ? (menuPreview.group === groupIndex ? menuPreview.item : -1)
+                  : selectedIndex;
+                return (
+                <div
+                  key={group.title}
+                  className="nav-menu-group liquid-glass rounded-2xl border p-3 sm:p-4"
+                >
+                  <h2 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    {group.title}
+                  </h2>
+                  <ul
+                    className="relative flex flex-col"
+                    onPointerLeave={() => setMenuPreview(null)}
+                    style={{ "--nav-row-index": visibleIndex } as React.CSSProperties}
+                  >
+                    {visibleIndex >= 0 && <span className="nav-menu-selector" aria-hidden="true" />}
+                    {group.items.map((item, itemIndex) => {
+                      const icon = MENU_ICONS[item.href];
+                      const homepageIcon = HOMEPAGE_MENU_ICONS[item.href];
+                      return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          prefetch={false}
+                          aria-current={item.href === current ? "page" : undefined}
+                          /*
+                            Closing here rather than only on a route change: a
+                            tap on the page you are already on changes no
+                            route, and the menu would sit there looking broken.
+                          */
+                          onClick={close}
+                          onPointerEnter={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
+                          onFocus={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
+                          onBlur={() => setMenuPreview(null)}
+                          className={`relative z-10 flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[16px] font-semibold transition-colors ${
+                            item.href === current
+                              ? "text-slate-900"
+                              : "text-slate-700 hover:text-slate-900"
+                          }`}
+                        >
+                          <span className="flex min-w-0 items-center gap-2.5">
+                            {homepageIcon ? (
+                              <Icon
+                                name={homepageIcon}
+                                className="h-[21px] w-[21px] shrink-0 text-indigo-600"
+                              />
+                            ) : icon ? (
+                              <CardIcon name={icon} size={21} />
+                            ) : null}
+                            <span>{item.label}</span>
+                          </span>
+                        </Link>
+                      </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+                );
+              })}
+            </div>
+          </nav>
+      </div>
+    );
+  }
+
+  if (nativeChromeHeight !== null) {
+    /*
+      Real estate the native bar already owns above the web view. The row —
+      logo, menu button, account button, theme toggle — belongs here even
+      less than the rest of the header does: NativeChromeView has already
+      drawn the menu, account and theme controls themselves, in real
+      UIGlassEffect glass rather than the CSS bevel this file falls back to
+      everywhere the app runs in a browser engine that cannot filter a
+      backdrop it did not paint itself. The sheet those controls open is not
+      something native draws, though — nothing on the other side of the
+      bridge knows what the menu button should reveal — so it still renders
+      here, wrapped in a plain div rather than the `<header>` the web branch
+      uses to publish `--header-h`. That div exists for exactly one
+      property: there is no header element in this branch for the sheet to
+      inherit the variable from, so it is set from the bar's own measured
+      height instead, which already includes the safe-area inset the same
+      way the web branch's own calc() does.
+    */
+    const sheet = renderNavSheet();
+    return (
+      <>
+        <div aria-hidden="true" style={{ height: nativeChromeHeight }} />
+        {sheet && (
+          <div style={{ "--header-h": `${nativeChromeHeight}px` } as React.CSSProperties}>
+            {sheet}
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     /*
@@ -403,106 +654,7 @@ export default function SiteHeader({
         </div>
       </div>
 
-      {open && (
-        <div
-          ref={panelRef}
-          id="nav-menu"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Site navigation"
-          tabIndex={-1}
-          className="nav-paper premade-glass fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 overflow-y-auto outline-none"
-        >
-            <nav aria-label="All pages" className="premade-glass-content mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-7 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
-              <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-                {groups.map((group, groupIndex) => {
-                  const selectedIndex = group.items.findIndex((item) => item.href === current);
-                  /*
-                    One highlight in the whole menu, not one per group.
-
-                    Each group used to fall back to its own selected row
-                    whenever the pointer was somewhere else, which meant
-                    hovering a row in one group lit it up while the group
-                    holding the current page went on showing its own — two
-                    pills at once, and neither of them obviously the live
-                    one. So a group that is not being pointed at yields its
-                    highlight entirely: while any group has the pointer, only
-                    that group draws one.
-
-                    The pinned row is not a separate thing that gets hidden,
-                    it is the same single highlight moving. Hovering inside
-                    the group that holds the current page slides it from that
-                    row to the pointer's, on the 440ms travel the selector
-                    already had, and letting go returns it. Across groups the
-                    move cannot be a slide — each selector is positioned
-                    inside its own list, and the groups are separate boxes in
-                    a grid that reflows from three columns to one — so it
-                    changes place rather than travelling there.
-                  */
-                  const visibleIndex = menuPreview
-                    ? (menuPreview.group === groupIndex ? menuPreview.item : -1)
-                    : selectedIndex;
-                  return (
-                  <div
-                    key={group.title}
-                    className="nav-menu-group liquid-glass rounded-2xl border p-3 sm:p-4"
-                  >
-                    <h2 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      {group.title}
-                    </h2>
-                    <ul
-                      className="relative flex flex-col"
-                      onPointerLeave={() => setMenuPreview(null)}
-                      style={{ "--nav-row-index": visibleIndex } as React.CSSProperties}
-                    >
-                      {visibleIndex >= 0 && <span className="nav-menu-selector" aria-hidden="true" />}
-                      {group.items.map((item, itemIndex) => {
-                        const icon = MENU_ICONS[item.href];
-                        const homepageIcon = HOMEPAGE_MENU_ICONS[item.href];
-                        return (
-                        <li key={item.href}>
-                          <Link
-                            href={item.href}
-                            prefetch={false}
-                            aria-current={item.href === current ? "page" : undefined}
-                            /*
-                              Closing here rather than only on a route change: a
-                              tap on the page you are already on changes no
-                              route, and the menu would sit there looking broken.
-                            */
-                            onClick={close}
-                            onPointerEnter={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
-                            onFocus={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
-                            onBlur={() => setMenuPreview(null)}
-                            className={`relative z-10 flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[16px] font-semibold transition-colors ${
-                              item.href === current
-                                ? "text-slate-900"
-                                : "text-slate-700 hover:text-slate-900"
-                            }`}
-                          >
-                            <span className="flex min-w-0 items-center gap-2.5">
-                              {homepageIcon ? (
-                                <Icon
-                                  name={homepageIcon}
-                                  className="h-[21px] w-[21px] shrink-0 text-indigo-600"
-                                />
-                              ) : icon ? (
-                                <CardIcon name={icon} size={21} />
-                              ) : null}
-                              <span>{item.label}</span>
-                            </span>
-                          </Link>
-                        </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                  );
-                })}
-              </div>
-            </nav>
-        </div>
-      )}
+      {renderNavSheet()}
     </header>
   );
 }
