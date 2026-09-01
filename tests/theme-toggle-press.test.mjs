@@ -297,25 +297,30 @@ test("the pressed knob disperses for real, rather than painting a rainbow", () =
   assert.match(rimPressed, /opacity: 1;/);
 });
 
-test("the pressed knob has something behind it to bend", () => {
-  // The lens was correct, active, and completely invisible: a
-  // backdrop-filter can only bend what is painted beneath it, and the
-  // buttons carry Tailwind's z-10 while the knob's z-index is auto — so the
-  // icons painted on top of the knob and its backdrop was nothing but the
-  // track's own flat wash. Bending flat colour looks exactly like flat
-  // colour, which is the same trap that made a 56px blur hide the card
-  // lens.
+test("the pressed knob keeps its icons in front of it", () => {
+  // These two used to swap places for the length of a press. That was right
+  // while the knob carried a displacement lens: a filter can only bend what is
+  // painted beneath it, and the buttons carry Tailwind's z-10 while the knob's
+  // z-index is auto — so the icons painted on top and the knob's backdrop was
+  // nothing but the track's own flat wash. Dropping the icons underneath was
+  // what gave the lens something real to reform.
   //
-  // So the two swap places for the length of the press. Both halves are
-  // load-bearing and neither works alone, which is why both are pinned.
-  const icons = rule(".theme-toggle-base[data-pressed] .app-icon-control");
-  assert.match(icons, /z-index: 0;/);
+  // There is no lens on the knob now — see the drawn-edge test in
+  // segmented-controls for what replaced it and why — so being behind buys
+  // nothing and costs the thing the arrangement existed for. The knob is
+  // frosted, and a 16px glyph under a 9px blur is a smudge rather than a
+  // control. It surfaced as the icon vanishing under the knob with the
+  // navigation open, where the header's own fill sits behind the toggle and
+  // made the loss obvious.
+  assert.doesNotMatch(css, /\.theme-toggle-base\[data-pressed\] \.app-icon-control \{/);
 
+  // The knob still rises for the press — that is the bloom standing proud of
+  // the rail, and it is unrelated to what the icons do.
   const pressedKnob = rule(".theme-toggle-base[data-pressed] .theme-toggle-selector");
   assert.match(pressedKnob, /z-index: 2;/);
 
-  // Idle keeps the icons on top, because the resting knob is frosted at
-  // 18px and an icon read through that is a smear, not a control.
+  // Idle never had a z-index of its own and still does not, so the buttons'
+  // own z-10 is what keeps the icons readable in both states now.
   const idleBase = css.match(/\n\.theme-toggle-base \{[\s\S]*?\n\}/);
   assert.ok(idleBase);
   assert.doesNotMatch(idleBase[0], /z-index/);

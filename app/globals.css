@@ -1689,12 +1689,29 @@ html[data-theme="dark"] .nav-menu-group {
   z-index: 0;
   display: block;
   pointer-events: none;
-  background: var(--glass-fill);
+  /*
+    Thin, because everything in the header sits on top of this and one of
+    those things is glass.
+
+    This layer is `inset: 0` at z-index 0, so it lands directly under the
+    theme knob — and the knob is a backdrop-filter, which samples whatever is
+    painted beneath it. A full --glass-fill here is a flat wash across the
+    whole bar (0.42 white in Light), so the knob had nothing to sample but a
+    solid colour and came out a solid disc. That is why it looked see-through
+    with the menu closed and opaque the moment it opened: the thing behind it
+    changed from the page to a sheet of paint.
+
+    Held to a fraction of that fill so the bar still reads as a material and
+    the glass on it still has something to see. The brightness lift goes for
+    the same reason it went from the knob: over a near-white page it only
+    moves the sample closer to white.
+  */
+  background: color-mix(in srgb, var(--glass-fill) 40%, transparent);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 1px 3px var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(122%) brightness(112%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(122%) brightness(112%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(118%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(118%);
 }
 
 /* The material belongs below the real controls. The fixed navigation panel
@@ -1893,27 +1910,22 @@ html[data-theme="dark"] .nav-menu-group {
   what makes a clear thing findable at all.
 */
 /*
-  While pressed, the knob changes places with the icons.
+  The icons stay above the knob, pressed or not.
 
-  A backdrop-filter can only bend what is painted beneath it, and the
-  buttons carry z-10 while the knob's z-index is auto — so the icons were
-  painting on top of the knob, leaving its backdrop as nothing but the
-  track's own flat translucent wash. Bending flat colour looks exactly like
-  flat colour, which is why the lens was measurably active and still
-  invisible: correct filter, nothing behind it to refract.
+  They used to drop below it for the length of a press, and that was right at
+  the time: the knob carried a displacement lens, and a lens can only bend
+  what is in its backdrop, so the icons had to be behind it to be bent at all.
+  It was the reference's own arrangement — what you see through glass is the
+  shape behind it, reformed.
 
-  So for the length of the press the icons drop below the knob and the knob
-  rises above them, putting them into its backdrop where the displacement
-  can actually reach them. That is also the reference's own arrangement:
-  what you see through the glass is the shape behind it, reformed.
-
-  Only while pressed, because the idle knob is frosted at 18px: icons
-  underneath that would be a smear rather than a control. Above it they
-  stay crisp, which is what the resting state needs.
+  There is no lens on the knob now (see the html[data-glass-lens-clone] rules
+  for what replaced it and why), so being behind buys nothing and costs the
+  thing the arrangement was for: the knob is frosted, and a 16px glyph under a
+  9px blur is a smudge rather than a control. Reported as the icon vanishing
+  under the knob with the navigation open — the same rule had been doing it
+  all along, and the header's own fill behind it was what made it obvious.
 */
-.theme-toggle-base[data-pressed] .app-icon-control {
-  z-index: 0;
-}
+
 
 /*
   Letting the knob out of the track for the length of the press. The base
@@ -4095,7 +4107,8 @@ html[data-theme="dark"] .nav-open-header {
 /* Mirror the dark `.liquid-glass` recipe rather than the stronger menu
    surface: the opened bar should look indistinguishable from the closed bar. */
 html[data-theme="dark"] .nav-open-header::before {
-  background: var(--glass-fill);
+  /* Same reasoning as the base rule: the knob sits on this and samples it. */
+  background: color-mix(in srgb, var(--glass-fill) 40%, transparent);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 1px 2px var(--glass-shadow);

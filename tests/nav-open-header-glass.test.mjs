@@ -29,14 +29,25 @@ test("opening navigation keeps a real liquid-glass header surface", () => {
   assert.match(openHeaderSurface, /position:\s*absolute\s*;/);
   assert.match(openHeaderSurface, /inset:\s*0\s*;/);
   assert.match(openHeaderSurface, /pointer-events:\s*none\s*;/);
-  assert.match(openHeaderSurface, /background:\s*var\(--glass-fill\)\s*;/);
-  assert.match(openHeaderSurface, /-webkit-backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(122%\)\s+brightness\(112%\)\s*;/);
-  assert.match(openHeaderSurface, /backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(122%\)\s+brightness\(112%\)\s*;/);
+  //
+  // Filled, but only a fraction of the way. This layer is inset: 0 at z-index
+  // 0, so it lands directly under the theme knob — and the knob is a
+  // backdrop-filter, which samples whatever is painted beneath it. At a full
+  // --glass-fill (0.42 white in Light) it is a flat wash across the whole bar,
+  // so the knob had nothing to sample but a solid colour and came out a solid
+  // disc. That is exactly why the knob read as glass with the menu closed and
+  // as paint the moment it opened: what was behind it changed from the page to
+  // a sheet of colour. The brightness lift goes for the same reason it went
+  // from the knob — over a near-white page it only moves the sample toward
+  // white.
+  assert.match(openHeaderSurface, /background:\s*color-mix\(in srgb, var\(--glass-fill\) 40%, transparent\)\s*;/);
+  assert.match(openHeaderSurface, /-webkit-backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(118%\)\s*;/);
+  assert.match(openHeaderSurface, /backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(118%\)\s*;/);
 
   // Dark mode needs the same translucent glass material rather than a bare,
   // transparent header. Keeping this explicit catches a future dark-only
   // regression such as the one visible in the report.
-  assert.match(darkOpenHeaderSurface, /background:\s*var\(--glass-fill\)\s*;/);
+  assert.match(darkOpenHeaderSurface, /background:\s*color-mix\(in srgb, var\(--glass-fill\) 40%, transparent\)\s*;/);
   assert.match(darkOpenHeaderSurface, /-webkit-backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(105%\)\s+brightness\(106%\)\s*;/);
   assert.match(darkOpenHeaderSurface, /backdrop-filter:\s*blur\(var\(--glass-blur\)\)\s+saturate\(105%\)\s+brightness\(106%\)\s*;/);
   assert.doesNotMatch(openHeaderSurface, /background:\s*transparent\s*;/);
