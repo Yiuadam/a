@@ -395,6 +395,21 @@ const SPECTRUM_SPREAD = 4;
 */
 const SPECTRUM_FALLOFF = 6;
 /*
+  Which side of the rim the fringe sits on.
+
+  A full ring is wrong for the same reason a cone of hue was: it implies the
+  edge is doing the same thing all the way round, and it is not. There is one
+  light, and the specular stage already places it up and to the left — so the
+  bright catch is there and the colour that comes apart is opposite it, down
+  and to the right. A ring all the way round reads as a decoration drawn on
+  the knob rather than as something happening to light.
+
+  This is the specular's own dot product with its sign flipped, which is what
+  makes the two agree by construction: whatever direction the highlight
+  decides the light comes from, the fringe is on the far side of it.
+*/
+const SPECTRUM_SIDE = 5;
+/*
   A gentle whole-face lens on top of the rim bevel, so nothing inside the
   knob stays where it was.
 
@@ -1326,7 +1341,7 @@ export default function GlassRefractionFilter() {
                   falloff applies to the bend rather than to an
                   already-dimmed value.
                 */}
-                <feComponentTransfer in="spectrum-raw" result="spectrum">
+                <feComponentTransfer in="spectrum-raw" result="spectrum-band">
                   <feFuncA
                     type="gamma"
                     amplitude={entry.spectrum}
@@ -1334,6 +1349,28 @@ export default function GlassRefractionFilter() {
                     offset={0}
                   />
                 </feComponentTransfer>
+                {/*
+                  And then only on the far side from the light. This is the
+                  specular's matrix with both signs flipped — it is positive
+                  exactly where that one is negative — so the highlight and
+                  the fringe cannot disagree about where the light is.
+
+                  Composited `in` rather than blended, because that is what
+                  multiplies the two alphas: the fringe survives only where
+                  the surface is both turning hard and facing away.
+                */}
+                <feColorMatrix
+                  in="generic-normal-map"
+                  type="matrix"
+                  values={`0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  ${SPECTRUM_SIDE} ${SPECTRUM_SIDE} 0 0 ${-SPECTRUM_SIDE}`}
+                  result="spectrum-side"
+                />
+                <feComposite
+                  in="spectrum-band"
+                  in2="spectrum-side"
+                  operator="in"
+                  result="spectrum"
+                />
                 {/*
                   Painted over rather than screened. Screen is the natural
                   choice for a light on glass and is the wrong one here: the

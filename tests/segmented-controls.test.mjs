@@ -327,10 +327,23 @@ test("WebKit gets a drawn edge, because a bent copy of a flat surface shows noth
   assert.match(ring, /background: radial-gradient\(\s*\n\s*closest-side,\s*\n\s*transparent 0 88%,/);
   assert.match(ring, /#ff6a3d[\s\S]*#5aa8ff/, "red must come before blue across the band");
   // The base rule builds its hairline from padding plus a two-layer xor
-  // mask. Both have to be undone here or the band is masked twice and comes
-  // out as nothing; the band is its own shape, so it needs no mask.
+  // mask, and the padding has to be undone here or the band is masked twice.
   assert.match(ring, /padding: 0;/);
-  assert.match(ring, /mask: none;/);
+
+  // Not a full ring. One light, placed up and to the left by the drawn
+  // highlight, so the colour that comes apart belongs opposite it — down and
+  // to the right. A band all the way round implies the edge is doing the same
+  // thing everywhere, which is what made it read as a decoration drawn on the
+  // knob rather than as something happening to light. 135deg runs top-left to
+  // bottom-right, so it fades the band out exactly where the highlight is.
+  assert.match(ring, /mask-image: linear-gradient\(135deg, transparent 32%, #000 78%\);/);
+  // On Chromium the same restriction is the specular's own dot product with
+  // its sign flipped, so the highlight and the fringe cannot disagree about
+  // where the light is — and composited `in`, which is what multiplies the
+  // two alphas rather than adding them.
+  assert.match(filter, /const SPECTRUM_SIDE = 5;/);
+  assert.match(filter, /result="spectrum-side"/);
+  assert.match(filter, /in2="spectrum-side"\s*\n\s*operator="in"/);
 
   // Costing nothing per frame is the other half of this. The live path was
   // re-running a filter over a moving element every frame for a result

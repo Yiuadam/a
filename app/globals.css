@@ -5116,8 +5116,19 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selec
     color-mix(in srgb, #a06bff 40%, transparent) 99%,
     transparent 100%
   );
-  -webkit-mask: none;
-  mask: none;
+  /*
+    And only on the far side from the light. A ring all the way round implies
+    the edge is doing the same thing everywhere, and it is not: there is one
+    light, the drawn highlight above puts it up and to the left, so the colour
+    that comes apart belongs opposite it — down and to the right.
+
+    135deg runs from the top-left corner toward the bottom-right one, so this
+    fades the band out where the highlight is and leaves it where the
+    highlight is not. On Chromium the same thing is the specular's own dot
+    product with its sign flipped; here it is the same idea drawn.
+  */
+  -webkit-mask-image: linear-gradient(135deg, transparent 32%, #000 78%);
+  mask-image: linear-gradient(135deg, transparent 32%, #000 78%);
 }
 
 
