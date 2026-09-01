@@ -139,6 +139,26 @@
   */
   "keep_vars": true,
   "vars": {
+    /*
+      Whether accounts exist at all.
+
+      This is the one value that can close the whole site — sign-in, sign-up,
+      billing, progress sync, every paid feature — and it was the only such
+      value living solely as a dashboard Secret, which is precisely the case
+      the note above says belongs in this file. It is not sensitive: it is a
+      switch, and knowing it is "1" tells an attacker nothing they cannot learn
+      by loading the sign-in page.
+
+      Being here means it is reviewed, previewed and permanent, and that it
+      cannot go missing between one deploy and the next. It also moves where
+      the switch lives: closing accounts is now an edit here rather than a
+      dashboard change, which is slower and deliberate, and that is the right
+      trade for something with this blast radius.
+
+      "1" is what production is already running — /api/account/status reports
+      enabled, and the post-deploy and hourly health checks both assert it.
+    */
+    "ACCOUNTS_ENABLED": "1",
     "ORGANIZATION_UI_PREVIEW": "0",
     /*
       Which wallets the Alipay/WeChat Pay button offers, and lists on the

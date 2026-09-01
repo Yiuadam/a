@@ -116,8 +116,34 @@ export function forgetPromoCapability(): void {
   capability = null;
 }
 
+/**
+ * Whether the trial is still being offered at all.
+ *
+ * The documented way to end it is one UPDATE over the promo rows, and that is
+ * still the right way to withdraw it from the accounts that have it. What it
+ * cannot do is stop the offer being made to an account that does not exist
+ * yet: a sweep only reaches rows, and tomorrow's sign-up has no row to reach.
+ * So the owner could end the trial on Monday and still be handing it out on
+ * Tuesday, with no way to stop that short of a deploy.
+ *
+ * This is that switch. Set FREE_PRO_TRIAL_OPEN to "0" and nothing offers or
+ * grants it; leave it unset and everything behaves exactly as before, which is
+ * what keeps this from being a flag that can silently close something on its
+ * own. It is deliberately not cached — the capability probe below caches
+ * because it describes the schema, and this describes a decision the owner may
+ * change between one request and the next.
+ *
+ * Withdrawing it from existing accounts is still the UPDATE. This only closes
+ * the door behind it.
+ */
+export function promoOffersOpen(): boolean {
+  assertServerOnly(MODULE);
+  return process.env["FREE_PRO_TRIAL_OPEN"] !== "0";
+}
+
 export async function promoWriteSupported(now = Date.now()): Promise<boolean> {
   assertServerOnly(MODULE);
+  if (!promoOffersOpen()) return false;
   if (capability && (capability.allowed || now - capability.at < NEGATIVE_TTL_MS)) {
     return capability.allowed;
   }

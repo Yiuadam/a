@@ -8,6 +8,8 @@ import MockReading from "@/components/exam/MockReading";
 import MockResults from "@/components/exam/MockResults";
 import MockWriting from "@/components/exam/MockWriting";
 import { useMounted } from "@/lib/hooks";
+import { useSessionAccess } from "@/lib/entitlements/useSessions";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 import {
   MODULE_MINUTES,
   MODULE_NAMES,
@@ -218,6 +220,24 @@ export default function ExamPage() {
 
 function StartScreen({ onStart }: { onStart: () => void }) {
   /*
+    What this sitting will and will not mark, for whoever is about to spend
+    three hours on it.
+
+    The exam itself is deliberately ungated, unlike /speaking and
+    /practice/writing, and it should stay that way: walling someone out of a
+    module halfway through a timed sitting is worse than letting them sit it.
+    But the two AI-marked modules come back with no band for an account that
+    cannot reach the marker, and the way that failure surfaces is a report with
+    a gap in it, three hours later — the request is refused and the result
+    screen swallows it. Being told beforehand is the difference between a
+    choice and a surprise.
+  */
+  const access = useSessionAccess();
+  const unmarked = (["writing", "speaking"] as const).filter(
+    (module) => access[module].locked && !access[module].pending,
+  );
+
+  /*
     Counted from the papers rather than written down, so the screen cannot
     promise forty questions and hand over thirty-nine.
   */
@@ -277,6 +297,36 @@ function StartScreen({ onStart }: { onStart: () => void }) {
             Reloading keeps your place. Leaving this page ends the exam. Restarting is free.
           </p>
         </div>
+
+        {unmarked.length > 0 && (
+          <p
+            role="status"
+            className="text-inset-compact rounded-lg bg-amber-50 px-3 py-2 text-xs leading-snug text-amber-900"
+          >
+            <strong className="font-semibold">
+              {unmarked.map((module) => MODULE_NAMES[module]).join(" and ")}{" "}
+              {unmarked.length === 1 ? "will not be marked" : "will not be marked"} on this
+              account.
+            </strong>{" "}
+            You can still sit {unmarked.length === 1 ? "it" : "them"}, and everything else is
+            marked as usual — but {unmarked.length === 1 ? "that band" : "those bands"} will be
+            missing from your report.{" "}
+            {/* No route to a billing page from the iOS bundle: those pages are
+                not in it, and pointing at one is what the App Store rules are
+                about. The sentence still has to say what would fix it. */}
+            {IS_MOBILE_BUILD ? (
+              "Marking is part of a paid plan."
+            ) : (
+              <>
+                Marking is part of a paid plan; see the{" "}
+                <Link href="/pricing" className="font-medium underline underline-offset-4">
+                  plans
+                </Link>
+                .
+              </>
+            )}
+          </p>
+        )}
 
         <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
           <button className="btn-primary premade-glass min-w-44" onClick={onStart}>

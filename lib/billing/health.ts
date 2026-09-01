@@ -1,7 +1,7 @@
 import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { supabaseConfigured } from "@/lib/auth/supabase";
 import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
-import { stripeSecretKey, stripePriceId } from "./env";
+import { stripeSecretKey, stripePriceId, stripeWebhookSecret } from "./env";
 import { stripeDiagnostic, verifyCataloguePrices } from "./stripe";
 import { PLAN_IDS } from "./tiers";
 
@@ -49,6 +49,21 @@ export async function billingHealth(): Promise<BillingHealth> {
 
   const key = Boolean(stripeSecretKey());
   add("stripe_key_present", key);
+
+  /*
+    The webhook secret, which was the one Stripe value nothing watched.
+
+    Without it every delivery is refused with a 503 — the route will not trust
+    an unverified body, and it is right not to — so Stripe retries for a while
+    and then gives up. Nothing errors on this side, no learner sees anything,
+    and the only symptom is that people who paid never get what they paid for.
+    That is exactly the shape of failure a health check exists for: silent,
+    delayed, and about money.
+
+    Presence only. Whether it is the *correct* secret cannot be known without a
+    signed delivery to test it against, and this route does not have one.
+  */
+  add("stripe_webhook_secret_present", Boolean(stripeWebhookSecret()));
 
   // Every plan's Price id, not merely one — a health check that passed with
   // five of six missing would still call itself healthy while five plans sold

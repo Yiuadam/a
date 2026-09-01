@@ -46,6 +46,7 @@ const PRICE_VARS = [
 ];
 const CONFIG_VARS = [
   "ACCOUNTS_ENABLED",
+  "STRIPE_WEBHOOK_SECRET",
   "SUPABASE_URL",
   "SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
@@ -62,6 +63,7 @@ function withFullConfig(fn) {
   process.env.SUPABASE_ANON_KEY = "anon-key";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
   process.env.STRIPE_SECRET_KEY = "sk_test_billing_health";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_billing_health";
   for (const key of PRICE_VARS) process.env[key] = `price_${key.toLowerCase()}`;
   return Promise.resolve()
     .then(fn)
@@ -203,6 +205,12 @@ test("every check is a boolean under a fixed name, nothing else", () =>
         "stripe_price_ids_present",
         "stripe_prices_match_catalogue",
         "stripe_reachable",
+        // The webhook secret was the one Stripe value nothing watched. Without
+        // it every delivery is refused with a 503 — correctly, since the route
+        // will not trust an unverified body — so Stripe retries for a while and
+        // then gives up. Nothing errors here, no learner sees anything, and the
+        // only symptom is that people who paid never get what they paid for.
+        "stripe_webhook_secret_present",
       ].sort());
     } finally {
       restore();

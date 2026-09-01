@@ -141,8 +141,26 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & {
     working app rather than a locked one — see the note above about being
     optimistic in the client and strict on the server.
   */
+  /*
+    "unavailable" is the lookup having failed, and it is not the same answer as
+    "still loading".
+
+    Both used to land here as "pro", which meant a failed status call handed an
+    anonymous visitor the whole library. Nothing metered leaked — the server
+    refuses on its own account — but the shelf was wrong, and a shelf that says
+    a paper is available and then refuses it is worse than one that says it is
+    locked.
+
+    Loading stays optimistic, for the reason above it: a subscriber should not
+    watch their own paid features appear locked for a moment on a slow
+    connection. Accounts switched off stays open too, deliberately — there is
+    no tier at all in that case and the whole app is free. Only the failure
+    falls back, and it falls back to what an unidentified visitor gets.
+  */
   const real: SessionTier =
-    account.phase !== "ready" || !account.accountsEnabled
+    account.phase === "unavailable" && account.accountsEnabled
+      ? "anonymous"
+      : account.phase !== "ready" || !account.accountsEnabled
       ? "pro"
       : !account.signedIn
         ? "anonymous"
