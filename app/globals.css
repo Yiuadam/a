@@ -370,6 +370,20 @@ body[data-viewport-locked] {
 }
 
 .practice-paper-grid > *,
+/*
+  Padding and radius move together, or one of them is wrong.
+
+  These cards used to override the card system with `!p-3` — 12px of padding
+  inside a 2.5rem corner. The text never touched the border, but it sat well
+  inside the sweep of the arc, which is what the eye reads as no margin. The
+  override is gone and they take the same inset every other card does.
+
+  Elsewhere in the app the same pressure is resolved the other way: the
+  organisation summaries and panels shrink the radius alongside the padding
+  (`!rounded-[var(--radius-xl)]` next to their own `!p-`), which is equally
+  correct. What does not work is keeping a generous corner and cutting the
+  inset, because the corner is then drawn through the text's own margin.
+*/
 .practice-paper-card {
   height: 100%;
   min-height: 0;

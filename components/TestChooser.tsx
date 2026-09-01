@@ -161,7 +161,7 @@ export default function TestChooser({
             return (
               <div
                 key={t.id}
-                className="practice-paper-card card relative !p-3 min-w-0 cursor-wait opacity-60"
+                className="practice-paper-card card relative min-w-0 cursor-wait opacity-60"
                 aria-busy="true"
               >
                 <LoadingIndicator label="Checking access…" className="absolute right-3 top-3 text-sm text-indigo-600" textClassName="sr-only" />
@@ -174,7 +174,7 @@ export default function TestChooser({
             const reason = access.tier === "anonymous" ? "sign-in" : "subscribe";
             return (
               <LockedCard key={t.id} reason={reason} label={`${t.title}, a ${kind} paper`} fill>
-                <div className="practice-paper-card card !p-3 h-full min-w-0">{inner}</div>
+                <div className="practice-paper-card card h-full min-w-0">{inner}</div>
               </LockedCard>
             );
           }
@@ -186,7 +186,7 @@ export default function TestChooser({
                 query.set("id", t.id);
                 return `/practice/${kind}?${query.toString()}`;
               })()}
-              className="practice-paper-card card !p-3 block min-w-0"
+              className="practice-paper-card card block min-w-0"
             >
               {inner}
             </Link>
