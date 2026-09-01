@@ -56,15 +56,21 @@
   min-height: 7.25rem;
   overflow: hidden;
   border: 1px solid var(--glass-edge);
-  border-radius: var(--radius-2xl);
+  /* Padding and radius move together, or one of them is wrong, and on this
+     tile it is the corner that gives way. A 2.5rem sweep only reads as a
+     margin when the full window rail clears it, and these tiles sit two
+     across a phone grid, where a rail that wide would eat the tile rather
+     than inset it. So the radius comes down to a corner the nested rail can
+     clear, instead of the padding going up to a rail the tile cannot afford. */
+  border-radius: var(--radius-xl);
   background: var(--glass-fill);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 1px 3px var(--glass-shadow);
-  padding: 0.75rem;
   /* A tile in a two- or four-across grid is too narrow for the full window
-     rail, but it is not too narrow for the nested one. */
-  padding-inline: var(--window-text-inset-compact);
+     rail, but it is not too narrow for the nested one — on all four sides,
+     because the corner crosses the top of the title as surely as its side. */
+  padding: var(--window-text-inset-compact);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
   backdrop-filter: blur(var(--glass-blur)) saturate(108%) brightness(103%);
   transition:
@@ -173,7 +179,12 @@
   position: relative;
   overflow: hidden;
   border: 1px solid var(--glass-edge);
-  border-radius: var(--radius-2xl);
+  /* The same trade the tile makes. This card borrows the full card's glass but
+     deliberately runs a compact inset, and a 1rem inset cannot carry a 2.5rem
+     corner: the level pill sits in the top right, which is precisely where
+     that arc would be drawn through it. The corner steps down to match the
+     inset the layout actually wants. */
+  border-radius: var(--radius-xl);
   background: var(--glass-fill);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
@@ -247,8 +258,6 @@
 
   .compactCard {
     min-height: 7.5rem;
-    /* Block only: the side inset stays on the nested rail set above. */
-    padding-block: 0.875rem;
   }
 
   .compactCardHeader {

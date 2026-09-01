@@ -12,7 +12,21 @@ const inbox = readFileSync(join(process.cwd(), "components", "account", "Notific
 
 function rule(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = css.match(new RegExp(`\\n${escaped} \\{[\\s\\S]*?\\n\\}`));
+  // A rule that names this selector on its own is what these assertions are
+  // about, so it is what gets looked for first. Several selectors here are
+  // also members of a shared rule listing others alongside them, and that
+  // shared rule sits earlier in the stylesheet — so searching the grouped
+  // form first would quietly return the wrong block and assert against
+  // declarations that belong to something else.
+  //
+  // The grouped form is only the fallback, for a selector that has no rule of
+  // its own because it joined one. Two elements converging on the same
+  // declarations is how these controls are meant to end up, and it should not
+  // read as a missing rule. Leading selectors must contain no brace and no
+  // slash, so a preceding comment cannot be mistaken for part of the list.
+  const match =
+    css.match(new RegExp(`\\n${escaped} \\{[\\s\\S]*?\\n\\}`)) ??
+    css.match(new RegExp(`\\n(?:[^{}/]*,\\n)*${escaped}(?:,\\n[^{}]*?)? \\{[\\s\\S]*?\\n\\}`));
   assert.ok(match, `expected a rule for ${selector}`);
   return match[0];
 }

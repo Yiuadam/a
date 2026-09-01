@@ -1778,9 +1778,15 @@ html[data-theme="dark"] .nav-menu-group {
     0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
+/* The billing period bar, on the same material as the theme control and the
+   inbox filter above it. It used to mix slate into the page colour, which is
+   an opaque paint however light it looks — so this was the one segmented bar
+   with nothing behind its knob to bend, and the knob had no choice but to
+   read as a flat white pill. Every theme already grouped this selector with
+   the others further down the file; only the default paint was its own. */
 .interval-toggle-base {
   border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
-  background: color-mix(in srgb, var(--color-slate-200) 82%, var(--color-background));
+  background: color-mix(in srgb, var(--color-surface) 48%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 1px 2px rgba(0, 0, 0, 0.08);
@@ -4801,7 +4807,23 @@ html[data-live-glass-refraction] .premade-glass {
   --segmented-grow: 0px;
   --segmented-stretch: calc(var(--segmented-squash, 0) * 0.22rem);
   --segmented-thin: calc(var(--segmented-squash, 0) * 0.12rem);
-  position: relative;
+  /*
+    Deliberately no `position` here.
+
+    It carried `position: relative` — meant only to give the lens and the
+    hairline something to sit against — and that quietly took the control
+    apart. Every element that wears this class also sets `position: absolute`
+    in its own rule, and every one of those rules is written earlier in this
+    file, so at equal specificity this one won: the knob stopped being taken
+    out of flow and became an ordinary grid item. It then claimed a column of
+    its own, pushing the options along by one and wrapping the last of them
+    onto a second line.
+
+    Nothing needed it. `absolute` establishes a containing block for the
+    pseudo-elements exactly as `relative` does, so the knobs already had what
+    this was for. Leaving position to the element itself is also the honest
+    split: this class describes how a knob deforms, not where it sits.
+  */
 }
 
 /*
@@ -5104,7 +5126,8 @@ html:not([data-theme="dark"]) .theme-toggle-base[data-pressed] .theme-toggle-sel
 
   Chromium keeps the solved lens. Nothing above this rule changes.
 */
-html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector {
+html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector,
+html[data-glass-lens-clone] [data-pressed] > .segmented-knob.segmented-knob {
   /* Clip the drawn ring to the disc. */
   overflow: hidden;
   /*
@@ -5159,6 +5182,17 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selec
   And thin. A fringe on real glass is the narrowest thing about it — the last
   sliver before the edge, not a halo standing off it. This band is about a
   tenth of the radius, against roughly a quarter before.
+
+  This one stays on the round knob, while the drawn material and the removed
+  backdrop layer above and below it are shared with the rectangular knobs.
+  The band is a radial gradient, and a radial gradient inside a wide rounded
+  rectangle is an ellipse: it would cut across the flat top and bottom edges
+  and miss the corners entirely — the same oval-across-the-bar artefact that
+  was reported and fixed on this control once already. The rectangles keep
+  their own hairline, which is built from a border inset and so follows
+  whatever radius they are given. A fringe for them would have to be drawn
+  along the border, not radially from the centre; until it is, no fringe is
+  the honest answer rather than a wrong-shaped one.
 */
 html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector::after {
   content: "";
@@ -5216,7 +5250,8 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selec
 */
 
 
-html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector::before {
+html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector::before,
+html[data-glass-lens-clone] [data-pressed] > .segmented-knob::before {
   display: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

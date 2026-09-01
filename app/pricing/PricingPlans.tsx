@@ -12,6 +12,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import SignInLink from "@/components/account/SignInLink";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import { useSegmentedDrag } from "@/lib/segmented-drag";
 import { useTier } from "@/lib/billing/useTier";
 import {
   PLANS,
@@ -144,23 +145,50 @@ function IntervalToggle({
     { id: "month", label: "Monthly" },
     { id: "year", label: "Yearly" },
   ];
+  const selectedIndex = value === "month" ? 0 : 1;
+  const drag = useSegmentedDrag({
+    count: options.length,
+    selectedIndex,
+    onCommit: (index) => onChange(options[index].id),
+  });
+  const visibleIndex = drag.previewIndex ?? selectedIndex;
 
   return (
+    /* The same physical control as the theme bar and the organisation
+       sections: one glass knob that slides, rather than two buttons that
+       take turns being painted. It was the last segmented bar still drawing
+       its own flat pill, which is why it read as a different app's widget on
+       a page that otherwise shares one material. */
     <div
       role="group"
       aria-label="Billing period"
-      className="interval-toggle-base relative inline-grid grid-cols-2 rounded-xl p-1"
-      style={{ "--interval-index": value === "month" ? 0 : 1 } as CSSProperties}
+      data-flowing={drag.previewIndex !== null ? "" : undefined}
+      data-pressed={drag.pressed ? "" : undefined}
+      data-settling={drag.settling ? "" : undefined}
+      className="interval-toggle-base premade-glass relative inline-grid touch-none grid-cols-2 overflow-hidden rounded-xl p-1"
+      style={
+        {
+          "--interval-index": drag.position,
+          "--segmented-squash": drag.squash,
+        } as CSSProperties
+      }
+      {...drag.handlers}
     >
-      <span className="interval-toggle-selector" aria-hidden="true" />
-      {options.map((option) => (
+      <span className="interval-toggle-selector segmented-knob" aria-hidden="true" />
+      {options.map((option, index) => (
         <button
           key={option.id}
           type="button"
-          onClick={() => onChange(option.id)}
+          onPointerEnter={() => drag.preview(index)}
+          onFocus={() => drag.preview(index)}
+          onBlur={() => drag.preview(null)}
+          onClick={() => {
+            onChange(option.id);
+            drag.preview(null);
+          }}
           aria-pressed={value === option.id}
-          className={`relative z-10 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-4 ${
-            value === option.id ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
+          className={`segmented-option relative z-10 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-4 ${
+            visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
           }`}
         >
           {option.label}
