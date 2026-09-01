@@ -180,13 +180,24 @@ export default function FreeProPoster() {
     return (
       <section className="card">
         <h2 className="text-[17px] font-semibold text-slate-900">Pro, free, if you want it</h2>
+        {/*
+          Kept to two lines and two points on purpose. This sits above the
+          practice list on the home page, and at four points and two body
+          paragraphs it took nearly half the first screen — pushing the
+          skills, the thing a returning learner actually opens the app for,
+          below the fold. The offer still has to be understood in full, so
+          what went is repetition rather than terms: "free", "no pay" and
+          "no card" were three ways of saying one thing, and one is enough.
+          The remaining points are the two largest; the full list is a tap
+          away on the plans page.
+        */}
         <p className="mt-1 text-[14px] leading-6 text-slate-600">
-          Pro is the plan for the weeks before your exam. We are giving it to every new account
-          for nothing. You do not have to pay, and you do not have to give a card.
+          Pro is the plan for the weeks before your exam, and it is free on every new account —
+          no card.
         </p>
 
-        <ul className="mt-3 space-y-1">
-          {TIERS.pro.includes.slice(0, 4).map((line) => (
+        <ul className="mt-2.5 space-y-1">
+          {TIERS.pro.includes.slice(0, 2).map((line) => (
             <li key={line} className="flex gap-2.5 text-[14px] leading-5 text-slate-700">
               <span
                 aria-hidden="true"
@@ -197,9 +208,11 @@ export default function FreeProPoster() {
           ))}
         </ul>
 
-        <p className="mt-3 text-[14px] leading-6 text-slate-700">
-          Sign up free and it starts right away — no card, and it may be cancelled at any time in
-          the future.
+        {/* A footnote rather than a paragraph. It is a term of the offer and
+            has to stay, but it is not what the poster is for, and at body
+            size it was costing two lines of the first screen. */}
+        <p className="mt-2.5 text-[13px] leading-5 text-slate-600">
+          It starts as soon as you sign up, and may be cancelled at any time in the future.
         </p>
 
         <div className="mt-3.5 flex flex-wrap items-center gap-2">
@@ -253,13 +266,16 @@ export default function FreeProPoster() {
   return (
     <section className="card">
       <h2 className="text-[17px] font-semibold text-slate-900">Pro, free, if you want it</h2>
+      {/* Trimmed alongside the signed-out poster above, and for the same
+          reason. The paragraph below it is not trimmed with them: that one is
+          a promise about money, and shortening it would be shortening the
+          part a reader is entitled to have in full. */}
       <p className="mt-1 text-[14px] leading-6 text-slate-600">
-        Pro is the plan for the weeks before your exam. We are giving it to every account for
-        nothing. You do not have to pay, and you do not have to give a card.
+        Pro is the plan for the weeks before your exam, and it is free on your account — no card.
       </p>
 
-      <ul className="mt-3 space-y-1">
-        {TIERS.pro.includes.slice(0, 4).map((line) => (
+      <ul className="mt-2.5 space-y-1">
+        {TIERS.pro.includes.slice(0, 2).map((line) => (
           <li key={line} className="flex gap-2.5 text-[14px] leading-5 text-slate-700">
             <span
               aria-hidden="true"

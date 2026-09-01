@@ -2597,7 +2597,23 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
     flex: 1;
     grid-auto-rows: minmax(0, 1fr);
   }
-  .dashboard-screen .card {
+  /*
+    The tiles in the grid, and only those.
+
+    This used to say `.dashboard-screen .card`, which reached every card on
+    the home screen — including the free-Pro poster, the one card that is not
+    a tile. A tile can afford 0.6rem because its own icon column already
+    stands the text off the edge; the poster has no icon, so the same number
+    put its heading almost against the rim.
+
+    The radius is doubled up for a reason too. As `.dashboard-screen .card` it
+    tied with `.card.card` on specificity and lost on order, so the corner
+    stayed at --radius-2xl while the padding dropped to 0.6rem — a 42.5px arc
+    drawn through a 10px inset, which is the mismatch this file warns about
+    above .practice-paper-card. Padding and radius move together, so they have
+    to win together.
+  */
+  .dashboard-screen .dashboard-card-grid .card.card {
     border-radius: var(--radius-xl);
     padding: 0.6rem !important;
   }
