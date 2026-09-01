@@ -279,7 +279,23 @@ html {
 
 body {
   /* Text inside a rounded content window never crosses this invisible rail. */
-  --window-text-inset: clamp(1.25rem, calc(0.85rem + 1vw), 1.75rem);
+  /*
+    How far text stands off a card's own edge.
+
+    Raised from a 1.25rem floor because it was being read against the wrong
+    number. A card rounds at --radius-2xl, which is 2.5rem, and an inset of
+    1.25rem puts the first line of text well inside the sweep of that corner —
+    the text does not touch the border, but it crowds the curve, which is what
+    the eye actually reads as "no margin". The two have to be considered
+    together: a generous radius asks for a generous inset, and this file sets
+    both.
+
+    Still a clamp rather than a fixed value tied to the radius, because CSS
+    scales a radius down on a short box — a 2.5rem corner on a 4rem-tall card
+    is drawn at about half that — so pinning the inset to the token would
+    over-pad exactly the small dense cards that can least afford it.
+  */
+  --window-text-inset: clamp(1.5rem, calc(1rem + 1.2vw), 2rem);
   /*
     The same idea one level in. A row nested inside an already-inset card, or
     a tile in a four-across grid, cannot carry the full rail — 1.75rem on each
@@ -3445,7 +3461,9 @@ body::before {
 
 /* Generous radii, soft shadows and roomy padding do most of the "cosy" work. */
 .card.card {
-  @apply relative rounded-2xl border p-6;
+  /* p-7 rather than p-6: the block padding has the same job as the inline one
+     above and the same corner to clear, so they move together. */
+  @apply relative rounded-2xl border p-7;
   border-radius: var(--radius-2xl);
   padding-inline: var(--window-text-inset) !important;
   padding-left: var(--window-text-inset) !important;
@@ -5062,19 +5080,41 @@ html:not([data-theme="dark"]) .theme-toggle-base[data-pressed] .theme-toggle-sel
 html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector {
   /* Clip the drawn ring to the disc. */
   overflow: hidden;
-  /* Real frosted glass, which WebKit does support: the icon and the track
-     under the knob stay visible through it rather than being replaced by an
-     opaque copy of themselves. */
-  background: color-mix(in srgb, var(--color-surface) 14%, transparent);
-  -webkit-backdrop-filter: blur(9px) saturate(128%) brightness(106%);
-  backdrop-filter: blur(9px) saturate(128%) brightness(106%);
+  /*
+    Real frosted glass, which WebKit does support: the icon and the track under
+    the knob stay visible through it rather than being replaced by an opaque
+    copy of themselves.
+
+    Everything here is written to stay see-through in a light theme, which the
+    first version was not. Three things were filling the disc, and each is only
+    obvious once the page behind is pale:
+
+    `brightness(106%)` is gone. Lifting a sampled backdrop moves it toward
+    white, and over Light's near-white page there is nowhere else for it to go
+    — the knob arrived at white and stopped being glass. On Dark the same 6%
+    had almost nothing to lift, which is exactly why this only showed in two
+    of the three themes.
+
+    The fill is 8% rather than 14%, because --color-surface is itself
+    near-white in Light and Warm, so that number is a white veil there and a
+    faint grey one in Dark.
+
+    And the top lift hugs the rim now instead of blooming across the face. At
+    an 11px blur with -7px spread it reached most of a 36px disc, and
+    --glass-specular is 0.96 white in Light against 0.18 in Dark — so the same
+    declaration was a rim highlight in one theme and a flood-fill in another.
+    Tight radii keep it an edge wherever it lands.
+  */
+  background: color-mix(in srgb, var(--color-surface) 8%, transparent);
+  -webkit-backdrop-filter: blur(9px) saturate(124%);
+  backdrop-filter: blur(9px) saturate(124%);
   /* The edge, drawn: a bright inner hairline where a lens catches the light,
      a lift under the top rim and a shade under the bottom one. Three inset
      shadows stand in for the compression a real bevel would produce. */
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--glass-specular) 52%, transparent),
-    inset 0 7px 11px -7px color-mix(in srgb, var(--glass-specular) 78%, transparent),
-    inset 0 -8px 12px -8px color-mix(in srgb, var(--glass-edge-dark) 85%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--glass-specular) 42%, transparent),
+    inset 0 3px 5px -4px color-mix(in srgb, var(--glass-specular) 50%, transparent),
+    inset 0 -4px 6px -5px color-mix(in srgb, var(--glass-edge-dark) 75%, transparent),
     0 2px 6px var(--glass-shadow);
 }
 
