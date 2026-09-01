@@ -11,6 +11,7 @@ import { billingHealth } from "@/lib/billing/health";
 import { CHECKOUT_CHECK_NAME } from "@/lib/billing/faults";
 import { stripeConfigured } from "@/lib/billing/env";
 import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
+import { googleOAuthServerFlowConfigured } from "@/lib/auth/google-oauth-server";
 import { requireBandUpCloudflareBindings } from "@/lib/cloudflare/bindings";
 import {
   cloudflareUsageDetail,
@@ -77,6 +78,22 @@ async function nativeDiagnostics(user: SessionUser): Promise<NextResponse> {
   const add = (name: string, ok: boolean, detail: string) => checks.push({ name, ok, detail });
   add("Accounts switched on", accountsEnabled(), "ACCOUNTS_ENABLED");
   add("Cloudflare-native sign-in active", nativeAuthCutoverActive(), "CLOUDFLARE_NATIVE_AUTH with Cloudflare-only data authority");
+  /*
+    Checked here because its absence is invisible everywhere else. The website
+    signs in with Google through the browser flow and never touches this, so
+    the only symptom is inside the iOS app, where the button is replaced by
+    "Google sign-in is being updated" — which reads as a passing outage rather
+    than a key that was never set. GOOGLE_OAUTH_APP_ORIGIN lives in
+    wrangler.jsonc and survives a deploy; the secret is the half that has to be
+    put on the Worker by hand, so it is the half that goes missing.
+  */
+  add(
+    "Google sign-in works in the iOS app",
+    googleOAuthServerFlowConfigured(),
+    googleOAuthServerFlowConfigured()
+      ? "GOOGLE_OAUTH_CLIENT_SECRET and GOOGLE_OAUTH_APP_ORIGIN are both set"
+      : "GOOGLE_OAUTH_CLIENT_SECRET is missing — the website's Google button still works, the app's does not. Set it with `npx wrangler versions secret put GOOGLE_OAUTH_CLIENT_SECRET`",
+  );
   add("Anthropic key present", hasApiKey(), "ANTHROPIC_API_KEY — without it every AI route answers 503");
   add(
     "Owner address configured",
