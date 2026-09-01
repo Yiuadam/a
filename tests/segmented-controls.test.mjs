@@ -308,21 +308,29 @@ test("WebKit gets a drawn edge, because a bent copy of a flat surface shows noth
   // standing in for the compression a solved bevel would produce.
   assert.match(cloneKnob, /inset 0 0 0 1px/);
 
-  // The spectral ring, drawn as a cone of hue and masked to the rim. On
-  // Chromium the same ring is solved from the displacement map's own bend
-  // magnitude; here there is no solved surface to read, so the mask is a
-  // radius instead — which on a circle is the same place, because a circle's
-  // rim is a radius.
+  // The spectral fringe, and the axis it runs along is the point.
+  //
+  // It was a cone of hue first: the colour cycled as you went round the rim.
+  // That is the wrong axis and it looked it. Dispersion does not vary with
+  // which way a piece of edge faces — it varies with how far the light was
+  // bent, which at a rim changes as you move across the fringe rather than
+  // along it. So the ramp is radial, and its order is wavelength order: red
+  // where the bend is least, violet where it is most, because a shorter
+  // wavelength is deviated further by the same surface.
+  //
+  // And thin. A fringe on real glass is the narrowest thing about it, the
+  // last sliver before the edge rather than a halo standing off it.
   const ring = rule(
     'html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector::after',
   );
-  assert.match(ring, /conic-gradient\(/);
-  assert.match(ring, /mask: radial-gradient\(closest-side, transparent 62%, #000 88%\);/);
+  assert.doesNotMatch(ring, /conic-gradient/);
+  assert.match(ring, /background: radial-gradient\(\s*\n\s*closest-side,\s*\n\s*transparent 0 88%,/);
+  assert.match(ring, /#ff6a3d[\s\S]*#5aa8ff/, "red must come before blue across the band");
   // The base rule builds its hairline from padding plus a two-layer xor
-  // mask, and both have to be undone here or the ring is masked twice and
-  // comes out as nothing.
+  // mask. Both have to be undone here or the band is masked twice and comes
+  // out as nothing; the band is its own shape, so it needs no mask.
   assert.match(ring, /padding: 0;/);
-  assert.match(ring, /mask-composite: add;/);
+  assert.match(ring, /mask: none;/);
 
   // Costing nothing per frame is the other half of this. The live path was
   // re-running a filter over a moving element every frame for a result

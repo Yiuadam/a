@@ -5079,14 +5079,19 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selec
 }
 
 /*
-  The spectral ring, drawn as a cone of hue and masked to the rim.
+  The spectral fringe, drawn — thin, and ordered the way refraction orders it.
 
-  On Chromium this same ring is solved from the displacement map's own bend
-  magnitude, so it sits exactly where the surface turns. Here there is no
-  solved surface to read, so the mask is a radius instead — which is the one
-  honest difference between the two, and it is invisible on a circle, because
-  a circle's rim IS a radius. The hue order and the rim-only placement match
-  what the solved version produces.
+  The first attempt was a cone of hue: the colour cycled as you went round
+  the rim. That is wrong, and it looked it. Dispersion does not vary with
+  which way a piece of the edge faces; it varies with how far the light was
+  bent, and at a rim that changes as you move *across* the fringe, not along
+  it. So the ramp is radial now, and its order is the order of the spectrum:
+  red where the bend is least, violet where it is most, because a shorter
+  wavelength is deviated further by the same surface.
+
+  And thin. A fringe on real glass is the narrowest thing about it — the last
+  sliver before the edge, not a halo standing off it. This band is about a
+  tenth of the radius, against roughly a quarter before.
 */
 html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selector::after {
   content: "";
@@ -5097,24 +5102,24 @@ html[data-glass-lens-clone] .theme-toggle-base[data-pressed] .theme-toggle-selec
   pointer-events: none;
   border-radius: inherit;
   /* The base rule builds its hairline from `padding` plus a two-layer xor
-     mask. Both have to be undone here, or the ring is masked twice and comes
-     out as nothing. */
+     mask. Both have to be undone here, or the band is masked twice and comes
+     out as nothing. The band is its own shape now, so it needs no mask. */
   padding: 0;
-  opacity: 0.55;
-  background: conic-gradient(
-    from 210deg,
-    rgba(255, 122, 92, 0.55),
-    rgba(255, 214, 96, 0.5),
-    rgba(126, 231, 165, 0.45),
-    rgba(112, 189, 255, 0.55),
-    rgba(191, 133, 255, 0.5),
-    rgba(255, 122, 92, 0.55)
+  opacity: 0.9;
+  background: radial-gradient(
+    closest-side,
+    transparent 0 88%,
+    color-mix(in srgb, #ff6a3d 46%, transparent) 91%,
+    color-mix(in srgb, #ffd479 30%, transparent) 93.5%,
+    color-mix(in srgb, #7bffc4 22%, transparent) 95.5%,
+    color-mix(in srgb, #5aa8ff 48%, transparent) 97.5%,
+    color-mix(in srgb, #a06bff 40%, transparent) 99%,
+    transparent 100%
   );
-  -webkit-mask: radial-gradient(closest-side, transparent 62%, #000 88%);
-  -webkit-mask-composite: source-over;
-  mask: radial-gradient(closest-side, transparent 62%, #000 88%);
-  mask-composite: add;
+  -webkit-mask: none;
+  mask: none;
 }
+
 
 
 

@@ -366,7 +366,7 @@ const KNOB_SPECULAR = 3;
   attempt at this, where dispersion scaled with a whole-face lens and put
   yellow and magenta on 1.3px monochrome glyphs.
 */
-const KNOB_SPECTRUM = 0.85;
+const KNOB_SPECTRUM = 0.7;
 /* And the same spectral rim — see KNOB_SPECTRUM. It is masked by the map's
    own bend magnitude, so on a card it lands on the turn at the edge and is
    nothing across the face where the content sits. */
@@ -386,8 +386,14 @@ const SPECTRUM_SPREAD = 4;
   used raw it paints the whole disc. Raising it to this power keeps the
   geometry deciding where the colour goes while letting only the strongest
   part of it through.
+
+  6 rather than the 3 it started at. At 3 the fringe was a broad halo standing
+  off the edge, which is not what a fringe on glass looks like — it is the
+  narrowest thing about it, the last sliver before the rim. Each doubling of
+  this roughly halves the band: at 6, bend at half strength keeps a
+  sixty-fourth of its alpha rather than an eighth.
 */
-const SPECTRUM_FALLOFF = 3;
+const SPECTRUM_FALLOFF = 6;
 /*
   A gentle whole-face lens on top of the rim bevel, so nothing inside the
   knob stays where it was.
@@ -1264,32 +1270,37 @@ export default function GlassRefractionFilter() {
             {entry.spectrum > 0 ? (
               <>
                 {/*
-                  The spectral rim — see KNOB_SPECTRUM for why this one is
+                  The spectral fringe — see KNOB_SPECTRUM for why this one is
                   emitted rather than split out of the backdrop.
 
-                  One primitive does all of it, because the map was built to
-                  let it. Alpha comes from blue, which carries how hard the
-                  surface is bending: nothing across the flat middle, peaking
-                  where the glass turns over, so the fringe lands on the rim
-                  by construction and never reaches the icons. Colour comes
-                  from R and G, the surface normal: the three channels are
-                  driven from two different facings and opposite signs, so
-                  each peaks at a different point around the ring and the hue
-                  travels round it as the surface rotates.
+                  Every channel reads blue, and blue is the bend magnitude.
+                  That is the whole physical claim: dispersion is a function
+                  of how far the light was bent, because a shorter wavelength
+                  is deviated further by the same surface. So red falls off as
+                  the bend rises, violet climbs with it, and green peaks
+                  between them — the spectrum laid out across the fringe, in
+                  wavelength order, with the least-bent colour on the inside.
 
-                  The offsets are what keep it centred. Each channel is
-                  (value - 0.5) x spread + 0.5, which as a matrix row is the
-                  spread in the channel's own column and 0.5 - spread/2 in
-                  the constant — so a flat, neutral pixel comes out mid-grey
-                  and only deviation from neutral produces colour.
+                  It used to read R and G instead, the surface normal, which
+                  made the hue cycle as you went *round* the rim. That is the
+                  wrong axis: dispersion does not care which way a piece of
+                  edge faces. It looked wrong too, and was reported as such.
+
+                  Alpha is the same bend magnitude, sharpened below, so the
+                  fringe lands where the glass turns and is nothing across the
+                  flat middle where the icons sit.
                 */}
                 <feColorMatrix
                   in="generic-normal-map"
                   type="matrix"
                   values={[
-                    `${SPECTRUM_SPREAD} 0 0 0 ${0.5 - SPECTRUM_SPREAD / 2}`,
-                    `0 ${SPECTRUM_SPREAD} 0 0 ${0.5 - SPECTRUM_SPREAD / 2}`,
-                    `${-SPECTRUM_SPREAD} 0 0 0 ${0.5 + SPECTRUM_SPREAD / 2}`,
+                    /* Red where the bend is least. */
+                    `0 0 ${-SPECTRUM_SPREAD} 0 1`,
+                    /* Green through the middle of it. */
+                    `0 0 ${SPECTRUM_SPREAD / 2} 0 ${0.5 - SPECTRUM_SPREAD / 4}`,
+                    /* Violet where it is most. */
+                    `0 0 ${SPECTRUM_SPREAD} 0 0`,
+                    /* And alpha is the bend itself, sharpened below. */
                     `0 0 1 0 0`,
                   ].join("  ")}
                   result="spectrum-raw"
@@ -1308,7 +1319,7 @@ export default function GlassRefractionFilter() {
                   Raising it to a power fixes that without inventing a
                   radius to clip against: the bend still decides where the
                   colour goes, but only the strongest part of it survives.
-                  At 3, half-strength bend keeps an eighth of its alpha
+                  At 6, half-strength bend keeps a sixty-fourth of its alpha
                   and the flat middle keeps none, so the fringe collapses
                   onto the rim where the surface is actually turning
                   hardest. Amplitude carries the overall strength, so the
