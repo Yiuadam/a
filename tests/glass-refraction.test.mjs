@@ -920,9 +920,28 @@ test("the highlight is solved from the pane's shape, not drawn across it", () =>
   // product against a light direction, which is what feColorMatrix's alpha
   // row computes. Light from the upper left is (0.5 - R) + (0.5 - G).
   assert.match(filter, /const KNOB_SPECULAR = 3;/);
-  // Cards carry the knobs' solved highlight now, which is what keeps a bent
-  // edge from reading as lumpy.
-  assert.match(filter, /const GENERIC_SPECULAR = 3;/);
+  // Cards carry no solved highlight, and the knobs do.
+  //
+  // It is the same dot product against a light in both cases, but a knob is
+  // 42px and a card is hundreds. The arc that reads as a catch of light on a
+  // small disc becomes a broad bright streak down the side of a large pane,
+  // and on a dark page that streak is the brightest thing on screen — which
+  // is how it was reported. The knobs keep theirs, where it does the job it
+  // was written for.
+  assert.match(filter, /const GENERIC_SPECULAR = 0;/);
+  assert.match(filter, /const KNOB_SPECULAR = 3;/);
+
+  // And the shape cache forgets what nothing is standing on. It is keyed by
+  // measured shape, so it grows whenever an element is a different size than
+  // last time — which the knobs are on every frame of a squash. Measured on
+  // the home page: four shapes in use and fifty-nine filters mounted, each
+  // holding its own generated bitmap, none of them referenced.
+  assert.match(filter, /const live = new Set\(assignments\.values\(\)\);/);
+  assert.match(filter, /known\.delete\(key\);/);
+  // Ids come from a counter rather than the cache's size, or pruning hands
+  // the same number to a filter that is still in use.
+  assert.match(filter, /let nextFilterId = 0;/);
+  assert.doesNotMatch(filter, /\$\{GENERIC_FILTER_PREFIX\}-\$\{known\.size\}/);
   assert.match(filter, /in="generic-normal-map"[\s\S]{0,200}\$\{-entry\.specular\} \$\{-entry\.specular\} 0 0 \$\{entry\.specular\}/);
   assert.match(filter, /result="specular-mask"/);
   assert.match(filter, /in="specular-light"\s*\n\s*in2="specular-mask"\s*\n\s*operator="in"/);

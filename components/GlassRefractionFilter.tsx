@@ -135,8 +135,20 @@ const GENERIC_SELECTOR =
    rather than grown on the fly. A card between two grid points reads a bevel
    a few percent off from its own exact proportions, which is not visible at
    the strengths these constants use. */
-const GENERIC_ASPECT_STEP = 0.05;
-const GENERIC_CORNER_STEP = 0.02;
+/*
+  Aspect is quantised coarsely and the corner finely, and the asymmetry is
+  deliberate.
+
+  The corner is what the seam was about — a card measuring 0.209 served by a
+  map drawn for 0.12 — so it stays fine enough that the residual is a
+  rounding hair. Aspect had no such problem, and it has a problem of its own:
+  a knob squashes as it travels, so its width and height change every frame,
+  and at a fine step every frame of that animation is a new shape, a new
+  filter and a new map. A quarter is coarse enough that a whole squash
+  collapses to one key.
+*/
+const GENERIC_ASPECT_STEP = 0.25;
+const GENERIC_CORNER_STEP = 0.03;
 /* Smaller than the 384 this was, and it can be: a map that describes the
    pane's own exact shape does not need extra resolution to survive being
    stretched onto a shape it does not match. What size buys now is only the
@@ -430,9 +442,15 @@ const KNOB_INNER_EASE = 1;
    depth to protect. */
 const GENERIC_INNER_EASE = 1;
 const GENERIC_MAGNIFY = 0;
-/* The same solved highlight the knobs carry — see KNOB_SPECULAR. It costs
-   four primitives and is what stops the bent edge reading as lumpy. */
-const GENERIC_SPECULAR = 3;
+/* No solved highlight on cards, unlike the knobs.
+
+   It is the same dot product against a light in both cases, but a knob is
+   42px and a card is hundreds: the arc that reads as a catch of light on a
+   small disc becomes a broad bright streak down the side of a large pane,
+   and on a dark page that streak is the brightest thing on screen. Reported
+   as exactly that. The knobs keep theirs, where it does the job it was
+   written for. */
+const GENERIC_SPECULAR = 0;
 const NAV_ADAPTIVE_TINT = 0.12;
 const GENERIC_ADAPTIVE_TINT = 0;
 const NAV_TINT_SELECTOR = ".nav-menu-group";
@@ -860,6 +878,14 @@ export default function GlassRefractionFilter() {
       }
     >();
     let frame = 0;
+    /*
+      Ids come from a counter that only ever goes up, never from the cache's
+      current size. The cache is pruned below, so a size-derived id would be
+      handed out twice: delete one entry and the next shape created takes the
+      number a live filter is already using, and every element pointing at it
+      silently gets the wrong lens.
+    */
+    let nextFilterId = 0;
 
     const rebuild = () => {
       const { buckets, assignments } = measureGenericPanes(cloneLensEnabled && !splitLensEnabled);
@@ -881,8 +907,9 @@ export default function GlassRefractionFilter() {
         );
         if (!source) continue;
 
+        nextFilterId += 1;
         known.set(key, {
-          id: `${GENERIC_FILTER_PREFIX}-${known.size}`,
+          id: `${GENERIC_FILTER_PREFIX}-${nextFilterId}`,
           url: source,
           scale: bucket.scale,
           dispersion: bucket.dispersion,
@@ -896,6 +923,29 @@ export default function GlassRefractionFilter() {
       for (const [element, key] of assignments) {
         const entry = known.get(key);
         if (entry) element.style.setProperty("--glass-lens-filter", `url(#${entry.id})`);
+      }
+
+      /*
+        Forget every shape nothing on the page is standing on any more.
+
+        This cache is keyed by shape, and shapes are measured from live
+        elements, so it grows whenever one of them is a different size than
+        last time — which the knobs are on every frame of a squash, and every
+        pane is while fonts load and the layout settles. Without this the
+        cache only ever grew: measured on the home page at one point, four
+        shapes were actually in use and fifty-nine filters were mounted, each
+        with its own generated map held in memory, none of them referenced.
+
+        Rebuilds are already cheap and rare — resize and DOM mutation — and a
+        shape that comes back simply regenerates. Holding one that has gone
+        costs a filter tree and a bitmap for nothing.
+      */
+      const live = new Set(assignments.values());
+      for (const key of known.keys()) {
+        if (!live.has(key)) {
+          known.delete(key);
+          changed = true;
+        }
       }
 
       if (changed) {
