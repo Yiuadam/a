@@ -15,6 +15,7 @@ const examinerDeliveryPath = join(root, "lib", "examiner-audio.ts");
 const examinerRoutePath = join(root, "app", "api", "examiner-audio", "route.ts");
 const speakingSessionPath = join(root, "components", "speaking", "SpeakingSession.tsx");
 const { LISTENING_TESTS } = await import(pathToFileURL(join(root, "lib", "tests.ts")).href);
+const { spokenForm } = await import(pathToFileURL(join(root, "lib", "speech-text.ts")).href);
 const turnControl = await import(
   pathToFileURL(join(root, "lib", "speaking", "turn-control.ts")).href,
 );
@@ -40,6 +41,22 @@ function sourceFrom(source, marker) {
 
 function normaliseWords(text) {
   return text.replace(/\s+/gu, " ").trim();
+}
+
+/* The real words of a line, which lib/speech-text.ts may never take away.
+   It respaces digits and writes "1980s" out as "nineteen eighties", so
+   anything attached to a number is allowed to change; a reviewed word going
+   missing is a different matter, and this is what notices. Single letters are
+   left out for exactly that reason — they are the stranded plural of a decade
+   and the letters of a surname being spelled, never a word of the script. */
+function alphabeticWords(text) {
+  return (text.toLowerCase().match(/[a-z']+/gu) ?? []).filter((word) => word.length > 1);
+}
+
+function isSubsequence(needle, haystack) {
+  let at = 0;
+  for (const word of haystack) if (word === needle[at]) at += 1;
+  return at === needle.length;
 }
 
 function readJsonc(path) {
@@ -76,13 +93,39 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
       resolved.parts,
       "the reviewed paper must always resolve to the same ordered native recordings",
     );
+    /*
+      What Aura is given to say is the spoken form of the reviewed script — see
+      lib/speech-text.ts, which respaces a phone number so it is read as digits
+      rather than as nine hundred thousand and something. The boundary check is
+      therefore against that rendering rather than against the raw script, and
+      the check that no reviewed word went missing is made separately below,
+      because it is the part that actually matters.
+    */
+    const spokenScript = paper.script
+      .map((turn) => spokenForm(turn.text.trim()))
+      .filter(Boolean)
+      .join("\n");
     assert.equal(
       normaliseWords(resolved.parts.map((part) => part.text).join("\n")),
-      normaliseWords(resolved.text),
-      "per-turn recording must preserve every reviewed word without moving a boundary",
+      normaliseWords(spokenScript),
+      "per-turn recording must preserve every spoken word without moving a boundary",
+    );
+    assert.ok(
+      isSubsequence(alphabeticWords(resolved.text), alphabeticWords(spokenScript)),
+      `${paper.id} must still say every reviewed word, in order, once prepared for the synthesiser`,
     );
 
     const canonicalSpeakers = [...new Set(paper.script.map((turn) => turn.speaker))];
+    /*
+      The first two roles keep the two British voices they have always had, so
+      no existing recording of a two-speaker paper is retired by a change to
+      the roster behind them.
+    */
+    assert.deepEqual(
+      audio.AURA_VOICES.slice(0, 2),
+      ["athena", "helios"],
+      "the two British voices must stay first, or every cached recording is retired",
+    );
     const voiceBySpeaker = new Map();
     const partsByTurn = new Map(paper.script.map((_, index) => [index, []]));
     for (const [partIndex, part] of resolved.parts.entries()) {
@@ -106,13 +149,29 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
       assert.equal(audio.bundledListeningAudioUrl(paper.id, partIndex), `/api/listening-audio?${query}`);
     }
 
+    /*
+      Nobody in a paper may share a voice with anybody else in it. This is what
+      the two-voice roster could not give a Part 3: with four people in the
+      room the tutor and the third speaker were the same person to listen to,
+      and the questions in that part are frequently about which of them said
+      what.
+    */
+    assert.ok(
+      canonicalSpeakers.length <= audio.AURA_VOICES.length,
+      `${paper.id} has ${canonicalSpeakers.length} speakers and the roster holds ${audio.AURA_VOICES.length}`,
+    );
+
     for (const [turnIndex, turn] of paper.script.entries()) {
       const turnParts = partsByTurn.get(turnIndex);
       assert.ok(turnParts?.length, `turn ${turnIndex + 1} needs a native MP3`);
       assert.equal(
         normaliseWords(turnParts.map((part) => part.text).join("\n")),
-        normaliseWords(turn.text),
-        "a turn's MP3 parts must reassemble to exactly that speaker's reviewed wording",
+        normaliseWords(spokenForm(turn.text.trim())),
+        "a turn's MP3 parts must reassemble to exactly that speaker's spoken wording",
+      );
+      assert.ok(
+        isSubsequence(alphabeticWords(turn.text), alphabeticWords(turnParts.map((part) => part.text).join(" "))),
+        `turn ${turnIndex + 1} must still say every reviewed word, in order`,
       );
       if (turn.text.trim().length <= audio.MAX_AURA_AUDIO_CHARS) {
         assert.equal(turnParts.length, 1, "an ordinary dialogue turn must remain one MP3");
@@ -121,7 +180,9 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
       }
 
       const knownVoice = voiceBySpeaker.get(turn.speaker);
-      const expectedVoice = knownVoice ?? (canonicalSpeakers.indexOf(turn.speaker) % 2 === 0 ? "athena" : "helios");
+      const expectedVoice =
+        knownVoice ??
+        audio.AURA_VOICES[canonicalSpeakers.indexOf(turn.speaker) % audio.AURA_VOICES.length];
       voiceBySpeaker.set(turn.speaker, expectedVoice);
 
       for (const [turnPartIndex, part] of turnParts.entries()) {
@@ -130,10 +191,19 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
         assert.equal(part.voice, expectedVoice, "a canonical speaker must retain their voice across turns");
         assert.ok(part.text.length > 0, "an empty MP3 part would create a silent gap");
         assert.ok(part.text.length <= 1_800, "Aura input must stay below its 2,000-character limit");
-        assert.match(
-          part.voice,
-          /^(?:athena|helios)$/,
-          "reviewed listening dialogue must use one of Aura's documented British voices",
+        /* A voice Cloudflare's model schema does not accept would fail
+           generation in production and there is no way to find that out from
+           here, so the roster is pinned to names taken from that schema. */
+        assert.ok(
+          [
+            "angus", "asteria", "arcas", "orion", "orpheus", "athena",
+            "luna", "zeus", "perseus", "helios", "hera", "stella",
+          ].includes(part.voice),
+          `${part.voice} is not a speaker @cf/deepgram/aura-1 accepts`,
+        );
+        assert.ok(
+          audio.AURA_VOICES.includes(part.voice),
+          "a recording must be cast from the paper's own voice roster",
         );
 
         // Keep the content fingerprint, turn-part boundary, and voice identity

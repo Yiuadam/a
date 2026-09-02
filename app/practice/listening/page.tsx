@@ -16,6 +16,7 @@ import { rankedEnglishVoices } from "@/lib/speech";
 import { apiUrl } from "@/lib/api";
 import { playScript } from "@/lib/exam/playback";
 import { bundledListeningAudio, bundledListeningAudioUrl } from "@/lib/listening-audio";
+import { spokenForm } from "@/lib/speech-text";
 import {
   cancelNaturalExaminerVoice,
   disposeNaturalExaminerVoice,
@@ -233,7 +234,7 @@ function ListeningTestPageRunner() {
       // the multiple-speaker delivery first.
       setPlaybackStarted(true);
       const result = await speakNaturalExaminer(
-        test.script.map((turn) => turn.text).join("\n"),
+        test.script.map((turn) => spokenForm(turn.text)).join("\n"),
         rateRef.current,
       );
       if (playbackRunRef.current !== run) return;
@@ -379,6 +380,35 @@ function ListeningTestPageRunner() {
     [],
   );
 
+  /*
+    Put the chosen speed on a media element.
+
+    The speed control below has always fed `rateRef`, and `rateRef` has always
+    reached the two speech paths — but never this one, which is the path a
+    canonical paper actually takes. A learner who chose 0.85x got the recording
+    at 1x and no indication that the control had done nothing. Both elements
+    are set, not just the audible one: the standby element is already decoding
+    the next turn, and a rate applied only at `play()` would step back to 1x on
+    the very handoff this player exists to make seamless.
+
+    `preservesPitch` is what makes a slower recording usable rather than a
+    parody of one. It is the default in current browsers, and setting it
+    explicitly costs nothing where it is already true and rescues the case
+    where a browser has resampling as its default.
+  */
+  const applyPlaybackRate = useCallback((value: number) => {
+    for (const media of [nativeAudioRef.current, nativeAudioBufferRef.current]) {
+      if (!media) continue;
+      try {
+        media.preservesPitch = true;
+        media.playbackRate = value;
+      } catch {
+        // A browser that rejects the rate still plays the recording at 1x,
+        // which is the behaviour this replaces rather than a new failure.
+      }
+    }
+  }, []);
+
   const primeNativeAudioBuffer = useCallback(
     (run: number, activePart: number) => {
       if (!test || nativeAudioRunRef.current !== run) return;
@@ -398,6 +428,7 @@ function ListeningTestPageRunner() {
         standby.preload = "auto";
         standby.src = apiUrl(bundledListeningAudioUrl(test.id, nextPart));
         standby.load();
+        applyPlaybackRate(rateRef.current);
         nativeAudioBufferedPartRef.current = nextPart;
       } catch {
         // A failed preload of the part after this one is not a playback
@@ -407,7 +438,7 @@ function ListeningTestPageRunner() {
         nativeAudioBufferedPartRef.current = -1;
       }
     },
-    [otherNativeAudioElement, serverAudioParts.length, test],
+    [applyPlaybackRate, otherNativeAudioElement, serverAudioParts.length, test],
   );
 
   const playNativeAudioPart = useCallback(
@@ -442,6 +473,7 @@ function ListeningTestPageRunner() {
         nativeAudioActiveRef.current = standby;
         nativeAudioBufferedPartRef.current = -1;
         try {
+          applyPlaybackRate(rateRef.current);
           void standby.play().catch(() => fallbackFromNativeAudio(run, from));
         } catch {
           fallbackFromNativeAudio(run, from);
@@ -461,6 +493,7 @@ function ListeningTestPageRunner() {
         media.currentTime = 0;
         media.src = apiUrl(bundledListeningAudioUrl(test.id, part));
         media.load();
+        applyPlaybackRate(rateRef.current);
         // The first call is directly in the learner's click path. Each later
         // part is started synchronously by the previous media `ended` event,
         // so a long paper remains a normal, user-authorised audio playlist.
@@ -471,6 +504,7 @@ function ListeningTestPageRunner() {
       primeNativeAudioBuffer(run, part);
     },
     [
+      applyPlaybackRate,
       fallbackFromNativeAudio,
       isBundledTest,
       otherNativeAudioElement,
@@ -731,6 +765,12 @@ function ListeningTestPageRunner() {
               const nextRate = Number(value);
               setRate(nextRate);
               rateRef.current = nextRate;
+              /* The two speech paths read `rateRef` at each sentence, so they
+                 pick this up on their own. A media element does not ask: it
+                 has to be told, and telling it mid-recording is the point —
+                 the learner who reaches for this control is usually already
+                 losing the turn that is playing. */
+              applyPlaybackRate(nextRate);
             }}
             compact
             className="w-[5.5rem]"

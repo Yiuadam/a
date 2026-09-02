@@ -1,3 +1,4 @@
+import { spokenForm } from "./speech-text";
 import { LISTENING_TESTS } from "./tests";
 
 /*
@@ -13,11 +14,57 @@ export const MAX_AURA_AUDIO_CHARS = 1_800;
 
 export const BUNDLED_LISTENING_AUDIO_IDS = LISTENING_TESTS.map((test) => test.id) as readonly string[];
 
-// These two are the documented British Aura-1 voices: Athena is feminine and
-// Helios is masculine. Further roles stay distinguishable without falling back
-// to a different accent.
-const BRITISH_AURA_VOICES = ["athena", "helios"] as const;
-export type BundledListeningVoice = (typeof BRITISH_AURA_VOICES)[number];
+/*
+  One voice per speaker, in the order a paper introduces them.
+
+  This was the two British voices alone, taken in turn, and for a Part 1 phone
+  call that is exactly right. For a Part 3 it was not: the seminar papers have
+  three or four people in them, so the third speaker was handed the first
+  speaker's voice. Downloading listening-6 from the live endpoint and reading
+  the voice off each of its 27 clips says it plainly — Dr Hale and Marcus are
+  both Athena, Priya and Elena are both Helios. Four people, two voices, and
+  the tutor sounds exactly like one of her students. Seven of the papers are
+  built this way, and a Part 3 question is very often about who said what.
+
+  Aura-1 offers only two British voices, so a third distinct speaker has to
+  come from somewhere else. Angus is the documented Irish voice and is the
+  smallest step away; a fourth speaker takes Luna, which Deepgram lists as a
+  young adult, and is therefore the closest thing on the roster to another
+  student. IELTS puts a range of native accents in front of candidates on
+  purpose, so a mixed cast is defensible in a way that two people sharing a
+  larynx is not.
+
+  The first two entries are unchanged, and that is deliberate: every existing
+  recording for a first or second speaker keeps its cache key, so this asks
+  the provider to generate audio only for the third and fourth speakers of the
+  seven papers that have them.
+
+  The names are the `speaker` values Cloudflare's model schema accepts for
+  @cf/deepgram/aura-1 — angus, asteria, arcas, orion, orpheus, athena, luna,
+  zeus, perseus, helios, hera, stella — and their accents and genders are
+  Deepgram's own published table for Aura-1. That field is a validated enum: a
+  name outside it does not quietly fall back to the default, it fails the
+  generation with AiError 5006 and the learner gets no recording at all. Add a
+  voice here only after reading it off Cloudflare's own schema for the model
+  this route actually calls.
+
+  Which matters more than it sounds, because the obvious upgrade is a trap.
+  @cf/deepgram/aura-2-en carries two different British voices, draco and
+  pandora, and an Australian pair — a better cast for a four-way seminar than
+  anything here. But athena is British in aura-1 and AMERICAN in aura-2-en,
+  and several other names are shared across the two models with different
+  accents. Changing the model string in app/api/listening-audio/route.ts while
+  leaving these names alone would recast every paper in the app, silently, with
+  nothing failing anywhere.
+
+  The one thing this roster cannot do is match a voice to a character. A fourth
+  speaker gets Luna whether the script calls him Malik or her Elena, because
+  guessing gender from a name is not a thing to build. Casting properly needs a
+  per-paper choice, and that is a decision about the papers rather than about
+  this file.
+*/
+export const AURA_VOICES = ["athena", "helios", "angus", "luna"] as const;
+export type BundledListeningVoice = (typeof AURA_VOICES)[number];
 
 export interface BundledListeningAudio {
   id: string;
@@ -95,10 +142,18 @@ export function bundledListeningAudio(testId: string | null): BundledListeningAu
   const speakers = [...new Set(test.script.map((turn) => turn.speaker).filter(Boolean))];
   const parts: BundledListeningAudioPart[] = [];
   for (const [turnIndex, turn] of test.script.entries()) {
-    const part = turn.text.trim();
+    /*
+      What Aura is asked to say, which is not quite what the paper says. See
+      lib/speech-text.ts: a phone number written "07700 900426" is otherwise
+      read back as nine hundred thousand four hundred and twenty-six, and a
+      candidate cannot recover the digits from that. The spoken form is what
+      gets hashed as well as spoken, so an improvement to those rules retires
+      the recording it improves instead of leaving it cached forever.
+    */
+    const part = spokenForm(turn.text.trim());
     if (!part) continue;
     const speakerIndex = Math.max(0, speakers.indexOf(turn.speaker));
-    const voice = BRITISH_AURA_VOICES[speakerIndex % BRITISH_AURA_VOICES.length];
+    const voice = AURA_VOICES[speakerIndex % AURA_VOICES.length];
     // A reviewed dialogue turn stays whole whenever possible. Two existing
     // lecture-style turns exceed Aura's hard limit, so only those are split at
     // a completed sentence (or, as a last resort, a word) while keeping their

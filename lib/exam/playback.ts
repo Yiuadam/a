@@ -1,5 +1,6 @@
 "use client";
 
+import { spokenForm } from "../speech-text";
 import { toSentences } from "../speech";
 import type { ListeningTest } from "../types";
 
@@ -40,24 +41,68 @@ function completionTimeout(text: string): number {
 /**
  * Try the chosen voice first, then an installed local voice, then the device
  * default. A cloud voice may be listed even when it cannot play right now.
+ *
+ * The local fallback is picked by speaker index too, and that is the whole
+ * point of the change: it used to be `find(localService)`, the same single
+ * voice for every speaker in the script. So a cloud voice failing on the
+ * receptionist's line put the receptionist onto the one local voice — which
+ * was quite possibly already the caller's voice — and from that turn on the
+ * two characters in the conversation were one person. A recording where the
+ * speakers merge halfway through is worse than one that never had two voices,
+ * because the learner has already learned to tell them apart.
  */
 function voiceCandidates(
   voices: SpeechSynthesisVoice[],
   speakerIndex: number,
 ): Array<SpeechSynthesisVoice | undefined> {
   const preferred = voices.length > 0 ? voices[speakerIndex % voices.length] : undefined;
-  const local = voices.find((voice) => voice.localService && voice !== preferred);
-  return [...new Set<SpeechSynthesisVoice | undefined>([preferred, local, undefined])];
+  const local = voices.filter((voice) => voice.localService && voice !== preferred);
+  const localForSpeaker = local.length > 0 ? local[speakerIndex % local.length] : undefined;
+  return [...new Set<SpeechSynthesisVoice | undefined>([preferred, localForSpeaker, undefined])];
 }
+
+/*
+  How far apart two consecutive lines are, in milliseconds.
+
+  These were one number — 420 for every turn boundary — and a turn boundary is
+  two different events. In Parts 1 and 3 it is one person stopping and another
+  starting; in Parts 2 and 4 it is the same lecturer beginning a new paragraph.
+  Giving both the same beat is what makes a discussion sound like a document
+  being read out.
+
+  The speaker-change figure is not a guess: it is the median silence measured
+  across the 35 speaker changes in the shipped Part 1 recording and the 26 in
+  the shipped Part 3, taken from the MP3s the server path actually serves
+  (median 320 ms, range 120-630). Matching it here means a learner who falls
+  back to browser speech gets the same exam rather than a slower relative of
+  it.
+
+  The paragraph figure is deliberately left where it was. Nothing that could be
+  measured without hearing the result says whether a lecturer's paragraph break
+  wants 420 ms or a second, so it keeps the value it has always had, and it is
+  named here so the next person changing it knows which of the two they are
+  changing.
+*/
+const SENTENCE_GAP_MS = 180;
+const SPEAKER_CHANGE_GAP_MS = 320;
+const SAME_SPEAKER_TURN_GAP_MS = 420;
+
+/*
+  Pitches for the one case where a device has a single usable voice and the
+  script has a cast. Four steps rather than two, because a Part 3 has three or
+  four people in it. Kept narrow on purpose: this is the difference between
+  "another person is speaking" and a chipmunk, and it is only ever reached when
+  the alternative is one voice reading every part.
+*/
+const SINGLE_VOICE_PITCH = [1.06, 0.92, 1, 0.86];
 
 /**
  * Speak the script a sentence at a time rather than a turn at a time.
  *
  * Reading a whole paragraph as one utterance is what makes synthesised speech
  * sound mechanical: the pace never varies and there is no breath between
- * thoughts. Sentence-level playback with short gaps — longer when the speaker
- * changes, as in a real conversation — plus a little jitter in the rate, gets
- * much closer to a person reading aloud.
+ * thoughts. Sentence-level playback, with a gap whose length depends on what
+ * kind of boundary it is, is much closer to a person reading aloud.
  */
 export function playScript(test: ListeningTest, from: number, hooks: PlaybackHooks): void {
   let failed = false;
@@ -77,8 +122,12 @@ export function playScript(test: ListeningTest, from: number, hooks: PlaybackHoo
     const turn = test.script[turnIndex];
     const sentences = toSentences(turn.text);
     if (sentenceIndex >= sentences.length) {
-      // Turn-taking gap: a beat longer than the pause between sentences.
-      const gap = turnIndex + 1 < test.script.length ? 420 : 0;
+      const next = test.script[turnIndex + 1];
+      const gap = !next
+        ? 0
+        : next.speaker !== turn.speaker
+          ? SPEAKER_CHANGE_GAP_MS
+          : SAME_SPEAKER_TURN_GAP_MS;
       window.setTimeout(() => speak(turnIndex + 1, 0), gap);
       return;
     }
@@ -120,13 +169,24 @@ export function playScript(test: ListeningTest, from: number, hooks: PlaybackHoo
       };
 
       try {
-        const utter = new SpeechSynthesisUtterance(sentence);
+        const utter = new SpeechSynthesisUtterance(spokenForm(sentence));
         utter.lang = voice?.lang || "en-GB";
         if (voice) utter.voice = voice;
-        // Only shift pitch when one voice has to cover several speakers.
-        utter.pitch = hooks.voices.length > 1 ? 1 : speakerIndex === 0 ? 1.04 : 0.92;
-        // ±3% keeps the delivery from sounding metronomic.
-        utter.rate = hooks.rate() * (0.97 + Math.random() * 0.06);
+        /* Only shift pitch when one voice has to cover several speakers, and
+           then give every speaker its own step rather than sorting the cast
+           into "the first one" and "everybody else". A Part 3 has three or
+           four people in it, and on a device with a single installed voice the
+           old pair of pitches left two of them identical. */
+        utter.pitch = hooks.voices.length > 1 ? 1 : SINGLE_VOICE_PITCH[speakerIndex % SINGLE_VOICE_PITCH.length];
+        /* One rate for the whole recording. This was `rate * (0.97 +
+           Math.random() * 0.06)`, meaning a fresh speed within a 6% band at
+           every full stop. lib/speech.ts already worked out why that is not
+           expression — the variation is between sentences rather than inside
+           them, so what a listener hears is a delivery that will not settle —
+           and removed the same trick from the examiner voice. It had no better
+           claim here, and it also made the recording a different length on
+           every play, which put a measurement of this pipeline out of reach. */
+        utter.rate = hooks.rate();
         utter.onstart = () => {
           if (settled || !hooks.stillPlaying()) return;
           started = true;
@@ -156,7 +216,7 @@ export function playScript(test: ListeningTest, from: number, hooks: PlaybackHoo
             tryFallback();
             return;
           }
-          const gap = sentenceIndex + 1 < sentences.length ? 180 : 0;
+          const gap = sentenceIndex + 1 < sentences.length ? SENTENCE_GAP_MS : 0;
           window.setTimeout(() => speak(turnIndex, sentenceIndex + 1), gap);
         };
         utter.onerror = () => {
