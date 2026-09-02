@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import BandBadge from "@/components/BandBadge";
 import ClearHistoryButton from "@/components/history/ClearHistoryButton";
 import LookupHistoryCard from "@/components/history/LookupHistoryCard";
+import { retakesOf, standingRecord, type StandingModule, type StandingRecord } from "@/lib/exam/report";
 import { useProfile } from "@/lib/hooks";
 import { newestFirst, seriesFor } from "@/lib/results";
 import type { ModuleName, ModuleResult } from "@/lib/types";
@@ -208,9 +210,155 @@ function StatTile({
   );
 }
 
+const MODULE_LABEL: Record<ModuleName, string> = MODULES.reduce(
+  (labels, module) => ({ ...labels, [module.key]: module.label }),
+  {} as Record<ModuleName, string>,
+);
+
+/*
+  The standing Test Report Form: the learner's most recent full sitting, with
+  any skill they have since re-sat replacing that skill's band.
+
+  ---------------------------------------------------------------------------
+  Why the overall lives here and not over the four tiles below
+
+  The tiles plot every practice paper a learner has ever done, one series per
+  skill, and it is tempting to average the four latest points into an "overall
+  band" and print it at the top of the page. It would be wrong in the way this
+  app has already decided not to be wrong elsewhere: those four numbers come
+  from four different days, four different papers and four different amounts of
+  interruption, and their mean is not a band anybody scored. An overall band
+  describes one measurement of one candidate on one occasion.
+
+  So the overall is anchored to a sitting, and a retake is what keeps it
+  current — which is exactly the arrangement IELTS itself uses. A learner who
+  has never sat a full mock is told so and pointed at one, rather than shown a
+  number that would not survive being asked where it came from.
+
+  A skill with no band at all is not a reason to hide the card; it is the
+  reason the card says which skill is missing and offers to sit it. Filling the
+  last gap is the one way an overall can appear for the first time without a
+  second three-hour sitting.
+*/
+function StandingCard({ record }: { record: StandingRecord }) {
+  const updated = record.issuedAt !== record.satAt;
+
+  return (
+    <section className="card space-y-3" aria-label="Your standing band">
+      {/*
+        The heading above the row rather than beside the badge. Stacked on a
+        phone, a heading inside the second column renders *below* the number it
+        names, which reads as a caption and is announced as one.
+      */}
+      <h2 className="text-base font-semibold text-slate-900">Your IELTS band</h2>
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
+        {record.overall !== null ? (
+          /* No `caption` override: BandBadge already prints bandLabel as its
+             own first line, so passing it again printed "Good user" twice. The
+             default caption is the CEFR estimate, which says something new. */
+          <BandBadge band={record.overall} />
+        ) : (
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-slate-300 text-center text-xs leading-4 text-slate-400">
+            no overall band
+          </div>
+        )}
+        <div className="min-w-0 flex-1 space-y-1.5 text-center sm:text-left">
+          {record.overall !== null ? (
+            <p className="text-sm leading-6 text-slate-600">
+              The mean of the four skills below, rounded to the nearest half band — the official
+              rule. Re-sit any one skill and this recalculates from the new band and the other
+              three, the way an IELTS One Skill Retake does.
+            </p>
+          ) : (
+            <p className="text-sm leading-6 text-slate-600">
+              {record.unmarked.map((m) => MODULE_LABEL[m]).join(" and ")}{" "}
+              {record.unmarked.length > 1 ? "have" : "has"} never been marked, so there is no
+              overall band. An overall is the mean of four, and averaging the three that exist
+              would give you a number that looks like an IELTS score and is not one. Sit the
+              missing {record.unmarked.length > 1 ? "skills" : "skill"} below and it appears.
+            </p>
+          )}
+          {/* "Sat 12 Aug" was the first wording, and it reads as a weekday. */}
+          <p className="text-xs text-slate-500">
+            Sitting of {fmtDate(record.satAt)}
+            {updated ? ` · updated ${fmtDate(record.issuedAt)}` : null}
+          </p>
+        </div>
+      </div>
+
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {record.modules.map((entry) => (
+          <StandingRow key={entry.module} entry={entry} reportId={record.reportId} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function StandingRow({ entry, reportId }: { entry: StandingModule; reportId: string }) {
+  const moved =
+    entry.original !== null && entry.band !== null
+      ? Math.round((entry.band - entry.original) * 10) / 10
+      : null;
+
+  return (
+    <li className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2">
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-slate-800">
+          {MODULE_LABEL[entry.module]}
+        </span>
+        {/*
+          The original band stays on the row whenever a retake has replaced it,
+          in both directions. A record that showed only improvements would be a
+          trophy cabinet rather than a history, and the learner deciding whether
+          to book the real test is the person least well served by one.
+        */}
+        <span className="block truncate text-xs text-slate-500">
+          {entry.retakes === 0
+            ? entry.band === null
+              ? "Not marked in your sitting"
+              : "From your sitting"
+            : entry.original === null
+              ? `Retake · not sat in the exam${entry.retakes > 1 ? ` · ${entry.retakes} retakes` : ""}`
+              : `Retake · was ${entry.original}${moved !== null && moved !== 0 ? (moved > 0 ? ` (▲ ${moved})` : ` (▼ ${Math.abs(moved)})`) : ""}`}
+        </span>
+      </span>
+      <span className="flex shrink-0 items-center gap-2">
+        <span className="text-lg font-semibold tabular-nums text-slate-900">
+          {entry.band ?? "—"}
+        </span>
+        {/*
+          One link per skill, which is the whole of the owner's request: each
+          sector can be retaken on its own. It carries the sitting it updates,
+          so a band earned here attaches to the right report rather than to
+          "your score" in the abstract — see app/exam/page.tsx, which refuses a
+          retake naming a sitting the learner does not have.
+        */}
+        <Link
+          href={`/exam?retake=${encodeURIComponent(entry.module)}&of=${encodeURIComponent(reportId)}`}
+          className="btn-secondary !min-h-9 !px-3 !py-1 !text-xs"
+        >
+          {entry.band === null ? "Sit" : "Retake"}
+        </Link>
+      </span>
+    </li>
+  );
+}
+
 export default function HistoryPage() {
   const profile = useProfile();
   const results = useMemo(() => newestFirst(profile.results), [profile.results]);
+
+  /*
+    Derived on every render from the reports and the retakes, never stored.
+    That is what makes "recalculated every time a sector is retaken" true by
+    construction rather than by remembering to update something: there is no
+    second copy of the overall anywhere that could fall behind.
+  */
+  const standing = useMemo(
+    () => standingRecord(profile.mockReports, profile.mockRetakes),
+    [profile.mockReports, profile.mockRetakes],
+  );
 
   const byModule = useMemo(() => {
     const m = new Map<ModuleName, ModuleResult[]>();
@@ -261,16 +409,36 @@ export default function HistoryPage() {
         )}
       </header>
 
+      {standing ? (
+        <StandingCard record={standing} />
+      ) : (
+        results.length > 0 && (
+          <div className="card">
+            <p className="text-[15px] leading-7 text-slate-600">
+              <span className="font-medium text-slate-800">No overall band yet.</span> An overall
+              is the mean of four skills measured in one sitting, so it comes from a{" "}
+              <Link href="/exam" className="font-medium text-indigo-700 underline underline-offset-2">
+                full mock exam
+              </Link>
+              . After that you can re-sit any single skill and your overall recalculates around
+              it, the way IELTS One Skill Retake works.
+            </p>
+          </div>
+        )
+      )}
+
       {results.length === 0 ? (
-        <div className="card">
-          <p className="text-[15px] leading-7 text-slate-600">
-            Sit any practice test and it lands here automatically —{" "}
-            <Link href="/practice" className="font-medium text-indigo-700 underline underline-offset-2">
-              start with a reading or listening test
-            </Link>
-            , or try the writing or speaking examiner.
-          </p>
-        </div>
+        standing ? null : (
+          <div className="card">
+            <p className="text-[15px] leading-7 text-slate-600">
+              Sit any practice test and it lands here automatically —{" "}
+              <Link href="/practice" className="font-medium text-indigo-700 underline underline-offset-2">
+                start with a reading or listening test
+              </Link>
+              , or try the writing or speaking examiner.
+            </p>
+          </div>
+        )
       ) : (
         <>
           <section aria-label="Band by module" className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
@@ -291,26 +459,42 @@ export default function HistoryPage() {
               <h2 className="heading-rule mb-2 text-sm font-semibold text-slate-900">
                 Mock exam reports
               </h2>
+              {/*
+                Deliberately still the *original* bands, unchanged by any
+                retake. A real One Skill Retake issues a new Test Report Form
+                and leaves the first one valid — the candidate chooses which to
+                send — and this list is the archive of forms as they were
+                issued. The card above is the form that stands today. Rewriting
+                these rows to match it would destroy the only record of what a
+                sitting actually measured, which is the thing this feature is
+                least allowed to do.
+              */}
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {profile.mockReports?.map((report) => (
-                  <Link
-                    key={report.id}
-                    href={`/exam/report?id=${encodeURIComponent(report.id)}`}
-                    className="card premade-glass flex items-center justify-between gap-3 !p-3"
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-slate-900">
-                        Full mock exam
+                {profile.mockReports?.map((report) => {
+                  const retakes = retakesOf(report.id, profile.mockRetakes);
+                  return (
+                    <Link
+                      key={report.id}
+                      href={`/exam/report?id=${encodeURIComponent(report.id)}`}
+                      className="card premade-glass flex items-center justify-between gap-3 !p-3"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-slate-900">
+                          Full mock exam
+                        </span>
+                        <span className="block text-xs text-slate-500">
+                          {fmtDate(report.completedAt)} ·{" "}
+                          {retakes.length === 0
+                            ? "Certificate and score report"
+                            : `Bands as sat · ${retakes.length} skill${retakes.length === 1 ? "" : "s"} re-sat since`}
+                        </span>
                       </span>
-                      <span className="block text-xs text-slate-500">
-                        {fmtDate(report.completedAt)} · Certificate and score report
+                      <span className="shrink-0 text-lg font-semibold tabular-nums text-slate-900">
+                        {report.marks.overall ?? "—"}
                       </span>
-                    </span>
-                    <span className="shrink-0 text-lg font-semibold tabular-nums text-slate-900">
-                      {report.marks.overall ?? "—"}
-                    </span>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             </section>
           )}

@@ -65,6 +65,10 @@ export function restoreAcceptedOrganizationHistory(
     ...next,
     results: protectedProfile.results as Profile["results"],
     mockReports: protectedProfile.mockReports as Profile["mockReports"],
+    /* A retake is part of the sitting archive a restricted student may not
+       empty, so it is restored alongside the reports it names rather than left
+       to a tab's working copy that may have tried to drop it. */
+    mockRetakes: protectedProfile.mockRetakes as Profile["mockRetakes"],
     historyClearedAt: protectedProfile.historyClearedAt as Profile["historyClearedAt"],
     placement: protectedProfile.placement as Profile["placement"],
     placementClearedAt: protectedProfile.placementClearedAt as Profile["placementClearedAt"],

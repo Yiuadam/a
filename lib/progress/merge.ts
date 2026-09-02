@@ -1,4 +1,10 @@
-import type { Profile, ModuleResult, GeneratedTest, MockExamReport } from "@/lib/types";
+import type {
+  Profile,
+  ModuleResult,
+  GeneratedTest,
+  MockExamReport,
+  MockRetake,
+} from "@/lib/types";
 
 /*
   Merging a learner's progress from two devices.
@@ -237,6 +243,30 @@ export function mergeProfiles(
     .sort((left, right) => right.completedAt.localeCompare(left.completedAt))
     .slice(0, 30);
 
+  /*
+    Single-skill retakes, unioned on their own ids.
+
+    This is the reason they are a flat list on the profile rather than a field
+    inside each report (see Profile.mockRetakes in lib/types.ts). Nested, two
+    devices that each retook a different skill against the same sitting would
+    produce two objects sharing one report id, and `unionBy` keeps the first —
+    so one learner's afternoon would vanish because the other device synced
+    first. Flat, both rows survive and lib/exam/report.ts resolves them.
+
+    Filtered by historyClearedAt like the reports above, and for the same
+    reason: a clear that left the retakes behind would let a device that missed
+    it push a retake back up, and a retake naming a sitting that no longer
+    exists is a band with nothing to attach to.
+  */
+  const mockRetakes = unionBy(
+    asArray<MockRetake>(a.mockRetakes),
+    asArray<MockRetake>(b.mockRetakes),
+    (retake) => String(retake?.id ?? JSON.stringify(retake)),
+  )
+    .filter((retake) => !historyClearedAt || String(retake?.completedAt) > historyClearedAt)
+    .sort((left, right) => String(right?.completedAt).localeCompare(String(left?.completedAt)))
+    .slice(0, 30);
+
   const localDeletedGenTests = deletionMap(a.deletedGenTests);
   const remoteDeletedGenTests = deletionMap(b.deletedGenTests);
   const deletedGenTests: Record<string, string> = { ...localDeletedGenTests };
@@ -312,6 +342,7 @@ export function mergeProfiles(
     visited,
     results,
     mockReports,
+    mockRetakes,
     historyClearedAt,
     placementClearedAt,
     drillsClearedAt,

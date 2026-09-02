@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import SpeakingSession from "@/components/speaking/SpeakingSession";
 import MockListening from "@/components/exam/MockListening";
 import MockReading from "@/components/exam/MockReading";
 import MockResults from "@/components/exam/MockResults";
+import MockRetakeResults from "@/components/exam/MockRetakeResults";
 import MockWriting from "@/components/exam/MockWriting";
-import { useMounted } from "@/lib/hooks";
+import { useMounted, useProfile } from "@/lib/hooks";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import {
@@ -17,7 +19,9 @@ import {
   abandonSession,
   clearSession,
   listeningPaper,
+  newRetakeSession,
   newSession,
+  nextStage,
   readingPaper,
   saveSession,
   serverSessionSnapshot,
@@ -28,6 +32,7 @@ import {
   type MockSession,
 } from "@/lib/exam/mock";
 import { questionCount } from "@/lib/questions";
+import type { SpeakingGrade, SpeakingTranscriptTurn } from "@/lib/types";
 
 /*
   A full IELTS sitting: Listening, Reading, Writing, Speaking, in that order,
@@ -56,8 +61,27 @@ import { questionCount } from "@/lib/questions";
   does not describe anything you could repeat on the day.
 */
 
+/*
+  A Suspense boundary because the retake link below carries its module and its
+  sitting in the query string, and `useSearchParams` suspends. The pattern is
+  the app's existing one — see app/exam/report/page.tsx and the organization
+  query shells. The fallback is null rather than a spinner: the exam screen
+  already renders nothing until `useMounted` says storage has been read, so a
+  placeholder here would only add a flash the sitting does not want.
+*/
 export default function ExamPage() {
+  return (
+    <Suspense fallback={null}>
+      <ExamRunner />
+    </Suspense>
+  );
+}
+
+function ExamRunner() {
   const mounted = useMounted();
+  const router = useRouter();
+  const profile = useProfile();
+  const params = useSearchParams();
   const session = useSyncExternalStore(
     subscribeSession,
     sessionSnapshot,
@@ -102,20 +126,25 @@ export default function ExamPage() {
     update(fresh);
   }, [update]);
 
-  /** Move to the next module, starting its clock. Speaking runs without one. */
+  /**
+   * Move to the next module, starting its clock. Speaking runs without one.
+   *
+   * Through `nextStage` rather than by indexing MOCK_MODULES here, because a
+   * One Skill Retake covers one module and finishing it means finishing the
+   * sitting. Asking the session which modules it covers is the only version of
+   * this that cannot walk a retake into a paper it never opened.
+   */
   const advance = useCallback(
     (from: MockModule) => {
       if (!session || session.stage !== from) return;
-      const index = MOCK_MODULES.indexOf(from);
-      const next = MOCK_MODULES[index + 1];
-      if (!next) {
-        update({ ...session, stage: "results", deadline: null });
-        return;
-      }
+      const next = nextStage(session, from);
       update({
         ...session,
         stage: next,
-        deadline: next === "speaking" ? null : Date.now() + MODULE_MINUTES[next] * 60_000,
+        deadline:
+          next === "results" || next === "speaking"
+            ? null
+            : Date.now() + MODULE_MINUTES[next] * 60_000,
       });
     },
     [session, update],
@@ -145,10 +174,32 @@ export default function ExamPage() {
     [session, update],
   );
 
+  /*
+    The end of the interview, and everything the examiner said about it.
+
+    The grade and the transcript are optional parameters rather than required
+    ones, and that is what lets this land ahead of the other half. Today
+    components/speaking/SpeakingSession.tsx calls `onFinish(band)` and the two
+    extra arguments arrive as undefined, which the session reads as "not kept"
+    exactly the way an older stored sitting does. The moment that component
+    widens its own `exam.onFinish` type and passes what it already has in hand,
+    the whole grade flows into the sitting with nothing here to change.
+  */
   const finishSpeaking = useCallback(
-    (band: number | null) => {
+    (
+      band: number | null,
+      grade?: SpeakingGrade | null,
+      transcript?: SpeakingTranscriptTurn[],
+    ) => {
       if (!session) return;
-      update({ ...session, speakingBand: band, stage: "results", deadline: null });
+      update({
+        ...session,
+        speakingBand: band,
+        speakingGrade: grade,
+        speakingTranscript: transcript,
+        stage: "results",
+        deadline: null,
+      });
     },
     [session, update],
   );
@@ -164,6 +215,41 @@ export default function ExamPage() {
   const restart = useCallback(() => {
     clearSession();
   }, []);
+
+  /*
+    Starting a One Skill Retake, asked for by the link on /history.
+
+    Two guards, and the first one is the important one. If a session already
+    exists it wins, always — someone two hours into a full sitting who lands
+    here with a stale retake link in their history must not have that sitting
+    replaced by a thirty-minute Listening paper. The link is simply ignored, and
+    the sitting is drawn as normal.
+
+    The second guard is that the retake has to name a sitting this learner
+    actually has. A retake exists to update a report; one attached to a report
+    id that is not in the archive would be marked, recorded, and never appear
+    anywhere — a band earned and silently lost, which is the failure this whole
+    feature is most obliged to avoid.
+
+    The query is then replaced away, so a reload of the results screen cannot
+    read the same link again and start a second retake over the first.
+  */
+  useEffect(() => {
+    if (!mounted || session) return;
+    const skill = params.get("retake");
+    const of = params.get("of");
+    if (!skill || !of) return;
+    if (!MOCK_MODULES.includes(skill as MockModule)) return;
+    if (!profile.mockReports?.some((report) => report.id === of)) return;
+
+    const fresh = newRetakeSession(skill as MockModule, of);
+    fresh.deadline =
+      fresh.stage === "speaking" || fresh.stage === "results"
+        ? null
+        : Date.now() + MODULE_MINUTES[fresh.stage] * 60_000;
+    saveSession(fresh);
+    router.replace("/exam");
+  }, [mounted, session, params, profile.mockReports, router]);
 
   /* Nothing is drawn until storage has been read, or the clock flashes wrong. */
   if (!mounted) return null;
@@ -214,7 +300,20 @@ export default function ExamPage() {
         </div>
       );
     case "results":
-      return <MockResults session={session} onMarks={setMarks} onRestart={restart} />;
+      /*
+        A retake never reaches MockResults, and that separation is load-bearing
+        rather than cosmetic. MockResults marks every module of the paper it is
+        handed; a retake's paper carries all four for the reasons
+        `newRetakeSession` sets out, but only one of them was ever opened, so
+        the other three would be scored as forty unanswered questions and
+        written into the learner's history as band 2. The routing here is what
+        makes that impossible.
+      */
+      return session.retake ? (
+        <MockRetakeResults session={session} onLeave={restart} />
+      ) : (
+        <MockResults session={session} onMarks={setMarks} onRestart={restart} />
+      );
   }
 }
 

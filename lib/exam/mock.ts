@@ -7,12 +7,17 @@ import {
   removeLearnerItem,
   writeLearnerItem,
 } from "@/lib/progress/storage";
+import { REPORT_MODULES, overallBand } from "@/lib/exam/report";
+import { addMockRetake } from "@/lib/store";
 import writingData from "@/data/writing-tasks.json";
 import type {
   ListeningTest,
+  MockRetake,
   QuestionGroup,
   QuestionSet,
   ReadingTest,
+  SpeakingGrade,
+  SpeakingTranscriptTurn,
   TestQuestion,
   WritingTask,
   WritingTasksData,
@@ -46,9 +51,25 @@ import type {
   that makes the reading clock mean something: without it, "60 minutes for
   reading" is 60 minutes plus however long you like once you have seen the
   writing tasks.
+
+  ---------------------------------------------------------------------------
+  A sitting is not always all four
+
+  A One Skill Retake is a sitting of one module — the same paper, the same
+  clock, the same silence until the end, and then a band that replaces one line
+  of an earlier report. `MockSession.retake` below is what makes a session that
+  rather than a full one, and `sittingModules` is the single answer to "which
+  modules is this?" that everything downstream asks. What the retake changes,
+  and what it deliberately does not, is written up in lib/exam/report.ts.
 */
 
-export const MOCK_MODULES = ["listening", "reading", "writing", "speaking"] as const;
+/*
+  Re-exported rather than declared, so the order lives in exactly one place.
+  It moved to lib/exam/report.ts because the history page needs it and must not
+  import this module to get it: everything below pulls in every reading passage
+  and listening script the app ships, and history has no use for any of them.
+*/
+export const MOCK_MODULES = REPORT_MODULES;
 export type MockModule = (typeof MOCK_MODULES)[number];
 
 /**
@@ -175,11 +196,42 @@ export interface MockMarks {
   unmarked: MockModule[];
 }
 
+/**
+ * What makes a session a One Skill Retake rather than a full sitting.
+ *
+ * `of` names the `MockExamReport` whose form this retake updates, which is the
+ * real rule as well: a retake is booked against a specific test and updates
+ * that test's report, not "your score" in the abstract. Recording it means the
+ * band can be attached to the right sitting even if the learner sits another
+ * full mock in between.
+ */
+export interface MockRetakeIntent {
+  /** The `MockExamReport.id` this retake updates. */
+  of: string;
+  module: MockModule;
+}
+
 export interface MockSession {
+  /**
+   * Still 1, and that is a decision rather than an oversight.
+   *
+   * `loadSession` throws away a session whose version it does not recognise,
+   * because a half-migrated sitting would mark a candidate against a paper that
+   * is no longer the one they answered. That rule is right, and it is exactly
+   * why the retake had to arrive as an *optional* field: bumping this to 2
+   * would have destroyed every sitting in progress on the deploy that shipped
+   * it, and somebody is two hours into one. A stored session with no `retake`
+   * key reads back as a full sitting, which is what it is.
+   */
   version: 1;
   id: string;
   startedAt: string;
   paper: MockPaper;
+  /**
+   * Absent for a full sitting. Present for a One Skill Retake, naming the one
+   * module being re-sat and the report it belongs to.
+   */
+  retake?: MockRetakeIntent;
   /** Where the candidate is. "results" once the whole sitting is marked. */
   stage: MockModule | "results";
   /**
@@ -226,6 +278,49 @@ export interface MockSession {
    * that is not over.
    */
   speakingBand?: number | null;
+  /**
+   * Everything else the speaking examiner said, when it said it.
+   *
+   * The band above is not what the examiner produced; it is the one number
+   * salvaged from it. `SpeakingGrade` also carries the four criteria with a
+   * comment each, the strengths, the improvements, a better-answer example and
+   * a note on pronunciation — all of it generated, all of it shown once on the
+   * interview screen, and all of it previously dropped on the floor the moment
+   * the sitting moved on. The results screen can now report Writing in full,
+   * and Speaking being a bare number beside it is not a difference in what the
+   * two modules measure, only in what this session bothered to keep.
+   *
+   * Same three-state rule as `speakingBand`, and it has to be: `undefined`
+   * means the interview has not happened, or happened under a build that did
+   * not keep this; `null` means it happened and could not be marked. The band
+   * stays the authority on what the module scored — a session stored before
+   * this field existed has one and no grade, and reading the band off
+   * `speakingGrade.overallBand` instead would mark that sitting as unmarked.
+   */
+  speakingGrade?: SpeakingGrade | null;
+  /**
+   * The interview itself, written down.
+   *
+   * Kept for the same reason the standalone speaking test already keeps one
+   * (components/speaking/SpeakingSession.tsx saves a `SpeakingResultReview`
+   * with the transcript in it): feedback on how somebody spoke is close to
+   * useless without the words it is about, and a learner reopening a sitting a
+   * week later cannot remember what they said.
+   *
+   * A transcript is the most personal thing this app holds — lib/tutor/
+   * consent.ts sets out why at length — so it is worth being exact about what
+   * this line does and does not do. It lives in the session, which is
+   * sessionStorage: per-tab, gone when the tab closes, and taken by a sign-out
+   * and by either clear along with the rest of the sitting. It is never
+   * uploaded from here. What outlives the tab is only what the results screen
+   * chooses to save into `ModuleResult.review`, which is exactly the record
+   * standalone speaking already writes and which app/privacy/page.tsx already
+   * describes. And the tutor's access to any of it stays behind the switch in
+   * lib/tutor/consent.ts, because that gate reads the saved results rather
+   * than this field — an exam interview becomes readable to the tutor on the
+   * same terms as a practice one, and on no other terms.
+   */
+  speakingTranscript?: SpeakingTranscriptTurn[];
   marks: MockMarks | null;
 }
 
@@ -374,22 +469,24 @@ export function writingBand(task1: number | null, task2: number | null): number 
  * The official rule rounds the mean to the nearest whole or half band, with
  * .25 going up and .75 going up — which is exactly `roundToHalf`, already
  * written for the placement test and already tested.
+ *
+ * The arithmetic itself is `overallBand` in lib/exam/report.ts, called rather
+ * than repeated. There are now two ways to arrive at four module bands — one
+ * sitting, or a sitting updated by a retake — and the rule that withholds the
+ * overall unless all four are marked has to be identical for both, or a learner
+ * could be handed a number by one route that the other would have refused.
  */
 export function overallFrom(marks: Omit<MockMarks, "overall" | "unmarked">): MockMarks {
   const unmarked: MockModule[] = [];
   if (!marks.writing) unmarked.push("writing");
   if (!marks.speaking) unmarked.push("speaking");
 
-  const bands = [
-    marks.listening.band,
-    marks.reading.band,
-    marks.writing?.band,
-    marks.speaking?.band,
-  ].filter((b): b is number => typeof b === "number");
-  const overall =
-    unmarked.length === 0 && bands.length === 4
-      ? roundToHalf(bands.reduce((sum, b) => sum + b, 0) / 4)
-      : null;
+  const overall = overallBand({
+    listening: marks.listening?.band,
+    reading: marks.reading?.band,
+    writing: marks.writing?.band,
+    speaking: marks.speaking?.band,
+  });
 
   return { ...marks, overall, unmarked };
 }
@@ -525,6 +622,63 @@ export function newSession(): MockSession {
 }
 
 /**
+ * A One Skill Retake: one module, sat on its own, against an earlier sitting.
+ *
+ * The paper is composed in full even though only one module of it will ever be
+ * opened. That looks wasteful and is the safe choice — `MockPaper` promises
+ * three passages and four recordings to everything downstream, and a retake
+ * that shipped a half-empty paper would put an "or undefined" into every
+ * consumer for the sake of saving nothing at all. The unused papers are three
+ * strings; the stage machinery below is what guarantees they are never shown.
+ */
+export function newRetakeSession(module: MockModule, of: string): MockSession {
+  return {
+    version: 1,
+    /*
+      Distinguishable from a full sitting's id at a glance, and deliberately so.
+      This id ends up in a `ModuleResult.testId`, and "which of these rows came
+      from a retake" is a question the archive should be able to answer without
+      a join.
+    */
+    id: `retake-${Date.now().toString(36)}`,
+    startedAt: new Date().toISOString(),
+    paper: composeMock(),
+    retake: { of, module },
+    stage: module,
+    deadline: null,
+    answers: {},
+    essays: {},
+    played: [],
+    marks: null,
+  };
+}
+
+/**
+ * Which modules this session covers: all four, or the one being retaken.
+ *
+ * The single place that question is answered. Everything that walks a sitting —
+ * choosing the next stage, deciding what to mark, deciding what to record —
+ * asks here rather than testing `session.retake` for itself, because the
+ * dangerous version of this bug is silent: a marker that assumed four modules
+ * would score a retake's untouched Reading paper as forty wrong answers and
+ * write a band 2 into the learner's history, and the screen would look right
+ * while it did it.
+ */
+export function sittingModules(session: MockSession): readonly MockModule[] {
+  return session.retake ? [session.retake.module] : MOCK_MODULES;
+}
+
+/**
+ * Where a session goes when a module finishes: the next one it covers, or the
+ * results. For a retake there is never a next one.
+ */
+export function nextStage(session: MockSession, from: MockModule): MockModule | "results" {
+  const modules = sittingModules(session);
+  const index = modules.indexOf(from);
+  return (index >= 0 ? modules[index + 1] : undefined) ?? "results";
+}
+
+/**
  * Ends a sitting because the candidate left the exam page.
  *
  * ---------------------------------------------------------------------------
@@ -556,9 +710,68 @@ export function newSession(): MockSession {
  *
  * The results screen is also not a sitting. Once the marks are in there is
  * nothing left to protect, so leaving that keeps it.
+ *
+ * ---------------------------------------------------------------------------
+ * A retake abandoned halfway
+ *
+ * Exactly the same rule, and it needs no exception because of where the
+ * recording happens. A retake writes nothing anywhere until it has been marked
+ * and `recordRetake` below is called from the results screen; until then it is
+ * a session and nothing else. So walking out of a retake ends it, the standing
+ * report is untouched, and the module keeps whatever band it had — which is the
+ * direction this has to fail in. The opposite arrangement, where a retake
+ * staked a claim on the module the moment it began, would let a learner lower
+ * their own recorded band by tapping the wrong thing and closing the tab.
  */
 export function abandonSession(): void {
   const current = sessionSnapshot();
   if (!current || current.stage === "results") return;
   clearSession();
+}
+
+// ---------------------------------------------------------------------------
+// Recording a finished retake
+//
+// The seam between a One Skill Retake and the learner's permanent archive. It
+// lives here rather than in the screen that draws the result, because "what a
+// finished sitting leaves behind" is a property of the exam model.
+//
+// There is deliberately no matching recordSitting for a full mock. A full
+// sitting is recorded by components/exam/MockResults.tsx calling addMockReport,
+// which is fine because a retake can never reach that screen: app/exam/page.tsx
+// routes a session with a `retake` to MockRetakeResults instead, which is the
+// stronger guard anyway — it stops the retake being *marked* as four modules,
+// not merely recorded as four.
+// ---------------------------------------------------------------------------
+
+/**
+ * Records a completed One Skill Retake against the sitting it updates.
+ *
+ * A null mark records nothing and returns null. That is the case where the
+ * module could not be marked at all — Writing or Speaking on a plan without AI
+ * marking, or a marker that was unreachable — and it is the one place this
+ * feature could destroy something. A retake stored with no band, or with a
+ * placeholder, would replace a real band in the standing form with a gap; a
+ * learner would open history and find the 7.0 they earned last month has become
+ * "not marked" because they tried to improve it. So nothing is written, the
+ * standing form keeps the band it had, and the screen says why.
+ */
+export function recordRetake(
+  session: MockSession,
+  mark: ModuleMark | null,
+  at: string,
+): MockRetake | null {
+  if (!session.retake || !mark) return null;
+  const retake: MockRetake = {
+    id: session.id,
+    of: session.retake.of,
+    module: session.retake.module,
+    band: mark.band,
+    raw: mark.raw,
+    total: mark.total,
+    startedAt: session.startedAt,
+    completedAt: at,
+  };
+  addMockRetake(retake);
+  return retake;
 }
