@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiUrl } from "@/lib/api";
 import { saveSession } from "@/lib/account";
@@ -200,6 +201,7 @@ export default function SignedOut({
   finds the way in rather than a dead end.
 */
 function PasswordForm() {
+  const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
@@ -258,11 +260,30 @@ function PasswordForm() {
           email: data.email ?? null,
         });
         /*
-          A full reload rather than a re-render. Half the app reads the session
-          at mount — the header, the tier, the sync — and a reload is one line
-          against half a dozen subscriptions that would each need waking.
+          The client router, not a full document load. Only a server can turn
+          a path into a page, and in the iOS app there is no server: the
+          bundle is a static export served from capacitor://localhost, so
+          handing window.location a route resolves to the bundle's root
+          index.html. The learner signed in successfully and then landed on
+          the home screen instead of the page the sign-in prompt interrupted
+          — the return path was remembered correctly and thrown away by the
+          navigation that was meant to honour it. On the website the same
+          assignment worked only because a server was there to answer it.
+
+          This was a full reload on the reasoning that half the app reads the
+          session at mount and one reload beat waking half a dozen
+          subscriptions by hand. That is no longer how the session is read:
+          saveSession above emits to the store in lib/account.ts and the
+          header, the tier and the sync all subscribe to it, so they wake
+          themselves. router.refresh() covers whatever the server rendered,
+          which is the pair GoogleSignIn.tsx already finishes on. Password was
+          the last of the three ways in still doing this by hand: the Apple
+          and sign-in-link route has always come back through
+          AccountCallback.tsx, which router.replaces to the same remembered
+          path and is why those two land correctly in the app already.
         */
-        window.location.assign(consumeAuthReturnPath("/"));
+        router.replace(consumeAuthReturnPath("/"));
+        router.refresh();
         return;
       }
       setError("That didn't work. Please try again.");

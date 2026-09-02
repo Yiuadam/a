@@ -27,10 +27,19 @@
 	<!--
 	  Required, not optional dressing: iOS terminates the app the moment a
 	  feature asks for one of these and the string is absent, and App Review
-	  reads the wording. Both are quoted from APPSTORE.md, which is where the
-	  agreed phrasing lives — say what is recorded and what it is used for,
-	  and nothing broader than the feature actually does.
+	  reads the wording. The microphone and speech strings are quoted from
+	  APPSTORE.md, which is where the agreed phrasing lives — say what is
+	  recorded and what it is used for, and nothing broader than the feature
+	  actually does.
+
+	  The camera one guards a feature nobody would file under "camera": the
+	  profile picture is a plain file input, and iOS answers one that accepts
+	  images with a sheet offering Take Photo or Video beside the photo
+	  library. With no string here, that tap is the termination above rather
+	  than a refusal — the learner loses the app, not just the photo.
 	-->
+	<key>NSCameraUsageDescription</key>
+	<string>BandUp takes a photo when you choose the camera for your profile picture, so it can show it on your account.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>BandUp records your answers during a practice speaking test so it can score them.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

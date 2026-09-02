@@ -621,11 +621,23 @@ test("the nav card's own live lens runs through separate filter/backdrop-filter 
   // reset above sets to `none`, which `content: ""` alone never undoes.
   assert.match(css, /\.nav-menu-group::before \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
   assert.match(css, /\.nav-menu-group::after \{\s*\n\s*content: "";\s*\n[\s\S]*?display: block;/);
-  // The measuring system is still there and this card is one of the shapes it
-  // measures again, now that a shape is solved from its own measurements
-  // rather than snapped to the nearest of five.
+  /*
+    The measuring system is still there, but this card is no longer one of the
+    shapes it measures. GENERIC_SELECTOR is knobs only.
+
+    The long comment above it in GlassRefractionFilter.tsx has said cards and
+    the nav menu were removed for a while — the lens drew a second
+    rounded-rectangle contour inside the pane's own outline, its corner arc
+    breaking where the bucketed shape and the real one disagree — but the
+    string itself still listed them, so every card was getting the filter the
+    comment described removing. Reported by the owner twice, the second time
+    as "these boundaries are still not fixed".
+
+    A knob is the one shape the grid holds exactly, so it keeps the lens.
+  */
   assert.match(filter, /function measureGenericPanes/);
-  assert.match(filter, /GENERIC_SELECTOR[\s\S]{0,400}nav-menu-group/);
+  assert.match(filter, /const GENERIC_SELECTOR = "\.theme-toggle-selector, \.segmented-knob";/);
+  assert.doesNotMatch(filter, /GENERIC_SELECTOR = "[^"]*nav-menu-group/);
   assert.match(filter, /getBoundingClientRect/);
   assert.match(filter, /borderTopLeftRadius/);
   assert.match(filter, /MutationObserver/);

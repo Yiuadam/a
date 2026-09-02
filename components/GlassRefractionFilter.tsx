@@ -125,8 +125,22 @@ const NAV_DISPLACEMENT_HEADROOM = 0.97;
   `.nav-menu-group::before` — went with this; cards keep their ordinary
   frosted backdrop glass, which is what the comparison preferred.
 */
-const GENERIC_SELECTOR =
-  ".card:not(.organization-team-pairings-page):not(.organization-team-pairing-group), .nav-menu-group, .theme-toggle-selector, .segmented-knob";
+/*
+  Knobs only, which is what the comment above has said all along.
+
+  `.card` and `.nav-menu-group` were still in this string, so every card on
+  the site was being given a displacement filter that the paragraph above
+  explains at length was removed for drawing exactly the artefact it drew:
+  a second rounded-rectangle contour standing inside the card's own outline,
+  its corner arc breaking where the bucketed shape and the real one disagree.
+  Reported again as "these boundaries are still not fixed", on the home
+  screen's locked skill cards, where the doubled edge is easiest to see.
+
+  A knob is the one shape the bucket grid holds exactly — it measures as a
+  circle, aspect 1 with the corner clamped — so there is no mismatch for it
+  to show, which is why it keeps the lens and a card cannot.
+*/
+const GENERIC_SELECTOR = ".theme-toggle-selector, .segmented-knob";
 /* Cards vary far more in shape than the handful of nav items ever did — a
    square icon tile and a full-width pricing card share nothing. Measuring
    each individually and building one filter per exact shape would mean a

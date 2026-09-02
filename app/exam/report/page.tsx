@@ -9,6 +9,7 @@ import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { bandLabel } from "@/lib/band";
 import { useProfile } from "@/lib/hooks";
+import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { MockExamReport } from "@/lib/types";
 
 const EMPTY_IDENTITY: ProfileFields = {
@@ -214,17 +215,34 @@ function MockExamReportContent() {
       <div className="mock-report-toolbar card flex flex-wrap items-center justify-between gap-3 !p-3">
         <div>
           <h1 className="text-base font-semibold text-slate-900">Certificate and score report</h1>
-          <p className="text-xs leading-5 text-slate-500">Two A4 pages, ready to print or save as PDF.</p>
+          <p className="text-xs leading-5 text-slate-500">
+            {IS_MOBILE_BUILD
+              ? `Two A4 pages. To print one or save it as a PDF, open this report from your account on ${WEB_HOME}.`
+              : "Two A4 pages, ready to print or save as PDF."}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => window.print()}
-            disabled={!identityReady}
-          >
-            {identityReady ? "Print or save PDF" : <LoadingIndicator label="Loading your details…" announce={false} />}
-          </button>
+          {/*
+            No print button in the iOS app, because there is no printing in it.
+            `window.print()` is not implemented in WKWebView: it neither throws
+            nor opens anything, so the button was a control that answered a tap
+            with complete silence — the one failure a learner cannot tell from
+            a broken app. Making it work would mean a native print or share
+            sheet, which is native code and a plugin rather than a fix to this
+            page; until that exists, saying where printing does work is the
+            honest thing to draw, and matches how the rest of the app handles
+            what this build cannot do. See lib/platform.ts.
+          */}
+          {IS_MOBILE_BUILD ? null : (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => window.print()}
+              disabled={!identityReady}
+            >
+              {identityReady ? "Print or save PDF" : <LoadingIndicator label="Loading your details…" announce={false} />}
+            </button>
+          )}
           <Link href="/history" className="btn-secondary">
             Back to history
           </Link>

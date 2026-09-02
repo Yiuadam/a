@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import SavedResultView from "@/components/history/SavedResultView";
@@ -87,7 +88,18 @@ export default function OrganizationSittingReview({
       <div className="card mx-auto max-w-xl space-y-3 text-center">
         <h1 className="text-xl font-semibold text-slate-900">Sitting not available</h1>
         <p className="text-sm text-slate-600">{error ?? "The saved sitting could not be opened."}</p>
-        <a href={backHref} className="btn-secondary">{backLabel}</a>
+        {/*
+          The same <Link> the loaded view's own back button is, over in
+          SavedResultView — same href, same label, same class. It was a plain
+          anchor here, which is a full document load, and the iOS bundle has
+          no server to resolve a path into a page: a static export served
+          from capacitor://localhost answers any route with its root
+          index.html, so a teacher whose sitting failed to open was sent to
+          the home screen rather than back to the student they were reading.
+          Routing on the client is what the rest of the portal does and is
+          correct on the website too, so there is nothing to branch on.
+        */}
+        <Link href={backHref} className="btn-secondary">{backLabel}</Link>
       </div>
     );
   }

@@ -159,14 +159,28 @@ export function speechRecognitionSupported(): boolean {
   return Boolean(w.SpeechRecognition ?? w.webkitSpeechRecognition);
 }
 
+/*
+  The plugin also emits `listeningState`, which lib/native.ts does not type
+  because until now nothing listened for it. It is part of the community
+  package's published contract all the same — see its
+  `dist/esm/definitions.d.ts` — and our own native half emits it, so this is a
+  narrowing of a real event rather than an invented one. Declared beside the
+  single call site that needs it rather than widening the shared bridge type,
+  which would put the assertion a file away from the reason for it.
+*/
+interface ListeningStateEvents {
+  addListener(
+    eventName: "listeningState",
+    listenerFunc: (data: { status?: string }) => void,
+  ): Promise<{ remove: () => Promise<void> }>;
+}
+
 /**
  * Adapts Apple's speech recogniser to the Web Speech API shape the UI expects,
  * so the speaking page has one code path on both platforms.
  */
 function nativeRecognition(): SpeechRecognitionLike {
   const target = new EventTarget() as SpeechRecognitionLike;
-  let removeListener: (() => Promise<void>) | null = null;
-  let running = false;
   // The plugin reports the whole utterance each time, so emit it as a single
   // non-final result and let the caller replace rather than append.
   const emit = (text: string, isFinal: boolean) => {
@@ -181,42 +195,126 @@ function nativeRecognition(): SpeechRecognitionLike {
   target.interimResults = true;
   target.maxAlternatives = 1;
 
+  /*
+    The listening session in progress, or null when there is none.
+
+    Every step of the asynchronous setup below checks against it, because a
+    `stop()` can land at any point during that setup — and if it does, the
+    plugin call already queued behind it would open the microphone *after* the
+    answer was over, with nothing left on this side that would ever close it.
+  */
+  type Listen = { remove: (() => Promise<void>) | null };
+  let current: Listen | null = null;
+
+  /*
+    End the session once, however it ended.
+
+    `onend` means "the microphone is closed" to the caller, and SpeakingSession
+    answers it by starting the recogniser again — it has to, because a browser
+    recogniser stops itself every few seconds and an answer must survive that.
+    So firing `onend` early is not a cosmetic slip; it is an instruction to
+    restart.
+
+    Idempotent because the same ending can arrive twice: the plugin's teardown
+    emits `listeningState: stopped`, and its give-up path (three fruitless
+    segments in a row) emits a second one immediately after.
+  */
+  const finish = (listen: Listen) => {
+    if (current !== listen) return;
+    current = null;
+    const remove = listen.remove;
+    listen.remove = null;
+    void remove?.();
+    target.onend?.();
+  };
+
   target.start = () => {
-    if (running) return;
-    running = true;
+    if (current) return;
+    const listen: Listen = { remove: null };
+    current = listen;
     void (async () => {
       const stt = await nativeSTT();
       if (!stt) {
-        running = false;
+        if (current === listen) current = null;
         target.onerror?.({ error: "service-not-allowed" } as SpeechRecognitionErrorEvent);
         return;
       }
       try {
         const permission = await stt.requestPermissions();
+        if (current !== listen) return;
         if (permission.speechRecognition !== "granted") {
-          running = false;
+          current = null;
           target.onerror?.({ error: "not-allowed" } as SpeechRecognitionErrorEvent);
           return;
         }
-        const handle = await stt.addListener("partialResults", (data) => {
+        const partial = await stt.addListener("partialResults", (data) => {
+          if (current !== listen) return;
           const text = data.matches?.[0];
           if (text) emit(text, false);
         });
-        removeListener = handle.remove;
+        /*
+          Where the end of an answer actually comes from.
+
+          The plugin holds one audio engine across Apple's own segment
+          boundaries — Apple closes a recognition task after a minute or so,
+          and a Part 2 answer runs longer than that — so a segment ending is
+          not the answer ending, and nothing on this side can tell those two
+          apart. `listeningState: stopped` is emitted only when the microphone
+          is really closed. See ios/App/App/SpeechRecognitionPlugin.swift.
+        */
+        const state = await (stt as unknown as ListeningStateEvents).addListener(
+          "listeningState",
+          (data) => {
+            if (data.status === "stopped") finish(listen);
+          },
+        );
+        listen.remove = async () => {
+          await partial.remove();
+          await state.remove();
+        };
+        if (current !== listen) {
+          await listen.remove();
+          return;
+        }
         await stt.start({ language: "en-GB", partialResults: true, popup: false });
-        // start() resolves when the recogniser stops on its own.
-        running = false;
-        target.onend?.();
+        /*
+          This resolves when listening *begins*, not when it ends: a
+          partial-results start is answered as soon as the audio engine is up,
+          and everything after that arrives as an event.
+
+          Reading it as the end — which this used to do — fired `onend` with
+          the microphone still live. The caller heard that as "restart", the
+          plugin rejected the second start because it was already listening,
+          the rejection below fired `onend` again, and the two spun against
+          each other for the whole answer: a `requestPermissions` and a fresh,
+          never-removed `partialResults` listener on every turn, so each word
+          the learner spoke fanned out to more handlers than the last and the
+          live transcript ground to a halt behind them.
+        */
+        if (current !== listen) {
+          // A `stop()` overtook the start on the bridge. Nothing is coming to
+          // close what this just opened, so close it here.
+          await stt.stop();
+        }
       } catch {
-        running = false;
+        if (current !== listen) return;
+        current = null;
+        void listen.remove?.();
+        listen.remove = null;
         target.onerror?.({ error: "aborted" } as SpeechRecognitionErrorEvent);
+        /* Listening never began, so no `listeningState` is coming. The caller
+           still has to be told the attempt is over, or it waits for an answer
+           that is not being recorded. */
         target.onend?.();
       }
     })();
   };
 
   const halt = () => {
-    running = false;
+    const listen = current;
+    // Nothing listening and nothing starting, so nothing to end. A browser
+    // recogniser emits no `end` for a session it never began either.
+    if (!listen) return;
     void (async () => {
       const stt = await nativeSTT();
       try {
@@ -224,9 +322,12 @@ function nativeRecognition(): SpeechRecognitionLike {
       } catch {
         // Already stopped.
       }
-      await removeListener?.();
-      removeListener = null;
-      target.onend?.();
+      /* Normally the plugin has emitted its `stopped` before this resolves and
+         `finish` has already run, making this a no-op. It is here for the case
+         where the plugin had nothing to stop — a start that never got as far
+         as opening the microphone — because then no event is coming and the
+         caller would wait for an `onend` that never arrives. */
+      finish(listen);
     })();
   };
   target.stop = halt;

@@ -54,11 +54,21 @@ afterwards. `cap sync` copies that bundle into the iOS project.
    the app on launch of the feature if they're missing, and App Review checks
    the wording:
    ```xml
+   <key>NSCameraUsageDescription</key>
+   <string>BandUp takes a photo when you choose the camera for your profile picture, so it can show it on your account.</string>
    <key>NSMicrophoneUsageDescription</key>
    <string>BandUp records your answers during a practice speaking test so it can score them.</string>
    <key>NSSpeechRecognitionUsageDescription</key>
    <string>BandUp converts your spoken answers to text so an examiner model can grade your speaking.</string>
    ```
+
+   The camera one is easy to leave out, because nothing in the app is called a
+   camera feature. The profile picture is an ordinary file input, and iOS
+   answers one that accepts images with a sheet offering *Take Photo or Video*
+   beside the photo library — so a learner is one tap from the camera on a
+   screen nobody thinks of that way. Without the string that tap is the
+   termination described above rather than a refusal: they lose the app, not
+   just the photo.
 3. **App icon** — drop a 1024×1024 PNG into `Assets.xcassets/AppIcon`.
    No transparency, no rounded corners; Apple rejects both.
 

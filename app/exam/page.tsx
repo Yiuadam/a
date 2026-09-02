@@ -275,8 +275,14 @@ function StartScreen({ onStart }: { onStart: () => void }) {
         </header>
 
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+          {/* Padding and radius move together, which they did not: a 28pt
+              corner around a 12pt inset draws the arc through the module's own
+              name. Centred as well — four tiles of two or three short lines
+              each read as a row of labels rather than a list, and ragged left
+              edges inside rounded boxes made the grid look misaligned when it
+              was not. */}
           {rows.map(({ module, detail }) => (
-            <li key={module} className="liquid-glass min-w-0 rounded-[var(--radius-xl)] border px-3 py-2.5 sm:px-4">
+            <li key={module} className="liquid-glass min-w-0 rounded-[var(--radius-xl)] border px-4 py-3.5 text-center">
               <span className="block text-sm font-semibold text-slate-900">
                 {MODULE_NAMES[module]}
               </span>
