@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, type CSSProperties } from "react";
 import DeleteGenerated from "@/components/DeleteGenerated";
 import DoneBadge, { bestResultFor } from "@/components/DoneBadge";
 import LockedCard from "@/components/LockedCard";
@@ -11,7 +12,14 @@ import { paperNeedsNewBadge } from "@/lib/completion-badges";
 import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { useProfile } from "@/lib/hooks";
+import {
+  filterLabel,
+  filterNameFor,
+  filterValueOf,
+  filterValuesFor,
+} from "@/lib/paper-filters";
 import { questionCount } from "@/lib/questions";
+import { useSegmentedDrag } from "@/lib/segmented-drag";
 import type { ListeningTest, ReadingTest, WritingTask } from "@/lib/types";
 
 /*
@@ -33,6 +41,111 @@ import type { ListeningTest, ReadingTest, WritingTask } from "@/lib/types";
   practised.
 */
 
+/*
+  The bar that takes the library down to one kind of paper.
+
+  Which words it offers is lib/paper-filters.ts's business — difficulty for
+  reading and listening, task type for writing. What it does here is the same
+  either way, and it is the same control the theme switch and the organisation
+  sections use: one knob that travels between stops, the behaviour behind it in
+  lib/segmented-drag.ts. A tap commits in the option's own click; a drag ends
+  over an option that never sees a click, so it commits through onCommit
+  instead, and exactly one of the two fires per gesture.
+
+  Every stop carries its count, including All and including a zero. A count is
+  what tells somebody whether the tap is worth making — six easy papers is a
+  practice session, and none is a reason to stay where you are — and finding
+  that out by tapping and reading an empty screen is the thing this bar exists
+  to save.
+*/
+function PaperFilter({
+  name,
+  options,
+  value,
+  onChange,
+}: {
+  /** What the bar is called, for a reader who cannot see the stops. */
+  name: string;
+  options: ReadonlyArray<{ id: string; label: string; count: number }>;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const selectedIndex = Math.max(0, options.findIndex((option) => option.id === value));
+  const drag = useSegmentedDrag({
+    count: options.length,
+    selectedIndex,
+    onCommit: (index) => onChange(options[index].id),
+  });
+  const { previewIndex } = drag;
+  const visibleIndex = previewIndex ?? selectedIndex;
+
+  return (
+    /*
+      pan-y rather than the touch-none the other three bars take, and the
+      difference is the screen this one is on.
+
+      touch-none gives the knob every gesture that starts on the bar, which is
+      the right trade for a small control in the header and an acceptable one
+      inside a popover. This bar is full width across a phone and sits at the
+      top of a list you scroll — a thumb flicking down through the papers can
+      easily begin on it, and under touch-none that flick would move a filter
+      knob instead of the list. pan-y keeps the vertical scroll where it
+      belongs and still hands a horizontal drag to the knob, because the
+      browser locks the direction within the first few pixels. A gesture it
+      takes back arrives as pointercancel, which the hook already ends cleanly.
+    */
+    <div
+      role="tablist"
+      aria-label={name}
+      data-paper-filter
+      data-flowing={previewIndex !== null ? "" : undefined}
+      data-pressed={drag.pressed ? "" : undefined}
+      data-settling={drag.settling ? "" : undefined}
+      className="paper-filter-base premade-glass relative grid min-w-0 touch-pan-y items-center overflow-hidden rounded-full p-1"
+      style={
+        {
+          "--paper-filter-index": drag.position,
+          "--paper-filter-count": options.length,
+          "--segmented-squash": drag.squash,
+        } as CSSProperties
+      }
+      {...drag.handlers}
+    >
+      <span className="paper-filter-selector segmented-knob" aria-hidden="true" />
+      {options.map((option, index) => (
+        <button
+          key={option.id}
+          type="button"
+          role="tab"
+          aria-selected={value === option.id}
+          onPointerEnter={() => drag.preview(index)}
+          onFocus={() => drag.preview(index)}
+          onBlur={() => drag.preview(null)}
+          onClick={() => {
+            onChange(option.id);
+            drag.preview(null);
+          }}
+          className={`paper-filter-option segmented-option relative z-10 flex min-w-0 items-baseline justify-center gap-1 rounded-full px-1 text-[11px] font-semibold transition-colors sm:px-2 sm:text-xs ${
+            visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <span className="truncate">{option.label}</span>
+          {/*
+            The count takes the label's own colour at three-quarter strength
+            rather than a slate of its own. A fixed grey is what the other bars
+            use for their badges, and measured on the knob in the dark theme it
+            came out at 2.2:1 against the pill — a number nobody can read is not
+            a number. Stepping the label's colour down instead keeps the
+            hierarchy in every theme, because it moves with the text it is
+            attached to rather than against the surface underneath.
+          */}
+          <span className="text-[10px] font-medium opacity-75">{option.count}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function TestChooser({
   kind,
   tests,
@@ -51,11 +164,47 @@ export default function TestChooser({
 }) {
   const profile = useProfile();
   const access = useSessionAccess();
+  /*
+    Held in the component and nowhere else, so every arrival starts on All.
+
+    A remembered filter is a filter somebody set once and is now being shown
+    through without having asked — which is the same complaint as starting
+    filtered, only a week later and harder to notice, because by then the bar
+    is the only thing saying why half the library is missing. It also does not
+    fit either half of how this app stores things: lib/progress/storage.ts
+    keeps a learner's work per tab and their device settings in localStorage,
+    and a scan of a list on the way to picking a paper is neither.
+
+    The cost is one tap. Sit a hard paper, come back for another, and the bar
+    is on All again. Worth saying plainly, because the fix — putting the choice
+    in the URL, where the back button would restore it — is a real option that
+    was not taken here.
+  */
+  const [filter, setFilter] = useState("all");
 
   const generated = kind === "writing"
     ? []
     : profile.genTests.filter((g) => g.kind === kind).map((g) => g.test);
   const all: (ReadingTest | ListeningTest | WritingTask)[] = [...tests, ...generated];
+  /*
+    Position is fixed here, before anything is filtered out, because two rules
+    below are counted from it: which papers the tier has unlocked, and which
+    were generated on this device. Numbering a narrowed list instead would hand
+    a visitor the first hard paper as their one free opening simply because
+    they had tapped Hard.
+  */
+  const entries = all.map((paper, index) => ({ paper, index }));
+  const options = filterValuesFor(kind).map((id) => ({
+    id,
+    label: filterLabel(id),
+    /* Counted across the whole library, locked papers included: a padlocked
+       paper is still on the screen with its title readable, so leaving it out
+       would make the count disagree with what the stop actually shows. */
+    count: entries.filter(({ paper }) => filterValueOf(paper) === id).length,
+  }));
+  const shown = filter === "all"
+    ? entries
+    : entries.filter(({ paper }) => filterValueOf(paper) === filter);
   /* The cap the tier unlocks, not what is left of it — see app/practice/page.tsx. */
   const limit = allowanceFor(access.tier, kind).perWeek;
   const label = kind === "reading" ? "Reading" : kind === "listening" ? "Listening" : "Writing";
@@ -100,10 +249,44 @@ export default function TestChooser({
         </p>
       )}
 
+      {/* Its own row above the cards rather than beside the heading: at 390px
+          four or five stops need the whole line, and a control that changes
+          what the list below it contains belongs directly above that list.
+          How wide it is allowed to grow past a phone is in globals.css. */}
+      <PaperFilter
+        name={filterNameFor(kind)}
+        options={[{ id: "all", label: "All", count: all.length }, ...options]}
+        value={filter}
+        onChange={setFilter}
+      />
+
+      {/*
+        A stop with nothing under it says so. The bar has already put a zero on
+        that stop, but landing on a screen holding nothing but "more coming"
+        and having to work out that it was the filter is a worse few seconds
+        than a sentence. Above the grid rather than inside it, because the grid
+        gives every row a fixed ten rem and a sentence does not want one.
+      */}
+      {shown.length === 0 && (
+        <p
+          data-paper-filter-empty
+          className="rounded-xl border border-slate-200 bg-surface px-3 py-2 text-sm leading-6 text-slate-600"
+        >
+          {/* Two sentences, because the two bars name different things. A
+              paper is *marked* easy — somebody judged it — while a writing
+              task simply is or is not a chart, and "marked chart" is not
+              English. */}
+          {kind === "writing"
+            ? `There are no ${filterLabel(filter).toLowerCase()} tasks yet.`
+            : `No ${label.toLowerCase()} papers are marked ${filterLabel(filter).toLowerCase()} yet.`}{" "}
+          Choose All to see everything there is.
+        </p>
+      )}
+
       {/* min-w-0 and break-words keep long titles inside the column without
           replacing meaningful words with an ellipsis. */}
       <div className="practice-paper-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {all.map((t, i) => {
+        {shown.map(({ paper: t, index: i }) => {
           const isGenerated = i >= tests.length;
           /* Strictly by position — see app/practice/page.tsx for why. */
           const beyond = limit !== null && i >= limit;

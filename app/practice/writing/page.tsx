@@ -288,9 +288,19 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
         disabled={grading}
       />
       {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+      {/*
+        "Kept if you reload" rather than the "Saved on this device" this used to
+        claim. That sentence was simply untrue before the draft existed at all,
+        and it would be misleading now in the other direction: the draft is a
+        guard against a reload or a phone locking, and it is deliberately thrown
+        away on submit or on leaving for the homepage. Telling somebody their
+        work is saved invites them to close the tab and come back tomorrow,
+        which is the one thing this does not survive.
+      */}
       {!marked && (
         <p className="mt-2 text-xs leading-5 text-slate-500">
-          Saved on this device. AI marking requires Plus. {account.signedIn ? "" : "Sign in first, then upgrade if needed."}
+          Kept if you reload, but not after you leave this page. AI marking requires Plus.{" "}
+          {account.signedIn ? "" : "Sign in first, then upgrade if needed."}
         </p>
       )}
     </div>

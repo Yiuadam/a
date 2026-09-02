@@ -379,6 +379,52 @@ for (const name of listeningPapers) {
   checkQuestions(name, test.questions, script, 10);
 }
 
+/*
+  The task type the chooser's filter bar runs on.
+
+  Mirrors WRITING_TASK_TYPES in lib/paper-filters.ts, kept as a literal for the
+  same reason CEFR_LEVELS above is: this script imports node:fs and nothing
+  else, so that it can run before the app builds rather than after it.
+
+  Two things are checked, and the second is the one worth having. A type
+  outside the set would put a task in no stop of the bar but All, silently. A
+  type that its own content contradicts is worse, because the task is filed
+  under a word and shows up under it looking correct — so an essay has to be a
+  Task 2, a letter a General Training Task 1, and a chart or a table the one
+  the task actually carries. That way the field cannot drift away from the
+  paper it describes without the build saying so.
+*/
+const WRITING_TASK_TYPES = ["chart", "table", "letter", "essay"];
+
+function checkWritingType(task) {
+  const id = task.id ?? "a task";
+  if (!WRITING_TASK_TYPES.includes(task.type)) {
+    fail("writing-tasks.json", `${id} has an unknown task type: ${task.type}`);
+    return;
+  }
+  const expected = task.task === 2
+    ? "essay"
+    : task.dataTable
+      ? "table"
+      : task.chart
+        ? "chart"
+        : task.variant === "general"
+          ? "letter"
+          : null;
+  /*
+    Null means the task carries no evidence either way — an academic Task 1
+    with neither a table nor a chart. That is already a failure a few lines
+    below, and reporting it twice in different words would send whoever fixes
+    it looking for two problems.
+  */
+  if (expected !== null && task.type !== expected) {
+    fail(
+      "writing-tasks.json",
+      `${id} is typed "${task.type}" but its content is a ${expected}`,
+    );
+  }
+}
+
 // ---- Writing ----
 const writing = load("writing-tasks.json");
 if (writing) {
@@ -388,6 +434,7 @@ if (writing) {
     if (![1, 2].includes(task.task)) fail("writing-tasks.json", `${task.id} has an invalid task number`);
     if (!task.prompt || !task.title) fail("writing-tasks.json", `${task.id} is missing a prompt or title`);
     checkLevel("writing-tasks.json", task, task.id ?? "a task");
+    checkWritingType(task);
     if (task.task === 1 && task.variant === "academic" && !task.dataTable && !task.chart) {
       fail("writing-tasks.json", `${task.id} is an academic Task 1 with no data to describe`);
     }

@@ -1,4 +1,8 @@
 import type { ChartSpec } from "./chart";
+/* The vocabulary lives with the filter bar it drives, and the array and the
+   union there are the same declaration, so a word can never be offered as a
+   stop without being spellable here. */
+import type { WritingTaskType } from "./paper-filters";
 // Shared content and result types for the IELTS prep app.
 
 export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
@@ -199,6 +203,23 @@ export interface WritingTask {
   id: string;
   task: 1 | 2;
   variant: "academic" | "general";
+  /*
+    What this task asks the candidate to produce, authored rather than worked
+    out on the fly. It is what the chooser's filter bar runs on, and it is a
+    field because the alternative was reading it out of the title: the Task 2
+    titles carry their essay type in brackets, and across the bank those
+    brackets say both "problem-solution" and "problem and solution" for the
+    same thing, with one title saying nothing at all. Parsing that would put
+    the inconsistency straight into the interface as two stops for one type
+    and a task belonging to none.
+
+    Structural, so it can be checked rather than trusted — an essay is a Task
+    2, a letter is a General Training Task 1, and a chart or a table is the
+    one it actually carries. scripts/validate-content.mjs fails the build on a
+    task whose type its own content contradicts, which is what stops this
+    drifting away from the paper it describes.
+  */
+  type: WritingTaskType;
   title: string;
   /** CEFR level, judged on the demand of the prompt itself. */
   level: CEFRLevel;
