@@ -4,6 +4,14 @@ Written because the usage window was about to reset. Everything below is either
 committed and pushed, or sitting uncommitted in the working tree with an agent
 that was mid-write on it.
 
+## How to resume
+
+Background agents do not survive a session. Nothing below is running any more —
+re-spawn what you want from the notes here. Committed work is safe on the branch.
+
+    git log --oneline -14        what landed
+    git status --short           what an agent left half-written
+
 ## Pushed and verified
 
 Branch `claude/writing-swipe-and-round-cards`, preview at
@@ -52,6 +60,16 @@ recorded in the transcript.
   - Whether the tutor reading speaking transcripts is automatic or opt-in, and
     whether a learner can decline. The privacy paragraph for it is still to be
     placed.
+
+## Was running when the window closed — re-spawn these
+
+  - examiner nudge (design settled, spec in the transcript; fixes up to 55 s of
+    dead air after a short answer — the highest-value item on this list)
+  - British voices across every surface, and Part 4's speaking rate
+  - fifteen defect fixes in the new papers, including reading-24's unscrambled
+    matching-headings bank, which is scoreable without reading the passage
+  - the tutor reading speaking results, lowest-scoring sitting first
+  - UI defect sweep across three widths and three themes
 
 ## Still not done
 
