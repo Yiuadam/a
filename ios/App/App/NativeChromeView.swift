@@ -64,8 +64,7 @@ final class NativeChromeView: UIView {
   /// Wraps the account button and the theme control so their glass can flow
   /// together in motion the way the site's two pills never do on their own —
   /// see containerEffect() below. It carries no fill or border of its own;
-  /// everything visible about this pair comes from the two views inside it,
-  /// both of which are Apple's own components now rather than ours.
+  /// everything visible about this pair comes from the two views inside it.
   private let containerEffectView: UIVisualEffectView
   private let menuButton = UIButton(type: .system)
   /// The view Apple's zoom transition grows the navigation list out of, and
@@ -73,11 +72,19 @@ final class NativeChromeView: UIView {
   /// itself so nothing outside can reach in and re-target or re-style it: the
   /// transition needs a rectangle on screen, not a control.
   var menuSourceView: UIView { menuButton }
-  /// The account control. It used to be this button sitting inside a
-  /// UIVisualEffectView circle we shaped, bordered and filled ourselves; on 26
-  /// the button carries Apple's own glass configuration instead and there is
-  /// no wrapper left. See styleAccountButton(_:).
+  /// The account control: a glyph button on a pill of its own, so that on 26
+  /// it wears the same surface, fill and outline as the theme track beside it.
+  /// It spent a while on UIButton.Configuration.glass() with no wrapper at all,
+  /// which is what left the two reading as different materials — see
+  /// styleAccountButton(_:) for that whole detour and why it ended.
   private let accountButton = UIButton(type: .system)
+  private let accountPill: UIVisualEffectView
+  /// The account circle's fill and outline, in a view of its own inside the
+  /// pill for the same reason trackOutline is one inside the track: a view
+  /// draws its own layer's border after every subview it has, and the glyph
+  /// sits on top. Nothing domes over this one, but keeping the two circles
+  /// built the same way is what keeps them looking the same.
+  private let accountOutline = UIView()
 
   /*
     Which theme control is live.
@@ -171,6 +178,9 @@ final class NativeChromeView: UIView {
     containerEffectView = UIVisualEffectView(effect: NativeChromeView.containerEffect())
     themeTrack = UIVisualEffectView(
       effect: NativeChromeView.pillEffect(tint: initial.trackFill, interactive: false)
+    )
+    accountPill = UIVisualEffectView(
+      effect: NativeChromeView.accountPillEffect(tint: initial.accountFill)
     )
     knob = UIVisualEffectView(effect: NativeChromeView.knobEffect(tint: initial.knobFill))
     super.init(frame: frame)
@@ -276,6 +286,24 @@ final class NativeChromeView: UIView {
       return effect
     }
     return UIBlurEffect(style: .systemThinMaterial)
+  }
+
+  /*
+    The account circle's surface, which is the theme track's with the one
+    difference the design already called for: this is a control a finger
+    presses, so it is interactive, and the track is scenery, so it is not.
+
+    Nothing at all below 26. There the button's own configuration draws the
+    site's circle — fill, border and corner — and a blur behind it would be a
+    second disc showing around the first. Returning nil keeps the view in the
+    hierarchy so the constraints have one shape on both paths, and keeps the
+    older releases pixel-for-pixel what they were.
+  */
+  private static func accountPillEffect(tint: UIColor?) -> UIVisualEffect? {
+    if #available(iOS 26.0, *) {
+      return pillEffect(tint: tint, interactive: true)
+    }
+    return nil
   }
 
   private static func knobEffect(tint: UIColor?) -> UIVisualEffect {
@@ -458,6 +486,30 @@ final class NativeChromeView: UIView {
     configure(menuButton, asset: "IconMenu", size: 22, label: "Open menu")
     menuButton.addTarget(self, action: #selector(menuTapped), for: .touchUpInside)
     menuButton.translatesAutoresizingMaskIntoConstraints = false
+    /*
+      A shape for a button that has no surface, which is only worth having
+      because of what else reads it.
+
+      This button is the source view Apple's zoom transition grows the
+      navigation list out of and shrinks it back into, and a zoom morph takes
+      its corner from the source. With nothing set, the source's corner is
+      zero and the morph resolves to UIKit's own rounded rectangle — a grey
+      rounded *square* passing through the button's frame as the list closes,
+      next to an account control that is a capsule. Same shape as the account
+      control, from the same `.capsule()` the account pill uses rather than a
+      radius restated here, and the two agree in motion as well as at rest.
+
+      Nothing is drawn by this. The button still has no background, no border
+      and no configuration — see the note above — so a corner configuration on
+      it has nothing of its own to shape and changes not a pixel of the bar
+      standing still. It exists purely as the shape the transition reads.
+    */
+    if #available(iOS 26.0, *) {
+      menuButton.cornerConfiguration = .capsule()
+    } else {
+      menuButton.layer.cornerRadius = NativeChromeView.menuButtonSize / 2
+      menuButton.layer.cornerCurve = .continuous
+    }
     content.addSubview(menuButton)
 
     /* The glyph still goes in by hand rather than through the configuration's
@@ -468,14 +520,31 @@ final class NativeChromeView: UIView {
     configure(accountButton, asset: "IconAccount", size: 20, label: "Your account")
     accountButton.addTarget(self, action: #selector(accountTapped), for: .touchUpInside)
     accountButton.translatesAutoresizingMaskIntoConstraints = false
+    /*
+      Apple's own pointer hover, which is one property and no code of ours.
 
+      It does nothing on a phone, which has no pointer; on an iPad with a
+      trackpad or a mouse the cursor morphs onto this control and lifts it the
+      way it does on every system control. A UIPointerInteraction with a hand
+      written UIPointerStyle would be the alternative and is deliberately not
+      taken — the whole of what was asked for here is the system's behaviour,
+      and the default effect a UIButton resolves is that behaviour.
+
+      Not on the menu button, and not on the theme track. The track is scenery
+      by design — see pillEffect() for the long version — and a hover that
+      deformed it would undo the same reasoning that keeps the knob's press
+      from making the bar breathe.
+    */
+    accountButton.isPointerInteractionEnabled = true
+
+    buildAccountControl()
     buildThemeControl()
 
     /* The 10pt gap between the two pills, and nothing else — this stack has
        no material of its own, unlike containerEffectView below it. */
     let themeControl: UIView =
       NativeChromeView.useSystemSegmentedControl ? themeSegments : themeTrack
-    let group = UIStackView(arrangedSubviews: [accountButton, themeControl])
+    let group = UIStackView(arrangedSubviews: [accountPill, themeControl])
     group.axis = .horizontal
     group.spacing = 10
     group.alignment = .center
@@ -527,8 +596,8 @@ final class NativeChromeView: UIView {
       menuButton.leadingAnchor.constraint(greaterThanOrEqualTo: homeButton.trailingAnchor, constant: 12),
       menuButton.trailingAnchor.constraint(equalTo: containerEffectView.leadingAnchor, constant: -10),
       menuButton.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
-      menuButton.widthAnchor.constraint(equalToConstant: 40),
-      menuButton.heightAnchor.constraint(equalToConstant: 40),
+      menuButton.widthAnchor.constraint(equalToConstant: NativeChromeView.menuButtonSize),
+      menuButton.heightAnchor.constraint(equalToConstant: NativeChromeView.menuButtonSize),
 
       containerEffectView.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -14),
       containerEffectView.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
@@ -538,8 +607,8 @@ final class NativeChromeView: UIView {
       group.topAnchor.constraint(equalTo: containerEffectView.contentView.topAnchor),
       group.bottomAnchor.constraint(equalTo: containerEffectView.contentView.bottomAnchor),
 
-      accountButton.widthAnchor.constraint(equalToConstant: NativeChromeView.accountSize),
-      accountButton.heightAnchor.constraint(equalToConstant: NativeChromeView.accountSize),
+      accountPill.widthAnchor.constraint(equalToConstant: NativeChromeView.accountSize),
+      accountPill.heightAnchor.constraint(equalToConstant: NativeChromeView.accountSize),
 
       divider.leadingAnchor.constraint(equalTo: content.leadingAnchor),
       divider.trailingAnchor.constraint(equalTo: content.trailingAnchor),
@@ -623,6 +692,43 @@ final class NativeChromeView: UIView {
   /// The account circle's own diameter, sized directly since nothing but its
   /// glyph sits inside it.
   private static let accountSize: CGFloat = 40
+  /// The menu button's box. It draws no surface at all, so this is only the
+  /// tap target — and, below 26, the radius its corner is rounded to for the
+  /// zoom transition's sake. See where it is built.
+  private static let menuButtonSize: CGFloat = 40
+
+  private func buildAccountControl() {
+    accountPill.translatesAutoresizingMaskIntoConstraints = false
+    if #available(iOS 26.0, *) {
+      accountPill.cornerConfiguration = .capsule()
+    } else {
+      accountPill.layer.cornerRadius = NativeChromeView.accountSize / 2
+    }
+    accountPill.layer.cornerCurve = .continuous
+
+    accountOutline.translatesAutoresizingMaskIntoConstraints = false
+    accountOutline.isUserInteractionEnabled = false
+    if #available(iOS 26.0, *) {
+      accountOutline.cornerConfiguration = .capsule()
+    } else {
+      accountOutline.layer.cornerRadius = NativeChromeView.accountSize / 2
+    }
+    accountOutline.layer.cornerCurve = .continuous
+    accountPill.contentView.addSubview(accountOutline)
+    accountPill.contentView.addSubview(accountButton)
+
+    NSLayoutConstraint.activate([
+      accountOutline.leadingAnchor.constraint(equalTo: accountPill.contentView.leadingAnchor),
+      accountOutline.trailingAnchor.constraint(equalTo: accountPill.contentView.trailingAnchor),
+      accountOutline.topAnchor.constraint(equalTo: accountPill.contentView.topAnchor),
+      accountOutline.bottomAnchor.constraint(equalTo: accountPill.contentView.bottomAnchor),
+
+      accountButton.leadingAnchor.constraint(equalTo: accountPill.contentView.leadingAnchor),
+      accountButton.trailingAnchor.constraint(equalTo: accountPill.contentView.trailingAnchor),
+      accountButton.topAnchor.constraint(equalTo: accountPill.contentView.topAnchor),
+      accountButton.bottomAnchor.constraint(equalTo: accountPill.contentView.bottomAnchor),
+    ])
+  }
 
   private func buildThemeControl() {
     if NativeChromeView.useSystemSegmentedControl {
@@ -868,6 +974,11 @@ final class NativeChromeView: UIView {
           ? NativeChromeView.warmGlyphOffsetY : 0
       )
       button.tag = index
+      /* The stop, not the track it sits on. Same reasoning as the account
+         button above; on this path the effect lands on the glyph, which is
+         drawn over the knob rather than under it, so a hover over the selected
+         stop cannot disturb the knob's glass. */
+      button.isPointerInteractionEnabled = true
       button.addTarget(self, action: #selector(themeTapped(_:)), for: .touchUpInside)
       button.translatesAutoresizingMaskIntoConstraints = false
       NSLayoutConstraint.activate([
@@ -1022,6 +1133,7 @@ final class NativeChromeView: UIView {
         NativeChromeView.barEffect(tint: nil, navOpen: self.navOpen)
       self.themeTrack.effect =
         NativeChromeView.pillEffect(tint: nil, interactive: false)
+      self.accountPill.effect = NativeChromeView.accountPillEffect(tint: nil)
       self.knob.effect = NativeChromeView.knobEffect(
         tint: self.knobTint(alpha: NativeChromeView.knobRestingAlpha)
       )
@@ -1034,6 +1146,10 @@ final class NativeChromeView: UIView {
 
     paintFallbackTint(barEffectView, colors.barFill)
     paintFallbackTint(themeTrack, colors.trackFill)
+    /* Not paintFallbackTint: below 26 accountPill has no effect at all and its
+       contentView is a plain square, so a fill there would be a square behind
+       the site's circle. The circle down there is the button's own, and
+       styleAccountButton draws it. */
     paintFallbackTint(knob, colors.knobFill)
 
     divider.backgroundColor = colors.divider
@@ -1110,35 +1226,43 @@ final class NativeChromeView: UIView {
   }
 
   /*
-    The account control's surface, which is Apple's now rather than ours.
+    The account control's surface, and the story of it going away and coming
+    back.
 
-    It used to be this button inside a UIVisualEffectView we gave a capsule
-    corner, a 1pt border and a per-theme fill. Configuration.glass() replaces
-    all of it: the glass, the corner treatment and the press behaviour arrive
-    together and none of the three is ours to maintain any more. The wrapper
-    view, its border and its fill are gone rather than left dormant.
+    It began as this button inside a UIVisualEffectView we gave a capsule
+    corner, a 1pt border and a per-theme fill. Configuration.glass() replaced
+    all of it, on the reasoning that the glass, the corner treatment and the
+    press behaviour then arrived together and none of the three was ours to
+    maintain — and measured against a plain UIGlassEffect wrapper at the time,
+    the disc's interior came out the same rgb(240,237,231) either way, so the
+    version with no code of its own won.
 
-    Going back to a wrapper was tried — a UIVisualEffectView with
-    UIGlassEffect(style: .regular), on the theory that the configuration's
-    glass reads flatter than the full material. It does not: measured on the
-    simulator in Warm, the disc's interior came out rgb(240,237,231) either
-    way, against a bar of rgb(246,242,236). The two are the same picture, so
-    the one that is Apple's own control configuration wins — it carries the
-    press response without a line of our own.
+    What that measurement did not cover is the thing next to it. The comment on
+    pillEffect() says the account circle and the theme track are the same
+    material with different temperaments; a glass *button* configuration is not
+    that material, and it carries neither the track's tint nor its outline. So
+    the two sat side by side in one container reading as two different
+    substances, which is what the owner saw.
 
-    Below 26 there is no glass configuration to have, so the fallback draws
-    the site's own circle through the configuration's background instead — the
-    same accountFill and accountBorder the wrapper used to carry, which is why
-    those two colours are still in the table. It is the site's look on the
-    releases that cannot have Apple's, which is the same trade every other
-    fallback in this file makes.
+    The wrapper is back, and it costs nothing the configuration was buying:
+    isInteractive on a UIGlassEffect is the press response, and interactive is
+    exactly the difference the design already asked for between a circle that
+    is pressed and a track that is not. The fill and the outline are
+    trackOutline's, to the same values, so the pair matches by sharing numbers
+    rather than by being tuned to look alike.
+
+    Below 26 nothing here changed. There is no glass configuration to have and
+    no glass to wrap, so the button's own background draws the site's circle —
+    accountFill and accountBorder, which is why those two colours are still in
+    the table — and accountPillEffect returns nil so nothing sits behind it.
   */
   private func styleAccountButton(_ colors: ThemeColors) {
-    var config: UIButton.Configuration
+    var config = UIButton.Configuration.plain()
     if #available(iOS 26.0, *) {
-      config = .glass()
+      accountOutline.backgroundColor = NativeChromeView.accountFillCorrection(selectedTheme)
+      accountOutline.layer.borderColor = colors.trackBorder.cgColor
+      accountOutline.layer.borderWidth = 1
     } else {
-      config = .plain()
       config.background.backgroundColor = colors.accountFill
       config.background.strokeColor = colors.accountBorder
       config.background.strokeWidth = 1
@@ -1150,6 +1274,42 @@ final class NativeChromeView: UIView {
     config.contentInsets = .zero
     accountButton.configuration = config
     accountButton.tintColor = colors.iconTint
+  }
+
+  /*
+    The neutral that lands the account circle on the theme control beside it,
+    and it is a measurement rather than a colour with a meaning.
+
+    The obvious thing was to give this circle trackOutline's own fill — the
+    theme's accent at trackTintOpacity — since the two are meant to be one
+    material. That fill is not what is on screen next to it. useSystemSegmented
+    Control is true, so the control beside this is Apple's UISegmentedControl
+    and the hand-built track that trackOutline belongs to is not rendered at
+    all; matching the code's intent would have matched something invisible. Do
+    it anyway and the circle comes out visibly copper against a neutral track,
+    which is exactly what the owner reported.
+
+    So it is matched to what Apple draws, sampled off the simulator with the
+    same page behind both. Untinted, the circle's clear glass and the
+    segmented control's own material do not land in the same place:
+
+      theme   circle (clear glass)   segmented track     correction
+      warm    rgb(236, 233, 226)     rgb(228, 224, 220)  black  3.5%
+      light   rgb(235, 242, 247)     rgb(223, 231, 237)  black  4.7%
+      dark    rgb( 31,  32,  34)     rgb( 49,  49,  54)  white  8.0%
+
+    Small numbers, and neutral ones, which is the point: the circle is the same
+    glass as before and this only closes the gap between two Apple materials.
+    If useSystemSegmentedControl is ever flipped back, this should go back to
+    trackOutline's fill — the two would then be the same material again and
+    would need no correction at all.
+  */
+  private static func accountFillCorrection(_ theme: String) -> UIColor {
+    switch theme {
+    case "dark": return UIColor(white: 1, alpha: 0.08)
+    case "light": return UIColor(white: 0, alpha: 0.047)
+    default: return UIColor(white: 0, alpha: 0.035)
+    }
   }
 
   private func applyThemeSelection(animated: Bool) {

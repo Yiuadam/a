@@ -67,27 +67,7 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
         return
       }
 
-      let view = self.chromeView ?? self.makeChromeView()
-      if view.superview == nil {
-        root.addSubview(view)
-        let constraint = view.heightAnchor.constraint(
-          equalToConstant: root.safeAreaInsets.top + NativeChromePlugin.barContentHeight
-        )
-        self.heightConstraint = constraint
-        NSLayoutConstraint.activate([
-          // Leading/trailing/top pin to the view itself, not its safe area —
-          // the glass has to run under the status bar to shade it the way
-          // the rest of the bar shades what is behind that. Only the height
-          // is safe-area-aware, because that is the one dimension where
-          // "under the status bar" and "the right size" are both true at
-          // once.
-          view.leadingAnchor.constraint(equalTo: root.leadingAnchor),
-          view.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-          view.topAnchor.constraint(equalTo: root.topAnchor),
-          constraint
-        ])
-      }
-
+      self.attachChrome(over: root)
       call.resolve(["height": self.heightConstraint?.constant ?? NativeChromePlugin.barContentHeight])
     }
   }
@@ -176,6 +156,71 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
 
   // MARK: - View
 
+  /*
+    Where the bar lives, and it is the window rather than the view controller's
+    view. That is not tidiness; it is the whole of a defect.
+
+    A modally presented view controller's view goes into a container UIKit adds
+    to the window, and for the length of a transition that container is drawn
+    across the whole screen — so a bar parented to the root view controller's
+    view is painted over by the very list it opened. Recorded on the simulator
+    and stepped frame by frame, the bar was completely absent for 590ms of the
+    zoom and partly covered for 890ms: the menu glyph went first, then the
+    account button, then the theme control one stop at a time as the growing
+    card swept leftwards, and last the wordmark and the logo. It returned only
+    once the card had settled into its resting frame, whose top strip is
+    transparent — which is why the bar looks right in a still and wrong in
+    motion, and why the touch forwarding in NativeNavListViewController was
+    never evidence either way. Dismissing cost the same again.
+
+    A window subview is outside that container's ancestry, so nothing about a
+    presentation can cover it — provided it stays in front of the containers
+    added after it, which is what the bringSubviewToFront in toggleNavList is
+    for. Deliberately only around our own list, rather than a second UIWindow
+    at a raised level that would sit over everything: an alert, a share sheet
+    and a photo picker are all things that should be over the bar, and a raised
+    window would put the bar over them.
+
+    The height still comes from the view controller's view rather than from the
+    window. viewSafeAreaInsetsDidChange on MainViewController is the signal that
+    the safe area moved, and that is the view it speaks for; the two carry the
+    same insets, since the root view fills the window, so this reads the source
+    that is already wired up rather than adding a second one.
+
+    Falling back to the root view when there is no window yet keeps the old
+    arrangement, defect and all, for a call that arrives before the scene is on
+    screen — a bar in the wrong parent beats no bar. toggleNavList re-homes it
+    before it can matter.
+  */
+  private func attachChrome(over root: UIView) {
+    let view = chromeView ?? makeChromeView()
+    let host: UIView = root.window ?? root
+    guard view.superview !== host else { return }
+
+    /* Held by the view itself rather than by a superview, so unlike the other
+       three it survives removeFromSuperview and has to be let go by hand. */
+    heightConstraint?.isActive = false
+    view.removeFromSuperview()
+    host.addSubview(view)
+
+    let constraint = view.heightAnchor.constraint(
+      equalToConstant: root.safeAreaInsets.top + NativeChromePlugin.barContentHeight
+    )
+    heightConstraint = constraint
+    NSLayoutConstraint.activate([
+      // Leading/trailing/top pin to the host itself, not its safe area —
+      // the glass has to run under the status bar to shade it the way
+      // the rest of the bar shades what is behind that. Only the height
+      // is safe-area-aware, because that is the one dimension where
+      // "under the status bar" and "the right size" are both true at
+      // once.
+      view.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+      view.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+      view.topAnchor.constraint(equalTo: host.topAnchor),
+      constraint
+    ])
+  }
+
   private func makeChromeView() -> NativeChromeView {
     let view = NativeChromeView(frame: .zero)
     view.translatesAutoresizingMaskIntoConstraints = false
@@ -241,6 +286,13 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
       return
     }
 
+    /* Re-homed here as well as in enable(), for the one case enable() cannot
+       cover: a call that arrived before the scene had a window left the bar
+       parented to the view controller's view. There is certainly a window by
+       the time a menu button has been tapped, and everything below depends on
+       the bar being outside the presentation's container. */
+    attachChrome(over: presenter.view)
+
     let list = NativeNavListViewController(
       groups: navGroups,
       theme: chromeView?.selectedTheme ?? "warm",
@@ -284,6 +336,29 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
          does not appear at all is a broken app; a menu that appears without
          growing out of the button is last year's menu. */
       list.modalTransitionStyle = .crossDissolve
+    }
+
+    /*
+      And the bar back on top of it.
+
+      UIKit adds the presentation's container view to the window as the last
+      subview, above the bar however early the bar got there — so the ordering
+      is something to restate once per presentation rather than to establish
+      once. It cannot be restated beside present(), because present() does not
+      build the presentation while you wait: logged on the simulator, the
+      window still held only the root view and the bar when present() returned,
+      and gained the container a run loop turn later. viewWillAppear on the list
+      is the first moment the container is really there, and it is still ahead
+      of the transition's first frame, so nothing is drawn in the wrong order.
+
+      Only for our own list, deliberately, and never as a raised UIWindow that
+      would sit over everything: an alert, a share sheet and a photo picker all
+      belong over the bar, and each of those arrives as its own container above
+      the bar exactly as it should.
+    */
+    list.onWillAppear = { [weak self] in
+      guard let view = self?.chromeView, let window = view.window else { return }
+      window.bringSubviewToFront(view)
     }
 
     list.onSelect = { [weak self] href in

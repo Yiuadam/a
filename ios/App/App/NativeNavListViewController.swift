@@ -51,6 +51,20 @@ final class NativeNavListViewController: UIViewController {
   /// Raised for every other way out: the menu button tapped again, or the
   /// interactive swipe the zoom transition provides for free.
   var onDismissed: (() -> Void)?
+  /*
+    Raised once this controller's view is in the window and before the
+    transition draws its first frame, which is the one moment the bar's
+    ordering can be restored without a flash.
+
+    It exists because present(_:animated:) does not build the presentation
+    while you wait. Logged from the simulator: when present() returned, the
+    window still held only the root view and the bar; a run loop turn later it
+    held four subviews, with this controller's UITransitionView added above the
+    bar. So the plugin cannot re-front the bar at the call site — there is
+    nothing to be in front of yet — and the earliest honest signal that there
+    is, is this controller appearing.
+  */
+  var onWillAppear: (() -> Void)?
 
   private let groups: [Group]
   private var theme: String
@@ -74,7 +88,13 @@ final class NativeNavListViewController: UIViewController {
   private let containerEffectView: UIVisualEffectView
   private let stack = UIStackView()
   private var cards: [UIVisualEffectView] = []
+  /// The hosts that carry the cards' shadows, kept because the two strengths
+  /// are the theme's and the theme can change while this is on screen.
+  private var shadowHosts: [CardShadowView] = []
   private var highlights: [UIVisualEffectView] = []
+  /// The fill and hairline inside each highlight — see buildCard for why they
+  /// are a view of their own rather than properties of the glass.
+  private var highlightOutlines: [UIView] = []
   private var rows: [NavRowControl] = []
   private var titles: [UILabel] = []
 
@@ -86,21 +106,129 @@ final class NativeNavListViewController: UIViewController {
   /// Deliberately under the gap above: the cards should read as one material,
   /// not fuse into a single slab with headings printed on it.
   private static let containerSpacing: CGFloat = 10
-  private static let cardCorner: CGFloat = 22
-  private static let cardPadding: CGFloat = 10
-  private static let rowCorner: CGFloat = 13
+  /*
+    The website's own corners, resolved at the size a phone actually renders
+    them, rather than a rounding of the desktop numbers.
+
+    `.card` in app/globals.css rounds at --radius-2xl, which is 2.5rem, and
+    `.nav-menu-selector` — the pill that marks the current row there — rounds at
+    --radius-xl, 1.75rem, over a 2.75rem row. Read against the usual 16px root
+    those come out 40 and 28, and that is the trap: app/globals.css sets
+    `html { font-size: 17px }` under `@media (max-width: 480px)`, and every
+    iPhone is under it. So on the screen this is meant to match, 2.5rem is
+    42.5px and 1.75rem is 29.75px. The 42.5 is not arithmetic done here either
+    — the file names that number itself, in the note above
+    `.dashboard-screen .dashboard-card-grid .card.card`.
+
+    The decimal stays. Matching is the whole point of the number, and 42 would
+    be a deliberate half-point of mismatch that CGFloat has no trouble carrying.
+
+    The row is rounded to 30 rather than kept at 29.75. It is the absolute
+    radius that is being matched — as the card's is — and the native row is
+    44pt against the web's 46.75, so this is a hair rounder in proportion than
+    the website and identical in the dimension a corner is actually seen in.
+  */
+  private static let cardCorner: CGFloat = 42.5
+  /// `p-3` on the website's own `.nav-menu-group`, and the same 17px root as
+  /// the corners above turns that into 12.75 rather than 12 — confirmed in the
+  /// browser, where the computed padding at a 375px viewport is 12.75 on all
+  /// four sides. The decimal stays for the reason the radius's does.
+  private static let cardPadding: CGFloat = 12.75
+  private static let rowCorner: CGFloat = 30
+  /*
+    How far inside its row the current page's pill is drawn, and the one
+    measurement on this screen with no website behind it.
+
+    There the selector fills the row exactly — 2.75rem tall in a 2.75rem row —
+    and the owner looked at that here and wanted the marker shorter. So the row
+    keeps its 44pt, which is the tap target and Apple's own minimum, and only
+    the drawn pill comes in: 4pt at each end for a 36pt marker. That is enough
+    to leave a visible margin above and below without the pill stopping short
+    of the label it is marking, and it changes nothing about the list's rhythm,
+    since the rows themselves have not moved. The pill is a capsule either way,
+    rowCorner being well past half of 36.
+  */
+  private static let highlightInsetY: CGFloat = 4
   /* fileprivate, because NavRowControl below lays a row out and these are the
      row's measurements — one copy of each number rather than two that could
      drift, which is what would put the highlight pill somewhere other than
      over the row it is marking. */
   fileprivate static let rowHeight: CGFloat = 44
-  fileprivate static let rowPaddingX: CGFloat = 12
+  /// `px-3` on the website's row, the same token the card's own `p-3` is, and
+  /// so the same 12.75 at a 17px root — which is what makes the pill's ends
+  /// line up with the card's inner edge the way they do on the site.
+  fileprivate static let rowPaddingX: CGFloat = 12.75
   /// 21px on the website; 22 here, the same rounding the bar's own glyphs take.
   fileprivate static let iconSize: CGFloat = 22
   fileprivate static let iconGap: CGFloat = 11
-  /// How much of the blurred image of the page is blended back over the sharp
-  /// one — the closest thing to a blur radius UIKit offers. See build().
-  private static let backdropAlpha: CGFloat = 0.72
+  /// The material at full strength. It used to be 0.72, blending the blurred
+  /// image of the page back over the sharp one — the closest thing to a blur
+  /// radius UIKit offers, and the reason the page stayed readable through it.
+  /// See the note in init() for whose call it was to stop doing that.
+  private static let backdropAlpha: CGFloat = 1.0
+  /*
+    The card's two shadows, converted from the website's own box-shadow on
+    `.nav-menu-group` rather than invented.
+
+    Measured there, in paint order:
+      rgba(42,31,24,0.10)   0  1px   2px  0    contact
+      rgba(0,0,0,0.18)      0  8px  22px -8px  drop
+      rgba(142,104,78,0.07) 0  0    14px  2px  ambient glow
+
+    CSS blur is about twice a CALayer's shadowRadius, so 22 becomes 11 and 14
+    becomes 7. CALayer has no spread at all, so spread is carried by the
+    shadowPath instead: -8 draws the drop shadow from the card's shape inset by
+    8, +2 draws the glow from it outset by 2, both with the corner radius moved
+    the same way so the arc stays concentric with the card's.
+
+    The glow is the one the whole change is for. It is --wash-one, the page's
+    own warm tone, and it is what lets the card bleed into the blur behind it
+    instead of ending at a cut edge. It is meant to be barely nameable; a glow
+    you can point at is a halo and is wrong.
+
+    The contact shadow is not drawn. A CALayer carries one shadow, so each of
+    these already costs its own layer, and a third at 10% alpha with a 1px
+    offset and a 1pt radius lands underneath a 42.5pt corner where the drop
+    shadow is already darkening the same edge over twenty points. It is the one
+    of the three that would cost most and show least on a list that scrolls.
+
+    Only the two strengths move between themes; every distance here is shared,
+    which is why the geometry is a constant and the opacities are a function.
+  */
+  /* fileprivate for the reason the row's measurements below are: CardShadowView
+     casts these and this is where the numbers live, so it reads them rather
+     than keeping a second copy that could drift out of step with the corner
+     radius they are all derived against. */
+  fileprivate static let dropShadowRadius: CGFloat = 11
+  fileprivate static let dropShadowOffset = CGSize(width: 0, height: 8)
+  fileprivate static let dropShadowSpread: CGFloat = -8
+  fileprivate static let glowRadius: CGFloat = 7
+  fileprivate static let glowSpread: CGFloat = 2
+  fileprivate static let glowColor = UIColor(
+    red: 142 / 255, green: 104 / 255, blue: 78 / 255, alpha: 1)
+
+  /*
+    How hard each of the two shadows is driven, which the website decides per
+    theme and states its reasons for.
+
+    Dark leans on the drop and eases off the glow — 34% and 4% — because a card
+    barely lighter than the sheet behind it needs the lift to do the separating,
+    and a warm bloom on a near-black ground reads as a smudge rather than as
+    light. Light drops the coloured one altogether; the note above
+    `html[data-theme="light"] .nav-menu-group` in app/globals.css puts it
+    plainly, that the light themes keep the neutral shadow layers and drop only
+    the coloured one. Warm is the default pair the rest of this is derived from.
+
+    A theme this does not know about takes Warm's, the same fallback
+    NativeChromeView.colors(for:) makes for the same reason.
+  */
+  private static func shadowStrength(for theme: String) -> (drop: Float, glow: Float) {
+    switch theme {
+    case "dark": return (0.34, 0.04)
+    case "light": return (0.18, 0)
+    default: return (0.18, 0.07)
+    }
+  }
   /// `--nav-scrim` from app/globals.css, to the value.
   private static let scrim = UIColor(red: 28 / 255, green: 20 / 255, blue: 14 / 255, alpha: 0.10)
 
@@ -118,14 +246,17 @@ final class NativeNavListViewController: UIViewController {
       sit on. Glass here would be a third refracting layer between the page and
       the cards, and the cards are the thing meant to be looked at.
 
-      Ultra-thin rather than a heavier material: the page has to stay visibly
-      *there* behind the list — that is what makes the cards read as floating
-      over the app rather than as a new screen — and glass with nothing behind
-      it has nothing to bend. The bar learned that the hard way; see the
-      long note in NativeChromeView.applyTheme() about a surface that has
-      nothing to refract.
+      It used to be ultra-thin at 72% alpha, on the argument that the page had
+      to stay visibly *there* behind the list — that being what makes the cards
+      read as floating over the app rather than as a new screen. That argument
+      was not wrong, and it has been overridden rather than forgotten: the owner
+      looked at it on the device and could read a heading through the gap
+      between two cards, which is not a page kept present, it is a page
+      competing with the menu in front of it. Asked for a glow blur that cannot
+      be seen through, so thin at full strength, and nothing of the page
+      survives as type.
     */
-    backdropView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    backdropView = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
     if #available(iOS 26.0, *) {
       let container = UIGlassContainerEffect()
       container.spacing = NativeNavListViewController.containerSpacing
@@ -154,6 +285,11 @@ final class NativeNavListViewController: UIViewController {
     super.viewDidLoad()
     build()
     applyTheme(theme)
+  }
+
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    onWillAppear?()
   }
 
   override func viewDidDisappear(_ animated: Bool) {
@@ -258,7 +394,7 @@ final class NativeNavListViewController: UIViewController {
     }
   }
 
-  private func buildCard(_ group: Group) -> UIVisualEffectView {
+  private func buildCard(_ group: Group) -> UIView {
     let card = UIVisualEffectView(effect: NativeNavListViewController.cardEffect())
     card.translatesAutoresizingMaskIntoConstraints = false
     /*
@@ -295,28 +431,52 @@ final class NativeNavListViewController: UIViewController {
     titles.append(title)
 
     /*
-      The highlight for the current page, and it is a real piece of glass
-      rather than a painted pill — nested inside the card's own glass, which is
-      what makes it read as a thicker patch of the same material rather than as
-      a sticker on top of it. It goes in before the rows so it sits behind
-      them: a label read *through* frosted glass is a smear, which the bar's
-      knob spent a long time proving.
+      The highlight for the current page, built exactly the way the bar's theme
+      track is built, because that is what it is meant to look like.
+
+      Clear glass with a separate view inside it carrying the fill and the
+      hairline — not tinted .regular glass, which is what it was and what made
+      the owner call its edge blurred. A blurring material softens its own
+      boundary; the crispness of the pill bar comes from trackOutline, an
+      ordinary UIView with a background colour and a border, sitting inside
+      clear glass that does not blur anything. Same arrangement here, same
+      result.
+
+      It goes in before the rows so it sits behind them: a label read *through*
+      frosted glass is a smear, which the bar's knob spent a long time proving.
+
+      Both the effect and the two colours are set in applyTheme(_:), because
+      they are the theme's and the theme can change while this is on screen.
     */
-    /* The effect itself is set in applyTheme(_:), because it carries the
-       theme's colour and the theme can change while this is on screen. */
     let highlight = UIVisualEffectView(effect: nil)
     highlight.translatesAutoresizingMaskIntoConstraints = false
     highlight.isUserInteractionEnabled = false
+    let highlightOutline = UIView()
+    highlightOutline.translatesAutoresizingMaskIntoConstraints = false
+    highlightOutline.isUserInteractionEnabled = false
     if #available(iOS 26.0, *) {
       highlight.cornerConfiguration = .corners(radius: .fixed(NativeNavListViewController.rowCorner))
+      highlightOutline.cornerConfiguration = .corners(
+        radius: .fixed(NativeNavListViewController.rowCorner))
     } else {
       highlight.layer.cornerRadius = NativeNavListViewController.rowCorner
       highlight.layer.cornerCurve = .continuous
       highlight.clipsToBounds = true
+      highlightOutline.layer.cornerRadius = NativeNavListViewController.rowCorner
     }
+    highlightOutline.layer.cornerCurve = .continuous
+    highlight.contentView.addSubview(highlightOutline)
     highlight.isHidden = true
     inner.addSubview(highlight)
     highlights.append(highlight)
+    highlightOutlines.append(highlightOutline)
+
+    NSLayoutConstraint.activate([
+      highlightOutline.leadingAnchor.constraint(equalTo: highlight.contentView.leadingAnchor),
+      highlightOutline.trailingAnchor.constraint(equalTo: highlight.contentView.trailingAnchor),
+      highlightOutline.topAnchor.constraint(equalTo: highlight.contentView.topAnchor),
+      highlightOutline.bottomAnchor.constraint(equalTo: highlight.contentView.bottomAnchor),
+    ])
 
     let rowStack = UIStackView()
     rowStack.axis = .vertical
@@ -347,15 +507,28 @@ final class NativeNavListViewController: UIViewController {
 
     if let currentRow {
       highlight.isHidden = false
+      let inset = NativeNavListViewController.highlightInsetY
       NSLayoutConstraint.activate([
         highlight.leadingAnchor.constraint(equalTo: currentRow.leadingAnchor),
         highlight.trailingAnchor.constraint(equalTo: currentRow.trailingAnchor),
-        highlight.topAnchor.constraint(equalTo: currentRow.topAnchor),
-        highlight.bottomAnchor.constraint(equalTo: currentRow.bottomAnchor),
+        highlight.topAnchor.constraint(equalTo: currentRow.topAnchor, constant: inset),
+        highlight.bottomAnchor.constraint(equalTo: currentRow.bottomAnchor, constant: -inset),
       ])
     }
 
-    return card
+    /*
+      The card goes inside a shadow host rather than carrying its shadows
+      itself, and for two separate reasons that happen to want the same thing.
+
+      A CALayer has room for one shadow and the website's card has three, so
+      even the two being kept here need a layer each. And below 26 the card
+      clips itself — that path shapes a blur by cutting a rectangle down to a
+      rounded one, which would take the shadow off with the corners. A host
+      outside the clip is unaffected by either.
+    */
+    let host = CardShadowView(card: card, corner: NativeNavListViewController.cardCorner)
+    shadowHosts.append(host)
+    return host
   }
 
   // MARK: - Effects
@@ -388,28 +561,59 @@ final class NativeNavListViewController: UIViewController {
     *light* rim, so it has contrast against dark ground and none against light.
     On the first build of this screen "Home" was marked by nothing but its
     label being a shade bolder in two themes out of three.
-
-    So it takes the treatment the theme knob takes on the bar, which is the
-    exactly analogous element — the thing that says which one of these you are
-    on — and for the reason set out there: a surface this small reads a tint as
-    the glass being thicker rather than as the glass being covered up. It is
-    the theme's own knob colour, so Dark stays the grey disc the website paints
-    there rather than turning into a white one.
   */
-  private static func highlightEffect(tint: UIColor) -> UIVisualEffect {
+  private static func highlightEffect() -> UIVisualEffect {
     if #available(iOS 26.0, *) {
-      let effect = UIGlassEffect(style: .regular)
-      effect.tintColor = tint
-      return effect
+      /* Untinted and clear, which is NativeChromeView.pillEffect's own choice
+         for the theme track and for the same reason: the colour belongs to the
+         outline view inside, where it has a hard edge, rather than to the
+         material, where it does not. Not interactive — nothing presses this. */
+      return UIGlassEffect(style: .clear)
     }
     return UIBlurEffect(style: .systemMaterial)
   }
 
-  /// How much of the theme's knob colour the current row's pill carries.
-  /// Lower than the knob's own 0.7: this pill is the full width of a card
-  /// rather than a 46pt disc, and the same strength over that area stops
-  /// being a marker and becomes a second card.
-  private static let highlightAlpha: CGFloat = 0.42
+  private static func rgba(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat) -> UIColor {
+    UIColor(red: r / 255, green: g / 255, blue: b / 255, alpha: a)
+  }
+
+  /*
+    What the current row's pill is made of, and it took two goes to get here.
+
+    It used to borrow the bar knob's own colour, on the reasoning that the knob
+    is the exactly analogous element — the thing that says which one of these
+    you are on. The colour did not travel with the reasoning. knobFill is
+    near-white in two themes of three, because the knob sits on a translucent
+    track over the page where near-white is exactly right; poured into a pill
+    on a pale card it is white on white, and the row was marked by nothing but
+    its label being a shade bolder.
+
+    So the fill is a grey that contrasts with the card it is on rather than one
+    borrowed from somewhere else: dark at low alpha on the pale themes, light
+    at low alpha on Dark. That is the same move Light's own trackFill in
+    NativeChromeView makes — rgba(22,23,26,0.07) — for the same problem.
+
+    The edge is the second half, and it took a wrong turn of its own. It was
+    briefly the website's `--glass-edge`, which is what `.nav-menu-selector`
+    borders with there — and in Warm that token is rgba(255,255,255,0.32),
+    white at a third, which drew a white ring around a grey pill on a pale
+    card. The border comes from NativeChromeView's own table instead, because
+    the thing this is meant to look like is the pill bar in the bar above, and
+    trackBorder is the hairline that pill bar already wears. One table, one
+    answer, in three themes.
+  */
+  private static func highlightFill(for theme: String) -> UIColor {
+    switch theme {
+    case "light": return rgba(22, 23, 26, 0.12)
+    case "dark": return rgba(255, 255, 255, 0.13)
+    default: return rgba(42, 37, 33, 0.12)
+    }
+  }
+  /// The hairline's width, which is the website's own 0.6px for this element
+  /// rather than the track's 1pt: a line that reads as a drawn edge and one
+  /// that reads as a border are different things on the eye, and this pill is
+  /// the smaller surface.
+  private static let highlightBorderWidth: CGFloat = 0.6
 
   // MARK: - Theme
 
@@ -431,9 +635,18 @@ final class NativeNavListViewController: UIViewController {
     for row in rows {
       row.apply(iconTint: colors.iconTint, foreground: colors.foreground)
     }
-    let tint = colors.knobFill.withAlphaComponent(NativeNavListViewController.highlightAlpha)
+    let shadow = NativeNavListViewController.shadowStrength(for: next)
+    for host in shadowHosts {
+      host.apply(drop: shadow.drop, glow: shadow.glow)
+    }
     for highlight in highlights {
-      highlight.effect = NativeNavListViewController.highlightEffect(tint: tint)
+      highlight.effect = NativeNavListViewController.highlightEffect()
+    }
+    let fill = NativeNavListViewController.highlightFill(for: next)
+    for outline in highlightOutlines {
+      outline.backgroundColor = fill
+      outline.layer.borderWidth = NativeNavListViewController.highlightBorderWidth
+      outline.layer.borderColor = colors.trackBorder.cgColor
     }
   }
 
@@ -443,6 +656,121 @@ final class NativeNavListViewController: UIViewController {
     guard pendingHref == nil else { return }
     pendingHref = sender.href
     dismiss(animated: true)
+  }
+}
+
+/*
+  One card's two shadows, and nothing else.
+
+  Two, because a CALayer carries one shadow each and the website's card is lit
+  by more than one thing. They sit on sublayers behind the card rather than on
+  this view's own layer, and in the order CSS paints them — the glow underneath,
+  the drop shadow over it, the card over both. This view draws no pixels of its
+  own at all; the shape and the material stay entirely the card's.
+
+  Each shadow is masked to the region outside the card, and that is not tidiness
+  either. CSS paints an outer box-shadow only outside the border box. A CALayer
+  paints its shadow behind the whole layer, and what is in front of it here is
+  translucent glass, so the first build of this showed both shadows straight
+  through the card: a drop shadow drawn from a shape inset by eight is almost
+  entirely underneath, and the cards came out grey slabs with a light rim
+  instead of glass. The mask restores the CSS rule. Masking a layer masks its
+  shadow with it, which is usually the thing to work around and is exactly what
+  is wanted here.
+
+  Both shadows are given an explicit shadowPath. Without one, CoreAnimation
+  works the silhouette out from the layer's contents every time it re-renders,
+  and this list scrolls; with one it is two rounded rectangles recomputed only
+  when the bounds change. The paths are drawn with a circular corner rather than
+  the continuous one the card renders, a difference of about a point on the arc
+  and invisible under an eleven-point blur.
+*/
+private final class CardShadowView: UIView {
+  private let glowLayer = CALayer()
+  private let dropLayer = CALayer()
+  private let glowMask = CAShapeLayer()
+  private let dropMask = CAShapeLayer()
+  private let corner: CGFloat
+
+  /// How far outside the card each mask lets shadow through. Comfortably past
+  /// the widest blur plus its offset and spread, so the mask decides where the
+  /// shadow stops on the inside and nothing at all on the outside.
+  private static let reach: CGFloat = 48
+
+  init(card: UIView, corner: CGFloat) {
+    self.corner = corner
+    super.init(frame: .zero)
+    translatesAutoresizingMaskIntoConstraints = false
+    backgroundColor = .clear
+
+    glowLayer.shadowColor = NativeNavListViewController.glowColor.cgColor
+    glowLayer.shadowOffset = .zero
+    glowLayer.shadowRadius = NativeNavListViewController.glowRadius
+    glowMask.fillRule = .evenOdd
+    glowLayer.mask = glowMask
+    layer.addSublayer(glowLayer)
+
+    dropLayer.shadowColor = UIColor.black.cgColor
+    dropLayer.shadowOffset = NativeNavListViewController.dropShadowOffset
+    dropLayer.shadowRadius = NativeNavListViewController.dropShadowRadius
+    dropMask.fillRule = .evenOdd
+    dropLayer.mask = dropMask
+    layer.addSublayer(dropLayer)
+
+    addSubview(card)
+    NSLayoutConstraint.activate([
+      card.leadingAnchor.constraint(equalTo: leadingAnchor),
+      card.trailingAnchor.constraint(equalTo: trailingAnchor),
+      card.topAnchor.constraint(equalTo: topAnchor),
+      card.bottomAnchor.constraint(equalTo: bottomAnchor),
+    ])
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  /// The only thing about these shadows a theme changes. Set from applyTheme
+  /// rather than from init so a theme chosen while the list is open reaches
+  /// them, the same as every other colour on this screen.
+  func apply(drop: Float, glow: Float) {
+    dropLayer.shadowOpacity = drop
+    glowLayer.shadowOpacity = glow
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    /* Nothing here is animated, and everything here is a consequence of a
+       bounds change rather than a state change — so the implicit animations
+       CoreAnimation would give a path or a frame are noise the list can see as
+       a shadow lagging behind its card during a rotation. */
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    defer { CATransaction.commit() }
+
+    place(glowLayer, glowMask, spread: NativeNavListViewController.glowSpread)
+    place(dropLayer, dropMask, spread: NativeNavListViewController.dropShadowSpread)
+  }
+
+  /// CSS spread has no CALayer equivalent, so it is carried by the path: the
+  /// glow is the card's shape pushed out by two and the drop shadow is it
+  /// pulled in by eight, each with its corner moved the same way so the arc
+  /// stays concentric with the card's own.
+  private func place(_ shadow: CALayer, _ mask: CAShapeLayer, spread: CGFloat) {
+    shadow.frame = bounds
+    shadow.shadowPath = UIBezierPath(
+      roundedRect: bounds.insetBy(dx: -spread, dy: -spread),
+      cornerRadius: max(0, corner + spread)
+    ).cgPath
+
+    let reach = CardShadowView.reach
+    mask.frame = bounds.insetBy(dx: -reach, dy: -reach)
+    let outer = CGRect(origin: .zero, size: mask.frame.size)
+    let hole = UIBezierPath(
+      roundedRect: CGRect(x: reach, y: reach, width: bounds.width, height: bounds.height),
+      cornerRadius: corner
+    )
+    let ring = UIBezierPath(rect: outer)
+    ring.append(hole)
+    mask.path = ring.cgPath
   }
 }
 
@@ -466,6 +794,14 @@ final class NativeNavListViewController: UIViewController {
   back a view from another part of the hierarchy is the same move
   NativeChromeView.hitTest already makes to give the theme knob a touch its own
   glass needs; UIKit delivers the touch to whatever view is returned.
+
+  It is a backstop now rather than the working path. The bar lives in the
+  window and is brought in front of this presentation's container — see
+  attachChrome in NativeChromePlugin.swift, and the defect that forced it — so
+  the window hit-tests the bar before it ever reaches this view. What is left
+  here still costs nothing and still answers correctly for the one arrangement
+  that can leave the bar behind the container: a bar attached before the scene
+  had a window.
 
   One thing this cannot give back is the menu button, which Apple's zoom
   transition hides for as long as the list it became is on screen — the same
