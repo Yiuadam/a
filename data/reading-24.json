@@ -12,35 +12,35 @@
       "sharedOptions": [
         {
           "key": "i",
-          "text": "Sounds that need no teacher at all"
-        },
-        {
-          "key": "ii",
-          "text": "From quiet rambling to a fixed song"
-        },
-        {
-          "key": "iii",
           "text": "A window that does not stay open"
         },
         {
-          "key": "iv",
-          "text": "The same species, valley by valley"
-        },
-        {
-          "key": "v",
-          "text": "What learning costs and what it buys"
-        },
-        {
-          "key": "vi",
-          "text": "Why a recording makes a poor teacher"
-        },
-        {
-          "key": "vii",
+          "key": "ii",
           "text": "Counting how many songs one male can hold"
         },
         {
-          "key": "viii",
+          "key": "iii",
+          "text": "From quiet rambling to a fixed song"
+        },
+        {
+          "key": "iv",
+          "text": "Why a recording makes a poor teacher"
+        },
+        {
+          "key": "v",
+          "text": "The same species, valley by valley"
+        },
+        {
+          "key": "vi",
+          "text": "Sounds that need no teacher at all"
+        },
+        {
+          "key": "vii",
           "text": "Where the comparison with speech breaks down"
+        },
+        {
+          "key": "viii",
+          "text": "What learning costs and what it buys"
         }
       ],
       "questions": [
@@ -48,35 +48,35 @@
           "id": "q1",
           "type": "matching",
           "prompt": "Paragraph B",
-          "answer": "ii",
+          "answer": "iii",
           "explanation": "Paragraph B follows the song from the quiet, wandering subsong to the moment it \"has crystallised\" and stops changing. That is the movement from rambling to a fixed song."
         },
         {
           "id": "q2",
           "type": "matching",
           "prompt": "Paragraph C",
-          "answer": "iii",
-          "explanation": "Paragraph C is about the sensitive period: learning works \"only during a limited stretch of early life\", and birds taught after it closes learn far less. The window closes, which is what heading iii describes."
+          "answer": "i",
+          "explanation": "Paragraph C is about the sensitive period: learning works \"only during a limited stretch of early life\", and birds taught after it closes learn far less. The window closes, which is what heading i describes."
         },
         {
           "id": "q3",
           "type": "matching",
           "prompt": "Paragraph D",
-          "answer": "iv",
+          "answer": "v",
           "explanation": "Paragraph D describes dialects — males in three separate valleys singing versions different enough for listeners to identify where a recording came from. The heading names exactly that valley-by-valley difference."
         },
         {
           "id": "q4",
           "type": "matching",
           "prompt": "Paragraph E",
-          "answer": "v",
-          "explanation": "Paragraph E weighs the costs of learning (brain tissue, months of delay, the risk of copying badly) against two proposed benefits. Costs against benefits is what heading v names."
+          "answer": "viii",
+          "explanation": "Paragraph E weighs the costs of learning (brain tissue, months of delay, the risk of copying badly) against two proposed benefits. Costs against benefits is what heading viii names."
         },
         {
           "id": "q5",
           "type": "matching",
           "prompt": "Paragraph F",
-          "answer": "vi",
+          "answer": "iv",
           "explanation": "Paragraph F reports that birds taught by a loudspeaker copied less accurately than birds taught by a live adult, and opens with the line that \"a loudspeaker is a poor teacher\"."
         }
       ]
@@ -136,18 +136,18 @@
         {
           "id": "q12",
           "type": "completion",
-          "sentence": "Local versions of a species' song are known as ___.",
-          "answer": "dialects",
-          "maxWords": 2,
-          "explanation": "Paragraph D says \"these local versions are called dialects\". The question sentence repeats the definition, so the answer is dialects."
-        },
-        {
-          "id": "q13",
-          "type": "completion",
           "sentence": "The stretch of early life in which the memory stage works properly is called a ___.",
           "answer": "sensitive period",
           "maxWords": 2,
           "explanation": "Paragraph C calls it \"a limited stretch of early life, known as a sensitive period\". The gap needs that two-word name."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "Local versions of a species' song are known as ___.",
+          "answer": "dialects",
+          "maxWords": 2,
+          "explanation": "Paragraph D says \"these local versions are called dialects\". The question sentence repeats the definition, so the answer is dialects."
         }
       ]
     }

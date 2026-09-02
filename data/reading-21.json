@@ -20,9 +20,9 @@
         {
           "id": "q2",
           "type": "tfng",
-          "statement": "Land is at its most productive in the months just after an eruption.",
-          "answer": "FALSE",
-          "explanation": "The passage says the opposite: \"In the months after an eruption the land is often useless\", and a new layer needs about twenty years. So the statement contradicts the passage: FALSE."
+          "statement": "Volcanic soil holds rain water better than sandy soil does.",
+          "answer": "TRUE",
+          "explanation": "The passage says the ash \"holds rain water instead of letting it drain straight through\" and that crops on it \"stay green for longer than crops on sandy soil\". That matches the statement, so TRUE."
         },
         {
           "id": "q3",
@@ -34,9 +34,9 @@
         {
           "id": "q4",
           "type": "tfng",
-          "statement": "Volcanic soil holds rain water better than sandy soil does.",
-          "answer": "TRUE",
-          "explanation": "The passage says the ash \"holds rain water instead of letting it drain straight through\" and that crops on it \"stay green for longer than crops on sandy soil\". That matches the statement, so TRUE."
+          "statement": "Land is at its most productive in the months just after an eruption.",
+          "answer": "FALSE",
+          "explanation": "The passage says the opposite: \"In the months after an eruption the land is often useless\", and a new layer needs about twenty years. So the statement contradicts the passage: FALSE."
         },
         {
           "id": "q5",
@@ -126,18 +126,18 @@
         {
           "id": "q12",
           "type": "completion",
-          "sentence": "A fast river of mud formed from ash and rain is called a ___.",
-          "answer": "lahar",
-          "maxWords": 2,
-          "explanation": "The passage names it directly: \"A river of this kind is called a lahar.\" The question sentence copies the same definition, so the missing word is the name lahar."
-        },
-        {
-          "id": "q13",
-          "type": "completion",
           "sentence": "Flat steps cut into a hillside to hold the soil are known as ___.",
           "answer": "terraces",
           "maxWords": 2,
           "explanation": "Paragraph 7 says farmers \"cut the slope into flat steps, called terraces, which hold the soil in place\". The gap needs that name: terraces."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "A fast river of mud formed from ash and rain is called a ___.",
+          "answer": "lahar",
+          "maxWords": 2,
+          "explanation": "The passage names it directly: \"A river of this kind is called a lahar.\" The question sentence copies the same definition, so the missing word is the name lahar."
         }
       ]
     }

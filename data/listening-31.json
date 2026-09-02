@@ -50,7 +50,7 @@
         {
           "id": "q4",
           "type": "completion",
-          "sentence": "A language children no longer learn is described as ___ rather than extinct",
+          "sentence": "A language that is no longer being passed on is described as ___ rather than extinct",
           "answer": "moribund",
           "maxWords": 1,
           "explanation": "\"Linguists sometimes call such a language moribund rather than extinct,\" because a moribund language still has what a revival would need."
@@ -79,26 +79,26 @@
         {
           "id": "q7",
           "type": "mcq",
-          "question": "According to the lecturer, what usually causes language shift?",
+          "question": "What does the lecturer identify as the critical moment?",
+          "options": [
+            "when the last fluent adult dies",
+            "when the language leaves official business",
+            "when the youngest generation stops acquiring it"
+          ],
+          "answer": 2,
+          "explanation": "\"The critical moment is not when the last fluent adult dies. It is when children stop acquiring the language at home.\""
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "According to the lecturer, what is the usual reason a community gives up its language?",
           "options": [
             "the majority language is thought more beautiful",
             "economic advantage",
             "a shortage of written material"
           ],
           "answer": 1,
-          "explanation": "\"Rarely because anybody prefers the new language aesthetically. Usually it is economic — the language of wages, of the city, of qualifications.\""
-        },
-        {
-          "id": "q8",
-          "type": "mcq",
-          "question": "What does the lecturer identify as the critical moment?",
-          "options": [
-            "when the last fluent adult dies",
-            "when the language leaves official business",
-            "when children stop learning it at home"
-          ],
-          "answer": 2,
-          "explanation": "\"The critical moment is not when the last fluent adult dies. It is when children stop acquiring the language at home.\""
+          "explanation": "\"Rarely because anybody prefers the new language aesthetically. Usually it is economic — the majority language is the language of wages, of the city, of qualifications...\""
         },
         {
           "id": "q9",

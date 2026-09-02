@@ -104,18 +104,6 @@
         {
           "id": "q7",
           "type": "mcq",
-          "question": "When does the baker advise the customer to collect the cake?",
-          "options": [
-            "on Saturday morning",
-            "on Friday",
-            "on Saturday afternoon"
-          ],
-          "answer": 1,
-          "explanation": "The customer asks for Saturday morning, but the baker replies, \"I'd much rather you took it on the Friday,\" and she agrees."
-        },
-        {
-          "id": "q8",
-          "type": "mcq",
           "question": "What does the customer tell the baker about nuts?",
           "options": [
             "one of the guests cannot eat them",
@@ -124,6 +112,18 @@
           ],
           "answer": 0,
           "explanation": "She says \"one of my aunts can't have nuts at all,\" and the baker adds that a nut-free cake carries \"no extra charge,\" so the third option is wrong."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "When does the baker advise the customer to collect the cake?",
+          "options": [
+            "on Saturday morning",
+            "on Friday",
+            "on Saturday afternoon"
+          ],
+          "answer": 1,
+          "explanation": "The customer asks for Saturday morning, but the baker replies, \"I'd much rather you took it on the Friday,\" and she agrees."
         },
         {
           "id": "q9",

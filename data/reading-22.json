@@ -121,7 +121,11 @@
           "question": "By the age of fifteen, how much later were the young people in the study producing the hormone?",
           "answer": "two hours",
           "maxWords": 3,
-          "explanation": "The study found that by fifteen the same young people produced melatonin \"about two hours later\" than as younger children. The gap the question asks about is two hours."
+          "explanation": "The study found that by fifteen the same young people produced melatonin \"about two hours later\" than as younger children. The gap the question asks about is two hours.",
+          "accept": [
+            "about two hours",
+            "two hours later"
+          ]
         },
         {
           "id": "q12",
@@ -137,7 +141,10 @@
           "question": "What kind of light in the morning pulls the body clock earlier?",
           "answer": "bright light",
           "maxWords": 3,
-          "explanation": "The passage says \"Bright light in the morning, ideally outdoors, pulls the clock earlier.\" The question uses the same words 'morning' and 'pulls the clock earlier', so the answer is bright light."
+          "explanation": "The passage says \"Bright light in the morning, ideally outdoors, pulls the clock earlier.\" The question uses the same words 'morning' and 'pulls the clock earlier', so the answer is bright light.",
+          "accept": [
+            "bright"
+          ]
         }
       ]
     }

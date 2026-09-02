@@ -89,7 +89,7 @@
         {
           "id": "q8",
           "type": "mcq",
-          "question": "Why were fan-shaped halls acoustically disappointing?",
+          "question": "Why were the halls built in the middle of the twentieth century acoustically disappointing?",
           "options": [
             "their side walls did not deliver early reflections",
             "their ceilings were too low for the sound to develop",
@@ -103,7 +103,7 @@
           "type": "mcq",
           "question": "What does the lecturer say about thin wooden panelling?",
           "options": [
-            "it scatters sound in every direction",
+            "it spreads sound in every direction",
             "it absorbs low frequencies",
             "it is cheaper than heavy plaster"
           ],
@@ -117,7 +117,7 @@
           "options": [
             "it can now produce a formula for a good hall",
             "it explains why the admired halls succeed",
-            "it has made scale models unnecessary"
+            "it has made physical models unnecessary"
           ],
           "answer": 1,
           "explanation": "The science is \"not to produce a formula for a good hall, but to explain why the good ones are good,\" so the next hall is not down to luck."

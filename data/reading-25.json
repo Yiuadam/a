@@ -34,16 +34,16 @@
         {
           "id": "q4",
           "type": "tfng",
-          "statement": "Investigations after an earthquake rarely find collapsed buildings whose drawings met the code.",
-          "answer": "FALSE",
-          "explanation": "The last paragraph says such investigations \"regularly find collapsed structures whose drawings met the code in every respect\". Regularly is the opposite of rarely, so FALSE."
+          "statement": "In the review mentioned, most of one city's school buildings were older than the current code.",
+          "answer": "TRUE",
+          "explanation": "The review found that \"sixty-four per cent had been completed before the current code was introduced\". Sixty-four per cent is most of them, so the statement agrees with the passage: TRUE."
         },
         {
           "id": "q5",
           "type": "tfng",
-          "statement": "In the review mentioned, most of one city's school buildings were older than the current code.",
-          "answer": "TRUE",
-          "explanation": "The review found that \"sixty-four per cent had been completed before the current code was introduced\". Sixty-four per cent is most of them, so the statement agrees with the passage: TRUE."
+          "statement": "Investigations after an earthquake rarely find collapsed buildings whose drawings met the code.",
+          "answer": "FALSE",
+          "explanation": "The last paragraph says such investigations \"regularly find collapsed structures whose drawings met the code in every respect\". Regularly is the opposite of rarely, so FALSE."
         }
       ]
     },

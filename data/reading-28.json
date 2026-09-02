@@ -154,26 +154,26 @@
         {
           "id": "q11",
           "type": "completion",
+          "sentence": "What reaches the brain is not a label but a ___ of relative activation.",
+          "answer": "profile",
+          "maxWords": 3,
+          "explanation": "Paragraph B says \"what reaches the brain is not a label but a profile of relative activation\". The sentence is taken from the passage with one word removed."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
           "sentence": "Complete loss of the sense of smell is called ___.",
           "answer": "anosmia",
           "maxWords": 3,
           "explanation": "Paragraph F names it directly: \"Complete loss, anosmia, removes most of what is ordinarily called the taste of food.\" The gap needs that term."
         },
         {
-          "id": "q12",
+          "id": "q13",
           "type": "completion",
           "sentence": "Patients may be asked to follow a programme of structured ___, sniffing a fixed set of strong odours twice a day.",
           "answer": "smell training",
           "maxWords": 3,
           "explanation": "Paragraph F describes \"structured smell training, in which a patient sniffs a fixed set of strong odours twice daily\". The word structured is already in the sentence, so the gap takes the remaining two words."
-        },
-        {
-          "id": "q13",
-          "type": "completion",
-          "sentence": "What reaches the brain is not a label but a ___ of relative activation.",
-          "answer": "profile",
-          "maxWords": 3,
-          "explanation": "Paragraph B says \"what reaches the brain is not a label but a profile of relative activation\". The sentence is taken from the passage with one word removed."
         }
       ]
     }

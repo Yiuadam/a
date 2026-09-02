@@ -61,10 +61,10 @@
         {
           "id": "q7",
           "type": "completion",
-          "sentence": "In a ___, every adult in the room speaks only the endangered language to the children.",
-          "answer": "language nest",
+          "sentence": "Families usually stop passing a language on for reasons that are practical and ___.",
+          "answer": "economic",
           "maxWords": 2,
-          "explanation": "The passage defines the language nest as \"a preschool in which every adult in the room is a fluent speaker and speaks nothing else to the children\". The question sentence copies that definition."
+          "explanation": "The second paragraph says transmission stops \"for reasons that are economic and practical\". The question sentence keeps 'practical', so the missing word is economic."
         },
         {
           "id": "q8",
@@ -77,10 +77,10 @@
         {
           "id": "q9",
           "type": "completion",
-          "sentence": "Families usually stop passing a language on for reasons that are practical and ___.",
-          "answer": "economic",
+          "sentence": "In a ___, every adult in the room speaks only the endangered language to the children.",
+          "answer": "language nest",
           "maxWords": 2,
-          "explanation": "The second paragraph says transmission stops \"for reasons that are economic and practical\". The question sentence keeps 'practical', so the missing word is economic."
+          "explanation": "The passage defines the language nest as \"a preschool in which every adult in the room is a fluent speaker and speaks nothing else to the children\". The question sentence copies that definition."
         }
       ]
     },

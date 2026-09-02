@@ -20,9 +20,9 @@
         {
           "id": "q2",
           "type": "tfng",
-          "statement": "Marks set with equipment that was later banned remain in the record books.",
+          "statement": "The javelin was altered after throws started to reach the far end of stadium infields.",
           "answer": "TRUE",
-          "explanation": "The passage says \"the marks set under the older permissions stay in the books\", which is why a record list resembles a stratigraphy of equipment eras. The statement matches this: TRUE."
+          "explanation": "The passage says the javelin's centre of gravity was shifted forward \"after throws began to threaten the far end of stadium infields\". The statement says the same thing: TRUE."
         },
         {
           "id": "q3",
@@ -34,9 +34,9 @@
         {
           "id": "q4",
           "type": "tfng",
-          "statement": "The javelin was altered after throws started to reach the far end of stadium infields.",
+          "statement": "Marks set with equipment that was later banned remain in the record books.",
           "answer": "TRUE",
-          "explanation": "The passage says the javelin's centre of gravity was shifted forward \"after throws began to threaten the far end of stadium infields\". The statement says the same thing: TRUE."
+          "explanation": "The passage says \"the marks set under the older permissions stay in the books\", which is why a record list resembles a stratigraphy of equipment eras. The statement matches this: TRUE."
         },
         {
           "id": "q5",
@@ -110,21 +110,13 @@
         {
           "id": "q10",
           "type": "completion",
-          "sentence": "On average the runners in the study used about ___ less oxygen at a fixed pace.",
-          "answer": "3.8 per cent",
+          "sentence": "On average the runners in the study used about ___ per cent less oxygen at a fixed pace.",
+          "answer": "3.8",
           "maxWords": 3,
           "explanation": "The passage gives the average as \"3.8 per cent less oxygen at a fixed pace\". The one to six per cent figures describe the range for individuals, not the average."
         },
         {
           "id": "q11",
-          "type": "completion",
-          "sentence": "At one championship, the first ten finishers wore shoes from ___ manufacturers.",
-          "answer": "three",
-          "maxWords": 3,
-          "explanation": "The passage says \"the first ten finishers in a distance event wore shoes from three manufacturers, every pair supplied without charge\". The gap needs that number."
-        },
-        {
-          "id": "q12",
           "type": "completion",
           "sentence": "A list of records resembles a ___ of equipment eras rather than a ranking of athletes.",
           "answer": "stratigraphy",
@@ -132,12 +124,20 @@
           "explanation": "The passage uses this word for the layered record list: \"less a ranking of athletes than a stratigraphy of equipment eras\". The word means a set of layers laid down one after another."
         },
         {
-          "id": "q13",
+          "id": "q12",
           "type": "completion",
           "sentence": "The writer accepts that sport is a structure of conventions, but says a ___ should be argued for rather than presented as a fact.",
           "answer": "convention",
           "maxWords": 3,
           "explanation": "The passage says \"a convention should be argued for as a convention, rather than presented as a fact discovered in a laboratory\". The gap needs that word."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "At one championship, the first ten finishers wore shoes from ___ manufacturers.",
+          "answer": "three",
+          "maxWords": 3,
+          "explanation": "The passage says \"the first ten finishers in a distance event wore shoes from three manufacturers, every pair supplied without charge\". The gap needs that number."
         }
       ]
     }

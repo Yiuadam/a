@@ -12,35 +12,35 @@
       "sharedOptions": [
         {
           "key": "i",
-          "text": "A pattern that could be lifted off the machine"
-        },
-        {
-          "key": "ii",
           "text": "A count that no longer took years"
         },
         {
+          "key": "ii",
+          "text": "An idea that outlived the object"
+        },
+        {
           "key": "iii",
-          "text": "Where a company's memory came to be kept"
-        },
-        {
-          "key": "iv",
-          "text": "The faults that limited how far the system could grow"
-        },
-        {
-          "key": "v",
           "text": "From card to tape, and what survived the change"
         },
         {
-          "key": "vi",
-          "text": "A machine that could feel but not read"
+          "key": "iv",
+          "text": "A pattern that could be lifted off the machine"
         },
         {
-          "key": "vii",
+          "key": "v",
+          "text": "The faults that limited how far the system could grow"
+        },
+        {
+          "key": "vi",
           "text": "The wages earned by punch operators"
         },
         {
+          "key": "vii",
+          "text": "Where a company's memory came to be kept"
+        },
+        {
           "key": "viii",
-          "text": "An idea that outlived the object"
+          "text": "A machine that could feel but not read"
         }
       ],
       "questions": [
@@ -48,35 +48,35 @@
           "id": "q1",
           "type": "matching",
           "prompt": "Paragraph B",
-          "answer": "i",
+          "answer": "iv",
           "explanation": "Paragraph B is about the loom, and its key sentence is that \"the pattern had become a separate object, which could be stored on a shelf, lent to another workshop or copied\" — a pattern lifted off the machine."
         },
         {
           "id": "q2",
           "type": "matching",
           "prompt": "Paragraph C",
-          "answer": "ii",
+          "answer": "i",
           "explanation": "Paragraph C contrasts a census that \"took eight years to publish\" with a later one \"finished in under three years\" using cards. The heading names that change in the time a count took."
         },
         {
           "id": "q3",
           "type": "matching",
           "prompt": "Paragraph D",
-          "answer": "iii",
+          "answer": "vii",
           "explanation": "Paragraph D ends by saying \"a company's memory had moved out of the heads and notebooks of experienced clerks and into a room of steel drawers\", which is where the memory came to be kept."
         },
         {
           "id": "q4",
           "type": "matching",
           "prompt": "Paragraph E",
-          "answer": "iv",
+          "answer": "v",
           "explanation": "Paragraph E lists the faults — swelling in damp air, lost order, invisible errors — and says directly that \"they set a limit on how large a card system could usefully grow\"."
         },
         {
           "id": "q5",
           "type": "matching",
           "prompt": "Paragraph F",
-          "answer": "v",
+          "answer": "iii",
           "explanation": "Paragraph F describes tape replacing cards and then what remained afterwards: the eighty-column width that shaped screens and printers. That is the change and what survived it."
         }
       ]
@@ -87,9 +87,9 @@
         {
           "id": "q6",
           "type": "ynng",
-          "statement": "The punched card matters more for the ideas it introduced than for the object itself.",
+          "statement": "The physical problems of card systems were serious rather than minor.",
           "answer": "YES",
-          "explanation": "Paragraph G opens \"What the card left behind is larger than the card\", and then names two ideas that are still with us. That is the writer's own judgement, so YES."
+          "explanation": "The writer states it plainly: \"These were not small inconveniences\", and adds that much of the cost of running a card system was guarding it against itself. That agrees with the statement, so YES."
         },
         {
           "id": "q7",
@@ -108,9 +108,9 @@
         {
           "id": "q9",
           "type": "ynng",
-          "statement": "The physical problems of card systems were serious rather than minor.",
+          "statement": "The punched card matters more for the ideas it introduced than for the object itself.",
           "answer": "YES",
-          "explanation": "The writer states it plainly: \"These were not small inconveniences\", and adds that much of the cost of running a card system was guarding it against itself. That agrees with the statement, so YES."
+          "explanation": "Paragraph G opens \"What the card left behind is larger than the card\", and then names two ideas that are still with us. That is the writer's own judgement, so YES."
         }
       ]
     },
@@ -131,26 +131,26 @@
         {
           "id": "q11",
           "type": "short-answer",
+          "question": "In what conditions did cards swell and jam the machines?",
+          "answer": "damp air",
+          "maxWords": 3,
+          "explanation": "Paragraph E says that \"in damp air the cards swelled, jammed the feed and had to be reconditioned\". The conditions asked for are damp air."
+        },
+        {
+          "id": "q12",
+          "type": "short-answer",
           "question": "What ended the card's dominance in business record-keeping?",
           "answer": "magnetic tape",
           "maxWords": 3,
           "explanation": "Paragraph F opens with \"Magnetic tape ended the card's dominance\". The question uses the same words, so the answer is magnetic tape."
         },
         {
-          "id": "q12",
+          "id": "q13",
           "type": "short-answer",
           "question": "How many columns did the standard card carry?",
           "answer": "eighty",
           "maxWords": 3,
           "explanation": "Paragraph F says \"the standard card carried eighty columns\", and that this width later shaped screens and printers."
-        },
-        {
-          "id": "q13",
-          "type": "short-answer",
-          "question": "In what conditions did cards swell and jam the machines?",
-          "answer": "damp air",
-          "maxWords": 3,
-          "explanation": "Paragraph E says that \"in damp air the cards swelled, jammed the feed and had to be reconditioned\". The conditions asked for are damp air."
         }
       ]
     }

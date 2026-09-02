@@ -116,6 +116,14 @@
         {
           "id": "q11",
           "type": "short-answer",
+          "question": "Which category of material does the writer say is not made up of objects at all?",
+          "answer": "human remains",
+          "maxWords": 3,
+          "explanation": "The passage says of human remains: \"they are not objects, and weighing them on the same scale as a carved bowl is a category error\"."
+        },
+        {
+          "id": "q12",
+          "type": "short-answer",
           "question": "What are agreements called in which display, conservation and lending are decided jointly?",
           "answer": "shared stewardship",
           "maxWords": 3,
@@ -125,20 +133,12 @@
           ]
         },
         {
-          "id": "q12",
+          "id": "q13",
           "type": "short-answer",
           "question": "What does the writer say should be empowered to hear claims and publish its reasons?",
           "answer": "a standing panel",
           "maxWords": 3,
           "explanation": "The last paragraph proposes \"published criteria... and a standing panel empowered to hear claims and to publish its reasons\". The question uses the same words, so the answer is the body proposed."
-        },
-        {
-          "id": "q13",
-          "type": "short-answer",
-          "question": "Which category of material does the writer say is not made up of objects at all?",
-          "answer": "human remains",
-          "maxWords": 3,
-          "explanation": "The passage says of human remains: \"they are not objects, and weighing them on the same scale as a carved bowl is a category error\"."
         }
       ]
     }
