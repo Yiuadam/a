@@ -94,8 +94,51 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
          with the menu up has to reach both surfaces or they disagree in front
          of the person who just changed it. */
       self?.navList?.applyTheme(theme)
+      self?.paintPageSubstrate(theme)
       call.resolve()
     }
+  }
+
+  /*
+    The colour under the web page, which is not the web page's own.
+
+    A WKWebView is given a background colour of its own, and Capacitor sets it
+    from `ios.backgroundColor` in capacitor.config.ts — #fbf7f2, chosen so the
+    launch does not flash white before the first paint arrives. That is one
+    fixed colour, and BandUp has three themes, so in Warm it is invisible and
+    in Dark it is a cream sheet lying behind everything the page draws.
+
+    It only ever shows where the page is not drawing, and it turns out there is
+    more than one such moment. The one that can be caught here is the navigation
+    list opening: with the configured colour swapped for magenta and the screen
+    grabbed eight times a second, the web view stops compositing its own layers
+    for something over half a second while the zoom runs, and for those frames
+    its background colour is the whole screen. The other was reported from a
+    real iPhone after a hard scroll back to the top, where the strip beside the
+    status bar — the strip `contentInset: "always"` uncovers by insetting the
+    scrolled content — came back cream instead of paper. That one would not
+    reproduce on the simulator, but the colour in the photograph is #fbf7f2 to
+    within the accuracy of a screenshot, so it is this sheet and not another.
+
+    The bar is glass and shades whatever is behind it, which is why the same
+    cream reads two different ways: as a pale grey band above a dark bar when
+    only the strip is uncovered, and as the whole screen turning cream with the
+    bar's edge torn along it when the presentation uncovers everything.
+
+    So the fix is not to stop the colour showing — nothing can promise that —
+    but to make it the right colour when it does. Painted from the theme rather
+    than configured once, it is the same paper the page paints, and an exposure
+    of it is no longer visible at all.
+
+    Both the view and its scroll view, because Capacitor sets both and either
+    one left cream would still be the sheet. The window and the root view are
+    deliberately not touched: they are behind an opaque web view and were never
+    what showed — the appearance the device is in never came into it.
+  */
+  private func paintPageSubstrate(_ theme: String) {
+    let paper = NativeChromeView.colors(for: theme).paper
+    bridge?.webView?.backgroundColor = paper
+    bridge?.webView?.scrollView.backgroundColor = paper
   }
 
   /*
@@ -239,6 +282,12 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
     }
     view.onTheme = { [weak self] theme in
       self?.navList?.applyTheme(theme)
+      /* Painted here as well as in setTheme(_:), for the same reason the list
+         above is: a theme chosen on the bar reaches the web app, which sets it
+         and syncs it back, and the trip out to JavaScript and in again is long
+         enough for a menu opened straight after the tap to still be sampling
+         the old paper. The echo that follows finds this already done. */
+      self?.paintPageSubstrate(theme)
       self?.notifyListeners("themeSelected", data: ["theme": theme])
     }
     chromeView = view

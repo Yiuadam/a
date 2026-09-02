@@ -393,6 +393,24 @@ final class NativeChromeView: UIView {
   /// be the bar's, or the two surfaces are two different apps. It reads it
   /// through colors(for:) below rather than being handed a copy.
   struct ThemeColors {
+    /*
+      The page's own paper, and the only colour here that is not painted on
+      anything this view owns.
+
+      It belongs in this table because it is the colour *behind* the bar, and
+      the bar is glass: everything above is a description of how much of that
+      paper comes through and in what light. It is read by NativeChromePlugin,
+      which paints it onto the web view so the strip beside the status bar has
+      the page's colour under it rather than the one Capacitor was configured
+      with — see paintPageSubstrate there for what was showing before.
+
+      These are `--color-background` in app/globals.css, theme for theme, which
+      is what the page canvas paints and therefore the one value that makes the
+      seam invisible. Light's is the blue canvas its body paints rather than the
+      white its <html> carries, because the body's is the one that reaches the
+      top of the viewport.
+    */
+    let paper: UIColor
     let barFill: UIColor
     let divider: UIColor
     let trackFill: UIColor
@@ -407,6 +425,7 @@ final class NativeChromeView: UIView {
 
   private static let themeColors: [String: ThemeColors] = [
     "warm": ThemeColors(
+      paper: rgba(231, 224, 216, 1),
       barFill: rgba(255, 255, 255, 0.08),
       divider: rgba(255, 255, 255, 0.463),
       trackFill: rgba(244, 238, 231, 0.48),
@@ -419,6 +438,7 @@ final class NativeChromeView: UIView {
       knobBorder: nil
     ),
     "light": ThemeColors(
+      paper: rgba(223, 236, 246, 1),
       barFill: rgba(246, 247, 248, 0.539),
       divider: rgba(221, 225, 230, 0.957),
       trackFill: rgba(22, 23, 26, 0.07),
@@ -431,6 +451,7 @@ final class NativeChromeView: UIView {
       knobBorder: nil
     ),
     "dark": ThemeColors(
+      paper: rgba(17, 17, 19, 1),
       barFill: rgba(253, 253, 253, 0.044),
       divider: rgba(245, 247, 248, 0.15),
       trackFill: rgba(255, 255, 255, 0.035),
