@@ -36,42 +36,25 @@ function TableHeading({ heading }: { heading: string }) {
 }
 
 /*
-  A writing task is a document on a phone, not a carousel.
+  A writing task is a workspace on a phone, not a document.
 
-  The shared SwipePanels deliberately leaves the neighbouring panel peeking in
-  so reading and listening candidates know that they can swipe. Here that cue
-  took width away from the prompt, the figure and the answer at the same time:
-  a paragraph became a column of six-word lines and a five-column table could
-  only show its first two columns. Writing therefore has one narrow-screen
-  flow. The sections use the full paper width and the paper scrolls vertically;
-  the desktop keeps its independent split panes.
+  This file argued the opposite until now, and the reversal is worth writing
+  down rather than deleting. The old flow stacked the task, the figure and the
+  answer down one scrolling column, because the shared SwipePanels left a
+  generous margin of the next panel showing and that margin was being taken out
+  of a paragraph's line length and a five-column table's last three columns at
+  the same time. The width work has since cut that cue to a sliver on a phone,
+  so the reason for the stack has gone with it.
+
+  What the stack never answered is the thing a candidate actually does: compose
+  a sentence, re-read the task, compose the next one. Stacked, the task is
+  wherever the scroll happens to have left it, which on a 390px screen is
+  usually a screen and a half above the caret. Reading solved the same tension
+  with a switcher, so writing now uses it too — Task, Source and Response as
+  horizontal panes, one tap or one swipe apart, every one of them mounted the
+  whole time so the caret, the scroll and the draft survive the trip. The
+  desktop keeps its independent split panes, where nothing was ever in the way.
 */
-function WritingMobilePanels({ panels, lead }: { panels: SwipePanel[]; lead?: React.ReactNode }) {
-  return (
-    <div
-      data-writing-mobile-panels=""
-      className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-1 pb-5"
-    >
-      {lead}
-      <div className="min-w-0 divide-y divide-[color:var(--exam-line)]">
-        {panels.map((panel) => (
-          <section
-            key={panel.label}
-            aria-label={panel.label}
-            data-writing-mobile-panel={panel.label.toLowerCase()}
-            className="w-full min-w-0 py-4 first:pt-1 last:pb-2"
-          >
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--exam-muted)]">
-              {panel.label}
-            </p>
-            <div className="min-w-0 max-w-full">{panel.content}</div>
-          </section>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   /*
     Whether marking is included, which is not the same as whether the page is
@@ -193,7 +176,7 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   ) : null;
 
   const response = (
-    <div className="flex min-h-[20rem] flex-col lg:h-full lg:min-h-0">
+    <div className="flex h-full min-h-[20rem] flex-col lg:min-h-0">
       <div className="mb-2 flex items-center justify-between gap-3">
         <label htmlFor="writing-response" className="text-sm font-semibold text-slate-900">
           Your response
@@ -202,9 +185,24 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
           {wordCount} / {task.minWords}
         </span>
       </div>
+      {/*
+        `touch-pan-y` is the one concession the swipe track has to make to the
+        fact that this pane holds an editor rather than prose.
+
+        The panes are moved by the browser's own horizontal scrolling, not by a
+        gesture handler, and a browser will happily start that scroll from a
+        touch that began inside a textarea — a thumb resting on the essay and
+        drifting a few degrees off vertical is enough to snap the pane away
+        mid-sentence. Restricting this element to vertical panning takes the
+        horizontal gesture off the essay and leaves everything the editor needs
+        untouched: a tap still places the caret, a long press still selects and
+        raises the magnifier, and the essay still scrolls under the finger.
+        Swiping from anywhere else in the pane still works, and the switcher
+        above never depended on the gesture at all.
+      */}
       <textarea
         id="writing-response"
-        className="input min-h-64 flex-1 resize-none font-sans leading-7"
+        className="input min-h-64 flex-1 touch-pan-y resize-none font-sans leading-7"
         placeholder="Start typing…"
         value={essay}
         onFocus={() => setStarted(true)}
@@ -320,14 +318,21 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
       }
     >
       {grade ? (
-        wide ? <SwipePanels panels={feedbackPanels} /> : <WritingMobilePanels panels={feedbackPanels} />
+        <SwipePanels panels={feedbackPanels} />
       ) : wide ? (
         <SplitPanes className="h-full" initial={48} left={source} right={response} />
       ) : (
-        <WritingMobilePanels
-          panels={practicePanels}
-          lead={<AssignedPracticeNotice className="mx-1 mb-2" />}
-        />
+        /*
+          The assignment banner stays above the track rather than riding in the
+          Task panel. It is about why this paper is open at all, which does not
+          stop being true when the candidate swipes to their answer, and a
+          notice that vanishes with the panel it was pinned to is a notice
+          somebody will swear they never saw.
+        */
+        <div className="flex min-h-0 flex-1 flex-col">
+          <AssignedPracticeNotice className="mx-1 mb-2 shrink-0" />
+          <SwipePanels panels={practicePanels} />
+        </div>
       )}
     </ExamShell>
   );

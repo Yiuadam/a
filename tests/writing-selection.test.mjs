@@ -39,11 +39,10 @@ test("a writing chooser selection opens the exact task and leaves the mobile wor
   assert.match(writing, /retainedQuery=\{retained\.toString\(\)\}/);
   assert.doesNotMatch(writing, /WritingTaskPicker/);
 
-  // Selecting a task changes the entry screen only. The full-width vertical
-  // phone workspace remains the layout once that task has been opened.
-  assert.match(writing, /function WritingMobilePanels/);
-  assert.match(writing, /data-writing-mobile-panels/);
-  assert.match(writing, /<WritingMobilePanels[\s\S]*panels=\{practicePanels\}/);
+  // Selecting a task changes the entry screen only. The workspace it opens is
+  // the shared switcher, the same one the reading paper uses.
+  assert.match(writing, /import SwipePanels/);
+  assert.match(writing, /<SwipePanels panels=\{practicePanels\} \/>/);
 });
 
 test("writing cards describe writing tasks rather than objective-test questions", () => {

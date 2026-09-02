@@ -5,22 +5,87 @@ import { test } from "node:test";
 
 const read = (...parts) => readFileSync(join(process.cwd(), ...parts), "utf8");
 
-test("writing uses a full-width vertical paper on narrow screens", () => {
+/*
+  This file used to assert the opposite of what it asserts now, and the reversal
+  is the point. Writing stacked its task, figure and answer down one scrolling
+  column because the shared swipe track spent 68px of a 390px phone advertising
+  itself; once that came down to a sliver the stack was costing a candidate the
+  prompt every time they wrote a sentence. Writing now uses the same switcher
+  reading does, and what these tests hold is that it is the *same* one — a
+  second horizontal track with its own idea of a pane width is how the two
+  papers drift apart again.
+*/
+test("writing chooses its panes with the same switcher reading uses", () => {
   const writing = read("app", "practice", "writing", "page.tsx");
+  const reading = read("app", "practice", "reading", "page.tsx");
+  const panels = read("components", "exam", "SwipePanels.tsx");
 
-  assert.match(writing, /function WritingMobilePanels/);
-  assert.match(writing, /data-writing-mobile-panels/);
-  assert.match(writing, /overflow-x-hidden overflow-y-auto/);
-  assert.match(writing, /data-writing-mobile-panel=\{panel\.label\.toLowerCase\(\)\}/);
-  assert.match(writing, /className="w-full min-w-0 py-4/);
-  assert.match(writing, /wide \? <SwipePanels panels=\{feedbackPanels\} \/> : <WritingMobilePanels panels=\{feedbackPanels\} \/>/);
-  assert.match(writing, /<WritingMobilePanels[\s\S]*panels=\{practicePanels\}/);
+  for (const page of [writing, reading]) {
+    assert.match(page, /import SwipePanels(,| from) /);
+    assert.match(page, /<SwipePanels\s+(key=\{[^}]+\}\s+)?panels=/);
+  }
 
-  const phoneLayout = writing.slice(
-    writing.indexOf("function WritingMobilePanels"),
-    writing.indexOf("function WritingSession"),
-  );
-  assert.doesNotMatch(phoneLayout, /snap-x|overflow-x-auto|scrollIntoView/);
+  /* The switcher and the track both come from the shared component. */
+  assert.match(panels, /role="tablist"/);
+  assert.match(panels, /role="tab"/);
+  assert.match(panels, /snap-x snap-mandatory/);
+  assert.match(panels, /inline: "center"/);
+
+  /* Narrow practice writing: the task, the figure and the answer as panes. */
+  assert.match(writing, /\{ label: "Task", content: prompt \}/);
+  assert.match(writing, /\{ label: "Source", content: visual \}/);
+  assert.match(writing, /\{ label: "Response", content: response \}/);
+  assert.match(writing, /<SwipePanels panels=\{practicePanels\} \/>/);
+
+  /* Marked feedback is the same panes at every width, wide or narrow. */
+  assert.match(writing, /grade \? \(\s*<SwipePanels panels=\{feedbackPanels\} \/>/);
+
+  /* Above `lg` the independent split panes are still what writing gets. */
+  assert.match(writing, /<SplitPanes className="h-full" initial=\{48\} left=\{source\} right=\{response\} \/>/);
+
+  /* The stacked phone flow is gone rather than left behind unused. */
+  assert.doesNotMatch(writing, /WritingMobilePanels|data-writing-mobile-panel/);
+});
+
+/*
+  The one thing the reading papers never had to answer for: a pane holding a
+  textarea. The panes are moved by the browser's own horizontal scrolling, so a
+  touch that starts on the essay would pan the track — a thumb drifting a few
+  degrees off vertical snapping the pane away mid-sentence. `touch-pan-y` takes
+  the horizontal gesture off the essay and leaves the caret, the selection
+  handles and the essay's own scrolling alone. The switcher above never needed
+  the gesture, so nothing is lost by it.
+*/
+test("the essay keeps its own gestures inside the swipe track", () => {
+  const writing = read("app", "practice", "writing", "page.tsx");
+  const mock = read("components", "exam", "MockWriting.tsx");
+
+  assert.match(writing, /id="writing-response"[\s\S]{0,200}touch-pan-y/);
+  assert.match(mock, /id="mock-essay"[\s\S]{0,200}touch-pan-y/);
+});
+
+test("the mock writing paper switches panes on a phone and keeps its desktop column", () => {
+  const mock = read("components", "exam", "MockWriting.tsx");
+
+  assert.match(mock, /import SwipePanels, \{ type SwipePanel \}/);
+  assert.match(mock, /const wide = useIsWide\(\);/);
+  assert.match(mock, /\{ label: "Task", content: /);
+  assert.match(mock, /\{ label: "Response", content: answer \}/);
+
+  /*
+    Keyed on the task, so Task 1 → Task 2 lands on the new prompt rather than on
+    an empty answer box. Everything worth keeping is held outside the component
+    — the essays in the stored session, the clock as an absolute deadline — so
+    the only state a remount drops is which pane was showing.
+  */
+  assert.match(mock, /<SwipePanels key=\{task\.id\} panels=\{panels\} \/>/);
+
+  /* Above `lg` there is room for prompt and answer at once, and it is unchanged. */
+  assert.match(mock, /wide \? \(\s*<div className="min-h-0 flex-1 overflow-y-auto">/);
+  assert.match(mock, /wide \? "h-72 resize-y" : "min-h-48 flex-1 resize-none"/);
+
+  /* One textarea, or two elements would answer to the same id and label. */
+  assert.equal(mock.match(/id="mock-essay"/g).length, 1);
 });
 
 test("writing opts into an edge-to-edge phone shell without changing other papers", () => {
@@ -57,6 +122,12 @@ test("writing opts into an edge-to-edge phone shell without changing other paper
   */
   assert.match(read("components", "exam", "MockReading.tsx"), /^\s*edgeToEdgeOnPhone$/m);
   assert.match(read("app", "practice", "reading", "page.tsx"), /^\s*edgeToEdgeOnPhone$/m);
+  /*
+    The mock writing paper joins them, because it now nests the same way: below
+    `lg` its task and its answer sit in a swipe panel, so a phone was paying for
+    a frame, a paper inset and a panel inset before the prompt was laid out.
+  */
+  assert.match(read("components", "exam", "MockWriting.tsx"), /^\s*edgeToEdgeOnPhone$/m);
   assert.doesNotMatch(read("components", "exam", "MockListening.tsx"), /edgeToEdgeOnPhone/);
 });
 
