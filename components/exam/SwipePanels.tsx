@@ -62,8 +62,18 @@ export default function SwipePanels({ panels }: { panels: SwipePanel[] }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-1.5 flex shrink-0 justify-center">
+        {/*
+          Full width on a phone, so this bar and the timer above it are the same
+          object seen twice rather than two controls that nearly line up. The
+          owner asked for them to match, and a switcher that stops short of the
+          bar directly above it reads as a mistake even when it is centred.
+
+          The 18rem cap stays from `sm` up, where the paper is wide enough that
+          three tabs stretched across it would put "Task" and "Response" at
+          opposite ends of the screen with a hand's width of nothing between.
+        */}
         <div
-          className="panel-toggle-base relative grid w-full max-w-72 rounded-xl p-0.5"
+          className="panel-toggle-base relative grid w-full max-w-none rounded-xl p-0.5 sm:max-w-72"
           role="tablist"
           aria-label="Workspace panels"
           onPointerLeave={() => setPreview(null)}
@@ -107,8 +117,17 @@ export default function SwipePanels({ panels }: { panels: SwipePanel[] }) {
           is already the peek — a gutter on top of that is the same allowance
           charged twice. It was the difference between a three-option answer
           row fitting on one line and wrapping onto two.
+
+          `overscroll-x-none` stops the rubber band at the two ends. A browser
+          bounces a scroller past its own content by default, which is right for
+          a document — it tells you that you have reached the end of something.
+          Here there is nothing past the end to have reached: the panes are a
+          fixed set of two or three, the pill bar above already says which one
+          you are on and how many there are, and pulling the first pane sideways
+          only reveals the track behind it. The owner asked for it gone, and it
+          was reporting something the control had no need to report.
         */
-        className="no-scrollbar flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto px-0 sm:px-4"
+        className="no-scrollbar flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-none px-0 sm:px-4"
       >
         {panels.map((panel, index) => (
           <section

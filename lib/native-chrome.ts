@@ -119,6 +119,25 @@ export async function enableNativeChrome(handlers: {
   */
   document.documentElement.style.setProperty("--header-h", `${height}px`);
 
+  /*
+    And no rubber band above the first card.
+
+    MainViewController already sets scrollView.bounces = false, and on its own
+    that was not enough: the owner could still drag the page down and open a
+    band of bare paper between the native bar and the top of the content. A
+    WKWebView has more than one thing that can scroll — the scroll view UIKit
+    owns, and the document WebKit owns inside it — and turning the outer one off
+    says nothing about the inner one.
+
+    overscroll-behavior is the web side of the same instruction, and it is the
+    side that governs the document. Set from here rather than from the
+    stylesheet because it is true only inside the app: a browser tab is a
+    document in a window and its bounce is the browser's own behaviour to
+    decide, while in here the bar above is the app's top edge and pulling the
+    page away from it only exposes the substrate behind.
+  */
+  document.documentElement.style.setProperty("overscroll-behavior", "none");
+
   const handles = await Promise.all([
     plugin.addListener("homeTapped", () => handlers.onHome()),
     plugin.addListener("menuTapped", () => handlers.onMenu()),
@@ -150,6 +169,9 @@ export async function enableNativeChrome(handlers: {
     // Leaving the last measured height behind would keep sizing every page
     // as if the native bar were still there after it is gone.
     document.documentElement.style.removeProperty("--header-h");
+    // The bounce is only wrong while the app's own bar is the page's top edge,
+    // so it comes back with the bar it belonged to.
+    document.documentElement.style.removeProperty("overscroll-behavior");
   };
 
   return { height, dispose };
