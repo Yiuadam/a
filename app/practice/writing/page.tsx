@@ -401,7 +401,11 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
             {grading ? <LoadingIndicator label="Marking…" announce={false} /> : "Submit for marking"}
           </button>
         ) : (
-          <span className="text-[11px] text-slate-500">Saved on device</span>
+          /* The same wording the response pane settled on, and for the same
+             reason: this draft survives a reload and nothing else. Both strings
+             render under the identical condition, so a learner was being told
+             two different things about their essay on one screen. */
+          <span className="text-[11px] text-slate-500">Kept if you reload</span>
         )
       }
     >

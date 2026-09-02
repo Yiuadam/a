@@ -737,6 +737,361 @@
       "prompt": "Some people believe that governments should spend public money supporting museums, theatres and other arts organisations. Others think this money would be better spent elsewhere, such as on healthcare or education. To what extent do you agree or disagree?",
       "minWords": 250,
       "timeMinutes": 40
+    },
+    {
+      "id": "w31",
+      "task": 1,
+      "variant": "academic",
+      "type": "table",
+      "level": "B2",
+      "title": "Health workers and hospital beds in five countries",
+      "prompt": "The table below shows the number of doctors, nurses and hospital beds per 10,000 people in five countries in 2024.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "dataTable": {
+        "title": "Doctors, nurses and hospital beds per 10,000 people, 2024",
+        "headers": [
+          "Country",
+          "Doctors",
+          "Nurses",
+          "Beds"
+        ],
+        "rows": [
+          [
+            "Aldoria",
+            "42",
+            "98",
+            "76"
+          ],
+          [
+            "Belmara",
+            "38",
+            "61",
+            "31"
+          ],
+          [
+            "Corvana",
+            "21",
+            "44",
+            "52"
+          ],
+          [
+            "Deltane",
+            "12",
+            "27",
+            "18"
+          ],
+          [
+            "Estheria",
+            "9",
+            "35",
+            "24"
+          ]
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w32",
+      "task": 1,
+      "variant": "academic",
+      "type": "table",
+      "level": "B2",
+      "title": "Average weekly pay in five occupations",
+      "prompt": "The table below shows the average weekly pay, before tax, of five occupations in one country in 2010 and 2025, together with the change over that period.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "dataTable": {
+        "title": "Average weekly pay before tax (dollars)",
+        "headers": [
+          "Occupation",
+          "2010",
+          "2025",
+          "Change"
+        ],
+        "rows": [
+          [
+            "Bus driver",
+            "420",
+            "610",
+            "+45%"
+          ],
+          [
+            "Chef",
+            "390",
+            "505",
+            "+29%"
+          ],
+          [
+            "Electrician",
+            "540",
+            "860",
+            "+59%"
+          ],
+          [
+            "Teacher",
+            "580",
+            "770",
+            "+33%"
+          ],
+          [
+            "Software developer",
+            "710",
+            "1,340",
+            "+89%"
+          ]
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w33",
+      "task": 1,
+      "variant": "academic",
+      "type": "table",
+      "level": "B1",
+      "title": "Rainfall in three cities",
+      "prompt": "The table below shows the average rainfall, in millimetres, in three cities in four months of the year.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "dataTable": {
+        "title": "Average monthly rainfall (mm)",
+        "headers": [
+          "Month",
+          "Marden",
+          "Ostberg",
+          "Tallis"
+        ],
+        "rows": [
+          [
+            "January",
+            "112",
+            "18",
+            "64"
+          ],
+          [
+            "April",
+            "78",
+            "41",
+            "70"
+          ],
+          [
+            "July",
+            "35",
+            "96",
+            "88"
+          ],
+          [
+            "October",
+            "94",
+            "52",
+            "72"
+          ]
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w34",
+      "task": 1,
+      "variant": "academic",
+      "type": "table",
+      "level": "B2",
+      "title": "Unpaid voluntary work by type of organisation",
+      "prompt": "The table below shows the percentage of adults in one country who did unpaid voluntary work for four types of organisation in 2005, 2015 and 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "dataTable": {
+        "title": "Adults doing unpaid voluntary work (%)",
+        "headers": [
+          "Organisation",
+          "2005",
+          "2015",
+          "2025"
+        ],
+        "rows": [
+          [
+            "Sports clubs",
+            "14%",
+            "11%",
+            "8%"
+          ],
+          [
+            "Schools",
+            "9%",
+            "10%",
+            "12%"
+          ],
+          [
+            "Health charities",
+            "6%",
+            "9%",
+            "15%"
+          ],
+          [
+            "Environment groups",
+            "3%",
+            "6%",
+            "13%"
+          ]
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w35",
+      "task": 1,
+      "variant": "general",
+      "type": "letter",
+      "level": "B2",
+      "title": "Letter asking to change your working hours",
+      "prompt": "You have taken on responsibility for caring for a member of your family, and you would like to change the hours you work.\n\nWrite a letter to your manager. In your letter:\n\n- explain what change to your hours you are asking for\n- describe why you need to make this change now\n- suggest how your work could still be covered\n\nWrite at least 150 words. Begin your letter 'Dear Ms Ward,'.",
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w36",
+      "task": 1,
+      "variant": "general",
+      "type": "letter",
+      "level": "B1",
+      "title": "Letter to a friend moving to your town",
+      "prompt": "A friend has written to tell you that they are moving to the town where you live.\n\nWrite a letter to your friend. In your letter:\n\n- say how you feel about the news\n- describe the part of town you think would suit them\n- offer to help them settle in\n\nWrite at least 150 words. Begin your letter in an appropriate way.",
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w37",
+      "task": 1,
+      "variant": "general",
+      "type": "letter",
+      "level": "B2",
+      "title": "Letter about a neglected local park",
+      "prompt": "A small park near your home has been left in poor condition, and few people use it any more.\n\nWrite a letter to the local council. In your letter:\n\n- describe the park and the state it is in\n- explain why it matters to the people living nearby\n- suggest what the council could do to improve it\n\nWrite at least 150 words. Begin your letter 'Dear Sir or Madam,'.",
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w38",
+      "task": 1,
+      "variant": "academic",
+      "type": "chart",
+      "level": "B2",
+      "title": "Consumption of three types of drink",
+      "prompt": "The line graph below shows the average amount of three types of drink consumed per person each year in one country between 1995 and 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "line",
+        "title": "Drinks consumed per person per year (litres)",
+        "unit": "litres per person",
+        "xLabel": "Year",
+        "yLabel": "Litres per person",
+        "categories": [
+          "1995",
+          "2000",
+          "2005",
+          "2010",
+          "2015",
+          "2020",
+          "2025"
+        ],
+        "series": [
+          {
+            "name": "Fizzy drinks",
+            "values": [
+              82,
+              89,
+              94,
+              88,
+              74,
+              61,
+              52
+            ]
+          },
+          {
+            "name": "Bottled water",
+            "values": [
+              12,
+              21,
+              34,
+              48,
+              66,
+              83,
+              97
+            ]
+          },
+          {
+            "name": "Fruit juice",
+            "values": [
+              18,
+              24,
+              29,
+              31,
+              27,
+              22,
+              19
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w39",
+      "task": 1,
+      "variant": "academic",
+      "type": "chart",
+      "level": "B2",
+      "title": "Bird numbers at a wetland reserve",
+      "prompt": "The bar chart below shows the number of breeding pairs of three bird species recorded at a wetland nature reserve in 1995, 2010 and 2025.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "chart": {
+        "kind": "bar",
+        "layout": "grouped",
+        "title": "Breeding pairs recorded at Willowmere reserve",
+        "unit": "breeding pairs",
+        "xLabel": "Species",
+        "yLabel": "Breeding pairs",
+        "categories": [
+          "Grey heron",
+          "Marsh warbler",
+          "Common tern"
+        ],
+        "series": [
+          {
+            "name": "1995",
+            "values": [
+              46,
+              320,
+              88
+            ]
+          },
+          {
+            "name": "2010",
+            "values": [
+              72,
+              210,
+              95
+            ]
+          },
+          {
+            "name": "2025",
+            "values": [
+              118,
+              95,
+              61
+            ]
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w40",
+      "task": 2,
+      "variant": "academic",
+      "type": "essay",
+      "level": "C1",
+      "title": "Advertising aimed at children (discussion)",
+      "prompt": "Some people believe that advertising aimed at children should be banned altogether. Others argue that it is a normal part of business, and that parents rather than governments should decide what their children see.\n\nDiscuss both views and give your own opinion.\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+      "minWords": 250,
+      "timeMinutes": 40
     }
   ]
 }

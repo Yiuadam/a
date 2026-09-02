@@ -33,6 +33,8 @@ See `CLAUDE.md`; this has not changed.
 
 Landed and pushed, newest first:
 
+  - the tutor reads speaking results, every voice is British, and the privacy
+    page says both — see the log for the exact commits
   - `249b6e7` twenty defects in the ten new papers — two heading tasks whose key
     was the printed list read straight down, one percentage key the marker turned
     into the wrong number, six papers asking questions out of passage order
@@ -70,23 +72,29 @@ conversation.
 **The examiner nudge.** After a candidate gives a short answer the examiner sits
 silent for up to 55 seconds before moving on, which in a real Part 1 would never
 happen. The design was settled: a prompt after a measured pause, once, then the
-next question. This is the highest-value item on the list — it is the difference
-between a convincing examiner and an awkward one.
-
-**British voices everywhere, and Part 4's rate.** Watch the trap: on Workers AI,
-`athena` is British in aura-1 and **American** in aura-2-en. The only British
-aura-1 voices are `athena` and `helios`; `angus` is Irish. Real Part 4 runs
-133.5 wpm inclusive of pauses, ~169 articulation, 21% silence.
-
-**The tutor reading speaking results.** It picks the lowest-scoring sitting on
-its own and reads the results rather than being handed a transcript. Files were
-mid-write when the window closed: `lib/tutor/`, `components/TutorChat.tsx`,
-`tests/tutor-speaking-context.test.mjs`. A privacy paragraph still needs to say
-that the tutor reads transcripts, and `app/privacy/page.tsx` still claims you
-can sign in with Google — no longer true inside the app.
+next question. This is the highest-value item still outstanding — it is the
+difference between a convincing examiner and an awkward one. It touches
+`components/speaking/SpeakingSession.tsx`.
 
 **UI sweep** across three widths and three themes, for layout breaks and
 centring.
+
+**Re-measure the listening pace.** The 165 wpm figure was measured on aura-1
+recordings, and every one of them has been retired — so the number no longer
+describes the app and nothing should be calibrated against it. Re-measure Part 4
+words per minute and silence share on the new aura-2 recordings first. Real
+Part 4 runs 133.5 wpm inclusive of pauses, ~169 articulation, 21% silence.
+Neither Aura model takes a speed parameter; the only lever is client
+`playbackRate` with `preservesPitch`, which practice exposes and the mock pins
+at 1.
+
+**Structural pauses** — the announced gaps a real paper gives for reading ahead
+and checking — are described but not built. They need announcements written from
+scratch, and the 30-minute mock clock has to absorb three or four minutes of
+added silence per paper.
+
+**`app/privacy/page.tsx` still says you can sign in with Google.** No longer true
+inside the app.
 
 ## Decisions waiting on the owner
 
@@ -101,6 +109,19 @@ centring.
     as `9.30`. Fixing it for decimals costs the time tolerance unless
     `CompletionQuestion` gains an `accept` field first. Three parts, its own
     change: protect the dot, add `accept`, restore the two time keys.
+  - **Two of the four listening voices are Australian.** Neither Aura model can
+    cast four British speakers: aura-1 offered British, British, Irish, American;
+    aura-2 offers British, British, Australian, Australian. The one without an
+    American in it was chosen, since removing American was the brief and a
+    candidate genuinely meets Australian in a real paper. That is 66 of 676
+    recordings, 9.8%, all of them the third and fourth speakers in multi-speaker
+    seminars. If the owner wants pure British it means two speakers per paper.
+  - **The tutor is automatic, with no switch.** A learner who would rather it did
+    not read their speaking has one lever: clearing their history, which deletes
+    the interviews entirely. There is no setting that keeps the results but
+    withholds them. The owner should know this was decided; the cheapest reversal
+    is a default-on switch, one line of UI, identical behaviour for anyone who
+    never touches it.
   - **The date picker.** The field is this product's design on every platform
     now. The sheet that opens when it is tapped is an OS dialog and no stylesheet
     reaches it. Replacing it means building a picker and losing the native one's
@@ -124,9 +145,20 @@ centring.
     synchronously and, on failure, just stops — the mic dies mid-answer with no
     message. On Android Chrome `continuous` is not honoured, so that boundary is
     hit every few seconds rather than every minute.
-  - Tests: any failure in `tests/tutor-*`, `tests/server-listening-audio-*` or
-    `tests/listening-*` is in-flight agent work, not a regression. Confirm by
-    stashing the dirty files and re-running.
+  - `components/exam/MockResults.tsx` records no review for the speaking module,
+    so a mock-exam interview reaches the tutor as a band and a date rather than
+    as answers. A Standard-tier interview calls no `addResult` at all and leaves
+    no record of any kind.
+  - Two comments cite `lib/tutor/consent.ts`, which was deleted, and describe a
+    consent switch that no longer exists: `components/exam/MockRetakeResults.tsx:191`
+    and `lib/exam/mock.ts:319`. Comments only — nothing breaks.
+  - `SENTENCE_GAP_MS` and `SPEAKER_CHANGE_GAP_MS` in `lib/exam/playback.ts` say
+    320 ms was measured from the MP3s the server serves. Those MP3s are retired,
+    so the provenance is stale even if the number still happens to be right.
+  - All 676 listening recordings and 1,933 examiner prompts regenerate on first
+    play, because the cache version moved. Nothing breaks while they do: a miss
+    generates and stores one file, exactly as a brand-new paper does. The first
+    listener per paper waits on the provider; everyone after reads R2.
   - CI is Node 22, local is Node 24. `NextResponse` is undefined on 22 in
     `tests/cutover-write-barrier.test.mjs`.
 

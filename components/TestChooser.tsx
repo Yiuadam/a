@@ -125,7 +125,7 @@ function PaperFilter({
             onChange(option.id);
             drag.preview(null);
           }}
-          className={`paper-filter-option segmented-option relative z-10 flex min-w-0 items-baseline justify-center gap-1 rounded-full px-1 text-[11px] font-semibold transition-colors sm:px-2 sm:text-xs ${
+          className={`paper-filter-option segmented-option relative z-10 flex min-w-0 items-center justify-center gap-1 rounded-full px-1 text-[11px] font-semibold transition-colors sm:px-2 sm:text-xs ${
             visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
           }`}
         >

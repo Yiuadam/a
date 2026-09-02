@@ -2,7 +2,7 @@
   What a learner is allowed to narrow a list of papers down by.
 
   The chooser screens are libraries — twenty reading papers, twenty-one
-  listening, thirty writing tasks — and a library that can only be scrolled is
+  listening, forty writing tasks — and a library that can only be scrolled is
   a library you read from the top every time. The bar these words drive sits
   above the cards and takes the list down to the papers of one kind.
 
@@ -23,7 +23,7 @@
   discussion, problem-solution, two-part question, advantages and
   disadvantages. Offering all of that is nine stops, and nine stops do not fit
   a 390px phone, which is the screen this bar exists for. It would also slice
-  fourteen essays into buckets of two.
+  fifteen essays into buckets of two and three.
 
   So the bar names the four things a task actually asks you to produce: read a
   chart, read a table, write a letter, write an essay. Those are the four
@@ -32,10 +32,10 @@
   to do with holding an argument. The essay types stay in the titles, where
   they already read as English rather than as filter values.
 
-  The honest cost of that grouping: Essay is fourteen of the thirty, so for
-  half the bank this bar narrows less than it does for the other half. Fixing
-  that needs a second level, and a second level needs stops like "advantages
-  and disadvantages" to fit next to four others on a phone, which they do not.
+  The honest cost of that grouping: Essay is fifteen of the forty, so for that
+  part of the bank this bar narrows less than it does for the rest. Fixing that
+  needs a second level, and a second level needs stops like "advantages and
+  disadvantages" to fit next to four others on a phone, which they do not.
 
   ---------------------------------------------------------------------------
   Why the vocabularies are closed sets, declared here
