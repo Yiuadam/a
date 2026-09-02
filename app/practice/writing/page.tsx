@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import ExplainText from "@/components/ExplainText";
@@ -13,6 +13,13 @@ import writingData from "@/data/writing-tasks.json";
 import { postJSON } from "@/lib/api";
 import { addResult } from "@/lib/store";
 import type { WritingGrade, WritingTasksData } from "@/lib/types";
+import {
+  AUTOSAVE_DELAY_MS,
+  discardWritingDraft,
+  discardWritingDrafts,
+  loadWritingDraft,
+  saveWritingDraft,
+} from "@/lib/writing-draft";
 import Chart from "@/components/Chart";
 import SkillGate from "@/components/SkillGate";
 import { tierShows, useTier } from "@/lib/billing/useTier";
@@ -76,7 +83,19 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
     account.phase !== "ready" || !account.accountsEnabled || tierShows(account, "grade-writing");
   const wide = useIsWide();
 
-  const [essay, setEssay] = useState("");
+  /*
+    Whatever was in the box when this task was last open, read straight into the
+    first render rather than pushed in by an effect afterwards.
+
+    WritingPageContent draws nothing until it has mounted, so this initialiser
+    only ever runs in the browser and there is no server render for it to
+    disagree with. Restoring in an effect instead would paint one frame of an
+    empty textarea over an essay somebody is about to be very relieved to see,
+    which is a poor way to tell them their work survived. It is keyed by task —
+    the component is keyed on the id too — so Task 1 and Task 2 restore their
+    own drafts and never each other's.
+  */
+  const [essay, setEssay] = useState(() => loadWritingDraft(initialTaskId));
   const [started, setStarted] = useState(false);
   const [grading, setGrading] = useState(false);
   const [grade, setGrade] = useState<WritingGrade | null>(null);
@@ -84,6 +103,53 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
 
   const task = useMemo(() => tasks.find((t) => t.id === initialTaskId)!, [initialTaskId]);
   const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0;
+
+  /*
+    The autosave, half a second behind the typing.
+
+    Debounced rather than written on every keystroke because a storage write per
+    letter is work nobody asked for, and the pause between words is soon enough:
+    all a lock or a reclaimed tab can take from here is the tail of whatever was
+    being typed at the moment it happened. lib/writing-draft.ts explains what the
+    draft is for and the terms it is kept on.
+
+    `grade` is in the dependencies to cancel a write, not to cause one. Submit
+    clears the draft as soon as the marking comes back, and without this the
+    keystroke from a second earlier would still have a timer pending and would
+    write the essay straight back over the top of that.
+  */
+  useEffect(() => {
+    if (grade) return;
+    const timer = setTimeout(() => saveWritingDraft(task.id, essay), AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [task.id, essay, grade]);
+
+  /*
+    Leaving the writing paper throws the drafts away.
+
+    The owner's rule, and the reason the autosave is allowed to be as quiet as it
+    is: it guards against an accident, so anything deliberate should end it. Both
+    tasks go, not just the one on screen — somebody who has gone back to the
+    homepage has finished with the paper, not with one half of it.
+
+    What must not reach here is every other way this component can disappear,
+    and the difference is the address bar. A reload never runs a cleanup at all:
+    the browser discards the whole JavaScript context without asking React to
+    unmount anything, which is exactly why a refresh, a locked phone and a
+    reclaimed background tab all restore instead — the case this feature exists
+    for. A task switch and the chooser do unmount it, but they stay on
+    /practice/writing, so the check leaves their drafts alone. And StrictMode in
+    development mounts, unmounts and remounts everything to prove effects can
+    survive it; the pathname is unchanged through that too, which is the only
+    thing stopping a dev build from deleting the draft it has just restored.
+  */
+  useEffect(() => {
+    return () => {
+      if (typeof window === "undefined") return;
+      if (window.location.pathname.startsWith("/practice/writing")) return;
+      discardWritingDrafts();
+    };
+  }, []);
 
   async function submit() {
     setGrading(true);
@@ -98,6 +164,15 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
         minWords: task.minWords,
       });
       setGrade(data);
+      /*
+        Marked and recorded, so the guard has nothing left to guard. The essay
+        is in the history entry below and on screen in the feedback; a draft
+        kept past this point would only be waiting to reappear under a task the
+        learner has already finished. A failed submit deliberately does not
+        reach here — that is the moment the draft is worth most, because the
+        learner is still holding forty minutes of work and may well reload.
+      */
+      discardWritingDraft(task.id);
       addResult({
         module: "writing",
         testId: task.id,
@@ -186,23 +261,26 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
         </span>
       </div>
       {/*
-        `touch-pan-y` is the one concession the swipe track has to make to the
-        fact that this pane holds an editor rather than prose.
+        The swipe track reaches into the editor, which it did not used to.
 
-        The panes are moved by the browser's own horizontal scrolling, not by a
-        gesture handler, and a browser will happily start that scroll from a
-        touch that began inside a textarea — a thumb resting on the essay and
-        drifting a few degrees off vertical is enough to snap the pane away
-        mid-sentence. Restricting this element to vertical panning takes the
-        horizontal gesture off the essay and leaves everything the editor needs
-        untouched: a tap still places the caret, a long press still selects and
-        raises the magnifier, and the essay still scrolls under the finger.
-        Swiping from anywhere else in the pane still works, and the switcher
-        above never depended on the gesture at all.
+        This element was restricted to vertical panning, so that a thumb resting
+        on the essay and drifting a few degrees off vertical could not snap the
+        pane away mid-sentence. The owner asked for the opposite, and the reason
+        is the one the panes were introduced for: a candidate re-reads the task
+        constantly while composing, and having to find a gap in the page before
+        the swipe will take you there is worse than the occasional stray pane.
+
+        So the restriction is gone and the panes move from a touch that starts
+        inside the textarea like any other. The cost is worth naming rather than
+        discovering: a horizontal drag on the essay is now a pane change rather
+        than nothing, and on iOS that is close to the gesture that drags a
+        selection handle. Everything else the editor needs is untouched — a tap
+        places the caret, a long press still selects and raises the magnifier,
+        and a long essay still scrolls vertically under the finger.
       */}
       <textarea
         id="writing-response"
-        className="input min-h-64 flex-1 touch-pan-y resize-none font-sans leading-7"
+        className="input min-h-64 flex-1 resize-none font-sans leading-7"
         placeholder="Start typing…"
         value={essay}
         onFocus={() => setStarted(true)}

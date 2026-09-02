@@ -224,6 +224,25 @@ export function clearMockExamSession(): void {
 }
 
 /*
+  The practice essay somebody is in the middle of, held on the same terms and
+  for much the same reason as the sitting above.
+
+  Not in PROGRESS_KEYS either, and for the same distinction: it is a crash
+  guard rather than a record of anything, so there is nothing about it worth
+  uploading — lib/writing-draft.ts is where what it is for, and when it is
+  thrown away, is written down. But like the sitting it is a piece of the
+  learner's own work sitting in this browser, so everything below that empties
+  their work has to take it too.
+
+  The literal lives here rather than beside the code that writes it for the
+  narrower of the two reasons that put MOCK_EXAM_KEY here: clearProgressStore
+  below has to be able to drop it, and lib/writing-draft.ts already imports
+  this module to read and write it, so declaring it there and importing it back
+  would leave these two files importing each other for the sake of one string.
+*/
+export const WRITING_DRAFT_KEY = "bandup.writing-draft.v1";
+
+/*
   Which account, if any, the progress above belongs to. An ordinary
   learner-data key, deliberately: it should live, migrate and clear exactly
   like the progress it describes, on the same "gone when the tab closes"
@@ -276,9 +295,16 @@ export function setProgressOwner(userId: string | null): void {
  * report, if they sign back in as you never having noticed. It is not in
  * PROGRESS_KEYS because it is not synced (see MOCK_EXAM_KEY above), so it has
  * to be named separately here.
+ *
+ * Any half-written practice essay goes with it, and needs no more argument
+ * than the sitting does: it is unfinished work in somebody's own words, and
+ * signing out is where it stops being restorable by whoever sits down next.
+ * That the draft is not scoped to an account is precisely why this line has to
+ * exist — nothing else about it would notice that the learner had changed.
  */
 export function clearProgressStore(): void {
   for (const key of PROGRESS_KEYS) removeLearnerItem(key);
   removeLearnerItem(OWNER_KEY);
+  removeLearnerItem(WRITING_DRAFT_KEY);
   clearMockExamSession();
 }
