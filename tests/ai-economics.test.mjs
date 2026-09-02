@@ -199,7 +199,30 @@ const INPUT_CAPS = [
   {
     route: "chat",
     file: "app/api/chat/route.ts",
-    constants: { MAX_HISTORY: 10, MAX_CHARS: 2000, MAX_HISTORY_CHARS: 1000 },
+    constants: { MAX_CHARS: 2000 },
+  },
+  {
+    /*
+      The rest of the tutor's caps moved out of the route, because a route
+      module cannot be imported here and a cap that can only be grepped is a
+      cap nothing exercises. They are still the tutor's caps and still what the
+      arithmetic below assumes.
+
+      MAX_ATTACHED_CHARS is one budget for everything a request replays or
+      attaches, so the learner's speaking extract comes out of the
+      conversation's share rather than being added to it. Without that the
+      tutor's ceiling would have grown by three thousand characters the day
+      transcripts arrived, and Pro — the thinnest margin here — would have paid
+      for it.
+    */
+    route: "chat",
+    file: "lib/tutor/attachments.ts",
+    constants: { MAX_HISTORY: 10, MAX_HISTORY_CHARS: 1000, MAX_ATTACHED_CHARS: 9000 },
+  },
+  {
+    route: "chat",
+    file: "lib/tutor/speaking-context.ts",
+    constants: { MAX_SPEAKING_CHARS: 3000 },
   },
 ];
 
@@ -231,10 +254,43 @@ test("the largest input a route accepts fits inside its budget", () => {
     chars(20000) + 1400 <= ROUTE_BUDGETS["grade/speaking"].maxInputTokens,
     "grade/speaking input budget is smaller than what the route accepts",
   );
-  // chat: ten replayed turns, the new question, and the system prompt.
+  /*
+    chat: the new question, everything attached to it, and the system prompt.
+
+    The attached half is one number rather than two because the route makes it
+    one — the speaking extract and the replayed conversation share
+    MAX_ATTACHED_CHARS, so the worst case is that budget filled by either, both
+    or neither. 1500 tokens covers the system prompt with the transcript rules
+    appended, which is the largest it is ever sent at, plus the wrapper text
+    around the sections of the user message.
+  */
   assert.ok(
-    chars(10 * 1000 + 2000) + 900 <= ROUTE_BUDGETS.chat.maxInputTokens,
+    chars(9000 + 2000) + 1500 <= ROUTE_BUDGETS.chat.maxInputTokens,
     "chat input budget is smaller than what the route accepts",
+  );
+});
+
+/*
+  The system prompt is a file this repository edits often and measures never,
+  and it is half of the fixed cost of every tutor question. The transcript
+  rules added roughly fifteen hundred characters to it; another section that
+  size, added without looking, would quietly push the route past the budget
+  the margins above are computed from.
+*/
+test("the tutor's system prompt still fits the allowance the budget leaves it", () => {
+  const source = readFileSync(join(process.cwd(), "app", "api", "chat", "route.ts"), "utf8");
+  const section = (name) => {
+    const start = source.indexOf(`const ${name} = \``);
+    assert.ok(start >= 0, `app/api/chat/route.ts no longer defines ${name}`);
+    const from = start + `const ${name} = \``.length;
+    return source.slice(from, source.indexOf("`;", from));
+  };
+  const prompt = `${section("SYSTEM")}\n\n${section("SPEAKING_SYSTEM")}`;
+  const budget = ROUTE_BUDGETS.chat.maxInputTokens - models.tokensForChars(9000 + 2000);
+  assert.ok(
+    models.tokensForChars(prompt.length) <= budget - 100,
+    `the tutor's system prompt is ${models.tokensForChars(prompt.length)} tokens and the ` +
+      `route budget leaves ${budget} for it and the wrapper text around the user message`,
   );
 });
 

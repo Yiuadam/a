@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import Link from "next/link";
 import UpgradePanel from "@/components/billing/UpgradePanel";
@@ -10,6 +10,12 @@ import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import { tierShows, useTier } from "@/lib/billing/useTier";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import {
+  getServerSnapshot as serverProfile,
+  getSnapshot as profileSnapshot,
+  subscribe as subscribeProfile,
+} from "@/lib/store";
+import { selectSpeakingContext } from "@/lib/tutor/speaking-context";
 
 /*
   The tutor chat, as the learner meets it.
@@ -34,6 +40,24 @@ import { apiUrl } from "@/lib/api";
   3. It can imply the tutor is an examiner. The copy here calls it a study
      assistant, and the system prompt in app/api/chat/route.ts holds the same
      line — a learner who asks is told no.
+
+  A fourth was added with the learner's speaking practice, and it is the same
+  kind of dishonesty as the other three rather than a new kind: a chat can be
+  quiet about what it is sending. The tutor now reads the learner's own
+  speaking results, which is what turns "work on fluency" into "in both your
+  Part 2 answers you restarted after a filler" — and it does so automatically,
+  by the owner's decision, with no switch and no per-question choice.
+
+  That decision is exactly why the line above the box is not optional and is
+  not phrased as a feature. It is the only place inside the app where somebody
+  learns that a transcript of them speaking goes upstream with their question,
+  and it is drawn whenever that is true and never when it is not. The full
+  version belongs to app/privacy/page.tsx; this is the sentence that stops the
+  privacy page being the first a learner hears of it.
+
+  See lib/tutor/speaking-context.ts for what is actually sent, which is bounded
+  — the tutor is metered, and an unbounded attachment would be a way to spend
+  several questions' worth of model on one.
 
   Word lookup works inside the replies without anything being wired up here:
   <main> in app/layout.tsx carries data-lookupable, and components/Lookup.tsx
@@ -95,6 +119,22 @@ const OPENERS = [
   "Is 'I am agree with this' correct?",
 ];
 
+/*
+  The openers a learner with saved speaking practice gets instead.
+
+  Different questions, not the same ones dressed up. Everything above can be
+  asked of any tutor anywhere; everything here can only be answered by one that
+  has the learner's own answers in front of it. Offering the general four to
+  somebody whose interviews the tutor has already read would be the app failing
+  to notice what it is holding.
+*/
+const SPEAKING_OPENERS = [
+  "What mistake do I keep repeating when I speak?",
+  "Pick one of my answers and show me a better version.",
+  "Which part of my speaking is weakest, and why?",
+  "What should I practise before my next interview?",
+];
+
 export default function TutorChat() {
   const [ready, setReady] = useState<Ready>("checking");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -112,6 +152,28 @@ export default function TutorChat() {
 
   const nextId = useRef(1);
   const bottom = useRef<HTMLDivElement | null>(null);
+
+  /*
+    The learner's own saved speaking practice, as the tutor will see it.
+
+    From an external store rather than an effect, which is the shape every
+    other reader of learner data in this app uses: it keeps the server and
+    client renders consistent without a loading state, and it means a speaking
+    test finished in another tab — or arriving from the account sync — shows up
+    here without a reload.
+
+    Null means there is nothing to send, which is the ordinary case for most of
+    the people who will ever open this page. Every piece of interface below
+    treats that as "say nothing" rather than "explain what is missing", and the
+    request simply omits the field: an empty shape is something the model would
+    have to interpret, and there is nothing to interpret.
+  */
+  const profile = useSyncExternalStore(subscribeProfile, profileSnapshot, serverProfile);
+  const context = useMemo(
+    () => selectSpeakingContext(profile.results ?? []),
+    [profile.results],
+  );
+  const attaching = context !== null;
 
   /*
     Is there anybody there? Asked once, before the learner types.
@@ -196,7 +258,18 @@ export default function TutorChat() {
         const res = await authedFetch(apiUrl("/api/chat"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, history }),
+          /*
+            The extract is sent with every question rather than once at the
+            start of the conversation, because there is no conversation on the
+            server to send it to — the route is stateless by design and the
+            history is replayed for the same reason. The size of what rides
+            along is the route's problem and is bounded there.
+          */
+          body: JSON.stringify({
+            question: text,
+            history,
+            ...(attaching ? { speaking: context } : {}),
+          }),
         });
         const body = (await res.json()) as {
           reply?: string;
@@ -235,7 +308,7 @@ export default function TutorChat() {
         setSending(false);
       }
     },
-    [messages, sending],
+    [messages, sending, attaching, context],
   );
 
   function submit(e: React.FormEvent) {
@@ -330,7 +403,7 @@ export default function TutorChat() {
             aria-live="polite"
           >
             {messages.length === 0 ? (
-              <Empty onPick={(q) => void ask(q)} disabled={sending} />
+              <Empty onPick={(q) => void ask(q)} disabled={sending} attaching={attaching} />
             ) : (
               <ol className="space-y-5">
                 {messages.map((m) => (
@@ -348,6 +421,30 @@ export default function TutorChat() {
           {problem && (
             <p className="mx-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-[14px] leading-6 text-rose-800 sm:mx-6">
               {problem}
+            </p>
+          )}
+
+          {/*
+            The one line that stops this being something a learner finds out
+            from a privacy policy.
+
+            There is no switch: by the owner's decision the tutor reads the
+            learner's speaking results whenever there are any, on every
+            question. That decision is theirs to make and it is a defensible
+            one — it is the same text, to the same model, that already marks
+            their interview — but "we do it automatically" and "we do not
+            mention it" are two separate decisions, and only the first was
+            made. So this sits directly above the box, in plain words, whenever
+            it is true, and is drawn not at all when it is not.
+
+            Above the composer rather than in the empty state, because the
+            empty state is gone the moment somebody asks a question and this
+            fact is not.
+          */}
+          {attaching && (
+            <p className="z-10 mx-2 mb-2 rounded-2xl border border-slate-200 bg-surface px-3.5 py-2 text-[12px] leading-5 text-slate-600 sm:mx-3 sm:px-4">
+              The tutor reads your saved speaking results, so its advice is about how you
+              actually speak.
             </p>
           )}
 
@@ -391,7 +488,9 @@ export default function TutorChat() {
           <p className="shrink-0 bg-surface px-4 pb-2 text-[11px] leading-4 text-slate-400 sm:px-6">
             {overLength
               ? `That's ${draft.length} characters — the tutor takes ${MAX_CHARS} at a time.`
-              : "Enter sends, Shift and Enter starts a new line. Nothing you ask is stored on our side."}{" "}
+              : attaching
+                ? "Your saved speaking answers go with each question. Nothing you ask is stored on our side."
+                : "Enter sends, Shift and Enter starts a new line. Nothing you ask is stored on our side."}{" "}
             <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-600">
               What BandUp stores
             </Link>
@@ -539,20 +638,46 @@ function Allowance({ status }: { status: AccountStatus | null }) {
   Which is why the two paragraphs from the old page header live here now. "What
   may I ask" and "what is this thing, exactly" are questions a first-time
   visitor has and a returning one does not, and answering them above the box on
-  every visit was answering them to the wrong person nine times out of ten. The
-  words are unchanged; only who reads them is.
+  every visit was answering them to the wrong person nine times out of ten.
+
+  It is also where the difference between the two versions of this tutor is
+  visible, and deliberately the only place: with the learner's speaking
+  practice attached, the four openers are four questions that cannot be
+  answered without it. Everywhere else the page looks the same either way.
 */
-function Empty({ onPick, disabled }: { onPick: (q: string) => void; disabled: boolean }) {
+function Empty({
+  onPick,
+  disabled,
+  attaching,
+}: {
+  onPick: (q: string) => void;
+  disabled: boolean;
+  attaching: boolean;
+}) {
   return (
     <div className="flex h-full min-h-[15rem] flex-col justify-center">
       <p className="text-[15px] font-medium text-slate-700">
-        Ask about a question, grammar rule, vocabulary choice, or study strategy.
+        {attaching
+          ? "Ask about your own speaking, or about a question, grammar rule, vocabulary choice or study strategy."
+          : "Ask about a question, grammar rule, vocabulary choice, or study strategy."}
       </p>
       <p className="mt-1 text-[12px] leading-5 text-slate-500">
         Study help, not an official IELTS examiner.
       </p>
+      {/*
+        Said once, to the person who has nothing to attach yet, and never said
+        again. It is a fact about a feature they have not reached rather than
+        an apology for missing data — the tutor answers everything it answered
+        before, and nothing on this screen suggests otherwise.
+      */}
+      {!attaching && (
+        <p className="mt-1 text-[12px] leading-5 text-slate-500">
+          Finish a marked speaking interview and the tutor reads it, so it can answer about your
+          own answers rather than about the exam in general.
+        </p>
+      )}
       <div className="mt-4 grid w-full gap-2">
-        {OPENERS.map((q) => (
+        {(attaching ? SPEAKING_OPENERS : OPENERS).map((q) => (
           <button
             key={q}
             type="button"

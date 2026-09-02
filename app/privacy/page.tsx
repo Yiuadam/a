@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, there are no cookies or trackers, and card details never reach our servers.",
 };
 
-const LAST_UPDATED = "2 September 2026";
+const LAST_UPDATED = "3 September 2026";
 
 /*
   The learner keys plus the owner's one local dashboard preference.
@@ -96,7 +96,7 @@ const SENT = [
   {
     feature: "Ask a tutor",
     route: "/api/chat",
-    what: "The question you typed, and the recent messages of that conversation so the answer follows on. The conversation lives in the tab you are reading it in and is gone when you close it.",
+    what: "The question you typed, the recent messages of that conversation so the answer follows on, and \u2014 when you have finished marked speaking interviews \u2014 extracts from them: the text of your own answers and the examiner\u2019s questions, never the audio. The conversation itself lives in the tab you are reading it in and is gone when you close it.",
   },
 ];
 
@@ -131,6 +131,7 @@ export default function PrivacyPage() {
             "No cookies, no analytics, no advertising and no third-party trackers.",
             "Your writing and speaking transcript are sent for marking when you ask. Signed out, they disappear with the tab; signed in, completed feedback can be stored in your private history so you can revisit it.",
             "BandUp keeps technical AI-cost records — the feature, model, token counts, calculated cost, request ID and time — but never the words sent or received, your name, email or account ID.",
+            "The tutor reads your saved speaking practice. Ask it anything and extracts from your own mock interviews go with the question, so its advice is about how you actually speak rather than about the exam in general. This is not something you switch on \u2014 and if you have never finished a marked speaking interview, nothing about your speaking is sent.",
             "BandUp never uploads audio from your microphone and never saves it as a file.",
             "On the web you can choose to have your speech transcribed on your own device, so the audio never leaves it at all. The recogniser built into your browser or phone is still the default.",
           ].map((line) => (
@@ -194,6 +195,20 @@ export default function PrivacyPage() {
           The marking request itself is not written to a server log. If you are signed in and
           save your completed practice, its feedback record can include the essay or speaking
           transcript so your history can be reopened later.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          One of those five sends more than what you have just typed. When you ask the tutor a
+          question, extracts from your own mock speaking interviews go with it, because
+          otherwise its advice can only be about IELTS in general. What travels is the text of
+          your own answers and the examiner&rsquo;s questions from two of your interviews &mdash;
+          chosen automatically as the weakest of your recent ones, because that is where there
+          is something useful to say &mdash; together with the date and band of your other
+          recent speaking results. It is bounded rather than complete: a long interview is
+          trimmed to fit, and the tutor is told when it is only seeing part of one. This happens
+          on every question you ask it and is not something you turn on. If you have never
+          finished a marked speaking interview there is nothing to send and nothing is sent, and
+          clearing your history removes the saved interviews, after which the tutor has nothing
+          of your speaking to read.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           To measure what the AI actually costs, BandUp keeps a separate technical receipt for

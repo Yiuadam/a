@@ -132,10 +132,17 @@ export const ROUTE_BUDGETS: Record<CostedRoute, RouteBudget> = {
     label: "Word lookups",
   },
   /*
-    One tutor question. The replayed history is what makes this bigger than a
-    lookup, so both halves of it are capped — see MAX_HISTORY and
-    MAX_HISTORY_CHARS in app/api/chat/route.ts. 10 turns x 1000 characters is
-    2500 tokens, plus a 900-token system prompt and a 2000-character question.
+    One tutor question, plus whatever the route was allowed to attach to it.
+
+    Two things ride along: the replayed conversation, and — when the learner
+    has switched it on — an extract from their own mock speaking interviews.
+    They share one allowance rather than having one each, which is what keeps
+    this number where it is: MAX_ATTACHED_CHARS in app/api/chat/route.ts is
+    9000 characters however it is filled, so 9000 + a 2000-character question
+    is 2750 tokens, and the system prompt with the transcript rules appended is
+    about 1400. The extract's own ceiling is MAX_SPEAKING_CHARS in
+    lib/tutor/speaking-context.ts, and it comes out of the 9000 rather than
+    being added to it.
   */
   chat: {
     model: "claude-haiku-4-5",

@@ -4,6 +4,7 @@ import { requireFeature } from "@/lib/billing/gate";
 import { checkAiUsage } from "@/lib/usage/guard";
 import { withCors } from "@/lib/http/cors";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
+import { buildAttachments, renderHistory } from "@/lib/tutor/attachments";
 
 /*
   The tutor chat.
@@ -26,6 +27,16 @@ import { logInternal, safeJsonError } from "@/lib/auth/errors";
      hundred should, which turns a per-request meter into no meter at all.
 
   3. The system prompt does not claim to be an examiner. See SYSTEM below.
+
+  A fourth thing arrived with the learner's speaking practice, and it belongs
+  in this list rather than further down. The tutor can now be shown extracts
+  from the learner's own mock interviews — see lib/tutor/speaking-context.ts —
+  and everything above still has to hold with them attached. So the extract
+  takes its share of one combined budget rather than being added on top of the
+  old one (MAX_ATTACHED_CHARS), the model is told plainly that what it is
+  seeing is partial (SPEAKING_SYSTEM), and the rule against claiming to know
+  the learner's own history is narrowed to exactly what is in front of it
+  rather than being softened.
 */
 
 // A chat turn is smaller than an essay, but replaying the transcript makes it
@@ -87,7 +98,7 @@ How to answer — short, and only what was asked:
 When you are not sure:
 - Say so. Exam procedure differs between test centres, between Academic and General Training, and between paper and computer sittings, and it changes over time. If the answer depends on which of those the learner is taking, ask instead of guessing.
 - Never invent a rule, a word count, a timing or an official policy. If you do not know, say you are not certain and tell them to confirm it on the official IELTS site.
-- Never claim to know the learner's own scores, history or study plan. You cannot see any of it.
+- Never claim to know the learner's own scores, history or study plan beyond what this message actually shows you. Nothing about them is shown unless it appears below: if it does not, say plainly that you cannot see their work rather than guessing at it or asking them to assume you can.
 
 Staying on the subject — this is a hard limit, not a preference:
 - You answer questions about the IELTS exam, about English, and about how to study for either. Nothing else.
@@ -109,42 +120,55 @@ const SCHEMA = {
 };
 
 /*
-  The wire shape of a turn. "learner" and "tutor" rather than "user" and
-  "assistant" because the transcript is rendered into a prompt and read by a
-  person debugging it, and because /api/grade/speaking already names its turns
-  after who is speaking rather than after the API that carries them.
+  Added to the prompt only when a speaking extract actually arrived, and absent
+  to the character when one did not.
+
+  That is not tidiness. The rule above — that the tutor cannot see the
+  learner's work unless it is in the message — is only true if the message
+  really is empty of it, and a permanent paragraph about "the transcript you
+  may have been given" would leave a model reasoning about a transcript that
+  is not there. Absent means absent, in the prompt as well as in the request.
+
+  Every line here exists to stop a specific way that seeing somebody's
+  transcript makes an assistant less honest rather than more useful: bands it
+  did not award, patterns it inferred from four answers out of eleven,
+  corrections aimed at punctuation no human ever spoke, and confident
+  statements about a sitting it was never shown.
+
+  The second rule is the one that arrived with the selection rather than with
+  the feature, and it would be easy to lose in a later edit that had not read
+  lib/tutor/speaking-context.ts. The interviews sent in full are the learner's
+  *weakest* recent ones, because that is where there is anything to say. A
+  model handed two bad interviews and no warning will describe them as how the
+  learner speaks, which is both wrong and demoralising — the same person's
+  better sittings are in the same message, as bands.
 */
-interface Turn {
-  role: "learner" | "tutor";
-  text: string;
-}
+const SPEAKING_SYSTEM = `The message below contains extracts from the learner's own recent BandUp mock speaking interviews. This changes how you answer; it changes nothing above.
+
+- Use their actual words. When you make a point about their speaking, quote the exact phrase and say which part it came from. "In Part 2 you said 'i was go to the beach'" is the entire value of having this in front of you; "work on your grammar" is not.
+- The interviews shown with answers are their weakest recent ones, chosen deliberately because that is where the marks are. They are not a fair sample of how they usually speak, so never describe them as the learner's general level, and never say their speaking "is" the band shown.
+- Prefer a pattern to a single slip. Something they did in both interviews is worth telling them about. Something they did once may be the recogniser rather than them.
+- The bands in the extract were produced by BandUp's speaking marker, not by you. Repeat them if asked, call them a practice estimate, and never re-mark the transcript or attach a band to anything that does not already carry one.
+- Some interviews appear as a date and a band only. You have none of those answers. You may talk about the direction the bands move in; you may not say anything about what was said in them.
+- You are seeing an extract, not everything they have done. Where it says only some answers are shown, keep to what you can see. Never "you never", never "you always", and never a count of how often they do something.
+- The answers are speech-recognition output: no punctuation, and words are sometimes misheard. Do not correct spelling, punctuation or capitalisation, and do not present a transcription artefact as the learner's mistake. Where you cannot tell which it is, say so.
+- Never invent an answer, a question, a date or a sitting that is not in the extract. If they ask about one you cannot see, say what you have been shown and stop.
+- A transcript is not a new subject. Everything above about staying on IELTS and English applies to it exactly as written.`;
 
 /*
-  The two caps that keep one request costing roughly one request.
+  The cap on the question itself. Two thousand characters is a long question,
+  or a paragraph of the learner's own writing sent for correction — the
+  realistic upper end of what somebody types into a chat box.
 
-  MAX_HISTORY counts turns of *prior* conversation replayed upstream, newest
-  kept. Twelve is about six exchanges, which is far more than "and what about
-  the other task?" needs to make sense, and far short of a transcript a client
-  could grow without limit. Dropping the oldest rather than refusing the
-  request is deliberate: a learner in a long conversation should not hit a
-  wall, they should simply find the tutor has stopped remembering the start.
-
-  MAX_CHARS applies per turn, including the new question. Two thousand
-  characters is a long question, or a paragraph of the learner's own writing
-  sent for correction — the realistic upper end of what someone types into a
-  chat box — and twelve of them bounds the whole prompt at something the
-  essay-grading route would not blink at.
+  Everything *else* the request carries is bounded in lib/tutor/attachments.ts,
+  which is where the caps that used to live here went. Not tidying: those caps
+  are the arithmetic tests/ai-economics.test.mjs computes plan margins from,
+  and nothing in this file can be imported by a test — it pulls in next/server
+  and the whole runtime — so a cap left here could only be checked by reading
+  the source and hoping. In a module it can be called with a hostile body and
+  measured, which is what a cap that keeps a metered route metered deserves.
 */
-const MAX_HISTORY = 10;
 const MAX_CHARS = 2000;
-/*
-  Replayed turns are held to half of that. The learner's new question deserves
-  the full 2000 characters; the ten turns behind it do not, and they are what
-  make this request cost more than a word lookup — ten times 2000 would be five
-  thousand tokens of history on every question. A tutor answer is 40-80 words,
-  so 1000 characters truncates almost nothing that was actually said.
-*/
-const MAX_HISTORY_CHARS = 1000;
 
 /**
  * Whether the tutor can answer at all, asked before the learner types anything.
@@ -188,7 +212,7 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const raw = body as { question?: unknown; history?: unknown };
+  const raw = body as { question?: unknown; history?: unknown; speaking?: unknown };
 
   const question = typeof raw?.question === "string" ? raw.question.trim() : "";
   if (!question) {
@@ -205,48 +229,35 @@ async function handlePOST(req: Request) {
   }
 
   /*
-    Everything below treats `history` as hostile. It is not the server's copy
-    of the conversation — there is no server copy, deliberately, because a
-    record of every learner's questions would be a database of the things
-    people are embarrassed not to know. It is whatever the client chose to
-    send, so it is filtered down to well-formed turns, truncated, and cut to
-    the most recent MAX_HISTORY.
+    Everything else in the body is hostile until proved otherwise, and none of
+    it is the server's copy of anything — there is no server copy, deliberately.
+    A record of every learner's questions would be a database of the things
+    people are embarrassed not to know, and a record of their interviews would
+    be a database of people's recorded English. Both are read from the request
+    and forgotten with it.
+
+    buildAttachments filters, truncates and shares one budget between the two.
+    A malformed extract comes back as no extract and the request carries on: a
+    bad attachment is not a reason to refuse somebody an answer to the question
+    they asked.
   */
-  const history: Turn[] = (Array.isArray(raw?.history) ? raw.history : [])
-    .filter(
-      (t): t is Turn =>
-        !!t &&
-        typeof t === "object" &&
-        typeof (t as Turn).text === "string" &&
-        (t as Turn).text.trim().length > 0 &&
-        ((t as Turn).role === "learner" || (t as Turn).role === "tutor"),
-    )
-    .slice(-MAX_HISTORY)
-    .map((t) => ({ role: t.role, text: t.text.slice(0, MAX_HISTORY_CHARS) }));
+  const { history, renderedSpeaking } = buildAttachments(raw);
 
   const unentitled = await requireFeature(req, "tutor-chat");
   if (unentitled) return unentitled;
   const denied = await checkAiUsage(req, "chat");
   if (denied) return denied;
 
-  /*
-    Why the conversation is rendered into a single user message rather than
-    sent as a list of role-tagged ones: callClaudeJSON takes one user turn, and
-    it is the only path to the model in this app. Going around it here would
-    mean a second client, a second copy of the refusal and max-tokens handling,
-    and a reply with no schema behind it — three things to keep in step, for
-    one feature. /api/grade/speaking already renders a speaker-tagged
-    transcript into its prompt for the same reason, and the model has no
-    trouble following who said what when it is labelled this plainly.
-  */
-  const rendered = history
-    .map((t) => `${t.role === "learner" ? "LEARNER" : "TUTOR"}: ${t.text}`)
-    .join("\n\n");
+  const rendered = renderHistory(history);
 
   try {
     const answer = await callClaudeJSON<{ reply: string; followUps: string[] }>({
-      system: SYSTEM,
+      system: renderedSpeaking ? `${SYSTEM}\n\n${SPEAKING_SYSTEM}` : SYSTEM,
       user: `${
+        renderedSpeaking
+          ? `The learner's own speaking practice, newest interview first:\n"""\n${renderedSpeaking}\n"""\n\n`
+          : ""
+      }${
         rendered
           ? `Earlier in this conversation, oldest first:\n"""\n${rendered}\n"""\n\n`
           : "This is the start of the conversation.\n\n"

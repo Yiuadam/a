@@ -19,6 +19,16 @@ import { join } from "node:path";
 
 const source = readFileSync(join(process.cwd(), "app", "api", "chat", "route.ts"), "utf8");
 const system = source.slice(source.indexOf("const SYSTEM = `"), source.indexOf("const SCHEMA"));
+/*
+  The second half of the prompt, sent only when a speaking extract actually
+  arrived. It lives below SCHEMA in the route precisely so the slice above
+  stays a slice of the base prompt and these two sets of rules cannot satisfy
+  each other's assertions.
+*/
+const speaking = source.slice(
+  source.indexOf("const SPEAKING_SYSTEM = `"),
+  source.indexOf("interface Turn"),
+);
 
 test("the tutor is told to be short, with a number rather than an adjective", () => {
   assert.match(system, /40 to 80 words/, "the length target must be stated as a number");
@@ -79,4 +89,103 @@ test("the learner cannot instruct the tutor out of its rules", () => {
 test("the disclaimers that are not negotiable are still there", () => {
   assert.match(system, /NOT an IELTS examiner/);
   assert.match(system, /never award or confirm an official band score/i);
+});
+
+/*
+  ---------------------------------------------------------------------------
+  Seeing the learner's own speaking practice
+
+  The tutor is now shown extracts from the learner's own mock interviews,
+  automatically, by the owner's decision, whenever there are any — which is
+  what lets it say "in both your Part 2 answers you restarted after a filler"
+  instead of "work on your fluency". Every rule below is a way that privilege
+  turns into a confident falsehood, and none of them is visible in any other
+  test in this repository: there is no API key here, so nothing can observe the
+  tutor actually obeying them.
+*/
+
+test("the tutor's blindness is narrowed to the truth rather than deleted", () => {
+  /*
+    The base prompt used to say flatly that it could not see the learner's
+    scores or history. With an extract attached that sentence is false, and the
+    tempting fix — dropping it — would leave a tutor with no instruction at all
+    about the case where nothing was attached, which is most requests.
+  */
+  assert.match(
+    system,
+    /Never claim to know the learner's own scores, history or study plan beyond what this message actually shows you/,
+    "the limit must be tied to what is in the message, not removed",
+  );
+  assert.match(
+    system,
+    /say plainly that you cannot see their work rather than guessing/,
+    "with nothing attached the tutor must still say it cannot see the learner's work",
+  );
+});
+
+test("the extract is not presented to the model as the learner's usual level", () => {
+  /*
+    The interviews sent in full are the learner's WEAKEST recent ones — see
+    lib/tutor/speaking-context.ts. A model handed two bad interviews and no
+    warning will describe them as how the learner speaks, which is wrong and
+    demoralising, and the same person's better sittings are in the same message
+    as bands.
+  */
+  assert.match(speaking, /weakest recent ones/);
+  assert.match(speaking, /not a fair sample of how they usually speak/);
+  assert.match(
+    speaking,
+    /never say their speaking "is" the band shown/,
+    "the sentence a learner would take away from a weak extract must be forbidden",
+  );
+});
+
+test("the interviews sent as a band only cannot be spoken about as if they had answers", () => {
+  assert.match(speaking, /date and a band only/);
+  assert.match(speaking, /you may not say anything about what was said in them/);
+});
+
+test("the transcript rules exist and are only sent with a transcript", () => {
+  assert.ok(speaking.length > 0, "app/api/chat/route.ts no longer defines SPEAKING_SYSTEM");
+  assert.match(
+    source,
+    /system: renderedSpeaking \? `\$\{SYSTEM\}\\n\\n\$\{SPEAKING_SYSTEM\}` : SYSTEM/,
+    "the transcript rules must be absent when no transcript was attached, or the base " +
+      "prompt is reasoning about an extract that is not there",
+  );
+});
+
+test("the tutor does not re-mark what the examiner model already marked", () => {
+  assert.match(speaking, /never re-mark the transcript/i);
+  assert.match(speaking, /practice estimate/);
+});
+
+test("a partial extract is never described as the whole of somebody's speaking", () => {
+  /*
+    The single worst thing this feature could do: see four answers out of
+    eleven and tell the learner what they never do.
+  */
+  assert.match(speaking, /extract, not everything/i);
+  assert.match(speaking, /Never "you never", never "you always"/);
+});
+
+test("transcription artefacts are not returned to the learner as their own mistakes", () => {
+  assert.match(speaking, /speech-recognition output/i);
+  assert.match(
+    speaking,
+    /Do not correct spelling, punctuation or capitalisation/,
+    "the transcript has no punctuation, so correcting it corrects the recogniser",
+  );
+});
+
+test("the tutor cannot invent a sitting it was not shown", () => {
+  assert.match(speaking, /Never invent an answer, a question, a date or a sitting/);
+});
+
+test("a transcript does not become a way round the scope rules", () => {
+  assert.match(
+    speaking,
+    /A transcript is not a new subject/,
+    "everything the base prompt refuses must still be refused when it arrives inside an extract",
+  );
 });
