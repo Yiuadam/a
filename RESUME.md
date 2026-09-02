@@ -1,80 +1,145 @@
-# Where this session got to
+# Resume notes
 
-Written because the usage window was about to reset. Everything below is either
-committed and pushed, or sitting uncommitted in the working tree with an agent
-that was mid-write on it.
+Written for whoever picks this up after a usage window closes. Read it top to
+bottom before touching anything — the first section is the part people get wrong.
 
-## How to resume
+## Read this first
 
-Background agents do not survive a session. Nothing below is running any more —
-re-spawn what you want from the notes here. Committed work is safe on the branch.
+**Background agents do not survive a session.** Nothing that was running is
+running now. There is no queue that drains on its own and no scheduler that
+restarts them. "Resuming" means re-spawning the work listed under
+[What was in flight](#what-was-in-flight), from the descriptions there.
 
-    git log --oneline -14        what landed
-    git status --short           what an agent left half-written
+**Local branch is `claude/avatar-glass-clear-extension-ingx18`. It pushes to
+`claude/writing-swipe-and-round-cards`, which is PR 180.** The names differ and
+that is not a mistake — the local branch was cut later. Always push with the
+explicit refspec below or the work lands on a branch the preview does not build:
 
-## Pushed and verified
+    git -c credential.helper=osxkeychain push \
+      origin HEAD:refs/heads/claude/writing-swipe-and-round-cards
 
-Branch `claude/writing-swipe-and-round-cards`, preview at
-https://pr-180-bandup.ad1m.workers.dev
+`git push` on its own fails in this environment — the credential helper is not
+picked up unless it is named on the command line. That is the only reason the
+`-c` is there.
 
-  da3a244  one-skill retake and the standing band on history
-  fe1ea6d  per-question results breakdown with derived suggestions
-  492f017  a voice per speaker, and numbers spoken properly
-  edf724c  identity row actually deleted; privacy page corrected
-  77b8b0a  ten reading papers and ten listening papers
-  fb895cb  eight answer-key corrections
-  74bf1eb  difficulty and task-type filter bars
-  339f421  speaking bank doubled
+**Preview:** https://pr-180-bandup.ad1m.workers.dev — rebuilds on each push.
+**Never deploy to production.** The owner reviews the preview and decides.
+See `CLAUDE.md`; this has not changed.
 
-## Uncommitted, and whose
+## Where things stand
 
-Six test failures in the tree, all in files an agent held when the window closed.
-None of them come from the commits above — that was checked before pushing.
+    git log --oneline -14      what has landed
+    git status --short         what an agent left half-written
 
-  lib/listening-audio.ts, app/api/listening-audio/route.ts   British-accent agent
-  lib/examiner-audio.ts, app/api/examiner-audio/route.ts     memory fix, separate session
-  lib/tutor/, tests/tutor-*.test.mjs                         tutor-with-transcripts agent
-  components/speaking/SpeakingSession.tsx                    examiner nudge agent
-  components/account/SignedOut.tsx, APPSTORE.md              App Review fixes agent
-  data/reading-2*.json, data/listening-2*.json               new-paper defect fixes
-  app/globals.css, AccountIdentityForm.tsx                   Android web audit
+Landed and pushed, newest first:
 
-Resume by re-reading each agent's report, or re-running the work from the briefs
-recorded in the transcript.
+  - `249b6e7` twenty defects in the ten new papers — two heading tasks whose key
+    was the printed list read straight down, one percentage key the marker turned
+    into the wrong number, six papers asking questions out of passage order
+  - `f3fef29` this file
+  - `b4586e0` Android parity — `color-scheme` was never declared for Warm, the
+    default theme, so a phone in dark mode got a cream page wearing the browser's
+    dark furniture; plus `appearance`, the date glyph, autofill, and two
+    cross-platform scroll bugs
+  - `0cb94bd` Google sign-in taken out of the iOS app — it opened Safari and the
+    session never came back, so it had never worked; also settles Guideline 4.8
+  - `da3a244` one-skill retake
+  - `fe1ea6d` per-question review on the results page
+  - `492f017` a distinct voice per speaker, and numbers spoken as numbers
+  - `edf724c` the identity row is actually deleted on account closure — until
+    this, a deleted user could never sign up again with the same Google or Apple
+    account
+
+The iOS bundle in `ios/App/App/public/` was rebuilt and synced at `249b6e7`.
+Verified in the bundle: `IS_MOBILE_BUILD` is inlined `true`, so the Google
+provider is filtered out. The component's code is still present in the chunk —
+it is shared with the web build and not tree-shaken — but it never renders.
+To redo after any change:
+
+    NEXT_PUBLIC_API_BASE=https://bandup.life npm run build:mobile
+    npx cap sync ios
+
+Then open `ios/App/App.xcworkspace` and run to the device. Builds last seven
+days — the Apple Developer enrolment is not done, so there is no TestFlight.
+
+## What was in flight
+
+Re-spawn these. Each is written so it can be handed over without this
+conversation.
+
+**The examiner nudge.** After a candidate gives a short answer the examiner sits
+silent for up to 55 seconds before moving on, which in a real Part 1 would never
+happen. The design was settled: a prompt after a measured pause, once, then the
+next question. This is the highest-value item on the list — it is the difference
+between a convincing examiner and an awkward one.
+
+**British voices everywhere, and Part 4's rate.** Watch the trap: on Workers AI,
+`athena` is British in aura-1 and **American** in aura-2-en. The only British
+aura-1 voices are `athena` and `helios`; `angus` is Irish. Real Part 4 runs
+133.5 wpm inclusive of pauses, ~169 articulation, 21% silence.
+
+**The tutor reading speaking results.** It picks the lowest-scoring sitting on
+its own and reads the results rather than being handed a transcript. Files were
+mid-write when the window closed: `lib/tutor/`, `components/TutorChat.tsx`,
+`tests/tutor-speaking-context.test.mjs`. A privacy paragraph still needs to say
+that the tutor reads transcripts, and `app/privacy/page.tsx` still claims you
+can sign in with Google — no longer true inside the app.
+
+**UI sweep** across three widths and three themes, for layout breaks and
+centring.
 
 ## Decisions waiting on the owner
 
-  - Four-speaker listening parts cannot be cast entirely British on Aura-1, which
-    has only athena and helios. Either accept a mixed-accent cast, or move to
-    aura-2-en and regenerate every cached recording (598 of 676 currently keep
-    their keys). Note athena is British in aura-1 and AMERICAN in aura-2-en.
-  - Part 4 is delivered at 165 wpm against a measured real-IELTS 133.5. Slowing the
-    voice or raising the silence share are both open; real IELTS Part 4 is 21%
-    silence.
-  - The marker's normalise() strips a "." between two digits, so 3.8 and 38 are the
-    same string to it. Fixing that touches lib/band.ts and its mirror in
-    scripts/validate-content.mjs and could shift existing keys.
-  - Accounts already deleted still hold a stale app_user_identities row. The fix
-    stops new ones accruing; clearing the existing ones is a one-off DELETE against
-    production D1 that has not been written or run.
-  - Whether the tutor reading speaking transcripts is automatic or opt-in, and
-    whether a learner can decline. The privacy paragraph for it is still to be
-    placed.
+  - **The longest option is correct 79% of the time** in reading-21..30 and 77%
+    in reading-1..20. The new papers inherited the cue rather than introducing
+    it, so fixing only the ten leaves "always pick the longest" working. It is a
+    102-question sweep across all thirty, or nothing.
+  - **Ten of ten new listening papers, and eleven of nineteen old ones,** let the
+    second question block start before the first one ends. Same argument: a
+    bank-wide pass or none.
+  - **`normalise()` strips a dot between digits,** which is what makes `930` mark
+    as `9.30`. Fixing it for decimals costs the time tolerance unless
+    `CompletionQuestion` gains an `accept` field first. Three parts, its own
+    change: protect the dot, add `accept`, restore the two time keys.
+  - **The date picker.** The field is this product's design on every platform
+    now. The sheet that opens when it is tapped is an OS dialog and no stylesheet
+    reaches it. Replacing it means building a picker and losing the native one's
+    accessibility and localisation.
+  - **Ten backdrop-filter surfaces cover ~90% of the dashboard viewport** at a
+    15px touch radius. That is the thing most likely to make a mid-range Android
+    stutter. The radius is already an owner-chosen value, so moving it is the
+    owner's call.
 
-## Was running when the window closed — re-spawn these
+## Known-broken, so nobody re-diagnoses it
 
-  - examiner nudge (design settled, spec in the transcript; fixes up to 55 s of
-    dead air after a short answer — the highest-value item on this list)
-  - British voices across every surface, and Part 4's speaking rate
-  - fifteen defect fixes in the new papers, including reading-24's unscrambled
-    matching-headings bank, which is scoreable without reading the passage
-  - the tutor reading speaking results, lowest-scoring sitting first
-  - UI defect sweep across three widths and three themes
+  - `.input`'s focus ring is dead on **every** platform: `.input` sets a plain
+    `box-shadow`, which beats the layered `focus:ring-4` utility, while
+    `focus:outline-none` still removes the browser's own. A focused field shows
+    nothing but a caret. The fix needs weight above `html[data-theme] .input` and
+    below `[data-exam] .input:focus`.
+  - `--header-h` is 60px; the header actually draws 64.75px. The exam shell
+    subtracts the variable, so it is ~4.75px out on every platform. Entangled
+    with the iOS native chrome, which is why it was left.
+  - `components/speaking/SpeakingSession.tsx` restarts recognition from `onend`
+    synchronously and, on failure, just stops — the mic dies mid-answer with no
+    message. On Android Chrome `continuous` is not honoured, so that boundary is
+    hit every few seconds rather than every minute.
+  - Tests: any failure in `tests/tutor-*`, `tests/server-listening-audio-*` or
+    `tests/listening-*` is in-flight agent work, not a regression. Confirm by
+    stashing the dirty files and re-running.
+  - CI is Node 22, local is Node 24. `NextResponse` is undefined on 22 in
+    `tests/cutover-write-barrier.test.mjs`.
 
-## Still not done
+## Before any push
 
-  - Adaptive examiner previews 1, 3 and 4 (the plan is in the session transcript;
-    preview 2, the nudge, was being built when the window closed)
-  - Transcript grammar analysis on the speaking result
-  - The mock exam still uses browser voices rather than Aura
-  - Three-surface verification: browser drive, simulator drive, live preview
+    npx eslint .
+    npm run build
+    npm test
+    node scripts/validate-content.mjs
+    node scripts/simulate-placement.mjs
+    npm run build:mobile
+    npm run cf:build
+    node scripts/check-delivery.mjs
+
+And exercise the change in a real browser. A preview the owner has to debug is
+worse than no preview.
