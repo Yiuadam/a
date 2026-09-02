@@ -1,0 +1,145 @@
+{
+  "id": "reading-23",
+  "title": "An Old Machine with a New Job",
+  "topic": "How machines driven by the wind changed their purpose from grinding grain to making electricity",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 18,
+  "passage": "Wind costs nothing, arrives on its own and can be found almost everywhere. People noticed this a very long time ago. Boats were being pushed across water by sails thousands of years before anyone thought of using the same force to turn a wheel on land. When that idea finally arrived, it changed daily work more than most people realise.\n\nThe first machines of this kind were built to do one job: to grind grain into flour. Before them, grain was crushed between two heavy stones which were turned by hand or by an animal walking in a circle. It was slow, tiring work, and a family might spend hours a day on it. A windmill turns the upper stone instead. Sails catch the wind, the sails turn a long wooden shaft, and the shaft turns the stone. One mill could do in an hour what a household could not do in a day.\n\nEarly mills had an obvious weakness. Their sails faced in one direction only, and the wind does not. If the wind changed, the mill stopped. The answer was a design called the post mill, in which the whole building sat on a single upright post and could be pushed round by hand until the sails faced the wind again. Later builders improved this. In the tower mill only the cap at the top turns, so the heavy walls can be built of brick or stone and the machinery inside stays still.\n\nGrinding was not the only job. In flat, wet countries the more valuable work was moving water. A mill can be connected to a wheel with buckets or blades, and that wheel can lift water out of a field and into a canal. Where the land lay below the level of the sea, one mill was not enough, so builders arranged them in chains, each mill lifting the water a little higher until it reached a river that carried it away. Land that had been marsh for centuries was drained in this way and used for farming.\n\nThe age of the windmill ended quickly. Steam engines arrived, and a steam engine had one enormous advantage: it worked when there was no wind. It could also be built wherever it was needed, near a mine or beside a railway, rather than on the windiest hill in the district. Mills were abandoned one after another, and by about 1900 most of the working windmills of Europe had stopped. A few survived as landmarks, and a few kept grinding for local bakers, but the machine had lost its job.\n\nOne small version of it did not disappear. On dry farmland far from any town, metal windpumps with many narrow blades continued to lift water from deep underground for cattle to drink. They were cheap, they needed no fuel and almost no attention, and thousands of them are still turning today. For a farm a hundred kilometres from the nearest power line, no better machine has ever been invented.\n\nThe wind returned to serious use in a new form: making electricity. A modern turbine looks almost nothing like a windmill. It usually has three long, thin blades, each one shaped in cross-section like the wing of an aircraft, so that moving air pulls the blade round rather than simply pushing it. The blades turn a shaft, the shaft drives a generator, and the generator sends electricity down a cable inside the tower.\n\nThe towers have grown taller every decade, and the reason is worth understanding. Near the ground, wind is slowed and broken up by trees, hills, walls and buildings, so it arrives in gusts that change second by second. Higher up there is nothing in the way. The wind at the height of a modern tower is stronger, and more important, it is steadier than the wind near the ground. A steadier wind means a machine that runs for more hours of the year and wears out less quickly.\n\nThe great difficulty with wind is not the machine but the weather. Electricity is unusual among the things we buy, because it has to be used at the moment it is made unless something is done to keep it. Any electricity that is not wanted immediately must be stored, and storing it is expensive. Batteries can hold a certain amount. Another method is to use spare electricity to pump water up into a high lake, and then let the water run down through a generator when demand rises. Neither method is cheap, so most countries still keep other power stations ready for the days when the air is still.\n\nWhere to put the turbines is a second difficulty. The windiest places are usually the emptiest ones: open coasts, high moorland, the sea itself. These are far from the cities that use the electricity, so long cables have to be built, and a little of the power is lost on the way. Building at sea solves one problem and creates another. The wind offshore is stronger and much steadier, but everything about the work is harder, from sinking the foundations to repairing a machine in bad weather.\n\nPeople who live near turbines raise their own objections. Some complain about the sound, a low regular noise that carries further at night. Some object to the appearance of tall towers on an open hillside. Birds and bats are killed by the blades, though careful choice of the site makes a large difference, and the numbers are small compared with other dangers birds face.\n\nNone of these arguments is new. Windmills were once so common that villages argued about them too, about who owned the wind above a field and whether a new mill would steal the wind from an older one. What has changed is the job we ask the machine to do. The wind is the same wind. It is now turning a generator instead of a stone.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "The earliest windmills were built in order to produce electricity.",
+          "answer": "FALSE",
+          "explanation": "The passage says the first machines of this kind \"were built to do one job: to grind grain into flour\". Electricity came much later, so the statement contradicts the passage: FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "A post mill could be turned so that its sails faced the wind.",
+          "answer": "TRUE",
+          "explanation": "The passage says the whole building \"could be pushed round by hand until the sails faced the wind again\". That is what the statement says, so TRUE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "Modern turbines cost less to build than they did twenty years ago.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage discusses the size and position of modern turbines but never gives the cost of building one, or how that cost has changed over time. With nothing in the text either way, the answer is NOT GIVEN."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Steam engines could work at times when windmills could not.",
+          "answer": "TRUE",
+          "explanation": "The passage says a steam engine \"had one enormous advantage: it worked when there was no wind\". The statement says the same, so TRUE."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "A wind turbine produces the same amount of electricity at all times.",
+          "answer": "FALSE",
+          "explanation": "The passage says the great difficulty is the weather, and that other power stations are kept ready \"for the days when the air is still\". A turbine therefore does not produce a steady amount, so FALSE."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "The first windmills were used to grind ___ into flour.",
+          "answer": "grain",
+          "maxWords": 2,
+          "explanation": "The passage says the first machines were built \"to grind grain into flour\". The question sentence uses the same words around the gap, so the missing word is grain."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Marshland drained by chains of mills could then be used for ___.",
+          "answer": "farming",
+          "maxWords": 2,
+          "explanation": "The passage says land that had been marsh \"was drained in this way and used for farming\". The gap needs the use the drained land was put to: farming."
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "High above the ground the wind is stronger and also ___ than it is near the ground.",
+          "answer": "steadier",
+          "maxWords": 2,
+          "explanation": "The passage says the wind at the height of a modern tower \"is stronger, and more important, it is steadier than the wind near the ground\". The gap follows 'stronger and also', so the answer is steadier."
+        },
+        {
+          "id": "q9",
+          "type": "completion",
+          "sentence": "Electricity that is not wanted at once has to be ___, and this is expensive.",
+          "answer": "stored",
+          "maxWords": 2,
+          "explanation": "The passage says electricity \"that is not wanted immediately must be stored, and storing it is expensive\". The gap needs that verb: stored."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What was the advantage of the tower mill over the post mill?",
+          "options": [
+            "Only the top of the building had to turn, so the walls could be built of stone.",
+            "It did not need any wind to work.",
+            "It could grind grain and pump water at the same time.",
+            "It was easier to move to a different village."
+          ],
+          "answer": 0,
+          "explanation": "The passage says that in the tower mill \"only the cap at the top turns, so the heavy walls can be built of brick or stone\". That is option A."
+        },
+        {
+          "id": "q11",
+          "type": "mcq",
+          "question": "Why did metal windpumps continue to be used on distant farms?",
+          "options": [
+            "Because they produced electricity for the farmhouse.",
+            "Because they were cheap and needed no fuel or attention.",
+            "Because the government paid farmers to keep them.",
+            "Because they worked better than steam engines at grinding grain."
+          ],
+          "answer": 1,
+          "explanation": "The passage says they were \"cheap, they needed no fuel and almost no attention\", which is option B. Their job was lifting water for cattle, not making electricity or grinding."
+        },
+        {
+          "id": "q12",
+          "type": "mcq",
+          "question": "What problem is created by building turbines in the windiest places?",
+          "options": [
+            "The wind there changes direction too often.",
+            "The machines cannot be built tall enough there.",
+            "Those places are far from cities, so long cables are needed.",
+            "Farmers there refuse to sell their land."
+          ],
+          "answer": 2,
+          "explanation": "The passage says the windiest places \"are far from the cities that use the electricity, so long cables have to be built, and a little of the power is lost on the way\". That is option C."
+        },
+        {
+          "id": "q13",
+          "type": "mcq",
+          "question": "What does the writer say about villages in the past?",
+          "options": [
+            "They were the first places to use electricity.",
+            "They also argued about windmills and the wind above their fields.",
+            "They preferred animals to machines for grinding grain.",
+            "They built mills only near rivers."
+          ],
+          "answer": 1,
+          "explanation": "The last paragraph says villages \"argued about them too, about who owned the wind above a field\", which is option B. The point is that objections to wind machines are not new."
+        }
+      ]
+    }
+  ]
+}

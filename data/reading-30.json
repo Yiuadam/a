@@ -1,0 +1,145 @@
+{
+  "id": "reading-30",
+  "title": "Where the Athlete Ends and the Equipment Begins",
+  "topic": "How governing bodies decide which sporting technology counts as fair, and why the evidence rarely settles it",
+  "difficulty": "hard",
+  "level": "C1",
+  "timeMinutes": 20,
+  "passage": "Every sporting record is a joint product. A time is set by a body, but also by a shoe, a track surface, a suit, a set of rules about wind, and the accumulated knowledge of how to train. The convenient fiction that competition measures bodies alone survives because equipment normally changes slowly enough for its contribution to be invisible. When it changes quickly, the fiction breaks down in public, and a governing body is required to say where the athlete ends and the apparatus begins. It is worth being clear at the outset that no governing body possesses a principled method for saying this, and that the appearance of one is maintained by procedure rather than by evidence.\n\nConsider what the evidence actually looks like. In a laboratory it is possible to run a controlled comparison: the same athletes, the same treadmill speed, different footwear, with oxygen consumption as the outcome. One such study of eighteen trained distance runners reported that a construction combining a curved stiff plate with a highly resilient foam required on average 3.8 per cent less oxygen at a fixed pace than a conventional racing shoe. That is a large number by the standards of the discipline. It is also, on inspection, a fragile basis for regulation. Oxygen consumption is a proxy for performance, not performance itself, and the conversion between a percentage of metabolic cost and a margin at the finish line depends on distance, pace and the individual athlete. The same study found individual responses ranging from about one per cent to six, and two of its participants recorded no benefit at all.\n\nThat spread matters more than the average does, and it is generally overlooked in the reporting. If a technology helps every competitor by the same amount, it inflates the results and leaves the ranking intact, which is an aesthetic problem rather than a competitive one. If it helps some competitors substantially and others not at all, it reorders the field, and does so for reasons that have nothing to do with the qualities the event is supposed to reward. These are different objections, and a rule that addresses one may do nothing about the other.\n\nField data cannot rescue the situation, for a reason that is structural rather than technical. The athletes who adopt a new technology first are the athletes with new sponsors, and new sponsors arrive alongside new coaching, new medical support and a change in training load. Everything moves at once, and no amount of subsequent statistical adjustment can separate factors that were never independent to begin with.\n\nHistory suggests that the line, wherever it is drawn, will be redrawn. Full-length swimming suits that trapped air and lifted the body in the water were permitted, then dominant, then prohibited. A javelin was redesigned, its centre of gravity shifted forward so that it stalled earlier, after throws began to threaten the far end of stadium infields. And each redrawing leaves an awkward residue: the marks set under the older permissions stay in the books, so a list of records is less a ranking of athletes than a stratigraphy of equipment eras, with the boundaries between them marked by the dates on which committees changed their minds.\n\nThe criteria those committees use are usually given as three. Does the technology confer a performance benefit? Is it available to all competitors? Does it alter the fundamental nature of the event? Each collapses when pressed. The first requires a threshold that no governing body has been willing to state, since any number invites the question of why that number. The second is an economic condition dressed as a sporting one: a product is available to all in the sense that it is on sale, and available to almost nobody in the season that matters, when supply is allocated to sponsored athletes first. The third is frankly a judgement of taste. This is not a fatal objection — sport is a structure of conventions, and there is nothing shameful in defending one — but a convention should be argued for as a convention, rather than presented as a fact discovered in a laboratory.\n\nThe distributional question is sharper than the physiological one and receives less attention. At one recent championship the first ten finishers in a distance event wore shoes from three manufacturers, every pair supplied without charge. Prices do fall and technologies do diffuse, but they diffuse on a timescale of years while medals are allocated on a timescale of minutes, and an athlete representing a federation without a supply agreement competes in whatever was affordable eighteen months ago. Whether that is unfair in a way the rules should address, or simply one instance of the general advantage that money confers throughout elite sport, is a question that governing bodies have preferred not to put in writing.\n\nThe case that exposes the whole framework is prosthetic limbs. A sprinter using running-specific prostheses has a different mass distribution, no ankle joint to drive against and, by most accounts, a slower start and a more economical finish than an athlete running on legs. To ask whether this constitutes an advantage is to assume a baseline body against which the comparison can be made, and no such body exists; what exists is a range of human variation which sport has always divided into categories by decision rather than by measurement. Eligibility here is not the outcome of a calculation. It is a choice about who is invited to compete, and it would be more honest if it were described that way.\n\nWhat follows is not that regulation is impossible, but that it should stop claiming a foundation it does not have. What competitors are owed is not a line drawn by nature. It is a rule published far enough in advance to be planned around, applied to future competition rather than retrospectively, and accompanied by the evidence and the reasoning that produced it, so that those who disagree have something to disagree with. A ban announced after a season has been run punishes athletes for the failure of the body that was supposed to have decided earlier.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "The laboratory study of eighteen runners measured the times they recorded in races.",
+          "answer": "FALSE",
+          "explanation": "The study used \"the same treadmill speed, different footwear, with oxygen consumption as the outcome\". It measured oxygen at a fixed pace, not race times, so the statement contradicts the passage: FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Marks set with equipment that was later banned remain in the record books.",
+          "answer": "TRUE",
+          "explanation": "The passage says \"the marks set under the older permissions stay in the books\", which is why a record list resembles a stratigraphy of equipment eras. The statement matches this: TRUE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "The runners in the study said the new shoes felt more comfortable than the older ones.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage reports only what the study measured — oxygen consumption, and the spread of individual responses. What the runners thought or felt is never mentioned, so NOT GIVEN."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "The javelin was altered after throws started to reach the far end of stadium infields.",
+          "answer": "TRUE",
+          "explanation": "The passage says the javelin's centre of gravity was shifted forward \"after throws began to threaten the far end of stadium infields\". The statement says the same thing: TRUE."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Governing bodies have stated a numerical threshold above which a performance benefit is not allowed.",
+          "answer": "FALSE",
+          "explanation": "The passage says the first criterion \"requires a threshold that no governing body has been willing to state\". The statement claims such a number exists, so FALSE."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "Why does the writer say results from actual competition cannot settle the question?",
+          "options": [
+            "Because competition results are not recorded accurately enough.",
+            "Because athletes who adopt new equipment change several other things at the same time.",
+            "Because governing bodies refuse to release the data they hold.",
+            "Because most athletes use the same equipment as each other."
+          ],
+          "answer": 1,
+          "explanation": "The passage says new equipment arrives with \"new sponsors... new coaching, new medical support and a change in training load\", so factors that were never independent cannot be separated afterwards. That is option B."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What is the writer's objection to the criterion that a technology must be available to all?",
+          "options": [
+            "It is impossible to check whether a product is genuinely on sale.",
+            "It applies only to equipment made by large manufacturers.",
+            "It is an economic condition, met in principle long before it is met in practice.",
+            "It would prevent any new equipment from ever being approved."
+          ],
+          "answer": 2,
+          "explanation": "The passage calls it \"an economic condition dressed as a sporting one\": on sale in theory, but allocated to sponsored athletes first \"in the season that matters\". That is option C."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What does the discussion of prosthetic limbs demonstrate, according to the writer?",
+          "options": [
+            "That prostheses give a measurable advantage over the whole of a race.",
+            "That there is no neutral body against which an advantage could be measured.",
+            "That eligibility decisions should be made by engineers rather than officials.",
+            "That the rules on prostheses are stricter than those on footwear."
+          ],
+          "answer": 1,
+          "explanation": "The passage says asking whether it is an advantage \"is to assume a baseline body against which the comparison can be made, and no such body exists\". That is option B, and the writer concludes eligibility is a choice rather than a calculation."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What does the writer say competitors are entitled to?",
+          "options": [
+            "A rule based on a physiological measurement everyone accepts.",
+            "Compensation when equipment they have bought is banned.",
+            "Equipment supplied to every athlete by the governing body.",
+            "Rules published in advance, applied to future competition, with the reasoning made public."
+          ],
+          "answer": 3,
+          "explanation": "The final paragraph says what competitors are owed is a rule \"published far enough in advance to be planned around, applied to future competition rather than retrospectively, and accompanied by the evidence and the reasoning\". That is option D."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN THREE WORDS OR A NUMBER from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "On average the runners in the study used about ___ less oxygen at a fixed pace.",
+          "answer": "3.8 per cent",
+          "maxWords": 3,
+          "explanation": "The passage gives the average as \"3.8 per cent less oxygen at a fixed pace\". The one to six per cent figures describe the range for individuals, not the average."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "At one championship, the first ten finishers wore shoes from ___ manufacturers.",
+          "answer": "three",
+          "maxWords": 3,
+          "explanation": "The passage says \"the first ten finishers in a distance event wore shoes from three manufacturers, every pair supplied without charge\". The gap needs that number."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "A list of records resembles a ___ of equipment eras rather than a ranking of athletes.",
+          "answer": "stratigraphy",
+          "maxWords": 3,
+          "explanation": "The passage uses this word for the layered record list: \"less a ranking of athletes than a stratigraphy of equipment eras\". The word means a set of layers laid down one after another."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "The writer accepts that sport is a structure of conventions, but says a ___ should be argued for rather than presented as a fact.",
+          "answer": "convention",
+          "maxWords": 3,
+          "explanation": "The passage says \"a convention should be argued for as a convention, rather than presented as a fact discovered in a laboratory\". The gap needs that word."
+        }
+      ]
+    }
+  ]
+}

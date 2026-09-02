@@ -1,0 +1,130 @@
+{
+  "id": "listening-31",
+  "title": "Why Languages Disappear",
+  "context": "A linguistics lecturer explains that languages are not lost suddenly but given up gradually, and asks what a written record can and cannot preserve.",
+  "difficulty": "hard",
+  "level": "C1",
+  "timeMinutes": 12,
+  "speakers": [
+    "Lecturer"
+  ],
+  "script": [
+    { "speaker": "Lecturer", "text": "When a language disappears, the popular image is of a last speaker dying — an elderly person, photographed for a newspaper, the final holder of something. That image is not wrong, but it arrives at the very end of a process that began two or three generations earlier, and on its own it tells you almost nothing about the mechanism." },
+    { "speaker": "Lecturer", "text": "What actually happens is called language shift, and it is a decision — or rather a long series of very small decisions — taken by parents. At some point in a community, enough parents conclude that their children will do better with the majority language, and they stop passing on their own. The older language does not become unusable. It becomes unnecessary, which is a much harder thing to argue with." },
+    { "speaker": "Lecturer", "text": "The useful way to track this is domain by domain. Think of the domains in which a language is used: the home, the market, worship, work, school, entertainment, official business. A language in retreat loses these domains one at a time, and usually in a fairly predictable order. Official business and schooling go first, because a state decides those. Work follows. Entertainment goes when the broadcasts and the songs are in the other language. The home is nearly always last — which is why a community can look bilingual and stable for decades while the ground underneath it is moving." },
+    { "speaker": "Lecturer", "text": "The critical moment is not when the last fluent adult dies. It is when children stop acquiring the language at home. From that point the outcome is essentially fixed, even though there may be forty or fifty years of fluent speakers still living. Linguists sometimes call such a language moribund rather than extinct, and the distinction matters: a moribund language still has everything a revival would need, and an extinct one does not." },
+    { "speaker": "Lecturer", "text": "So why does the shift happen? Rarely because anybody prefers the new language aesthetically. Usually it is economic — the majority language is the language of wages, of the city, of qualifications, of the form you have to fill in. Sometimes it has been enforced outright: there is a long and well-documented history of children punished for speaking their own language at school, and the effect of that on a generation's willingness to pass it on is very hard to overstate. And sometimes shift follows simply from mobility, when people who marry outside the community raise children in whatever language the household happens to share." },
+    { "speaker": "Lecturer", "text": "Now, documentation. When a language is clearly in its last generation, the standard response is to record it — word lists, a grammar, hours of recorded speech, ideally of ordinary conversation rather than of elicited sentences. This is valuable work and I don't want to disparage it. But it is worth being clear about what a record is and is not. A grammar and an archive preserve a language as an object of study. They do not preserve it as a thing people use, and a language that exists only in an archive has stopped doing the work that languages do. There is a real difference between a language being documented and a language being spoken, and funding tends to flow rather more easily towards the first." },
+    { "speaker": "Lecturer", "text": "Revitalisation — the attempt to reverse a shift — has a mixed record, and the successes have several things in common. They tend to involve teaching children rather than adults, because a language learned in childhood is used differently and passed on differently. They tend to create settings in which the language is the only option, rather than adding lessons about it to an otherwise majority-language day. And they tend to require something that linguistics itself cannot supply: a reason to use it that is not merely sentimental. Where the revived language becomes the language of a job, a school, an administration, it survives. Where it remains an evening class, it usually does not." },
+    { "speaker": "Lecturer", "text": "What is lost when a language goes? The honest answer is that we do not fully know, and that is itself part of the argument. Some of what goes is knowledge held in vocabulary — classifications of plants, of weather, of kinship, worked out over centuries by people who needed them and written down nowhere else. Some of it is structural: every language that disappears removes a piece of evidence about what human grammar is capable of, and our theories are built on whichever sample happens to survive. And some of it is not knowledge at all but standing — the difference, for a community, between a language that appears on the road signs and one that does not." },
+    { "speaker": "Lecturer", "text": "I want to end on a point that often gets lost. This is not a natural process and it is not an inevitable one. Languages do not die of old age. Every case has a policy, an economy and a school system behind it, and that means every case had, at some point, alternatives. Which is the only reason any of this is worth studying rather than merely mourning." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the summary below. Write NO MORE THAN TWO WORDS for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "The process by which a community gives up its language is called language ___",
+          "answer": "shift",
+          "maxWords": 1,
+          "explanation": "\"What actually happens is called language shift,\" a long series of small decisions taken by parents rather than a single event."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "A language in retreat loses its ___ one at a time",
+          "answer": "domains",
+          "maxWords": 1,
+          "explanation": "\"Think of the domains in which a language is used... A language in retreat loses these domains one at a time.\""
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "The domain that is usually given up last is the ___",
+          "answer": "home",
+          "maxWords": 1,
+          "explanation": "Official business and schooling go first, then work and entertainment: \"The home is nearly always last.\""
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "A language children no longer learn is described as ___ rather than extinct",
+          "answer": "moribund",
+          "maxWords": 1,
+          "explanation": "\"Linguists sometimes call such a language moribund rather than extinct,\" because a moribund language still has what a revival would need."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Successful revitalisation programmes concentrate on teaching ___",
+          "answer": "children",
+          "maxWords": 1,
+          "explanation": "The successes \"tend to involve teaching children rather than adults, because a language learned in childhood is used differently and passed on differently.\""
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Vocabulary can hold classifications of plants, weather and ___",
+          "answer": "kinship",
+          "maxWords": 1,
+          "explanation": "Knowledge held in vocabulary includes \"classifications of plants, of weather, of kinship, worked out over centuries.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "According to the lecturer, what usually causes language shift?",
+          "options": [
+            "the majority language is thought more beautiful",
+            "economic advantage",
+            "a shortage of written material"
+          ],
+          "answer": 1,
+          "explanation": "\"Rarely because anybody prefers the new language aesthetically. Usually it is economic — the language of wages, of the city, of qualifications.\""
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What does the lecturer identify as the critical moment?",
+          "options": [
+            "when the last fluent adult dies",
+            "when the language leaves official business",
+            "when children stop learning it at home"
+          ],
+          "answer": 2,
+          "explanation": "\"The critical moment is not when the last fluent adult dies. It is when children stop acquiring the language at home.\""
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What point does the lecturer make about documentation?",
+          "options": [
+            "it preserves a language for study but not for use",
+            "it is very rarely funded",
+            "it removes the need for revitalisation"
+          ],
+          "answer": 0,
+          "explanation": "\"A grammar and an archive preserve a language as an object of study. They do not preserve it as a thing people use.\" Funding favours documentation."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What is the lecturer's final point?",
+          "options": [
+            "language loss is a natural process",
+            "language loss always has policy and economics behind it",
+            "language loss can never be reversed"
+          ],
+          "answer": 1,
+          "explanation": "\"This is not a natural process... Every case has a policy, an economy and a school system behind it,\" so alternatives always existed."
+        }
+      ]
+    }
+  ]
+}

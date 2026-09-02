@@ -120,6 +120,23 @@ export const LISTENING_PART: Record<string, 1 | 2 | 3 | 4> = {
   "listening-18": 3, // three speakers choosing a dissertation topic
   "listening-15": 4, // lecture: urban beekeeping
   "listening-19": 4, // lecture: the global coffee trade
+  /*
+    Ten more, spread deliberately rather than evenly: two Part 1s, three Part
+    2s, three Part 3s and two Part 4s, which is what brings the four buckets
+    closest to the same depth. A sitting draws one recording per part at
+    random, so the thinnest bucket is the one that decides how often a learner
+    meets a paper they have already sat, and Part 3 was the thinnest.
+  */
+  "listening-22": 1, // ordering a cake, at a counter
+  "listening-23": 1, // reporting a leak to a letting agency, by phone
+  "listening-24": 2, // one speaker: station announcement about a line closure
+  "listening-25": 2, // one speaker: how a community repair café works
+  "listening-26": 2, // one speaker: careers-fair talk on an apprenticeship
+  "listening-27": 3, // three speakers reviewing a psychology pilot study
+  "listening-28": 3, // three speakers on essay feedback and a reading list
+  "listening-29": 3, // three speakers on usability testing a prototype
+  "listening-30": 4, // lecture: the acoustics of concert halls
+  "listening-31": 4, // lecture: why languages disappear
 };
 
 const WRITING_TASKS: WritingTask[] = (writingData as WritingTasksData).tasks;

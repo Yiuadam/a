@@ -1,0 +1,145 @@
+{
+  "id": "reading-21",
+  "title": "Farming in the Shadow of a Volcano",
+  "topic": "Why volcanic ash makes such productive soil, and the risk farmers accept in return",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 18,
+  "passage": "A volcano is one of the most dangerous neighbours a person can have. When it erupts it can throw rock and hot ash high into the sky, and it can send burning gas down its own sides at the speed of a car. Yet millions of people choose to live and work on volcanic slopes, and a great many of them are farmers. About one person in twenty lives within a hundred kilometres of a volcano that has erupted at some time in the last ten thousand years. From a distance this looks like a strange choice. It is not strange at all. The answer lies under their feet.\n\nThe soil around a volcano is some of the best farming soil in the world. Ordinary soil forms when rain, ice and plant roots slowly break rock into smaller and smaller pieces. That process takes hundreds of years. A volcano does the same work in a few hours. An eruption throws out ash, which is not soft grey dust but millions of tiny pieces of broken rock and glass. The pieces are already small, so air and water can reach every part of them, and they break down much faster than solid rock does.\n\nNot every kind of volcanic rock helps a farmer. A lava flow cools into hard, black stone, and it can be a century or more before anything will grow on it. It is the ash that matters. Ash is carried high into the air and then spread by the wind, so a single eruption can lay a thin layer over fields many kilometres from the mountain itself.\n\nAs the ash breaks down, it releases the minerals that plants need in order to grow. Volcanic ash is rich in potassium, phosphorus and magnesium, and those are exactly the minerals that farmers on ordinary land usually have to buy as fertiliser. A field that receives a light fall of ash every few years is being fed for nothing. Farmers in several countries say they can see the difference in the colour of the leaves within a single season.\n\nThe shape of the ash helps as well. Each piece is full of tiny holes, rather like a sponge, so the soil holds rain water instead of letting it drain straight through. In a dry month, crops on volcanic soil stay green for longer than crops on sandy soil in the next valley. The soil is also loose and easy to dig, so roots spread quickly and the work of planting is lighter.\n\nThere is one important condition, and it is time. A fresh layer of ash is not a gift. It buries young plants, it blocks the sunlight and it can destroy a whole season's crop in an afternoon. In the months after an eruption the land is often useless. Farmers on one island say that a thick new layer needs about twenty years of rain and weather before it turns into good soil. The reward is real, but it arrives long after the damage.\n\nSteep ground brings a second problem. Heavy rain washes loose soil down the hillside, and a farm can lose in one storm what it gained from an eruption. The usual answer is to cut the slope into flat steps, called terraces, which hold the soil in place and slow the water down. Terraces are hard to build and have to be repaired every year, but on a volcanic slope they are what turns a good soil into a farm.\n\nWhat grows there depends on the country and on the height of the land. Coffee does well on the cool upper slopes, where the nights are cold. Lower down, farmers grow rice, maize, onions and tomatoes. One study compared farms on a volcanic slope with farms on the flat land below, and found that the slope produced about a third more rice from the same area of ground. The crops are not only for the families who grow them. Markets in nearby cities are often supplied almost entirely from these slopes.\n\nThe risk, of course, never goes away, and it is not only the eruption itself. Rain falling on loose ash can turn it into a thick, fast river of mud. A river of this kind is called a lahar, and lahars are the reason a volcanic valley can be dangerous even when the mountain is quiet. A lahar can travel many kilometres from the summit, and it can arrive at night, years after the ash that formed it first fell.\n\nSo why do families stay? Part of the answer is money. Volcanic land produces more, so it costs more, and a family that leaves usually has to begin again on poorer ground somewhere else. Part of the answer is time. A particular volcano may erupt once in a hundred years, which is longer than most people plan for, and longer than anyone alive can remember. And part of the answer is simply home. Villages on these slopes are often very old, and the families in them have worked the same fields for many generations.\n\nWhat has changed is the warning. Scientists now place instruments on the sides of active volcanoes. Some of these instruments measure the very small earthquakes that occur when rock cracks deep underground. Others measure the gases that escape at the surface, because the mixture of gases changes as molten rock rises towards it. Instruments cannot say exactly when an eruption will begin, but they can show that one is becoming likely, sometimes days or weeks in advance.\n\nMany villages now hold evacuation drills, so that every family knows which road to take and where to meet. Local radio stations broadcast the warning level each morning. None of this makes a volcano safe. It only makes the old bargain a little more even: the finest soil a farmer is ever likely to find, in exchange for a danger that is now being watched.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "Volcanic ash contains minerals that plants need in order to grow.",
+          "answer": "TRUE",
+          "explanation": "The passage says ash \"is rich in potassium, phosphorus and magnesium\" and calls these \"the minerals that plants need in order to grow\". The statement says the same thing, so TRUE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Land is at its most productive in the months just after an eruption.",
+          "answer": "FALSE",
+          "explanation": "The passage says the opposite: \"In the months after an eruption the land is often useless\", and a new layer needs about twenty years. So the statement contradicts the passage: FALSE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "More farmers on volcanic slopes grow coffee than any other crop.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage lists coffee, rice, maize, onions and tomatoes, but it never says which crop the largest number of farmers grow. With no comparison of numbers in the text, the answer is NOT GIVEN."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Volcanic soil holds rain water better than sandy soil does.",
+          "answer": "TRUE",
+          "explanation": "The passage says the ash \"holds rain water instead of letting it drain straight through\" and that crops on it \"stay green for longer than crops on sandy soil\". That matches the statement, so TRUE."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Instruments can now tell scientists the exact day an eruption will begin.",
+          "answer": "FALSE",
+          "explanation": "The passage says instruments \"cannot say exactly when an eruption will begin\", only that one is becoming likely. The statement claims the opposite, so FALSE."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "Why does ash break down faster than ordinary rock?",
+          "options": [
+            "Because it is warmer than the rock around it.",
+            "Because its pieces are already small, so air and water reach all of them.",
+            "Because rain falls more often near a volcano.",
+            "Because plant roots grow through it more slowly."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 2 gives the reason: \"The pieces are already small, so air and water can reach every part of them.\" That is option B. Warmth, rainfall and roots are not given as the reason."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What does the passage say about a lava flow?",
+          "options": [
+            "It spreads minerals over a wide area.",
+            "It makes the soil hold more water.",
+            "It cools into hard stone where little will grow for a long time.",
+            "It is the main reason farms are built on slopes."
+          ],
+          "answer": 2,
+          "explanation": "Paragraph 3 says a lava flow \"cools into hard, black stone\" and it can be \"a century or more before anything will grow on it\". That is option C. The useful material is ash, not lava."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Why do farmers on steep volcanic slopes build terraces?",
+          "options": [
+            "To stop rain washing the soil down the hillside.",
+            "To keep the fields cool at night.",
+            "To make room for larger machines.",
+            "To collect ash after an eruption."
+          ],
+          "answer": 0,
+          "explanation": "Paragraph 7 says heavy rain \"washes loose soil down the hillside\" and terraces \"hold the soil in place and slow the water down\". That is option A."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "According to the passage, what do some instruments on a volcano measure?",
+          "options": [
+            "The temperature of the soil in the fields below.",
+            "The gases that escape at the surface.",
+            "The number of people living on the slopes.",
+            "The weight of ash on the roofs of houses."
+          ],
+          "answer": 1,
+          "explanation": "The passage says some instruments \"measure the gases that escape at the surface, because the mixture of gases changes as molten rock rises\". That is option B; the other three are never mentioned."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "Ash is rich in potassium, phosphorus and ___, minerals that farmers on ordinary land often have to buy.",
+          "answer": "magnesium",
+          "maxWords": 2,
+          "explanation": "The passage says volcanic ash \"is rich in potassium, phosphorus and magnesium\". The question sentence gives the first two, so the gap needs the third: magnesium."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "Farmers on one island say a thick new layer of ash needs about ___ before it becomes good soil.",
+          "answer": "twenty years",
+          "maxWords": 2,
+          "explanation": "The passage says the layer \"needs about twenty years of rain and weather before it turns into good soil\". The gap asks for that length of time: twenty years."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "A fast river of mud formed from ash and rain is called a ___.",
+          "answer": "lahar",
+          "maxWords": 2,
+          "explanation": "The passage names it directly: \"A river of this kind is called a lahar.\" The question sentence copies the same definition, so the missing word is the name lahar."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "Flat steps cut into a hillside to hold the soil are known as ___.",
+          "answer": "terraces",
+          "maxWords": 2,
+          "explanation": "Paragraph 7 says farmers \"cut the slope into flat steps, called terraces, which hold the soil in place\". The gap needs that name: terraces."
+        }
+      ]
+    }
+  ]
+}

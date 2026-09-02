@@ -1,0 +1,146 @@
+{
+  "id": "reading-29",
+  "title": "The Argument Inside the Display Case",
+  "topic": "Museum collections, claims for return, and why the dispute is really about process",
+  "difficulty": "hard",
+  "level": "C1",
+  "timeMinutes": 20,
+  "passage": "A museum case looks like a container and behaves like an argument. What is inside it, what stands next to it, which language the label is written in, whose name appears as maker and whose as donor, and above all what has been left in the store room downstairs: every one of these is a decision, and the sum of the decisions is a claim about how the world is arranged. This matters, because the long dispute over objects taken from other places under conditions of unequal power is usually reported as a quarrel over ownership, and it is better understood as a disagreement about what a museum is for.\n\nThe case for keeping such objects deserves to be stated at its strongest rather than at its weakest. Its central claim is that a collection assembled from everywhere permits comparisons available in no other setting: a visitor who can walk in twenty minutes from bronze casting in one continent to bronze casting in another learns something that no single-culture museum can teach, and the object gains rather than loses by the juxtaposition. To this is added the argument from capacity, that large institutions possess conservation laboratories, climate control and insurance that smaller ones cannot match, and the argument from audience, which is frankly numerical: one such institution records 5.8 million visits a year, against the 90,000 counted by the regional museum nearest the origin of some of its most contested holdings. These are genuine advantages, and a case for return that pretends otherwise is weaker for it.\n\nThe replies are equally serious. The first concerns consent. A great many acquisitions were made in circumstances where refusal was not a practical option, and a transaction conducted under those conditions does not become legitimate because a receipt survives; the paperwork records the transfer, not its fairness. The second concerns meaning. An object made for a ritual, a burial or a coronation, and removed from the practice that gave it its point, does not simply travel — it changes category, becoming an illustration of a type where it had been a particular thing with a particular function. The third concerns capacity, and it has largely been overtaken by events: many source institutions now hold accreditation and conditions equal to those of the museums holding their material, and where the gap is real it is an argument for paying to close it rather than for keeping the objects. The fourth concerns audience, and here the reply is partial rather than complete. Loans and high-quality reproduction do widen access, but a reproduction is not the object, as the holding museums themselves insist whenever their own originals are in question.\n\nOne argument recurs so reliably that it deserves separate treatment: the fear that agreeing to any claim would empty the galleries. The record does not support it. A review of claims received by one national museum across fifteen years found 41 formal claims in total, covering fewer than three hundred objects from a collection of roughly two million — a fraction so small that it would not be visible in the galleries even if every claim succeeded. Communities have on the whole asked for what matters most to them, and for very little else. The floodgates argument survives not because the evidence supports it but because it is rhetorically powerful and requires no evidence to make.\n\nThere are, however, hard cases that do not dissolve on inspection. Human remains are the clearest of them, and they belong in a different category altogether: they are not objects, and weighing them on the same scale as a carved bowl is a category error that most museums have now, belatedly, conceded. Sacred material presents a subtler difficulty, since some of it carries restrictions on who may see it, which collides directly with the principle of open display that museums otherwise defend as fundamental. Hardest of all are objects claimed by more than one successor community, or claimed by a state whose relationship to the originating community is itself contested — cases in which returning an object to the wrong claimant would compound the original wrong rather than repair it.\n\nWhat practice has produced, in the space between keeping everything and returning everything, is a set of arrangements that the binary framing misses. Title has been transferred while the object remains on long-term loan in the museum that held it. Shared stewardship agreements make decisions about display, conservation and lending jointly, with each party able to refuse. Labels are written with the originating community rather than about it, and digitisation is carried out with the resulting rights held by that community. Where title actually moves, these arrangements are pragmatic rather than evasive: they let an object stay visible while settling the question of whose it is. Where the arrangement is designed precisely so that title need never move, it is evasion wearing the vocabulary of partnership, and the distinction between the two is not difficult to draw once one asks who may say no.\n\nThe deepest problem is not any individual case but the absence of a procedure. At present a claim is addressed to a director, a board or a minister, and its outcome depends on the disposition of whoever currently holds that post. That has three consequences, all bad. Decisions are unpredictable, so a claimant cannot know what evidence would help. They are reversible, since the next appointment may take a different view. And they force claimants into public campaigns, because publicity is the only reliable pressure available when there is no procedure to invoke. The alternative is not complicated: published criteria stating what will be considered, and a standing panel empowered to hear claims and to publish its reasons, so that a refusal can be examined and argued with rather than merely absorbed. Museums have been slow to want this, for the understandable reason that a published rule binds the person who publishes it. But the question in front of them is no longer whether objects will be returned; a good many already have been, without the galleries emptying. The question is whether returns will be made by a process that can be defended, or one claim at a time, to whoever shouts loudest.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the claims of the writer? Write YES if the statement agrees with the writer's views, NO if it contradicts them, or NOT GIVEN if it is impossible to say what the writer thinks.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "ynng",
+          "statement": "A museum display should be understood as an interpretation rather than a neutral presentation of objects.",
+          "answer": "YES",
+          "explanation": "The writer opens by saying a case \"looks like a container and behaves like an argument\", and that the sum of a museum's decisions is \"a claim about how the world is arranged\". That agrees with the statement, so YES."
+        },
+        {
+          "id": "q2",
+          "type": "ynng",
+          "statement": "The record of claims made to museums supports the fear that agreeing to returns would empty the galleries.",
+          "answer": "NO",
+          "explanation": "The writer says plainly \"The record does not support it\", citing 41 claims covering fewer than three hundred objects out of two million. The statement contradicts the writer's view, so NO."
+        },
+        {
+          "id": "q3",
+          "type": "ynng",
+          "statement": "Human remains should be considered separately from other items in a collection.",
+          "answer": "YES",
+          "explanation": "The writer says human remains \"belong in a different category altogether\" and that weighing them on the same scale as a carved bowl is \"a category error\". That agrees with the statement, so YES."
+        },
+        {
+          "id": "q4",
+          "type": "ynng",
+          "statement": "Museums should stop charging visitors for entry.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage discusses visitor numbers but never mentions entry charges or what museums should cost to visit. There is no view here to agree or disagree with, so NOT GIVEN."
+        },
+        {
+          "id": "q5",
+          "type": "ynng",
+          "statement": "Partnership arrangements are acceptable even when they are designed so that ownership never changes hands.",
+          "answer": "NO",
+          "explanation": "The writer draws exactly this line: such an arrangement \"is evasion wearing the vocabulary of partnership\". Only arrangements where title actually moves are called pragmatic, so the statement contradicts the writer: NO."
+        }
+      ]
+    },
+    {
+      "instruction": "Look at the following statements and the list of arguments below. Match each statement with the argument it belongs to, A–E. You may use any letter once only.",
+      "sharedOptions": [
+        {
+          "key": "A",
+          "text": "the argument from comparison across cultures"
+        },
+        {
+          "key": "B",
+          "text": "the argument from consent"
+        },
+        {
+          "key": "C",
+          "text": "the argument from conservation capacity"
+        },
+        {
+          "key": "D",
+          "text": "the argument from audience size"
+        },
+        {
+          "key": "E",
+          "text": "the argument from continuing meaning"
+        }
+      ],
+      "questions": [
+        {
+          "id": "q6",
+          "type": "matching",
+          "prompt": "An object teaches more when it can be seen beside things made elsewhere.",
+          "answer": "A",
+          "explanation": "The second paragraph describes a visitor walking \"from bronze casting in one continent to bronze casting in another\" and says the object \"gains rather than loses by the juxtaposition\". That is the argument from comparison."
+        },
+        {
+          "id": "q7",
+          "type": "matching",
+          "prompt": "A transfer arranged where refusal was impossible is not made fair by surviving paperwork.",
+          "answer": "B",
+          "explanation": "The third paragraph says such a transaction \"does not become legitimate because a receipt survives; the paperwork records the transfer, not its fairness\". That is the argument from consent."
+        },
+        {
+          "id": "q8",
+          "type": "matching",
+          "prompt": "Far more people will see the object where it currently stands.",
+          "answer": "D",
+          "explanation": "The argument from audience is described as \"frankly numerical\", comparing 5.8 million visits a year with 90,000 at the museum nearest the objects' origin."
+        },
+        {
+          "id": "q9",
+          "type": "matching",
+          "prompt": "Separated from the practice it was made for, an object becomes an illustration of a type.",
+          "answer": "E",
+          "explanation": "The passage says an object removed from its ritual use \"changes category, becoming an illustration of a type where it had been a particular thing with a particular function\"."
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the questions below. Write NO MORE THAN THREE WORDS OR A NUMBER from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "short-answer",
+          "question": "How many formal claims did the fifteen-year review of one national museum find?",
+          "answer": "41",
+          "maxWords": 3,
+          "explanation": "The passage says the review \"found 41 formal claims in total\". The other numbers nearby are the objects claimed and the size of the collection, not the number of claims."
+        },
+        {
+          "id": "q11",
+          "type": "short-answer",
+          "question": "What are agreements called in which display, conservation and lending are decided jointly?",
+          "answer": "shared stewardship",
+          "maxWords": 3,
+          "explanation": "The passage says \"Shared stewardship agreements make decisions about display, conservation and lending jointly\". The question repeats that list, so the answer is the name of the agreement.",
+          "accept": [
+            "shared stewardship agreements"
+          ]
+        },
+        {
+          "id": "q12",
+          "type": "short-answer",
+          "question": "What does the writer say should be empowered to hear claims and publish its reasons?",
+          "answer": "a standing panel",
+          "maxWords": 3,
+          "explanation": "The last paragraph proposes \"published criteria... and a standing panel empowered to hear claims and to publish its reasons\". The question uses the same words, so the answer is the body proposed."
+        },
+        {
+          "id": "q13",
+          "type": "short-answer",
+          "question": "Which category of material does the writer say is not made up of objects at all?",
+          "answer": "human remains",
+          "maxWords": 3,
+          "explanation": "The passage says of human remains: \"they are not objects, and weighing them on the same scale as a carved bowl is a category error\"."
+        }
+      ]
+    }
+  ]
+}

@@ -465,6 +465,10 @@ export function managerStudentHistoryPreview(studentId: string): StudentHistory 
               id: "preview-writing-task",
               task: 2,
               variant: "academic",
+              // Required on WritingTask since the chooser gained a task-type
+              // filter. Every Task 2 in the bank is an essay, so this synthetic
+              // stand-in is one too.
+              type: "essay",
               // Required on WritingTask since practice content became
               // CEFR-levelled. B2 matches the real Task 2 essays it stands in
               // for in this synthetic preview workspace.

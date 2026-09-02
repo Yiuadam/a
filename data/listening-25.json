@@ -1,0 +1,124 @@
+{
+  "id": "listening-25",
+  "title": "The Ashfield Repair Café",
+  "context": "The coordinator of a monthly community repair event welcomes people who have brought broken possessions and explains how the morning works.",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 12,
+  "speakers": [
+    "Coordinator"
+  ],
+  "script": [
+    { "speaker": "Coordinator", "text": "Hello everyone, and welcome. My name's Hannah and I'm the coordinator here, which means I don't repair anything at all — I just point people in the right direction. Give me two minutes and then we'll get started." },
+    { "speaker": "Coordinator", "text": "The Repair Café runs on the second Saturday of every month, here in the church hall, from ten in the morning until one. We used to carry on until four, but we found that almost nobody arrived after lunch, so we shortened it." },
+    { "speaker": "Coordinator", "text": "The first thing to say is that it's free. There's no charge for the repair and no charge for the volunteers' time. What we do ask is that if we have to use a part — a fuse, a zip, a length of cable — you pay for the parts themselves, at exactly what they cost us. Most of the time that's under two pounds." },
+    { "speaker": "Coordinator", "text": "The other thing to say is that we don't take your item away and hand it back mended. You stay with it, and you help. That's really the whole point — you'll be shown what went wrong and how it was put right, so that next time you might manage it on your own. If you'd rather drop something off and collect it later, I'm afraid this isn't the right place." },
+    { "speaker": "Coordinator", "text": "Now, who does what, because this is where people go wrong every single month." },
+    { "speaker": "Coordinator", "text": "Gemma is on the electrical bench, by the window. Anything with a plug on the end of it — a lamp, a radio, a kettle, a phone charger — goes to Gemma." },
+    { "speaker": "Coordinator", "text": "Ravi has the sewing machines at the back of the hall. Clothes, curtains, cushion covers, zips, hems. Ravi will also teach you to use the machine if you've never touched one before." },
+    { "speaker": "Coordinator", "text": "Tom is outside in the yard with the bicycles. Punctures, brakes, gears, chains. Only bicycles, though — he won't look at a lawnmower, however nicely you ask him." },
+    { "speaker": "Coordinator", "text": "Nadia is at the small table by the door, and Nadia does anything fiddly: clocks, watches, jewellery, spectacles. If it has parts you could lose down the back of a chair, it belongs to Nadia." },
+    { "speaker": "Coordinator", "text": "Bea is in the corner with the woodwork. Chairs that wobble, drawers that stick, table legs, picture frames." },
+    { "speaker": "Coordinator", "text": "And Callum — this is the one everybody gets wrong — Callum takes anything with a motor in it. A vacuum cleaner, a food mixer, a drill, an electric fan. Yes, they plug in, and yes, that makes you think of Gemma, but a motor is a completely different animal and Callum is the one who understands them. So: a plug but no motor, Gemma. A motor, Callum. Every time." },
+    { "speaker": "Coordinator", "text": "A few rules. We can't work on anything that runs on gas, and we can't work on microwaves either. The safety side of both is beyond what volunteers should be doing, and I won't be talked round on it, so if you've brought a microwave in this morning, I'm sorry." },
+    { "speaker": "Coordinator", "text": "Please don't bring more than two items each. We had somebody last spring arrive with a car boot full, and nine other people ended up waiting two hours." },
+    { "speaker": "Coordinator", "text": "If we can't finish your repair in the time we've got, we'll write down what's wrong and which part is needed, and you take that note away with you. That's often worth more than the repair itself, because you can then order the part yourself, or hand the note over the counter in a shop." },
+    { "speaker": "Coordinator", "text": "Finally, the tea urn is on, the biscuits are on the table by the door, and the donations tin next to them pays for the hall. Nobody is counting what you put in it, and plenty of people put in nothing at all." },
+    { "speaker": "Coordinator", "text": "Right. Let's find out who's brought what." }
+  ],
+  "questions": [
+    {
+      "instruction": "Which volunteer deals with each of the following items? Write the correct letter, A-F. You may use any letter more than once.",
+      "sharedOptions": [
+        { "key": "A", "text": "Gemma" },
+        { "key": "B", "text": "Ravi" },
+        { "key": "C", "text": "Tom" },
+        { "key": "D", "text": "Nadia" },
+        { "key": "E", "text": "Bea" },
+        { "key": "F", "text": "Callum" }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "a table lamp that flickers",
+          "answer": "A",
+          "explanation": "Gemma is on the electrical bench and takes \"anything with a plug on the end of it — a lamp, a radio, a kettle, a phone charger.\" A lamp has no motor."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "a coat with a broken zip",
+          "answer": "B",
+          "explanation": "Ravi has the sewing machines and handles \"clothes, curtains, cushion covers, zips, hems,\" so a broken zip goes to him."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "a vacuum cleaner that has stopped working",
+          "answer": "F",
+          "explanation": "This is the trap the speaker warns about. A vacuum cleaner has a plug, but \"Callum takes anything with a motor in it. A vacuum cleaner, a food mixer, a drill.\""
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "a necklace with a broken clasp",
+          "answer": "D",
+          "explanation": "Nadia \"does anything fiddly: clocks, watches, jewellery, spectacles,\" which is where a necklace belongs."
+        },
+        {
+          "id": "q5",
+          "type": "matching",
+          "prompt": "a kitchen chair with a loose leg",
+          "answer": "E",
+          "explanation": "Bea is in the corner with the woodwork and takes \"chairs that wobble, drawers that stick, table legs, picture frames.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "The Repair Café is held on the ___ Saturday of every month",
+          "answer": "second",
+          "maxWords": 1,
+          "explanation": "The coordinator opens by saying it \"runs on the second Saturday of every month, here in the church hall, from ten in the morning until one.\""
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Repairs are free, but visitors pay for any ___ that are used",
+          "answer": "parts",
+          "maxWords": 1,
+          "explanation": "There is no charge for the repair or the volunteers' time, but \"you pay for the parts themselves, at exactly what they cost us.\""
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "Owners must stay with their item and ___ with the repair",
+          "answer": "help",
+          "maxWords": 1,
+          "explanation": "Items are not taken away and handed back mended: \"You stay with it, and you help,\" so that the owner learns what went wrong."
+        },
+        {
+          "id": "q9",
+          "type": "completion",
+          "sentence": "Nothing can be repaired if it runs on ___",
+          "answer": "gas",
+          "maxWords": 1,
+          "explanation": "The coordinator is firm about this: \"We can't work on anything that runs on gas, and we can't work on microwaves either.\""
+        },
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "Each visitor may bring a maximum of ___ items",
+          "answer": "2",
+          "maxWords": 1,
+          "explanation": "She asks people not to \"bring more than two items each,\" after somebody arrived with a car boot full and delayed nine others."
+        }
+      ]
+    }
+  ]
+}

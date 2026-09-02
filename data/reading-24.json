@@ -1,0 +1,155 @@
+{
+  "id": "reading-24",
+  "title": "How Young Birds Learn to Sing",
+  "topic": "Vocal learning in songbirds: the stages, the timing and why the ability might have evolved",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 20,
+  "passage": "A\nMost of the sounds an animal makes are not learned. A young bird gives an alarm call the first time a shadow passes overhead, and it does so correctly even if it has never heard another bird give one. Contact calls, begging calls and the short notes that keep a flock together all develop on their own, in much the same way that a kitten does not need lessons in purring. Song is different. Among birds, only three groups — the songbirds, the parrots and the hummingbirds — build their songs by listening to other members of their species and copying what they hear. Biologists call these species vocal learners, and the ability is rare enough that its appearance in three separate branches of the bird family tree is itself a puzzle.\n\nB\nLearning a song happens in two stages, separated by a long silence. In the first stage the young bird does nothing but listen. It hears an adult of its own species, usually its father or a near neighbour, and it stores a memory of that song without producing any sound of its own. Weeks or months later the second stage begins. The bird starts to sing quietly to itself, in long, rambling passages that wander between notes and never repeat exactly. This early attempt is called subsong, and to a human ear it sounds like a bird that has forgotten how the tune goes. Over the following weeks the rambling narrows. Notes that resemble the remembered model are repeated more often, and the rest fall away, until the bird produces the same sequence every time. At that point researchers say the song has crystallised, and in most species it will change very little for the rest of the bird's life.\n\nC\nTiming matters as much as exposure. In several species the memory stage works properly only during a limited stretch of early life, known as a sensitive period, and after it closes the same experience has far less effect. In one experiment, young males were raised in three conditions. Birds that heard adult song during the first two months produced full, normal songs as adults. Birds raised in silence produced songs that were shorter, simpler and oddly organised, though still recognisable as belonging to their species. The third group heard no song until after their first two months had passed, and although they were then given as much adult song as they could listen to, their adult songs remained closer to the silent group than to the normal one. What a bird can learn, in other words, is limited by when it hears it.\n\nD\nBecause each generation copies the one before it, small differences are passed on and gradually build up. Populations of the same species living in different places therefore sing recognisably different versions of the same song, and these local versions are called dialects. In one study, researchers recorded males in three valleys lying about forty kilometres apart, with wooded ridges between them. When the recordings were later played to trained listeners with no information about where they came from, the valley could be identified correctly in about four recordings out of five. Young males learn whichever version they grow up hearing, and males that move to a new valley as adults have been observed to adjust their songs towards the local pattern, though rarely to match it perfectly.\n\nE\nAll of this raises an obvious question: why learn at all, when a song that came ready-made would be simpler and safer? Learning is expensive. It requires brain tissue that must be built and fed, it takes months during which the young bird is not yet able to attract a mate, and it carries the risk of copying the wrong model or copying a good one badly. Two benefits have been proposed. The first is that a male singing the local dialect is advertising that he grew up nearby and survived a winter there, which is information a female cannot get any other way. The second concerns neighbours rather than mates. Males with neighbouring territories often share song types, and a bird that recognises a neighbour's familiar song does not treat him as an intruder. Sharing songs may therefore reduce the number of fights along a boundary, which is a saving for both birds.\n\nF\nOne finding has surprised researchers repeatedly: a loudspeaker is a poor teacher. In a study designed to test this, one group of young birds was raised with a live adult male in the same room, a second group heard recordings of exactly the same songs played through a speaker on a similar schedule, and a third heard nothing. The live-tutor group copied their model closely. The loudspeaker group learned something, but their songs were less accurate and several birds copied only fragments. Since the sound reaching the two groups was the same, the difference must lie elsewhere — in the attention a live bird commands, or in the fact that a real tutor responds to a listener and a recording does not. Whatever the explanation, it suggests that song learning is a social activity rather than a simple recording process.\n\nG\nThe parallels with human speech are hard to ignore, and they are often drawn. A baby babbles before it talks, much as a young bird produces subsong. Both learn best early. Both pick up the version spoken or sung around them, accent included. The comparison is useful, but it should not be pushed too far. A bird's song carries no sentences, and rearranging its notes does not produce a new meaning the way rearranging words does. What the two have in common is the machinery for learning sounds by listening, which is remarkable enough on its own. It is one of the few abilities that humans share with an animal so distantly related that our last common ancestor was walking, or crawling, some three hundred million years ago.",
+  "questions": [
+    {
+      "instruction": "The passage has seven paragraphs, A–G. Choose the correct heading for each of paragraphs B–F from the list of headings below. There are more headings than paragraphs, so you will not use them all.",
+      "sharedOptions": [
+        {
+          "key": "i",
+          "text": "Sounds that need no teacher at all"
+        },
+        {
+          "key": "ii",
+          "text": "From quiet rambling to a fixed song"
+        },
+        {
+          "key": "iii",
+          "text": "A window that does not stay open"
+        },
+        {
+          "key": "iv",
+          "text": "The same species, valley by valley"
+        },
+        {
+          "key": "v",
+          "text": "What learning costs and what it buys"
+        },
+        {
+          "key": "vi",
+          "text": "Why a recording makes a poor teacher"
+        },
+        {
+          "key": "vii",
+          "text": "Counting how many songs one male can hold"
+        },
+        {
+          "key": "viii",
+          "text": "Where the comparison with speech breaks down"
+        }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "Paragraph B",
+          "answer": "ii",
+          "explanation": "Paragraph B follows the song from the quiet, wandering subsong to the moment it \"has crystallised\" and stops changing. That is the movement from rambling to a fixed song."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "Paragraph C",
+          "answer": "iii",
+          "explanation": "Paragraph C is about the sensitive period: learning works \"only during a limited stretch of early life\", and birds taught after it closes learn far less. The window closes, which is what heading iii describes."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "Paragraph D",
+          "answer": "iv",
+          "explanation": "Paragraph D describes dialects — males in three separate valleys singing versions different enough for listeners to identify where a recording came from. The heading names exactly that valley-by-valley difference."
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "Paragraph E",
+          "answer": "v",
+          "explanation": "Paragraph E weighs the costs of learning (brain tissue, months of delay, the risk of copying badly) against two proposed benefits. Costs against benefits is what heading v names."
+        },
+        {
+          "id": "q5",
+          "type": "matching",
+          "prompt": "Paragraph F",
+          "answer": "vi",
+          "explanation": "Paragraph F reports that birds taught by a loudspeaker copied less accurately than birds taught by a live adult, and opens with the line that \"a loudspeaker is a poor teacher\"."
+        }
+      ]
+    },
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "tfng",
+          "statement": "A young bird can give a correct alarm call without ever having heard one.",
+          "answer": "TRUE",
+          "explanation": "Paragraph A says a young bird gives an alarm call correctly \"even if it has never heard another bird give one\". The statement says the same thing, so TRUE."
+        },
+        {
+          "id": "q7",
+          "type": "tfng",
+          "statement": "Birds raised in silence went on to produce completely normal adult songs.",
+          "answer": "FALSE",
+          "explanation": "Paragraph C says birds raised in silence produced songs that were \"shorter, simpler and oddly organised\". The statement claims their songs were normal, which contradicts the passage: FALSE."
+        },
+        {
+          "id": "q8",
+          "type": "tfng",
+          "statement": "The birds recorded in the three valleys also differed from each other in size.",
+          "answer": "NOT GIVEN",
+          "explanation": "Paragraph D reports only what the recordings sounded like and how accurately listeners placed them. Nothing is said about the birds' bodies at all, so this cannot be judged from the passage: NOT GIVEN."
+        },
+        {
+          "id": "q9",
+          "type": "tfng",
+          "statement": "An adult male that moves to a new valley keeps his original song completely unchanged.",
+          "answer": "FALSE",
+          "explanation": "Paragraph D says such males \"have been observed to adjust their songs towards the local pattern\", even if rarely a perfect match. 'Completely unchanged' contradicts that, so FALSE."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "The quiet, wandering singing of a young bird is called ___.",
+          "answer": "subsong",
+          "maxWords": 2,
+          "explanation": "Paragraph B names it: \"This early attempt is called subsong.\" The question sentence describes the same quiet, wandering singing, so the missing word is subsong."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "Once the same sequence is produced every time, researchers say the song has ___.",
+          "answer": "crystallised",
+          "maxWords": 2,
+          "explanation": "Paragraph B says that when the bird \"produces the same sequence every time... the song has crystallised\". The gap needs that verb: crystallised."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "Local versions of a species' song are known as ___.",
+          "answer": "dialects",
+          "maxWords": 2,
+          "explanation": "Paragraph D says \"these local versions are called dialects\". The question sentence repeats the definition, so the answer is dialects."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "The stretch of early life in which the memory stage works properly is called a ___.",
+          "answer": "sensitive period",
+          "maxWords": 2,
+          "explanation": "Paragraph C calls it \"a limited stretch of early life, known as a sensitive period\". The gap needs that two-word name."
+        }
+      ]
+    }
+  ]
+}

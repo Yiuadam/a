@@ -1,0 +1,128 @@
+{
+  "id": "listening-30",
+  "title": "How Concert Halls Are Designed for Sound",
+  "context": "A lecturer explains why the acoustics of a concert hall are so hard to design, and why the most admired halls were built before the science existed.",
+  "difficulty": "hard",
+  "level": "C1",
+  "timeMinutes": 12,
+  "speakers": [
+    "Lecturer"
+  ],
+  "script": [
+    { "speaker": "Lecturer", "text": "Today I want to look at a design problem that sounds straightforward and is not: building a room in which an orchestra can be heard well." },
+    { "speaker": "Lecturer", "text": "The most quoted number in this field is reverberation time — how long a sound takes to decay away to nothing once the source has stopped. For speech you want that short, because a long tail smears one syllable into the next. For an orchestra you want it long, because the tail is what gives the sound its warmth. The awkward part is that concert halls are usually asked to do both, and the two requirements pull in opposite directions." },
+    { "speaker": "Lecturer", "text": "The figure most orchestral halls aim at is around two seconds. A lecture theatre such as this one wants under one. A cathedral might run to six or seven, which is glorious for a choir and hopeless for anybody speaking without a microphone." },
+    { "speaker": "Lecturer", "text": "Now, the shape. The halls that have survived critical opinion best are almost all a simple rectangle — long, narrow and high, what the literature calls the shoebox. That was not a design decision in any modern sense; it was what nineteenth-century builders could roof. But it turns out to do something valuable. In a narrow room, sound reaches you from the side walls very soon after it reaches you directly, and it is those early lateral reflections that make music seem to surround you rather than arrive at you from the front." },
+    { "speaker": "Lecturer", "text": "In the middle of the twentieth century a great many halls were built fan shaped instead, widening away from the platform. The reasoning was visual and commercial: more seats close to the performers. Acoustically it was a mistake, because in a fan the side walls are angled away from the audience, and the early reflections that the shoebox delivers for nothing simply never arrive. Several of those halls have since been rebuilt from the inside out." },
+    { "speaker": "Lecturer", "text": "Materials matter less than people expect, and in one particular respect more. Thin panelling vibrates, and in vibrating it absorbs low frequencies, which is why a hall lined with thin wood can sound thin. Mass is what you want — heavy plaster, thick timber, stone. The old halls succeeded partly because nobody had yet invented lightweight construction." },
+    { "speaker": "Lecturer", "text": "What the surfaces must also do is scatter. A large flat wall reflects sound rather as a mirror reflects light, producing one strong echo from one direction. Break that surface up — with mouldings, niches, statues, deep coffering in the ceiling — and the reflection is spread out in time and in direction. The heavy ornament of the old halls, which the twentieth century stripped out for looking old-fashioned, was doing acoustic work that nobody had thought to measure." },
+    { "speaker": "Lecturer", "text": "The most difficult variable of all is the audience. People absorb sound. A full hall and an empty one are acoustically different rooms, and the difference is large enough that an orchestra rehearsing in an empty hall is not hearing what it will hear that evening. The standard answer is to design the seats so that each one absorbs roughly what a person does, so that the hall changes as little as possible between the rehearsal and the performance. Getting that match right takes a surprising share of the design budget." },
+    { "speaker": "Lecturer", "text": "Modern halls increasingly build in adjustment: curtains that can be drawn across reflective surfaces, chambers behind the platform whose doors open to add volume, canopies that can be raised or lowered above the players. This is partly humility. It is also economics — a hall that can be tuned can take amplified music on Friday and a string quartet on Sunday." },
+    { "speaker": "Lecturer", "text": "Which brings me to the real difficulty of this discipline. You cannot test a concert hall until it is built, and by then it costs a fortune to change. For most of the twentieth century the answer was a physical scale model — a tenth-scale hall, tested with correspondingly higher frequencies, and sometimes with the air inside it dried or replaced so that its absorption scaled as well. The first pass is now done in software, tracing sound rays through a geometric model of the room. But a simulation is only as good as its assumptions about absorption, and those assumptions come from measurements of real materials in real rooms, so the two methods are not rivals so much as links in one chain." },
+    { "speaker": "Lecturer", "text": "I will finish with an uncomfortable observation. The best-regarded halls in the world were mostly built before any of this was understood, by people following convention and a budget. That should not make us dismiss the science. It should make us careful about what the science is for: not to produce a formula for a good hall, but to explain why the good ones are good, so that the next one is not simply a matter of luck." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Reverberation time aimed at in orchestral halls: about ___ seconds",
+          "answer": "2",
+          "maxWords": 1,
+          "explanation": "\"The figure most orchestral halls aim at is around two seconds.\" Six or seven seconds is a cathedral, not a concert hall."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "The rectangular hall shape is known as the ___",
+          "answer": "shoebox",
+          "maxWords": 1,
+          "explanation": "The best halls are \"a simple rectangle — long, narrow and high, what the literature calls the shoebox.\""
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Narrow halls give the listener early ___ reflections from the side walls",
+          "answer": "lateral",
+          "maxWords": 1,
+          "explanation": "\"It is those early lateral reflections that make music seem to surround you rather than arrive at you from the front.\""
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Many mid-twentieth-century halls were built ___ shaped instead",
+          "answer": "fan",
+          "maxWords": 1,
+          "explanation": "\"A great many halls were built fan shaped instead, widening away from the platform,\" for commercial and visual reasons."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Broken-up surfaces are needed so that walls ___ the sound",
+          "answer": "scatter",
+          "maxWords": 1,
+          "explanation": "\"What the surfaces must also do is scatter,\" because a large flat wall produces one strong echo from one direction."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Seats are designed to absorb about as much sound as a ___",
+          "answer": "person",
+          "maxWords": 1,
+          "explanation": "\"Design the seats so that each one absorbs roughly what a person does,\" so an empty hall behaves like a full one."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Before software, halls were tested using a physical ___ model",
+          "answer": "scale",
+          "maxWords": 1,
+          "explanation": "\"The answer was a physical scale model — a tenth-scale hall, tested with correspondingly higher frequencies.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Why were fan-shaped halls acoustically disappointing?",
+          "options": [
+            "their side walls did not deliver early reflections",
+            "their ceilings were too low for the sound to develop",
+            "they used too much heavy plaster"
+          ],
+          "answer": 0,
+          "explanation": "\"In a fan the side walls are angled away from the audience, and the early reflections that the shoebox delivers for nothing simply never arrive.\""
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What does the lecturer say about thin wooden panelling?",
+          "options": [
+            "it scatters sound in every direction",
+            "it absorbs low frequencies",
+            "it is cheaper than heavy plaster"
+          ],
+          "answer": 1,
+          "explanation": "\"Thin panelling vibrates, and in vibrating it absorbs low frequencies, which is why a hall lined with thin wood can sound thin.\""
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "What is the lecturer's conclusion about the science of acoustics?",
+          "options": [
+            "it can now produce a formula for a good hall",
+            "it explains why the admired halls succeed",
+            "it has made scale models unnecessary"
+          ],
+          "answer": 1,
+          "explanation": "The science is \"not to produce a formula for a good hall, but to explain why the good ones are good,\" so the next hall is not down to luck."
+        }
+      ]
+    }
+  ]
+}

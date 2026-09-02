@@ -1,0 +1,145 @@
+{
+  "id": "reading-22",
+  "title": "Why Teenagers Cannot Get Up",
+  "topic": "The shift in the adolescent body clock and what schools have tried to do about it",
+  "difficulty": "easy",
+  "level": "B1",
+  "timeMinutes": 18,
+  "passage": "Almost every family with a teenager in it has the same argument. The young person goes to bed long after midnight, cannot be woken in the morning, and falls asleep on the sofa at six in the evening. Parents call it laziness. Teachers call it a lack of discipline. For a long time nobody looked for any other explanation, because none seemed necessary.\n\nSleep researchers now think the argument is largely unfair. The body keeps its own clock, and in the teenage years that clock moves. It is not a habit or an attitude. It is a change in the timing of the body itself, and it happens whether the young person wants it or not.\n\nThe clock is a small group of cells in the brain that runs on a cycle of roughly twenty-four hours. It is not perfectly accurate on its own, so every day it is corrected by light. When light reaches the eye in the morning, the clock is pulled earlier; when the eye receives bright light late in the evening, the clock is pushed later. This is why travellers who fly across several time zones feel wrong for a few days and then recover. The clock is being reset.\n\nOne of the clock's jobs is to control a hormone called melatonin. Melatonin is the body's night signal. As it rises, body temperature falls slightly, attention drops and sleep becomes possible. In an adult, melatonin usually begins to rise about two hours before the person feels ready to sleep.\n\nWhat changes in adolescence is when that rise happens. In one study, researchers measured the hormone in the same group of young people every year as they grew up. In the youngest children the rise began at around half past eight in the evening. By the age of fifteen, the same young people were producing it about two hours later. Nothing about their bedrooms or their homework had changed. Their internal timing had.\n\nThe result is a simple conflict. If the body is not ready for sleep until midnight, and the alarm goes off at half past six, the young person is short of sleep on every school day of the year. Most teenagers need between eight and nine hours. In a survey of secondary school students, more than half reported less than seven hours on a school night, and the shortest sleepers were the oldest students, who had the earliest lessons and the most work.\n\nThe missing hours are not simply lost. They are borrowed and repaid at the weekend, when the same students sleep until the middle of the day. Researchers call the difference between weekday and weekend sleep the weekend gap, and in the survey it was more than three hours in a quarter of the students. Sleeping late on Saturday feels like a repair, but it pushes the clock later still, so Monday morning is worse than Friday was.\n\nWhat happens to a student who is short of sleep is easy to predict and unpleasant to read. Attention falls, especially in the first lessons of the day. New information is harder to hold. Mood suffers, and so does the ability to judge risk. Teachers who move a difficult subject to the first period of the morning often report that the same class performs quite differently in the afternoon.\n\nSome schools have tried the obvious answer, which is to start later. One secondary school moved the beginning of the school day from 8.15 to 9.30 and kept records for two years. Late arrivals fell by about half. Attendance improved slightly. Students reported sleeping around forty minutes longer on school nights, which is less than the delay in the start time, because many of them also went to bed later. Test results improved a little, though the researchers were careful to say that a single school cannot prove very much on its own.\n\nOther schools have looked at the same idea and decided against it. Their reasons are practical rather than scientific. Buses are shared with primary schools and run on fixed timetables. Parents leave for work before eight and want their children to leave at the same time. Sports fixtures, part-time jobs and after-school clubs all sit in the afternoon, and a later start pushes them into the dark. In one district the change was tried and then reversed, not because it failed but because the timetable around it could not be moved.\n\nThere are smaller changes that do not need a new timetable. Light is the strongest tool available, because light is what sets the clock in the first place. Bright light in the morning, ideally outdoors, pulls the clock earlier. Dim light in the last hour before bed allows melatonin to rise on time. Screens matter less for the pictures on them than for the light they put into the eye at close range, which is why researchers advise putting the phone down rather than only changing what is on it.\n\nRegular timing helps too. A body clock corrected at the same hour every day drifts less than one that is corrected at a different hour each day, so going to bed and getting up at similar times, including at weekends, does more good than any single late night does harm. Naps are useful if they are short and early; a long nap after school makes the evening sleep harder to reach.\n\nNone of this makes the teenage clock go back to where it was. The delay is part of growing up, and in most people it slowly reverses in their twenties without any effort at all. What the research changes is the tone of the argument at breakfast. A teenager who cannot get out of bed at seven in the morning is not necessarily refusing to. Quite often the body has simply not finished the night.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "Researchers now believe that most teenagers stay up late because they lack discipline.",
+          "answer": "FALSE",
+          "explanation": "The passage says researchers \"think the argument is largely unfair\" and that the change is \"not a habit or an attitude\". The statement says the opposite of this, so FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "In the study, fifteen-year-olds produced melatonin later in the evening than younger children did.",
+          "answer": "TRUE",
+          "explanation": "The study found the rise began \"at around half past eight\" in the youngest children and \"about two hours later\" by the age of fifteen. The statement matches this, so TRUE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "The change in the body clock begins earlier in girls than in boys.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage describes the change in teenagers as a group and never compares girls with boys at any point. Because the text says nothing either way, the answer is NOT GIVEN."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Sleeping late at the weekend pushes the body clock even later.",
+          "answer": "TRUE",
+          "explanation": "The passage says sleeping late on Saturday \"feels like a repair, but it pushes the clock later still\", which is exactly what the statement says. TRUE."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "In the school that started at 9.30, students slept exactly as much longer as the start time was delayed.",
+          "answer": "FALSE",
+          "explanation": "Students slept \"around forty minutes longer\", which the passage calls \"less than the delay in the start time, because many of them also went to bed later\". The statement claims the two were equal, so FALSE."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "How is the body clock corrected each day?",
+          "options": [
+            "By meal times.",
+            "By light reaching the eye.",
+            "By physical exercise.",
+            "By the temperature of the bedroom."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph 3 says the clock \"is corrected by light\", pulled earlier by morning light and pushed later by bright evening light. That is option B; meals, exercise and room temperature are never mentioned."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What does the term 'the weekend gap' refer to?",
+          "options": [
+            "The number of hours students spend on homework at weekends.",
+            "The difference between sleep on school nights and sleep at weekends.",
+            "The time between finishing school on Friday and going out.",
+            "The gap between the school timetable and the bus timetable."
+          ],
+          "answer": 1,
+          "explanation": "The passage defines it directly: \"the difference between weekday and weekend sleep the weekend gap\". That is option B."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Why have some schools decided not to start the day later?",
+          "options": [
+            "Because the research showed that students slept less.",
+            "Because parents were not told about the plan.",
+            "Because buses, parents' working hours and afternoon activities are fixed around the old times.",
+            "Because teachers preferred to teach difficult subjects early."
+          ],
+          "answer": 2,
+          "explanation": "The passage gives practical reasons: shared bus timetables, parents leaving before eight, and sport, jobs and clubs in the afternoon. That is option C, and the passage says these schools rejected the idea for practical rather than scientific reasons."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What does the passage say about naps?",
+          "options": [
+            "They should be avoided completely.",
+            "They are helpful if they are short and taken early.",
+            "They work best immediately before bedtime.",
+            "They replace an hour of night sleep each time."
+          ],
+          "answer": 1,
+          "explanation": "The passage says \"Naps are useful if they are short and early\", and warns that a long nap after school makes evening sleep harder. That is option B."
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the questions below. Write NO MORE THAN THREE WORDS OR A NUMBER from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "short-answer",
+          "question": "Which hormone acts as the body's signal that night has come?",
+          "answer": "melatonin",
+          "maxWords": 3,
+          "explanation": "The passage says: \"Melatonin is the body's night signal.\" The question repeats that definition, so the answer is the name of the hormone, melatonin."
+        },
+        {
+          "id": "q11",
+          "type": "short-answer",
+          "question": "By the age of fifteen, how much later were the young people in the study producing the hormone?",
+          "answer": "two hours",
+          "maxWords": 3,
+          "explanation": "The study found that by fifteen the same young people produced melatonin \"about two hours later\" than as younger children. The gap the question asks about is two hours."
+        },
+        {
+          "id": "q12",
+          "type": "short-answer",
+          "question": "What time did the school in the two-year study move the start of its day to?",
+          "answer": "9.30",
+          "maxWords": 3,
+          "explanation": "The passage says the school \"moved the beginning of the school day from 8.15 to 9.30\". The question asks for the new time, which is the second of these: 9.30."
+        },
+        {
+          "id": "q13",
+          "type": "short-answer",
+          "question": "What kind of light in the morning pulls the body clock earlier?",
+          "answer": "bright light",
+          "maxWords": 3,
+          "explanation": "The passage says \"Bright light in the morning, ideally outdoors, pulls the clock earlier.\" The question uses the same words 'morning' and 'pulls the clock earlier', so the answer is bright light."
+        }
+      ]
+    }
+  ]
+}

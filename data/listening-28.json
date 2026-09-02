@@ -1,0 +1,139 @@
+{
+  "id": "listening-28",
+  "title": "Feedback on the First History Essay",
+  "context": "A history tutor returns two first-year essays and then sorts out which items on the reading list are worth the students' time.",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 12,
+  "speakers": [
+    "Dr Iyer",
+    "Marta",
+    "Joel"
+  ],
+  "script": [
+    { "speaker": "Dr Iyer", "text": "Right, I've read both of them. Marta, Joel — before anything else: neither of these is a bad essay. They are first essays, and they have first-essay problems, which is a different thing entirely." },
+    { "speaker": "Marta", "text": "That's a relief. Mine came back with an awful lot of red on it." },
+    { "speaker": "Dr Iyer", "text": "A lot of red means I read it carefully. An essay with nothing written on it is usually one I gave up on." },
+    { "speaker": "Joel", "text": "Mine had a comment on the front — \"where is the argument?\" I'm honestly not sure what that means." },
+    { "speaker": "Dr Iyer", "text": "Fair enough. Let me try. You told me what four historians think about the 1926 strike. That is a summary. What you didn't tell me is what you think, or why the disagreement between them matters." },
+    { "speaker": "Joel", "text": "But we were told not to write \"I think\"." },
+    { "speaker": "Dr Iyer", "text": "You were told not to write \"in my opinion, I personally feel\". That's different. An argument doesn't need the word \"I\" in it anywhere — it needs a claim in the first paragraph that somebody could disagree with. Yours opens with \"the strike was a significant event\", and nobody on earth disagrees with that." },
+    { "speaker": "Marta", "text": "Mine opens almost the same way. I've only just realised." },
+    { "speaker": "Dr Iyer", "text": "It does. So, both of you: write the first paragraph last. Write the essay, find out what you actually concluded, then go back and put it at the top." },
+    { "speaker": "Marta", "text": "What about the referencing? I lost marks on that and I don't know why." },
+    { "speaker": "Dr Iyer", "text": "Your footnotes are fine in form. The problem is what's inside them. Fourteen footnotes, and eleven of them point to the same two chapters. That tells me you read two chapters." },
+    { "speaker": "Marta", "text": "I read much more than that." },
+    { "speaker": "Dr Iyer", "text": "Then cite it. An examiner can only mark what is on the page. Aim for a minimum of six different sources in a two thousand word essay, and no single source carrying more than about a quarter of your references." },
+    { "speaker": "Joel", "text": "Is there a word limit problem with mine? I think I went over." },
+    { "speaker": "Dr Iyer", "text": "Yours was two thousand four hundred against a limit of two thousand. There is a ten per cent tolerance, so anything up to two thousand two hundred would have been fine. You were beyond that, and it costs five marks. Cut it, don't plead." },
+    { "speaker": "Joel", "text": "Understood." },
+    { "speaker": "Dr Iyer", "text": "Now, the reading for the next one, because this is where I can actually save you some time. There are five things on that list and they are not equal." },
+    { "speaker": "Marta", "text": "I started with the Harkness textbook." },
+    { "speaker": "Dr Iyer", "text": "Everybody does, and it is the wrong place to start for this question. Harkness is an excellent survey of the whole century, which means it is too general for what I'm asking you. Read it if you want the background, but it won't give you a single sentence you can use." },
+    { "speaker": "Joel", "text": "What about the Ferreira article? The 1998 one?" },
+    { "speaker": "Dr Iyer", "text": "Ferreira was important, and then the archives opened in 2004 and a good deal of it stopped being true. Later research has overtaken it. Know that it exists, know why people cited it, but don't build anything on it." },
+    { "speaker": "Marta", "text": "And the census report?" },
+    { "speaker": "Dr Iyer", "text": "Wonderful numbers. Genuinely — the household figures in there are the best you will find anywhere. But it makes no argument at all; it is a table with a cover on it. Use it for statistics and for nothing else." },
+    { "speaker": "Joel", "text": "So where should we start?" },
+    { "speaker": "Dr Iyer", "text": "Blackwood's biography. I know it looks like the least academic thing on the list, because it is about one man and it has photographs in it, but it is the one that shows you what the dispute actually felt like from the inside, and everything else makes more sense afterwards. Start there." },
+    { "speaker": "Marta", "text": "And the Meredith essays?" },
+    { "speaker": "Dr Iyer", "text": "Last. The Meredith collection is a set of replies to arguments you haven't met yet. Read it first and it is noise; read it after the other four and it is the most useful thing on the list." },
+    { "speaker": "Joel", "text": "That is genuinely helpful. Nobody told us the list had an order." },
+    { "speaker": "Dr Iyer", "text": "Reading lists rarely say so, and I'm not sure why. Right — two thousand words, on my desk in a fortnight, and Joel: first paragraph last." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "The comment on the front of Joel's essay asked where the ___ was",
+          "answer": "argument",
+          "maxWords": 1,
+          "explanation": "Joel reads out the comment himself: \"Mine had a comment on the front — 'where is the argument?'\" Dr Iyer then explains what a summary lacks."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Dr Iyer advises both students to write the first paragraph ___",
+          "answer": "last",
+          "maxWords": 1,
+          "explanation": "\"Write the first paragraph last. Write the essay, find out what you actually concluded, then go back and put it at the top.\""
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Number of footnotes in Marta's essay: ___",
+          "answer": "14",
+          "maxWords": 1,
+          "explanation": "\"Fourteen footnotes, and eleven of them point to the same two chapters.\" Eleven is how many pointed to one place, not the total."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Minimum number of different sources for a two-thousand-word essay: ___",
+          "answer": "6",
+          "maxWords": 1,
+          "explanation": "\"Aim for a minimum of six different sources in a two thousand word essay,\" with no source carrying more than a quarter of the references."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Marks lost by Joel for going over the word limit: ___",
+          "answer": "5",
+          "maxWords": 1,
+          "explanation": "There is a ten per cent tolerance, but Joel wrote two thousand four hundred words, and Dr Iyer says \"it costs five marks.\""
+        }
+      ]
+    },
+    {
+      "instruction": "What does Dr Iyer say about each item on the reading list? Choose your answer from the box and write the correct letter, A-F.",
+      "sharedOptions": [
+        { "key": "A", "text": "It is too general for this essay." },
+        { "key": "B", "text": "Later research has overtaken it." },
+        { "key": "C", "text": "It is useful for statistics only." },
+        { "key": "D", "text": "It should be read after the others." },
+        { "key": "E", "text": "It is the best place to start." },
+        { "key": "F", "text": "It is too long to read in full." }
+      ],
+      "questions": [
+        {
+          "id": "q6",
+          "type": "matching",
+          "prompt": "the Harkness textbook",
+          "answer": "A",
+          "explanation": "\"Harkness is an excellent survey of the whole century, which means it is too general for what I'm asking you.\" It is where everyone wrongly starts."
+        },
+        {
+          "id": "q7",
+          "type": "matching",
+          "prompt": "the 1998 article by Ferreira",
+          "answer": "B",
+          "explanation": "The archives opened in 2004 and much of the article \"stopped being true. Later research has overtaken it.\""
+        },
+        {
+          "id": "q8",
+          "type": "matching",
+          "prompt": "the census report",
+          "answer": "C",
+          "explanation": "Its numbers are the best available, \"But it makes no argument at all... Use it for statistics and for nothing else.\""
+        },
+        {
+          "id": "q9",
+          "type": "matching",
+          "prompt": "Blackwood's biography",
+          "answer": "E",
+          "explanation": "It looks the least academic, but it shows \"what the dispute actually felt like from the inside,\" and Dr Iyer ends with \"Start there.\""
+        },
+        {
+          "id": "q10",
+          "type": "matching",
+          "prompt": "the Meredith collection of essays",
+          "answer": "D",
+          "explanation": "\"Last.\" It replies to arguments the students have not met yet: \"read it after the other four and it is the most useful thing on the list.\""
+        }
+      ]
+    }
+  ]
+}

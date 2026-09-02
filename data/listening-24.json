@@ -1,0 +1,136 @@
+{
+  "id": "listening-24",
+  "title": "Weekend Engineering Work on the Marchford Line",
+  "context": "A duty station manager stands on the concourse and explains to waiting passengers how a weekend line closure will affect their journeys.",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 12,
+  "speakers": [
+    "Station Manager"
+  ],
+  "script": [
+    { "speaker": "Station Manager", "text": "Good morning everyone, and thank you for your patience. My name's Rob and I'm the duty manager here at Marchford. I'd like to explain what's happening this weekend, because I know the signs on the concourse aren't as clear as they should be." },
+    { "speaker": "Station Manager", "text": "From Friday evening until Monday morning, there will be no trains at all between Marchford and Kelby. Engineers are replacing a bridge just outside Kelby, and that work simply cannot be done with trains running over the top of it." },
+    { "speaker": "Station Manager", "text": "If you're travelling north — towards Whitton and beyond — your train will run completely as normal from Kelby onwards. It's only the eight miles between here and Kelby that are affected." },
+    { "speaker": "Station Manager", "text": "We're running replacement buses instead. They leave from Stand C, which is not on the station forecourt where you would expect it to be. It's around the corner on Argyle Street, next to the taxi rank." },
+    { "speaker": "Station Manager", "text": "There'll be staff in orange jackets pointing the way, and honestly, please follow them rather than the map on the poster. The poster is out of date and it shows the old stand." },
+    { "speaker": "Station Manager", "text": "The buses run every twenty minutes, and the journey takes about thirty-five minutes, compared with fourteen minutes by train. So please allow yourself an extra half an hour, and if you're catching a flight or a coach at the other end, allow a full hour." },
+    { "speaker": "Station Manager", "text": "Now, two things people always ask me. First, your ordinary ticket is valid on the bus. You don't need to buy anything extra and you don't need to show anything special — just the ticket you already have." },
+    { "speaker": "Station Manager", "text": "Second, refunds. If the delay to your whole journey ends up being more than fifteen minutes, you can claim under the delay repay scheme, and you do that on the website rather than here. We genuinely can't process those at the ticket office, and I'm sorry, because I know that's what everybody would prefer." },
+    { "speaker": "Station Manager", "text": "The buses are not all the same, and this matters to some of you. Most of them are ordinary coaches with steps up into them, but there are two accessible buses with a ramp, and those run at ten past and twenty to the hour." },
+    { "speaker": "Station Manager", "text": "If you use a wheelchair, or you're travelling with a pushchair, please come and speak to the staff in orange and they'll make sure you get one of those, rather than leaving you standing in the general queue." },
+    { "speaker": "Station Manager", "text": "Bicycles are the one thing we can't take, I'm afraid. There's simply no room in the luggage compartment once it's full of suitcases. If you've cycled here, you can leave your bike in the racks by the side entrance, and there's no charge for that." },
+    { "speaker": "Station Manager", "text": "The last bus on both Saturday and Sunday leaves rather earlier in the evening than the last train normally does. So if you're going out for the evening, please check the time before you go rather than afterwards." },
+    { "speaker": "Station Manager", "text": "There's also a free hot drink for anyone travelling on the replacement buses this weekend. The café by platform two is doing them — just say you're on the bus service and they'll sort you out." },
+    { "speaker": "Station Manager", "text": "And finally, if you want the times on your phone, use the station app rather than the website this weekend. The website is still showing the normal Sunday timetable, which is wrong. We've reported it, but until it's fixed, please trust the app." },
+    { "speaker": "Station Manager", "text": "That's everything from me. If you're at all unsure, ask me or anyone in an orange jacket. We would far rather answer the same question forty times than have somebody miss a connection." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "No trains will run between Marchford and ___",
+          "answer": "Kelby",
+          "maxWords": 1,
+          "explanation": "The manager says there will be \"no trains at all between Marchford and Kelby\" from Friday evening until Monday morning."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Reason for the closure: engineers are replacing a ___",
+          "answer": "bridge",
+          "maxWords": 1,
+          "explanation": "He explains, \"Engineers are replacing a bridge just outside Kelby,\" and that trains cannot run over it while the work is done."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Replacement buses leave from Stand C on ___ Street",
+          "answer": "Argyle",
+          "maxWords": 1,
+          "explanation": "The stand is not on the forecourt: \"It's around the corner on Argyle Street, next to the taxi rank.\""
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Buses run every ___ minutes",
+          "answer": "20",
+          "maxWords": 1,
+          "explanation": "He states, \"The buses run every twenty minutes,\" which is separate from how long each bus journey takes."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "The bus journey takes about ___ minutes",
+          "answer": "35",
+          "maxWords": 1,
+          "explanation": "The bus \"takes about thirty-five minutes, compared with fourteen minutes by train.\" Fourteen is the train time, not the bus time."
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Cyclists may leave their bikes in the racks by the ___ entrance",
+          "answer": "side",
+          "maxWords": 1,
+          "explanation": "Bicycles cannot go on the buses, but \"you can leave your bike in the racks by the side entrance, and there's no charge for that.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What does the manager say about the map on the poster?",
+          "options": [
+            "it shows the correct stand",
+            "it is out of date",
+            "it will be replaced on Friday"
+          ],
+          "answer": 1,
+          "explanation": "He tells passengers to follow the staff \"rather than the map on the poster. The poster is out of date and it shows the old stand.\""
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "How should passengers claim for a delay?",
+          "options": [
+            "at the ticket office",
+            "from the staff in orange jackets",
+            "on the website"
+          ],
+          "answer": 2,
+          "explanation": "Claims go \"on the website rather than here,\" and he adds that the ticket office genuinely cannot process them."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What can passengers not take on the replacement buses?",
+          "options": [
+            "bicycles",
+            "suitcases",
+            "pushchairs"
+          ],
+          "answer": 0,
+          "explanation": "\"Bicycles are the one thing we can't take.\" Suitcases fill the luggage compartment, and passengers with pushchairs are offered the accessible buses."
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "Why does the manager recommend the app rather than the website?",
+          "options": [
+            "the website is showing the wrong timetable for Sunday",
+            "the website has been closed down for the weekend",
+            "the app offers a discount on tickets"
+          ],
+          "answer": 0,
+          "explanation": "He says, \"The website is still showing the normal Sunday timetable, which is wrong,\" and asks passengers to trust the app until it is fixed."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "id": "listening-27",
+  "title": "Why the Sleep Experiment Went Wrong",
+  "context": "A psychology tutor goes through a pilot study with the two students who ran it, and takes apart the way it was designed.",
+  "difficulty": "hard",
+  "level": "B2",
+  "timeMinutes": 12,
+  "speakers": [
+    "Dr Vance",
+    "Aisha",
+    "Ewan"
+  ],
+  "script": [
+    { "speaker": "Dr Vance", "text": "Right, let's look at your pilot. You ran it over three weeks, is that right?" },
+    { "speaker": "Aisha", "text": "Three weeks, yes. Twenty-two participants in the end." },
+    { "speaker": "Ewan", "text": "Twenty-four signed up, though. Two of them dropped out halfway." },
+    { "speaker": "Aisha", "text": "Sorry, yes — twenty-four signed up, twenty-two finished. Twenty-two is the number that matters." },
+    { "speaker": "Dr Vance", "text": "It is. And your finding was that the group who napped remembered more words. How much more?" },
+    { "speaker": "Ewan", "text": "About eleven per cent more, on average." },
+    { "speaker": "Dr Vance", "text": "Which sounds impressive until you look at the spread. What was your standard deviation?" },
+    { "speaker": "Aisha", "text": "It was... quite large. Larger than the difference between the groups, actually." },
+    { "speaker": "Dr Vance", "text": "Larger than the difference. So what does that tell you?" },
+    { "speaker": "Ewan", "text": "That the result could easily just be noise." },
+    { "speaker": "Dr Vance", "text": "It could. It might not be — but with twenty-two people you can't tell, and that's the honest position to take. Now, before we come back to the numbers, there's something else I want you to notice. How did people end up in the nap group?" },
+    { "speaker": "Aisha", "text": "They chose. We asked who was willing to nap and who'd rather stay awake." },
+    { "speaker": "Dr Vance", "text": "Right." },
+    { "speaker": "Ewan", "text": "Ah." },
+    { "speaker": "Aisha", "text": "What?" },
+    { "speaker": "Ewan", "text": "The people who volunteered to nap are... they're different people to begin with. They're people who can nap." },
+    { "speaker": "Dr Vance", "text": "Go on." },
+    { "speaker": "Ewan", "text": "And in our own questionnaire — I've only just remembered this — the nap group reported drinking less coffee. Much less. We wrote it down and then never thought about it again." },
+    { "speaker": "Dr Vance", "text": "So you have two groups that differ in more than one way, and a result you would like to attribute to just one of those ways. That is the whole problem in a single sentence. What is it called?" },
+    { "speaker": "Aisha", "text": "It's a confounding variable." },
+    { "speaker": "Dr Vance", "text": "It is. And the fix is not cleverer statistics, it's the design. You allocate people at random, and you don't let them pick." },
+    { "speaker": "Aisha", "text": "Some of them won't be able to nap, though." },
+    { "speaker": "Dr Vance", "text": "Then they lie down in a dark room for forty minutes and you record whether they actually slept. That is data, not a failure. What you must not do is let the participant choose the condition." },
+    { "speaker": "Ewan", "text": "Can I ask about the ethics side? Our approval came through in week two, and we'd already run four people by then." },
+    { "speaker": "Dr Vance", "text": "Then those four don't exist. You take them out and you say so in the write-up. I would far rather read a study that reports twenty-two people and one honest paragraph about four excluded ones, than a study that quietly reports twenty-six." },
+    { "speaker": "Aisha", "text": "That does weaken the result, though." },
+    { "speaker": "Dr Vance", "text": "It weakens the number. It strengthens the paper. Those are not the same thing." },
+    { "speaker": "Ewan", "text": "What about the memory test itself? We used a list of forty words." },
+    { "speaker": "Dr Vance", "text": "How were they chosen?" },
+    { "speaker": "Ewan", "text": "We picked them ourselves." },
+    { "speaker": "Dr Vance", "text": "On what basis?" },
+    { "speaker": "Ewan", "text": "Um. We thought they seemed... ordinary." },
+    { "speaker": "Dr Vance", "text": "There are published word lists, matched for frequency and length, precisely so that the phrase \"seemed ordinary\" doesn't have to do that work for you. Use one. That is the easiest of all the changes on this list, and it costs you nothing at all." },
+    { "speaker": "Aisha", "text": "So for the main study — random allocation, a standard word list, and ethics approval before anybody walks through the door." },
+    { "speaker": "Dr Vance", "text": "And more people. How many can you realistically recruit next term?" },
+    { "speaker": "Aisha", "text": "Sixty? Maybe seventy if we can use the second-year pool as well." },
+    { "speaker": "Dr Vance", "text": "Aim for sixty and be pleased if you get seventy. Now — one thing you did do well, and I don't want it lost in all of this. Your timing was identical for every participant. Same hour of the day, same interval between learning and testing, to the minute. That is genuinely careful work and most pilots don't manage it." },
+    { "speaker": "Ewan", "text": "That was Aisha's doing." },
+    { "speaker": "Aisha", "text": "It was both of us." },
+    { "speaker": "Dr Vance", "text": "Well, keep doing it. Right — Ewan, find me two candidate word lists by Friday. Aisha, write the ethics application this week, not next week. And both of you, one page on how you intend to randomise." },
+    { "speaker": "Aisha", "text": "One page each, or one page between us?" },
+    { "speaker": "Dr Vance", "text": "Between you. If you can't agree on it now, you certainly won't agree on it in February." }
+  ],
+  "questions": [
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "mcq",
+          "question": "How many participants completed the pilot study?",
+          "options": [
+            "22",
+            "24",
+            "26"
+          ],
+          "answer": 0,
+          "explanation": "Twenty-four signed up but two dropped out, and Aisha corrects herself: \"twenty-four signed up, twenty-two finished. Twenty-two is the number that matters.\""
+        },
+        {
+          "id": "q2",
+          "type": "mcq",
+          "question": "What does Aisha say about the standard deviation?",
+          "options": [
+            "it was smaller than the difference between the groups",
+            "it was larger than the difference between the groups",
+            "it could not be calculated"
+          ],
+          "answer": 1,
+          "explanation": "She says it was \"quite large. Larger than the difference between the groups,\" which is why Ewan concludes the result could be noise."
+        },
+        {
+          "id": "q3",
+          "type": "mcq",
+          "question": "What was wrong with the way participants were put into groups?",
+          "options": [
+            "the participants chose their own group",
+            "the groups were of very different sizes",
+            "the groups were decided by age"
+          ],
+          "answer": 0,
+          "explanation": "Aisha explains, \"They chose. We asked who was willing to nap.\" Dr Vance's rule is: \"You allocate people at random, and you don't let them pick.\""
+        },
+        {
+          "id": "q4",
+          "type": "mcq",
+          "question": "What does Dr Vance tell the students to do about the four people tested before ethics approval?",
+          "options": [
+            "include them but add a note",
+            "test the same four people again",
+            "remove them and explain why"
+          ],
+          "answer": 2,
+          "explanation": "\"Those four don't exist. You take them out and you say so in the write-up.\" He prefers an honest paragraph to a quiet total of twenty-six."
+        },
+        {
+          "id": "q5",
+          "type": "mcq",
+          "question": "What does Dr Vance praise about the pilot study?",
+          "options": [
+            "the size of the sample",
+            "the consistency of the timing",
+            "the choice of words tested"
+          ],
+          "answer": 1,
+          "explanation": "\"Your timing was identical for every participant. Same hour of the day, same interval between learning and testing, to the minute.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "The questionnaire showed that the nap group drank less ___",
+          "answer": "coffee",
+          "maxWords": 1,
+          "explanation": "Ewan suddenly remembers it: \"the nap group reported drinking less coffee. Much less. We wrote it down and then never thought about it again.\""
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "Two groups that differ in more than one way create a ___ variable",
+          "answer": "confounding",
+          "maxWords": 1,
+          "explanation": "Aisha supplies the term when Dr Vance asks what the problem is called: \"It's a confounding variable.\""
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "Participants who cannot sleep should lie in a dark room for ___ minutes",
+          "answer": "40",
+          "maxWords": 1,
+          "explanation": "\"Then they lie down in a dark room for forty minutes and you record whether they actually slept. That is data, not a failure.\""
+        },
+        {
+          "id": "q9",
+          "type": "completion",
+          "sentence": "Published word lists are matched for length and ___",
+          "answer": "frequency",
+          "maxWords": 1,
+          "explanation": "Dr Vance recommends \"published word lists, matched for frequency and length,\" instead of words the students judged to be ordinary."
+        },
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "For the main study the students should aim to recruit ___ participants",
+          "answer": "60",
+          "maxWords": 1,
+          "explanation": "\"Aim for sixty and be pleased if you get seventy.\" Seventy is the hoped-for figure, not the target they should plan around."
+        }
+      ]
+    }
+  ]
+}

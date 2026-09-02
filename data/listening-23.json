@@ -1,0 +1,152 @@
+{
+  "id": "listening-23",
+  "title": "Reporting a Leak to the Letting Agency",
+  "context": "A tenant telephones a letting agency about water coming through a bedroom ceiling and arranges for a plumber to visit.",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 12,
+  "speakers": [
+    "Agent",
+    "Tenant"
+  ],
+  "script": [
+    { "speaker": "Agent", "text": "Good afternoon, Halstead Property Management. Sanjay speaking." },
+    { "speaker": "Tenant", "text": "Hello. I'm ringing about a leak at the flat I rent through you. It's 14b Wexford Road." },
+    { "speaker": "Agent", "text": "Let me pull up the file. Wexford Road... is that the top flat?" },
+    { "speaker": "Tenant", "text": "That's right, 14b, top floor." },
+    { "speaker": "Agent", "text": "Here we are. And your name, just so I've got it on the record?" },
+    { "speaker": "Tenant", "text": "Dana Whitlock." },
+    { "speaker": "Agent", "text": "Thank you, Ms Whitlock. Can you tell me exactly what's happening?" },
+    { "speaker": "Tenant", "text": "There's water coming through the ceiling in the back bedroom. There's a brown patch about the size of a dinner plate, and it's definitely getting bigger." },
+    { "speaker": "Agent", "text": "And when did you first notice it?" },
+    { "speaker": "Tenant", "text": "Monday. No — hang on, that's not right. It was Sunday night, because I remember the football was on. Sunday." },
+    { "speaker": "Agent", "text": "Sunday. Is it dripping at the moment, or just damp?" },
+    { "speaker": "Tenant", "text": "It was dripping this morning. I've put a bucket underneath it." },
+    { "speaker": "Agent", "text": "That's exactly the right thing to do. Is the flat above yours occupied?" },
+    { "speaker": "Tenant", "text": "I think so, but nobody answers the door. I've knocked twice now." },
+    { "speaker": "Agent", "text": "Leave that with us, we'll deal with that end. I'm logging this as a category two repair, which means somebody has to attend within three working days." },
+    { "speaker": "Tenant", "text": "So not today, then." },
+    { "speaker": "Agent", "text": "I'm afraid not. It would only be category one — same day — if the ceiling itself were coming down. The plumbers we use are a firm called Ridgeway, and they'll ring you directly to fix a time." },
+    { "speaker": "Tenant", "text": "Ridgeway. Are they the same people who came about the boiler?" },
+    { "speaker": "Agent", "text": "No, that was a different firm. Ridgeway do everything on the water side." },
+    { "speaker": "Tenant", "text": "All right. I'm at work Tuesday and Wednesday, but Thursday I'm at home all day. And Friday morning as well." },
+    { "speaker": "Agent", "text": "I'll put Thursday down as your preference — actually, hold on. Thursday is when Ridgeway are doing the whole block on Preston Street. Could you manage Friday morning instead?" },
+    { "speaker": "Tenant", "text": "Friday morning is fine, yes." },
+    { "speaker": "Agent", "text": "Friday morning it is. Now, do you want to be there yourself, or shall we let them in with our set of keys?" },
+    { "speaker": "Tenant", "text": "I'd rather be there, if that's all right. I want to hear what they say about it." },
+    { "speaker": "Agent", "text": "Perfectly reasonable. There is one thing I have to ask you, though. Please don't switch on the light in that room. If water has got anywhere near the wiring, turning it on is genuinely dangerous. Use a lamp on the other side of the room instead." },
+    { "speaker": "Tenant", "text": "I hadn't even thought of that. I'll leave it off." },
+    { "speaker": "Agent", "text": "Good. And if things get worse over the weekend — if the ceiling starts to sag, or the water reaches a socket — ring the out-of-hours line. It's the same number you've just called, but you press 9 rather than waiting for the options." },
+    { "speaker": "Tenant", "text": "Press 9. Right, I've written that down." },
+    { "speaker": "Agent", "text": "One last thing, and I'd rather say it now than have you find out later. The repair itself costs you nothing — it's a structural problem, so it's the landlord's responsibility. But if the plumber turns up and nobody is in, there's a missed appointment fee of 45 pounds, and that does come out of your deposit." },
+    { "speaker": "Tenant", "text": "I'll be there, don't worry. What about the ceiling itself? It looks ruined." },
+    { "speaker": "Agent", "text": "The plasterer comes after the plumber, usually about a fortnight later, once everything has dried out properly. There's no sense in painting a wet ceiling." },
+    { "speaker": "Tenant", "text": "That makes sense. Thank you for your help." },
+    { "speaker": "Agent", "text": "Not at all. Your reference for this is 8072 — quote that if you need to ring again." },
+    { "speaker": "Tenant", "text": "8072. Thanks very much. Goodbye." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Address of the flat: 14b ___ Road",
+          "answer": "Wexford",
+          "maxWords": 1,
+          "explanation": "The tenant gives the address at the start of the call: \"It's 14b Wexford Road,\" and later confirms it is the top floor."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Leak first noticed on: ___ night",
+          "answer": "Sunday",
+          "maxWords": 1,
+          "explanation": "The tenant says Monday, then corrects herself: \"that's not right. It was Sunday night, because I remember the football was on.\""
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Repair logged as category ___",
+          "answer": "2",
+          "maxWords": 1,
+          "explanation": "The agent says, \"I'm logging this as a category two repair, which means somebody has to attend within three working days.\" Category one is same-day."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Name of the plumbing firm: ___",
+          "answer": "Ridgeway",
+          "maxWords": 1,
+          "explanation": "The agent names the firm: \"The plumbers we use are a firm called Ridgeway.\" A different firm dealt with the boiler."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Appointment agreed for: ___ morning",
+          "answer": "Friday",
+          "maxWords": 1,
+          "explanation": "Thursday is suggested first, but the agent stops himself because the firm is elsewhere, and asks, \"Could you manage Friday morning instead?\""
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Charge if nobody is at home for the visit: £___",
+          "answer": "45",
+          "maxWords": 1,
+          "explanation": "The repair is free, but the agent warns there is \"a missed appointment fee of 45 pounds, and that does come out of your deposit.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the questions below. Write NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q7",
+          "type": "short-answer",
+          "question": "What has the tenant put under the leak?",
+          "answer": "bucket",
+          "accept": [
+            "a bucket"
+          ],
+          "maxWords": 2,
+          "explanation": "The tenant says, \"It was dripping this morning. I've put a bucket underneath it,\" and the agent tells her that was the right thing to do."
+        },
+        {
+          "id": "q8",
+          "type": "short-answer",
+          "question": "Which room is the water coming into?",
+          "answer": "the back bedroom",
+          "accept": [
+            "back bedroom"
+          ],
+          "maxWords": 3,
+          "explanation": "She describes \"water coming through the ceiling in the back bedroom,\" with a brown patch that is getting bigger."
+        },
+        {
+          "id": "q9",
+          "type": "short-answer",
+          "question": "What must the tenant not switch on in that room?",
+          "answer": "the light",
+          "accept": [
+            "light"
+          ],
+          "maxWords": 2,
+          "explanation": "The agent warns, \"Please don't switch on the light in that room,\" because water near the wiring makes it dangerous."
+        },
+        {
+          "id": "q10",
+          "type": "short-answer",
+          "question": "Which number must be pressed to reach the out-of-hours line?",
+          "answer": "9",
+          "accept": [
+            "nine"
+          ],
+          "maxWords": 1,
+          "explanation": "The out-of-hours line uses the same telephone number, but the agent says \"you press 9 rather than waiting for the options.\""
+        }
+      ]
+    }
+  ]
+}

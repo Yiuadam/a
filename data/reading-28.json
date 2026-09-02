@@ -1,0 +1,181 @@
+{
+  "id": "reading-28",
+  "title": "The Sense That Resists Description",
+  "topic": "Why the science of smell has proved harder than the science of vision or hearing",
+  "difficulty": "hard",
+  "level": "C1",
+  "timeMinutes": 20,
+  "passage": "A\nThe senses we understand best are the ones that fall neatly onto a scale. Light can be ordered by wavelength and the ordering corresponds, with reasonable fidelity, to the sequence of hues a person reports; sound can be ordered by frequency and the ordering corresponds to pitch. Smell offers nothing comparable. A chemist can specify a molecule's mass, shape, volatility and charge distribution to several decimal places and remain unable to say what it will smell like. Compounds that differ by the position of a single atom are sometimes reported as entirely unalike, while compounds of quite different construction may be indistinguishable to the nose. The absence of a single physical scale along which odours can be arranged is not an incidental gap in the data. It is the obstacle around which the whole subject has had to be organised.\n\nB\nThe reason lies in how the signal is picked up. The tissue high in the nasal cavity carries several hundred distinct types of receptor, and no molecule has a receptor of its own. An odorous compound binds to some subset of the available types, strongly to a few and weakly to others, so what reaches the brain is not a label but a profile of relative activation. Identity is carried by the pattern rather than by any one channel, an arrangement usually described as combinatorial coding, and its capacity is enormous: with a few hundred receptor types the number of distinguishable activation profiles far exceeds the number of odorous compounds any person will meet in a lifetime. It also explains the failure of prediction described above. A modification that leaves most of a molecule intact may nonetheless alter which receptors it engages, and there is no rule connecting the size of the chemical change to the size of the perceptual one.\n\nC\nOne fact about the anatomy of the system is repeated so often that it has acquired the status of an explanation. Olfactory signals reach the regions of the brain associated with memory and emotion through fewer intervening stages than visual signals do, and this is routinely offered as the reason odours evoke memories of unusual vividness and age. The anatomy is not in dispute; the inference drawn from it is looser than its popularity suggests. Laboratory comparisons of memories cued by odours with memories cued by photographs or words have produced mixed results, some finding odour-cued recollections more emotionally charged and more often dated to the first decade of life, others finding no reliable difference once the familiarity of the cues is equated.\n\nD\nThe most persistent puzzle is not perception but naming. Presented with everyday odours — coffee, banana, petrol — adults in laboratory studies identify them correctly only about half the time, and they fail while insisting that they know the smell perfectly well, can say where they last encountered it and would recognise it anywhere. Researchers borrowed a phrase for this and call it the tip-of-the-nose state. For decades it was taken as evidence of a hard limit somewhere between the olfactory system and language. Then fieldwork with communities whose languages carry abstract odour vocabulary — single words that name a class of smells rather than pointing at an object that has one — reported speakers naming a standard set of test odours with a consistency approaching that of English speakers naming colours. Whatever the tip-of-the-nose state reflects, it cannot be a universal property of the human nervous system. Part of what looked like a perceptual limit turns out to be a matter of the words available and the practice of using them.\n\nE\nExpectation intrudes even more directly. In one demonstration, a single smoky mixture was presented to the same participants on two occasions, labelled once as smoked ham and once as burning rubbish. Rated on a nine-point scale, it moved by more than three points between the two sessions, and the volume of air drawn in during the first sniff moved with it. The label did not colour a judgement formed independently of it; the label was one of the ingredients from which the experience was assembled. This is uncomfortable for any account that treats smelling as the detection of a chemical fact, and it complicates every study in which participants are asked to say what they smell, since the question itself supplies expectations.\n\nF\nThe consequences of losing the sense are consistently underestimated by people who have not lost it. Complete loss, anosmia, removes most of what is ordinarily called the taste of food, leaving texture, temperature and the four or five qualities the tongue itself reports. It also removes a set of warnings — gas, smoke, food that has turned — that nothing else supplies. In one survey of people with long-standing loss, a third described a change in appetite and weight. Recognition is poor partly because there is no visible sign of the condition and partly because those affected commonly describe the problem as one of taste, which sends them to the wrong specialist. Structured smell training, in which a patient sniffs a fixed set of strong odours twice daily for several months, produces measurable partial recovery in a proportion of cases, though by a mechanism that is not agreed.\n\nG\nWhat the field still lacks is the thing vision acquired early: a small set of dimensions along which any stimulus can be placed. Attempts to derive such dimensions from molecular structure have improved steadily, and models now predict ratings such as sweet or smoky better than chance, but the spaces they produce resist interpretation and generalise poorly to unfamiliar compounds. Until something better arrives, odours will continue to be described the only way we can reliably describe them, which is by comparison with the objects that carry them — it smells of wet stone, of hot metal, of a room that has been shut for years. That habit is often presented as evidence that smell is a primitive sense. It is at least as good a description of our vocabulary as it is of the world.",
+  "questions": [
+    {
+      "instruction": "The passage has seven paragraphs, A–G. Which paragraph contains the following information? Write the correct letter, A–G. You may use any letter once only.",
+      "sharedOptions": [
+        {
+          "key": "A",
+          "text": "Paragraph A"
+        },
+        {
+          "key": "B",
+          "text": "Paragraph B"
+        },
+        {
+          "key": "C",
+          "text": "Paragraph C"
+        },
+        {
+          "key": "D",
+          "text": "Paragraph D"
+        },
+        {
+          "key": "E",
+          "text": "Paragraph E"
+        },
+        {
+          "key": "F",
+          "text": "Paragraph F"
+        },
+        {
+          "key": "G",
+          "text": "Paragraph G"
+        }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "a comparison with two senses whose stimuli can be placed in order on a single scale",
+          "answer": "A",
+          "explanation": "Paragraph A opens by ordering light by wavelength and sound by frequency, and then says smell \"offers nothing comparable\". That comparison appears nowhere else in the passage."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "a warning that a popular anatomical explanation has been carried further than the evidence supports",
+          "answer": "C",
+          "explanation": "Paragraph C accepts the anatomy but says \"the inference drawn from it is looser than its popularity suggests\", and reports that the experimental comparisons are mixed."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "evidence that difficulty in naming smells is not found in every language community",
+          "answer": "D",
+          "explanation": "Paragraph D reports speakers of languages with abstract odour vocabulary naming test odours about as consistently as English speakers name colours, which shows the difficulty is not universal."
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "a demonstration that what a smell is called changes how it is experienced",
+          "answer": "E",
+          "explanation": "Paragraph E describes the same smoky mixture labelled 'smoked ham' on one occasion and 'burning rubbish' on another, with ratings and sniff volume both moving with the label."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q5",
+          "type": "mcq",
+          "question": "What does 'combinatorial coding' mean, as the passage describes it?",
+          "options": [
+            "Each odorous molecule activates one receptor type reserved for it.",
+            "An odour is identified by the profile of activation across many receptor types.",
+            "Receptors combine chemically with the molecules they detect and are used up.",
+            "Several odours must be present together before any can be detected."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph B says \"no molecule has a receptor of its own\" and that \"identity is carried by the pattern rather than by any one channel\". That is option B, and option A states exactly what the passage denies."
+        },
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "What is the writer's position on the claim that smell has a privileged route to memory?",
+          "options": [
+            "The anatomy is disputed and the claim is therefore false.",
+            "The anatomy is correct, but the conclusion drawn from it outruns mixed evidence.",
+            "The claim is fully supported by laboratory comparisons with photographs.",
+            "The claim matters less than the question of how odours are named."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph C says \"the anatomy is not in dispute\" while the inference is \"looser than its popularity suggests\", and reports mixed results. That is option B; the writer rejects the inference, not the anatomy."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "What does the fieldwork reported in paragraph D suggest about the tip-of-the-nose state?",
+          "options": [
+            "It is caused by a limit in the olfactory system common to all humans.",
+            "It disappears once people are given enough practice with a single odour.",
+            "It depends partly on the vocabulary a language provides for smells.",
+            "It occurs only with odours that participants have never encountered."
+          ],
+          "answer": 2,
+          "explanation": "The passage concludes that the state \"cannot be a universal property of the human nervous system\" and that part of the apparent limit \"turns out to be a matter of the words available\". That is option C."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Why does the passage say loss of smell is often not recognised?",
+          "options": [
+            "Because it usually returns without treatment within a few weeks.",
+            "Because it has no visible sign and sufferers describe it as a problem with taste.",
+            "Because the tests required are expensive and rarely available.",
+            "Because those affected are unwilling to discuss it with their families."
+          ],
+          "answer": 1,
+          "explanation": "Paragraph F gives two reasons: \"there is no visible sign of the condition\" and those affected \"commonly describe the problem as one of taste, which sends them to the wrong specialist\". That is option B."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What does the writer identify as the central thing the study of smell still lacks?",
+          "options": [
+            "A reliable way of producing pure odorous compounds.",
+            "Agreement about how many receptor types the nose contains.",
+            "A small set of dimensions on which any odour can be placed.",
+            "A method of measuring how strongly people react emotionally."
+          ],
+          "answer": 2,
+          "explanation": "Paragraph G says the field lacks \"the thing vision acquired early: a small set of dimensions along which any stimulus can be placed\". That is option C."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN THREE WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "Unlike light and sound, odours cannot be arranged along a single ___.",
+          "answer": "physical scale",
+          "maxWords": 3,
+          "explanation": "Paragraph A calls this \"the absence of a single physical scale along which odours can be arranged\". The question sentence uses the same words around the gap."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "Complete loss of the sense of smell is called ___.",
+          "answer": "anosmia",
+          "maxWords": 3,
+          "explanation": "Paragraph F names it directly: \"Complete loss, anosmia, removes most of what is ordinarily called the taste of food.\" The gap needs that term."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "Patients may be asked to follow a programme of structured ___, sniffing a fixed set of strong odours twice a day.",
+          "answer": "smell training",
+          "maxWords": 3,
+          "explanation": "Paragraph F describes \"structured smell training, in which a patient sniffs a fixed set of strong odours twice daily\". The word structured is already in the sentence, so the gap takes the remaining two words."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "What reaches the brain is not a label but a ___ of relative activation.",
+          "answer": "profile",
+          "maxWords": 3,
+          "explanation": "Paragraph B says \"what reaches the brain is not a label but a profile of relative activation\". The sentence is taken from the passage with one word removed."
+        }
+      ]
+    }
+  ]
+}

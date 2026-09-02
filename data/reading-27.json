@@ -1,0 +1,145 @@
+{
+  "id": "reading-27",
+  "title": "The Generation Where a Language Stops",
+  "topic": "Why small languages fall out of use, and what actually produces new speakers",
+  "difficulty": "medium",
+  "level": "B2",
+  "timeMinutes": 20,
+  "passage": "There are roughly seven thousand languages in the world, and about four in every ten of them are spoken by fewer than ten thousand people. Numbers like these are usually presented as a countdown, as though each language were a patient with a date attached. That is the wrong picture, and it hides the thing that matters. A language does not end when its last speaker dies. It ends a full generation earlier, at the moment when parents who speak it stop using it with their children. Linguists call this interrupted transmission, and it is a better predictor of a language's future than the number of speakers alive today. A community of two thousand adults who all speak to their children in the language is in a stronger position than a community of twenty thousand whose children answer in something else.\n\nWhy does transmission stop? Very rarely by decree, although bans and punishments have played their part historically. Far more often it stops through a decision taken quietly, in one house at a time, and for reasons that are economic and practical. The larger language is the language of the secondary school, the hospital form, the job interview and almost everything on a screen. Parents notice that children who move easily in it do better, and they act on what they notice. Add to this the memory of being mocked or corrected for an accent, and the shift to the city where speakers no longer live next door to one another, and the outcome follows within two generations without anyone having intended it.\n\nWhat is lost when a language goes out of use is regularly overstated in one direction and understated in another. The overstatement is the familiar claim that each language encodes a unique way of thinking, so that losing it removes a form of thought from the world. The evidence for the strong version of that claim is thin, and the case for supporting small languages does not depend on it. The understatement is the real loss, which is more concrete. A language in daily use holds names for several hundred local plants and the conditions each one indicates; terms for tides, winds and snow that a working fisherman or herder needs and a dictionary of the national language does not supply; systems of kinship that organise obligation; and a body of song, story and remembered law that exists in no other form. Very little of that survives translation, because almost none of it has ever been written down.\n\nThe standard response has been to record. Linguists visit while there are still fluent speakers, collect hours of narrative and conversation, and deposit the recordings in an archive; one such archive now holds more than four thousand hours in languages with fewer than a hundred speakers each. This work is worth doing, and it is not the same thing as keeping a language alive. A recording preserves a record of a language; it does not produce a person who can use one. Communities have sometimes been left with a justified sense that the transaction ran one way, the visiting researcher leaving with the material and the village receiving a bound copy of a thesis it could not read. Practice has improved: recordings are increasingly deposited with the community in a form it can use, and speakers are paid and credited as the authorities they are.\n\nProducing new speakers is a different and harder task, and two methods have the best record. In the master-apprentice arrangement, one fluent elder and one committed adult learner spend several hours a week together doing ordinary things — cooking, driving, mending a fence — under a single rule: no use of the majority language, not even to explain. Learning is slow and the pairs that succeed are the ones that persist for years. The second method is the language nest, a preschool in which every adult in the room is a fluent speaker and speaks nothing else to the children, who arrive at two or three and absorb the language in the way children always have. One nest that opened with sixty children reported after eight years that about forty could hold an extended conversation, and that a dozen parents had begun learning in order to understand what their children were saying at home.\n\nA language brought back this way is not the language that fell out of use, and this troubles some of the people who care most. Revived speech tends to have fewer verb forms than the older grammar, a vocabulary padded out with borrowings, and the rhythm of the majority language underneath it. Purists sometimes describe the result as a copy rather than the thing itself. The objection deserves an answer rather than a dismissal, and the answer is that the realistic alternative to a changed language is not an unchanged one but no language at all. Every living language of any size has borrowed heavily and simplified continuously; nobody proposes that these are therefore counterfeit. A language that is spoken changes, and a language that has stopped changing has stopped.\n\nThere is a further question that outsiders find uncomfortable, which is who decides. Enthusiasm from universities and governments can arrive as pressure, and a community weighing language work against clean water, a clinic or the price of getting children through secondary school may reasonably put language third. That ranking belongs to the people who live with the consequences. The role of the linguist is to be useful when asked, and to accept that the answer may be no, or not yet, or not in the way proposed.\n\nThe honest summary is neither hopeful nor hopeless. Most of the languages now in decline will not be brought back into daily use; the arithmetic of speakers and time is against them. A smaller number can be stabilised, and the ones that are stabilised are almost always those where transmission to children has been restored rather than those with the finest archive. For the rest, documentation is what can be done, and it is not nothing. What helps least is mourning at a distance.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the claims of the writer? Write YES if the statement agrees with the writer's views, NO if it contradicts them, or NOT GIVEN if it is impossible to say what the writer thinks.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "ynng",
+          "statement": "A language should be regarded as effectively lost once children stop learning it at home.",
+          "answer": "YES",
+          "explanation": "The writer argues that a language \"ends a full generation earlier\" than its last speaker, at the point where parents stop using it with children, and calls this the best predictor of its future. That agrees with the statement, so YES."
+        },
+        {
+          "id": "q2",
+          "type": "ynng",
+          "statement": "There is strong evidence that each language encodes a way of thinking found nowhere else.",
+          "answer": "NO",
+          "explanation": "The writer calls this claim an overstatement and says \"the evidence for the strong version of that claim is thin\". The statement contradicts the writer's view, so NO."
+        },
+        {
+          "id": "q3",
+          "type": "ynng",
+          "statement": "A good archive of recordings can take the place of living speakers.",
+          "answer": "NO",
+          "explanation": "The writer says a recording \"preserves a record of a language; it does not produce a person who can use one\", and that stabilised languages are those where transmission was restored, not those with the finest archive. So NO."
+        },
+        {
+          "id": "q4",
+          "type": "ynng",
+          "statement": "Language programmes should be paid for out of national taxation.",
+          "answer": "NOT GIVEN",
+          "explanation": "The writer discusses who should decide priorities, but never says where the money for language work should come from. There is no view in the passage to agree or disagree with: NOT GIVEN."
+        },
+        {
+          "id": "q5",
+          "type": "ynng",
+          "statement": "Borrowed words and simpler grammar in a revived language are acceptable.",
+          "answer": "YES",
+          "explanation": "The writer answers the purists directly: \"the realistic alternative to a changed language is not an unchanged one but no language at all\", and notes that all living languages borrow and simplify. That agrees with the statement, so YES."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "When parents stop using a language with their children, linguists call it interrupted ___.",
+          "answer": "transmission",
+          "maxWords": 2,
+          "explanation": "The first paragraph names it: \"Linguists call this interrupted transmission.\" The gap needs the second half of that term."
+        },
+        {
+          "id": "q7",
+          "type": "completion",
+          "sentence": "In a ___, every adult in the room speaks only the endangered language to the children.",
+          "answer": "language nest",
+          "maxWords": 2,
+          "explanation": "The passage defines the language nest as \"a preschool in which every adult in the room is a fluent speaker and speaks nothing else to the children\". The question sentence copies that definition."
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "Pairing one fluent elder with one adult learner for several hours a week is known as the ___ arrangement.",
+          "answer": "master-apprentice",
+          "maxWords": 2,
+          "explanation": "The passage says: \"In the master-apprentice arrangement, one fluent elder and one committed adult learner spend several hours a week together.\" The gap needs that name."
+        },
+        {
+          "id": "q9",
+          "type": "completion",
+          "sentence": "Families usually stop passing a language on for reasons that are practical and ___.",
+          "answer": "economic",
+          "maxWords": 2,
+          "explanation": "The second paragraph says transmission stops \"for reasons that are economic and practical\". The question sentence keeps 'practical', so the missing word is economic."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "According to the passage, which community is in the stronger position?",
+          "options": [
+            "A community of twenty thousand whose children reply in another language.",
+            "A community of two thousand whose adults all speak the language to their children.",
+            "A community whose language has the largest dictionary.",
+            "A community whose language is taught as a subject in secondary school."
+          ],
+          "answer": 1,
+          "explanation": "The first paragraph compares exactly these two communities and says the smaller one, where adults speak the language to their children, is in the stronger position. That is option B."
+        },
+        {
+          "id": "q11",
+          "type": "mcq",
+          "question": "What does the writer say recordings cannot do?",
+          "options": [
+            "Preserve songs and stories accurately.",
+            "Be understood by later researchers.",
+            "Create people who can actually use the language.",
+            "Be stored safely for long periods."
+          ],
+          "answer": 2,
+          "explanation": "The passage says a recording \"does not produce a person who can use one\". That is option C; the passage never questions the accuracy or the safety of the recordings themselves."
+        },
+        {
+          "id": "q12",
+          "type": "mcq",
+          "question": "How does the writer answer people who object that a revived language has changed?",
+          "options": [
+            "By arguing that the changes will disappear over time.",
+            "By pointing out that the choice is between a changed language and none.",
+            "By showing that the older grammar can be reconstructed from archives.",
+            "By claiming that borrowings make a language easier to learn."
+          ],
+          "answer": 1,
+          "explanation": "The passage says \"the realistic alternative to a changed language is not an unchanged one but no language at all\", which is option B. The writer treats the objection seriously but rejects its conclusion."
+        },
+        {
+          "id": "q13",
+          "type": "mcq",
+          "question": "Who, in the writer's view, should decide how much priority language work receives?",
+          "options": [
+            "The linguists who hold the recordings.",
+            "The government that funds the schools.",
+            "The community that lives with the consequences.",
+            "An international body of language experts."
+          ],
+          "answer": 2,
+          "explanation": "The passage says a community may reasonably rank language third behind water, a clinic or schooling, and that \"that ranking belongs to the people who live with the consequences\". That is option C."
+        }
+      ]
+    }
+  ]
+}

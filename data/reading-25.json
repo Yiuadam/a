@@ -1,0 +1,163 @@
+{
+  "id": "reading-25",
+  "title": "Buildings That Ride the Shaking",
+  "topic": "How engineers design structures to survive earthquakes, and why the harder problem is the buildings that already exist",
+  "difficulty": "medium",
+  "level": "B2",
+  "timeMinutes": 20,
+  "passage": "Engineers who work on earthquakes are fond of a blunt sentence: earthquakes do not kill people, buildings do. It sounds like a slogan, but it describes what surveys after a large earthquake usually find. Two buildings of similar size stand on the same street, shaken by the same ground for the same forty seconds. One is repaired within a year. The other is a pile of broken concrete. The difference lies almost entirely in how each was designed and built.\n\nTo understand why, it helps to see what shaking actually does to a structure. The ground moves from side to side, carrying the foundations with it, while the mass of the building above resists being moved. Forces therefore build up between the two, concentrated at the base and at every joint between column and floor. A building is not a rigid block; it sways, and it sways at a rate of its own that depends mainly on its height. A rough guide used by designers is that a building takes about a tenth of a second per storey to complete one full sway, so a ten-storey block moves slowly and a two-storey house moves quickly.\n\nThat number matters because of resonance. Ground shaking is not a single push but a mixture of vibrations at different rates. If the ground happens to shake at a rate close to a building's own rate of sway, each new push arrives just as the building is moving in the same direction, and the movement builds. The same earthquake can therefore leave one size of building almost untouched and destroy another a few streets away.\n\nSoil complicates the picture further. Soft ground, such as the sediment that fills an old lake bed or a river valley, both amplifies shaking and slows it, favouring the slower vibrations that suit taller buildings. Damage surveys often show a pattern that puzzles residents: a district of six-storey blocks on soft sediment badly hit, while similar blocks a kilometre away on rock came through with cracked plaster.\n\nOlder construction methods handled this problem with very different degrees of success. Timber frames tend to do well, because the joints between the pieces flex and rub, absorbing energy that a stiffer structure would have to carry. Unreinforced masonry does worst of all. It is heavy, so the forces are large, and it is brittle, so when the walls are pushed sideways they crack rather than bend; a heavy roof resting on such walls then has nothing to hold it up. The great majority of deaths in earthquakes in the last century occurred in buildings of this kind.\n\nModern design attacks the problem in three broad ways. The first is ductility. Steel bars are placed inside concrete, and the columns are detailed so that under extreme load the steel stretches and the column bends without shattering. The aim is deliberately modest: a ductile building is expected to be damaged, sometimes beyond economic repair, but it is expected to stay standing long enough for everyone inside to walk out. Preventing collapse and preventing damage are different objectives, and the codes that govern ordinary buildings promise only the first.\n\nThe second approach removes the building from the ground rather than strengthening it. In base isolation, the structure sits on bearings — layers of rubber around a lead core, or curved sliding surfaces — which are stiff enough to carry the weight but soft enough sideways to let the ground move underneath. This lengthens the building's own rate of sway until it no longer matches the strong shaking, and the movement that does reach the floors above is greatly reduced. The contents survive as well as the structure, which is the point: shelves stay upright, pipework stays connected, and the building can be used the next morning. It costs perhaps five to eight per cent more to build a mid-rise this way, and it requires a clear gap around the base for the building to move in, so it is chosen where continued function is worth paying for — hospitals, emergency control centres and data centres among them.\n\nThe third approach adds machinery that absorbs movement. In a tuned mass damper, a heavy block is hung near the top of a tall tower and connected by springs, so that it lags behind the building and pulls against the sway rather than with it. Fluid dampers work on a smaller scale, sitting inside diagonal braces and turning motion into heat, much as the shock absorber on a car does.\n\nThe choice between these is not purely technical. Engineers now speak of performance-based design, which begins by asking what a particular building has to do after an earthquake rather than which rules it must satisfy before one. An office block may only need to avoid collapse. A hospital must be able to receive patients within hours, which is a far more demanding target and a far more expensive one. That decision, about which buildings a city can afford to lose the use of, is made by governments and owners rather than by engineers.\n\nAll of which describes new construction, and new construction is the smaller part of the problem. A city's building stock turns over slowly, and most of the buildings that will be shaken by the next earthquake are already standing. A review of one city's school buildings found that sixty-four per cent had been completed before the current code was introduced. Strengthening an existing building — adding braces, wrapping columns, tying floors to walls — is disruptive, expensive and, in a rented building, often nobody's clear responsibility. Where retrofitting has happened at scale, it has generally taken public money and a legal deadline together.\n\nEnforcement is the last, unglamorous piece. A code exists on paper; a building exists because somebody poured the concrete, and somebody else was supposed to check it. Post-earthquake investigations regularly find collapsed structures whose drawings met the code in every respect. The engineering of earthquake-resistant buildings is, in its essentials, a solved problem. Paying for it and checking it are not.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "Most earthquake deaths are caused by the movement of the ground itself rather than by buildings.",
+          "answer": "FALSE",
+          "explanation": "The passage opens with the engineers' saying that \"earthquakes do not kill people, buildings do\", and adds that most deaths last century happened in unreinforced masonry buildings. The statement reverses this, so FALSE."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "How quickly a building sways depends mainly on how tall it is.",
+          "answer": "TRUE",
+          "explanation": "The passage says a building \"sways at a rate of its own that depends mainly on its height\", and gives the rule of about a tenth of a second per storey. The statement matches this, so TRUE."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "More hospitals than office buildings have been fitted with base isolation.",
+          "answer": "NOT GIVEN",
+          "explanation": "The passage says isolation is chosen where continued function is worth paying for and names hospitals as an example, but it never counts buildings of either kind or compares them. Without that comparison the statement cannot be judged: NOT GIVEN."
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Investigations after an earthquake rarely find collapsed buildings whose drawings met the code.",
+          "answer": "FALSE",
+          "explanation": "The last paragraph says such investigations \"regularly find collapsed structures whose drawings met the code in every respect\". Regularly is the opposite of rarely, so FALSE."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "In the review mentioned, most of one city's school buildings were older than the current code.",
+          "answer": "TRUE",
+          "explanation": "The review found that \"sixty-four per cent had been completed before the current code was introduced\". Sixty-four per cent is most of them, so the statement agrees with the passage: TRUE."
+        }
+      ]
+    },
+    {
+      "instruction": "Look at the following descriptions and the list of building methods below. Match each description with the correct method, A–E. You may use any letter once only.",
+      "sharedOptions": [
+        {
+          "key": "A",
+          "text": "base isolation"
+        },
+        {
+          "key": "B",
+          "text": "ductile reinforced concrete"
+        },
+        {
+          "key": "C",
+          "text": "a tuned mass damper"
+        },
+        {
+          "key": "D",
+          "text": "unreinforced masonry"
+        },
+        {
+          "key": "E",
+          "text": "a timber frame"
+        }
+      ],
+      "questions": [
+        {
+          "id": "q6",
+          "type": "matching",
+          "prompt": "Steel inside it stretches so that a column bends instead of shattering.",
+          "answer": "B",
+          "explanation": "The passage describes ductility as steel bars inside concrete detailed \"so that under extreme load the steel stretches and the column bends without shattering\". That is ductile reinforced concrete."
+        },
+        {
+          "id": "q7",
+          "type": "matching",
+          "prompt": "A heavy weight hung near the top of a tower pulls against the sway.",
+          "answer": "C",
+          "explanation": "The passage says that in a tuned mass damper \"a heavy block is hung near the top of a tall tower\" and \"pulls against the sway rather than with it\"."
+        },
+        {
+          "id": "q8",
+          "type": "matching",
+          "prompt": "It sits under the building and lengthens the rate at which the structure sways.",
+          "answer": "A",
+          "explanation": "Base isolation places bearings under the structure, and the passage says this \"lengthens the building's own rate of sway until it no longer matches the strong shaking\"."
+        },
+        {
+          "id": "q9",
+          "type": "matching",
+          "prompt": "Its walls are heavy and brittle, so they crack rather than bend.",
+          "answer": "D",
+          "explanation": "The passage says unreinforced masonry \"is heavy, so the forces are large, and it is brittle, so when the walls are pushed sideways they crack rather than bend\"."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "Why can a six-storey block on soft sediment be damaged more than a similar block on rock?",
+          "options": [
+            "Soft ground is closer to the source of most earthquakes.",
+            "Soft ground amplifies and slows the shaking, favouring the rate at which such blocks sway.",
+            "Buildings on soft ground are usually built with cheaper materials.",
+            "Rock transmits the shaking for a longer period of time."
+          ],
+          "answer": 1,
+          "explanation": "The passage says soft sediment \"both amplifies shaking and slows it, favouring the slower vibrations that suit taller buildings\", which is option B. Materials and distance from the source are not given as the reason."
+        },
+        {
+          "id": "q11",
+          "type": "mcq",
+          "question": "What does the passage say is the aim of ductile design in ordinary buildings?",
+          "options": [
+            "To keep the building undamaged and usable.",
+            "To make repairs cheaper than rebuilding.",
+            "To keep the building standing long enough for people to get out.",
+            "To remove the need for inspection during construction."
+          ],
+          "answer": 2,
+          "explanation": "The passage calls the aim \"deliberately modest\": the building may be damaged beyond repair but must \"stay standing long enough for everyone inside to walk out\". That is option C, and the passage says codes for ordinary buildings promise only this."
+        },
+        {
+          "id": "q12",
+          "type": "mcq",
+          "question": "What does performance-based design begin by asking?",
+          "options": [
+            "Which rules a building must satisfy before an earthquake.",
+            "What the building has to be able to do after an earthquake.",
+            "How much the owner is willing to spend on materials.",
+            "Whether the site has been shaken in the past century."
+          ],
+          "answer": 1,
+          "explanation": "The passage says it \"begins by asking what a particular building has to do after an earthquake rather than which rules it must satisfy before one\". That is option B, and option A is the approach it is contrasted with."
+        },
+        {
+          "id": "q13",
+          "type": "mcq",
+          "question": "What does the writer identify as the largest remaining difficulty?",
+          "options": [
+            "Buildings that are already standing, and the cost and responsibility of strengthening them.",
+            "The lack of an agreed method for measuring ground movement.",
+            "Disagreement among engineers about which technique works best.",
+            "The shortage of materials suitable for tall towers."
+          ],
+          "answer": 0,
+          "explanation": "The passage says new construction \"is the smaller part of the problem\" and that strengthening existing buildings is expensive, disruptive and often nobody's clear responsibility. That is option A."
+        }
+      ]
+    }
+  ]
+}

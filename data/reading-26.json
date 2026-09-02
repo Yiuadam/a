@@ -1,0 +1,158 @@
+{
+  "id": "reading-26",
+  "title": "The Card with Holes in It",
+  "topic": "How punched cards moved from weaving to record-keeping, and the idea they left behind",
+  "difficulty": "medium",
+  "level": "B2",
+  "timeMinutes": 20,
+  "passage": "A\nA machine cannot read a word. It can, however, be built to notice something far simpler: whether there is a hole in front of it or a piece of card. A thin metal rod pressed against a card either passes through or is stopped, and that single difference — hole or no hole — is enough to control a machine or to record a fact. For well over a century, a great deal of the world's industry and administration ran on that trick, and the object that carried it was a rectangle of stiff card.\n\nB\nThe first important use had nothing to do with numbers. Weaving a patterned silk required a different set of lengthwise threads to be lifted before each pass of the shuttle, and in the early nineteenth century this was done by a boy who sat inside the loom pulling cords in an order he had learned by heart. He was slow, he grew tired, and a single mistake ran through the finished cloth for ever. The replacement was a chain of cards, one for each pass, punched with holes wherever a thread was to rise. Rods pressed against each card in turn; where there was a hole a rod went through and lifted its thread, and where there was card it did not. The gain was not only speed. The pattern had become a separate object, which could be stored on a shelf, lent to another workshop or copied. A loom was no longer built for one design; it was a machine that did whatever the cards in front of it said.\n\nC\nThe second use was counting people. A national census in the middle of the nineteenth century was carried out by clerks working through paper returns with tally marks, and the arithmetic grew impossible as the questions multiplied. One count begun in the 1880s took eight years to publish, by which time several of its tables described a country that no longer existed in that form. The alternative was to punch one card for each person, with a hole in a different position for each answer, and to pass the cards through a machine in which a rod completing an electrical circuit through a hole advanced a counter and released the card into a sorting bin. The following count, using the new method, was finished in under three years, with more questions asked than before.\n\nD\nBusiness followed quickly, and this is where the card did its longest service. A payroll, a stock list, an insurance policy, a railway timetable: each could be broken into records, and each record fitted onto one card. Whole floors of offices were given over to keypunch operators, almost all of them women, who converted paper forms into holes at a rate measured in thousands of cards a shift; a medium-sized insurance office might punch twenty thousand cards in a week. Sorting machines put the cards into order, and tabulating machines added them up and printed the result. What had happened, quietly, was that a company's memory had moved out of the heads and notebooks of experienced clerks and into a room of steel drawers that anyone could be trained to operate.\n\nE\nThe system's weaknesses were as physical as its strengths. Card is paper, and paper takes up moisture; in damp air the cards swelled, jammed the feed and had to be reconditioned. A tray dropped on a staircase lost its order, and the order was the information. Worst of all, an error was invisible: a hole punched in the wrong column looked exactly like a hole punched in the right one, and nothing revealed the mistake until a total came out wrong weeks later, if it came out wrong at all. The usual defence was to have a second operator punch the same form again on a verifying machine, which compared the two and stopped at any difference — an answer that worked, and doubled the labour. These were not small inconveniences. They set a limit on how large a card system could usefully grow, and much of the cost of running one was the cost of guarding it against itself.\n\nF\nMagnetic tape ended the card's dominance, and it did so on the card's own terms. A reel of tape held the contents of many drawers of cards in a fraction of the space, could be read far faster, and did not care about humidity. When terminals arrived and a clerk could type directly into a machine, the card's last real advantage — that a record was a physical thing you could hold up to the light — turned into a disadvantage, since it also had to be moved, filed and stored. Cards survived longest where the physical object was the point, in examinations and in elections, and they were still in use in both well into the 2000s. Their shape outlived them: the standard card carried eighty columns, and eighty characters remained the width of a line of text on screens and printers long after the last card had been punched.\n\nG\nWhat the card left behind is larger than the card. Two ideas came out of that century of holes, and both are now so ordinary that they are difficult to see. The first is that a machine's behaviour can be changed without rebuilding it, because the instructions live somewhere else and can be swapped; that is the loom's contribution, and every program written since is a descendant of it. The second is that a fact about a person can be detached from the person, stored beside millions of others and counted at speed — which made the modern state and the modern company possible, and which raised, from the beginning, the question of who is allowed to hold the drawer.",
+  "questions": [
+    {
+      "instruction": "The passage has seven paragraphs, A–G. Choose the correct heading for each of paragraphs B–F from the list of headings below. There are more headings than paragraphs, so you will not use them all.",
+      "sharedOptions": [
+        {
+          "key": "i",
+          "text": "A pattern that could be lifted off the machine"
+        },
+        {
+          "key": "ii",
+          "text": "A count that no longer took years"
+        },
+        {
+          "key": "iii",
+          "text": "Where a company's memory came to be kept"
+        },
+        {
+          "key": "iv",
+          "text": "The faults that limited how far the system could grow"
+        },
+        {
+          "key": "v",
+          "text": "From card to tape, and what survived the change"
+        },
+        {
+          "key": "vi",
+          "text": "A machine that could feel but not read"
+        },
+        {
+          "key": "vii",
+          "text": "The wages earned by punch operators"
+        },
+        {
+          "key": "viii",
+          "text": "An idea that outlived the object"
+        }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "Paragraph B",
+          "answer": "i",
+          "explanation": "Paragraph B is about the loom, and its key sentence is that \"the pattern had become a separate object, which could be stored on a shelf, lent to another workshop or copied\" — a pattern lifted off the machine."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "Paragraph C",
+          "answer": "ii",
+          "explanation": "Paragraph C contrasts a census that \"took eight years to publish\" with a later one \"finished in under three years\" using cards. The heading names that change in the time a count took."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "Paragraph D",
+          "answer": "iii",
+          "explanation": "Paragraph D ends by saying \"a company's memory had moved out of the heads and notebooks of experienced clerks and into a room of steel drawers\", which is where the memory came to be kept."
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "Paragraph E",
+          "answer": "iv",
+          "explanation": "Paragraph E lists the faults — swelling in damp air, lost order, invisible errors — and says directly that \"they set a limit on how large a card system could usefully grow\"."
+        },
+        {
+          "id": "q5",
+          "type": "matching",
+          "prompt": "Paragraph F",
+          "answer": "v",
+          "explanation": "Paragraph F describes tape replacing cards and then what remained afterwards: the eighty-column width that shaped screens and printers. That is the change and what survived it."
+        }
+      ]
+    },
+    {
+      "instruction": "Do the following statements agree with the claims of the writer? Write YES if the statement agrees with the writer's views, NO if it contradicts them, or NOT GIVEN if it is impossible to say what the writer thinks.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "ynng",
+          "statement": "The punched card matters more for the ideas it introduced than for the object itself.",
+          "answer": "YES",
+          "explanation": "Paragraph G opens \"What the card left behind is larger than the card\", and then names two ideas that are still with us. That is the writer's own judgement, so YES."
+        },
+        {
+          "id": "q7",
+          "type": "ynng",
+          "statement": "Magnetic tape brought no genuine advantages over cards.",
+          "answer": "NO",
+          "explanation": "The writer lists real advantages of tape: it held far more in less space, \"could be read far faster, and did not care about humidity\". The statement contradicts the writer's view, so NO."
+        },
+        {
+          "id": "q8",
+          "type": "ynng",
+          "statement": "The history of data processing should be taught in schools.",
+          "answer": "NOT GIVEN",
+          "explanation": "The writer describes the history but never says anything about how or whether it should be taught. There is no opinion in the passage to agree or disagree with, so NOT GIVEN."
+        },
+        {
+          "id": "q9",
+          "type": "ynng",
+          "statement": "The physical problems of card systems were serious rather than minor.",
+          "answer": "YES",
+          "explanation": "The writer states it plainly: \"These were not small inconveniences\", and adds that much of the cost of running a card system was guarding it against itself. That agrees with the statement, so YES."
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the questions below. Write NO MORE THAN THREE WORDS OR A NUMBER from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "short-answer",
+          "question": "How long did the census that used punched cards take to complete?",
+          "answer": "under three years",
+          "maxWords": 3,
+          "explanation": "Paragraph C says the following count \"was finished in under three years\". The eight years belong to the earlier hand-counted census, so the answer for the card-based one is under three years.",
+          "accept": [
+            "three years"
+          ]
+        },
+        {
+          "id": "q11",
+          "type": "short-answer",
+          "question": "What ended the card's dominance in business record-keeping?",
+          "answer": "magnetic tape",
+          "maxWords": 3,
+          "explanation": "Paragraph F opens with \"Magnetic tape ended the card's dominance\". The question uses the same words, so the answer is magnetic tape."
+        },
+        {
+          "id": "q12",
+          "type": "short-answer",
+          "question": "How many columns did the standard card carry?",
+          "answer": "eighty",
+          "maxWords": 3,
+          "explanation": "Paragraph F says \"the standard card carried eighty columns\", and that this width later shaped screens and printers."
+        },
+        {
+          "id": "q13",
+          "type": "short-answer",
+          "question": "In what conditions did cards swell and jam the machines?",
+          "answer": "damp air",
+          "maxWords": 3,
+          "explanation": "Paragraph E says that \"in damp air the cards swelled, jammed the feed and had to be reconditioned\". The conditions asked for are damp air."
+        }
+      ]
+    }
+  ]
+}

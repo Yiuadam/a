@@ -1,0 +1,155 @@
+{
+  "id": "listening-22",
+  "title": "Ordering a Cake at Fenner's Bakery",
+  "context": "A customer at a bakery counter places an order for a large cake and settles the details with the baker.",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 12,
+  "speakers": [
+    "Baker",
+    "Customer"
+  ],
+  "script": [
+    { "speaker": "Baker", "text": "Good morning, Fenner's Bakery. How can I help?" },
+    { "speaker": "Customer", "text": "Hello. I'd like to order a cake for a party, if that's possible." },
+    { "speaker": "Baker", "text": "Of course. Let me just find the order book — here we are. Can I take a name first?" },
+    { "speaker": "Customer", "text": "Yes, it's Beckett. Marilyn Beckett. That's B, E, C, K, E, T, T." },
+    { "speaker": "Baker", "text": "Beckett. Thank you. And what's the cake for? A birthday?" },
+    { "speaker": "Customer", "text": "Well, everyone keeps calling it a birthday party, but it isn't — it's my mother's retirement. She's finishing at the hospital after thirty-one years." },
+    { "speaker": "Baker", "text": "A retirement, then. I'll write that down. And how many people are we feeding?" },
+    { "speaker": "Customer", "text": "There'll be about thirty at the party, but a lot of them are children, so I think a cake for twenty-five would be plenty." },
+    { "speaker": "Baker", "text": "Twenty-five it is. Now, our sponge cakes come in three flavours — chocolate, lemon, or carrot." },
+    { "speaker": "Customer", "text": "Chocolate, I think. Actually, no. My mother doesn't really like chocolate. Could we do the lemon one?" },
+    { "speaker": "Baker", "text": "Lemon, lovely." },
+    { "speaker": "Customer", "text": "Hmm — although, sorry, could I change that once more? Carrot. She's talked about your carrot cake for years." },
+    { "speaker": "Baker", "text": "Carrot. I'll write it in capital letters so nobody gets confused. And would you like anything written on top?" },
+    { "speaker": "Customer", "text": "Yes please. Just 'Well done, Sylvia'." },
+    { "speaker": "Baker", "text": "Well done, Sylvia. Now, is there anything I need to know about allergies?" },
+    { "speaker": "Customer", "text": "Yes — one of my aunts can't have nuts at all. Not even a trace of them." },
+    { "speaker": "Baker", "text": "That's fine. We make a nut-free version first thing in the morning, before anything with nuts in it comes out of the store cupboard. There's no extra charge for that." },
+    { "speaker": "Customer", "text": "That's a relief. I was expecting it to cost more." },
+    { "speaker": "Baker", "text": "Not at all. Right, the price. A carrot cake for twenty-five is normally fifty-five pounds, and the icing with writing on it adds another five. So sixty pounds altogether." },
+    { "speaker": "Customer", "text": "Sixty. That's fine." },
+    { "speaker": "Baker", "text": "And we ask for a deposit of ten pounds today, with the rest when you collect it." },
+    { "speaker": "Customer", "text": "Can I pay the deposit by card?" },
+    { "speaker": "Baker", "text": "Card is fine. Now — when do you need it?" },
+    { "speaker": "Customer", "text": "The party's on the Saturday. Could I pick it up on the Saturday morning? That would be easiest for me." },
+    { "speaker": "Baker", "text": "We're only open until twelve on Saturdays, and Saturday mornings here are chaos, to be honest with you. I'd much rather you took it on the Friday and kept it somewhere cool overnight. It'll be just as good." },
+    { "speaker": "Customer", "text": "Friday, then. That works too." },
+    { "speaker": "Baker", "text": "Friday, and I'll have it ready from ten. One more thing — it comes in a big box, so bring the car if you can. It won't sit on a bicycle." },
+    { "speaker": "Customer", "text": "I'll drive over, don't worry." },
+    { "speaker": "Baker", "text": "Perfect. Oh, and can I ask how you heard about us? We're trying to work out where our customers come from." },
+    { "speaker": "Customer", "text": "My sister lives on the next street and she's been coming here for years. She's the one who told me about the carrot cake." },
+    { "speaker": "Baker", "text": "A recommendation, then. That's what we like to hear. I'll give you a slip with the order number on it — it's 4218 — and just bring that with you on the day." },
+    { "speaker": "Customer", "text": "4218. Thank you very much." },
+    { "speaker": "Baker", "text": "See you on Friday, then. Have a lovely party." }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the order form below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Customer's surname: ___",
+          "answer": "Beckett",
+          "maxWords": 1,
+          "explanation": "The customer gives her name and then spells it: \"it's Beckett. Marilyn Beckett. That's B, E, C, K, E, T, T.\""
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "Occasion the cake is for: a ___",
+          "answer": "retirement",
+          "maxWords": 1,
+          "explanation": "The baker guesses a birthday, but the customer corrects him: \"it isn't — it's my mother's retirement.\" The second word is the answer."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Cake should serve: ___ people",
+          "answer": "25",
+          "maxWords": 1,
+          "explanation": "Thirty people are coming, but many are children, so the customer says \"a cake for twenty-five would be plenty,\" and the baker writes that down."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Flavour ordered: ___",
+          "answer": "carrot",
+          "maxWords": 1,
+          "explanation": "The customer changes her mind twice — chocolate, then lemon — before settling on \"Carrot. She's talked about your carrot cake for years.\""
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Total price: £___",
+          "answer": "60",
+          "maxWords": 1,
+          "explanation": "The cake is fifty-five pounds and the writing adds five, so the baker gives the total: \"So sixty pounds altogether.\""
+        },
+        {
+          "id": "q6",
+          "type": "completion",
+          "sentence": "Deposit to be paid today: £___",
+          "answer": "10",
+          "maxWords": 1,
+          "explanation": "The baker asks for \"a deposit of ten pounds today, with the rest when you collect it,\" so only part of the price is paid now."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "When does the baker advise the customer to collect the cake?",
+          "options": [
+            "on Saturday morning",
+            "on Friday",
+            "on Saturday afternoon"
+          ],
+          "answer": 1,
+          "explanation": "The customer asks for Saturday morning, but the baker replies, \"I'd much rather you took it on the Friday,\" and she agrees."
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "What does the customer tell the baker about nuts?",
+          "options": [
+            "one of the guests cannot eat them",
+            "she would like some on the cake",
+            "a nut-free cake costs extra"
+          ],
+          "answer": 0,
+          "explanation": "She says \"one of my aunts can't have nuts at all,\" and the baker adds that a nut-free cake carries \"no extra charge,\" so the third option is wrong."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "Why does the baker suggest the customer brings a car?",
+          "options": [
+            "the box is too large for a bicycle",
+            "the bakery is far from the bus stop",
+            "the cake must be kept in a fridge"
+          ],
+          "answer": 0,
+          "explanation": "The baker explains, \"it comes in a big box, so bring the car if you can. It won't sit on a bicycle.\""
+        },
+        {
+          "id": "q10",
+          "type": "mcq",
+          "question": "How did the customer hear about the bakery?",
+          "options": [
+            "she saw an advertisement",
+            "she walked past the shop",
+            "her sister recommended it"
+          ],
+          "answer": 2,
+          "explanation": "She says her sister \"has been coming here for years. She's the one who told me about the carrot cake,\" which the baker calls a recommendation."
+        }
+      ]
+    }
+  ]
+}

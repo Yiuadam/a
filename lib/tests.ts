@@ -18,6 +18,16 @@ import readingSeventeen from "@/data/reading-17.json";
 import readingEighteen from "@/data/reading-18.json";
 import readingNineteen from "@/data/reading-19.json";
 import readingTwenty from "@/data/reading-20.json";
+import readingTwentyOne from "@/data/reading-21.json";
+import readingTwentyTwo from "@/data/reading-22.json";
+import readingTwentyThree from "@/data/reading-23.json";
+import readingTwentyFour from "@/data/reading-24.json";
+import readingTwentyFive from "@/data/reading-25.json";
+import readingTwentySix from "@/data/reading-26.json";
+import readingTwentySeven from "@/data/reading-27.json";
+import readingTwentyEight from "@/data/reading-28.json";
+import readingTwentyNine from "@/data/reading-29.json";
+import readingThirty from "@/data/reading-30.json";
 import listeningOne from "@/data/listening-1.json";
 import listeningTwo from "@/data/listening-2.json";
 import listeningThree from "@/data/listening-3.json";
@@ -39,6 +49,17 @@ import listeningEighteen from "@/data/listening-18.json";
 import listeningNineteen from "@/data/listening-19.json";
 import listeningTwenty from "@/data/listening-20.json";
 import listeningTwentyOne from "@/data/listening-21.json";
+import listeningTwentyTwo from "@/data/listening-22.json";
+import listeningTwentyThree from "@/data/listening-23.json";
+import listeningTwentyFour from "@/data/listening-24.json";
+import listeningTwentyFive from "@/data/listening-25.json";
+import listeningTwentySix from "@/data/listening-26.json";
+import listeningTwentySeven from "@/data/listening-27.json";
+import listeningTwentyEight from "@/data/listening-28.json";
+import listeningTwentyNine from "@/data/listening-29.json";
+import listeningThirty from "@/data/listening-30.json";
+import listeningThirtyOne from "@/data/listening-31.json";
+import { DIFFICULTIES } from "@/lib/paper-filters";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 
 /*
@@ -67,14 +88,19 @@ import type { ListeningTest, ReadingTest } from "@/lib/types";
   order is kept, so a paper's position only moves when its difficulty does.
 */
 
-const DIFFICULTY_ORDER = ["easy", "medium", "hard"];
-
+/* The same three words, in the same order, that the chooser's filter bar
+   offers as stops — see lib/paper-filters.ts. Two lists would be two chances
+   for a paper to sort under a word no stop shows. */
 function byDifficulty<T extends { difficulty: string }>(tests: T[]): T[] {
+  /* Widened on purpose: a paper is free to carry a word that is not one of
+     these, and the whole point of the lines below is deciding where it goes.
+     Narrowing the haystack to the needle's type would make that unsayable. */
+  const order: readonly string[] = DIFFICULTIES;
   return [...tests]
     .map((t, i) => ({ t, i }))
     .sort((a, b) => {
-      const ra = DIFFICULTY_ORDER.indexOf(a.t.difficulty);
-      const rb = DIFFICULTY_ORDER.indexOf(b.t.difficulty);
+      const ra = order.indexOf(a.t.difficulty);
+      const rb = order.indexOf(b.t.difficulty);
       /* An unknown difficulty sorts last rather than first: better to bury a
          mislabelled paper than to open the list with one. */
       return (ra === -1 ? 99 : ra) - (rb === -1 ? 99 : rb) || a.i - b.i;
@@ -103,6 +129,16 @@ export const READING_TESTS: ReadingTest[] = byDifficulty([
   readingEighteen,
   readingNineteen,
   readingTwenty,
+  readingTwentyOne,
+  readingTwentyTwo,
+  readingTwentyThree,
+  readingTwentyFour,
+  readingTwentyFive,
+  readingTwentySix,
+  readingTwentySeven,
+  readingTwentyEight,
+  readingTwentyNine,
+  readingThirty,
 ] as ReadingTest[]);
 
 export const LISTENING_TESTS: ListeningTest[] = byDifficulty([
@@ -127,4 +163,14 @@ export const LISTENING_TESTS: ListeningTest[] = byDifficulty([
   listeningNineteen,
   listeningTwenty,
   listeningTwentyOne,
+  listeningTwentyTwo,
+  listeningTwentyThree,
+  listeningTwentyFour,
+  listeningTwentyFive,
+  listeningTwentySix,
+  listeningTwentySeven,
+  listeningTwentyEight,
+  listeningTwentyNine,
+  listeningThirty,
+  listeningThirtyOne,
 ] as ListeningTest[]);
