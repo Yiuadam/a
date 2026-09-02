@@ -112,13 +112,18 @@ export default function MockWriting({
     textareas would answer to `mock-essay` and the label would point at whichever
     the browser found first.
 
-    `touch-pan-y` is the concession the swipe track makes to an editor. The panes
-    are moved by the browser's own horizontal scrolling, and a browser will start
-    that scroll from a touch that began inside a textarea — a thumb resting on
-    the essay and drifting a few degrees off vertical is enough to snap the pane
-    away mid-sentence. Restricting this element to vertical panning takes the
-    horizontal gesture off the essay and leaves the caret, the selection handles
-    and the essay's own scrolling exactly as they were.
+    The essay used to be restricted to vertical panning, so that a thumb resting
+    on the text and drifting a few degrees off vertical could not snap the pane
+    away mid-sentence. The owner asked for the opposite: a swipe should work from
+    anywhere, the editor included, because having to find a gap in the page
+    before you can go back and re-read the task is worse than the occasional
+    stray pane.
+
+    So the restriction is gone and the panes move from a touch that starts inside
+    the textarea like any other. What that costs is the thing to watch: a
+    horizontal drag on the essay is now a pane change rather than nothing, and on
+    iOS the same gesture is close to the one that drags a selection handle. The
+    caret, the selection and the essay's own vertical scrolling are untouched.
   */
   const answer = (
     <div className={wide ? undefined : "flex h-full min-h-[16rem] flex-col"}>
@@ -134,7 +139,7 @@ export default function MockWriting({
       </div>
       <textarea
         id="mock-essay"
-        className={`input w-full touch-pan-y font-sans leading-7 ${
+        className={`input w-full font-sans leading-7 ${
           wide ? "h-72 resize-y" : "min-h-48 flex-1 resize-none"
         }`}
         placeholder="Start typing your response…"

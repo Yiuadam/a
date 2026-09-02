@@ -49,19 +49,29 @@ test("writing chooses its panes with the same switcher reading uses", () => {
 
 /*
   The one thing the reading papers never had to answer for: a pane holding a
-  textarea. The panes are moved by the browser's own horizontal scrolling, so a
-  touch that starts on the essay would pan the track — a thumb drifting a few
-  degrees off vertical snapping the pane away mid-sentence. `touch-pan-y` takes
-  the horizontal gesture off the essay and leaves the caret, the selection
-  handles and the essay's own scrolling alone. The switcher above never needed
-  the gesture, so nothing is lost by it.
-*/
-test("the essay keeps its own gestures inside the swipe track", () => {
-  const writing = read("app", "practice", "writing", "page.tsx");
-  const mock = read("components", "exam", "MockWriting.tsx");
+  textarea. This file asserted the opposite of what it asserts now, and the
+  reversal was the owner's call rather than a drift. Both essays were restricted
+  to vertical panning so that a thumb resting on the text and drifting a few
+  degrees off vertical could not snap the pane away mid-sentence; what that cost
+  was the reason the panes exist at all, because a candidate re-reads the task
+  constantly while composing and had to find a gap in the page before the swipe
+  would take them there.
 
-  assert.match(writing, /id="writing-response"[\s\S]{0,200}touch-pan-y/);
-  assert.match(mock, /id="mock-essay"[\s\S]{0,200}touch-pan-y/);
+  So the swipe now works from inside the editor, on the practice paper and the
+  mock alike. The caret, the selection and the essay's own vertical scrolling
+  are untouched — the class only ever governed which directions the browser
+  would pan from this element.
+*/
+test("the swipe track reaches into the essay on both writing papers", () => {
+  /* The comments above these elements discuss the class they no longer set. */
+  const code = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  const writing = code(read("app", "practice", "writing", "page.tsx"));
+  const mock = code(read("components", "exam", "MockWriting.tsx"));
+
+  assert.match(writing, /id="writing-response"/);
+  assert.match(mock, /id="mock-essay"/);
+  assert.doesNotMatch(writing, /touch-pan-y/);
+  assert.doesNotMatch(mock, /touch-pan-y/);
 });
 
 test("the mock writing paper switches panes on a phone and keeps its desktop column", () => {
