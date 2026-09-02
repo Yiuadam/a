@@ -167,11 +167,28 @@ final class NativeNavListViewController: UIViewController {
   /// 21px on the website; 22 here, the same rounding the bar's own glyphs take.
   fileprivate static let iconSize: CGFloat = 22
   fileprivate static let iconGap: CGFloat = 11
-  /// The material at full strength. It used to be 0.72, blending the blurred
-  /// image of the page back over the sharp one — the closest thing to a blur
-  /// radius UIKit offers, and the reason the page stayed readable through it.
-  /// See the note in init() for whose call it was to stop doing that.
-  private static let backdropAlpha: CGFloat = 1.0
+  /*
+    How much of the blurred image of the page is blended back over the sharp
+    one — the closest thing to a blur radius UIKit offers.
+
+    This number is a compromise between two things the owner asked for that
+    cannot both be had in full, and it is worth writing down why rather than
+    letting the next person "fix" it in either direction.
+
+    It was 0.72, and the page stayed readable through the gaps between the
+    cards, which they objected to. Taken to 1.0 the text went away — and so did
+    the refraction, which they then objected to. That is not a bug in either
+    change: refraction is the bending of what lies behind the glass, and a
+    fully blurred field has no edges left to bend. The more completely the page
+    is hidden, the flatter the glass above it must look.
+
+    0.86 keeps the page as shapes rather than as sentences: enough contrast
+    survives for the cards' own material to have something to distort at their
+    rims, and not enough for a word to be read out of the gaps. It is the
+    setting to revisit if either complaint returns, and the direction to move it
+    is whichever of the two the owner minds more that day.
+  */
+  private static let backdropAlpha: CGFloat = 0.86
   /*
     The card's two shadows, converted from the website's own box-shadow on
     `.nav-menu-group` rather than invented.
