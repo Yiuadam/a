@@ -171,24 +171,22 @@ final class NativeNavListViewController: UIViewController {
     How much of the blurred image of the page is blended back over the sharp
     one — the closest thing to a blur radius UIKit offers.
 
-    This number is a compromise between two things the owner asked for that
-    cannot both be had in full, and it is worth writing down why rather than
-    letting the next person "fix" it in either direction.
+    Full strength, and this is the knob that answers legibility — the material
+    beside it answers refraction. Treating them as one number is what made this
+    look like a choice between the two.
 
-    It was 0.72, and the page stayed readable through the gaps between the
-    cards, which they objected to. Taken to 1.0 the text went away — and so did
-    the refraction, which they then objected to. That is not a bug in either
-    change: refraction is the bending of what lies behind the glass, and a
-    fully blurred field has no edges left to bend. The more completely the page
-    is hidden, the flatter the glass above it must look.
+    Anything below 1.0 blends the sharp page back over the blurred one, which
+    is what left a heading readable in the gap between two cards at 0.72. It is
+    also, on its own, no help to refraction: what the glass above needs is
+    structure in the blurred image, not a sharp copy showing through it. So the
+    alpha goes to full and stays there, and the material carries the rest — see
+    the note in init().
 
-    0.86 keeps the page as shapes rather than as sentences: enough contrast
-    survives for the cards' own material to have something to distort at their
-    rims, and not enough for a word to be read out of the gaps. It is the
-    setting to revisit if either complaint returns, and the direction to move it
-    is whichever of the two the owner minds more that day.
+    Moving this back down would return the readable type without buying much of
+    what it appears to buy. If the list still reads flat on a real device, the
+    material is the thing to lighten.
   */
-  private static let backdropAlpha: CGFloat = 0.86
+  private static let backdropAlpha: CGFloat = 1.0
   /*
     The card's two shadows, converted from the website's own box-shadow on
     `.nav-menu-group` rather than invented.
@@ -269,17 +267,29 @@ final class NativeNavListViewController: UIViewController {
       sit on. Glass here would be a third refracting layer between the page and
       the cards, and the cards are the thing meant to be looked at.
 
-      It used to be ultra-thin at 72% alpha, on the argument that the page had
-      to stay visibly *there* behind the list — that being what makes the cards
-      read as floating over the app rather than as a new screen. That argument
-      was not wrong, and it has been overridden rather than forgotten: the owner
-      looked at it on the device and could read a heading through the gap
-      between two cards, which is not a page kept present, it is a page
-      competing with the menu in front of it. Asked for a glow blur that cannot
-      be seen through, so thin at full strength, and nothing of the page
-      survives as type.
+      Ultra-thin at full strength, and the two halves of that are answering two
+      different complaints that looked like one.
+
+      It began ultra-thin at 72% alpha. The 72% was the problem: alpha blends
+      the *sharp* image of the page back over the blurred one, so a heading
+      stayed readable through the gap between two cards. It went to thin at
+      100%, which did silence the type — and took the refraction with it, which
+      the owner then reported. That is not a second bug. Refraction is the
+      bending of what lies behind the glass, and a heavier material leaves a
+      flat field with no edges to bend.
+
+      So the alpha carries the legibility and the material carries the
+      refraction, and they are set independently now. At full alpha nothing
+      sharp is blended back, so no word survives. Ultra-thin rather than thin
+      keeps enough structure in what remains for the cards above — and the bar
+      above them, which turns to clear glass while the list is up — to have
+      something to distort.
+
+      Neither of those can be judged here: the Simulator does not render Liquid
+      Glass refraction at all, so this pairing is reasoned from what each knob
+      does and wants the owner's own device to settle.
     */
-    backdropView = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
+    backdropView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
     if #available(iOS 26.0, *) {
       let container = UIGlassContainerEffect()
       container.spacing = NativeNavListViewController.containerSpacing
