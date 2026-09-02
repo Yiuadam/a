@@ -99,6 +99,32 @@ It stores the secret without deploying anything. This will happen every time
 there is an open preview, which is most of the time, so reach for
 `versions secret put` first and keep `secret put` for a quiet repository.
 
+> **Read the next paragraph before you deploy that version.** "Without
+> deploying anything" is the whole point and also the whole trap. The new
+> version is built on top of the *latest* version, and with a preview open the
+> latest version is the preview — someone else's branch, or your own
+> unfinished one. So the version now sitting at the top of the list is that
+> branch's code plus your secret, and deploying it to "turn the secret on"
+> ships the branch with it. The dashboard's own **Variables and Secrets** page
+> stages a version the same way and reads even more innocently.
+>
+> This is not hypothetical: adding `GOOGLE_OAUTH_CLIENT_SECRET` on 2 September
+> produced exactly such a version, with a hundred commits of an open branch
+> behind it, while production still served code from 30 August.
+>
+> A secret only becomes live when a version carrying it is deployed. So there
+> are two honest choices, and no third:
+>
+> - **Wait.** Leave it staged; it activates on the next real deploy. Correct
+>   whenever the branch is going out soon anyway.
+> - **Deploy the code that is already live.** From a clean `main` checkout,
+>   build and deploy. That rebuilds what production is already serving and
+>   picks the secret up with it, so nothing changes except the thing the
+>   secret switches on.
+>
+> What you must not do is deploy the staged version because its message says
+> "Add secret". The message describes the binding, not the code.
+
 **The same applies to uploading several at once**, which is the form you will
 actually hit, because `scripts/stripe-setup.mjs --out` tells you to run
 `wrangler secret bulk`. With a preview open that is refused with the same
