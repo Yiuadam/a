@@ -96,14 +96,45 @@ these five paths:
    *Education*).
 2. Xcode → *Product → Archive* → *Distribute App* → App Store Connect.
 3. Fill in the listing: description, keywords, support URL, privacy policy URL.
-4. **Privacy questionnaire** — declare that you collect audio *transiently* for
-   the speaking feature. Be accurate about where it goes: in the app the audio
-   is handed to Apple's own speech recogniser, which decides for itself whether
-   to transcribe on the phone or on Apple's servers, and only the resulting text
-   reaches BandUp for grading. Nothing is stored on a server. Do **not** claim
+4. **Privacy questionnaire** — the step most likely to be answered wrongly,
+   because the honest answer is much longer than the one feature everybody
+   thinks of. Answer it from `app/privacy/page.tsx`, which is the promise the
+   app makes to the learner inside the app itself, and not from memory. A label
+   that claims less than that page does is not a technicality; it is a
+   misrepresentation, and an account-gated app that declares no contact
+   information is the mismatch Apple's privacy review catches most reliably.
+
+   Audio is the part that is genuinely reassuring, and the wording matters. It
+   is collected *transiently*: in the app the recording is handed to Apple's
+   own speech recogniser, which decides for itself whether to transcribe on the
+   phone or on Apple's servers, and only the resulting text reaches BandUp for
+   grading. No audio file is uploaded and none is stored. Do **not** claim
    on-device-only transcription here — the Whisper option is a web feature, and
    `ios-plugins/local-transcription` is not in `ios/App/CapApp-SPM/Package.swift`,
    so it is not in the build at all.
+
+   Everything else follows from the app having accounts, and it does. Declare
+   **Contact Info** for the email address and the display name; **Identifiers**
+   for the account ID the record is filed under and for the username, which
+   doubles as a sign-in name and is shown in an organisation's directory;
+   **User Content** for the essays and speaking transcripts kept with saved
+   practice, for synced practice generally, and for the profile photo, which is
+   stored as a private file in Cloudflare R2; and **Other Data** for the
+   optional date of birth, which exists to check the learner is 13 or over and
+   is read for nothing else. Every one of those is linked to the user's
+   identity and every one is used for App Functionality. There is no
+   advertising or analytics SDK in `package.json`, so **Data Used to Track
+   You** is empty and no purpose other than App Functionality should be ticked.
+
+   Two smaller ones are a judgement call rather than an oversight, so settle
+   them deliberately instead of passing over them. A thirty-day count of AI
+   requests is kept so each feature's allowance can be applied — it records
+   that a request happened and to which feature, never what was written or
+   said — which is Usage Data, product interaction, linked to identity. And a
+   salted one-way hash of the requesting address is kept so that one address
+   cannot spend unlimited AI by making accounts; it cannot be turned back into
+   an address and is used for nothing else. Where either is declared, App
+   Functionality is again the purpose.
 5. Submit for review. First review typically takes 24–48 hours.
 
 ## The rejection risks worth pre-empting
@@ -121,6 +152,32 @@ explain the benefit to the user, not just state the fact of access.
 **Guideline 2.1 — Completeness.** Reviewers will tap the speaking test. If the
 microphone path fails on their device, it's an instant rejection — which is why
 step 4.1 above matters more than anything else in this document.
+
+**Guideline 4.8 — Login Services.** The iOS build offers no third-party login
+at all, and that is a decision rather than an omission. 4.8 says an app that
+offers one must also offer an equivalent option that limits data collection to
+name and email, lets the learner keep that address private, and does not
+collect interactions for advertising. BandUp's own sign-up cannot be that
+option, because it needs a real, confirmable address and the sign-in-link form
+is recovery only. Sign in with Apple could have been, but it ships dormant —
+the four `APPLE_SIGNIN_*` secrets are unset and `App.entitlements` is
+deliberately not referenced from `project.pbxproj` — so no Apple button is ever
+drawn. Google was therefore removed from the app instead, in
+`components/account/SignedOut.tsx`, which puts BandUp inside 4.8's own
+exception for an app using exclusively the developer's account system. Nothing
+was lost: the button could not work in the app anyway, because Capacitor hands
+a top-level navigation off the app's own origin to Safari and no session ever
+came back from it.
+
+Putting either provider back into the app is real work rather than a flag.
+Apple needs paid Developer Program membership, the capability ticked on the App
+ID, `CODE_SIGN_ENTITLEMENTS` pointed at `ios/App/App/App.entitlements` and the
+four secrets set on the Worker — after which `/api/account/status` starts
+offering it with no code change at all. Google needs an in-app flow that does
+not exist yet: `ASWebAuthenticationSession`, a callback scheme registered in
+`Info.plist`, and a bridge handing the returned session to the WebView. Adding
+`accounts.google.com` to `server.allowNavigation` is not a substitute, because
+Google refuses OAuth inside an embedded WebView.
 
 **Trademark.** "IELTS" is a registered trademark of the British Council, IDP and
 Cambridge English. Do not put it in the app *name*. Using it descriptively

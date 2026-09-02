@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiUrl } from "@/lib/api";
 import { saveSession } from "@/lib/account";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 import AppleSignIn from "./AppleSignIn";
 import GoogleSignIn from "./GoogleSignIn";
 import LoadingIndicator from "@/components/LoadingIndicator";
@@ -30,8 +31,10 @@ import { consumeAuthReturnPath } from "@/lib/auth/return-path";
   — so the mark, the wording and the caveat about measuring them against the
   current guidelines all live there, next to the thing they describe.
 
-  What is left here is the list, which is still the one gate on whether a
-  provider is offered at all.
+  What is left here is the list, which together with the filter below it is the
+  whole of what decides whether a provider is offered at all. The list says
+  which providers have a button written for them; the filter says which of
+  those this deployment, and this build, actually put on the screen.
 */
 const PROVIDER_BUTTONS = [
   { id: "google" },
@@ -46,7 +49,34 @@ export default function SignedOut({
   onRecovered: () => void;
 }) {
   const [showRecovery, setShowRecovery] = useState(false);
-  const available = PROVIDER_BUTTONS.filter((p) => providers.includes(p.id));
+  /*
+    Google is a website button. The iOS build offers it to nobody, and either
+    of two reasons would be enough on its own.
+
+    It never worked there. Capacitor cancels any top-level navigation off the
+    app's own origin and hands the URL to Safari, so tapping it took the
+    learner out of BandUp, signed them in on the website, and returned them to
+    an app that was still signed out — there is no custom URL scheme, no
+    associated domain and no listener anywhere that could carry that session
+    home. Nothing about a button that leaves and does not come back is worth
+    keeping.
+
+    And offering any third-party login at all puts the app under App Review
+    guideline 4.8, which then wants an equivalent way in that lets somebody
+    keep their email address private. BandUp's own sign-up needs a real,
+    confirmable address, and Sign in with Apple is configured but dormant, so
+    there is no such alternative to point at. Offering no third-party login is
+    what 4.8 itself excepts: an app that uses only the developer's own account
+    system.
+
+    Making Google work in the app means ASWebAuthenticationSession, a callback
+    scheme registered in Info.plist and a bridge that hands the returned
+    session to the WebView. That is the work; this filter is not a substitute
+    for it, and anyone deleting the condition should build it first.
+  */
+  const available = PROVIDER_BUTTONS.filter(
+    (p) => providers.includes(p.id) && !(IS_MOBILE_BUILD && p.id === "google"),
+  );
 
   /*
     Naming only what is actually on offer. Saying "Google and Apple" while
@@ -62,8 +92,17 @@ export default function SignedOut({
     <div className="space-y-6">
       <section className="card">
         <h2 className="text-[17px] font-semibold text-slate-900">Sign in</h2>
+        {/*
+          The second half of that sentence is a promise about the buttons
+          below it, so it is only made when there are any. In the app there
+          are none — Google is filtered out above and Apple is dormant — and
+          offering "an account you already have" with nothing underneath to
+          use it with reads as something having failed to load.
+        */}
         <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
-          With an email address and a password, or with an account you already have.
+          {available.length > 0
+            ? "With an email address and a password, or with an account you already have."
+            : "With an email address and a password."}
         </p>
 
         <PasswordForm />

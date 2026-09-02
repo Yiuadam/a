@@ -123,3 +123,29 @@ test("a marking outage keeps the completed transcript retryable", () => {
   assert.match(session, /Retry marking/);
   assert.match(session, /gradeInterview\(transcript\)/);
 });
+
+/*
+  The on-device engine is only offered once the plugin can answer for itself.
+
+  The picker used to be gated on IS_MOBILE_BUILD alone, which put a choice on
+  screen that the shipped app could not honour: ios-plugins/local-transcription
+  is not a dependency in ios/App/CapApp-SPM/Package.swift, so localAvailability
+  resolves "no-plugin" and picking Whisper only ever answered that this version
+  does not include it. An unfinished feature on screen is what App Review reads
+  as incompleteness, and it was reachable without a subscription through the
+  mock exam. Requiring localBlock === null means the picker appears when the
+  plugin does and not before, and until then the interview simply uses the
+  device recogniser.
+*/
+test("the on-device speech engine is offered only when the plugin answers", () => {
+  const session = readFileSync(
+    join(process.cwd(), "components", "speaking", "SpeakingSession.tsx"),
+    "utf8",
+  );
+
+  assert.match(session, /\{IS_MOBILE_BUILD && localBlock === null && \(/);
+  assert.doesNotMatch(session, /\{IS_MOBILE_BUILD && \(/);
+  // Nothing left inside the picker reports that on-device transcription is
+  // unavailable, because the picker cannot be drawn while it is.
+  assert.doesNotMatch(session, /blockerMessage\(/);
+});

@@ -36,9 +36,27 @@ test("Google auth API stays server-mediated and CORS-capable", () => {
   assert.match(configRoute, /googleClientId/);
 });
 
-test("native builds retain the established OAuth compatibility path", () => {
-  assert.match(component, /IS_MOBILE_BUILD/);
-  assert.match(component, /\/api\/auth\/start\?provider=google/);
+/*
+  The iOS build offers no Google sign-in at all, and two things hold that.
+
+  The sign-in screen drops Google from the providers it will draw a button for
+  whenever IS_MOBILE_BUILD is set, and this component no longer carries a
+  mobile branch of its own. The second matters as much as the first: that
+  branch rendered a plain link to the server's Google start route, and
+  Capacitor answers a top-level navigation off the app's origin by opening it
+  in Safari — so the learner signed in on the website and came back to an app
+  that was still signed out. Between them they also keep the app inside
+  guideline 4.8's exception for an app that uses only its own account system,
+  which is why this is a test and not a preference.
+*/
+test("the iOS build offers no Google sign-in at all", () => {
+  const signedOut = readFileSync(join(root, "components/account/SignedOut.tsx"), "utf8");
+  assert.match(signedOut, /import \{ IS_MOBILE_BUILD \} from "@\/lib\/platform";/);
+  assert.match(
+    signedOut,
+    /providers\.includes\(p\.id\) && !\(IS_MOBILE_BUILD && p\.id === "google"\)/,
+  );
+  assert.doesNotMatch(component, /IS_MOBILE_BUILD/);
 });
 
 test("web Google sign-in falls back to the established full-navigation flow", () => {

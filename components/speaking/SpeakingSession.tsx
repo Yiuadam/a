@@ -37,7 +37,6 @@ import {
 import { addResult } from "@/lib/store";
 import {
   LOCAL_MODELS,
-  blockerMessage,
   createLocalSession,
   deleteCachedModels,
   describeStatus,
@@ -1136,16 +1135,26 @@ export default function SpeakingSession({
             </p>
           </div>
           {/*
-            The app only.
+            The app only, and only when the app can actually keep the promise.
 
             On the web this asks a question the reader has no reason to answer:
             the browser's own recogniser is the only path that works the way
             the interview needs — words appearing as they are spoken — and the
             Whisper option's whole argument is that the audio never leaves the
             device, which is a promise about an app rather than about a tab.
-            Inside the app it is a real choice and stays.
+
+            Inside the app it is a real choice only once there is something to
+            choose. The on-device model is a native plugin that has to be
+            compiled into the build, and until it is, localAvailability()
+            answers "no-plugin" — so offering the option would be offering a
+            switch whose only reply is that this version cannot do it. That is
+            an unfinished feature on screen, which is its own reason not to
+            ship it and also the thing App Review calls incompleteness. Waiting
+            for that answer costs one render: localBlock starts non-null, so
+            the picker appears when the plugin does and never before, and the
+            interview quietly uses the device recogniser in the meantime.
           */}
-          {IS_MOBILE_BUILD && (
+          {IS_MOBILE_BUILD && localBlock === null && (
           <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left">
             <p className="text-sm font-semibold text-slate-800">How your speech becomes text</p>
             <div
@@ -1215,12 +1224,6 @@ export default function SpeakingSession({
                   )}
                 </p>
               </div>
-            )}
-
-            {prefs.engine === "local" && localBlock !== null && localBlock !== "server" && (
-              <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-                {blockerMessage(localBlock)}
-              </p>
             )}
           </div>
           )}

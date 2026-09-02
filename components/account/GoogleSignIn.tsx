@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { saveSession } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
-import { IS_MOBILE_BUILD } from "@/lib/platform";
 import { getServerTheme, getTheme, subscribeTheme } from "@/lib/theme";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { consumeAuthReturnPath } from "@/lib/auth/return-path";
@@ -76,6 +75,16 @@ async function googleNonce(): Promise<{ raw: string; hashed: string }> {
  * Google talks to this page directly and BandUp verifies the signed ID token
  * on its server. Once Cloudflare-native identity is enabled, neither this
  * button nor its full-page fallback passes a Google credential to Supabase.
+ *
+ * This is a browser component and only a browser component. It used to carry a
+ * second branch for the iOS build — a plain link off to /api/auth/google/start
+ * — and that branch could never have worked: Capacitor cancels a top-level
+ * navigation off the app's own origin and opens it in Safari instead, so the
+ * learner signed in on the website and came back to an app that was still
+ * signed out. The branch is gone rather than left dormant, because dormant
+ * code invites somebody to switch it back on. SignedOut.tsx now keeps Google
+ * off the app's sign-in screen entirely and records why; a real in-app Google
+ * flow means ASWebAuthenticationSession and a callback scheme, not this file.
  */
 export default function GoogleSignIn() {
   const router = useRouter();
@@ -197,24 +206,6 @@ export default function GoogleSignIn() {
       }
     }
   }, [clientId, router, scriptReady, theme]);
-
-  if (IS_MOBILE_BUILD) {
-    if (!configReady) {
-      return <div className="btn-secondary min-h-10"><LoadingIndicator label="Loading Google sign-in…" /></div>;
-    }
-    if (nativeAuth && !serverFlow) {
-      return (
-        <p className="text-center text-xs leading-5 text-rose-700" role="alert">
-          Google sign-in is being updated. Please try again shortly.
-        </p>
-      );
-    }
-    return (
-      <a href={fallbackStart} className="btn-secondary">
-        Continue with Google
-      </a>
-    );
-  }
 
   return (
     <div>
