@@ -73,7 +73,20 @@ export default function QuestionPalette({
   }, [currentId]);
 
   return (
-    <div className="exam-glass mx-2 mb-2 flex items-center gap-3 rounded-xl border px-2.5 py-2 sm:rounded-2xl sm:px-3">
+    /*
+      The bottom margin clears the home indicator, which is this bar's own job
+      now: Capacitor no longer insets the web view for the safe area, because
+      the header already reserved the notch and the app was paying for it twice.
+      Without this the question numbers sit in the indicator's strip and the
+      screen's rounded corner cuts the first and last of them.
+
+      max() rather than an addition, so a device without an indicator keeps the
+      0.5rem this bar was drawn with instead of gaining a gap for nothing.
+    */
+    <div
+      className="exam-glass mx-2 flex items-center gap-3 rounded-xl border px-2.5 py-2 sm:rounded-2xl sm:px-3"
+      style={{ marginBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+    >
       <div className="flex shrink-0 items-center gap-1.5">
         <button
           type="button"
@@ -102,7 +115,13 @@ export default function QuestionPalette({
       */}
       <ol
         ref={strip}
-        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-0.5"
+        /* No rubber band at either end of the numbers. A scroller bounces to
+           say you have reached the end of something, and here the end is a
+           question number with the arrows beside it already saying the same
+           thing — so the bounce only made a fixed strip inside a fixed bar feel
+           loose. It matters more in the app than in a browser: there the bar is
+           the app's own bottom edge rather than part of a document. */
+        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overscroll-x-none py-0.5"
       >
         {items.map((item) => {
           const isCurrent = item.id === currentId;

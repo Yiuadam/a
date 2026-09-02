@@ -303,7 +303,21 @@ export default function ExamShell({
           onToggleReview={onToggleReview ?? (() => {})}
         />
       ) : (
-        <div className="flex items-center justify-between gap-3 border-t border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-3 py-2 text-xs text-[color:var(--exam-fg)]">
+        /*
+          The bottom inset is the page's to pay now. Capacitor used to have
+          WKWebView inset the content for the safe area itself, and it was taken
+          off because the header already reserved the notch and the app was
+          paying for it twice — which fixed the gap at the top and handed this
+          edge to CSS at the same time. Without it, "Submit for marking" sits in
+          the home indicator's strip and is clipped by the screen's own corner.
+
+          max() rather than a plain addition: on a device with no indicator the
+          inset is zero and the bar keeps the 0.5rem it was designed with.
+        */
+        <div
+          className="flex items-center justify-between gap-3 border-t border-[color:var(--exam-line)] bg-[color:var(--exam-chrome)] px-3 pt-2 text-xs text-[color:var(--exam-fg)]"
+          style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+        >
           <div className="min-w-0">{bottomLeft}</div>
           <div className="shrink-0">{bottomRight}</div>
         </div>

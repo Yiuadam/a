@@ -205,7 +205,10 @@ export default function MockReading({
             proportion the practice paper's panels use, because there the
             width was never what was scarce.
           */}
-          <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto">
+          {/* Same as the practice papers' track: no rubber band at the ends.
+              There are two panes and the switcher above says which one you are
+              on, so a bounce reports an end that nothing was looking for. */}
+          <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-none">
             <div className="prose-reading w-[calc(100%-0.75rem)] shrink-0 snap-start overflow-y-auto sm:w-[calc(100%-4rem)]">
               {passage}
             </div>
