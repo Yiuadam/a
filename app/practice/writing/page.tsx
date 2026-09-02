@@ -287,7 +287,6 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
         onChange={(e) => setEssay(e.target.value)}
         disabled={grading}
       />
-      {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
       {/*
         "Kept if you reload" rather than the "Saved on this device" this used to
         claim. That sentence was simply untrue before the draft existed at all,
@@ -411,8 +410,6 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
     >
       {grade ? (
         <SwipePanels panels={feedbackPanels} />
-      ) : wide ? (
-        <SplitPanes className="h-full" initial={48} left={source} right={response} />
       ) : (
         /*
           The assignment banner stays above the track rather than riding in the
@@ -420,10 +417,30 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
           stop being true when the candidate swipes to their answer, and a
           notice that vanishes with the panel it was pinned to is a notice
           somebody will swear they never saw.
+
+          A failed submission is the same kind of notice, and it used to be
+          pinned to the Response panel. The Submit button lives in the bar at
+          the bottom of the shell, which is on screen whichever panel is
+          showing — so a learner on the Task panel pressed Submit, marking
+          failed, and absolutely nothing changed. The message was two panels
+          away, and after forty minutes of writing the reasonable conclusion is
+          that the button is broken.
         */
         <div className="flex min-h-0 flex-1 flex-col">
-          <AssignedPracticeNotice className="mx-1 mb-2 shrink-0" />
-          <SwipePanels panels={practicePanels} />
+          {error && (
+            <p
+              role="alert"
+              className="mx-1 mb-2 shrink-0 rounded-lg bg-rose-50 px-3 py-2 text-sm leading-6 text-rose-700"
+            >
+              {error}
+            </p>
+          )}
+          {!wide && <AssignedPracticeNotice className="mx-1 mb-2 shrink-0" />}
+          {wide ? (
+            <SplitPanes className="h-full" initial={48} left={source} right={response} />
+          ) : (
+            <SwipePanels panels={practicePanels} />
+          )}
         </div>
       )}
     </ExamShell>

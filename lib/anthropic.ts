@@ -33,8 +33,17 @@ export function hasApiKey(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
+/*
+  Read by a learner, not by whoever deploys this.
+
+  It used to say "Add ANTHROPIC_API_KEY to .env.local (see .env.example) and
+  restart the server", which is an instruction only one person on earth can
+  follow — and it arrived at the end of forty minutes of essay writing, where
+  the one thing somebody needs to know is whether their work is safe. It is:
+  the essay stays where it was and marking can be asked for again.
+*/
 export const NO_KEY_MESSAGE =
-  "AI features are not configured. Add ANTHROPIC_API_KEY to .env.local (see .env.example) and restart the server.";
+  "Marking is unavailable at the moment. Your work is saved — please try again shortly.";
 
 interface CallOptions {
   /** Which metered route this is. Decides the model and the output ceiling. */

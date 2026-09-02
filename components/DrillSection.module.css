@@ -260,6 +260,27 @@
     min-height: 7.5rem;
   }
 
+  .compactSummary {
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (min-width: 64rem) {
+  /*
+    Title and badges side by side, and only once the card is wide enough to
+    hold both.
+
+    This used to start at 48rem, where the grid is already four columns. On a
+    768px tablet that makes each card 174px, the badge row takes 78px of it and
+    refuses to shrink, and the title is left with 56px — so seventeen of the
+    twenty grammar topics were clamped to two lines with three more hidden, and
+    twelve were additionally sliced mid-word with no ellipsis. "Comparative and
+    superlative structures" rendered as "Compara". A learner could not tell the
+    topics apart, which is the one thing an index of topics has to do.
+
+    Below this width the header stays a block and the badges sit under the
+    title, where they have the whole card to themselves.
+  */
   .compactCardHeader {
     display: flex;
     align-items: flex-start;
@@ -272,12 +293,12 @@
     margin-top: 0;
   }
 
-  .compactSummary {
-    -webkit-line-clamp: 2;
+  /* A flex item's floor is its content, so without this the title pushes the
+     row wider than the card instead of wrapping inside it. */
+  .compactCardTitle {
+    min-width: 0;
   }
-}
 
-@media (min-width: 64rem) {
   .compactWorkspace {
     grid-template-columns: minmax(15rem, 0.82fr) minmax(0, 1.18fr);
     align-items: start;

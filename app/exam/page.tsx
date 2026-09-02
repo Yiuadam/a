@@ -385,7 +385,12 @@ function StartScreen({ onStart }: { onStart: () => void }) {
               <span className="block text-sm font-semibold text-slate-900">
                 {MODULE_NAMES[module]}
               </span>
-              <span className="block truncate text-xs text-slate-500">{detail}</span>
+              {/* Allowed to wrap rather than truncate. The line exists to say how
+                  many recordings or passages there are, and on a phone
+                  `truncate` cut it off at exactly that number — "40 questions ·
+                  4 re…" — so the tile kept the part a learner already knew and
+                  threw away the part it was there to tell them. */}
+              <span className="block text-xs text-slate-500">{detail}</span>
               <span className="mt-0.5 block text-xs font-medium tabular-nums text-slate-700">
                 {MODULE_MINUTES[module]} min
               </span>

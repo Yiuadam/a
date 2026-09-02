@@ -36,9 +36,14 @@ test("Light keeps a white canvas with neutral-grey interactive controls", () => 
   // excluded for the same reason and a blunter one — a bare class is one
   // specificity point against this rule's four, so every line of the panel's
   // own material was being overwritten here and never painted at all.
+  // .btn-primary is excluded because it is an action rather than a surface:
+  // the exam start button carries both classes, both rules weigh the same,
+  // and this one is written later — so the button took a 16%-of-near-white
+  // fill while keeping the white label the blue recipe below gives it, and
+  // the only control on the screen went invisible.
   assert.match(
     css,
-    /html\[data-theme="light"\] \.liquid-glass:not\(\.nav-menu-group\):not\(\.notification-popover\),\nhtml\[data-theme="light"\] \.card,\nhtml\[data-theme="light"\] \.premade-glass \{[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 16%, transparent\);/,
+    /html\[data-theme="light"\] \.liquid-glass:not\(\.nav-menu-group\):not\(\.notification-popover\):not\(\.btn-primary\),\nhtml\[data-theme="light"\] \.card,\nhtml\[data-theme="light"\] \.premade-glass:not\(\.btn-primary\) \{[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 16%, transparent\);/,
   );
   assert.match(css, /html\[data-theme="light"\] a\.card\.card:hover,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-200\) 58%, transparent\);/);
   // The primary button is the exception to the grey: it is filled with this

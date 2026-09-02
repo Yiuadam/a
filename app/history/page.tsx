@@ -25,7 +25,12 @@ import type { ModuleName, ModuleResult } from "@/lib/types";
 
 const MODULES: { key: ModuleName; label: string; stroke: string; text: string }[] = [
   { key: "listening", label: "Listening", stroke: "var(--color-emerald-600)", text: "text-emerald-600" },
-  { key: "reading", label: "Reading", stroke: "var(--color-indigo-600)", text: "text-indigo-600" },
+  {
+    key: "reading",
+    label: "Reading",
+    stroke: "var(--chart-reading)",
+    text: "text-[color:var(--chart-reading)]",
+  },
   { key: "writing", label: "Writing", stroke: "var(--color-amber-700)", text: "text-amber-700" },
   { key: "speaking", label: "Speaking", stroke: "var(--color-purple-700)", text: "text-purple-700" },
 ];

@@ -26,12 +26,42 @@
   --color-slate-100: #f3ece3;
   --color-slate-200: #e7ddd1;
   --color-slate-300: #d6c9b8;
-  --color-slate-400: #a2968a;
-  --color-slate-500: #857a6e;
-  --color-slate-600: #675e55;
-  --color-slate-700: #4f473f;
-  --color-slate-800: #3a342e;
-  --color-slate-900: #2a2521;
+  /*
+    400 upwards are text, so they are chosen against the cream the text sits
+    on rather than against white.
+
+    They used not to be. On the #e7e0d8 page, 400 measured 2.21:1 and 500
+    measured 3.21:1 — both under the 4.5:1 that small text needs, and 400's
+    ceiling against pure white was 2.89:1, so no background could have
+    rescued it. What that cost was not decoration: 400 carries the footer
+    line telling a learner their band is an estimate and that BandUp is not
+    affiliated with IELTS, and 500 carries the metadata a learner picks a
+    paper by. In the theme the app ships with, both were close to invisible.
+
+    Making 400 readable compresses the ramp, because there is not room for
+    six distinct steps between a mid-cream page and black once the lightest
+    of them has to clear 4.5:1. The steps below are what is left: 4.6, 5.8,
+    7.5, 9.4, 11.6, 13.5. Hierarchy here is carried by size and weight more
+    than by tone, which is the trade a warm paper background asks for.
+  */
+  --color-slate-400: #6b6157;
+  --color-slate-500: #5c534b;
+  --color-slate-600: #4a423b;
+  --color-slate-700: #3a342e;
+  --color-slate-800: #2a2521;
+  --color-slate-900: #1c1815;
+
+  /*
+    The colour the history page strokes its Reading series with, and prints
+    the panel's own label in.
+
+    It is the accent ramp in Warm and in Dark, where that ramp is a colour. In
+    Light the ramp is deliberately a set of near-white control greys, so a
+    series drawn from it came out as a barely visible line beside three
+    clearly coloured ones — the panel read as broken rather than as neutral.
+    Light overrides this to the one blue that theme does keep.
+  */
+  --chart-reading: var(--color-indigo-600);
 
   /* Clay accent — warmer and calmer than the default blue-violet */
   --color-indigo-50: #fdf4ee;
@@ -171,6 +201,31 @@ html[data-theme="light"] {
   --color-indigo-600: #c7ccd3;
   --color-indigo-700: #aeb5bd;
   --color-indigo-800: #8f969f;
+
+  /*
+    Those three are surfaces, and they are the right greys for a surface. The
+    trouble is that a Tailwind colour is one token read by both `bg-` and
+    `text-`, so every `text-indigo-700` in the app asked this theme for a pale
+    control fill and got it as a text colour — 1.72:1 on the page, which is
+    text a learner cannot see is there. It took out the two links closing every
+    practice library, the way into the per-question review after a three-hour
+    sitting, and the only route from the vocabulary page to the exam papers.
+
+    In this theme the accent *is* neutral, so accent text is dark neutral. The
+    utilities are overridden rather than the tokens, because the tokens are
+    still correct for the fifteen places that fill a surface with them. Text on
+    one of those fills is dark too, which is what it already wanted to be.
+  */
+  .text-indigo-600,
+  .text-indigo-700 {
+    color: #3a3d43;
+  }
+
+  .text-indigo-800,
+  .text-indigo-900,
+  .text-indigo-950 {
+    color: #26282d;
+  }
 
   --color-emerald-50: #ecfdf5;
   --color-emerald-100: #d1fae5;
@@ -5143,6 +5198,9 @@ html[data-theme="light"] {
      controls" below) — this exists only for the button border request that
      specifically wants blue, not a general invitation to tint the theme. */
   --color-accent-blue: #0284c7;
+  /* See --chart-reading in @theme: the accent ramp cannot carry a chart series
+     in this theme, so the series borrows the one blue that survives here. */
+  --chart-reading: #0284c7;
 }
 
 html[data-theme="light"] body {
@@ -5303,9 +5361,18 @@ html[data-theme="light"] .btn-secondary {
    this theme, not an actual blue), just at a small fraction of their
    strength: enough to give the rim something to catch the light against,
    not enough to flatten the glow into a solid card. */
-html[data-theme="light"] .liquid-glass:not(.nav-menu-group):not(.notification-popover),
+/*
+  `:not(.btn-primary)` because a primary action is not a pane of glass.
+
+  The exam start screen's only control carries both classes, and both rules
+  have the same weight — so this one, being written later, won, and the button
+  took a 16%-of-near-white fill while keeping the white label the blue recipe
+  above had given it. White on almost-white: the only thing to press on the
+  screen was invisible, and a learner had to find it by hovering.
+*/
+html[data-theme="light"] .liquid-glass:not(.nav-menu-group):not(.notification-popover):not(.btn-primary),
 html[data-theme="light"] .card,
-html[data-theme="light"] .premade-glass {
+html[data-theme="light"] .premade-glass:not(.btn-primary) {
   border-color: var(--color-indigo-300);
   background: color-mix(in srgb, var(--color-indigo-100) 16%, transparent);
 }

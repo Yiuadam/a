@@ -75,7 +75,14 @@ export function HubMenu({ items }: { items: HubItem[] }) {
     */
     <ul className="grid gap-2.5 sm:grid-cols-2">
       {items.map((item) => (
-        <li key={item.href}>
+        /*
+          `min-w-0` because a grid item's floor is its content, not its column.
+          The row below carries a value that can be an email address, and an
+          address longer than about 38 characters pushed every card on the
+          account page past the right edge of a phone — the whole page scrolled
+          sideways and the chevrons went off-screen.
+        */
+        <li key={item.href} className="min-w-0">
           <Link
             href={item.href}
             prefetch={false}
@@ -106,7 +113,15 @@ export function HubMenu({ items }: { items: HubItem[] }) {
 
             {item.value && item.valuePlacement !== "below" && (
               <span
-                className={`shrink-0 text-[13px] font-medium tabular-nums ${
+                title={item.value}
+                /*
+                  Allowed to shrink and ellipsise rather than hold its full
+                  width. Counts — "3 left", "Standard" — are far short of the
+                  cap and are unaffected; an email address is what this is for,
+                  and the full value stays available on hover and to a screen
+                  reader through the title.
+                */
+                className={`min-w-0 max-w-[55%] truncate text-[13px] font-medium tabular-nums ${
                   item.tone === "warn" ? "text-amber-700" : "text-slate-700"
                 }`}
               >
