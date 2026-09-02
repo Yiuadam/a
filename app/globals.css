@@ -3954,8 +3954,24 @@ textarea {
   line and immediately after it, which is what settles it.
 */
 @media (max-width: 39.999rem) {
+  /*
+    Back up to the product's own card corner, on the owner's instruction: they
+    want a question card to read like a navigation card, and --radius-2xl is
+    what a card is everywhere else — .card on the website, .nav-menu-group in
+    the menu, and the navigation list in the app, all 42.5px at this
+    breakpoint's 17px root.
+
+    The paragraph above is still right that a corner cannot outrun its inset,
+    so the inset comes up to meet it rather than the corner coming down. 0.75rem
+    is 12.75px, which is exactly what .nav-menu-group pairs with this radius —
+    the pair is borrowed whole rather than a third set of numbers guessed here.
+
+    The question number sits in the top-left, nearer the arc than any prose is,
+    and it is the thing to check if this ever looks wrong.
+  */
   [data-exam] .card {
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-2xl);
+    padding: 0.75rem;
   }
 
   /*
