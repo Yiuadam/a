@@ -355,7 +355,8 @@ export default function PrivacyPage() {
           account has none of it, and neither does a signed-out visitor.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
-          You can sign in with Google, with Apple, or with an email address and a password. With
+          You can sign in with Google, with Apple, or with an email address and a password &mdash;
+          except inside the iOS app, which offers Apple and email only. With
           Google or Apple, BandUp never sees a password at all: the provider confirms it is you,
           and passes on your email address together with a permanent identifier for you that is
           unique to this app. That identifier, rather than your address, is what your account is

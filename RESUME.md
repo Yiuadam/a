@@ -87,8 +87,9 @@ and checking — are described but not built. They need announcements written fr
 scratch, and the 30-minute mock clock has to absorb three or four minutes of
 added silence per paper.
 
-**`app/privacy/page.tsx` still says you can sign in with Google.** No longer true
-inside the app.
+**Four of eighteen vocabulary titles still clamp at 768px** — down from sixteen,
+and the remainder are long titles legitimately wrapping to two lines rather than
+being cut mid-word. Worth a look, not a defect.
 
 ## Decisions waiting on the owner
 
@@ -99,10 +100,6 @@ inside the app.
   - **Ten of ten new listening papers, and eleven of nineteen old ones,** let the
     second question block start before the first one ends. Same argument: a
     bank-wide pass or none.
-  - **`normalise()` strips a dot between digits,** which is what makes `930` mark
-    as `9.30`. Fixing it for decimals costs the time tolerance unless
-    `CompletionQuestion` gains an `accept` field first. Three parts, its own
-    change: protect the dot, add `accept`, restore the two time keys.
   - **Two of the four listening voices are Australian.** Neither Aura model can
     cast four British speakers: aura-1 offered British, British, Irish, American;
     aura-2 offers British, British, Australian, Australian. The one without an
@@ -129,25 +126,13 @@ inside the app.
 
 ## Known-broken, so nobody re-diagnoses it
 
-  - `.input`'s focus ring is dead on **every** platform: `.input` sets a plain
-    `box-shadow`, which beats the layered `focus:ring-4` utility, while
-    `focus:outline-none` still removes the browser's own. A focused field shows
-    nothing but a caret. The fix needs weight above `html[data-theme] .input` and
-    below `[data-exam] .input:focus`.
   - `--header-h` is 60px; the header actually draws 64.75px. The exam shell
     subtracts the variable, so it is ~4.75px out on every platform. Entangled
     with the iOS native chrome, which is why it was left.
-  - `components/speaking/SpeakingSession.tsx` restarts recognition from `onend`
-    synchronously and, on failure, just stops — the mic dies mid-answer with no
-    message. On Android Chrome `continuous` is not honoured, so that boundary is
-    hit every few seconds rather than every minute.
   - `components/exam/MockResults.tsx` records no review for the speaking module,
     so a mock-exam interview reaches the tutor as a band and a date rather than
     as answers. A Standard-tier interview calls no `addResult` at all and leaves
     no record of any kind.
-  - Two comments cite `lib/tutor/consent.ts`, which was deleted, and describe a
-    consent switch that no longer exists: `components/exam/MockRetakeResults.tsx:191`
-    and `lib/exam/mock.ts:319`. Comments only — nothing breaks.
   - `SENTENCE_GAP_MS` and `SPEAKER_CHANGE_GAP_MS` in `lib/exam/playback.ts` say
     320 ms was measured from the MP3s the server serves. Those MP3s are retired,
     so the provenance is stale even if the number still happens to be right.

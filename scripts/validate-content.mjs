@@ -58,11 +58,35 @@ const NUMBER_WORDS = {
   eighteenth: 18, nineteenth: 19, twentieth: 20, thirtieth: 30,
 };
 
+/*
+  Whether two answers differ only in how a number is written.
+
+  The rule above — every accepted answer must appear in the source — exists to
+  catch an invented answer, and it should keep doing that. But it also caught
+  the tolerances a human marker gives for free: a passage says 9.30 and a
+  candidate writes 930, which is the same answer written differently and is not
+  in the text as such. Before the normaliser learned to keep a decimal point,
+  those two collapsed to one string and the question never arose.
+
+  So a variant is allowed past the source check when it is the key with its
+  decimal points removed — traceable to the text, and unable to smuggle in an
+  answer the passage does not support, because the digits have to match.
+*/
+function sameNumber(variant, answer) {
+  const digits = (s) => normalise(String(s)).replace(/\./g, "");
+  return digits(variant) === digits(answer);
+}
+
 function normalise(value) {
   const base = String(value)
     .trim()
     .toLowerCase()
-    .replace(/[.,!?;:'"£$€%]/g, "")
+    // A full stop flanked by digits is a decimal point, not punctuation.
+    // Stripping it turned the key "3.8" into "38", so a candidate who read the
+    // passage correctly and typed 3.8 was marked wrong while one who typed 38
+    // was marked right. Every other dot still goes.
+    .replace(/(?<!\d)[.](?!\d)|(?<=\d)[.](?!\d)|(?<!\d)[.](?=\d)/g, "")
+    .replace(/[,!?;:'"£$€%]/g, "")
     .replace(/[-–—]/g, " ")
     // "6.30pm" and "6.30 pm" are the same answer to a candidate.
     .replace(/(\d)([a-z])/g, "$1 $2")
@@ -258,7 +282,7 @@ function checkQuestions(file, set, source, expectedCount) {
         fail(file, `${q.id} has no answer`);
       } else {
         for (const a of [q.answer, ...(q.accept ?? [])]) {
-          if (source && !normalise(source).includes(normalise(a))) {
+          if (source && !normalise(source).includes(normalise(a)) && !sameNumber(a, q.answer)) {
             fail(file, `${q.id} answer "${a}" does not appear in the passage or script`);
           }
           const words = String(a).trim().split(/\s+/).length;

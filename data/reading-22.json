@@ -133,7 +133,10 @@
           "question": "What time did the school in the two-year study move the start of its day to?",
           "answer": "9.30",
           "maxWords": 3,
-          "explanation": "The passage says the school \"moved the beginning of the school day from 8.15 to 9.30\". The question asks for the new time, which is the second of these: 9.30."
+          "explanation": "The passage says the school \"moved the beginning of the school day from 8.15 to 9.30\". The question asks for the new time, which is the second of these: 9.30.",
+          "accept": [
+            "930"
+          ]
         },
         {
           "id": "q13",

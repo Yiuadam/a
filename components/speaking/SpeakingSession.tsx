@@ -335,8 +335,42 @@ export default function SpeakingSession({
 
 
 
+  /*
+    Restarting the recogniser after the browser has stopped it, which is a
+    routine event rather than a fault — and on Android is a routine event every
+    few seconds.
+
+    Chrome does not honour `continuous` there, so `onend` fires at the end of
+    almost every phrase, and `no-speech` fires during an ordinary thinking
+    pause. The old code called `rec.start()` synchronously inside `onend` and,
+    if that threw, called `setRecording(false)` and stopped. It throws readily:
+    the engine has not finished releasing the microphone at the moment it tells
+    you it has stopped. So on Android the microphone died part-way through an
+    answer, silently, with the candidate still talking and the screen still
+    saying it was listening.
+
+    A frame's delay lets the engine settle, and a budget replaces the silent
+    give-up: a few failures in a row are what a real fault looks like, and then
+    the candidate is told rather than left talking to nothing. Any successful
+    restart clears the budget, so a long interview does not accumulate its way
+    into a false alarm.
+  */
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restartFailuresRef = useRef(0);
+  const RESTART_DELAY_MS = 120;
+  const RESTART_BUDGET = 5;
+
+  const clearRestartTimer = useCallback(() => {
+    if (restartTimerRef.current !== null) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
+  }, []);
+
   const stopRecording = useCallback(() => {
     wantRecordingRef.current = false;
+    clearRestartTimer();
+    restartFailuresRef.current = 0;
     const rec = recRef.current;
     recRef.current = null;
     if (rec) {
@@ -352,7 +386,7 @@ export default function SpeakingSession({
     setRecording(false);
     setInterim("");
     interimRef.current = "";
-  }, []);
+  }, [clearRestartTimer]);
 
   /*
     `resume` is what a nudge asks for: capture is starting again, but the turn
@@ -423,28 +457,50 @@ export default function SpeakingSession({
         setRecording(false);
       }
     };
-    rec.onend = () => {
-      // Browsers stop recognition periodically; restart while we still want it.
-      // Check identity too: a recognizer replaced by a newer one must not
-      // resurrect itself and double-transcribe into the same answer.
-      if (wantRecordingRef.current && recRef.current === rec) {
-        if (
-          expectedGeneration !== promptGenerationRef.current ||
-          !answerWindowOpenRef.current
-        ) return;
+    // Browsers stop recognition periodically; restart while we still want it.
+    // Check identity too: a recognizer replaced by a newer one must not
+    // resurrect itself and double-transcribe into the same answer.
+    const stillWanted = () =>
+      wantRecordingRef.current &&
+      recRef.current === rec &&
+      expectedGeneration === promptGenerationRef.current &&
+      answerWindowOpenRef.current;
+
+    const scheduleRestart = () => {
+      if (!stillWanted()) return;
+      clearRestartTimer();
+      restartTimerRef.current = setTimeout(() => {
+        restartTimerRef.current = null;
+        // Re-checked rather than assumed: 120ms is long enough for the turn to
+        // have ended, the recogniser to have been replaced, or the candidate
+        // to have pressed stop.
+        if (!stillWanted()) return;
         try {
           rec.start();
+          restartFailuresRef.current = 0;
         } catch {
-          setRecording(false);
+          restartFailuresRef.current += 1;
+          if (restartFailuresRef.current >= RESTART_BUDGET) {
+            restartFailuresRef.current = 0;
+            setError(
+              "The microphone stopped listening. Press record to start it again, or type your answer.",
+            );
+            setRecording(false);
+            return;
+          }
+          scheduleRestart();
         }
-      }
+      }, RESTART_DELAY_MS);
     };
+
+    rec.onend = scheduleRestart;
     try {
       rec.start();
+      restartFailuresRef.current = 0;
     } catch {
       setRecording(false);
     }
-  }, [beginAnswerClock]);
+  }, [beginAnswerClock, clearRestartTimer]);
 
   /*
     The local path is a different shape from the streaming one: it records the

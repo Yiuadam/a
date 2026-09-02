@@ -114,7 +114,12 @@ function normalise(s: string): string {
   const base = s
     .trim()
     .toLowerCase()
-    .replace(/[.,!?;:'"£$€%]/g, "")
+    // A full stop flanked by digits is a decimal point, not punctuation.
+    // Stripping it turned the key "3.8" into "38", so a candidate who read the
+    // passage correctly and typed 3.8 was marked wrong while one who typed 38
+    // was marked right. Every other dot still goes.
+    .replace(/(?<!\d)[.](?!\d)|(?<=\d)[.](?!\d)|(?<!\d)[.](?=\d)/g, "")
+    .replace(/[,!?;:'"£$€%]/g, "")
     .replace(/[-–—]/g, " ")
     // "6.30pm" and "6.30 pm" are the same answer to a candidate.
     .replace(/(\d)([a-z])/g, "$1 $2")
@@ -183,8 +188,12 @@ export function isCorrect(
       return Number(given) === q.answer;
     case "tfng":
       return String(given) === q.answer;
-    case "completion":
-      return normalise(String(given)) === normalise(q.answer);
+    case "completion": {
+      // Same shape as short-answer below: the key plus anything else a marker
+      // would let through, each normalised the way the candidate's answer is.
+      const typed = normalise(String(given));
+      return [q.answer, ...(q.accept ?? [])].some((a) => normalise(a) === typed);
+    }
     case "ynng":
       return String(given) === q.answer;
     case "matching":

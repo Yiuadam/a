@@ -195,9 +195,11 @@ export default function MockRetakeResults({
         terms standalone speaking already saves them (SpeakingSession.tsx writes
         the same `SpeakingResultReview`, and app/privacy/page.tsx describes it).
         Same shape rather than a new one, so a retaken interview is reopenable
-        like any other — and so the tutor's consent switch, which reads saved
-        results, governs this one on the same terms as a practice interview
-        rather than on terms of its own (lib/tutor/consent.ts).
+        like any other — and so the tutor, which reads saved results rather
+        than any record of its own, sees this one on the same terms as a
+        practice interview and on no other terms. (There used to be a switch
+        governing that; there is not one now, and clearing history is what
+        withholds it.)
 
         Both halves are required before anything is written. A grade with no
         transcript is feedback about words nobody can see, and a transcript

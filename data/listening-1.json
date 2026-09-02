@@ -197,7 +197,12 @@
           "sentence": "Class start time: ___",
           "answer": "6.30 pm",
           "maxWords": 2,
-          "explanation": "The class \"starts at 6.30 pm and runs for an hour and a half, so you finish at eight\". Eight o'clock is the finish, which is the trap; the question asks for the start."
+          "explanation": "The class \"starts at 6.30 pm and runs for an hour and a half, so you finish at eight\". Eight o'clock is the finish, which is the trap; the question asks for the start.",
+          "accept": [
+            "630 pm",
+            "6.30pm",
+            "630pm"
+          ]
         },
         {
           "id": "q6",

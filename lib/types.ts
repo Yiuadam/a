@@ -48,6 +48,16 @@ export interface CompletionQuestion {
   type: "completion";
   sentence: string;
   answer: string;
+  /**
+   * Other spellings a marker would accept, the same field short-answer has.
+   *
+   * It exists because the normaliser stopped stripping a full stop between two
+   * digits — it was turning the key "3.8" into "38", which marked a correct
+   * decimal wrong. The strip was also what let a candidate write 930 for a key
+   * of 9.30, and that tolerance is worth keeping; a completion question had no
+   * way to say so, so now it has one.
+   */
+  accept?: string[];
   maxWords: number;
   explanation?: string;
 }

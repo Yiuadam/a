@@ -307,18 +307,20 @@ export interface MockSession {
    * useless without the words it is about, and a learner reopening a sitting a
    * week later cannot remember what they said.
    *
-   * A transcript is the most personal thing this app holds — lib/tutor/
-   * consent.ts sets out why at length — so it is worth being exact about what
-   * this line does and does not do. It lives in the session, which is
-   * sessionStorage: per-tab, gone when the tab closes, and taken by a sign-out
-   * and by either clear along with the rest of the sitting. It is never
-   * uploaded from here. What outlives the tab is only what the results screen
-   * chooses to save into `ModuleResult.review`, which is exactly the record
-   * standalone speaking already writes and which app/privacy/page.tsx already
-   * describes. And the tutor's access to any of it stays behind the switch in
-   * lib/tutor/consent.ts, because that gate reads the saved results rather
-   * than this field — an exam interview becomes readable to the tutor on the
-   * same terms as a practice one, and on no other terms.
+   * A transcript is the most personal thing this app holds, so it is worth
+   * being exact about what this line does and does not do. It lives in the
+   * session, which is sessionStorage: per-tab, gone when the tab closes, and
+   * taken by a sign-out and by either clear along with the rest of the
+   * sitting. It is never uploaded from here. What outlives the tab is only
+   * what the results screen chooses to save into `ModuleResult.review`, which
+   * is exactly the record standalone speaking already writes and which
+   * app/privacy/page.tsx describes. The tutor reads saved results rather than
+   * this field, so an exam interview becomes readable to it on the same terms
+   * as a practice one and on no other terms.
+   *
+   * That used to be gated by a switch in lib/tutor/consent.ts. There is no
+   * switch now — the tutor reads saved speaking automatically, and clearing
+   * history is what withholds it.
    */
   speakingTranscript?: SpeakingTranscriptTurn[];
   marks: MockMarks | null;

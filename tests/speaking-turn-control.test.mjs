@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { register } from "node:module";
 import { test } from "node:test";
 import { join } from "node:path";
@@ -237,4 +238,46 @@ test("the probe bank gives three distinct lines per part", () => {
     const lines = new Set([0, 1, 2].map((index) => control.examinerNudge(part, index)));
     assert.equal(lines.size, 3);
   }
+});
+
+/*
+  Restarting the recogniser, which on Android is not an edge case.
+
+  Chrome there does not honour `continuous`, so `onend` fires at the end of
+  almost every phrase and `no-speech` fires during an ordinary thinking pause.
+  The old code called `rec.start()` synchronously inside `onend` and, when that
+  threw — which it readily does, because the engine has not finished releasing
+  the microphone at the moment it says it has stopped — it called
+  setRecording(false) and gave up. The microphone died part-way through an
+  answer, silently, while the screen still said it was listening.
+*/
+test("the recogniser is restarted on a timer, not from inside onend", () => {
+  const src = readFileSync("components/speaking/SpeakingSession.tsx", "utf8");
+  assert.match(src, /rec\.onend = scheduleRestart;/);
+  const fn = src.match(/const scheduleRestart = \(\) => \{[\s\S]*?\n {4}\};/)?.[0] ?? "";
+  assert.notEqual(fn, "", "SpeakingSession should schedule the restart");
+  assert.match(fn, /setTimeout\(/, "a frame's delay is what lets the engine settle");
+  // Everything is re-checked inside the timer: 120ms is long enough for the
+  // turn to have ended or the recogniser to have been replaced.
+  assert.equal(fn.match(/stillWanted\(\)/g)?.length, 2);
+  assert.match(fn, /restartFailuresRef\.current = 0;/, "a success clears the budget");
+  assert.match(fn, /RESTART_BUDGET/, "and repeated failure is a fault worth reporting");
+  assert.match(fn, /setError\(/, "which the candidate is told about rather than left in");
+});
+
+test("a failed restart retries before it gives up", () => {
+  const src = readFileSync("components/speaking/SpeakingSession.tsx", "utf8");
+  const fn = src.match(/const scheduleRestart = \(\) => \{[\s\S]*?\n {4}\};/)?.[0] ?? "";
+  // The recursion is the retry. Without it a single InvalidStateError — the
+  // common case on Android — ends the answer.
+  assert.match(fn, /scheduleRestart\(\);/);
+  assert.match(src, /const RESTART_BUDGET = \d+;/);
+  assert.match(src, /const RESTART_DELAY_MS = \d+;/);
+});
+
+test("stopping clears the pending restart, so a stopped mic stays stopped", () => {
+  const src = readFileSync("components/speaking/SpeakingSession.tsx", "utf8");
+  const stop = src.match(/const stopRecording = useCallback\([\s\S]*?\n {2}\}, \[/)?.[0] ?? "";
+  assert.match(stop, /clearRestartTimer\(\)/);
+  assert.match(stop, /restartFailuresRef\.current = 0/);
 });

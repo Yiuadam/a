@@ -6225,3 +6225,35 @@ html[data-glass-lens-clone] [data-pressed] > .segmented-knob::before {
    The copy is plain spans, so it has to be told — without this the icon
    sits in the corner of its stop and the bend appears to move it. */
 
+
+/*
+  The focus ring on an app field, which until now did not exist.
+
+  `.input` asks for one — `focus:ring-4 focus:ring-indigo-100` is right there in
+  its @apply list — but a Tailwind ring is a box-shadow, and the very next line
+  of the same rule sets `box-shadow: inset 0 1px 0 …` as plain CSS. Plain CSS in
+  a rule beats a utility in the same rule, so the ring was overwritten before it
+  ever drew, and the two theme overrides further down set box-shadow again for
+  good measure. Meanwhile `focus:outline-none` had already taken away the one
+  the browser draws for free. The result was a focused field showing nothing at
+  all but a caret — no ring, no outline, no border change — which is a problem
+  for anybody navigating by keyboard and worse for anybody who cannot see the
+  caret.
+
+  Written here, at the end, because that is what makes it win: `html .input` is
+  the same weight as `html[data-theme="dark"] .input`, so position decides. It
+  stays under `[data-exam] .input:focus`, which is heavier and already draws a
+  proper ring in the paper's own accent — the exam was never the broken half.
+
+  :focus-visible rather than :focus, so a pointer click does not light up a
+  field the way tabbing to it should.
+
+  The inset highlight is repeated rather than dropped: it is the top edge of the
+  glass, and a field that loses it on focus looks like it has changed material.
+*/
+html .input:focus-visible {
+  border-color: var(--color-indigo-500);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 3px color-mix(in srgb, var(--color-indigo-500) 28%, transparent);
+}
