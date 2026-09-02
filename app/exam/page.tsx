@@ -259,7 +259,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
   ];
 
   return (
-    <section className="exam-start mx-auto flex h-[calc(100dvh-3.75rem)] w-full max-w-6xl items-center overflow-y-auto px-3 sm:px-5">
+    <section className="exam-start mx-auto flex h-[calc(100dvh-var(--header-h))] w-full max-w-6xl items-center overflow-y-auto px-3 sm:px-5">
       <div className="exam-start-window card premade-glass relative mx-auto w-full overflow-hidden !p-[clamp(1rem,3vw,2rem)]">
         <div className="exam-start-content premade-glass-content mx-auto w-full space-y-[clamp(0.75rem,2.4vh,1.5rem)]">
         <header className="max-w-2xl">

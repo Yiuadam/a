@@ -28,6 +28,30 @@ final class MainViewController: CAPBridgeViewController {
     bridge?.registerPluginInstance(speechRecognition)
   }
 
+  override func viewDidLoad() {
+    super.viewDidLoad()
+
+    /*
+      No rubber band at the top of a page.
+
+      A web view bounces past its own content by default, which is right for a
+      browser — the page is a document in a window, and pulling it away from
+      the chrome shows you that you have reached the end of it. It is wrong
+      here. The bar above is not chrome around a document, it is the app's own
+      top edge, so pulling the page down opens a gap between the two and shows
+      the empty view controller behind, which reads as the layout having come
+      apart rather than as the end of the content.
+
+      Turned off for both ends rather than only the top. Clamping one edge
+      means a scroll view delegate holding contentOffset every frame, and that
+      fights the momentum animation it is overriding; the result is a scroll
+      that catches rather than an edge that holds. Nothing here wants the
+      bottom bounce either — there is no pull-to-refresh to reveal.
+    */
+    webView?.scrollView.bounces = false
+    webView?.scrollView.alwaysBounceVertical = false
+  }
+
   override func viewSafeAreaInsetsDidChange() {
     super.viewSafeAreaInsetsDidChange()
     nativeChrome.updateForSafeAreaChange()

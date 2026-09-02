@@ -630,7 +630,7 @@ function ListeningTestPageRunner() {
 
   if (!started) {
     return (
-      <div className="mx-auto flex min-h-[calc(100dvh-3.75rem)] max-w-xl items-center px-4">
+      <div className="mx-auto flex min-h-[calc(100dvh-var(--header-h))] max-w-xl items-center px-4">
         <div className="card w-full space-y-4 py-8 text-center">
           <AssignedPracticeNotice />
           <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>

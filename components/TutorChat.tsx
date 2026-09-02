@@ -301,7 +301,7 @@ export default function TutorChat() {
       anything, when "what is this and what is it not" is the question they
       actually have.
     */
-    <div className="flex h-[calc(100dvh-3.75rem)] min-h-0 w-full flex-col overflow-hidden bg-slate-50">
+    <div className="flex h-[calc(100dvh-var(--header-h))] min-h-0 w-full flex-col overflow-hidden bg-slate-50">
       <div className="liquid-glass z-10 mx-3 mt-3 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border px-4 sm:mx-5 sm:px-6">
         <h1 className="text-[20px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
           Ask a tutor

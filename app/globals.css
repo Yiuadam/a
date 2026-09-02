@@ -306,6 +306,38 @@ body {
   */
   --window-text-inset-compact: clamp(0.875rem, calc(0.75rem + 0.4vw), 1rem);
   --page-window-gutter: clamp(1rem, calc(0.75rem + 1.25vw), 2rem);
+  /*
+    How much room the top chrome takes, as a page token.
+
+    Pages that want to fill the rest of the screen were each subtracting a
+    literal `3.75rem`, which is the web header's row height and nothing else's.
+    Inside the iOS app the top chrome is a native bar — the same row height
+    plus the safe-area inset — so every one of those pages laid itself out
+    taller than the space it actually had, and the difference became a scroll
+    that pulled content up under the bar for no reason.
+
+    Declared here so the header does not have to be an ancestor to publish it,
+    because in the app there is no header element at all: lib/native-chrome.ts
+    overwrites this on the document element with the native bar's own measured
+    height once it is up. In a browser the inset resolves to zero, so this is
+    exactly the 3.75rem those pages were already using.
+  */
+  --header-row-h: 3.75rem;
+  --header-h: calc(var(--header-row-h) + env(safe-area-inset-top));
+  /*
+    The wash the open navigation lays over the page, so the sheet's cards come
+    forward a little without the page disappearing.
+
+    A page token rather than a property of the header, which is where it used
+    to live. `.nav-paper` reads it with a `transparent` fallback and is the
+    header's own child on the web, so inheriting it there worked — but the iOS
+    app has no header element at all: its bar is a native view, and the sheet
+    hangs off a plain div. The variable resolved to nothing there, the sheet
+    came out fully clear, and the page behind it showed through undimmed. Its
+    own edges then read as a band across the list, which is what it was
+    reported as: a banner covering the top of the menu.
+  */
+  --nav-scrim: color-mix(in srgb, rgb(28, 20, 14) 10%, transparent);
   --glass-fill: rgba(255, 255, 255, 0.08);
   --glass-fill-strong: rgba(255, 255, 255, 0.16);
   --glass-edge: rgba(255, 255, 255, 0.32);
@@ -1670,7 +1702,6 @@ html[data-theme="dark"] .nav-menu-group {
     Slight on purpose. The cards are meant to come forward a little, not the
     page to disappear.
   */
-  --nav-scrim: color-mix(in srgb, rgb(28, 20, 14) 10%, transparent);
   /*
     The closed header's border-b earns its keep against an opaque bar. Open,
     it sits directly above a sheet that is now mostly clear (.nav-paper's
@@ -3532,6 +3563,27 @@ a.card.card:hover {
 */
 @utility btn {
   @apply relative inline-flex min-h-11 select-none items-center justify-center gap-2 overflow-hidden rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+/*
+  One focus ring, in the theme's own accent, for everything — not just buttons.
+
+  Only `.btn` claimed a ring before, so every other focusable thing fell back
+  to whatever the engine draws. That is fine on a desktop browser, where the
+  default is a familiar blue, and wrong inside the iOS app: WebKit paints its
+  own indicator there, and against a dark page it arrives as a saturated
+  yellow perimeter that belongs to no palette in this file. BandUp has no
+  yellow at all — Dark's accent is #d26d3f — so a gold ring around a card
+  reads as a warning about something.
+
+  Declared on the bare pseudo-class so it reaches links, inputs and any card
+  that takes focus. Components that deliberately suppress their own ring use
+  Tailwind's `focus-visible:outline-none`, which is a utility and so still
+  wins over this; nothing that opted out is opted back in.
+*/
+:focus-visible {
+  outline: 2px solid var(--color-indigo-500);
+  outline-offset: 2px;
 }
 
 .btn:focus-visible {

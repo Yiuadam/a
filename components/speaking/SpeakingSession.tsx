@@ -17,6 +17,7 @@ import UpgradePanel from "@/components/billing/UpgradePanel";
 import { tierShows, useTier } from "@/lib/billing/useTier";
 import VolumeMeter from "@/components/speaking/VolumeMeter";
 import { apiUrl, postJSON } from "@/lib/api";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 import speakingData from "@/data/speaking-topics.json";
 import { useMounted } from "@/lib/hooks";
 import {
@@ -184,7 +185,17 @@ export default function SpeakingSession({
   const [voiceProblem, setVoiceProblem] = useState(false);
   const mounted = useMounted();
 
-  const activeEngine = sessionEngine ?? prefs.engine;
+  /*
+    On the web the engine is not a choice, so it is not read as one either.
+
+    The picker below is the app's, and hiding it alone would strand anyone who
+    had already chosen Whisper on the web: the preference is stored per device,
+    so it would survive with no control left to change it back, and every
+    interview would keep waiting on a local transcription the reader could no
+    longer turn off. Pinning the engine here means the stored value is simply
+    not consulted outside the app, whatever it says.
+  */
+  const activeEngine = IS_MOBILE_BUILD ? (sessionEngine ?? prefs.engine) : "platform";
   const usingLocal = activeEngine === "local" && localBlock === null;
   const micSupported =
     mounted && !micBlocked && (usingLocal || speechRecognitionSupported());
@@ -1124,6 +1135,17 @@ export default function SpeakingSession({
               </Link>
             </p>
           </div>
+          {/*
+            The app only.
+
+            On the web this asks a question the reader has no reason to answer:
+            the browser's own recogniser is the only path that works the way
+            the interview needs — words appearing as they are spoken — and the
+            Whisper option's whole argument is that the audio never leaves the
+            device, which is a promise about an app rather than about a tab.
+            Inside the app it is a real choice and stays.
+          */}
+          {IS_MOBILE_BUILD && (
           <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left">
             <p className="text-sm font-semibold text-slate-800">How your speech becomes text</p>
             <div
@@ -1201,6 +1223,7 @@ export default function SpeakingSession({
               </p>
             )}
           </div>
+          )}
         </div>
       </div>
     );

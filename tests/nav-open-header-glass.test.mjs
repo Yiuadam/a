@@ -69,7 +69,16 @@ test("opening navigation keeps a real liquid-glass header surface", () => {
   // the sheet was dimmed to give the cards something to stand out from and
   // the bar was not, which left a bright strip across the top of a dimmed
   // page reading as a piece of a different screen.
-  assert.match(openHeader, /--nav-scrim:\s*color-mix\(in srgb, rgb\(28, 20, 14\) 10%, transparent\);/);
+  /*
+    The scrim is a page token now, not the header's own property. It used to
+    be declared here and inherited by .nav-paper, which is this element's
+    child on the web — but the iOS app has no header element at all, so the
+    variable resolved to nothing, the sheet came out fully clear and the page
+    showed through undimmed. Declared on `body`, both branches inherit it.
+    The header still paints itself with it, which is what this rule is about.
+  */
+  assert.match(css, /body \{[\s\S]*?--nav-scrim:\s*color-mix\(in srgb, rgb\(28, 20, 14\) 10%, transparent\);/);
+  assert.doesNotMatch(openHeader, /--nav-scrim:/);
   assert.match(openHeader, /background:\s*var\(--nav-scrim\)\s*;/);
   assert.match(openHeader, /box-shadow:\s*[\s\S]*?var\(--glass-highlight\) 45%/);
   assert.match(openHeaderContent, /position:\s*relative\s*;/);
