@@ -130,3 +130,111 @@ test("word counting tolerates spacing", () => {
   assert.equal(control.countSpokenWords("  I   live in Hong Kong. "), 5);
   assert.equal(control.countSpokenWords("   "), 0);
 });
+
+test("a thin answer that has dried up gets a nudge, well before the hard limit", () => {
+  // Part 1: "I live in Manchester." — a handful of words, then silence.
+  assert.equal(
+    control.decideNudge(
+      evidence({ part: 1, elapsedSeconds: 6, wordCount: 4, silenceMilliseconds: 2_600 }),
+    ),
+    "probe",
+  );
+  // Part 2: the long turn dries up well short of 80 words.
+  assert.equal(
+    control.decideNudge(
+      evidence({ part: 2, elapsedSeconds: 50, wordCount: 60, silenceMilliseconds: 4_100 }),
+    ),
+    "probe",
+  );
+  // Part 3: 25 words at 20 s, the case the plan measures at 55 s of dead air today.
+  assert.equal(
+    control.decideNudge(
+      evidence({ part: 3, elapsedSeconds: 20, wordCount: 25, silenceMilliseconds: 3_100 }),
+    ),
+    "probe",
+  );
+});
+
+test("a nudge does not fire before its part's silence threshold, or once enough has been said", () => {
+  assert.equal(
+    control.decideNudge(
+      evidence({ part: 1, elapsedSeconds: 6, wordCount: 4, silenceMilliseconds: 2_000 }),
+    ),
+    null,
+  );
+  assert.equal(
+    control.decideNudge(
+      evidence({ part: 3, elapsedSeconds: 20, wordCount: 45, silenceMilliseconds: 3_100 }),
+    ),
+    null,
+  );
+});
+
+test("a nudge fires once and never a second time in the same turn", () => {
+  const thin = evidence({ part: 3, elapsedSeconds: 20, wordCount: 25, silenceMilliseconds: 3_100 });
+  assert.equal(control.decideNudge(thin), "probe");
+  assert.equal(control.decideNudge({ ...thin, nudgesUsed: 1 }), null);
+});
+
+test("the hard limit still bounds the turn even after a nudge", () => {
+  assert.equal(
+    control.decideNudge(
+      evidence({ part: 3, elapsedSeconds: 75, wordCount: 25, silenceMilliseconds: 3_100 }),
+    ),
+    null,
+  );
+  assert.equal(
+    control.decideTurnEnd(
+      evidence({
+        part: 3,
+        elapsedSeconds: 75,
+        wordCount: 25,
+        silenceMilliseconds: 0,
+        nudgesUsed: 1,
+      }),
+    ),
+    "time-limit",
+  );
+});
+
+test("once a nudge has been used, a candidate who stays quiet ends the turn at the ordinary pause, not the hard limit", () => {
+  // Past Part 3's earliestNaturalEnd (28 s) but nowhere near its 75 s hard limit.
+  assert.equal(
+    control.decideTurnEnd(
+      evidence({
+        part: 3,
+        elapsedSeconds: 30,
+        wordCount: 25,
+        silenceMilliseconds: 1_700,
+        nudgesUsed: 1,
+      }),
+    ),
+    "natural-pause",
+  );
+});
+
+test("a candidate who never speaks gets a different, unvarying nudge after about eight seconds", () => {
+  assert.equal(
+    control.decideNudge(
+      evidence({ part: 1, elapsedSeconds: 5, wordCount: 0, speechDetected: false, silenceMilliseconds: 0 }),
+    ),
+    null,
+  );
+  assert.equal(
+    control.decideNudge(
+      evidence({ part: 1, elapsedSeconds: 8, wordCount: 0, speechDetected: false, silenceMilliseconds: 0 }),
+    ),
+    "silent",
+  );
+  assert.equal(
+    control.examinerNudge(1, 0, "silent"),
+    "Take your time. Would you like me to repeat the question?",
+  );
+});
+
+test("the probe bank gives three distinct lines per part", () => {
+  for (const part of [1, 2, 3]) {
+    const lines = new Set([0, 1, 2].map((index) => control.examinerNudge(part, index)));
+    assert.equal(lines.size, 3);
+  }
+});

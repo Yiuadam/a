@@ -61,10 +61,13 @@ import { SpeakingIcon } from "@/components/Icons";
 import AssignedPracticeNotice from "@/components/organization/AssignedPracticeNotice";
 import {
   countSpokenWords,
+  decideNudge,
   decideTurnEnd,
   examinerFollowUp,
+  examinerNudge,
   examinerQuestion,
   SPEAKING_PART_INTRO,
+  type NudgeKind,
   type TurnEndReason,
 } from "@/lib/speaking/turn-control";
 import {
@@ -209,6 +212,12 @@ export default function SpeakingSession({
   const speechDetectedRef = useRef(false);
   const advancingRef = useRef(false);
   const promptGenerationRef = useRef(0);
+  // How many times the examiner has nudged the turn in progress, and what it
+  // said. Both belong to the turn, not the interview: nextQuestion reads
+  // pendingNudgeTextRef once, to fold it into the transcript's question line,
+  // then both reset for whatever question comes next.
+  const nudgesUsedRef = useRef(0);
+  const pendingNudgeTextRef = useRef("");
   const prepGenerationRef = useRef<number | null>(null);
   const answerWindowOpenRef = useRef(false);
   const beginningRef = useRef(false);
@@ -264,6 +273,8 @@ export default function SpeakingSession({
     // Stop any speech or recognition still running when the user navigates away.
     return () => {
       promptGenerationRef.current += 1;
+      nudgesUsedRef.current = 0;
+      pendingNudgeTextRef.current = "";
       examinerAudioRunRef.current += 1;
       cancelSpeech();
       disposeNaturalExaminerVoice();
@@ -342,14 +353,25 @@ export default function SpeakingSession({
     interimRef.current = "";
   }, []);
 
-  const beginAnswerClock = useCallback(() => {
+  /*
+    `resume` is what a nudge asks for: capture is starting again, but the turn
+    itself is not. Skipping the reset of answerStartedAtRef and
+    speechDetectedRef there is what keeps the hard limit counting from when
+    the turn truly began, and what keeps a candidate who had already spoken
+    from looking freshly silent to decideTurnEnd the moment they pause again.
+    lastVoiceAtRef still moves to now either way — the silence clock always
+    restarts when capture does.
+  */
+  const beginAnswerClock = useCallback((resume = false) => {
     const now = performance.now();
-    answerStartedAtRef.current = now;
+    if (!resume) {
+      answerStartedAtRef.current = now;
+      speechDetectedRef.current = false;
+    }
     lastVoiceAtRef.current = now;
-    speechDetectedRef.current = false;
   }, []);
 
-  const startRecording = useCallback((expectedGeneration: number) => {
+  const startRecording = useCallback((expectedGeneration: number, resume = false) => {
     if (
       expectedGeneration !== promptGenerationRef.current ||
       !answerWindowOpenRef.current
@@ -362,8 +384,10 @@ export default function SpeakingSession({
     recRef.current = rec;
     wantRecordingRef.current = true;
     setRecording(true);
-    setElapsed(0);
-    beginAnswerClock();
+    // A resume continues the same on-screen answer clock a nudge interrupted;
+    // only a genuinely new turn snaps the display back to 0:00.
+    if (!resume) setElapsed(0);
+    beginAnswerClock(resume);
 
     rec.onresult = (e: SpeechRecognitionEvent) => {
       if (
@@ -427,7 +451,7 @@ export default function SpeakingSession({
     the candidate is talking, so the wait afterwards has to be visible — hence
     `localStatus`, which carries the download and transcription progress.
   */
-  const startLocal = useCallback(async (expectedGeneration: number) => {
+  const startLocal = useCallback(async (expectedGeneration: number, resume = false) => {
     if (
       expectedGeneration !== promptGenerationRef.current ||
       !answerWindowOpenRef.current
@@ -447,8 +471,8 @@ export default function SpeakingSession({
         return;
       }
       setRecording(true);
-      setElapsed(0);
-      beginAnswerClock();
+      if (!resume) setElapsed(0);
+      beginAnswerClock(resume);
     } catch {
       if (sessionRef.current !== session || expectedGeneration !== promptGenerationRef.current) {
         return;
@@ -543,14 +567,14 @@ export default function SpeakingSession({
     render has to be guarded against every re-render that is not that event.
     It is also the shape react-hooks/set-state-in-effect exists to catch.
   */
-  const openAnswerWindow = useCallback((expectedGeneration: number) => {
+  const openAnswerWindow = useCallback((expectedGeneration: number, resume = false) => {
     if (expectedGeneration !== promptGenerationRef.current || answerWindowOpenRef.current) return;
     updateAnswerWindow(true);
     if (!micSupported || micBlocked) return;
     if (sessionEngineRef.current === "local" && localBlock === null) {
-      void startLocal(expectedGeneration);
+      void startLocal(expectedGeneration, resume);
     }
-    else startRecording(expectedGeneration);
+    else startRecording(expectedGeneration, resume);
   }, [micSupported, micBlocked, localBlock, startLocal, startRecording, updateAnswerWindow]);
 
   const continueAfterQuestion = useCallback((current: Step, promptGeneration: number) => {
@@ -725,6 +749,8 @@ export default function SpeakingSession({
       const s = list[index];
       if (!s) return;
       const promptGeneration = ++promptGenerationRef.current;
+      nudgesUsedRef.current = 0;
+      pendingNudgeTextRef.current = "";
       prepGenerationRef.current = null;
       updateAnswerWindow(false);
       setVoiceProblem(false);
@@ -751,6 +777,8 @@ export default function SpeakingSession({
   const repeatQuestion = useCallback(async () => {
     if (!step || examinerSpeaking) return;
     const promptGeneration = ++promptGenerationRef.current;
+    nudgesUsedRef.current = 0;
+    pendingNudgeTextRef.current = "";
     cancelSpeech();
     prepGenerationRef.current = null;
     setPrepSeconds(0);
@@ -791,6 +819,8 @@ export default function SpeakingSession({
   /** Leave the interview: silence the examiner and release the microphone. */
   const endTest = useCallback(() => {
     promptGenerationRef.current += 1;
+    nudgesUsedRef.current = 0;
+    pendingNudgeTextRef.current = "";
     prepGenerationRef.current = null;
     beginningRef.current = false;
     advancingRef.current = false;
@@ -824,6 +854,8 @@ export default function SpeakingSession({
     sessionEngineRef.current = chosenEngine;
     setSessionEngine(chosenEngine);
     promptGenerationRef.current += 1;
+    nudgesUsedRef.current = 0;
+    pendingNudgeTextRef.current = "";
     prepGenerationRef.current = null;
     advancingRef.current = false;
     const list = buildInterview();
@@ -903,6 +935,12 @@ export default function SpeakingSession({
     if (!step || !answerWindowOpen || advancingRef.current) return;
     advancingRef.current = true;
     const promptGeneration = ++promptGenerationRef.current;
+    // Read before resetting: this turn's nudge, if any, belongs on the
+    // transcript line the code below is about to write for the question that
+    // is ending, not on whatever comes next.
+    const nudgeSpoken = pendingNudgeTextRef.current;
+    nudgesUsedRef.current = 0;
+    pendingNudgeTextRef.current = "";
     prepGenerationRef.current = null;
     updateAnswerWindow(false);
     const nextIndex = stepIndex + 1;
@@ -944,7 +982,14 @@ export default function SpeakingSession({
 
       const updated: Turn[] = [
         ...transcript,
-        { role: "examiner", part: step.part, text: step.question },
+        {
+          role: "examiner",
+          part: step.part,
+          // A nudge and the question it followed are one examiner turn — the
+          // same thing a transcript of a real interview would show for
+          // "Where do you live?" ... "Manchester." ... "Why is that?".
+          text: nudgeSpoken ? `${step.question} ${nudgeSpoken}` : step.question,
+        },
         { role: "candidate", part: step.part, text: spoken || "(no answer given)" },
       ];
       setTranscript(updated);
@@ -996,6 +1041,64 @@ export default function SpeakingSession({
   );
 
   /*
+    A short spoken interruption when the turn has gone quiet — before the
+    part's answer is long enough to count as developed, or before it has
+    started at all. Unlike nextQuestion, this does not move the interview on:
+    promptGenerationRef is left untouched, because the turn has not ended,
+    only paused, and the words already given are captured into answerRef
+    rather than cleared, so what the candidate says next lands on the same
+    answer. One turn, one question, one merged answer — what a real
+    examiner's "Why is that?" produces, and it needs no change to how the
+    transcript or the grading route reads a turn.
+  */
+  const askNudge = useCallback(
+    async (kind: NudgeKind) => {
+      if (!step || !answerWindowOpen || advancingRef.current || nudgesUsedRef.current > 0) return;
+      advancingRef.current = true;
+      const promptGeneration = promptGenerationRef.current;
+
+      try {
+        setExaminerSpeaking(true);
+        updateAnswerWindow(false);
+        const captured = await stopAnswer();
+        if (promptGeneration !== promptGenerationRef.current) return;
+        answerRef.current = captured;
+        setAnswer(captured);
+        interimRef.current = "";
+        setInterim("");
+
+        const nudgeText = examinerNudge(step.part, stepIndex, kind);
+        const spoken = await playExaminerPrompt(
+          // Standalone ids, not the bridge catalogue, land here once the
+          // audio catalogue carries these lines: examinerNudgeAudioId(step.part, stepIndex).
+          // Until then, null routes straight to the device voice — the same
+          // recovery playExaminerPrompt already falls back to on any
+          // catalogue miss, so this line is never mute.
+          null,
+          nudgeText,
+          0.96,
+          promptGeneration,
+        );
+        if (promptGeneration !== promptGenerationRef.current) return;
+        setExaminerSpeaking(false);
+
+        nudgesUsedRef.current += 1;
+        pendingNudgeTextRef.current = nudgeText;
+        // resume=true: same turn, so the answer clock and speech-detected
+        // flag ride through untouched — only the silence clock restarts.
+        openAnswerWindow(promptGeneration, true);
+        if (!spoken) setVoiceProblem(true);
+      } finally {
+        if (promptGeneration === promptGenerationRef.current) {
+          setExaminerSpeaking(false);
+          advancingRef.current = false;
+        }
+      }
+    },
+    [step, stepIndex, answerWindowOpen, stopAnswer, playExaminerPrompt, openAnswerWindow, updateAnswerWindow],
+  );
+
+  /*
     A quarter-second control loop makes the examiner responsive without asking
     React to re-render for every microphone sample. It never ends a normal turn
     in active speech: sufficient language must be followed by a natural pause.
@@ -1009,19 +1112,26 @@ export default function SpeakingSession({
       const lastVoiceAt = lastVoiceAtRef.current;
       if (startedAt === null || lastVoiceAt === null || advancingRef.current) return;
       const now = performance.now();
-      const decision = decideTurnEnd({
+      const evidence = {
         part: step.part,
         elapsedSeconds: (now - startedAt) / 1_000,
         wordCount: countSpokenWords(`${answerRef.current} ${interimRef.current}`),
         speechDetected: speechDetectedRef.current,
         silenceMilliseconds: now - lastVoiceAt,
         liveTranscript: !usingLocal,
-      });
-      if (decision) void nextQuestion(decision);
+        nudgesUsed: nudgesUsedRef.current,
+      };
+      const decision = decideTurnEnd(evidence);
+      if (decision) {
+        void nextQuestion(decision);
+        return;
+      }
+      const nudge = decideNudge(evidence);
+      if (nudge) void askNudge(nudge);
     }, 250);
 
     return () => window.clearInterval(timer);
-  }, [recording, step, examinerSpeaking, prepSeconds, usingLocal, nextQuestion]);
+  }, [recording, step, examinerSpeaking, prepSeconds, usingLocal, nextQuestion, askNudge]);
 
   // ---------- Screens ----------
 
