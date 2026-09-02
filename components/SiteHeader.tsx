@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
@@ -14,7 +15,13 @@ import { IS_MOBILE_BUILD } from "@/lib/platform";
 import HeaderNotificationBell from "@/components/account/HeaderNotificationBell";
 import { useAccountProfile } from "@/components/account/AccountProfileProvider";
 import bandupMarkRear from "@/components/assets/steps-five-layer-rear-108.png";
-import { enableNativeChrome, syncNativeTheme } from "@/lib/native-chrome";
+import {
+  enableNativeChrome,
+  setNativeNavItems,
+  setNativeNavOpen,
+  syncNativeTheme,
+  type NativeNavGroup,
+} from "@/lib/native-chrome";
 import { getServerTheme, getTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
 
 const HOMEPAGE_MENU_ICONS: Partial<Record<string, string>> = {
@@ -53,6 +60,23 @@ const MENU_ICONS: Partial<Record<string, CardIconName>> = {
     : {}),
   "/admin": "settings",
 };
+
+/*
+  Which glyph a destination carries, as one name.
+
+  The two tables above draw from different icon families — HOMEPAGE_MENU_ICONS
+  from components/Icons.tsx, MENU_ICONS from components/CardIcon.tsx — but they
+  are keyed by href and their key sets do not overlap, so a merge in the same
+  order the sheet's own JSX resolves them in is the whole of the rule.
+
+  It exists for the iOS app. The native navigation list draws the website's own
+  artwork rather than SF Symbols, and it is handed this name rather than a
+  picture: which drawing the name resolves to is decided on the other side of
+  the bridge, against traced copies of these same paths in Assets.xcassets.
+*/
+function navIconName(href: string): string | null {
+  return HOMEPAGE_MENU_ICONS[href] ?? MENU_ICONS[href] ?? null;
+}
 
 /*
   The whole header, in one client component.
@@ -238,6 +262,60 @@ export default function SiteHeader({
     syncNativeTheme(theme);
   }, [theme]);
 
+  /* Which destination this page is "on", or null. Read by both the sheet
+     below and the structure handed to the native list, so the two mark the
+     same row. */
+  const current = currentHref(pathname);
+
+  /*
+    The same telling-the-native-bar for the menu's open state, so it can take
+    a clearer glass over the sheet the way `.nav-open-header` does on the web.
+
+    Keyed on `open` itself rather than hung off the button's onClick, and that
+    is the whole point of writing it as an effect: `open` is derived from
+    openPath and pathname together, so it also goes false when Escape fires,
+    when the close button is pressed, when a tap lands outside, and when a
+    link inside the sheet navigates away. Any of those paths would have left
+    the bar wearing the open material with nothing open underneath it.
+  */
+  useEffect(() => {
+    setNativeNavOpen(open);
+  }, [open]);
+
+  /*
+    The menu's whole structure, pushed to the native list.
+
+    lib/nav.ts stays the single source of truth for where the app can go, and
+    nothing about these sixteen rows is written down in Swift. That matters
+    more than it looks: NAV_GROUPS already varies by build — it drops /pricing
+    and /billing under IS_MOBILE_BUILD — and it will keep changing, so a native
+    copy would drift silently and a learner would be the one to find out.
+
+    Serialised to compare, then parsed to send. The array `groups` is rebuilt
+    on every render, so it can never be a useEffect dependency; its JSON can,
+    and it also means an identical menu is not pushed across the bridge again
+    on every keystroke elsewhere in the app. Skipped entirely until the native
+    bar has reported in, so the website pays nothing for it.
+  */
+  const nativeNav =
+    nativeChromeHeight === null
+      ? null
+      : JSON.stringify(
+          groups.map((group) => ({
+            title: group.title,
+            items: group.items.map((item) => ({
+              href: item.href,
+              label: item.label,
+              icon: navIconName(item.href),
+              current: item.href === current,
+            })),
+          })),
+        );
+  useEffect(() => {
+    if (nativeNav === null) return;
+    setNativeNavItems(JSON.parse(nativeNav) as NativeNavGroup[]);
+  }, [nativeNav]);
+
   /*
     NativeChromeView replacing this component's own <header> entirely, on
     the one platform that has it. `enable` is an async bridge call, so the
@@ -272,9 +350,26 @@ export default function SiteHeader({
         router.push("/");
         setOpenPath(null);
       },
-      onMenu: () => {
-        setOpenPath((current) => (current === pathnameRef.current ? null : pathnameRef.current));
+      /*
+        Opens rather than toggles, because the native side is what actually
+        decides now: the plugin presents its own list from the menu button so
+        Apple's zoom transition can originate there, and it reports back which
+        of the two happened — `menuTapped` on the way up, `navDismissed` on the
+        way down. A toggle here would fight that, since a second tap on the
+        button arrives as navDismissed and never as menuTapped.
+      */
+      onMenu: () => setOpenPath(pathnameRef.current),
+      onNavItem: (href) => {
+        /*
+          The native list navigates nothing itself. It has already dismissed
+          by the time this arrives — the transition unwinds first, then the
+          page changes, rather than the web view being torn out from under a
+          zoom still animating over it.
+        */
+        router.push(href as Route);
+        setOpenPath(null);
       },
+      onNavDismissed: () => setOpenPath(null),
       onAccount: () => router.push("/account"),
       onTheme: (nextTheme) => {
         if (isTheme(nextTheme)) setTheme(nextTheme);
@@ -305,8 +400,6 @@ export default function SiteHeader({
       dispose?.();
     };
   }, [router]);
-
-  const current = currentHref(pathname);
 
   if (onConsole) return null;
 
@@ -432,33 +525,29 @@ export default function SiteHeader({
 
   if (nativeChromeHeight !== null) {
     /*
-      Real estate the native bar already owns above the web view. The row —
-      logo, menu button, account button, theme toggle — belongs here even
-      less than the rest of the header does: NativeChromeView has already
-      drawn the menu, account and theme controls themselves, in real
-      UIGlassEffect glass rather than the CSS bevel this file falls back to
-      everywhere the app runs in a browser engine that cannot filter a
-      backdrop it did not paint itself. The sheet those controls open is not
-      something native draws, though — nothing on the other side of the
-      bridge knows what the menu button should reveal — so it still renders
-      here, wrapped in a plain div rather than the `<header>` the web branch
-      uses to publish `--header-h`. That div exists for exactly one
-      property: there is no header element in this branch for the sheet to
-      inherit the variable from, so it is set from the bar's own measured
-      height instead, which already includes the safe-area inset the same
-      way the web branch's own calc() does.
+      Nothing but the space the native bar already occupies above the web view.
+
+      The row — logo, menu button, account button, theme toggle — belongs here
+      even less than the rest of the header does: NativeChromeView has drawn
+      those controls itself, in real UIGlassEffect glass rather than the CSS
+      bevel this file falls back to everywhere the app runs in a browser engine
+      that cannot filter a backdrop it did not paint itself.
+
+      The sheet is gone from this branch too, and that is the change. It used
+      to render here because nothing on the other side of the bridge knew what
+      the menu button should reveal — but its opening animation is a CSS
+      transform-origin read off the button's own bounding rect, and inside the
+      app that button is not in the DOM at all, so the list grew from the middle
+      of the screen instead of out of the control that opened it. The app now
+      presents a native list from the button with Apple's zoom transition, which
+      is the one arrangement where a native button and the surface it opens are
+      one continuous piece of motion. Rendering this sheet as well would put the
+      same sixteen destinations on screen twice.
+
+      renderNavSheet is still called by the web branch below, unchanged: the
+      website's own sheet is exactly what it was.
     */
-    const sheet = renderNavSheet();
-    return (
-      <>
-        <div aria-hidden="true" style={{ height: nativeChromeHeight }} />
-        {sheet && (
-          <div style={{ "--header-h": `${nativeChromeHeight}px` } as React.CSSProperties}>
-            {sheet}
-          </div>
-        )}
-      </>
-    );
+    return <div aria-hidden="true" style={{ height: nativeChromeHeight }} />;
   }
 
   return (

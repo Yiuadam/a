@@ -21,7 +21,9 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
   public let pluginMethods: [CAPPluginMethod] = [
     CAPPluginMethod(name: "enable", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "disable", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "setTheme", returnType: CAPPluginReturnPromise)
+    CAPPluginMethod(name: "setTheme", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "setNavOpen", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "setNavItems", returnType: CAPPluginReturnPromise)
   ]
 
   /// The bar's own content height, independent of whatever the status bar
@@ -35,6 +37,22 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
 
   private var chromeView: NativeChromeView?
   private var heightConstraint: NSLayoutConstraint?
+
+  /*
+    The menu, as the web app last described it.
+
+    Nothing about the sixteen destinations is written down in Swift. lib/nav.ts
+    is the single source of truth and it already varies by build — the iOS
+    bundle has no /pricing or /billing in it, because Apple requires digital
+    content sold inside an app to go through In-App Purchase — and it will keep
+    changing. A Swift copy would drift silently and the owner would find out
+    from a learner, so the structure is pushed across the bridge and the native
+    list renders whatever it is given.
+  */
+  private var navGroups: [NativeNavListViewController.Group] = []
+  /// The list while it is on screen, so a second tap on the menu button can
+  /// close it and a theme change can reach it.
+  private weak var navList: NativeNavListViewController?
 
   // MARK: - Plugin methods
 
@@ -76,6 +94,7 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
 
   @objc func disable(_ call: CAPPluginCall) {
     DispatchQueue.main.async { [weak self] in
+      self?.navList?.dismiss(animated: false)
       self?.chromeView?.removeFromSuperview()
       self?.chromeView = nil
       self?.heightConstraint = nil
@@ -90,6 +109,67 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
     }
     DispatchQueue.main.async { [weak self] in
       self?.chromeView?.setTheme(theme)
+      /* The list is presented over the bar rather than instead of it, and the
+         theme control stays reachable while it is open — so a theme chosen
+         with the menu up has to reach both surfaces or they disagree in front
+         of the person who just changed it. */
+      self?.navList?.applyTheme(theme)
+      call.resolve()
+    }
+  }
+
+  /*
+    Whether the navigation sheet is open, which only the web app knows.
+
+    The bar raises menuTapped and the web app decides what to do with it, so
+    the open state is never the native side's to infer — and the sheet can
+    close by Escape, by its own close button, by a tap outside or by a link
+    being followed, none of which the bar hears about. This is the way back.
+
+    Defaulting to false rather than rejecting on a missing flag: a call that
+    forgot to say should close the sheet's effect, not leave the bar stuck in
+    whichever material it happened to be wearing.
+  */
+  @objc func setNavOpen(_ call: CAPPluginCall) {
+    let open = call.getBool("open") ?? false
+    DispatchQueue.main.async { [weak self] in
+      self?.chromeView?.setNavOpen(open)
+      call.resolve()
+    }
+  }
+
+  /*
+    The menu's structure, pushed from the web app.
+
+    Read defensively rather than rejected on a shape mismatch: this is the one
+    plugin method whose payload is a nested structure, so there is more to get
+    wrong, and a menu missing a row is a smaller failure than a rejected
+    promise the web app has no way to recover from. Anything unrecognised is
+    dropped and the rest still renders.
+  */
+  @objc func setNavItems(_ call: CAPPluginCall) {
+    let raw = call.getArray("groups", JSObject.self) ?? []
+    let groups: [NativeNavListViewController.Group] = raw.compactMap { entry in
+      guard let title = entry["title"] as? String else { return nil }
+      let items = (entry["items"] as? JSArray ?? []).compactMap { row -> NativeNavListViewController.Item? in
+        guard
+          let row = row as? JSObject,
+          let href = row["href"] as? String,
+          let label = row["label"] as? String
+        else { return nil }
+        return NativeNavListViewController.Item(
+          href: href,
+          label: label,
+          icon: row["icon"] as? String,
+          isCurrent: row["current"] as? Bool ?? false
+        )
+      }
+      guard !items.isEmpty else { return nil }
+      return NativeNavListViewController.Group(title: title, items: items)
+    }
+
+    DispatchQueue.main.async { [weak self] in
+      self?.navGroups = groups
       call.resolve()
     }
   }
@@ -99,12 +179,125 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
   private func makeChromeView() -> NativeChromeView {
     let view = NativeChromeView(frame: .zero)
     view.translatesAutoresizingMaskIntoConstraints = false
-    view.onHome = { [weak self] in self?.notifyListeners("homeTapped", data: nil) }
-    view.onMenu = { [weak self] in self?.notifyListeners("menuTapped", data: nil) }
-    view.onAccount = { [weak self] in self?.notifyListeners("accountTapped", data: nil) }
-    view.onTheme = { [weak self] theme in self?.notifyListeners("themeSelected", data: ["theme": theme]) }
+    view.onHome = { [weak self] in
+      /* The bar stays live above the open list, so home can be tapped with
+         the menu up — and a route change under a standing menu leaves the
+         sheet stranded over a page it did not open on. Closing first is what
+         the website does from inside its own sheet. */
+      self?.navList?.dismiss(animated: true)
+      self?.notifyListeners("homeTapped", data: nil)
+    }
+    view.onMenu = { [weak self] in self?.toggleNavList() }
+    view.onAccount = { [weak self] in
+      self?.navList?.dismiss(animated: true)
+      self?.notifyListeners("accountTapped", data: nil)
+    }
+    view.onTheme = { [weak self] theme in
+      self?.navList?.applyTheme(theme)
+      self?.notifyListeners("themeSelected", data: ["theme": theme])
+    }
     chromeView = view
     return view
+  }
+
+  // MARK: - The navigation list
+
+  /*
+    Where the menu button's tap is answered, and it is here rather than on the
+    web side on purpose.
+
+    It used to travel: the bar raised menuTapped, the web app toggled a piece
+    of React state, and a DOM sheet grew out of the middle of the screen
+    because the button it should have grown from is not in the DOM at all. The
+    whole point of this change is that the list comes out of the button, and
+    Apple's zoom transition takes the source view directly — so the tap has to
+    be answered somewhere that can see both a UIView and a UIViewController.
+
+    NativeChromeView cannot: it is a plain view that deliberately knows nothing
+    about Capacitor or about view controllers, which is what lets it be built
+    and reasoned about on its own. The plugin can, because it already holds the
+    bridge and the bridge holds the presenting view controller. Answering it
+    here also means the transition begins in the same run loop turn as the
+    touch, rather than after a round trip out to JavaScript and back — a zoom
+    that starts a frame or two late does not read as the button opening.
+
+    The web app is still told, because it still owns the state: `menuTapped` on
+    the way up so its own `openPath` agrees, and navDismissed or
+    navItemSelected on the way down.
+  */
+  private func toggleNavList() {
+    if let open = navList {
+      open.dismiss(animated: true)
+      return
+    }
+    guard
+      let presenter = bridge?.viewController,
+      !navGroups.isEmpty
+    else {
+      /* Nothing to show — the web app has not described the menu yet, which
+         in practice only happens if setNavItems has not landed. Silently
+         doing nothing beats presenting an empty sheet, and beats telling the
+         web app a menu is open when none is. */
+      return
+    }
+
+    let list = NativeNavListViewController(
+      groups: navGroups,
+      theme: chromeView?.selectedTheme ?? "warm",
+      topInset: heightConstraint?.constant ?? NativeChromePlugin.barContentHeight,
+      /* The bar keeps its own touches while the list is over the page — the
+         theme control and the account button stay live up there, the same way
+         the website's header does above its own sheet. */
+      passthroughTarget: chromeView
+    )
+    /*
+      Over, not instead of. The bar stays on screen above the list exactly as
+      the website's header stays above its own sheet, which is what keeps the
+      menu button visible for the zoom to unwind into, keeps a second tap on it
+      able to close the list, and keeps the bar's clear-glass open state worth
+      having at all. `.fullScreen` would tear the presenting view out from
+      under it after the transition.
+    */
+    list.modalPresentationStyle = .overFullScreen
+
+    if #available(iOS 18.0, *) {
+      /*
+        The whole change, in one property. The list grows out of the menu
+        button and unwinds back into it, and the swipe-to-dismiss that comes
+        with it is Apple's rather than ours.
+
+        The provider is called more than once over a transition's life — on the
+        way out as well as the way in — so it resolves the button through the
+        bar each time rather than capturing it, and yields nil if the bar has
+        been torn down in between. A nil source is a supported answer: the
+        transition falls back to a plain one rather than failing.
+
+        There is a sourceBarButtonItemProvider overload on 26 that is not the
+        one to reach for here — the menu button is a plain UIButton on a view
+        we draw, not an item in a navigation bar.
+      */
+      list.preferredTransition = .zoom { [weak self] _ in
+        self?.chromeView?.menuSourceView
+      }
+    } else {
+      /* No zoom before 18, so the list still opens — plainly. A menu that
+         does not appear at all is a broken app; a menu that appears without
+         growing out of the button is last year's menu. */
+      list.modalTransitionStyle = .crossDissolve
+    }
+
+    list.onSelect = { [weak self] href in
+      self?.navList = nil
+      self?.notifyListeners("navItemSelected", data: ["href": href])
+    }
+    list.onDismissed = { [weak self] in
+      self?.navList = nil
+      self?.notifyListeners("navDismissed", data: nil)
+    }
+
+    navList = list
+    notifyListeners("menuTapped", data: nil)
+    presenter.present(list, animated: true)
   }
 
   // MARK: - Safe area

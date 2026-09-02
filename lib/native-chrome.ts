@@ -23,10 +23,31 @@ interface NativeChromeListenerHandle {
   remove(): Promise<void>;
 }
 
+/**
+ * One destination, as the native list needs it.
+ *
+ * `icon` is the web's own key — "listening", "plan" — rather than an iOS asset
+ * name. Which drawing that key resolves to is the native side's business; see
+ * NavRowControl.artwork(for:) in ios/App/App/NativeNavListViewController.swift.
+ */
+export interface NativeNavItem {
+  href: string;
+  label: string;
+  icon: string | null;
+  current: boolean;
+}
+
+export interface NativeNavGroup {
+  title: string;
+  items: NativeNavItem[];
+}
+
 interface NativeChromePluginApi {
   enable(): Promise<{ height: number }>;
   disable(): Promise<void>;
   setTheme(options: { theme: string }): Promise<void>;
+  setNavOpen(options: { open: boolean }): Promise<void>;
+  setNavItems(options: { groups: NativeNavGroup[] }): Promise<void>;
   addListener(
     eventName: string,
     listenerFunc: (data: unknown) => void,
@@ -58,6 +79,23 @@ export async function enableNativeChrome(handlers: {
   onAccount: () => void;
   onTheme: (theme: string) => void;
   /*
+    A destination chosen in the native navigation list. The list is presented
+    by the plugin rather than by this side — see toggleNavList in
+    NativeChromePlugin.swift for why the menu button is answered natively —
+    but it navigates nothing itself: the router lives here, so the href comes
+    back and this side pushes it. Fired only once the zoom transition has
+    finished unwinding, so the page underneath does not change while it is
+    still being animated over.
+  */
+  onNavItem: (href: string) => void;
+  /*
+    The native list closed without a destination being chosen: the menu button
+    tapped again, or the swipe-down Apple's zoom transition provides. Without
+    this the web app's own `openPath` would go on claiming the menu is open
+    long after it left the screen.
+  */
+  onNavDismissed: () => void;
+  /*
     Rotation (or any other safe-area change) can move the bar's height after
     `enable` already resolved — see NativeChromePlugin's own heightChanged
     event. Optional because that is a concern for the one caller keeping a
@@ -85,6 +123,11 @@ export async function enableNativeChrome(handlers: {
     plugin.addListener("homeTapped", () => handlers.onHome()),
     plugin.addListener("menuTapped", () => handlers.onMenu()),
     plugin.addListener("accountTapped", () => handlers.onAccount()),
+    plugin.addListener("navItemSelected", (data) => {
+      const href = (data as { href?: unknown } | undefined)?.href;
+      if (typeof href === "string") handlers.onNavItem(href);
+    }),
+    plugin.addListener("navDismissed", () => handlers.onNavDismissed()),
     plugin.addListener("themeSelected", (data) => {
       const theme = (data as { theme?: unknown } | undefined)?.theme;
       if (typeof theme === "string") handlers.onTheme(theme);
@@ -124,5 +167,46 @@ export function syncNativeTheme(theme: string): void {
   if (!plugin) return;
   plugin.setTheme({ theme }).catch(() => {
     // Nothing to recover: the web theme already applied regardless.
+  });
+}
+
+/**
+ * Tells the native bar whether the navigation sheet is open, so it can take a
+ * clearer material over it — the app's answer to `.nav-open-header` in
+ * app/globals.css. The bar cannot work this out for itself: it raises
+ * `menuTapped` and this side decides what that means, and the sheet closes by
+ * Escape, by its close button, by a tap outside and by following a link, none
+ * of which the bar ever hears about. Silent off the iOS app, and silent on a
+ * rejection, for the same reason syncNativeTheme is: the sheet's own state
+ * already applied and there is no web control here to fail in front of.
+ */
+export function setNativeNavOpen(open: boolean): void {
+  const plugin = getPlugin();
+  if (!plugin) return;
+  plugin.setNavOpen({ open }).catch(() => {
+    // Nothing to recover: the sheet is open or closed regardless.
+  });
+}
+
+/**
+ * Hands the native list every destination it should show.
+ *
+ * This is the whole reason the native menu is not a transcription of lib/nav.ts
+ * into Swift. That file is the single source of truth for where the app can go,
+ * it already varies by build — the iOS bundle drops /pricing and /billing,
+ * because Apple requires digital content used in an app to be sold through
+ * In-App Purchase — and it will keep changing. A Swift copy would drift
+ * silently and a learner would be the one to find out, so the structure crosses
+ * the bridge and the native side renders whatever it is given.
+ *
+ * Callable before `enable` has resolved: it only stores the structure on the
+ * plugin, and the plugin does not need the bar to exist to hold it.
+ */
+export function setNativeNavItems(groups: NativeNavGroup[]): void {
+  const plugin = getPlugin();
+  if (!plugin) return;
+  plugin.setNavItems({ groups }).catch(() => {
+    // Nothing to recover, and nothing visibly broken: the native list simply
+    // keeps whatever structure it was last given.
   });
 }
