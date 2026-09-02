@@ -33,7 +33,9 @@ test("every canonical listening paper is eligible for the local-audio recovery",
 
   const fallback = sourceFrom(listeningPage, "const startBuiltInAudio");
   assert.match(fallback, /if \(!test \|\| !isBundledTest \|\| !builtInAudioSupported\)/);
-  assert.match(fallback, /test\.script\.map\(\(turn\) => turn\.text\)\.join\("\\n"\)/);
+  // The whole reviewed paper, turn by turn, prepared for the synthesiser by
+  // lib/speech-text.ts rather than handed over raw.
+  assert.match(fallback, /test\.script\.map\(\(turn\) => spokenForm\(turn\.text\)\)\.join\("\\n"\)/);
   assert.match(fallback, /speakNaturalExaminer\(/);
 
   // An AI-generated paper must not silently trigger the larger local model.

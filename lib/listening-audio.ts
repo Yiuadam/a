@@ -6,8 +6,8 @@ import { LISTENING_TESTS } from "./tests";
   server audio.  Keeping the catalogue here gives the Worker a hard boundary:
   the public media endpoint cannot be used as an arbitrary, billable TTS API.
 */
-export const BUNDLED_LISTENING_AUDIO_VERSION = "aura-1-v3";
-// Aura-1 accepts at most 2,000 characters per request. Leave a little room
+export const BUNDLED_LISTENING_AUDIO_VERSION = "aura-2-v1";
+// Aura accepts at most 2,000 characters per request. Leave a little room
 // below that boundary so ordinary punctuation or future provider accounting
 // changes cannot turn a complete paper into a 413 response.
 export const MAX_AURA_AUDIO_CHARS = 1_800;
@@ -15,55 +15,67 @@ export const MAX_AURA_AUDIO_CHARS = 1_800;
 export const BUNDLED_LISTENING_AUDIO_IDS = LISTENING_TESTS.map((test) => test.id) as readonly string[];
 
 /*
-  One voice per speaker, in the order a paper introduces them.
+  One voice per speaker, in the order a paper introduces them, and the model
+  that has to produce them.
 
-  This was the two British voices alone, taken in turn, and for a Part 1 phone
-  call that is exactly right. For a Part 3 it was not: the seminar papers have
-  three or four people in them, so the third speaker was handed the first
-  speaker's voice. Downloading listening-6 from the live endpoint and reading
-  the voice off each of its 27 clips says it plainly — Dr Hale and Marcus are
-  both Athena, Priya and Elena are both Helios. Four people, two voices, and
-  the tutor sounds exactly like one of her students. Seven of the papers are
-  built this way, and a Part 3 question is very often about who said what.
+  Both are named here, together, because the speaker field alone does not
+  identify a voice. Deepgram's two Aura models share a good many names and do
+  not agree about them: athena is British on @cf/deepgram/aura-1 and American
+  on @cf/deepgram/aura-2-en, and asteria, arcas, orion, orpheus, luna, zeus and
+  hera appear on both as well. A model string living in the route while the
+  roster lived here is therefore a trap rather than a separation of concerns —
+  changing one recasts every paper in the app with nothing failing anywhere and
+  no error to read. Keeping them in one place means neither can move alone.
 
-  Aura-1 offers only two British voices, so a third distinct speaker has to
-  come from somewhere else. Angus is the documented Irish voice and is the
-  smallest step away; a fourth speaker takes Luna, which Deepgram lists as a
-  young adult, and is therefore the closest thing on the roster to another
-  student. IELTS puts a range of native accents in front of candidates on
-  purpose, so a mixed cast is defensible in a way that two people sharing a
-  larynx is not.
+  Both enums are generated into worker-configuration.d.ts from Cloudflare's own
+  model schemas, so `npm run build` now rejects a speaker this model does not
+  accept. That check is worth having: the field is a validated enum, and a name
+  outside it does not quietly fall back to a default, it fails generation with
+  AiError 5006 and the learner gets no recording at all.
 
-  The first two entries are unchanged, and that is deliberate: every existing
-  recording for a first or second speaker keeps its cache key, so this asks
-  the provider to generate audio only for the third and fourth speakers of the
-  seven papers that have them.
+  What the cast is, and what it is not
+  ------------------------------------
+  This roster was athena, helios, angus and luna on Aura-1, which is two
+  British voices, one Irish and one American, because Aura-1 has only two
+  British voices and a four-person Part 3 needs four. The app is meant to be
+  British throughout — lib/speech.ts asks every device utterance for en-GB and
+  lib/neural-speech.ts downloads a British voice on purpose — so an American
+  student sitting in a British seminar was the loudest remaining exception
+  after the examiner, and the reason to move.
 
-  The names are the `speaker` values Cloudflare's model schema accepts for
-  @cf/deepgram/aura-1 — angus, asteria, arcas, orion, orpheus, athena, luna,
-  zeus, perseus, helios, hera, stella — and their accents and genders are
-  Deepgram's own published table for Aura-1. That field is a validated enum: a
-  name outside it does not quietly fall back to the default, it fails the
-  generation with AiError 5006 and the learner gets no recording at all. Add a
-  voice here only after reading it off Cloudflare's own schema for the model
-  this route actually calls.
+  Aura-2 does not solve it either: it has its own two British voices, pandora
+  and draco, and no third. What it does have is Australian, in hyperion and
+  theia. So the choice was between a cast that is British, British, Irish,
+  American and one that is British, British, Australian, Australian, and the
+  second one is the one with no American in it. Australia is a country IELTS
+  examines in and records in; the residue here is a Commonwealth accent a
+  candidate will genuinely meet on the day rather than the accent the app was
+  asked to stop using. Say plainly what that leaves: the third and fourth
+  speaker of a seminar are Australian, not British, and nothing on Aura can
+  currently make them British without giving two people the same larynx.
 
-  Which matters more than it sounds, because the obvious upgrade is a trap.
-  @cf/deepgram/aura-2-en carries two different British voices, draco and
-  pandora, and an Australian pair — a better cast for a four-way seminar than
-  anything here. But athena is British in aura-1 and AMERICAN in aura-2-en,
-  and several other names are shared across the two models with different
-  accents. Changing the model string in app/api/listening-audio/route.ts while
-  leaving these names alone would recast every paper in the app, silently, with
-  nothing failing anywhere.
+  The order is pandora, draco, hyperion, theia — feminine, masculine,
+  masculine, feminine, which is the alternation the old roster had, so the
+  papers keep the gender pattern they were written against. What no roster can
+  do is match a voice to a character: a fourth speaker gets theia whether the
+  script calls him Malik or her Elena, because guessing gender from a name is
+  not a thing to build. Casting properly needs a per-paper choice, and that is
+  a decision about the papers rather than about this file.
 
-  The one thing this roster cannot do is match a voice to a character. A fourth
-  speaker gets Luna whether the script calls him Malik or her Elena, because
-  guessing gender from a name is not a thing to build. Casting properly needs a
-  per-paper choice, and that is a decision about the papers rather than about
-  this file.
+  The price, which is the whole cache
+  -----------------------------------
+  Every recording in R2 is retired by this. The old roster kept its first two
+  entries deliberately so that a paper with one or two speakers never lost its
+  audio; changing the model gives that up, because a recording made by Aura-1
+  cannot be served for a key that now promises Aura-2. The version above moves
+  with it so the two generations can never share a key, and nothing breaks
+  while they regenerate: a miss is a miss, the route generates and stores one
+  MP3 per turn exactly as it does for a brand-new paper, and the learner waits
+  for the provider rather than for nothing. The first listener to each paper
+  pays that wait; every listener after them reads it out of R2.
 */
-export const AURA_VOICES = ["athena", "helios", "angus", "luna"] as const;
+export const LISTENING_AUDIO_MODEL = "@cf/deepgram/aura-2-en";
+export const AURA_VOICES = ["pandora", "draco", "hyperion", "theia"] as const;
 export type BundledListeningVoice = (typeof AURA_VOICES)[number];
 
 export interface BundledListeningAudio {

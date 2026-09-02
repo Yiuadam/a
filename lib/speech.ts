@@ -377,17 +377,41 @@ const BAD_VOICE = [
   /good news/i,
 ];
 
+/*
+  Accent decides first, and quality only breaks ties inside an accent.
+
+  This used to be a two-point bonus for en-GB added to a thirteen-point quality
+  score, and two points does not survive that arithmetic: "Google US English",
+  being a listed cloud voice with a name the table below likes, scored 14 while
+  Daniel — installed, British, and named in the same table — scored 12. So the
+  code carried a comment saying IELTS is predominantly British-accented and
+  then handed the learner an American voice on any machine where the best
+  American one was in the cloud and the best British one was not, which is most
+  Windows and Android machines. Multiplying rather than adding is what makes
+  the stated preference true: no amount of quality signal can lift an American
+  voice past a British one, and between two British ones quality still decides.
+
+  Irish, Australian, New Zealand and South African sit between the two for the
+  same reason lib/listening-audio.ts casts its third and fourth speakers from
+  Australian rather than American — they are accents a candidate meets in a
+  real paper, and they are not the accent this app was asked to stop using.
+*/
+function accentRank(lang: string): number {
+  const tag = lang.toLowerCase();
+  if (tag.startsWith("en-gb")) return 3;
+  if (["en-ie", "en-au", "en-nz", "en-za"].some((prefix) => tag.startsWith(prefix))) return 2;
+  return 1;
+}
+
 function scoreVoice(v: SpeechSynthesisVoice): number {
   const name = v.name;
   if (BAD_VOICE.some((re) => re.test(name))) return -100;
-  let score = 0;
-  if (GOOD_VOICE.some((re) => re.test(name))) score += 10;
+  let quality = 0;
+  if (GOOD_VOICE.some((re) => re.test(name))) quality += 10;
   // Cloud voices are usually the higher-quality ones.
-  if (!v.localService) score += 3;
-  // IELTS listening is predominantly British-accented.
-  if (v.lang.toLowerCase().startsWith("en-gb")) score += 2;
-  else if (v.lang.toLowerCase().startsWith("en-au") || v.lang.toLowerCase().startsWith("en-us")) score += 1;
-  return score;
+  if (!v.localService) quality += 3;
+  // Strictly greater than any quality score, so the tiers cannot interleave.
+  return accentRank(v.lang) * 20 + quality;
 }
 
 /** English voices, best-sounding first. */

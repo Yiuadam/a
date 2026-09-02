@@ -22,6 +22,44 @@ const turnControl = await import(
 const speakingTopics = JSON.parse(
   readFileSync(join(root, "data", "speaking-topics.json"), "utf8"),
 );
+const workerTypes = readFileSync(join(root, "worker-configuration.d.ts"), "utf8");
+
+/*
+  The speaker names a given Aura model actually accepts, read out of the
+  bindings Cloudflare generates from its own model schemas rather than copied
+  into this file by hand. `speaker` is a validated enum: a name outside it does
+  not fall back to a default, it fails generation with AiError 5006 and the
+  learner hears nothing, and there is no way to discover that from here. The
+  two models also share a good many names while disagreeing about their
+  accents, so a list maintained by hand is exactly the thing that goes stale
+  in the direction nobody notices.
+*/
+function modelSpeakers(typeName) {
+  const declaration = workerTypes.slice(workerTypes.indexOf(`interface ${typeName} {`));
+  const speakers = /speaker\?:\s*([^;]+);/u.exec(declaration);
+  assert.ok(speakers, `${typeName} must declare a speaker enum`);
+  const names = [...speakers[1].matchAll(/"([a-z0-9_-]+)"/gu)].map((match) => match[1]);
+  assert.ok(names.length > 1, `${typeName} must offer more than one speaker`);
+  return names;
+}
+
+/*
+  The voices on each model that are not American, and the accent each of them
+  is. Deepgram publishes this and the model schema does not, so it has to live
+  somewhere; keeping it to the non-American ones means the table only has to be
+  right about the voices this app is allowed to use. Both rosters below are
+  required to be drawn from it, which is what stops "athena", British on
+  Aura-1 and American on Aura-2, from being carried across a model change.
+*/
+const NON_AMERICAN_AURA_VOICES = {
+  "@cf/deepgram/aura-1": { athena: "British", helios: "British", angus: "Irish" },
+  "@cf/deepgram/aura-2-en": {
+    draco: "British",
+    pandora: "British",
+    hyperion: "Australian",
+    theia: "Australian",
+  },
+};
 
 async function delivery() {
   assert.ok(existsSync(deliveryPath), "missing lib/listening-audio.ts");
@@ -117,15 +155,29 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
 
     const canonicalSpeakers = [...new Set(paper.script.map((turn) => turn.speaker))];
     /*
-      The first two roles keep the two British voices they have always had, so
-      no existing recording of a two-speaker paper is retired by a change to
-      the roster behind them.
+      The two British voices lead, because the great majority of papers have
+      one or two speakers and those are the ones a candidate hears most. Aura-2
+      has exactly two, so a third and fourth speaker cannot also be British;
+      what they must not be is American, which is what the table above pins.
     */
     assert.deepEqual(
       audio.AURA_VOICES.slice(0, 2),
-      ["athena", "helios"],
-      "the two British voices must stay first, or every cached recording is retired",
+      ["pandora", "draco"],
+      "the two British voices must lead the roster, so most papers are British throughout",
     );
+    const rosterAccents = NON_AMERICAN_AURA_VOICES[audio.LISTENING_AUDIO_MODEL];
+    assert.ok(rosterAccents, `no reviewed accent table for ${audio.LISTENING_AUDIO_MODEL}`);
+    const modelRoster = modelSpeakers("Ai_Cf_Deepgram_Aura_2_En_Input");
+    for (const voice of audio.AURA_VOICES) {
+      assert.ok(
+        modelRoster.includes(voice),
+        `${voice} is not a speaker ${audio.LISTENING_AUDIO_MODEL} accepts`,
+      );
+      assert.ok(
+        rosterAccents[voice],
+        `${voice} is American on ${audio.LISTENING_AUDIO_MODEL}, and no learner should hear that here`,
+      );
+    }
     const voiceBySpeaker = new Map();
     const partsByTurn = new Map(paper.script.map((_, index) => [index, []]));
     for (const [partIndex, part] of resolved.parts.entries()) {
@@ -191,16 +243,6 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
         assert.equal(part.voice, expectedVoice, "a canonical speaker must retain their voice across turns");
         assert.ok(part.text.length > 0, "an empty MP3 part would create a silent gap");
         assert.ok(part.text.length <= 1_800, "Aura input must stay below its 2,000-character limit");
-        /* A voice Cloudflare's model schema does not accept would fail
-           generation in production and there is no way to find that out from
-           here, so the roster is pinned to names taken from that schema. */
-        assert.ok(
-          [
-            "angus", "asteria", "arcas", "orion", "orpheus", "athena",
-            "luna", "zeus", "perseus", "helios", "hera", "stella",
-          ].includes(part.voice),
-          `${part.voice} is not a speaker @cf/deepgram/aura-1 accepts`,
-        );
         assert.ok(
           audio.AURA_VOICES.includes(part.voice),
           "a recording must be cast from the paper's own voice roster",
@@ -212,7 +254,7 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
         assert.match(
           part.cacheKey,
           new RegExp(
-            `^public/audio/listening/aura-1-v3/${paper.id}-turn-${turnIndex + 1}-part-${turnPartIndex + 1}-${part.voice}-[a-f0-9]{8,}\\.mp3$`,
+            `^public/audio/listening/${audio.BUNDLED_LISTENING_AUDIO_VERSION}/${paper.id}-turn-${turnIndex + 1}-part-${turnPartIndex + 1}-${part.voice}-[a-f0-9]{8,}\\.mp3$`,
           ),
         );
         assert.equal(
@@ -352,7 +394,15 @@ test("the Worker caches one strict per-speaker listening turn as raw MP3 and fai
   // AI, then persist its raw audio with MP3 metadata for every later learner.
   assert.match(route, /BANDUP_FILES\.get\(/);
   assert.match(route, /BANDUP_FILES\.put\(/);
-  assert.match(route, /AI\.run\(\s*["']@cf\/deepgram\/aura-1["']/);
+  /*
+    The model is named beside the voices rather than here. Aura shares speaker
+    names across its two models and disagrees about their accents, so a route
+    that owned the model string could be repointed without the roster coming
+    with it — which recasts every paper in the app and fails nowhere.
+  */
+  assert.match(route, /AI\.run\(\s*LISTENING_AUDIO_MODEL,/);
+  assert.doesNotMatch(route, /AI\.run\(\s*["']@cf\//u);
+  assert.match(route, /from "@\/lib\/listening-audio"/);
   assert.match(route, /text:\s*(?:part|sourcePart|segment)\.text/);
   assert.match(
     route,
@@ -629,6 +679,36 @@ test("only canonical examiner questions, part introductions, and transitions res
   assert.equal(audio.bundledExaminerAudio("prompt-from-query-string"), null);
 });
 
+test("the examiner speaks in a British voice from the model named beside it", async () => {
+  const audio = await examinerDelivery();
+
+  assert.ok(
+    modelSpeakers("Ai_Cf_Deepgram_Aura_1_Input").includes(audio.BUNDLED_EXAMINER_AUDIO_VOICE),
+    `${audio.BUNDLED_EXAMINER_AUDIO_VOICE} is not a speaker ${audio.EXAMINER_AUDIO_MODEL} accepts`,
+  );
+  /*
+    The examiner is the app's own voice and has no business being American,
+    which asteria was. The accent belongs to the pairing rather than to the
+    name: athena is British on Aura-1 and American on Aura-2, so this reads the
+    table for the model this module actually pins.
+  */
+  assert.equal(
+    NON_AMERICAN_AURA_VOICES[audio.EXAMINER_AUDIO_MODEL]?.[audio.BUNDLED_EXAMINER_AUDIO_VOICE],
+    "British",
+    "the speaking examiner must not leave British English",
+  );
+  /*
+    An examiner cache key carries the version and the hash of the words, but
+    not the speaker, so a voice change that left the version alone would keep
+    serving the recordings already in R2 for exactly the same prompts.
+  */
+  assert.notEqual(
+    audio.BUNDLED_EXAMINER_AUDIO_VERSION,
+    "aura-1-v1",
+    "the version pinned to the American recordings must not be reused for a new voice",
+  );
+});
+
 test("every cached examiner MP3 has a deterministic, content-versioned R2 key", async () => {
   const audio = await examinerDelivery();
   const keys = new Set();
@@ -644,7 +724,7 @@ test("every cached examiner MP3 has a deterministic, content-versioned R2 key", 
     assert.match(resolved.contentHash, /^[a-f0-9]{8}$/u);
     assert.match(
       resolved.cacheKey,
-      new RegExp(`^public/audio/examiner/aura-1-v1/${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-[a-f0-9]{8,}\\.mp3$`),
+      new RegExp(`^public/audio/examiner/${audio.BUNDLED_EXAMINER_AUDIO_VERSION}/${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-[a-f0-9]{8,}\\.mp3$`),
     );
     assert.equal(audio.bundledExaminerAudio(id)?.cacheKey, resolved.cacheKey);
     const query = new URLSearchParams({
@@ -670,7 +750,9 @@ test("the examiner-audio Worker is an allowlisted raw-MP3 cache with real seek r
   assert.match(route, /BANDUP_FILES\.head\(/);
   assert.match(route, /BANDUP_FILES\.get\(/);
   assert.match(route, /BANDUP_FILES\.put\(/);
-  assert.match(route, /AI\.run\(\s*["']@cf\/deepgram\/aura-1["']/);
+  assert.match(route, /AI\.run\(\s*EXAMINER_AUDIO_MODEL,/);
+  assert.doesNotMatch(route, /AI\.run\(\s*["']@cf\//u);
+  assert.match(route, /from "@\/lib\/examiner-audio"/);
   assert.match(route, /Content-Type["']?\s*[:,]\s*["']audio\/mpeg["']/);
   assert.match(route, /returnRawResponse:\s*true/);
   assert.doesNotMatch(route, /(?:await\s+)?(?:audio|speech|synthesis|generated)\.json\(/);

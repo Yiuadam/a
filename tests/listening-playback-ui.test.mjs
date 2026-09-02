@@ -19,6 +19,9 @@ const mockListening = readFileSync(
 const { playScript } = await import(
   pathToFileURL(join(process.cwd(), "lib", "exam", "playback.ts")).href,
 );
+const { rankedEnglishVoices } = await import(
+  pathToFileURL(join(process.cwd(), "lib", "speech.ts")).href,
+);
 
 function sourceNear(source, marker, radius = 1_400) {
   const index = source.indexOf(marker);
@@ -94,21 +97,77 @@ test("listening practice keeps a single playback owner rather than duplicate spe
   );
 });
 
-test("a mock-listening recording becomes one-shot only after audible speech, and otherwise remains retryable", () => {
+test("a mock-listening recording becomes one-shot only after audible sound, and otherwise remains retryable", () => {
+  /*
+    Locking a one-shot exam recording is now reachable from two players — the
+    reviewed MP3s and the browser-speech recovery underneath them — so the
+    thing worth pinning is that both go through one gate, that the gate opens
+    only on confirmed sound, and that it can open only once. A queued utterance
+    the browser silently refuses, or a media element that never reaches
+    `playing`, must leave the part retryable.
+  */
+  assert.equal(
+    (mockListening.match(/onPlayed\(index\)/g) ?? []).length,
+    1,
+    "do not lock a mock recording merely because a player accepted a request to make sound",
+  );
+  const gate = sourceNear(mockListening, "const markHeard = useCallback");
+  assert.match(gate, /heardRef\.current\)\s*return;/, "a recording must not be spent twice");
+  assert.match(gate, /heardRef\.current = true;\s*\n\s*onPlayed\(index\);/);
+
   const playStart = mockListening.indexOf("const play = useCallback");
   const finishStart = mockListening.indexOf("const finish", playStart);
   const play = mockListening.slice(playStart, finishStart);
+  assert.match(play, /onAudible:\s*\(\)\s*=>\s*markHeard\(run, index\)/);
 
-  assert.match(play, /onStart:\s*\(\)\s*=>\s*\{[\s\S]*?onPlayed\(index\)/);
-  assert.match(play, /onError:\s*\(message\)\s*=>\s*\{[\s\S]*?playingRef\.current\s*=\s*false/);
-  assert.match(play, /setFailedPart\(\{ index, heard, message \}\)/);
-  assert.equal(
-    (play.match(/onPlayed\(index\)/g) ?? []).length,
-    1,
-    "do not lock a mock recording merely because the browser accepted a silent utterance",
+  const speech = mockListening.slice(
+    mockListening.indexOf("const speakScript = useCallback"),
+    playStart,
   );
+  assert.match(speech, /onStart:\s*\(\)\s*=>\s*\{[\s\S]*?markHeard\(run, index\)/);
+  assert.match(speech, /onError:\s*\(message\)\s*=>\s*\{[\s\S]*?playingRef\.current\s*=\s*false/);
+  assert.match(speech, /setFailedPart\(\{ index, heard: heardRef\.current, message \}\)/);
   assert.match(mockListening, /No audio was heard, so you can retry this part\./);
   assert.match(mockListening, /Retry part \$\{nextUnplayed \+ 1\}/);
+});
+
+test("a mock sitting plays the reviewed recordings, and only falls back to browser speech", () => {
+  /*
+    The sitting used to call playScript and nothing else, so the highest-stakes
+    screen in the app was read by whichever voices the device carried. It must
+    now ask for the same per-speaker Aura MP3s practice plays, in the same
+    double-buffered way, with browser speech underneath as recovery.
+  */
+  assert.match(mockListening, /playBundledListening\(/);
+  assert.equal(
+    (mockListening.match(/<audio\b/g) ?? []).length,
+    2,
+    "the sitting needs both media elements, or a turn boundary reopens as an audible gap",
+  );
+  assert.match(mockListening, /ref=\{nativeAudioRef\}/);
+  assert.match(mockListening, /ref=\{nativeAudioBufferRef\}/);
+
+  const playStart = mockListening.indexOf("const play = useCallback");
+  const play = mockListening.slice(playStart, mockListening.indexOf("const finish", playStart));
+  const recordings = play.indexOf("playBundledListening(");
+  const speech = play.indexOf("speakScript(");
+  assert.ok(recordings >= 0, "the play control must start the reviewed recordings");
+  assert.ok(speech > recordings, "browser speech must be the recovery path, not the default");
+
+  /*
+    A sitting cannot offer a recording again, so a failure partway through
+    resumes speech at the turn the MP3s reached rather than restarting the
+    paper the candidate has already half heard.
+  */
+  assert.match(play, /onFail:\s*\(\{ heard, turnIndex \}\)/);
+  assert.match(play, /speakScript\(run, index, heard \? turnIndex : 0\)/);
+
+  // Leaving the sitting, or finishing it, must stop the media elements too;
+  // pausing the synthesiser alone no longer silences this screen.
+  assert.ok(
+    (mockListening.match(/playerRef\.current\?\.stop\(\)/g) ?? []).length >= 3,
+    "a new part, finishing, and unmounting must each stop the player",
+  );
 });
 
 class FakeUtterance {
@@ -266,4 +325,50 @@ test("the start watchdog advances to a local fallback instead of leaving a silen
   } finally {
     restore();
   }
+});
+
+test("a British voice outranks an American one however good the American one is", () => {
+  /*
+    The ranking used to add two points for en-GB on top of a thirteen-point
+    quality score, which is not a preference, it is a rounding error: "Google
+    US English" is a listed cloud voice with a favoured name and scored above
+    Daniel, who is installed, British and equally favoured. That is the default
+    shape of a Windows or Android voice list, so the app read its papers to
+    most learners in American while a comment above the function said IELTS is
+    predominantly British-accented.
+
+    The fixture is that exact situation, plus the two cases the fix must not
+    break: quality still decides between two British voices, and a novelty
+    synthesiser is still excluded rather than promoted by its accent.
+  */
+  const voices = [
+    { name: "Google US English", lang: "en-US", localService: false },
+    { name: "Daniel", lang: "en-GB", localService: true },
+    { name: "Google UK English Female", lang: "en-GB", localService: false },
+    { name: "Karen", lang: "en-AU", localService: true },
+    { name: "Zarvox", lang: "en-GB", localService: true },
+    { name: "Plain British", lang: "en-GB", localService: true },
+  ];
+  const original = globalThis.window;
+  globalThis.window = { speechSynthesis: { getVoices: () => voices } };
+  let ranked;
+  try {
+    ranked = rankedEnglishVoices().map((voice) => voice.name);
+  } finally {
+    globalThis.window = original;
+  }
+
+  assert.equal(ranked[0], "Google UK English Female", "the best British voice must lead");
+  const american = ranked.indexOf("Google US English");
+  for (const british of ["Daniel", "Plain British"]) {
+    assert.ok(
+      ranked.indexOf(british) < american,
+      `${british} is British and must outrank an American voice whatever its quality`,
+    );
+  }
+  assert.ok(
+    ranked.indexOf("Karen") < american,
+    "an Australian voice is one a candidate meets in a real paper; an American one is not",
+  );
+  assert.equal(ranked.indexOf("Zarvox"), -1, "a novelty synthesiser stays excluded, British or not");
 });

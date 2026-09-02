@@ -1,6 +1,11 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { withCors } from "@/lib/http/cors";
-import { bundledListeningAudio, parseSingleRange, type ByteRange } from "@/lib/listening-audio";
+import {
+  LISTENING_AUDIO_MODEL,
+  bundledListeningAudio,
+  parseSingleRange,
+  type ByteRange,
+} from "@/lib/listening-audio";
 
 export const dynamic = "force-dynamic";
 
@@ -124,8 +129,14 @@ async function handleGET(request: Request): Promise<Response> {
 
   let generated: Response;
   try {
+    /*
+      The model travels with the roster rather than sitting here, because Aura
+      shares speaker names across its two models and disagrees about their
+      accents. A model named in the route could be changed without the voices
+      beside it, which recasts every paper in the app and fails nowhere.
+    */
     generated = await env.AI.run(
-      "@cf/deepgram/aura-1",
+      LISTENING_AUDIO_MODEL,
       { text: segment.text, speaker: segment.voice, encoding: "mp3" },
       { returnRawResponse: true },
     );

@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { bundledExaminerAudio } from "@/lib/examiner-audio";
+import { EXAMINER_AUDIO_MODEL, bundledExaminerAudio } from "@/lib/examiner-audio";
 import { withCors } from "@/lib/http/cors";
 import { parseSingleRange, type ByteRange } from "@/lib/listening-audio";
 
@@ -112,8 +112,15 @@ async function handleGET(request: Request): Promise<Response> {
 
   let generated: Response;
   try {
+    /*
+      The model comes from the same module as the speaker, and deliberately so.
+      Aura shares several speaker names across its two models with different
+      accents behind them, so a model named here rather than there could be
+      changed without the voice beside it — which is how a British examiner
+      quietly becomes an American one with nothing failing anywhere.
+    */
     generated = await env.AI.run(
-      "@cf/deepgram/aura-1",
+      EXAMINER_AUDIO_MODEL,
       { text: source.text, speaker: source.voice, encoding: "mp3" },
       { returnRawResponse: true },
     );

@@ -73,16 +73,29 @@ function cleanTerm(term: string): string {
   return term.trim().replace(/\s+/g, " ");
 }
 
+/*
+  Every British voice before any other one, and within British the installed
+  ones first.
+
+  The second half of that is unchanged and still right: a listed cloud voice
+  can silently fail while offline, and this utility exists to say one word the
+  instant a learner taps a glossary term, so an installed voice that certainly
+  works beats a better one that might not. The first half is the correction.
+  The order used to be local-British, local-anything, remote-British — which
+  put an installed American voice ahead of a British one on every machine whose
+  British voice happens to live in the cloud, and this app teaches British
+  pronunciation. Offline safety is a reason to prefer a local British voice
+  over a remote British voice, never a reason to pronounce a word in American.
+*/
 function browserCandidates(voices: SpeechSynthesisVoice[]): (SpeechSynthesisVoice | undefined)[] {
   const english = voices.filter((voice) => voice.lang.toLowerCase().startsWith("en"));
-  // A listed cloud voice can silently fail while offline. Prefer a genuine
-  // local voice for this short utility, then try remote/default voices.
-  const localBritish = english.filter((voice) => voice.localService && voice.lang.toLowerCase().startsWith("en-gb"));
-  const localEnglish = english.filter((voice) => voice.localService && !voice.lang.toLowerCase().startsWith("en-gb"));
-  const remoteBritish = english.filter((voice) => !voice.localService && voice.lang.toLowerCase().startsWith("en-gb"));
-  const remoteEnglish = english.filter((voice) => !voice.localService && !voice.lang.toLowerCase().startsWith("en-gb"));
+  const british = (voice: SpeechSynthesisVoice) => voice.lang.toLowerCase().startsWith("en-gb");
+  const localBritish = english.filter((voice) => voice.localService && british(voice));
+  const remoteBritish = english.filter((voice) => !voice.localService && british(voice));
+  const localEnglish = english.filter((voice) => voice.localService && !british(voice));
+  const remoteEnglish = english.filter((voice) => !voice.localService && !british(voice));
   const defaultVoice = voices.find((voice) => voice.default);
-  const candidates = [...localBritish, ...localEnglish, ...remoteBritish, ...remoteEnglish, defaultVoice, undefined];
+  const candidates = [...localBritish, ...remoteBritish, ...localEnglish, ...remoteEnglish, defaultVoice, undefined];
   return candidates.filter(
     (voice, index) => candidates.indexOf(voice) === index,
   );
