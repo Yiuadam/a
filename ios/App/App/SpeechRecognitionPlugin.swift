@@ -208,10 +208,26 @@ public class SpeechRecognitionPlugin: CAPPlugin, CAPBridgedPlugin {
       self?.recognitionRequest?.append(buffer)
     }
 
+    /*
+      The request the tap appends to has to exist before the engine that fills
+      it, not after. The tap runs on the audio thread and the buffers it is
+      handed are not queued anywhere on the way past: a buffer that arrives
+      while `recognitionRequest` is still nil is simply dropped, and the
+      recogniser is handed an answer that begins a moment after the candidate
+      did. The window is short — the segment used to be opened a few lines
+      below, once the engine was already running — and no whole answer was
+      ever lost in it, but the first syllable is the one a recogniser needs
+      most to place the word.
+    */
+    beginSegment()
+
     audioEngine.prepare()
     do {
       try audioEngine.start()
     } catch {
+      recognitionTask?.cancel()
+      recognitionTask = nil
+      recognitionRequest = nil
       inputNode.removeTap(onBus: 0)
       try? session.setActive(false, options: .notifyOthersOnDeactivation)
       pendingStartCall = nil
@@ -220,7 +236,6 @@ public class SpeechRecognitionPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     listening = true
-    beginSegment()
     notifyListeners("listeningState", data: ["status": "started"])
 
     // Per the package's contract, a partial-results caller gets this promise
