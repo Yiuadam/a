@@ -42,12 +42,29 @@ export interface NativeNavGroup {
   items: NativeNavItem[];
 }
 
+/**
+ * The account button's face, as the native bar needs it.
+ *
+ * Both fields together rather than a single resolved state, because the native
+ * side needs the fallback in hand before it knows whether it will need it: a
+ * photo that 404s, or that arrives after the network came back, falls back to
+ * the initial, and an initial that turned up in a second call might not have
+ * turned up at all.
+ */
+export interface NativeAccountFace {
+  /** The learner's photo, or null when they have none — or are signed out. */
+  avatarUrl: string | null;
+  /** Their first character, or null when nobody is signed in. */
+  initial: string | null;
+}
+
 interface NativeChromePluginApi {
   enable(): Promise<{ height: number }>;
   disable(): Promise<void>;
   setTheme(options: { theme: string }): Promise<void>;
   setNavOpen(options: { open: boolean }): Promise<void>;
   setNavItems(options: { groups: NativeNavGroup[] }): Promise<void>;
+  setAccount(options: NativeAccountFace): Promise<void>;
   addListener(
     eventName: string,
     listenerFunc: (data: unknown) => void,
@@ -230,5 +247,35 @@ export function setNativeNavItems(groups: NativeNavGroup[]): void {
   plugin.setNavItems({ groups }).catch(() => {
     // Nothing to recover, and nothing visibly broken: the native list simply
     // keeps whatever structure it was last given.
+  });
+}
+
+/**
+ * Hands the native account button the learner's face.
+ *
+ * The website's own control has three states — a photo, an initial, the
+ * generic person glyph — and the app's top bar is native, so none of them can
+ * reach it through the DOM. This is the route. What crosses is the same two
+ * values SiteHeader decides those states from rather than the decision itself,
+ * so the native side draws the states rather than being told which one won;
+ * see setAccount in ios/App/App/NativeChromePlugin.swift.
+ *
+ * Signing out is `{ avatarUrl: null, initial: null }` and is not a special
+ * case here — it is simply the third state, and pushing it is what clears a
+ * face off the bar. That matters more than the other two: a stale photo above
+ * a signed-out app is a privacy failure rather than a cosmetic one, so the
+ * caller must push on the way out as well as on the way in.
+ *
+ * Silent off the iOS app, and silent on a rejection, for the reason the other
+ * three setters are: the web header has already drawn the right thing, and
+ * there is no control here to fail in front of.
+ */
+export function setNativeAccount(face: NativeAccountFace): void {
+  const plugin = getPlugin();
+  if (!plugin) return;
+  plugin.setAccount(face).catch(() => {
+    // Nothing to recover: the bar keeps whichever face it was last given, and
+    // the one call that must not be lost — the sign-out — is pushed again on
+    // the next render that reaches this.
   });
 }

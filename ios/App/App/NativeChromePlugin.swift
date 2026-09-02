@@ -23,7 +23,8 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
     CAPPluginMethod(name: "disable", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "setTheme", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "setNavOpen", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "setNavItems", returnType: CAPPluginReturnPromise)
+    CAPPluginMethod(name: "setNavItems", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "setAccount", returnType: CAPPluginReturnPromise)
   ]
 
   /// The bar's own content height, independent of whatever the status bar
@@ -50,6 +51,20 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
     list renders whatever it is given.
   */
   private var navGroups: [NativeNavListViewController.Group] = []
+
+  /*
+    The account button's face, as the web app last described it.
+
+    Held here as well as on the view for the reason navGroups is held here at
+    all: the bar can be torn down and built again — disable() drops it, and the
+    next enable() makes a fresh one wearing its own defaults — while the web
+    app's idea of who is signed in has not changed and so would not be pushed
+    again. The theme survives that by being re-synced explicitly after enable()
+    resolves; this survives it by the plugin remembering, which is the pattern
+    already here and costs the web side nothing.
+  */
+  private var accountAvatarURL: URL?
+  private var accountInitial: String?
   /// The list while it is on screen, so a second tap on the menu button can
   /// close it and a theme change can reach it.
   private weak var navList: NativeNavListViewController?
@@ -197,6 +212,47 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
     }
   }
 
+  /*
+    Who is signed in, so the account button can show their face.
+
+    The website's control has three states — a photograph, an initial, the
+    generic glyph — and until this existed the app had only the third of them,
+    because nothing about a session or a profile is knowable from Swift. This
+    is the whole route: the web app already renders those three states in
+    SiteHeader.tsx, and it pushes the same two values it decides them from
+    rather than the decision itself, so the native side draws them the way
+    every other native control here is drawn.
+
+    Both fields are optional and neither is required, in the same spirit as
+    setNavOpen's defaulted flag: an account is a thing that goes away, and a
+    call that omits a field is asking for the state without it. Nil and nil is
+    signed out, which is a legitimate thing to say and must not be a rejection.
+
+    The scheme is checked rather than the URL merely parsed. This value ends up
+    in a URLSession request, and the one guarantee worth making about a string
+    that arrived from a web layer is that it addresses a web server — not a
+    file on the device, not a custom scheme some other app on the phone has
+    claimed. Anything else is dropped and the button falls back to the initial,
+    which is what a missing photo does anyway.
+  */
+  @objc func setAccount(_ call: CAPPluginCall) {
+    let url = call.getString("avatarUrl")
+      .flatMap { URL(string: $0) }
+      .flatMap { ["http", "https"].contains($0.scheme?.lowercased() ?? "") ? $0 : nil }
+    let initial = call.getString("initial")
+
+    DispatchQueue.main.async { [weak self] in
+      guard let self else {
+        call.resolve()
+        return
+      }
+      self.accountAvatarURL = url
+      self.accountInitial = initial
+      self.chromeView?.setAccount(avatarURL: url, initial: initial)
+      call.resolve()
+    }
+  }
+
   // MARK: - View
 
   /*
@@ -290,6 +346,11 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
       self?.paintPageSubstrate(theme)
       self?.notifyListeners("themeSelected", data: ["theme": theme])
     }
+    /* A fresh bar starts on the generic glyph, so whoever is signed in has to
+       be told to it again — see the stored pair above for why this side is the
+       one that remembers. Harmless before anyone signs in, when both are nil
+       and this says exactly what the view already assumed. */
+    view.setAccount(avatarURL: accountAvatarURL, initial: accountInitial)
     chromeView = view
     return view
   }

@@ -1,3 +1,6 @@
+/* ImageIO for the avatar's thumbnail decode alone — see avatarImage(from:
+   scale:) for why a learner's photograph is never decoded at full size. */
+import ImageIO
 import UIKit
 
 /*
@@ -85,6 +88,41 @@ final class NativeChromeView: UIView {
   /// sits on top. Nothing domes over this one, but keeping the two circles
   /// built the same way is what keeps them looking the same.
   private let accountOutline = UIView()
+  /*
+    The learner's own face, over the account circle, and the reason it is a
+    view of its own rather than an image set on the button.
+
+    The website's account control has three states — a photo, an initial, and
+    the generic glyph — and only the third of them is a glyph at all. The other
+    two fill the whole circle, which means they cover the fill and the border
+    that accountOutline draws for the glyph state. So they need a surface with
+    the same shape, and it has to draw its own rim after its contents: a view
+    paints its layer's border after every subview it has, which is precisely
+    why accountOutline and trackOutline exist in the first place, and the same
+    trick is what keeps a photograph from swallowing the circle's edge.
+
+    Inside accountButton rather than inside accountOutline, and that placement
+    is forced by the pre-26 path. Above 26 the circle's fill and border are on
+    accountOutline, underneath the button; below 26 there is no glass and the
+    button's own configuration background draws them, which is above
+    accountOutline and would paint straight over a photo parented there. The
+    button's subviews are above both, on either release.
+  */
+  private let accountFace = UIView()
+  private let accountPhoto = UIImageView()
+  private let accountInitialLabel = UILabel()
+  /// The generic glyph configure() placed in the account button, kept so the
+  /// other two states can hide it. It is covered by an opaque face either way;
+  /// hiding it matters for an avatar with an alpha channel, which would
+  /// otherwise show a person icon through the learner's own photograph.
+  private var accountGlyph: UIImageView?
+  /// What the web app last said belongs on the button, and the image fetched
+  /// for that exact URL. accountPhotoImage is only ever non-nil while it
+  /// belongs to accountAvatarURL — see setAccount(avatarURL:initial:) for why
+  /// the two are cleared together rather than separately.
+  private var accountAvatarURL: URL?
+  private var accountInitial: String?
+  private var accountPhotoImage: UIImage?
 
   /*
     Which theme control is live.
@@ -417,6 +455,31 @@ final class NativeChromeView: UIView {
     let trackBorder: UIColor
     let accountFill: UIColor
     let accountBorder: UIColor
+    /*
+      The initial chip, when a learner has a name but no photograph.
+
+      These are the website's `bg-indigo-100` and `text-indigo-700` read
+      literally, theme for theme, out of the token blocks in app/globals.css —
+      not sampled off the screen the way the glass corrections above were,
+      because nothing about this chip is glass. It is an opaque disc with a
+      letter on it, exactly as the browser draws it, and the two values that
+      make it are named in the markup.
+
+      They are deliberately not iconTint. That colour is measured off the
+      rendered bar and lands on indigo-600 in Warm and on a slate in Light,
+      whereas the chip's letter is indigo-700 in all three themes; reusing
+      iconTint would be matching the wrong element because it happens to be
+      nearby.
+
+      Light's pair is the site's own weak contrast — a pale grey letter on a
+      near-white disc — and it is reproduced rather than corrected here for the
+      same reason the pre-26 account circle is: this bar exists to be the
+      website on a different substrate. If that chip should read more strongly
+      it should read more strongly in the browser first, and this table will
+      follow it.
+    */
+    let initialFill: UIColor
+    let initialInk: UIColor
     let iconTint: UIColor
     let foreground: UIColor
     let knobFill: UIColor
@@ -432,6 +495,8 @@ final class NativeChromeView: UIView {
       trackBorder: rgba(162, 150, 138, 0.24),
       accountFill: rgba(255, 255, 255, 0.08),
       accountBorder: rgba(255, 255, 255, 0.314),
+      initialFill: rgba(247, 229, 216, 1),
+      initialInk: rgba(139, 74, 38, 1),
       iconTint: rgba(169, 93, 47, 1),
       foreground: rgba(42, 37, 33, 1),
       knobFill: rgba(247, 244, 240, 0.97),
@@ -445,6 +510,8 @@ final class NativeChromeView: UIView {
       trackBorder: rgba(231, 233, 236, 1.0),
       accountFill: rgba(250, 250, 250, 0.147),
       accountBorder: rgba(232, 234, 237, 0.89),
+      initialFill: rgba(247, 248, 249, 1),
+      initialInk: rgba(174, 181, 189, 1),
       iconTint: rgba(58, 61, 67, 1),
       foreground: rgba(22, 23, 26, 1),
       knobFill: rgba(252, 252, 253, 0.97),
@@ -458,6 +525,8 @@ final class NativeChromeView: UIView {
       trackBorder: rgba(255, 255, 255, 0.114),
       accountFill: rgba(255, 255, 255, 0.045),
       accountBorder: rgba(241, 242, 244, 0.25),
+      initialFill: rgba(46, 29, 21, 1),
+      initialInk: rgba(238, 154, 115, 1),
       iconTint: rgba(238, 154, 115, 1),
       foreground: rgba(244, 244, 245, 1),
       knobFill: rgba(92, 88, 86, 0.99),
@@ -576,7 +645,7 @@ final class NativeChromeView: UIView {
        exact 20pt the site measured, where a configuration renders the asset
        at whatever size it happens to be. The configuration owns the surface
        and the press; this owns the glyph's size. */
-    configure(accountButton, asset: "IconAccount", size: 20, label: "Your account")
+    accountGlyph = configure(accountButton, asset: "IconAccount", size: 20, label: "Your account")
     accountButton.addTarget(self, action: #selector(accountTapped), for: .touchUpInside)
     accountButton.translatesAutoresizingMaskIntoConstraints = false
     /*
@@ -685,9 +754,15 @@ final class NativeChromeView: UIView {
   /// point size — the menu glyph's native size and the theme glyphs' both
   /// differ from what the site renders them at, so the size the site
   /// measured is the one Auto Layout is told to hit.
+  /// Returns the glyph it placed, which only the account button has any use
+  /// for — its other two states cover the glyph entirely and need to be able
+  /// to hide it. Discardable because the menu and theme buttons are glyphs and
+  /// nothing else, and asking three call sites to acknowledge a value they do
+  /// not want would be noise.
+  @discardableResult
   private func configure(
     _ button: UIButton, asset: String, size: CGFloat, label: String, offsetY: CGFloat = 0
-  ) {
+  ) -> UIImageView {
     /* A miss here — the asset not having made it into the bundle —
        leaves the button glyph-less rather than reaching for a system symbol
        that would not match the site's icon either way; a wrong-looking
@@ -704,6 +779,7 @@ final class NativeChromeView: UIView {
       imageView.heightAnchor.constraint(equalToConstant: size),
     ])
     button.accessibilityLabel = label
+    return imageView
   }
 
   /// Stop size, the gap between stops, and the track's own inset — together
@@ -786,6 +862,80 @@ final class NativeChromeView: UIView {
       accountButton.trailingAnchor.constraint(equalTo: accountPill.contentView.trailingAnchor),
       accountButton.topAnchor.constraint(equalTo: accountPill.contentView.topAnchor),
       accountButton.bottomAnchor.constraint(equalTo: accountPill.contentView.bottomAnchor),
+    ])
+
+    buildAccountFace()
+  }
+
+  /*
+    The photo and the initial, both of which fill the circle.
+
+    Hidden from the start and left that way until the web app says otherwise:
+    the bar is built long before anyone knows whether a learner is signed in,
+    and a circle that begins as the generic glyph and gains a face is the right
+    order of events. The reverse — an empty disc waiting to be filled — is the
+    one thing the website never shows.
+
+    A plain radius rather than the `.capsule()` corner configuration its two
+    siblings use, and the difference is that this view has to *clip*. A capsule
+    configuration describes the shape a control draws itself in; clipping is
+    masksToBounds against layer.cornerRadius, and the two are separate
+    mechanisms that are only guaranteed to agree if the radius is the one
+    actually set. At a fixed 40pt box, half the width is exactly the circle the
+    capsule would have produced, so nothing is given up by saying it directly.
+  */
+  private func buildAccountFace() {
+    accountFace.translatesAutoresizingMaskIntoConstraints = false
+    accountFace.isUserInteractionEnabled = false
+    accountFace.isHidden = true
+    accountFace.clipsToBounds = true
+    accountFace.layer.cornerRadius = NativeChromeView.accountSize / 2
+    accountFace.layer.cornerCurve = .continuous
+    /* The rim the circle would otherwise have lost. Whichever view draws the
+       account circle's border for this release — accountOutline on 26, the
+       button's own configuration background below it — is underneath a face
+       that is opaque across the whole 40pt, so the face has to draw the edge
+       itself. styleAccountButton feeds it the same colour that view is using,
+       so the three states have one edge between them rather than two that
+       drift. */
+    accountFace.layer.borderWidth = 1
+
+    /* scaleAspectFill with clipping, never scaleToFill: an avatar is whatever
+       shape the learner uploaded, and the one thing a face must not do is
+       stretch. Filling and cropping loses the corners of a wide photograph,
+       which is what every avatar on the web does and what the website's own
+       `object-cover` does three lines away in SiteHeader.tsx. */
+    accountPhoto.translatesAutoresizingMaskIntoConstraints = false
+    accountPhoto.contentMode = .scaleAspectFill
+    accountPhoto.clipsToBounds = true
+    accountPhoto.isUserInteractionEnabled = false
+
+    /* 12pt semibold, which is the site's `text-xs font-semibold` at a 16px
+       root. Uppercasing happens here rather than being asked of the web side,
+       so the native button cannot end up disagreeing with the browser's own
+       `uppercase` over a name typed in lower case. */
+    accountInitialLabel.translatesAutoresizingMaskIntoConstraints = false
+    accountInitialLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+    accountInitialLabel.textAlignment = .center
+    accountInitialLabel.isUserInteractionEnabled = false
+
+    accountFace.addSubview(accountPhoto)
+    accountFace.addSubview(accountInitialLabel)
+    accountButton.addSubview(accountFace)
+
+    NSLayoutConstraint.activate([
+      accountFace.leadingAnchor.constraint(equalTo: accountButton.leadingAnchor),
+      accountFace.trailingAnchor.constraint(equalTo: accountButton.trailingAnchor),
+      accountFace.topAnchor.constraint(equalTo: accountButton.topAnchor),
+      accountFace.bottomAnchor.constraint(equalTo: accountButton.bottomAnchor),
+
+      accountPhoto.leadingAnchor.constraint(equalTo: accountFace.leadingAnchor),
+      accountPhoto.trailingAnchor.constraint(equalTo: accountFace.trailingAnchor),
+      accountPhoto.topAnchor.constraint(equalTo: accountFace.topAnchor),
+      accountPhoto.bottomAnchor.constraint(equalTo: accountFace.bottomAnchor),
+
+      accountInitialLabel.centerXAnchor.constraint(equalTo: accountFace.centerXAnchor),
+      accountInitialLabel.centerYAnchor.constraint(equalTo: accountFace.centerYAnchor),
     ])
   }
 
@@ -1125,6 +1275,207 @@ final class NativeChromeView: UIView {
     applyThemeSelection(animated: animated)
   }
 
+  // MARK: - The account button's face
+
+  /*
+    Who is signed in, pushed from the web app the way the theme and the menu
+    are, and for the same reason all three travel: the native side cannot work
+    any of it out for itself. The session lives in the web layer, the profile
+    request is made there, and this view has no idea a learner exists.
+
+    Both values arrive together on purpose. A photo that fails to load has to
+    fall back to something, and the something is the learner's initial — so the
+    initial cannot be a second call that may or may not have happened by the
+    time the download fails. One call, one state, and the fallback is already
+    in hand before it is needed.
+
+    The photo is dropped the instant its URL changes rather than held until a
+    replacement arrives. Holding it would spare a brief flash of the initial
+    when the profile is re-fetched and the signed URL rotates — those URLs are
+    one-hour grants, so a long session rotates them — but it would also be the
+    mechanism by which one account's face could survive into another's session.
+    A flash of the right learner's own initial is a fair price for that not
+    being possible, and signing out clears it either way: the web app pushes a
+    URL of nil and an initial of nil together, which is the third state.
+  */
+  func setAccount(avatarURL: URL?, initial: String?) {
+    /* First grapheme rather than first byte, so an accented or non-Latin name
+       yields a whole character. Uppercased here so the button agrees with the
+       browser's `uppercase` on a name typed in lower case. */
+    accountInitial = initial
+      .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .flatMap(\.first)
+      .map { String($0).uppercased() }
+
+    if avatarURL != accountAvatarURL {
+      accountAvatarURL = avatarURL
+      accountPhotoImage = nil
+      if let avatarURL { loadAvatar(avatarURL) }
+    }
+    renderAccountFace()
+  }
+
+  /*
+    The three states, in the website's own order of preference: a photograph
+    if there is one, the learner's initial if there is a name or an email, and
+    the generic glyph otherwise — signed out, still loading, or a photo that
+    has not arrived or never will.
+
+    Called on every theme change as well as on every account change, because
+    the initial chip and the circle's rim are both theme colours. Reading the
+    stored state rather than being handed it means the two callers cannot
+    disagree about what is on screen.
+  */
+  private func renderAccountFace() {
+    let colors = NativeChromeView.colors(for: selectedTheme)
+    let photo = accountPhotoImage
+    let initial = accountInitial
+
+    accountPhoto.image = photo
+    accountPhoto.isHidden = photo == nil
+    accountInitialLabel.text = initial
+    accountInitialLabel.textColor = colors.initialInk
+    accountInitialLabel.isHidden = photo != nil || initial == nil
+
+    /* Nothing behind a photograph — it is opaque and fills the circle, and a
+       fill under it would only show through an avatar that carries an alpha
+       channel, where the glass behind is the better thing to see. */
+    accountFace.backgroundColor = photo == nil ? colors.initialFill : nil
+    accountFace.layer.borderColor = accountRimColor(colors).cgColor
+    accountFace.isHidden = photo == nil && initial == nil
+    accountGlyph?.isHidden = !accountFace.isHidden
+  }
+
+  /// The colour the account circle's edge is drawn in, from whichever view is
+  /// drawing the circle on this release — see styleAccountButton(_:), which
+  /// splits the same way and for the same reason.
+  private func accountRimColor(_ colors: ThemeColors) -> UIColor {
+    if #available(iOS 26.0, *) { return colors.trackBorder }
+    return colors.accountBorder
+  }
+
+  /*
+    Decoded avatars, kept so the bar is not made to download one twice.
+
+    Small on purpose. A learner has one face, and the only reason for more than
+    one entry is a URL rotating while the previous image is still worth having.
+    An NSCache rather than a dictionary because the entries are images and this
+    is a top bar: under memory pressure the right thing for it to do is give
+    them back and fetch again later.
+
+    Keyed by the whole URL, which is worth saying plainly because it is a
+    weaker key than it looks. BandUp's avatar URLs are one-hour signed grants —
+    see lib/cloudflare/avatar-delivery.ts — so the same photograph has a
+    different URL after every profile fetch and lands here as a miss. That is
+    the honest behaviour for a capability URL rather than a defect in the
+    cache: a rotated grant is a new permission to fetch, and re-fetching is
+    what checking it means. What this does buy is everything that re-pushes an
+    unchanged URL — a bar rebuilt after disable/enable, the same payload
+    arriving twice — and between it and the web side only pushing on a real
+    change, a theme switch or a rotation never reaches the network at all.
+  */
+  private static let avatarCache: NSCache<NSURL, UIImage> = {
+    let cache = NSCache<NSURL, UIImage>()
+    cache.countLimit = 4
+    return cache
+  }()
+
+  /*
+    Fetching a face, which must never be something the bar waits for.
+
+    All of it is off the main thread and none of it blocks a thing: the bar has
+    already drawn the initial or the glyph by the time this starts, and the
+    photograph replaces it whenever it lands. A bar that waited for a network
+    round trip before appearing would be worse than one that shows a letter for
+    a moment.
+
+    No Referer, and no cookies. The website's own <img> carries
+    referrerPolicy="no-referrer", and the intent behind it is that fetching a
+    face tells the host nothing about the learner beyond the grant it has to
+    present anyway. URLSession sends no Referer unless one is set, so matching
+    that intent is a matter of not adding one; cookies it would otherwise
+    attach from the shared store, and the delivery route neither reads nor
+    needs them.
+
+    Every way this can fail ends in the same place. A 404, a 403 on an expired
+    grant, no network, a body that is not an image, an image that will not
+    decode: each leaves accountPhotoImage nil and the button showing the
+    initial or the glyph. There is no state in which it shows a broken image or
+    an empty circle, because the only thing that ever fills the circle is an
+    image that has already decoded.
+
+    The staleness check on the way back is what makes signing out safe. A fetch
+    in flight when the account changes resolves against an accountAvatarURL
+    that has moved on, and is dropped rather than painted — so a face cannot
+    arrive after the learner it belongs to has gone.
+  */
+  private func loadAvatar(_ url: URL) {
+    if let cached = NativeChromeView.avatarCache.object(forKey: url as NSURL) {
+      accountPhotoImage = cached
+      return
+    }
+
+    var request = URLRequest(url: url)
+    request.httpShouldHandleCookies = false
+    /* Read on the main thread, where this always is, rather than reached for
+       from the completion handler — traitCollection belongs to the view.
+       UITraitCollection.current stands behind it for the one case the view's
+       own traits are unspecified, which is a bar that has been given an
+       account before it was ever put in a window: NativeChromePlugin restores
+       the stored face while it builds the view, so that path is real. */
+    let scale = max(traitCollection.displayScale, UITraitCollection.current.displayScale, 1)
+
+    URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+      let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+      let image = (200..<300).contains(status)
+        ? data.flatMap { NativeChromeView.avatarImage(from: $0, scale: scale) }
+        : nil
+      guard let image else { return }
+      DispatchQueue.main.async {
+        guard let self, self.accountAvatarURL == url else { return }
+        NativeChromeView.avatarCache.setObject(image, forKey: url as NSURL)
+        self.accountPhotoImage = image
+        self.renderAccountFace()
+      }
+    }.resume()
+  }
+
+  /*
+    Decoded straight to the size the circle needs, rather than decoded whole
+    and scaled down by the image view.
+
+    A learner's upload is whatever their phone's camera produced, and a twelve
+    megapixel photograph decodes to about 48MB of bitmap however small the view
+    showing it is. ImageIO's thumbnail path never materialises that: it reads
+    the source's own dimensions, decodes once at the requested size, and gives
+    back a bitmap measured in kilobytes.
+
+    The cap is twice the circle so an off-square photograph still has pixels to
+    spare on its short axis after scaleAspectFill has cropped it — the limit
+    governs the longer side, and a wide photograph filling a circle is scaled
+    by its shorter one. Twice 40pt at 3x is 240px, which is a quarter of a
+    megabyte at worst and sharp on any screen Apple ships.
+
+    kCGImageSourceShouldCache is off for the source and on for the thumbnail:
+    the full-size decode is the thing not worth keeping, and the small one is
+    the thing being asked for, decoded here on this background thread rather
+    than lazily on the main one at first draw. The transform is applied so a
+    photograph taken sideways is not shown sideways.
+  */
+  private static func avatarImage(from data: Data, scale: CGFloat) -> UIImage? {
+    let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+    guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else { return nil }
+    let maxPixel = Int((accountSize * scale * 2).rounded(.up))
+    let options = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceShouldCacheImmediately: true,
+      kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+    ] as CFDictionary
+    guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else { return nil }
+    return UIImage(cgImage: thumbnail, scale: scale, orientation: .up)
+  }
+
   /// contentView.backgroundColor is the only place a translucent tint can
   /// live pre-26, since UIBlurEffect carries no colour of its own. On 26 the
   /// tint lives on the glass effect handed to `effect` instead, so this
@@ -1350,6 +1701,11 @@ final class NativeChromeView: UIView {
     config.contentInsets = .zero
     accountButton.configuration = config
     accountButton.tintColor = colors.iconTint
+    /* And the other two states of the same button. The glyph is the only one
+       of the three the code above draws for; the initial chip and the
+       photograph's rim are theme colours too, and this is the one place a
+       theme change reaches the account control. */
+    renderAccountFace()
   }
 
   /*

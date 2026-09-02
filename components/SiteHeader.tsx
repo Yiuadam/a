@@ -5,7 +5,8 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useRoutePath } from "@/lib/hooks";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref } from "@/lib/nav";
 import { useTier } from "@/lib/billing/useTier";
@@ -17,9 +18,11 @@ import { useAccountProfile } from "@/components/account/AccountProfileProvider";
 import bandupMarkRear from "@/components/assets/steps-five-layer-rear-108.png";
 import {
   enableNativeChrome,
+  setNativeAccount,
   setNativeNavItems,
   setNativeNavOpen,
   syncNativeTheme,
+  type NativeAccountFace,
   type NativeNavGroup,
 } from "@/lib/native-chrome";
 import { getServerTheme, getTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
@@ -114,7 +117,10 @@ export default function SiteHeader({
 }: {
   isolatedOrganizationPreview?: boolean;
 }) {
-  const pathname = usePathname();
+  /* useRoutePath, not usePathname, so that the route this header reads is the
+     same route lib/nav.ts names — the iOS export's own pathname has a trailing
+     slash on it and those names do not. See routePath in lib/platform.ts. */
+  const pathname = useRoutePath();
 
   /*
     The owner sees one row nobody else does. Appended to the last group rather
@@ -315,6 +321,39 @@ export default function SiteHeader({
     if (nativeNav === null) return;
     setNativeNavItems(JSON.parse(nativeNav) as NativeNavGroup[]);
   }, [nativeNav]);
+
+  /*
+    The account button's face, pushed to the native bar for the same reason
+    the menu's structure is: the app's top bar is native, so the three states
+    rendered below — the photo, the initial, the generic glyph — cannot reach
+    it through the DOM at all.
+
+    The two values that decide those states cross rather than the decision
+    itself, so the native button draws them the way it draws every other
+    control up there. Kept deliberately in step with the JSX below: the same
+    `account.signedIn` gate, the same displayName-then-email-then-"A" fallback.
+    Serialised for the same reason nativeNav is — an object rebuilt every
+    render can never be a dependency, and its JSON also stops an unchanged face
+    being pushed again on every keystroke elsewhere in the app.
+
+    Signing out is not a special case, it is the third state: both fields go
+    null and the push is what clears the face off the bar. That is the one of
+    the three that must not be missed, so it travels the same path as the
+    other two rather than hanging off a sign-out handler somewhere.
+  */
+  const nativeAccount =
+    nativeChromeHeight === null
+      ? null
+      : JSON.stringify({
+          avatarUrl: (account.signedIn && profile?.avatarUrl) || null,
+          initial: account.signedIn
+            ? (profile?.displayName ?? profile?.email ?? "A").trim().charAt(0) || "A"
+            : null,
+        } satisfies NativeAccountFace);
+  useEffect(() => {
+    if (nativeAccount === null) return;
+    setNativeAccount(JSON.parse(nativeAccount) as NativeAccountFace);
+  }, [nativeAccount]);
 
   /*
     NativeChromeView replacing this component's own <header> entirely, on
