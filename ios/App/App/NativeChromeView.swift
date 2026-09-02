@@ -113,7 +113,7 @@ final class NativeChromeView: UIView {
     over the glass instead of inside it, and only because the material leaves
     nothing else to colour.
   */
-  private static func barEffect(tint: UIColor) -> UIVisualEffect {
+  private static func barEffect(tint: UIColor?) -> UIVisualEffect {
     if #available(iOS 26.0, *) {
       /*
         .regular, not .clear.
@@ -131,31 +131,42 @@ final class NativeChromeView: UIView {
         case .regular exists for.
       */
       let effect = UIGlassEffect(style: .regular)
-      effect.tintColor = tint
+      if let tint { effect.tintColor = tint }
       return effect
     }
     return UIBlurEffect(style: .systemThinMaterial)
   }
 
-  private static func pillEffect(tint: UIColor) -> UIVisualEffect {
+  private static func pillEffect(tint: UIColor?) -> UIVisualEffect {
     if #available(iOS 26.0, *) {
       /* .regular rather than the bar's .clear: the account circle and the
          theme track are meant to read as their own pieces of glass, the way
          the site paints them as two pills with their own fill and border
          rather than controls resting on the bar's material directly. Both
          are real controls a finger lands on, so both are interactive. */
-      let effect = UIGlassEffect(style: .regular)
-      effect.tintColor = tint
+      /*
+        .clear, not .regular. The bar above needs .regular because a page
+        scrolling under it has to stop being legible before it reaches the
+        wordmark. These two are small, bordered, and carry nothing but their
+        own glyph, so nothing collides and the clearer material has somewhere
+        to show — it is the style meant for glass with content behind it,
+        which is what these are.
+      */
+      let effect = UIGlassEffect(style: .clear)
+      if let tint { effect.tintColor = tint }
       effect.isInteractive = true
       return effect
     }
     return UIBlurEffect(style: .systemThinMaterial)
   }
 
-  private static func knobEffect(tint: UIColor) -> UIVisualEffect {
+  private static func knobEffect(tint: UIColor?) -> UIVisualEffect {
     if #available(iOS 26.0, *) {
-      let effect = UIGlassEffect(style: .regular)
-      effect.tintColor = tint
+      /* Clear here too, and this is the one that matters most: the knob is
+         the element a finger actually moves, so it is where refraction is
+         seen rather than inferred. */
+      let effect = UIGlassEffect(style: .clear)
+      if let tint { effect.tintColor = tint }
       /* The press and deform the web knob spends a pointer-speed filter and a
          squash curve on. Here the system owns it, and it responds to the
          real touch rather than to a sampled derivative of one. */
@@ -216,7 +227,7 @@ final class NativeChromeView: UIView {
       iconTint: rgba(169, 93, 47, 1),
       foreground: rgba(42, 37, 33, 1),
       knobFill: rgba(247, 244, 240, 0.97),
-      knobBorder: nil
+      knobBorder: rgba(169, 93, 47, 0.45)
     ),
     "light": ThemeColors(
       barFill: rgba(246, 247, 248, 0.539),
@@ -228,7 +239,7 @@ final class NativeChromeView: UIView {
       iconTint: rgba(58, 61, 67, 1),
       foreground: rgba(22, 23, 26, 1),
       knobFill: rgba(252, 252, 253, 0.97),
-      knobBorder: nil
+      knobBorder: rgba(58, 61, 67, 0.38)
     ),
     "dark": ThemeColors(
       barFill: rgba(253, 253, 253, 0.044),
@@ -320,7 +331,11 @@ final class NativeChromeView: UIView {
     content.addSubview(menuButton)
 
     accountEffectView.translatesAutoresizingMaskIntoConstraints = false
-    accountEffectView.layer.cornerRadius = NativeChromeView.accountSize / 2
+    if #available(iOS 26.0, *) {
+      accountEffectView.cornerConfiguration = .capsule()
+    } else {
+      accountEffectView.layer.cornerRadius = NativeChromeView.accountSize / 2
+    }
     accountEffectView.layer.cornerCurve = .continuous
     accountEffectView.clipsToBounds = true
     accountEffectView.layer.borderWidth = 1
@@ -454,7 +469,11 @@ final class NativeChromeView: UIView {
 
   private func buildThemeControl() {
     themeTrack.translatesAutoresizingMaskIntoConstraints = false
-    themeTrack.layer.cornerRadius = NativeChromeView.stopSize / 2 + NativeChromeView.trackPadding
+    if #available(iOS 26.0, *) {
+      themeTrack.cornerConfiguration = .capsule()
+    } else {
+      themeTrack.layer.cornerRadius = NativeChromeView.stopSize / 2 + NativeChromeView.trackPadding
+    }
     themeTrack.layer.cornerCurve = .continuous
     themeTrack.clipsToBounds = true
     themeTrack.layer.borderWidth = 1
@@ -476,7 +495,22 @@ final class NativeChromeView: UIView {
        glyph, which is the thing this ordering was chosen to avoid. */
     knob.translatesAutoresizingMaskIntoConstraints = false
     knob.isUserInteractionEnabled = true
-    knob.layer.cornerRadius = NativeChromeView.stopSize / 2
+    /*
+      Apple's own corner shape, not a radius we maintain.
+
+      UICornerConfiguration.capsule() scales with the view, so a knob that
+      grows under a finger stays a perfect circle for every frame of the
+      swell. Doing it by hand meant setting cornerRadius to half the resting
+      width and then animating it alongside the size — and the frame the two
+      disagreed on is exactly where the rim stops reading as a drop of water
+      and starts reading as a smear. Pre-26 keeps the manual radius, which is
+      correct there because the knob does not grow on that path anyway.
+    */
+    if #available(iOS 26.0, *) {
+      knob.cornerConfiguration = .capsule()
+    } else {
+      knob.layer.cornerRadius = NativeChromeView.stopSize / 2
+    }
     knob.layer.cornerCurve = .continuous
     knob.clipsToBounds = true
     themeTrack.contentView.addSubview(knob)
@@ -603,11 +637,31 @@ final class NativeChromeView: UIView {
        the entire reason this bar is native rather than more CSS. Reassigning
        `effect` inside the animator is also the only handle UIKit gives you
        on animating a glass or blur change at all, so it does double duty. */
+    /*
+      Untinted on iOS 26, deliberately, and this is a correction rather than
+      an omission.
+
+      These surfaces used to be built with the website's own measured fills
+      poured in as tints — and the comment above was right that an opaque fill
+      would hide the refraction, while the values handed to it were opaque
+      enough to do exactly that. The knob's was 0.99 in Dark and 0.97 in the
+      other two: paint, not tint, over the one element that should show the
+      material best. The bar read as a flat capsule and the answer to "where
+      is the glass" was "underneath, smothered".
+
+      Those numbers are CSS fills whose whole job is to *imitate* glass in a
+      browser that cannot render it. Pouring an imitation into the real thing
+      can only subtract. So on 26 the material is left to do its own work and
+      the theme is carried by the parts that are genuinely BandUp's — the
+      border, the icon colour, the wordmark, the divider. The fills survive
+      only in paintFallbackTint below, for iOS 25 and earlier, where
+      UIBlurEffect has no tint of its own and an imitation is all there is.
+    */
     let retint = {
-      self.barEffectView.effect = NativeChromeView.barEffect(tint: colors.barFill)
-      self.accountEffectView.effect = NativeChromeView.pillEffect(tint: colors.accountFill)
-      self.themeTrack.effect = NativeChromeView.pillEffect(tint: colors.trackFill)
-      self.knob.effect = NativeChromeView.knobEffect(tint: colors.knobFill)
+      self.barEffectView.effect = NativeChromeView.barEffect(tint: nil)
+      self.accountEffectView.effect = NativeChromeView.pillEffect(tint: nil)
+      self.themeTrack.effect = NativeChromeView.pillEffect(tint: nil)
+      self.knob.effect = NativeChromeView.knobEffect(tint: nil)
     }
     if animated {
       UIViewPropertyAnimator(duration: 0.3, curve: .easeInOut, animations: retint).startAnimation()
@@ -625,8 +679,16 @@ final class NativeChromeView: UIView {
     accountEffectView.layer.borderColor = colors.accountBorder.cgColor
     themeTrack.layer.borderColor = colors.trackBorder.cgColor
 
-    /* The knob's border is dark-only, same as the site: warm and light give
-       it none at all, rather than one dialled to zero opacity. */
+    /*
+      Every theme rings the knob now, where the site rings only Dark.
+
+      The site can afford that: it marks the selected stop with a fill that is
+      97% opaque, so the shape alone says which one is chosen. Once the fill
+      came off — because an opaque fill is exactly what was hiding the glass —
+      the selection had nothing left to say it with, and a clear knob on a
+      clear track is invisible. A rim in the theme's own accent marks it
+      without putting anything back in front of the material.
+    */
     knob.layer.borderWidth = colors.knobBorder == nil ? 0 : 1
     knob.layer.borderColor = colors.knobBorder?.cgColor
 
@@ -670,7 +732,16 @@ final class NativeChromeView: UIView {
   /// edges of both axes, so the box grows about its own centre rather than
   /// leaning right and down the way a raw width/height increase would on
   /// anchors that are pinned by their leading and top edges.
-  private static let knobGrowthPerEdge: CGFloat = 7
+  private static let knobGrowthPerEdge: CGFloat = 5
+
+  /// The knob's size at rest and while held, and the corner radius that keeps
+  /// it a circle at both. The radius has to move with the size: pinned at
+  /// half the resting width, a knob grown by 14pt across arrived as a
+  /// squircle rather than a bigger circle, which is what a drop of water is
+  /// not. Growth is deliberately slight — the swell should read as the glass
+  /// thickening under a finger, not as the control changing size.
+  private static var knobRestingSize: CGFloat { stopSize }
+  private static var knobHeldSize: CGFloat { stopSize + knobGrowthPerEdge * 2 }
 
   /// How far, in points, a touch has to travel along the track before this
   /// reads as a drag rather than a tap. Below it, whichever stop button the
@@ -748,8 +819,8 @@ final class NativeChromeView: UIView {
   private func growKnob() {
     let target = restingKnobLeading - NativeChromeView.knobGrowthPerEdge
     UIViewPropertyAnimator(duration: 0.2, dampingRatio: 0.75) {
-      self.knobWidth?.constant = NativeChromeView.stopSize + NativeChromeView.knobGrowthPerEdge * 2
-      self.knobHeight?.constant = NativeChromeView.stopSize + NativeChromeView.knobGrowthPerEdge * 2
+      self.knobWidth?.constant = NativeChromeView.knobHeldSize
+      self.knobHeight?.constant = NativeChromeView.knobHeldSize
       self.knobLeading?.constant = target
       self.layoutIfNeeded()
     }.startAnimation()
@@ -761,8 +832,8 @@ final class NativeChromeView: UIView {
   private func shrinkKnob() {
     let target = restingKnobLeading
     UIViewPropertyAnimator(duration: 0.2, dampingRatio: 0.75) {
-      self.knobWidth?.constant = NativeChromeView.stopSize
-      self.knobHeight?.constant = NativeChromeView.stopSize
+      self.knobWidth?.constant = NativeChromeView.knobRestingSize
+      self.knobHeight?.constant = NativeChromeView.knobRestingSize
       self.knobLeading?.constant = target
       self.layoutIfNeeded()
     }.startAnimation()
