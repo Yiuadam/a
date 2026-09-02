@@ -97,8 +97,13 @@ these five paths:
 2. Xcode → *Product → Archive* → *Distribute App* → App Store Connect.
 3. Fill in the listing: description, keywords, support URL, privacy policy URL.
 4. **Privacy questionnaire** — declare that you collect audio *transiently* for
-   the speaking feature. Be accurate: speech is transcribed on-device and only
-   the resulting text is sent for grading; nothing is stored on a server.
+   the speaking feature. Be accurate about where it goes: in the app the audio
+   is handed to Apple's own speech recogniser, which decides for itself whether
+   to transcribe on the phone or on Apple's servers, and only the resulting text
+   reaches BandUp for grading. Nothing is stored on a server. Do **not** claim
+   on-device-only transcription here — the Whisper option is a web feature, and
+   `ios-plugins/local-transcription` is not in `ios/App/CapApp-SPM/Package.swift`,
+   so it is not in the build at all.
 5. Submit for review. First review typically takes 24–48 hours.
 
 ## The rejection risks worth pre-empting

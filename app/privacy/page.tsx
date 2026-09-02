@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, there are no cookies or trackers, and card details never reach our servers.",
 };
 
-const LAST_UPDATED = "16 August 2026";
+const LAST_UPDATED = "2 September 2026";
 
 /*
   The learner keys plus the owner's one local dashboard preference.
@@ -33,6 +33,11 @@ const LAST_UPDATED = "16 August 2026";
   browser, and the half-finished exam holds a learner's own essay text while
   never being uploaded at all. An omission on this page is the same kind of
   mistake as a false sentence, so the exam is listed here with the rest.
+
+  The autosaved practice essay (lib/writing-draft.ts) is here for the same
+  reason and is the plainest case of it: the list is introduced with "This is
+  the whole of it", and a key holding a learner's own unfinished prose is the
+  last one that may be missing from a list making that claim.
 */
 const STORED = [
   {
@@ -55,6 +60,10 @@ const STORED = [
   {
     key: "bandup-mock-exam-v1",
     what: "A mock exam you have started but not finished, including anything you have written in it so far. It is held here until you finish, and it is never sent to your account.",
+  },
+  {
+    key: "bandup.writing-draft.v1",
+    what: "A practice essay you are part-way through, saved as you type so that a reload or a phone locking cannot take it. It stays in the tab you are writing in, it is never sent to your account, and it is thrown away when you submit it, when you leave the writing paper, or twelve hours after you last typed.",
   },
   {
     key: ADMIN_OVERVIEW_STORAGE_KEY,
@@ -144,7 +153,8 @@ export default function PrivacyPage() {
           stay in that browser until you clear it. Signed in, three of the entries below — your
           progress, your drills and your saved words — are kept on your account as well, so they
           follow you between devices; the rest never leave this browser, including an exam you
-          have started and not finished. The last entry is only an admin dashboard layout and
+          have started and not finished and an essay you are part-way through. The last
+          entry is only an admin dashboard layout and
           always stays in that administrator&rsquo;s browser. This is the whole of it:
         </p>
         <ul className="mt-4 space-y-3">
@@ -158,10 +168,13 @@ export default function PrivacyPage() {
         <p className="mt-4 text-sm leading-6 text-slate-600">
           Two standard model files can also be stored on your device. If you turn on on-device
           transcription in the speaking test, its speech model (about 75 or 145 MB, depending
-          on which you pick) is downloaded once and kept in your browser&rsquo;s cache. On the web,
-          the natural British examiner voice uses a separate model of about 92 MB, downloaded
-          when you first start an interview. Both run on your device, hold no data about you and
-          are the same files every learner downloads.
+          on which you pick) is downloaded once and kept in your browser&rsquo;s cache. On the web
+          there is also a 92 MB voice model, but only as a last resort: the examiner&rsquo;s
+          questions play as ordinary recordings, so starting an interview downloads nothing. That
+          model arrives only if your browser turns out to have no English voice of its own — when
+          you tap to hear a looked-up word said aloud, or when a listening paper cannot be read to
+          you any other way. Both run on your device, hold no data about you and are the same
+          files every learner downloads.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Because this lives on the device and nowhere else, your progress does not follow you
@@ -206,11 +219,26 @@ export default function PrivacyPage() {
           email and no identifier alongside it, because it holds none.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Model downloads also leave your device, and carry none of your work: if you turn on
-          on-device transcription, its speech model is downloaded once from Hugging Face; when
-          you first start a web speaking interview, the natural examiner model and British voice
-          are downloaded there too. The words spoken by the examiner are generated locally and
-          are not sent to a voice service.
+          Model downloads also leave your device, and carry none of your work. If you turn on
+          on-device transcription, its speech model is downloaded once from Hugging Face, who
+          host it — or, if your school, network or country blocks that host, from BandUp&rsquo;s
+          own server, which fetches the same file for you. The examiner&rsquo;s voice model is
+          worth being exact about, because it works
+          the other way round: your browser never asks Hugging Face for it. It asks
+          BandUp&rsquo;s own server, at <span className="font-mono text-xs">/api/kokoro-model</span>,
+          and that server fetches the file from Hugging Face on your behalf — so for this one
+          Hugging Face sees us and never you. The British voice itself already ships inside the
+          app and is not downloaded from anywhere at all. And none of it is fetched unless your
+          browser has no English voice of its own; starting an interview downloads nothing.
+        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          The examiner&rsquo;s questions are recordings rather than something your device speaks.
+          Each is fetched as it is asked, from{" "}
+          <span className="font-mono text-xs">/api/examiner-audio</span>, which receives a
+          question number and nothing about you. They were made once, from the fixed questions
+          written into this app, by a Deepgram voice running on Cloudflare — nothing you write or
+          say has ever been sent there. If a recording will not play, your own device&rsquo;s
+          voice reads the question instead.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Placement, the study plan, the bundled practice tests, the grammar and vocabulary
@@ -274,7 +302,9 @@ export default function PrivacyPage() {
             host it. That request happens once, then the file is cached and used offline. Hugging
             Face therefore sees that some device asked for the file, along with the IP address
             any download reveals. It carries no audio, no transcript, no identifier, and nothing
-            about you or your practice.
+            about you or your practice. If that host is blocked where you are, your browser asks
+            BandUp&rsquo;s server for the same file instead, and then it is we who ask Hugging
+            Face rather than you.
           </li>
           <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
@@ -292,8 +322,9 @@ export default function PrivacyPage() {
           You can also skip the microphone entirely and type your answers.
         </p>
         <p className="mt-4 text-sm leading-6 text-slate-600">
-          The speaking examiner also reads its questions aloud using the voice built into your
-          device. That is playback only; nothing is captured.
+          The speaking examiner also reads its questions aloud. They are recordings made in
+          advance, and the voice built into your device reads a question only if its recording
+          will not play. Either way that is playback; nothing is captured.
         </p>
       </section>
 
@@ -310,11 +341,24 @@ export default function PrivacyPage() {
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">
           You can sign in with Google, with Apple, or with an email address and a password. With
-          Google or Apple, BandUp never sees a password at all — the provider confirms it is you
-          and passes on your email address and nothing else. If you set a password instead, it is
+          Google or Apple, BandUp never sees a password at all: the provider confirms it is you,
+          and passes on your email address together with a permanent identifier for you that is
+          unique to this app. That identifier, rather than your address, is what your account is
+          filed under — which is why changing your email never loses you the account, and why
+          knowing your address alone gets nobody into it. If you set a password instead, it is
           held by Supabase, our database provider, as a one-way hash: a value that can check a
           password is right and cannot be turned back into it. Nobody here can read your password,
           including us.
+        </p>
+        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+          Apple passes on one thing more, and only once. The very first time you use Sign in with
+          Apple, Apple sends the first and last name on your Apple ID, and never sends it again —
+          not on the next sign-in, and not if we ask. BandUp writes it into your display name if
+          you do not already have one, and leaves an existing one alone. You can change it
+          afterwards on your account page, and it is worth knowing what a display name is before
+          you do: it is one of the two things an organisation owner, manager or teacher is shown
+          when they look you up by your exact username. If you decline to give Apple&rsquo;s
+          sheet your name, nothing is stored and nothing else about the sign-in changes.
         </p>
         <p className="mt-3 text-[15px] leading-7 text-slate-700">If you do sign in, we hold:</p>
         <ul className="mt-4 space-y-3">
@@ -382,9 +426,12 @@ export default function PrivacyPage() {
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
           To close the account altogether, use <strong>Delete your account</strong> on your
-          account page. Your sign-in is removed straight away, and the stored copies — your email
-          address, your details, your picture and any synced practice — are erased within minutes
-          of it, in both Supabase and Cloudflare. It cannot be undone.
+          account page. Your sign-in is removed straight away — including the permanent
+          identifier Google or Apple gave us for you, so that signing in with the same one
+          afterwards opens a new, empty account rather than finding any trace of the old one —
+          and the stored copies, your email address, your details, your picture and any synced
+          practice, are erased within minutes of it, in both Supabase and Cloudflare. It cannot
+          be undone.
         </p>
         <p className="mt-4 text-[15px] leading-7 text-slate-700">
           The copy in your own browser is separate, and you do not have to go into browser

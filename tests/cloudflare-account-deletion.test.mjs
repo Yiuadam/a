@@ -31,6 +31,10 @@ const payloads = readFileSync(
   join(process.cwd(), "lib", "cloudflare", "payloads.ts"),
   "utf8",
 );
+const identityMigration = readFileSync(
+  join(process.cwd(), "cloudflare", "migrations", "0022_apple_identity.sql"),
+  "utf8",
+);
 
 test("each identity authority is confirmed before its Cloudflare cleanup", () => {
   const prepared = route.indexOf("prepareCloudflareAccountDeletion(");
@@ -124,6 +128,7 @@ test("native and legacy deletion jobs cannot confirm each other's identity step"
 
 test("privacy cleanup covers profile, progress, attempts, subscriptions and migration copies", () => {
   for (const table of [
+    "app_user_identities",
     "learner_profiles",
     "progress_snapshots",
     "practice_attempts",
@@ -155,6 +160,36 @@ test("privacy cleanup explicitly captures and purges durable attempt work", () =
   ]) {
     assert.match(runtime, new RegExp(`DELETE FROM ${table} WHERE user_id = \\?`));
   }
+});
+
+/*
+  The privacy page tells a learner that deleting the account erases the stored
+  copies of everything, and a learner acts on that. The one row that used to
+  outlive it was the identity row — the provider's permanent subject identifier
+  for that person, plus the address the provider supplied — because `app_users`
+  is kept as an anonymous tombstone, so its ON DELETE CASCADE never fires. If
+  that statement ever leaves the batch again, this should fail before anybody
+  reads the promise it breaks.
+*/
+test("the provider identity row is deleted with the account, not left behind", () => {
+  assert.match(
+    runtime,
+    /DELETE FROM app_user_identities WHERE user_id = \?/,
+  );
+
+  // The tombstone is the reason the cascade cannot be relied on, so assert the
+  // two together: an `app_users` row that is updated rather than deleted, and
+  // an explicit delete of the rows that would have cascaded off it.
+  assert.match(runtime, /SET email = NULL, role = 'user', deleted_at = \?/);
+  assert.match(identityMigration, /user_id TEXT NOT NULL REFERENCES app_users\(id\) ON DELETE CASCADE/);
+
+  // Inside the transactional batch, not a best-effort call afterwards.
+  const batchStart = runtime.indexOf("await db.batch([");
+  const identityDelete = runtime.indexOf(
+    'DELETE FROM app_user_identities WHERE user_id = ?',
+  );
+  const batchEnd = runtime.indexOf("SET state = 'data_deleted'");
+  assert.ok(batchStart >= 0 && identityDelete > batchStart && identityDelete < batchEnd);
 });
 
 test("app-setting audit actors are anonymised with the retained account tombstone", () => {

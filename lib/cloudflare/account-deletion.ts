@@ -617,6 +617,21 @@ async function purgeCloudflareRows(
     db.prepare("DELETE FROM cloudflare_replica_outbox WHERE subject_user_id = ?").bind(userId),
     db.prepare("DELETE FROM cloudflare_replica_object_cleanup WHERE subject_user_id = ?").bind(userId),
     db.prepare("DELETE FROM organization_history_clear_watermarks WHERE user_id = ?").bind(userId),
+    // The sign-in itself, not only the practice it was used for. Nothing
+    // cascades this row away for us: `app_users` deliberately stays behind as
+    // an anonymous tombstone, so the ON DELETE CASCADE on user_id never fires,
+    // and without this statement the row keeps the provider's permanent
+    // subject identifier for this person and the address the provider supplied
+    // — indefinitely, for Google as much as for Apple. The privacy page
+    // promises deletion is complete, and this is the statement that makes it
+    // true. It also unblocks a second first-time sign-in: while the row
+    // survives, resolveGoogleIdentity and resolveAppleIdentity still find it,
+    // follow it to the tombstone, see a deleted user and refuse — so deleting
+    // an account used to mean that Google or Apple account could never open a
+    // new one. Nothing reads the row for a deleted account otherwise; the
+    // backfill in native-identity-backfill.ts only ever writes rows for users
+    // whose app_users record is live.
+    db.prepare("DELETE FROM app_user_identities WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM learner_profiles WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM progress_snapshots WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM usernames WHERE user_id = ?").bind(userId),
