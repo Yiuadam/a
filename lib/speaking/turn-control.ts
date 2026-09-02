@@ -213,7 +213,14 @@ const PART3_PROBES = [
   "What makes you think so?",
 ] as const;
 
-const PROBE_NUDGES: Record<SpeakingPart, readonly string[]> = {
+/*
+  Exported so the audio catalogue can register one reviewed recording per probe
+  rather than guessing how many there are. An id built on a bank length the
+  catalogue assumed would silently stop resolving the day a fourth line is
+  added here, and the nudge would drop to the device voice with nothing to say
+  it had.
+*/
+export const PROBE_NUDGES: Record<SpeakingPart, readonly string[]> = {
   1: PART1_PROBES,
   2: PART2_PROBES,
   3: PART3_PROBES,

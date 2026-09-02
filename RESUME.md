@@ -33,8 +33,9 @@ See `CLAUDE.md`; this has not changed.
 
 Landed and pushed, newest first:
 
-  - the tutor reads speaking results, every voice is British, and the privacy
-    page says both — see the log for the exact commits
+  - the examiner nudges instead of sitting silent, the tutor reads speaking
+    results, every voice is British, and the privacy page says so — see the log
+    for the exact commits
   - `249b6e7` twenty defects in the ten new papers — two heading tasks whose key
     was the printed list read straight down, one percentage key the marker turned
     into the wrong number, six papers asking questions out of passage order
@@ -68,13 +69,6 @@ days — the Apple Developer enrolment is not done, so there is no TestFlight.
 
 Re-spawn these. Each is written so it can be handed over without this
 conversation.
-
-**The examiner nudge.** After a candidate gives a short answer the examiner sits
-silent for up to 55 seconds before moving on, which in a real Part 1 would never
-happen. The design was settled: a prompt after a measured pause, once, then the
-next question. This is the highest-value item still outstanding — it is the
-difference between a convincing examiner and an awkward one. It touches
-`components/speaking/SpeakingSession.tsx`.
 
 **UI sweep** across three widths and three themes, for layout breaks and
 centring.

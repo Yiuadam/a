@@ -73,6 +73,7 @@ import {
 import {
   bundledExaminerAudioUrl,
   examinerFollowUpAudioId,
+  examinerNudgeAudioId,
   examinerQuestionAudioId,
 } from "@/lib/examiner-audio";
 
@@ -1069,12 +1070,11 @@ export default function SpeakingSession({
 
         const nudgeText = examinerNudge(step.part, stepIndex, kind);
         const spoken = await playExaminerPrompt(
-          // Standalone ids, not the bridge catalogue, land here once the
-          // audio catalogue carries these lines: examinerNudgeAudioId(step.part, stepIndex).
-          // Until then, null routes straight to the device voice — the same
-          // recovery playExaminerPrompt already falls back to on any
-          // catalogue miss, so this line is never mute.
-          null,
+          // A nudge belongs to a part rather than to a question, so it resolves
+          // on its own id rather than through the bridge catalogue. A miss
+          // still routes to the device voice, the same recovery every other
+          // prompt already has, so this line is never mute.
+          examinerNudgeAudioId(step.part, stepIndex, kind),
           nudgeText,
           0.96,
           promptGeneration,

@@ -1,9 +1,13 @@
 import speakingData from "@/data/speaking-topics.json";
 import type { SpeakingCueCard, SpeakingPart1Topic, SpeakingTopicsData } from "@/lib/types";
 import {
+  PROBE_NUDGES,
   examinerFollowUp,
+  examinerNudge,
   examinerQuestion,
   type ExaminerQuestion,
+  type NudgeKind,
+  type SpeakingPart,
   type TurnEndReason,
 } from "@/lib/speaking/turn-control";
 
@@ -172,6 +176,28 @@ function followUpAudioId(
   return `followup-${currentId}-${nextId}-${nextStartsPart ? "intro" : "plain"}-${reason}-${index}`;
 }
 
+/*
+  The examiner's nudge, when an answer has dried up.
+
+  Ten entries, and deliberately outside the loop below: a nudge is a fixed line
+  belonging to a part, not to a question, so it does not multiply with the
+  interviews the way a bridge does. Three probes per part, plus one silent
+  check — the silent line is the same in all three parts, so it is registered
+  once rather than three times under three ids, which would have generated the
+  same recording three times over.
+*/
+function nudgeAudioId(part: SpeakingPart, index: number, kind: NudgeKind): string {
+  if (kind === "silent") return "nudge-silent";
+  return `nudge-${part}-${Math.abs(index) % PROBE_NUDGES[part].length}`;
+}
+
+for (const part of [1, 2, 3] as const) {
+  for (let index = 0; index < PROBE_NUDGES[part].length; index += 1) {
+    register(nudgeAudioId(part, index, "probe"), examinerNudge(part, index, "probe"));
+  }
+}
+register(nudgeAudioId(1, 0, "silent"), examinerNudge(1, 0, "silent"));
+
 for (const questions of coveringInterviews()) {
   for (let index = 0; index < questions.length; index += 1) {
     const current = questions[index];
@@ -233,6 +259,16 @@ export function examinerFollowUpAudioId(
   if (!nextId) return null;
 
   const id = followUpAudioId(currentId, nextId, next.part !== current.part, reason, currentIndex);
+  return catalog.has(id) ? id : null;
+}
+
+/** Resolve the fixed nudge line for a part, or null if it is not in the catalogue. */
+export function examinerNudgeAudioId(
+  part: SpeakingPart,
+  index: number,
+  kind: NudgeKind = "probe",
+): string | null {
+  const id = nudgeAudioId(part, index, kind);
   return catalog.has(id) ? id : null;
 }
 
