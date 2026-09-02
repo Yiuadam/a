@@ -97,15 +97,32 @@ final class NativeChromeView: UIView {
     the choice between our reconstruction and the thing it was reconstructing,
     the owner picked Apple's.
 
-    The hand-built path stays whole behind this switch rather than being
-    deleted, because it is the only version that runs pre-26, because it is the
-    only one that can stand its knob proud of the track, and because a
-    reconstruction that took this long to get right is worth being able to flip
-    back to. Everything the two paths share — the theme sync, the onTheme
-    callback, the colours — is outside the branch, so switching this changes
-    how the control looks and nothing about what it does.
+    That is a choice only 26 offers, and for a while this flag did not know it.
+    It read `true` with no version test under it, so every release ran Apple's
+    control — and below 26 Apple's control is not Liquid Glass at all but its
+    older appearance: a pale rounded *square* over the selected glyph, with a
+    hairline divider ruled between the other two. Seen on 18.5, and it is the
+    shape rather than the colour that gives it away, since nothing else in this
+    bar has a corner that is not a capsule. There is no styling hook that would
+    round that indicator either — before 26 it is not glass and was never meant
+    to be reshaped — so the only way to have the right shape down there is to
+    draw it, which is what the hand-built track has always been for.
+
+    So the version test lives in the flag itself now, which is where the rest
+    of this comment always claimed it was. Everything the two paths share — the
+    theme sync, the onTheme callback, the colours — is outside the branch, so
+    which one is live changes how the control looks and nothing about what it
+    does.
+
+    The reconstruction also stays whole for two reasons that have nothing to do
+    with the OS: it is the only one that can stand its knob proud of the track,
+    and a reconstruction that took this long to get right is worth being able
+    to fall back to.
   */
-  private static let useSystemSegmentedControl = true
+  private static var useSystemSegmentedControl: Bool {
+    if #available(iOS 26.0, *) { return true }
+    return false
+  }
 
   /// Apple's control, with our three traced glyphs in it. Built here rather
   /// than in buildThemeControl() only because the items have to exist before
@@ -322,7 +339,28 @@ final class NativeChromeView: UIView {
     return UIBlurEffect(style: .systemMaterial)
   }
 
-  private static func containerEffect() -> UIVisualEffect {
+  /*
+    Nothing at all below 26, and that is a correction found while the
+    hand-built track was being put back on 18.
+
+    A glass container paints no surface of its own — it is a rule about how the
+    pieces inside it behave near each other, which is why the note on
+    containerEffectView says everything visible about the pair comes from the
+    two views inside it. The fallback here used to be systemThinMaterial, which
+    is a surface, on a view with no corner radius and nothing to clip it. So on
+    18.5 the pair sat on a plain light rectangle running from the outside of the
+    account circle to the outside of the track, hard corners and all. It is
+    plainest in Light, where it reads as a panel someone forgot to round, and it
+    was there whichever theme control was live.
+
+    nil for the same reason accountPillEffect returns nil: the view stays in the
+    hierarchy so the constraints have one shape on both paths, and it draws
+    exactly what 26 draws, which is nothing. The navigation list's own container
+    already did this — see its init(), which says in its own words that
+    neighbouring blurs do not merge and so there is nothing to stand in with.
+    This one was the odd one out.
+  */
+  private static func containerEffect() -> UIVisualEffect? {
     if #available(iOS 26.0, *) {
       let effect = UIGlassContainerEffect()
       /* What makes two pieces of glass read as one substance rather than two
@@ -335,7 +373,7 @@ final class NativeChromeView: UIView {
       effect.spacing = 12
       return effect
     }
-    return UIBlurEffect(style: .systemThinMaterial)
+    return nil
   }
 
   // MARK: - Theme colours
@@ -877,6 +915,23 @@ final class NativeChromeView: UIView {
       themeTrack.clipsToBounds = false
       themeTrack.contentView.clipsToBounds = false
     } else {
+      /*
+        Exactly half the track's height, which is what makes this a capsule and
+        not merely a rounded box — and the reason the cornerCurve below can be
+        left alone even though a continuous curve is the wrong shape for a
+        capsule everywhere else.
+
+        A continuous corner never meets the straight side tangentially; it goes
+        on bending to the very end. So at a radius past half a side, where
+        there is no straight edge left for two of them to blend into, they meet
+        each other and the end comes out pointed — which is what the navigation
+        list's own pill was doing until it was clamped, and its corner carries
+        the measurement. At exactly half a side there is nothing left to get
+        wrong: traced down its left edge on 18.5, this track follows the same
+        arc as the capsule 26 draws, to within a pixel of antialiasing, whether
+        the curve is asked for as continuous or as circular. The knob below is
+        the same case, 17 into a 34pt square, and comes out a circle.
+      */
       themeTrack.layer.cornerRadius = NativeChromeView.stopSize / 2 + NativeChromeView.trackPadding
       themeTrack.clipsToBounds = true
     }
@@ -1282,12 +1337,13 @@ final class NativeChromeView: UIView {
 
     The obvious thing was to give this circle trackOutline's own fill — the
     theme's accent at trackTintOpacity — since the two are meant to be one
-    material. That fill is not what is on screen next to it. useSystemSegmented
-    Control is true, so the control beside this is Apple's UISegmentedControl
-    and the hand-built track that trackOutline belongs to is not rendered at
-    all; matching the code's intent would have matched something invisible. Do
-    it anyway and the circle comes out visibly copper against a neutral track,
-    which is exactly what the owner reported.
+    material. That fill is not what is on screen next to it. Everywhere this
+    function is reached useSystemSegmentedControl is true, so the control
+    beside this is Apple's UISegmentedControl and the hand-built track that
+    trackOutline belongs to is not rendered at all; matching the code's intent
+    would have matched something invisible. Do it anyway and the circle comes
+    out visibly copper against a neutral track, which is exactly what the owner
+    reported.
 
     So it is matched to what Apple draws, sampled off the simulator with the
     same page behind both. Untinted, the circle's clear glass and the
@@ -1300,9 +1356,21 @@ final class NativeChromeView: UIView {
 
     Small numbers, and neutral ones, which is the point: the circle is the same
     glass as before and this only closes the gap between two Apple materials.
-    If useSystemSegmentedControl is ever flipped back, this should go back to
-    trackOutline's fill — the two would then be the same material again and
-    would need no correction at all.
+
+    This used to end by saying that flipping useSystemSegmentedControl back
+    should put the circle on trackOutline's fill instead. That flag is a
+    version test now, and the two ends of it can no longer meet: nothing here
+    is reached except from the iOS 26 branch of styleAccountButton, and 26 is
+    precisely where the flag is true, so whenever this colour is asked for the
+    thing beside the circle is Apple's control. Below 26 neither half of that
+    old note applies. There is no glass to correct, and the other branch of
+    styleAccountButton draws the site's own circle from accountFill and
+    accountBorder — which is the right neighbour for the site's own track,
+    even though the two do not match, because they do not match on the website
+    either. The track is `.theme-toggle-base`, surface at 48% inside a slate
+    border at 24%; the circle is `.premade-glass` inside the default border.
+    Two rules, two sets of numbers, and this path exists to reproduce the site
+    rather than to improve on it.
   */
   private static func accountFillCorrection(_ theme: String) -> UIColor {
     switch theme {
@@ -1312,6 +1380,25 @@ final class NativeChromeView: UIView {
     }
   }
 
+  /*
+    Both controls are told the selection, whichever one was built.
+
+    That is deliberate rather than an oversight, and worth saying now that
+    useSystemSegmentedControl has two live branches for the first time. On
+    either path the control that was not built is inert here: themeSegments
+    with no superview and no constraints lays nothing out when its selection is
+    set, and fires no action either, since setting selectedSegmentIndex in code
+    never does; knobLeading is nil when the hand-built track was skipped, so the
+    optional chain resolves to nothing and themeButtons is empty for the loop
+    below. Same for the glyph rebuild in applyTheme(), which prepares three
+    images per accent colour and keeps them — a few kilobytes for a control
+    that may never be shown, against a branch on every theme change.
+
+    Guarding each of these on the flag would buy a skipped assignment and cost
+    the thing that makes this bridge trustworthy: one path in, so a theme
+    arriving from the web app cannot land on a control the native side forgot
+    to keep in step.
+  */
   private func applyThemeSelection(animated: Bool) {
     guard let index = NativeChromeView.themes.firstIndex(of: selectedTheme) else { return }
     /* Setting this programmatically does not fire the segments' actions, so a

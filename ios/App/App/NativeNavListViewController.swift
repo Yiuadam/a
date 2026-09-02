@@ -145,10 +145,16 @@ final class NativeNavListViewController: UIViewController {
     the drawn pill comes in: 4pt at each end for a 36pt marker. That is enough
     to leave a visible margin above and below without the pill stopping short
     of the label it is marking, and it changes nothing about the list's rhythm,
-    since the rows themselves have not moved. The pill is a capsule either way,
-    rowCorner being well past half of 36.
+    since the rows themselves have not moved. The pill is a capsule at either
+    height, rowCorner being well past half of 36 — though only 26 will read it
+    that way on its own, which is a story the corner's own code tells.
   */
   private static let highlightInsetY: CGFloat = 4
+  /// The pill's drawn height, and so, halved, the largest radius that means
+  /// anything on it. Derived rather than written down, because the inset and
+  /// the row height above are the two numbers that decide it and either could
+  /// move. See where the corner is set for what needs it.
+  private static var highlightHeight: CGFloat { rowHeight - highlightInsetY * 2 }
   /* fileprivate, because NavRowControl below lays a row out and these are the
      row's measurements — one copy of each number rather than two that could
      drift, which is what would put the highlight pill somewhere other than
@@ -459,10 +465,37 @@ final class NativeNavListViewController: UIViewController {
       highlightOutline.cornerConfiguration = .corners(
         radius: .fixed(NativeNavListViewController.rowCorner))
     } else {
-      highlight.layer.cornerRadius = NativeNavListViewController.rowCorner
+      /*
+        The same radius, clamped by hand, because down here nothing clamps it.
+
+        rowCorner is 30 against a pill 36 tall, on the note beside it that a
+        radius past half the height comes out a capsule because it is brought
+        down to fit. cornerConfiguration above does bring it down, which is why
+        the plain number is right there. layer.cornerRadius does not: at 30 in
+        a 36pt box the two arcs at each end have nowhere to sit side by side,
+        so they cross, and the end finishes in a point rather than a
+        semicircle. Traced down the left edge on 18.5: a third of the way up
+        from the middle, the capsule 26 draws has come in about three points
+        from its widest and this had come in eight, which is the difference
+        between an end that reads as round and one that reads as a leaf. That
+        is what the owner was looking at when they asked for this marker to be
+        round.
+
+        Clamped, the shape matches 26's to within a pixel of antialiasing, and
+        the continuous cornerCurve below can stay: a continuous curve is the
+        wrong shape for a capsule only while there is a radius left over to
+        bend past the end of the side, and at exactly half there is not. The
+        bar's theme track sits at exactly half too, and its corner carries the
+        rest of that.
+      */
+      let corner = min(
+        NativeNavListViewController.rowCorner,
+        NativeNavListViewController.highlightHeight / 2
+      )
+      highlight.layer.cornerRadius = corner
       highlight.layer.cornerCurve = .continuous
       highlight.clipsToBounds = true
-      highlightOutline.layer.cornerRadius = NativeNavListViewController.rowCorner
+      highlightOutline.layer.cornerRadius = corner
     }
     highlightOutline.layer.cornerCurve = .continuous
     highlight.contentView.addSubview(highlightOutline)
