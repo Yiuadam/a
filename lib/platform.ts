@@ -34,6 +34,40 @@
 export const IS_MOBILE_BUILD = process.env.NEXT_PUBLIC_MOBILE_BUILD === "1";
 
 /**
+ * A pathname in the one form the app compares routes in: no trailing slash,
+ * except at the root, which is nothing but one.
+ *
+ * The static export sets `trailingSlash: true` — see next.config.ts — because a
+ * bundle served off the filesystem inside a WebView resolves a page by asking a
+ * directory for its index.html. That is invisible until something compares a
+ * route by name, and then it is not: `usePathname()` answers "/practice/writing/"
+ * inside the iOS app where it answers "/practice/writing" on the website, so
+ * every `pathname === "/practice/writing"` in the app is quietly false and every
+ * decision hanging off one silently takes the other branch. It is how the
+ * writing exam came to scroll on a phone with the site's footer underneath it:
+ * the viewport lock and the footer's hide list both name that route, and in the
+ * app neither name ever matched.
+ *
+ * The translation happens here, once, rather than at the comparisons, because
+ * there are eighteen of them across seven files and a rule written eighteen
+ * times is a rule that will be written seventeen times after the next page is
+ * added. Doing it here also settles which form is canonical: the route names in
+ * lib/nav.ts stay slash-free, the website's shape is the shape the code is
+ * written in, and the app is the one thing translated on the way in.
+ *
+ * Only for comparing. A path being *navigated* to keeps whatever form the
+ * platform produced, because the slash is what the export's own router expects
+ * and stripping it off a destination is how a redirect arrives somewhere nobody
+ * asked to go.
+ *
+ * "/" is the exception worth stating rather than leaving to be discovered:
+ * strip its slash and it becomes "", which is not a route and matches nothing.
+ */
+export function routePath(pathname: string): string {
+  return pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
+/**
  * Where a subscription is bought and managed. Named in prose, never linked
  * from the iOS build — a link out to a purchase page is the part Apple's
  * guidelines are actually about.

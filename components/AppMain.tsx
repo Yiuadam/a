@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { useRoutePath } from "@/lib/hooks";
 
 /*
   The page area, and the one route that does not want it.
@@ -23,7 +23,11 @@ import { useEffect, type ReactNode } from "react";
 */
 
 export default function AppMain({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
+  /* useRoutePath, not usePathname: the routes named below are named without a
+     trailing slash and the iOS export's pathname carries one, so on a phone
+     every comparison here was false and the exam scrolled. See routePath in
+     lib/platform.ts. */
+  const pathname = useRoutePath();
   const console_ = pathname.startsWith("/admin");
   const workspace = pathname.startsWith("/organization");
   const viewportLocked =

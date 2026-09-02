@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { accountUsernameReady } from "@/lib/auth/account-identity";
+import { routePath } from "@/lib/platform";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { useAccountProfile } from "./AccountProfileProvider";
 
@@ -19,7 +20,17 @@ export default function RequiredAccountGate({ children }: { children: React.Reac
   const pathname = usePathname();
   const router = useRouter();
   const { phase, profile } = useAccountProfile();
-  const allowed = ALWAYS_REACHABLE.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  /*
+    The raw pathname is kept as well as the normalised route, and the two are
+    used for different things on purpose. The list above is a list of route
+    names, so it is asked against the route; `returnTo` below is somewhere the
+    learner is about to be sent back to, and inside the iOS app the trailing
+    slash is the form that actually resolves. Trimming a destination to make it
+    look like the website's is how a redirect ends up nowhere. See routePath in
+    lib/platform.ts.
+  */
+  const route = routePath(pathname);
+  const allowed = ALWAYS_REACHABLE.some((path) => route === path || route.startsWith(`${path}/`));
   /*
     ---------------------------------------------------------------------------
     Why the app is no longer replaced by a spinner while the profile loads

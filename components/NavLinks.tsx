@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRoutePath } from "@/lib/hooks";
 
 /*
   The header had no sense of place: seven destinations and nothing saying which
@@ -17,7 +17,12 @@ export default function NavLinks({
 }: {
   items: readonly { href: string; label: string }[];
 }) {
-  const pathname = usePathname();
+  /* The prefix test below survives the iOS export's trailing slash on its own
+     and "/" is the one route the slash cannot change, so nothing here was
+     broken. It reads the route the same way as every other component anyway,
+     because a file left reading the raw pathname is the one somebody copies
+     next. See routePath in lib/platform.ts. */
+  const pathname = useRoutePath();
 
   return (
     <nav className="nav-scroll no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">

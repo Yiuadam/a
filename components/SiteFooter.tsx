@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRoutePath } from "@/lib/hooks";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 
 /*
@@ -12,7 +12,7 @@ import { IS_MOBILE_BUILD } from "@/lib/platform";
   need a reminder that band scores are estimates, and the site's own furniture
   around a full-bleed dashboard reads as two applications stacked.
 
-  A client component only for `usePathname`. Everything in it is static.
+  A client component only for reading the route. Everything in it is static.
 */
 
 /*
@@ -54,7 +54,13 @@ const INTRODUCES_ITSELF = IS_MOBILE_BUILD
 const SAYS_IT_ITSELF = ["/about", "/credits", "/privacy", "/terms"];
 
 export default function SiteFooter() {
-  const pathname = usePathname();
+  /* useRoutePath, not usePathname. Three separate decisions below are keyed on
+     the route's exact name — which pages hide the footer, which introduce the
+     product, which already say it themselves — and the iOS export's pathname
+     carries a trailing slash none of those names do, so in the app all three
+     took the wrong branch and the footer turned up under the writing exam. See
+     routePath in lib/platform.ts. */
+  const pathname = useRoutePath();
   const immersive =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/organization") ||

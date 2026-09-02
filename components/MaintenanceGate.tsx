@@ -1,8 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import Maintenance from "@/components/Maintenance";
+import { useRoutePath } from "@/lib/hooks";
 
 /*
   Keep the recovery path outside the learner-facing maintenance gate.
@@ -20,7 +20,13 @@ export default function MaintenanceGate({
   closed: boolean;
   children: ReactNode;
 }) {
-  const pathname = usePathname();
+  /* The prefix arms below already absorbed the iOS export's trailing slash, so
+     the recovery route was never actually shut behind the closed sign. It reads
+     the route through the same normaliser regardless: "the exact route, or
+     something under it" should hold because that is what it says, not because
+     one arm happens to catch what the other misses. See routePath in
+     lib/platform.ts. */
+  const pathname = useRoutePath();
   const ownerRoute =
     pathname === "/account" ||
     pathname.startsWith("/account/") ||

@@ -1,5 +1,5 @@
 import type { Route } from "next";
-import { IS_MOBILE_BUILD } from "./platform";
+import { IS_MOBILE_BUILD, routePath } from "./platform";
 
 /*
   Where the app can go, in one place.
@@ -122,10 +122,17 @@ export const OWNER_ITEM: NavItem = { href: "/admin", label: "Site settings" };
  * it everywhere would mark Home on every page.
  */
 export function currentHref(pathname: string): string | null {
+  /*
+    The hrefs above are written without a trailing slash and the iOS export's
+    pathname arrives with one, so the two forms are reconciled here rather than
+    left to the prefix arm below, which does happen to catch a slashed path but
+    catches it as a child of itself. See routePath in lib/platform.ts.
+  */
+  const path = routePath(pathname);
   let best: string | null = null;
   for (const group of NAV_GROUPS) {
     for (const { href } of group.items) {
-      const hit = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+      const hit = href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
       if (!hit) continue;
       if (best === null || href.length > best.length) best = href;
     }
