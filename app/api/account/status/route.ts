@@ -14,6 +14,7 @@ import { MONTH_WINDOW_SECONDS } from "@/lib/usage/limits";
 import { COSTED_ROUTES, ROUTE_BUDGETS } from "@/lib/ai/models";
 import { monthlyCap } from "@/lib/billing/tiers";
 import { OAUTH_PROVIDERS, providersReachableFrom } from "@/lib/auth/oauth";
+import { appleOAuthServerFlowConfigured } from "@/lib/auth/apple-oauth-server";
 import { withCors } from "@/lib/http/cors";
 import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
 import { domainReadsFromCloudflare } from "@/lib/cloudflare/cutover-domains";
@@ -122,7 +123,18 @@ async function handleGET(req: Request) {
       that this app has no button for is not offered, and a button this app
       could render for a provider that was never set up is not shown.
     */
-    const configured = nativeActive ? ["google"] : await enabledOAuthProviders();
+    /*
+      After the cutover the list is not Supabase's to answer any more, so it is
+      built from what this Worker itself can actually do. Google always can —
+      the browser flow needs nothing but a client id. Apple is offered only when
+      every one of its four credentials is present, because unlike Google there
+      is no half-configured Apple flow that still works: without the signing key
+      there is no client secret, without a client secret there is no code
+      exchange, and the button would fail on the tap that mattered.
+    */
+    const configured = nativeActive
+      ? ["google", ...(appleOAuthServerFlowConfigured() ? ["apple"] : [])]
+      : await enabledOAuthProviders();
     const providers = providersReachableFrom(
       req.headers.get("cf-ipcountry"),
       configured === null ? [] : OAUTH_PROVIDERS.filter((p) => configured.includes(p)),

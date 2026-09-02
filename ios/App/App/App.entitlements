@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The capability ASAuthorizationController needs, written out and deliberately
+  not yet wired into the build.
+
+  SignInWithApplePlugin.swift compiles and links without this. What it cannot do
+  without it is succeed: an authorization request from a binary whose
+  provisioning profile does not carry com.apple.developer.applesignin comes back
+  as an error, which the plugin reports as a sign-in that could not be
+  completed. So this is the runtime half of the capability, and the file exists
+  so that turning it on later is one build setting rather than a hunt for the
+  right key.
+
+  It is not referenced from project.pbxproj on purpose. Setting
+  CODE_SIGN_ENTITLEMENTS to this file makes the App target fail to build for
+  anyone whose signing identity cannot grant the capability, and a free personal
+  team cannot — Sign in with Apple is a paid Apple Developer Program capability.
+  Wiring it today would therefore break the iOS build that currently works, in
+  exchange for enabling a flow that has no credentials behind it anyway.
+
+  When there is a membership, three things happen together and none of them
+  works alone: tick Sign in with Apple on the App ID in the developer console,
+  add the capability to the App target in Xcode (which sets
+  CODE_SIGN_ENTITLEMENTS to this path and regenerates the profile), and set the
+  four APPLE_SIGNIN_* secrets on the Worker.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+</dict>
+</plist>

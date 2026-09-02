@@ -8,6 +8,7 @@ import {
   verifyNativeAccessToken,
 } from "@/lib/auth/native-session";
 import type { VerifiedGoogleIdentity } from "@/lib/auth/google-token";
+import type { VerifiedAppleIdentity } from "@/lib/auth/apple-token";
 import {
   requireBandUpCloudflareBindings,
   type BandUpCloudflareBindings,
@@ -199,6 +200,205 @@ export async function createGoogleNativeSession(
 ): Promise<NativeBrowserSession | null> {
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
   const user = await resolveGoogleIdentity(identity, bindings);
+  return user ? createNativeBrowserSessionForUser(user, signingSecret, bindings) : null;
+}
+
+async function existingAppleUser(
+  subject: string,
+  bindings: BandUpCloudflareBindings,
+): Promise<UserRow | null> {
+  return await bindings.db.prepare(`
+    SELECT u.id, u.email, u.created_at, u.deleted_at
+      FROM app_user_identities i
+      JOIN app_users u ON u.id = i.user_id
+     WHERE i.provider = 'apple' AND i.provider_subject = ?
+     LIMIT 1
+  `).bind(subject).first<UserRow>();
+}
+
+/**
+ * Writes a name onto a profile that has none, and leaves every other profile
+ * exactly as it was.
+ *
+ * This exists because of a rule that has no equivalent anywhere else in the
+ * app: Apple sends the learner's name in the very first authorization and never
+ * again — not on the next sign-in, not on request, and not after a reinstall
+ * unless they first revoke the app in their Apple ID settings. So there is one
+ * request in the life of an account in which this can be captured, and if it is
+ * missed the name is not merely stale, it is unobtainable.
+ *
+ * The upsert's WHERE clause is the whole of the safety here. It is not an
+ * optimisation: a learner who has since set their own display name must not
+ * have it replaced by whatever Apple remembers, and a second sign-in that
+ * somehow carried a name again must not overwrite a considered choice with an
+ * Apple ID's idea of one. Only a profile with nothing in the field is touched.
+ */
+async function recordAppleDisplayName(
+  userId: string,
+  displayName: string,
+  bindings: BandUpCloudflareBindings,
+  now: string,
+): Promise<void> {
+  await bindings.db.prepare(`
+    INSERT INTO learner_profiles (user_id, display_name, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE
+       SET display_name = excluded.display_name,
+           updated_at = excluded.updated_at
+     WHERE learner_profiles.display_name IS NULL
+  `).bind(userId, displayName, now).run();
+}
+
+/**
+ * Resolves a verified Apple subject to a BandUp id.
+ *
+ * The same rule as its Google counterpart, and for the same reason: an existing
+ * account is linked only by an audited backfill from a provider subject to an
+ * already-stable app_users.id, never by a matching email address. Apple makes
+ * that rule sharper rather than softer. The address in an Apple token may be a
+ * Private Relay forwarder minted for this app alone, it may be switched off or
+ * changed later, and it may not be there at all — so an email match here would
+ * be a takeover boundary crossed on the strength of a value the learner can
+ * change from their phone.
+ *
+ * Which is also why `email` is only ever written when Apple actually sent one.
+ * Copying an absent address over a stored one would quietly empty the column
+ * that the sign-in-link recovery path depends on, and the learner would find out
+ * on the day they could not get in.
+ *
+ * @param displayName A name from Apple's first-authorization form post, or null
+ *   on every subsequent sign-in — which is all of them but the first.
+ */
+export async function resolveAppleIdentity(
+  identity: VerifiedAppleIdentity,
+  displayName: string | null,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<AuthedUser | null> {
+  assertServerOnly(MODULE);
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  const now = stamp();
+  let user = await existingAppleUser(identity.subject, bindings);
+  let created = false;
+  if (!user) {
+    const id = crypto.randomUUID();
+    try {
+      // Atomic for the reason the Google path spells out: a concurrent first
+      // sign-in that won the identity constraint after this request had already
+      // written app_users would leave an unreachable account behind.
+      const writes = await bindings.db.batch([
+        bindings.db.prepare(`
+          INSERT INTO app_users (id, email, role, created_at, updated_at, identity_authority)
+          VALUES (?, ?, 'user', ?, ?, 'cloudflare')
+        `).bind(id, identity.email, now, now),
+        bindings.db.prepare(`
+          INSERT INTO app_user_identities (
+            provider, provider_subject, user_id, email, email_verified, created_at, last_seen_at
+          ) VALUES ('apple', ?, ?, ?, ?, ?, ?)
+        `).bind(identity.subject, id, identity.email, identity.emailVerified ? 1 : 0, now, now),
+      ]);
+      if (writes.some((write) => !write.success)) throw new Error("native user could not be created");
+      user = { id, email: identity.email, created_at: now, deleted_at: null };
+      created = true;
+    } catch (error) {
+      const resolved = await existingAppleUser(identity.subject, bindings);
+      if (resolved) user = resolved;
+      else {
+        /*
+          An address that already belongs to a live account is the one failure
+          with a sanctioned outcome, and the outcome is to refuse. It happens
+          when somebody who signed up with that address, or with Google on that
+          address, later arrives through Apple: two doors to one address, and no
+          proof that the person at the second one is the person behind the
+          first. Linking them is the audited backfill's job. Refusing costs that
+          learner a sign-in; linking wrongly costs somebody their account.
+        */
+        if (identity.email) {
+          const existingEmail = await bindings.db.prepare(`
+            SELECT id FROM app_users
+             WHERE lower(email) = lower(?) AND deleted_at IS NULL
+             LIMIT 1
+          `).bind(identity.email).first<{ id: string }>();
+          if (existingEmail) return null;
+        }
+        throw error;
+      }
+    }
+  }
+
+  if (!isLiveUser(user)) return null;
+
+  if (identity.email) {
+    /*
+      Tolerated rather than trusted. An address Apple sends today can already
+      belong to another live BandUp account — most obviously when somebody turns
+      Private Relay off and starts arriving with the real address they signed up
+      with elsewhere — and app_users carries a unique index on it. There is
+      nothing sensible to do about that here: the two accounts are a merge
+      question for the audited path, and this request is a sign-in that has
+      already succeeded. So the stored address simply stays as it was and the
+      session is issued regardless. Failing the whole sign-in over a column the
+      account is not identified by would be the tail wagging the dog.
+    */
+    try {
+      const update = await bindings.db.prepare(`
+        UPDATE app_users
+           SET email = ?, identity_authority = 'cloudflare', updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL
+      `).bind(identity.email, now, user.id).run();
+      if (update.success) user = { ...user, email: identity.email };
+    } catch {
+      // Keep the address already on the account.
+    }
+  } else {
+    const update = await bindings.db.prepare(`
+      UPDATE app_users
+         SET identity_authority = 'cloudflare', updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+    `).bind(now, user.id).run();
+    if (!update.success) throw new Error("native identity could not be updated");
+  }
+
+  await bindings.db.prepare(`
+    UPDATE app_user_identities
+       SET email = coalesce(?, email),
+           email_verified = ?,
+           last_seen_at = ?
+     WHERE provider = 'apple' AND provider_subject = ? AND user_id = ?
+  `).bind(
+    identity.email,
+    identity.emailVerified ? 1 : 0,
+    now,
+    identity.subject,
+    user.id,
+  ).run();
+
+  /*
+    Attempted only on the request that created the account. Apple sends a name
+    exactly once and that once is the first authorization, so a name arriving
+    against an account that already existed is either a repeat Apple will not
+    actually make or something forged in the form body — and neither is a reason
+    to touch a profile that has been in use.
+  */
+  if (created && displayName) {
+    try {
+      await recordAppleDisplayName(user.id, displayName, bindings, now);
+    } catch {
+      // A profile row this could not write is a missing display name and
+      // nothing more. The account exists and the session below is valid.
+    }
+  }
+
+  return { id: user.id, email: user.email, createdAt: user.created_at };
+}
+
+export async function createAppleNativeSession(
+  identity: VerifiedAppleIdentity,
+  displayName: string | null,
+  signingSecret: string,
+  providedBindings?: BandUpCloudflareBindings,
+): Promise<NativeBrowserSession | null> {
+  const bindings = providedBindings ?? await requireBandUpCloudflareBindings();
+  const user = await resolveAppleIdentity(identity, displayName, bindings);
   return user ? createNativeBrowserSessionForUser(user, signingSecret, bindings) : null;
 }
 

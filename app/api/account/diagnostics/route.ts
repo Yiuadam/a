@@ -12,6 +12,7 @@ import { CHECKOUT_CHECK_NAME } from "@/lib/billing/faults";
 import { stripeConfigured } from "@/lib/billing/env";
 import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
 import { googleOAuthServerFlowConfigured } from "@/lib/auth/google-oauth-server";
+import { appleOAuthServerFlowConfigured } from "@/lib/auth/apple-oauth-server";
 import { requireBandUpCloudflareBindings } from "@/lib/cloudflare/bindings";
 import {
   cloudflareUsageDetail,
@@ -93,6 +94,26 @@ async function nativeDiagnostics(user: SessionUser): Promise<NextResponse> {
     googleOAuthServerFlowConfigured()
       ? "GOOGLE_OAUTH_CLIENT_SECRET and GOOGLE_OAUTH_APP_ORIGIN are both set"
       : "GOOGLE_OAUTH_CLIENT_SECRET is missing — the website's Google button still works, the app's does not. Set it with `npx wrangler versions secret put GOOGLE_OAUTH_CLIENT_SECRET`",
+  );
+  /*
+    Apple is reported rather than asserted, because "off" is a legitimate state
+    here and always has been — it needs a paid Apple Developer Program
+    membership, and until there is one there is nothing to configure and nothing
+    broken. So this line is `ok` either way and says which of the two it is.
+
+    It is worth a row anyway for the same reason the Google line above is: the
+    only other place the answer shows is the absence of a button, and an absent
+    button looks identical whether it was never configured, half configured, or
+    configured and then lost to a deploy. Four secrets have to be present
+    together and any one of them missing produces exactly that silence.
+  */
+  const appleReady = appleOAuthServerFlowConfigured();
+  add(
+    "Sign in with Apple",
+    true,
+    appleReady
+      ? "configured — APPLE_SIGNIN_SERVICES_ID, TEAM_ID, KEY_ID and PRIVATE_KEY are all set, and the button is offered"
+      : "not configured, which is expected until there is a paid Apple Developer Program membership. No Apple button is offered and /api/auth/apple/* answers 404. It needs all four of APPLE_SIGNIN_SERVICES_ID, APPLE_SIGNIN_TEAM_ID, APPLE_SIGNIN_KEY_ID and APPLE_SIGNIN_PRIVATE_KEY (these are NOT the APPLE_IAP_* in-app purchase key), plus APPLE_SIGNIN_APP_ORIGIN in wrangler.jsonc and D1 migration 0022",
   );
   add("Anthropic key present", hasApiKey(), "ANTHROPIC_API_KEY — without it every AI route answers 503");
   add(

@@ -51,6 +51,8 @@ test("the account status route reads CF-IPCountry itself and narrows the offered
 test("the Google button's sole gate is the providers list — SignedOut renders nothing else that could show it anyway", () => {
   const signedOut = read("components", "account", "SignedOut.tsx");
   assert.match(signedOut, /available = PROVIDER_BUTTONS\.filter\(\(p\) => providers\.includes\(p\.id\)\)/);
-  // GoogleSignIn itself is only ever reached through that filtered list.
-  assert.match(signedOut, /available\.map\(\(\{ id, label, Mark \}\) =>[\s\S]*?<GoogleSignIn/);
+  // GoogleSignIn itself is only ever reached through that filtered list, and so
+  // is AppleSignIn now that Apple's button is a component rather than a link.
+  assert.match(signedOut, /available\.map\(\(\{ id \}\) =>[\s\S]*?<GoogleSignIn/);
+  assert.match(signedOut, /available\.map\(\(\{ id \}\) =>[\s\S]*?<AppleSignIn/);
 });

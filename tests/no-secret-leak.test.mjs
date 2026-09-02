@@ -27,6 +27,15 @@ const FORBIDDEN_NAMES = [
   "ANTHROPIC_ADMIN_KEY",
   "APPLE_IAP_PRIVATE_KEY",
   "APPLE_IAP_KEY_ID",
+  /*
+    The Sign in with Apple key, which is a different credential from the two
+    above however alike the names look — one is in-app purchase, the other is
+    identity. Listed while it is unset, deliberately: the point of this test is
+    to catch the refactor that puts a name in the bundle long before there is a
+    value behind it to leak.
+  */
+  "APPLE_SIGNIN_PRIVATE_KEY",
+  "APPLE_SIGNIN_KEY_ID",
   "USAGE_IP_HASH_SALT",
   "GOOGLE_OAUTH_CLIENT_SECRET",
   /*

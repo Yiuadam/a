@@ -202,6 +202,18 @@
     // ledger parity has passed; it writes verified Stripe events directly to
     // D1 while the completed learner barrier seals the legacy writer.
     "CLOUDFLARE_NATIVE_STRIPE_BILLING": "1",
-    "GOOGLE_OAUTH_APP_ORIGIN": "https://bandup.life"
+    "GOOGLE_OAUTH_APP_ORIGIN": "https://bandup.life",
+    // The address Apple returns an authorization to, and the one that has to
+    // be registered against the Services ID in the developer console. Set here
+    // rather than shared with the Google line above because the two are
+    // registered separately with two different providers; identical values are
+    // a coincidence of this deployment, not a rule.
+    //
+    // Its four partners — APPLE_SIGNIN_SERVICES_ID, APPLE_SIGNIN_TEAM_ID,
+    // APPLE_SIGNIN_KEY_ID and APPLE_SIGNIN_PRIVATE_KEY — are secrets and are
+    // not here. None of them is set: Sign in with Apple needs a paid Apple
+    // Developer Program membership, so until there is one this origin names a
+    // callback for a flow that answers 404 and no Apple button is offered.
+    "APPLE_SIGNIN_APP_ORIGIN": "https://bandup.life"
   }
 }

@@ -291,7 +291,25 @@ export async function nativeIdentityReadinessReport(
   if (duplicateSubjects > 0) blockers.push(`${duplicateSubjects} duplicate Google provider subject(s) appear in Supabase Auth`);
   if (usersWithMultipleGoogleIdentities > 0) blockers.push(`${usersWithMultipleGoogleIdentities} user(s) have more than one Google identity`);
   if (providerSummary.invalid > 0) blockers.push(`${providerSummary.invalid} legacy identity provider record(s) are invalid`);
-  if (providerSummary.apple > 0) blockers.push(`${providerSummary.apple} Apple identity record(s) need a direct Cloudflare Apple OAuth migration`);
+  /*
+    Still a blocker, and for a narrower reason than when this line was written.
+
+    It used to mean there was nowhere for an Apple identity to go: D1's
+    app_user_identities accepted the string 'google' and nothing else, so a
+    legacy Apple sign-in had no destination at all. Migration 0022 gives it one,
+    and lib/auth/apple-token.ts plus the routes under app/api/auth/apple give a
+    new Apple sign-in somewhere to land — so the missing half is now only the
+    backfill, exactly as it is for Google.
+
+    What has not changed is why it cannot be skipped. Each of these people
+    already has a BandUp id, and the only safe way to attach their Apple `sub`
+    to it is the same subject-audited proof the Google mapping uses. Signing
+    them in through the new path before that would mint a second account on the
+    same person, and Apple makes the consequence worse than Google does: the
+    address on the new one may be a Private Relay forwarder, so the duplicate is
+    not even obviously theirs to whoever has to untangle it afterwards.
+  */
+  if (providerSummary.apple > 0) blockers.push(`${providerSummary.apple} Apple identity record(s) still need a subject-audited backfill into D1 (migration 0022 provides the destination; the mapping itself does not exist yet)`);
   if (providerSummary.unsupported > 0) blockers.push(`${providerSummary.unsupported} legacy identity provider record(s) use an unsupported provider`);
 
   const bindings = providedBindings ?? await requireBandUpCloudflareBindings();

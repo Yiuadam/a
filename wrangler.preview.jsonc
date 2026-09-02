@@ -25,7 +25,8 @@
     "ADMIN_EMAILS": "admin@preview.bandup.invalid",
     "CLOUDFLARE_NATIVE_AUTH": "0",
     "CLOUDFLARE_NATIVE_STRIPE_BILLING": "0",
-    "GOOGLE_OAUTH_APP_ORIGIN": "https://organization-preview.bandup.life"
+    "GOOGLE_OAUTH_APP_ORIGIN": "https://organization-preview.bandup.life",
+    "APPLE_SIGNIN_APP_ORIGIN": "https://organization-preview.bandup.life"
   },
   "d1_databases": [
     {

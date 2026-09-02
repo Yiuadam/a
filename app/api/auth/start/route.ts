@@ -3,10 +3,14 @@ import { authorizeUrl, isOAuthProvider } from "@/lib/auth/oauth";
 import { logInternal } from "@/lib/auth/errors";
 import { withCors } from "@/lib/http/cors";
 import { nativeAuthCutoverActive } from "@/lib/cloudflare/native-auth-readiness";
+import { appleOAuthServerFlowConfigured } from "@/lib/auth/apple-oauth-server";
 
 /*
-  Starts a provider handshake. Apple and pre-cutover accounts redirect through
-  Supabase; Cloudflare-native Google accounts redirect directly to Google.
+  Starts a provider handshake. Pre-cutover accounts redirect through Supabase;
+  once the Cloudflare-native authority is live, Google goes directly to Google
+  and Apple goes directly to Apple — the latter only where this Worker actually
+  holds Apple's credentials, since without them there is no direct flow to send
+  anybody to.
 
   The browser cannot build this URL itself — it does not know the project URL,
   and that is the point (see lib/auth/oauth.ts). So it asks for a provider by
@@ -35,6 +39,23 @@ async function handleGET(req: Request) {
   */
   if (provider === "google" && nativeAuthCutoverActive()) {
     return NextResponse.redirect(new URL("/api/auth/google/start", url), { status: 302 });
+  }
+
+  /*
+    And the same for Apple, once there is a direct Apple flow to send it to.
+
+    The condition is the extra one: Google's direct flow exists wherever the
+    cutover does, but Apple's needs four credentials that may simply not be
+    there — so this asks whether the destination works rather than assuming it,
+    and falls through to Supabase when it does not.
+
+    Nothing in the app follows this path any more; AppleSignIn addresses
+    /api/auth/apple/start itself. It is here for the page that was loaded before
+    a deploy and clicked after one, which would otherwise be sent through a
+    Supabase handshake this deployment has stopped honouring.
+  */
+  if (provider === "apple" && nativeAuthCutoverActive() && appleOAuthServerFlowConfigured()) {
+    return NextResponse.redirect(new URL("/api/auth/apple/start", url), { status: 302 });
   }
 
   /*

@@ -21,6 +21,12 @@ import UIKit
   web side asks the moment an account screen draws, and a plugin that is not
   there yet answers "no storefront", which it reads as "no link".
 
+  SignInWithApple is the fourth, and the timing matters for it too. The account
+  screen checks for it while deciding which of two Apple flows to offer, and a
+  plugin that has not been registered yet is indistinguishable from one that
+  was never built — so the learner would be sent out to a web page when the
+  native sheet was available all along. See SignInWithApplePlugin.swift.
+
   The same override point is also where the bar's height is kept honest
   across rotation: viewSafeAreaInsetsDidChange is a UIViewController callback
   the plugin has no way to receive on its own, since it owns a view rather
@@ -30,11 +36,13 @@ final class MainViewController: CAPBridgeViewController {
   private let nativeChrome = NativeChromePlugin()
   private let speechRecognition = SpeechRecognitionPlugin()
   private let storefront = StorefrontPlugin()
+  private let signInWithApple = SignInWithApplePlugin()
 
   override func capacitorDidLoad() {
     bridge?.registerPluginInstance(nativeChrome)
     bridge?.registerPluginInstance(speechRecognition)
     bridge?.registerPluginInstance(storefront)
+    bridge?.registerPluginInstance(signInWithApple)
   }
 
   override func viewDidLoad() {

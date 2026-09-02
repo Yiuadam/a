@@ -34,6 +34,10 @@ export const SERVER_ONLY_ENV_VARS = [
   "APPLE_IAP_ISSUER_ID",
   "APPLE_IAP_KEY_ID",
   "APPLE_IAP_PRIVATE_KEY",
+  "APPLE_SIGNIN_SERVICES_ID",
+  "APPLE_SIGNIN_TEAM_ID",
+  "APPLE_SIGNIN_KEY_ID",
+  "APPLE_SIGNIN_PRIVATE_KEY",
   "ANTHROPIC_API_KEY",
   "BANDUP_SESSION_SIGNING_KEY",
   "GOOGLE_OAUTH_CLIENT_SECRET",
@@ -83,6 +87,114 @@ export function googleOAuthClientSecret(): string | undefined {
 export function googleOAuthAppOrigin(): string | undefined {
   assertServerOnly(MODULE);
   const value = process.env["GOOGLE_OAUTH_APP_ORIGIN"];
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== "https:"
+      || url.username
+      || url.password
+      || url.pathname !== "/"
+      || url.search
+      || url.hash
+    ) return undefined;
+    return url.origin;
+  } catch {
+    return undefined;
+  }
+}
+
+/*
+  ---------------------------------------------------------------------------
+  Sign in with Apple, and the four credentials it needs.
+
+  Read this before touching any of them: there are already three variables in
+  this file whose names begin APPLE_, and they have nothing whatever to do with
+  signing in. APPLE_IAP_ISSUER_ID, APPLE_IAP_KEY_ID and APPLE_IAP_PRIVATE_KEY
+  are an App Store Connect API key for in-app purchase — a different key, from a
+  different page of a different console, with a different issuer. The two sets
+  are not interchangeable in either direction, and the failure if they are
+  crossed is quiet: an App Store Connect key will produce a client secret Apple
+  simply rejects, which surfaces as "sign-in could not be completed" and nothing
+  else. So they are spelled APPLE_SIGNIN_* throughout, never APPLE_*, and the
+  IAP three keep their own prefix.
+
+  What each one is, and where it comes from:
+
+  APPLE_SIGNIN_SERVICES_ID is the identifier of a Services ID — the *web*
+  client, created under Certificates, Identifiers & Profiles -> Identifiers ->
+  Services IDs. It looks like a reverse-DNS string (com.yiuadam.bandup.web),
+  and it must NOT be the app's bundle id, which identifies the native client
+  instead. Both are audiences an Apple identity token may legitimately carry;
+  see lib/auth/apple-token.ts, which accepts exactly those two and nothing else.
+
+  APPLE_SIGNIN_TEAM_ID is the ten-character team identifier shown at the top
+  right of the developer account, and it is what Apple checks the client secret
+  was issued by.
+
+  APPLE_SIGNIN_KEY_ID and APPLE_SIGNIN_PRIVATE_KEY are the halves of one Sign in
+  with Apple key, created under Keys with that capability enabled. The private
+  half downloads once, as a .p8 file, and Apple will not give it out again.
+
+  All four require membership of the paid Apple Developer Program. None of them
+  is set in this deployment, which is the state this code was written for: every
+  entry point below reports "not configured" and no Apple button is offered at
+  all. See lib/auth/apple-oauth-server.ts for what that costs and what it buys.
+*/
+
+/**
+ * The Services ID, which is the client id of the *web* Sign in with Apple flow.
+ *
+ * Public in the same sense a Google client id is — Apple sees it in every
+ * authorize request — and read through the server for the same reason: one
+ * runtime configuration for local, preview and production, and no production
+ * identity baked into the iOS bundle.
+ */
+export function appleSignInServicesId(): string | undefined {
+  return secret("APPLE_SIGNIN_SERVICES_ID");
+}
+
+/** The developer team the Sign in with Apple key belongs to. */
+export function appleSignInTeamId(): string | undefined {
+  return secret("APPLE_SIGNIN_TEAM_ID");
+}
+
+/** Which Sign in with Apple key signed a client secret, named in its JWT header. */
+export function appleSignInKeyId(): string | undefined {
+  return secret("APPLE_SIGNIN_KEY_ID");
+}
+
+/**
+ * The contents of the .p8 file, PEM and all.
+ *
+ * Confidential in the strongest sense in this file: it does not merely
+ * authenticate BandUp to Apple, it *is* BandUp as far as Apple's token endpoint
+ * is concerned, and it cannot be rotated without a visit to the developer
+ * console. It is never sent anywhere; it only ever signs the short-lived client
+ * secret in lib/auth/apple-oauth-server.ts.
+ *
+ * Newlines are left exactly as they arrive. A .p8 pasted into a Cloudflare
+ * secret sometimes keeps its real line breaks and sometimes arrives with the
+ * two characters `\` and `n` where each break was, depending on how it was
+ * pasted; the PEM reader handles both rather than this accessor guessing.
+ */
+export function appleSignInPrivateKey(): string | undefined {
+  return secret("APPLE_SIGNIN_PRIVATE_KEY");
+}
+
+/**
+ * The one HTTPS origin Apple is told to return the browser to.
+ *
+ * The same reasoning as GOOGLE_OAUTH_APP_ORIGIN above, and a separate variable
+ * rather than a share of that one on purpose: the two are registered
+ * independently with two different providers, and a deployment that has told
+ * Apple about one host and Google about another is a state this should be able
+ * to express rather than one it silently gets wrong. It lives in wrangler.jsonc
+ * beside its Google counterpart and survives a deploy.
+ */
+export function appleSignInAppOrigin(): string | undefined {
+  assertServerOnly(MODULE);
+  const value = process.env["APPLE_SIGNIN_APP_ORIGIN"];
   if (!value) return undefined;
   try {
     const url = new URL(value);
