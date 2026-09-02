@@ -96,6 +96,114 @@
         "Has your neighbourhood changed much in recent years?",
         "Would you like to live somewhere else in the future?"
       ]
+    },
+    {
+      "topic": "Animals",
+      "level": "A2",
+      "questions": [
+        "Do you have a pet at home?",
+        "What animals are common where you live?",
+        "Did you like animals when you were a child?",
+        "Would you like to work with animals?",
+        "Are there any animals you are afraid of?"
+      ]
+    },
+    {
+      "topic": "Sleep",
+      "level": "A2",
+      "questions": [
+        "What time do you usually go to bed?",
+        "Do you sleep well most nights?",
+        "Do you ever sleep during the day?",
+        "Has the time you go to bed changed since you were younger?",
+        "What helps you fall asleep?"
+      ]
+    },
+    {
+      "topic": "Shopping",
+      "level": "A2",
+      "questions": [
+        "How often do you go shopping?",
+        "Do you prefer shopping in shops or online?",
+        "Who do you usually go shopping with?",
+        "Is there a shop you go to very often?",
+        "Did you enjoy shopping when you were a child?"
+      ]
+    },
+    {
+      "topic": "Colours",
+      "level": "A1",
+      "questions": [
+        "What is your favourite colour?",
+        "What colour are the walls in your room?",
+        "Do you wear bright colours or dark colours?",
+        "Did you have a favourite colour when you were a child?"
+      ]
+    },
+    {
+      "topic": "Handwriting",
+      "level": "A2",
+      "questions": [
+        "Do you write by hand very often?",
+        "Do you prefer writing by hand or typing?",
+        "Do you think your handwriting is easy to read?",
+        "Did you learn to write neatly at school?",
+        "When did you last write something by hand?"
+      ]
+    },
+    {
+      "topic": "Walking",
+      "level": "A2",
+      "questions": [
+        "Do you walk much during a normal day?",
+        "Where do you usually walk?",
+        "Do you prefer walking alone or with someone?",
+        "Did you walk to school when you were younger?",
+        "Would you walk more if you had more time?"
+      ]
+    },
+    {
+      "topic": "Photographs",
+      "level": "A2",
+      "questions": [
+        "Do you take a lot of photographs?",
+        "What do you usually take photographs of?",
+        "Do you print any of your photographs?",
+        "Do you like having your photograph taken?",
+        "Do you look at old photographs very often?"
+      ]
+    },
+    {
+      "topic": "Plants and gardens",
+      "level": "A2",
+      "questions": [
+        "Do you have any plants at home?",
+        "Do you enjoy being in a garden or a park?",
+        "Did you ever grow anything when you were a child?",
+        "Would you like to grow your own vegetables?",
+        "Do people give plants as presents in your country?"
+      ]
+    },
+    {
+      "topic": "Clothes",
+      "level": "A1",
+      "questions": [
+        "What kind of clothes do you like wearing?",
+        "Do you have a favourite item of clothing?",
+        "Do you dress differently at work or school than you do at home?",
+        "Did you choose your own clothes when you were a child?"
+      ]
+    },
+    {
+      "topic": "Friends",
+      "level": "A2",
+      "questions": [
+        "Do you see your friends often?",
+        "Where do you usually meet your friends?",
+        "How did you meet your closest friend?",
+        "Do you prefer a few close friends or a large group?",
+        "Is it easy to make new friends where you live?"
+      ]
     }
   ],
   "part2": [
@@ -258,6 +366,166 @@
         "Was it difficult to make this change?",
         "Do you think people generally find change easy or difficult?"
       ]
+    },
+    {
+      "id": "c11",
+      "topic": "A time you helped someone",
+      "level": "B1",
+      "cueCard": "Describe a time when you helped somebody with something.",
+      "bullets": [
+        "who you helped",
+        "what the problem was",
+        "what you did to help",
+        "and explain why you decided to help"
+      ],
+      "followUp": [
+        "Was it easy to help them?",
+        "Do you often help people in this way?"
+      ]
+    },
+    {
+      "id": "c12",
+      "topic": "A sensible rule",
+      "level": "B2",
+      "cueCard": "Describe a rule at your school, your workplace or your home that you think is sensible.",
+      "bullets": [
+        "what the rule is",
+        "who has to follow it",
+        "what happens if somebody breaks it",
+        "and explain why you think the rule is sensible"
+      ],
+      "followUp": [
+        "Do you find this rule easy to follow?",
+        "Would you change anything about it?"
+      ]
+    },
+    {
+      "id": "c13",
+      "topic": "An interesting animal",
+      "level": "B1",
+      "cueCard": "Describe an animal that you find interesting.",
+      "bullets": [
+        "what animal it is",
+        "how you first learned about it",
+        "what it looks like",
+        "and explain why you find this animal interesting"
+      ],
+      "followUp": [
+        "Have you ever seen this animal in real life?",
+        "Are these animals common where you live?"
+      ]
+    },
+    {
+      "id": "c14",
+      "topic": "A time you had to wait",
+      "level": "B1",
+      "cueCard": "Describe a time when you had to wait for something.",
+      "bullets": [
+        "what you were waiting for",
+        "how long you waited",
+        "what you did while you waited",
+        "and explain how you felt while you were waiting"
+      ],
+      "followUp": [
+        "Do you often have to wait where you live?",
+        "Is there anything that makes waiting easier for you?"
+      ]
+    },
+    {
+      "id": "c15",
+      "topic": "Something you want to do in the future",
+      "level": "B1",
+      "cueCard": "Describe something you would like to do in the next few years.",
+      "bullets": [
+        "what you would like to do",
+        "when you first thought of it",
+        "what you will need in order to do it",
+        "and explain why you want to do it"
+      ],
+      "followUp": [
+        "Have you told anyone about this plan?",
+        "Do you think you will do it soon?"
+      ]
+    },
+    {
+      "id": "c16",
+      "topic": "Looking after the environment",
+      "level": "B2",
+      "cueCard": "Describe something you do that is better for the environment.",
+      "bullets": [
+        "what you do",
+        "when you started doing it",
+        "how easy or difficult it is",
+        "and explain why you think it makes a difference"
+      ],
+      "followUp": [
+        "Do the people around you do the same thing?",
+        "Is there anything else you would like to start doing?"
+      ]
+    },
+    {
+      "id": "c17",
+      "topic": "Working with other people",
+      "level": "B1",
+      "cueCard": "Describe a time when you did something together with a group of people.",
+      "bullets": [
+        "what you did",
+        "who you did it with",
+        "what your own part in it was",
+        "and explain why it was better to do it together than alone"
+      ],
+      "followUp": [
+        "Was anything difficult about working as a group?",
+        "Do you usually prefer working on your own?"
+      ]
+    },
+    {
+      "id": "c18",
+      "topic": "A busy day",
+      "level": "B1",
+      "cueCard": "Describe a day when you were very busy.",
+      "bullets": [
+        "when this day was",
+        "what you had to do",
+        "how you organised your time",
+        "and explain how you felt at the end of the day"
+      ],
+      "followUp": [
+        "Are your days usually as busy as that?",
+        "Would you like to be less busy?"
+      ]
+    },
+    {
+      "id": "c19",
+      "topic": "Staying healthy",
+      "level": "B1",
+      "cueCard": "Describe something you do to keep yourself healthy.",
+      "bullets": [
+        "what this activity is",
+        "how often you do it",
+        "when you usually do it",
+        "and explain why you think it keeps you healthy"
+      ],
+      "followUp": [
+        "Is it easy to keep this up?",
+        "Did someone suggest it to you?"
+      ]
+    },
+    {
+      "id": "c20",
+      "topic": "Speaking in front of others",
+      "level": "B1",
+      "cueCard": "Describe a time when you had to speak in front of a group of people.",
+      "bullets": [
+        "where you were",
+        "who was listening",
+        "what you talked about",
+        "and explain how you felt while you were speaking"
+      ],
+      "followUp": [
+        "Do you have to do this often?",
+        "Was it easier than you expected?"
+      ]
     }
   ],
   "part3": [
@@ -369,6 +637,116 @@
         "How does the attitude to changing career differ between older and younger people?",
         "Do you think people change more because they want to or because they have to?",
         "What role should a government play in helping people who lose their work to change?"
+      ]
+    },
+    {
+      "topic": "A time you helped someone",
+      "level": "B2",
+      "questions": [
+        "Why are some people more willing to help a stranger than others are?",
+        "Do people in large cities help each other less than people in small towns?",
+        "How has the way people ask for help changed in recent years?",
+        "Should schools give students time to do unpaid work in their community?",
+        "Do you think people expect something in return when they help someone?"
+      ]
+    },
+    {
+      "topic": "A sensible rule",
+      "level": "C1",
+      "questions": [
+        "Why do people accept some rules easily and resist others?",
+        "How do the rules children are given at home differ from the rules they meet later at work?",
+        "Do you think there are more rules in daily life now than there were in the past?",
+        "Should young people have a say in the rules that are made for them?",
+        "Is it ever right to break a rule you disagree with?"
+      ]
+    },
+    {
+      "topic": "An interesting animal",
+      "level": "B2",
+      "questions": [
+        "Why are people so interested in animals they will never meet?",
+        "How has the relationship between people and animals changed over the last hundred years?",
+        "Should cities keep land for wild animals instead of building on it?",
+        "Do you think zoos are a good way for people to learn about animals?",
+        "Whose responsibility is it to protect animals that are disappearing?"
+      ]
+    },
+    {
+      "topic": "A time you had to wait",
+      "level": "B2",
+      "questions": [
+        "Why do people seem less patient than they used to be?",
+        "How has technology changed the amount of time people spend waiting?",
+        "What can hospitals, banks and shops do to make waiting less frustrating?",
+        "Do children today find it harder to wait than children did in the past?",
+        "Is patience something a person can learn, or is it part of their character?"
+      ]
+    },
+    {
+      "topic": "Something you want to do in the future",
+      "level": "B2",
+      "questions": [
+        "Why do some people plan years ahead while others prefer not to?",
+        "Do young people today hope for the same things their parents hoped for?",
+        "How much does the place someone grows up in shape what they hope to do?",
+        "Is it better to tell other people about your plans or to keep them private?",
+        "What stops people from doing the things they say they want to do?"
+      ]
+    },
+    {
+      "topic": "Looking after the environment",
+      "level": "B2",
+      "questions": [
+        "Who should do most to protect the environment: ordinary people, companies or governments?",
+        "Why is it so hard to change an everyday habit, even when people want to?",
+        "How have attitudes to waste changed over the last fifty years?",
+        "Can small changes made by ordinary people really make a difference?",
+        "Should schools spend more teaching time on the environment?"
+      ]
+    },
+    {
+      "topic": "Working with other people",
+      "level": "B2",
+      "questions": [
+        "Why are some tasks done better by a group than by one person?",
+        "How has the way people work together changed now that many of them work at a distance?",
+        "Should schools give students more group work, or does it hide who did the work?",
+        "Does competition between people produce better results than cooperation?",
+        "What makes someone a good member of a team?"
+      ]
+    },
+    {
+      "topic": "A busy day",
+      "level": "B2",
+      "questions": [
+        "Why do so many people say they have no time?",
+        "Do people work longer hours now than they did in the past?",
+        "How can employers help their staff balance work and the rest of life?",
+        "Is being busy seen as something to be proud of in your country?",
+        "Do children today have too many activities arranged for them?"
+      ]
+    },
+    {
+      "topic": "Staying healthy",
+      "level": "B2",
+      "questions": [
+        "Why do people often know what is good for them but not do it?",
+        "How have everyday habits changed now that many people sit down all day for work?",
+        "Should governments do more to encourage people to exercise?",
+        "How do most people find out about looking after their health?",
+        "Are people healthier now than they were fifty years ago?"
+      ]
+    },
+    {
+      "topic": "Speaking in front of others",
+      "level": "B2",
+      "questions": [
+        "Why do so many people find speaking to a group difficult?",
+        "Should children be given more practice at speaking in front of others at school?",
+        "How important is confidence compared with knowing your subject well?",
+        "Do you think people are judged by how well they speak?",
+        "Has the way people speak in public changed over the last few decades?"
       ]
     }
   ]
