@@ -82,7 +82,12 @@ test("pointer attraction never drives the glass refraction itself", () => {
   assert.equal((source.match(/document\.addEventListener\("pointermove"/g) ?? []).length, 1);
   assert.match(source, /target === current/);
   assert.doesNotMatch(css, /data-glass-reflecting|--glass-reflection-/);
-  assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),/);
+  // The exclusion list on this selector is allowed to grow — .nav-menu-group
+  // and .notification-popover are both on it, each because it carries its own
+  // dedicated material and this generic recipe was overwriting it. What this
+  // test guards is that the rule is still the plain frosted treatment applied
+  // to liquid glass at large, not something re-plumbed into pointer state.
+  assert.match(css, /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\)(?::not\([^)]+\))*,/);
 });
 
 test("pointer attraction is dormant: it still moves nothing a control's label sits on", () => {

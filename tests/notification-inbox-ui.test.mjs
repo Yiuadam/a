@@ -222,13 +222,43 @@ test("bell and full inbox keep refresh, read controls and setup reminder", () =>
   assert.match(bell, /dynamic\([\s\S]*NotificationPopover/);
   assert.match(bell, /className="relative isolate"/);
   assert.match(bell, /<\/button>[\s\S]*z-\[1200\][\s\S]*<NotificationPopover/);
-  assert.match(bell, /open && <span className="notification-glass-backdrop" aria-hidden="true" \/>/);
   assert.match(bell, /data-notification-bell-root/);
-  assert.match(bell, /useLayoutEffect\(\(\) => \{[\s\S]*--notification-mobile-left[\s\S]*--notification-mobile-width/);
+
+  /*
+    The panel is portalled into document.body, and it has to be. An element
+    carrying a backdrop-filter is a Backdrop Root and .site-header carries one,
+    so a panel rendered inside the header samples an empty backdrop and blurs
+    nothing at any radius — which is how a surface whose whole legibility
+    depends on that blur came to be reported as a transparent window with the
+    page's own headings readable through it.
+  */
+  assert.match(bell, /createPortal\(\s*\n?\s*<NotificationPopover/);
+  assert.match(bell, /document\.body/);
+  assert.match(css, /\.notification-popover \{[\s\S]*?position: fixed;[\s\S]*?top: calc\(var\(--notification-anchor-bottom/);
+
+  /*
+    Which in turn means the panel is no longer a descendant of the wrapper the
+    outside-click check tests, so a click inside the inbox would read as a
+    click outside it and close the panel on first use. The selector check says
+    what DOM containment used to say.
+  */
+  assert.match(bell, /target\.closest\("\.notification-popover"\)/);
+
+  assert.match(bell, /useLayoutEffect\(\(\) => \{[\s\S]*--notification-anchor-bottom[\s\S]*--notification-anchor-right/);
   assert.match(bell, /window\.visualViewport\?\.addEventListener\("resize", positionPopover\)/);
-  assert.match(css, /@media \(max-width: 39\.999rem\) \{[\s\S]*\[data-notification-bell-root\] > \.notification-popover \{[\s\S]*left: calc\(var\(--notification-mobile-left, 0px\) \+ max\(8px, env\(safe-area-inset-left\)\)\);[\s\S]*width: calc\([\s\S]*--notification-mobile-width[\s\S]*safe-area-inset-left[\s\S]*safe-area-inset-right/);
-  assert.doesNotMatch(css, /\[data-notification-bell-root\] > \.notification-popover \{[\s\S]{0,300}position:\s*fixed/);
-  assert.match(css, /\.notification-glass-backdrop \{[\s\S]*?inset: var\(--header-h, 0px\) 0 0;[\s\S]*?pointer-events: none;[\s\S]*?blur\(20px\)/);
+  assert.match(css, /@media \(max-width: 39\.999rem\) \{[\s\S]*\.notification-popover \{[\s\S]*left: max\(8px, env\(safe-area-inset-left\)\);[\s\S]*right: max\(8px, env\(safe-area-inset-right\)\);/);
+
+  /*
+    There is no depth sheet any more. It dimmed and blurred the whole viewport
+    behind the panel, and the page either side of a popover hanging off a bell
+    should look untouched. It took the orange line under the navigation bar
+    with it: that seam was its own top edge, butted against --header-h, which
+    is the bar's content height while the bar's border-box is a pixel taller.
+  */
+  // Rule-shaped, not name-shaped: the comment that replaced it names the
+  // element it is explaining the absence of.
+  assert.doesNotMatch(css, /\.notification-glass-backdrop\s*\{/);
+  assert.doesNotMatch(bell, /className="notification-glass-backdrop"/);
   assert.match(inbox, /document\.hidden/);
   assert.match(inbox, /visibilitychange/);
   assert.match(inbox, /window\.setInterval\(\(\) => void load\(\), 60_000\)/);

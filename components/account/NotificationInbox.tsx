@@ -246,7 +246,7 @@ function NotificationRow({
       <span className="min-w-0 flex-1">
         <span className="flex items-start justify-between gap-2">
           <span className="text-sm font-semibold leading-5 text-slate-900">{copy.title}</span>
-          {!item.readAt && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-600" aria-label="Unread" />}
+          {!item.readAt && <span className="notification-unread-dot mt-1.5 h-2 w-2 shrink-0 rounded-full" aria-label="Unread" />}
         </span>
         <span className={`notification-row-copy mt-0.5 block text-slate-600 ${compact ? "line-clamp-2 text-xs leading-4" : "text-sm leading-5"}`}>{copy.body}</span>
         <span className="notification-row-meta mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
@@ -317,7 +317,7 @@ function ProfileReminder({ compact = false, onOpen }: { compact?: boolean; onOpe
               : "Choose a username, or let BandUp generate one for you."}
           </span>
         </span>
-        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-600" aria-label="Unread" />
+        <span className="notification-unread-dot mt-1 h-2 w-2 shrink-0 rounded-full" aria-label="Unread" />
       </span>
     </Link>
   );

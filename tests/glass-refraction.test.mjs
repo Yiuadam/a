@@ -537,8 +537,11 @@ test("live panels use the SVG displacement filter only after browser capability 
   // its bend at that shape's edge, by construction — no strength or width
   // moves the contour onto the outline. Refraction anchored to a real
   // measured shape still runs on the knobs, whose maps are solved per shape.
+  // The exclusion list is allowed to grow: .notification-popover joined
+  // .nav-menu-group on it once the panel was found to be losing its whole
+  // dedicated material to this rule's higher specificity.
   const sitewideRule = css.match(
-    /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),[\s\S]*?\n\}/,
+    /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\)(?::not\([^)]+\))*,[\s\S]*?\n\}/,
   )?.[0];
   assert.ok(sitewideRule, "expected the sitewide combined-syntax glass rule");
   assert.match(sitewideRule, /backdrop-filter:\s*\n\s*blur\(8px\)/);
@@ -848,7 +851,7 @@ test("every plain content card gets the same rim/wall lens as the nav cards, wit
   // card now carries its own split filter/backdrop-filter lens on ::before,
   // so matching it there too would double-lens it in Chromium.
   const oldRuleMatch = css.match(
-    /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\),\s*\nhtml\[data-live-glass-refraction\] \.premade-glass \{/,
+    /html\[data-live-glass-refraction\] \.liquid-glass:not\(\.nav-menu-group\)(?::not\([^)]+\))*,\s*\nhtml\[data-live-glass-refraction\] \.premade-glass \{/,
   );
   assert.ok(oldRuleMatch, "expected the old combined-syntax rule with .card excluded");
 });

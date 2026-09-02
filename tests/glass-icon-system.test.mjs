@@ -227,23 +227,50 @@ test("the notification popover paints exactly one clipped outer glass boundary",
   assert.match(popover, /className="notification-popover liquid-glass/);
   assert.doesNotMatch(popover, /RefractiveGlassLayer/);
   assert.doesNotMatch(popover, /premade-glass-content/);
-  assert.match(css, /\.notification-popover \{[\s\S]*contain: paint;[\s\S]*clip-path: inset\(0 round var\(--radius-xl\)\)/);
-  // A real panel of glass, not a barely-there one.
-  //
-  // It was 9% of the surface colour behind a 2px blur, and that was right
-  // while the sitewide lens was displacing everything under it into
-  // abstraction — the material could be thin because the backdrop was
-  // already unreadable. With the lens gone there is nothing between this
-  // panel and legible body text but those two pixels, and the page read
-  // straight through it: its own headings collided with whatever was
-  // underneath.
-  //
-  // A nav card gets to stay thin because it is stacked on .nav-paper, which
-  // blurs the whole viewport beneath it first. This popover has no such
-  // sheet, so it carries the equivalent alone.
-  assert.match(css, /\.notification-popover \{[\s\S]*?background-color: color-mix\(in srgb, var\(--color-background\) 64%, transparent\)[\s\S]*?blur\(18px\)/);
-  assert.match(css, /\.notification-popover::before \{[\s\S]*?pointer-events: none;[\s\S]*?border-radius: inherit;[\s\S]*?inset 0 1px 0/);
+  // `contain: paint` and `clip-path: inset(0 round …)` used to be asserted
+  // here and are deliberately gone. clip-path clips everything an element
+  // paints, outer box-shadows included, and the warm ambient glow below is an
+  // outer shadow whose whole purpose is to spread past the panel's own edge —
+  // with a clip in place it was drawn and then thrown away. `overflow: hidden`
+  // still rounds the content, which is all either of them was doing.
+  // The rule's own comment names both properties, so the check has to read the
+  // declarations rather than the prose explaining their absence.
+  const popoverRule = css.replace(/\/\*[\s\S]*?\*\//g, "").match(/\n\.notification-popover \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(popoverRule, "expected a base .notification-popover rule");
+  assert.match(popoverRule, /overflow: hidden;/);
+  assert.doesNotMatch(popoverRule, /clip-path:/);
+  assert.doesNotMatch(popoverRule, /contain: paint/);
+
+  // A real panel of glass, and one that can only be that from outside the
+  // header. An element carrying a backdrop-filter is a Backdrop Root, and
+  // .site-header carries one, so anything rendered inside the header samples
+  // an empty backdrop and blurs nothing at any radius — which is exactly how
+  // this panel came to be reported as a transparent window with the page's
+  // own headings legible through it. NotificationBell portals it into
+  // document.body, and it is therefore positioned from the anchor geometry
+  // that component publishes rather than from Tailwind's `absolute`.
+  assert.match(css, /\.notification-popover \{[\s\S]*?position: fixed;[\s\S]*?top: calc\(var\(--notification-anchor-bottom[\s\S]*?right: var\(--notification-anchor-right/);
+  assert.match(css, /\.notification-popover \{[\s\S]*?backdrop-filter: blur\(2[0-9]px\)/);
+
+  // The fill is the other half of legibility: dense body text behind the
+  // panel has to survive as tone rather than as words, and the page either
+  // side of the panel is deliberately left untouched, so nothing else is
+  // helping.
+  assert.match(css, /\.notification-popover \{[\s\S]*?--notification-tint: color-mix\([\s\S]*?var\(--color-background\) \d\d%, transparent\)/);
+
+  // Both decorative layers redeclare `display`. The reset near the top of the
+  // file (`.liquid-glass::before, .card::before { display: none }`) matches
+  // this element too, because the panel also carries `liquid-glass` — without
+  // the redeclaration the wall and the rim are silently never painted, which
+  // is exactly the bug .nav-menu-group's own pseudo-elements once carried.
+  assert.match(css, /\.notification-popover::before \{[\s\S]*?display: block;[\s\S]*?pointer-events: none;[\s\S]*?border-radius: inherit;/);
+  assert.match(css, /\.notification-popover::after \{[\s\S]*?display: block;[\s\S]*?mask-composite: exclude;/);
   assert.match(css, /\.notification-popover > \* \{[\s\S]*?position: relative;[\s\S]*?z-index: 1/);
+
+  // The warm ambient glow — .nav-menu-group's third box-shadow, to the value.
+  // It is the layer the owner means by "glow" and the one most easily lost.
+  assert.match(css, /\.notification-popover \{[\s\S]*?0 0 14px 2px color-mix\(in srgb, rgb\(142, 104, 78\) 7%, transparent\)/);
+
   // No more special-cased exclusion from the SVG lens: this popover now
   // gets exactly the generic .liquid-glass refraction treatment.
   assert.doesNotMatch(css, /html\[data-theme\]\[data-live-glass-refraction\] \.liquid-glass\.notification-popover/);

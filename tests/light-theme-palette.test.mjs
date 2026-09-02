@@ -32,10 +32,13 @@ test("Light keeps a white canvas with neutral-grey interactive controls", () => 
   // sitting under a grey scrim. .nav-menu-group is excluded even though it
   // carries the .liquid-glass class: it has its own dedicated material on
   // ::before instead, and matching it here too gave it a second, unwanted
-  // background (see the nav-menu-group test below).
+  // background (see the nav-menu-group test below). .notification-popover is
+  // excluded for the same reason and a blunter one — a bare class is one
+  // specificity point against this rule's four, so every line of the panel's
+  // own material was being overwritten here and never painted at all.
   assert.match(
     css,
-    /html\[data-theme="light"\] \.liquid-glass:not\(\.nav-menu-group\),\nhtml\[data-theme="light"\] \.card,\nhtml\[data-theme="light"\] \.premade-glass \{[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 16%, transparent\);/,
+    /html\[data-theme="light"\] \.liquid-glass:not\(\.nav-menu-group\):not\(\.notification-popover\),\nhtml\[data-theme="light"\] \.card,\nhtml\[data-theme="light"\] \.premade-glass \{[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-100\) 16%, transparent\);/,
   );
   assert.match(css, /html\[data-theme="light"\] a\.card\.card:hover,[\s\S]*?background:\s*color-mix\(in srgb, var\(--color-indigo-200\) 58%, transparent\);/);
   // The primary button is the exception to the grey: it is filled with this

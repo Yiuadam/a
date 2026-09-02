@@ -277,6 +277,41 @@ html {
   background-color: var(--color-background);
 }
 
+/*
+  How much room the top chrome takes, as a page token.
+
+  Pages that want to fill the rest of the screen were each subtracting a
+  literal `3.75rem`, which is the web header's row height and nothing else's.
+  Inside the iOS app the top chrome is a native bar — the same row height plus
+  the safe-area inset — so every one of those pages laid itself out taller than
+  the space it actually had, and the difference became a scroll that pulled
+  content up under the bar for no reason.
+
+  On the root element, and that is the whole point of this rule existing
+  separately from `body` below, where both of these used to be declared.
+  lib/native-chrome.ts writes the native bar's measured height to
+  `document.documentElement.style` once the bridge answers, and an inline style
+  only beats declarations on the same element — a value declared on `body` is
+  inherited by everything under it and an inherited value loses to the child's
+  own. So the static 3.75rem won, every time, and the real bar height has never
+  reached a single page that reads this. Confirmed in the browser before the
+  move: getComputedStyle(html) returned "" for --header-h while body returned
+  `calc(3.75rem + 0px)`.
+
+  Nothing else changes by moving it up. Every consumer — the exam shell,
+  TutorChat, PracticeLoading, the /exam start screen, the navigation sheet —
+  reads it by inheritance, which reaches them from the root exactly as it did
+  from body; and SiteHeader still publishes its own pair inline on the header
+  element, which is the one place that deliberately overrides both.
+
+  In a browser the inset resolves to zero, so this is exactly the 3.75rem those
+  pages were already using.
+*/
+:root {
+  --header-row-h: 3.75rem;
+  --header-h: calc(var(--header-row-h) + env(safe-area-inset-top));
+}
+
 body {
   /* Text inside a rounded content window never crosses this invisible rail. */
   /*
@@ -306,24 +341,10 @@ body {
   */
   --window-text-inset-compact: clamp(0.875rem, calc(0.75rem + 0.4vw), 1rem);
   --page-window-gutter: clamp(1rem, calc(0.75rem + 1.25vw), 2rem);
-  /*
-    How much room the top chrome takes, as a page token.
-
-    Pages that want to fill the rest of the screen were each subtracting a
-    literal `3.75rem`, which is the web header's row height and nothing else's.
-    Inside the iOS app the top chrome is a native bar — the same row height
-    plus the safe-area inset — so every one of those pages laid itself out
-    taller than the space it actually had, and the difference became a scroll
-    that pulled content up under the bar for no reason.
-
-    Declared here so the header does not have to be an ancestor to publish it,
-    because in the app there is no header element at all: lib/native-chrome.ts
-    overwrites this on the document element with the native bar's own measured
-    height once it is up. In a browser the inset resolves to zero, so this is
-    exactly the 3.75rem those pages were already using.
-  */
-  --header-row-h: 3.75rem;
-  --header-h: calc(var(--header-row-h) + env(safe-area-inset-top));
+  /* --header-row-h and --header-h used to be declared here. They are on
+     :root now, immediately above this rule, because the native bridge writes
+     to the document element and an inherited value loses to a declaration on
+     the element itself — the reason is set out in full up there. */
   /*
     The wash the open navigation lays over the page, so the sheet's cards come
     forward a little without the page disappearing.
@@ -517,8 +538,19 @@ html[data-theme="dark"] body {
   each other is what read as a smudged, hard-edged patch rather than a clean
   highlight — background content was getting blurred twice, at two different
   radii, rather than once.
+
+  .notification-popover is excluded for a plainer reason: it was losing to
+  this rule outright. A bare class is one specificity point and
+  `.liquid-glass:not(.nav-menu-group)` is two, so every line of the popover's
+  own dedicated material — its fill, its blur, its rim, its shadow — was
+  being overwritten here, and the panel was painted with the ordinary 8%
+  fill instead. The comment on that rule described a heavier fill that had
+  never once reached the screen. Naming it here, the way the nav card is
+  named, is what puts its own material back in charge; the rules under it
+  are unchanged and stay at one point, so the reduced-transparency fallback
+  further down still wins over both.
 */
-.liquid-glass:not(.nav-menu-group),
+.liquid-glass:not(.nav-menu-group):not(.notification-popover),
 .card {
   isolation: isolate;
   border-color: var(--glass-edge);
@@ -969,46 +1001,126 @@ html[data-theme="dark"] .premade-glass {
   backdrop-filter: blur(1px);
 }
 
-/* Notifications are a floating glass card, sharing the same barely-there,
-   live-refracted material as the nav list rather than a heavier, more
-   opaque frosted drawer. */
+/*
+  A single pane of glass hanging off the bell, borrowing the nav card's wall,
+  rim and warm glow — but not its sheet. A menu card can be nearly clear
+  because .nav-paper is blurring the whole viewport underneath it; this panel
+  covers only its own rectangle and the page either side of it stays exactly
+  as it was, so everything that makes the words on it readable has to happen
+  within its own outline.
+
+  What was here before said it carried a 64% fill behind an 18px blur for that
+  reason, which was the right idea, and none of it reached the screen. Two
+  separate faults, which had to be found one at a time.
+
+  The first is specificity. `.liquid-glass:not(.nav-menu-group)` at the top of
+  this file is two points and `.notification-popover` is one, so the generic
+  glass recipe quietly overwrote the fill, the blur, the rim and the shadow
+  alike, and what painted was the ordinary 8% fill. The panel is named in that
+  rule's exclusion list now, next to the nav card, for the same reason the nav
+  card is there.
+
+  The second is why the panel is no longer rendered inside the header at all,
+  and it is the more interesting one: a backdrop-filter declared on an element
+  inside the header cannot blur the page, at any radius, in any engine. An
+  element carrying a backdrop-filter is a Backdrop Root, and .site-header
+  carries one — so everything inside it samples an empty backdrop and blurs
+  nothing. Measured directly in a browser: a bare `blur(30px)` box with no
+  other property on it leaves the page perfectly sharp inside the header and
+  smears it completely at document level, and starts working the instant the
+  header's own filter is removed. That is the whole of the "transparent
+  window" this panel was reported as. It was never a value set too low; it was
+  a layer asked to do a job its position forbids. NotificationBell.tsx now
+  renders it into document.body, where its own blur is real.
+
+  Which is also why it is positioned from here rather than from Tailwind's
+  `absolute right-0 top-12`: at document level those resolve against the page,
+  not the bell, so the anchor's own viewport geometry is published as custom
+  properties and read below.
+*/
 .notification-popover {
   isolation: isolate;
   overflow: hidden;
-  contain: paint;
-  clip-path: inset(0 round var(--radius-xl));
-  border-color: color-mix(in srgb, var(--glass-highlight) 78%, transparent);
   /*
-    The same material as a nav menu card, because it is the same kind of
-    thing: a panel of content floating over the page rather than a pane of
-    the page's own glass.
-
-    It used to be 9% of the surface colour behind a 2px blur, which is very
-    nearly nothing — the page read straight through it and its own headings
-    collided with whatever was underneath. That was survivable while the
-    sitewide lens was displacing the backdrop into abstraction; with the lens
-    gone there is nothing between this panel and legible body text but two
-    pixels of blur.
-
-    A nav card gets to be thin because it is stacked on .nav-paper, which is
-    already blurring the whole viewport beneath it. This popover has no such
-    sheet under it, so it carries the equivalent on its own: the blur the two
-    layers add up to, and a fill deep enough that the page behind reads as
-    texture rather than as words.
+    Fixed to the viewport, at the bell's own coordinates — see
+    NotificationBell.tsx, which measures the button and publishes these two on
+    the document element. The fallbacks put the panel in the top right corner
+    rather than somewhere absurd if it ever paints before the layout effect
+    has run.
   */
-  background-color: color-mix(in srgb, var(--color-background) 64%, transparent);
-  background-image:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--glass-specular) 14%, transparent),
-      transparent
-    );
-  -webkit-backdrop-filter: blur(18px) saturate(118%) brightness(105%);
-  backdrop-filter: blur(18px) saturate(118%) brightness(105%);
+  position: fixed;
+  top: calc(var(--notification-anchor-bottom, 4rem) + 0.5rem);
+  right: var(--notification-anchor-right, 0.5rem);
+  /*
+    Below the open navigation sheet, above everything a page floats over its
+    own content.
+
+    Inside the header this panel took the header's own stacking level, and the
+    exam shell's timer bar at z-50 was therefore drawing over it. At document
+    level it needs a number of its own: 990 clears the exam bar, the exam's
+    question palette and the full-screen select sheet at z-120, and stays
+    under the 1000 the header takes while its navigation sheet is open — that
+    sheet covers the whole screen and belongs over this panel, not under it.
+  */
+  z-index: 990;
+  /*
+    No clip-path and no paint containment here, and their absence is
+    load-bearing rather than tidying. This rule used to carry `contain: paint`
+    and `clip-path: inset(0 round var(--radius-xl))`, and a clip-path clips
+    everything an element paints — its outer box-shadows included. The warm
+    ambient glow below is an outer shadow whose entire purpose is to spread
+    past the panel's own edge, so with a clip in place it would be drawn and
+    then thrown away, which is a good part of why that glow has never been
+    seen on this panel. `overflow: hidden` still rounds the content, which is
+    all either of them was actually being asked for.
+  */
+  /* Same as .nav-menu-group: the perimeter is the masked rim on ::after,
+     which can vary its brightness around its own outline the way a flat
+     hairline cannot. */
+  border-color: transparent;
+  /*
+    Held on the element rather than on ::before, for the same reason
+    --nav-tint is: the wall layer and the rim are separate pseudo-elements
+    and a custom property set on one of them does not reach the other.
+  */
+  /* A nav card mixes 2.5% of the warm hue into 26% of the page colour, and
+     gets away with that because .nav-paper has already taken the page out of
+     focus beneath it. This panel has no sheet, so it carries roughly what the
+     pair of them carry together — the card's tint plus the scrim's — in one
+     layer. Raising the page-colour share rather than the warm mix is
+     deliberate: raising the mix would read as a stronger orange rather than
+     as a more solid card. */
+  --notification-tint: color-mix(
+    in srgb,
+    rgb(142, 104, 78) 2.5%,
+    color-mix(in srgb, var(--color-background) 52%, transparent)
+  );
+  --notification-wall-shade: color-mix(in srgb, rgb(40, 30, 22) 20%, transparent);
+  --notification-wall-shade-soft: color-mix(in srgb, rgb(40, 30, 22) 10%, transparent);
+  background: var(--notification-tint);
+  /* The nav card's saturate/brightness pairing over the radius the card and
+     its sheet add up to. Lifting those two rather than piling on radius is
+     what keeps what shows through reading as a real scene behind glass rather
+     than a grey wash — but the radius still has to be large enough on its own
+     to take body text past the point of being read, because nothing else
+     here is going to. */
+  -webkit-backdrop-filter: blur(26px) saturate(122%) brightness(107%);
+  backdrop-filter: blur(26px) saturate(122%) brightness(107%);
+  /*
+    A close contact shadow, a wider soft lift beneath it, and the warm ambient
+    glow that fades outward past the panel's own edges — .nav-menu-group's
+    three layers to the value, because the panel is meant to lift off its
+    sheet exactly as far as a menu card lifts off .nav-paper.
+
+    The third is the one the owner means by "glow". It is --wash-one's own
+    colour, and it is what makes a card bleed into the blur around it instead
+    of stopping dead at its border. It was also the layer most easily lost:
+    the clip-path removed above would have erased it even once it was written.
+  */
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 96%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 72%, transparent),
-    0 18px 44px color-mix(in srgb, var(--glass-shadow) 84%, transparent);
+    0 1px 2px var(--glass-shadow),
+    0 8px 22px -8px color-mix(in srgb, black 18%, transparent),
+    0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 7%, transparent);
 }
 
 /*
@@ -1025,27 +1137,82 @@ html[data-theme="dark"] .premade-glass {
   }
 }
 
-/* A folder-style pane has one continuous, lit perimeter: the curved material
-   brightens at its upper edge and settles into shadow underneath. This rim is
-   paint-only; the live backdrop remains the source of the reflected content. */
+/*
+  The inside face of the glass wall — the same layer, and the same three
+  ellipses, as .nav-menu-group::before. Real glass has thickness, so its rim
+  reads as two edges with a lit wall between them: ::after below draws the
+  outer edge, and this draws the wall behind it, settling into shadow along
+  the bottom and the two sides where the surface turns away from the light.
+
+  It is drawn as radial gradients rather than as inset shadows per side for
+  the reason set out at length on the nav card: on a shape this rounded, four
+  inset shadows do not share one rounded outline, and the mismatch shows as a
+  jagged seam where two of them cross at a corner. One smooth function of
+  distance from a point cannot produce a seam.
+
+  `display: block` is not decoration. The reset near the top of this file
+  (`.liquid-glass::before, .card::before { display: none }`) matches this
+  element too, because the popover also carries the `liquid-glass` class, and
+  the rule that used to live here never redeclared the property — so this
+  whole layer was silently never painted, exactly as .nav-menu-group::before
+  once wasn't. content alone does not undo the reset.
+*/
 .notification-popover::before {
   content: "";
+  display: block;
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   border-radius: inherit;
   background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--glass-specular) 22%, transparent),
-      transparent 38%,
-      color-mix(in srgb, var(--glass-shadow) 10%, transparent)
-    );
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 84%, transparent),
-    inset 1px 0 0 color-mix(in srgb, var(--glass-highlight) 32%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--glass-edge-dark) 54%, transparent);
+    radial-gradient(150% 140% at 50% 130%, var(--notification-wall-shade), transparent 58%),
+    radial-gradient(100% 220% at -25% 50%, var(--notification-wall-shade-soft), transparent 58%),
+    radial-gradient(100% 220% at 125% 50%, var(--notification-wall-shade-soft), transparent 58%);
+}
+
+/*
+  The rim, on its own layer above the material — the nav card's, unchanged.
+
+  A single flat inset highlight lights every edge identically, which is the
+  one thing real glass never does. This is a 1.2px gradient border, painted
+  across the whole box and then masked down to just the border ring, which is
+  the only way to get a border whose colour varies around its own perimeter.
+  The bright stops are narrow and held rather than eased through, because
+  light through a curved edge concentrates into a caustic rather than fading
+  evenly from one end to the other.
+
+  Same reset gap as ::before above: without `display: block` this never
+  painted either.
+*/
+.notification-popover::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1.2px;
+  background: linear-gradient(
+    148deg,
+    color-mix(in srgb, white 100%, transparent) 0%,
+    color-mix(in srgb, white 97%, transparent) 5%,
+    color-mix(in srgb, white 30%, transparent) 14%,
+    color-mix(in srgb, white 5%, transparent) 31%,
+    color-mix(in srgb, white 4%, transparent) 62%,
+    color-mix(in srgb, white 24%, transparent) 80%,
+    color-mix(in srgb, white 93%, transparent) 95%,
+    color-mix(in srgb, white 100%, transparent) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
 }
 
 .notification-popover > * {
@@ -1053,39 +1220,101 @@ html[data-theme="dark"] .premade-glass {
   z-index: 1;
 }
 
-/* The page under an opened floating window is not another solid sheet. It is
-   a low-cost, non-interactive depth layer: the header remains crisp, while
-   page content below it recedes into the same soft field as the iOS folder
-   reference. Pointer events stay off so existing outside-click and scroll
-   behaviour are unchanged. */
-.notification-glass-backdrop {
-  position: fixed;
-  inset: var(--header-h, 0px) 0 0;
-  z-index: 1000;
-  pointer-events: none;
-  background: color-mix(in srgb, var(--color-background) 30%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(108%) brightness(98%);
-  backdrop-filter: blur(20px) saturate(108%) brightness(98%);
-}
+/*
+  There was a `.notification-glass-backdrop` here: a fixed sheet that dimmed
+  and blurred the whole viewport behind the panel, the way .nav-paper does
+  behind the navigation menu. It is gone, on a direct decision that the page
+  either side of this panel should look untouched — a popover hanging off a
+  bell is not a screen, and dimming the whole display for one is a heavier
+  gesture than the thing deserves.
 
-html[data-theme="dark"] .notification-glass-backdrop {
-  background: color-mix(in srgb, var(--color-background) 36%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(105%) brightness(90%);
-  backdrop-filter: blur(20px) saturate(105%) brightness(90%);
-}
+  Worth recording what it did while it existed, because it explains a bug
+  report that is now closed. Its rule read `inset: var(--header-h, 0px) 0 0`,
+  which asked it to begin exactly at the navigation bar's lower edge — and
+  butting one fixed sheet against another element's measured height is a
+  joint that can open. --header-h is the bar's content height while the bar's
+  border-box is a pixel taller, and a `fixed` sheet and a `sticky` bar are not
+  repositioned by the same machinery during an iOS toolbar collapse. What
+  showed through that joint was the very top of the page, where --wash-one is
+  at full strength in Warm: a brown-orange line under the bar, exactly as
+  reported. No sheet, no joint, no line.
+
+  (It also never painted. It was `position: fixed` inside two ancestors that
+  each carry a backdrop-filter, and a backdrop-filter makes its element the
+  containing block for fixed descendants — measured in the browser, the sheet
+  was a 42.5x0 box parked over the bell button. The same trap is why the panel
+  itself now renders from document.body; see .notification-popover above.)
+*/
 
 html[data-theme="dark"] .liquid-glass.notification-popover {
-  /* Same reasoning as the base rule: the fill and the blur come up together
-     so the panel reads over page content rather than through it. */
-  background-color: color-mix(in srgb, var(--color-background) 68%, transparent);
-  background-image:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--glass-specular) 12%, transparent),
-      transparent
-    );
-  -webkit-backdrop-filter: blur(18px) saturate(114%) brightness(104%);
-  backdrop-filter: blur(18px) saturate(114%) brightness(104%);
+  /* Only the colours change; the layered recipe that consumes them is declared
+     once, above. The same warm hue at a fraction of the light-theme mix, for
+     the reason the dark nav card gives: dark glass is already near-black, so
+     8% of a mid-brown would read as visible paint rather than as a tint. The
+     fill itself goes the other way and sits higher than Warm's — a graphite
+     page puts far more contrast between this panel and a bright card behind
+     it, and contrast that large survives a blur as a rectangular patch unless
+     the fill mutes it. */
+  --notification-tint: color-mix(
+    in srgb,
+    rgb(142, 104, 78) 3%,
+    color-mix(in srgb, var(--color-background) 62%, transparent)
+  );
+  --notification-wall-shade: color-mix(in srgb, black 30%, transparent);
+  --notification-wall-shade-soft: color-mix(in srgb, black 16%, transparent);
+  /* No saturation boost and no brightness lift, matching every other dark
+     surface here — on a near-black canvas those two buy no visible depth and
+     cost the clarity, reading as a flat grey veil. Same radius as the other
+     themes: what has to be blurred out is the same text either way. */
+  -webkit-backdrop-filter: blur(26px);
+  backdrop-filter: blur(26px);
+  box-shadow:
+    0 1px 2px var(--glass-shadow),
+    0 8px 22px -8px color-mix(in srgb, black 34%, transparent),
+    0 0 14px 2px color-mix(in srgb, rgb(142, 104, 78) 4%, transparent);
+}
+
+html[data-theme="dark"] .notification-popover::after {
+  /* Dark glass catches the same light, but a rim at full strength against a
+     near-black panel reads as a drawn white outline rather than a reflection.
+     The nav card's dark rim, to the stop. */
+  background: linear-gradient(
+    148deg,
+    color-mix(in srgb, white 62%, transparent) 0%,
+    color-mix(in srgb, white 58%, transparent) 5%,
+    color-mix(in srgb, white 17%, transparent) 14%,
+    color-mix(in srgb, white 3%, transparent) 31%,
+    color-mix(in srgb, white 2%, transparent) 62%,
+    color-mix(in srgb, white 13%, transparent) 80%,
+    color-mix(in srgb, white 55%, transparent) 95%,
+    color-mix(in srgb, white 62%, transparent) 100%
+  );
+}
+
+/*
+  The "this one is new" dot, on every unread row and on the bell itself.
+
+  It was `bg-indigo-600`, which is the right idea in two themes and invisible
+  in the third. Each theme remaps the indigo ramp to its own accent: Warm's
+  --color-indigo-600 is a copper, Dark's is a brighter copper, and Light's is
+  #c7ccd3 — a pale grey, because Light's whole ramp is a neutral grey family
+  by design (see "Light primary controls" below). A grey dot on a near-white
+  row is not a marker; it is a smudge, and it was reported as one.
+
+  The token, not the utility class, so the dot follows whatever each theme
+  calls its accent. Light's own answer is --color-accent-blue, the one
+  deliberately blue token it keeps for exactly this problem — something that
+  has to read as saturated against a pale canvas rather than dissolve into it.
+
+  This dot's whole job is to be the most saturated thing in its row, so it
+  takes the accent at full strength in every theme rather than a mix.
+*/
+.notification-unread-dot {
+  background: var(--color-indigo-600);
+}
+
+html[data-theme="light"] .notification-unread-dot {
+  background: var(--color-accent-blue);
 }
 
 /* Notification actions are tiny, information-dense text. General glass/accent
@@ -1111,28 +1340,43 @@ html[data-theme="dark"] .notification-action {
   color: #e0e7ff;
 }
 
-/* On phones the bell is not the rightmost header control: the account and
-   theme controls follow it. A popover right-aligned to that bell therefore
-   runs off the left side of a narrow viewport. NotificationBell publishes the
-   visible viewport geometry before paint; use it only below the `sm`
-   breakpoint to keep equal safe-area-aware gutters without changing the
-   desktop anchor. */
+/*
+  On phones the bell is not the rightmost header control: the account and
+  theme controls follow it. A panel right-aligned to that bell therefore runs
+  off the left side of a narrow viewport, so below the `sm` breakpoint it
+  spans the screen with equal safe-area-aware gutters instead.
+
+  This used to compute the same result from the visual viewport's offset and
+  width, published by NotificationBell, because the panel was absolutely
+  positioned inside the header and had to be told where the screen was. It is
+  fixed to the viewport now, so `left` and `right` are already measured from
+  the edges of the screen and the arithmetic is gone — which is not only
+  shorter but more correct, since a fixed element resolves against the layout
+  viewport and those numbers came from the visual one.
+*/
 @media (max-width: 39.999rem) {
-  [data-notification-bell-root] > .notification-popover {
-    right: auto;
-    left: calc(var(--notification-mobile-left, 0px) + max(8px, env(safe-area-inset-left)));
-    width: calc(
-      var(--notification-mobile-width, 100vw)
-      - max(8px, env(safe-area-inset-left))
-      - max(8px, env(safe-area-inset-right))
-    );
+  .notification-popover {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    width: auto;
     max-width: none;
   }
 }
 
 /* Fingers need a 44px target even though the visible controls are otherwise
    as compact as the theme switcher. Touch and reduced-motion devices also use
-   an immediate selector move and skip the compositor reservation. */
+   an immediate selector move and skip the compositor reservation.
+
+   This has not been in force, and it is left as it is rather than quietly
+   repaired. The identical pair of selectors is declared again further down at
+   `min-height: 2.25rem` with no media query around it, at the same specificity
+   and later in the file, so that is what wins on a phone: measured, a segment
+   is 38.25px, not the 46.75px this asks for. Making this one win would put the
+   bar back to roughly the height it has just been asked to come down from —
+   the bar cannot be shorter than its own segments, for the reason set out on
+   .notification-filter-base — so which of the two the product wants is a
+   decision rather than a fix, and it belongs to whoever is choosing the
+   height. */
 @media (hover: none), (pointer: coarse) {
   .notification-filter-option,
   .notification-compact-action {
@@ -1819,9 +2063,31 @@ html[data-theme="dark"] .nav-menu-group {
 /* The inbox filter is the compact two-stop version of the theme control. One
    physical lens moves between All and Unread; the buttons themselves remain
    transparent, so switching does not mount or repaint two glass surfaces. */
+/*
+  The All/Unread bar, shortened by the padding it did not need.
+
+  It carries `p-1` from its className, and the vertical half of that was pure
+  cost: a band of empty track above and below two short words, at the top of a
+  panel whose whole job is showing notifications. Measured on a phone at this
+  root size, dropping it takes the drawn bar from 46.75px to 40.25px, with the
+  pill that runs inside it at 29.75px. The horizontal four pixels stay — that
+  padding is what keeps the pill clear of the bar's own rounded ends.
+
+  Only the padding, and that limit is worth stating because the obvious next
+  step does not work. The bar cannot be drawn shorter than the segments are
+  tappable: the segments are its grid items, so the bar is as tall as they are,
+  and its `overflow: hidden` means anything hung outside it to enlarge the
+  target is clipped out of hit-testing along with the paint. Drawing a small
+  pill inside a taller row — which is how the navigation list gets a 36pt pill
+  into a 44pt row — needs the row's own surface to come off the element and on
+  to a layer inside it, and this bar's fill is set by six theme rules that it
+  shares with the other option bars. That is a bigger change than a height, so
+  it is not being made in passing.
+*/
 .notification-filter-base {
   flex: 0 1 15rem;
   width: min(100%, 15rem);
+  padding-block: 0;
   border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
   background: color-mix(in srgb, var(--color-surface) 48%, transparent);
   box-shadow:
@@ -3955,22 +4221,28 @@ textarea {
 */
 @media (max-width: 39.999rem) {
   /*
-    Back up to the product's own card corner, on the owner's instruction: they
-    want a question card to read like a navigation card, and --radius-2xl is
-    what a card is everywhere else — .card on the website, .nav-menu-group in
-    the menu, and the navigation list in the app, all 42.5px at this
-    breakpoint's 17px root.
+    The shallower corner, and it is here on purpose rather than by omission.
 
-    The paragraph above is still right that a corner cannot outrun its inset,
-    so the inset comes up to meet it rather than the corner coming down. 0.75rem
-    is 12.75px, which is exactly what .nav-menu-group pairs with this radius —
-    the pair is borrowed whole rather than a third set of numbers guessed here.
+    --radius-2xl was tried on these cards — the argument being that a question
+    card should read like a navigation card, since 42.5px is what a card is
+    everywhere else in the product. It was looked at and the shallower corner
+    was preferred, so this is not an oversight to be helpfully corrected back.
+
+    The geometry supports the choice as well as the eye does. A corner cannot
+    outrun its inset: the clearance between a text box's corner and the arc is
+    R - sqrt(2)(R - P), which at the deep corner and this inset is 0.43px — the
+    text corner effectively sits on the curve, which is what "cramped" meant
+    every time it was reported. At --radius-lg the same inset clears 9.23px,
+    which is more room than the website's own cards get, so the inset stays
+    where it is rather than growing to rescue a corner that no longer needs it.
+    Taking line width off a question to pay for a rounder edge is the wrong
+    trade on a phone.
 
     The question number sits in the top-left, nearer the arc than any prose is,
     and it is the thing to check if this ever looks wrong.
   */
   [data-exam] .card {
-    border-radius: var(--radius-2xl);
+    border-radius: var(--radius-lg);
     padding: 0.75rem;
   }
 
@@ -4283,7 +4555,7 @@ html[data-theme="dark"] body::before {
   display: none;
 }
 
-html[data-theme="dark"] .liquid-glass:not(.nav-menu-group),
+html[data-theme="dark"] .liquid-glass:not(.nav-menu-group):not(.notification-popover),
 html[data-theme="dark"] .card {
   border-color: var(--glass-edge);
   background: var(--glass-fill);
@@ -4709,7 +4981,7 @@ html[data-theme="light"] .btn-secondary {
    this theme, not an actual blue), just at a small fraction of their
    strength: enough to give the rim something to catch the light against,
    not enough to flatten the glow into a solid card. */
-html[data-theme="light"] .liquid-glass:not(.nav-menu-group),
+html[data-theme="light"] .liquid-glass:not(.nav-menu-group):not(.notification-popover),
 html[data-theme="light"] .card,
 html[data-theme="light"] .premade-glass {
   border-color: var(--color-indigo-300);
@@ -4746,16 +5018,29 @@ html[data-theme="light"] .organization-view-tabs {
    light interactive-surface rule is intentionally stronger for buttons, but
    would otherwise turn this floating glass into a flat grey rectangle. */
 html[data-theme="light"] .liquid-glass.notification-popover {
-  /* Same reasoning as the base rule. */
-  background-color: color-mix(in srgb, var(--color-background) 64%, transparent);
-  background-image:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--glass-specular) 14%, transparent),
-      transparent
-    );
-  -webkit-backdrop-filter: blur(2px) saturate(106%) brightness(102%);
-  backdrop-filter: blur(2px) saturate(106%) brightness(102%);
+  /* Only the colours change; the recipe is declared once, on the base rule.
+     This theme's page is a near-white with no warmth of its own, so the
+     panel's tint drops the brown almost entirely rather than laying a cream
+     cast over a white canvas — what separates it from the page here is the
+     fill and the rim, not a hue. */
+  --notification-tint: color-mix(
+    in srgb,
+    rgb(142, 104, 78) 1%,
+    color-mix(in srgb, var(--color-background) 56%, transparent)
+  );
+  --notification-wall-shade: color-mix(in srgb, rgb(30, 32, 38) 14%, transparent);
+  --notification-wall-shade-soft: color-mix(in srgb, rgb(30, 32, 38) 7%, transparent);
+  /*
+    This rule used to end `blur(2px)`, and that number is a fossil: it dates
+    from when a sitewide lens was displacing the backdrop into abstraction and
+    two pixels was all a panel needed on top of it. The lens is gone; two
+    pixels is a clear window. Same radius as the other two themes now, because
+    what it has to take out of focus is the same text either way.
+  */
+  -webkit-backdrop-filter: blur(26px) saturate(112%) brightness(103%);
+  backdrop-filter: blur(26px) saturate(112%) brightness(103%);
+  /* The base rule's three layers carry over unchanged, the way the nav card
+     has no light-theme shadow of its own either. */
 }
 
 html[data-theme="light"] a.card.card:hover,
@@ -4782,7 +5067,7 @@ html[data-theme="light"] .nav-menu-selector {
   background: var(--color-indigo-200);
 }
 
-html[data-theme="dark"] .liquid-glass:not(.nav-menu-group),
+html[data-theme="dark"] .liquid-glass:not(.nav-menu-group):not(.notification-popover),
 html[data-theme="dark"] .card,
 html[data-theme="dark"] .premade-glass,
 html[data-theme="dark"] .nav-open-header::before,
@@ -4908,7 +5193,7 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
    The blur stays small: strong frosting hides the shapes and lettering that
    make the refraction believable in the first place.
 --------------------------------------------------------------------------- */
-html[data-live-glass-refraction] .liquid-glass:not(.nav-menu-group),
+html[data-live-glass-refraction] .liquid-glass:not(.nav-menu-group):not(.notification-popover),
 html[data-live-glass-refraction] .premade-glass {
   /*
     The frosted material only. The displacement stage that used to end this

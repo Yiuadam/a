@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { accountIdentityComplete } from "@/lib/auth/account-identity";
 import { fetchNotifications, previewNotificationReadStorageKey } from "@/lib/notifications/client";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/notifications/types";
@@ -73,13 +74,62 @@ export default function NotificationBell({ previewRole = null }: { previewRole?:
     };
   }, [accountKey, previewRole, signedIn]);
 
+  /*
+    Closing the panel, and putting the focus ring back somewhere that exists.
+
+    Both routes end here. A tap outside dismisses through the document
+    listener below; a second tap on the bell dismisses through the button's
+    own toggle, and the listener deliberately stays out of its way — see the
+    early return on the wrapper. Getting that wrong is the classic version of
+    this bug: the outside handler closes on pointerdown, the button's click
+    arrives a moment later and toggles it straight back open, and the panel
+    looks like it will not close at all.
+
+    Focus matters because the panel is a portal. Anything focused inside it is
+    on a node that is about to be removed from the document, and focus left on
+    a detached node falls to <body> — the next Tab starts from the top of the
+    page rather than from the control the reader was using. Handing it back to
+    the bell is also what completes the keyboard round-trip: open, Escape, and
+    the ring is back on the button that opened it.
+  */
+  const dismiss = () => {
+    const active = document.activeElement;
+    if (active instanceof Element && active.closest(".notification-popover")) {
+      root.current?.querySelector("button")?.focus();
+    }
+    setOpen(false);
+  };
+
   useEffect(() => {
     if (!open) return;
     const close = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      /*
+        The bell itself is not an outside click. Its own onClick is what
+        toggles the panel shut, and closing here as well would leave that
+        toggle re-opening what this just closed.
+      */
+      if (root.current?.contains(target)) return;
+      /*
+        The panel is no longer a descendant of this wrapper — it is rendered
+        into document.body (see the portal below) — so `root.contains` alone
+        would treat every click inside the inbox as a click outside it and
+        shut the panel the instant anyone tried to use it. Asking the target
+        whether it is inside a `.notification-popover` says the same thing the
+        DOM containment used to say, and needs no ref threaded through the
+        lazily-imported panel component to say it.
+
+        This is also what keeps the filter bar's drag safe. That control
+        carries the knob under the finger and a gesture can easily finish
+        outside the panel — but only `pointerdown` is listened for here, and a
+        drag's pointerdown is on the bar, so the gesture is over before this
+        handler could ever see it.
+      */
+      if (target instanceof Element && target.closest(".notification-popover")) return;
+      dismiss();
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") dismiss();
     };
     document.addEventListener("pointerdown", close);
     document.addEventListener("keydown", escape);
@@ -95,39 +145,47 @@ export default function NotificationBell({ previewRole = null }: { previewRole?:
     if (!anchor) return;
 
     /*
-      The bell is followed by the account and theme controls, so right-aligning
-      a phone-width popover to the bell can push most of it past the left edge
-      of a narrow screen. Publish viewport-relative geometry on the existing
-      anchor instead: the popover stays in this DOM subtree (so outside-click
-      and focus behaviour are unchanged), while the mobile CSS can give it
-      equal gutters on both sides of the visible viewport.
+      The panel used to hang off this wrapper with `position: absolute`, which
+      is why it only ever needed a mobile nudge published here. It is fixed to
+      the viewport from document.body now, so it needs the bell's own position
+      in viewport coordinates instead — the anchor's bottom edge and how far
+      its right edge sits from the right of the screen. `position: fixed`
+      resolves against the layout viewport and getBoundingClientRect reports
+      in the same coordinates, so the two agree without any correction.
+
+      Published on the document element rather than on this wrapper, because
+      the element that reads them is no longer inside it and a custom property
+      only travels down.
     */
     const positionPopover = () => {
-      const viewport = window.visualViewport;
-      const viewportLeft = viewport?.offsetLeft ?? 0;
-      const viewportWidth = viewport?.width ?? document.documentElement.clientWidth;
       const anchorRect = anchor.getBoundingClientRect();
-
-      anchor.style.setProperty(
-        "--notification-mobile-left",
-        `${viewportLeft - anchorRect.left}px`,
-      );
-      anchor.style.setProperty(
-        "--notification-mobile-width",
-        `${Math.max(0, viewportWidth)}px`,
+      const style = document.documentElement.style;
+      style.setProperty("--notification-anchor-bottom", `${anchorRect.bottom}px`);
+      style.setProperty(
+        "--notification-anchor-right",
+        `${Math.max(0, document.documentElement.clientWidth - anchorRect.right)}px`,
       );
     };
 
     positionPopover();
+    /*
+      Scroll matters now in a way it did not before. The header is sticky, so
+      the bell only moves while iOS is collapsing or expanding its toolbar —
+      but during that the anchor really does travel, and a panel fixed to a
+      stale measurement would visibly detach from the button it grew out of.
+    */
+    window.addEventListener("scroll", positionPopover, { passive: true });
     window.addEventListener("resize", positionPopover);
     window.visualViewport?.addEventListener("resize", positionPopover);
     window.visualViewport?.addEventListener("scroll", positionPopover);
     return () => {
+      window.removeEventListener("scroll", positionPopover);
       window.removeEventListener("resize", positionPopover);
       window.visualViewport?.removeEventListener("resize", positionPopover);
       window.visualViewport?.removeEventListener("scroll", positionPopover);
-      anchor.style.removeProperty("--notification-mobile-left");
-      anchor.style.removeProperty("--notification-mobile-width");
+      const style = document.documentElement.style;
+      style.removeProperty("--notification-anchor-bottom");
+      style.removeProperty("--notification-anchor-right");
     };
   }, [open]);
 
@@ -151,11 +209,31 @@ export default function NotificationBell({ previewRole = null }: { previewRole?:
       {unread > 0 && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute right-0.5 top-0.5 z-[1200] h-2.5 w-2.5 rounded-full border-2 border-[var(--color-background)] bg-indigo-500"
+          className="notification-unread-dot pointer-events-none absolute right-0.5 top-0.5 z-[1200] h-2.5 w-2.5 rounded-full border-2 border-[var(--color-background)]"
         />
       )}
-      {open && <span className="notification-glass-backdrop" aria-hidden="true" />}
-      {open && <NotificationPopover previewRole={previewRole} needsSetup={needsSetup} onClose={() => setOpen(false)} onUnreadCount={setNotificationUnread} />}
+      {/*
+        The panel is rendered into document.body rather than here, and the
+        reason is that it cannot do its job from inside the header.
+
+        It is a pane of glass: what makes it readable is its own
+        backdrop-filter blurring the page behind it. But an element carrying a
+        backdrop-filter is a Backdrop Root, and the header carries one — so
+        anything inside the header samples an empty backdrop and blurs
+        nothing, at any radius, in any engine. Measured directly in a browser:
+        a bare blur(30px) box put inside the header leaves the page perfectly
+        sharp and the identical box at document level smears it completely.
+        That is the whole of the "transparent window" this panel was reported
+        as, and moving it out of the header is the only fix for it.
+
+        Its viewport position comes from the anchor geometry published above,
+        so it still opens from the bell; outside-click is handled by the
+        selector check in the effect above rather than by DOM containment.
+      */}
+      {open && createPortal(
+        <NotificationPopover previewRole={previewRole} needsSetup={needsSetup} onClose={() => setOpen(false)} onUnreadCount={setNotificationUnread} />,
+        document.body,
+      )}
     </div>
   );
 }

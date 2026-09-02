@@ -60,10 +60,26 @@ test("unread and notification-arrival highlights use the same indigo accent", ()
   const assigned = source("components", "organization", "AssignedPracticeNotice.tsx");
   const sitting = source("components", "organization", "OrganizationSittingReview.tsx");
 
-  assert.match(bell, /bg-indigo-500/);
+  const css = source("app", "globals.css");
+
+  /*
+    The unread markers are the one place the accent cannot come from an
+    `indigo-*` utility. Each theme remaps that ramp to its own accent, and
+    Light's whole ramp is a neutral grey family by design — --color-indigo-600
+    is #c7ccd3 there — so a dot painted with it was a pale smudge on a
+    near-white row rather than a marker. They take a class and a token instead,
+    and Light overrides that token with the one deliberately blue value it
+    keeps, --color-accent-blue, for exactly this problem.
+  */
+  assert.match(bell, /notification-unread-dot/);
+  assert.match(inbox, /notification-unread-dot/);
+  assert.doesNotMatch(bell, /bg-indigo-500/);
+  assert.doesNotMatch(inbox, /rounded-full bg-indigo-600/);
+  assert.match(css, /\.notification-unread-dot \{\s*\n\s*background: var\(--color-indigo-600\);/);
+  assert.match(css, /html\[data-theme="light"\] \.notification-unread-dot \{\s*\n\s*background: var\(--color-accent-blue\);/);
+
   assert.doesNotMatch(bell, /bg-amber-500/);
   assert.match(inbox, /border-indigo-200\/70 bg-indigo-50\/35/);
-  assert.match(inbox, /bg-indigo-600/);
   assert.doesNotMatch(inbox, /amber-/);
   assert.match(assigned, /border-indigo-300\/80 bg-indigo-50\/60/);
   assert.doesNotMatch(assigned, /amber-/);
