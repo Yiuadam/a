@@ -264,7 +264,12 @@ async function syncProgressWithOptions(
     ? {
         ...storedLocalProfileObject,
         ...(options.clearHistoryAt
-          ? { results: [], mockReports: [], historyClearedAt: options.clearHistoryAt }
+          ? {
+              results: [],
+              mockReports: [],
+              mockRetakes: [],
+              historyClearedAt: options.clearHistoryAt,
+            }
           : {}),
         ...(options.clearPlacementAt
           ? { placement: undefined, placementClearedAt: options.clearPlacementAt }

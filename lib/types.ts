@@ -399,6 +399,33 @@ export interface MockExamReport {
   };
 }
 
+/**
+ * One skill re-sat on its own, against a sitting that already happened.
+ *
+ * IELTS One Skill Retake, and modelled on what that actually issues: a new Test
+ * Report Form carrying the retaken skill's new score beside the original scores
+ * for the other three, with the original form still valid. So this is a row of
+ * its own rather than an edit to `MockExamReport` — the sitting keeps the bands
+ * it produced, permanently, and the form that stands today is derived from the
+ * pair. lib/exam/report.ts does the deriving and explains the model in full.
+ *
+ * That is also what makes this the safe shape. The worst thing this feature
+ * could do is lose a band a learner earned, and nothing here can: a retake is
+ * only ever appended, so a bad one is a visible extra row rather than a silent
+ * overwrite of the number it replaced.
+ */
+export interface MockRetake {
+  id: string;
+  /** The `MockExamReport.id` this retake updates. */
+  of: string;
+  module: ModuleName;
+  band: number;
+  raw?: number;
+  total?: number;
+  startedAt: string;
+  completedAt: string;
+}
+
 export interface GeneratedTest {
   kind: "reading" | "listening";
   createdAt: string;
@@ -428,6 +455,16 @@ export interface Profile {
   results: ModuleResult[];
   /** Full-mock score reports, newest first. */
   mockReports?: MockExamReport[];
+  /**
+   * Single-skill retakes, newest first, each naming the sitting it updates.
+   *
+   * A separate list rather than a field inside each report, and the merge is
+   * why. Two devices that each recorded a retake against the same sitting would
+   * hold two copies of one report id, and `unionBy` in lib/progress/merge.ts
+   * keeps one of them — so a nested list would lose whichever retake happened
+   * to arrive second. Flat rows with their own ids union without dropping any.
+   */
+  mockRetakes?: MockRetake[];
   /**
    * A deletion tombstone shared between devices. Results at or before this
    * instant stay deleted when an older tab syncs again.

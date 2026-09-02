@@ -3,6 +3,7 @@
 import type {
   GeneratedTest,
   MockExamReport,
+  MockRetake,
   ModuleResult,
   PlacementResult,
   Profile,
@@ -46,6 +47,7 @@ function read(): Profile {
       visited: parsed.visited ?? [],
       results: parsed.results ?? [],
       mockReports: parsed.mockReports ?? [],
+      mockRetakes: parsed.mockRetakes ?? [],
       historyClearedAt: parsed.historyClearedAt,
       placementClearedAt: parsed.placementClearedAt,
       drillsClearedAt: parsed.drillsClearedAt,
@@ -158,6 +160,32 @@ export function addMockReport(report: MockExamReport): Profile {
 }
 
 /**
+ * Records one skill re-sat on its own against an earlier sitting.
+ *
+ * Appended, never merged into the sitting it names: lib/exam/report.ts explains
+ * why the standing Test Report Form is derived from the pair rather than
+ * written over the original, and the short version is that a band a learner
+ * earned must not be editable by anything, including a later retake of the same
+ * skill.
+ *
+ * Which means the cap here has to be chosen with more care than the one on
+ * reports. Retakes are kept newest-first and trimmed to the same 30, because a
+ * synced profile has to stay a reasonable size — but a retake being dropped off
+ * the end can change the band that stands today, where a dropped report only
+ * shortens the archive. Thirty single-skill re-sits against sittings still in
+ * the archive is far beyond any real use, and the sittings themselves are
+ * capped at thirty already, so the two run out together.
+ */
+export function addMockRetake(retake: MockRetake): Profile {
+  const p = getSnapshot();
+  const previous = p.mockRetakes ?? [];
+  const retakes = [retake, ...previous.filter((item) => item.id !== retake.id)]
+    .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+    .slice(0, 30);
+  return commit({ ...p, mockRetakes: retakes });
+}
+
+/**
  * Clears everything this device holds of a learner's own — every saved
  * score, the placement, the drill scores and the saved words — without
  * letting another device restore any of it.
@@ -201,6 +229,11 @@ export function clearHistory(at = new Date().toISOString()): Profile {
     ...p,
     results: [],
     mockReports: [],
+    /* A retake is meaningless without the sitting it updates, and both are
+       history in exactly the sense this button means. Emptied here and filtered
+       by the same historyClearedAt tombstone in lib/progress/merge.ts, so
+       another device cannot sync one back in on its own. */
+    mockRetakes: [],
     historyClearedAt: at,
     placement: undefined,
     placementClearedAt: at,
