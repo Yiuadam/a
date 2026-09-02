@@ -2643,10 +2643,33 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
     drawn through a 10px inset, which is the mismatch this file warns about
     above .practice-paper-card. Padding and radius move together, so they have
     to win together.
+
+    They still do — but at the deeper corner rather than the shallower one.
+    This dropped the radius to --radius-xl and left the padding at 0.6rem,
+    which cleared the arc and cost the tiles the roundness the rest of the
+    product has. Two things were wrong with that.
+
+    The visible one: LockedCard draws its veil and its inset ring at
+    `rounded-2xl`, because that is what a card is everywhere else. Against a
+    tile rounded to --radius-xl the ring's corner did not follow the tile's,
+    and a locked Writing or Speaking card showed two arcs a few pixels apart —
+    the boundary mismatch the owner reported. Sizing the tile to the ring
+    rather than the ring to the tile fixes it in the place the number is
+    already right.
+
+    The one that decided it: the owner asked for the rounder shape, "like the
+    cards in nav list". Those are 42.5px over 12.75px of padding, which is
+    exactly `p-3` on `.nav-menu-group` — so this is that pair, to the value,
+    rather than a third set of numbers invented here.
+
+    0.75rem is 12.75px at the 17px root this breakpoint runs at, and it buys
+    the arc the clearance 0.6rem did not have. It costs about 5px of height
+    per tile; the short-phone case below already has its own min-height rule,
+    which is where that pressure belongs.
   */
   .dashboard-screen .dashboard-card-grid .card.card {
-    border-radius: var(--radius-xl);
-    padding: 0.6rem !important;
+    border-radius: var(--radius-2xl);
+    padding: 0.75rem !important;
   }
   .dashboard-screen h1 {
     font-size: 1.125rem;
