@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import Link from "next/link";
 import UpgradePanel from "@/components/billing/UpgradePanel";
+import ExternalPlansLink from "@/components/billing/ExternalPlansLink";
+import { useExternalPlansUrl } from "@/lib/billing/storefront";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import { tierShows, useTier } from "@/lib/billing/useTier";
 import { authedFetch } from "@/lib/account";
@@ -444,7 +446,33 @@ function NotSwitchedOn() {
   in check_and_record_usage — it simply cannot tell this page the number. So
   the allowance is stated and the count is not invented.
 */
+/*
+  One way to the plans, wherever this build is allowed to offer one: an
+  ordinary route on the website, and an external link out of the iOS app on the
+  storefronts that permit one. Where none is permitted the caller draws a
+  sentence instead and never reaches this. See lib/billing/storefront.ts.
+*/
+function PlansLink({ externalUrl }: { externalUrl: string | null }) {
+  const className = "underline underline-offset-2 hover:text-slate-700";
+  if (externalUrl) {
+    return (
+      <ExternalPlansLink url={externalUrl} className={className}>
+        See the plans
+      </ExternalPlansLink>
+    );
+  }
+  return (
+    <Link href="/pricing" className={className}>
+      See the plans
+    </Link>
+  );
+}
+
 function Allowance({ status }: { status: AccountStatus | null }) {
+  /* Above the early returns, because a hook has to run on every render of a
+     component or React loses track of which hook is which. */
+  const externalUrl = useExternalPlansUrl();
+
   if (!status) return null;
 
   /*
@@ -472,14 +500,11 @@ function Allowance({ status }: { status: AccountStatus | null }) {
       ) : !status.signedIn ? (
         <>
           The tutor comes with Plus and Pro.{" "}
-          {IS_MOBILE_BUILD ? (
+          {IS_MOBILE_BUILD && !externalUrl ? (
             <>Those are managed on {WEB_HOME}, not in the app.</>
           ) : (
             <>
-              <Link href="/pricing" className="underline underline-offset-2 hover:text-slate-700">
-                See the plans
-              </Link>
-              ,
+              <PlansLink externalUrl={externalUrl} />,
             </>
           )}{" "}
           or keep going with the practice tests, drills and your study plan — those are free.
@@ -487,14 +512,11 @@ function Allowance({ status }: { status: AccountStatus | null }) {
       ) : quota === 0 ? (
         <>
           The tutor comes with Plus and Pro.{" "}
-          {IS_MOBILE_BUILD ? (
+          {IS_MOBILE_BUILD && !externalUrl ? (
             <>Those are managed on {WEB_HOME}, not in the app.</>
           ) : (
             <>
-              <Link href="/pricing" className="underline underline-offset-2 hover:text-slate-700">
-                See the plans
-              </Link>
-              .
+              <PlansLink externalUrl={externalUrl} />.
             </>
           )}
         </>

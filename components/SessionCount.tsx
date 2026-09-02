@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import ExternalPlansLink from "@/components/billing/ExternalPlansLink";
+import { useExternalPlansUrl } from "@/lib/billing/storefront";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import type { SkillAccess } from "@/lib/entitlements/useSessions";
 
@@ -26,6 +28,10 @@ import type { SkillAccess } from "@/lib/entitlements/useSessions";
 */
 
 export default function SessionCount({ access }: { access: SkillAccess }) {
+  /* Above the early returns, because a hook has to run on every render of a
+     component or React loses track of which hook is which. */
+  const externalUrl = useExternalPlansUrl();
+
   /* Locked outright is the card's job, not the counter's — it would say the
      same thing twice, once in small grey text next to a padlock. */
   if (access.locked) return null;
@@ -40,12 +46,25 @@ export default function SessionCount({ access }: { access: SkillAccess }) {
   }
 
   /*
-    Nothing to tap in the iOS build: /pricing is not in that bundle, and an
-    invitation to buy is exactly what must not be there. The count still tells
-    the truth — it just stops offering a way out of it. See lib/platform.ts.
+    /pricing is not in the iOS bundle, so the door out of "none left" is the
+    website — on the storefronts where an app is allowed to point at one. Where
+    it is not, the count still tells the truth and simply stops offering to fix
+    it. See lib/billing/storefront.ts.
   */
   if (IS_MOBILE_BUILD) {
-    return <span className="shrink-0 text-xs font-medium text-slate-500">None left this week</span>;
+    if (!externalUrl) {
+      return (
+        <span className="shrink-0 text-xs font-medium text-slate-500">None left this week</span>
+      );
+    }
+    return (
+      <ExternalPlansLink
+        url={externalUrl}
+        className="shrink-0 text-xs font-medium text-indigo-700 underline underline-offset-2 hover:text-indigo-800"
+      >
+        None left — get more
+      </ExternalPlansLink>
+    );
   }
 
   return (

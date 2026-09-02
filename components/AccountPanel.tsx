@@ -14,6 +14,8 @@ import ClearDeviceSection from "@/components/account/ClearDeviceSection";
 import GiveUpFreeProSection from "@/components/billing/GiveUpFreeProSection";
 import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { TIERS, type Tier } from "@/lib/billing/tiers";
+import ExternalPlansLink from "@/components/billing/ExternalPlansLink";
+import { useExternalPlansUrl } from "@/lib/billing/storefront";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { AccountStatus } from "@/components/account/types";
 import LoadingIndicator from "@/components/LoadingIndicator";
@@ -232,6 +234,8 @@ function SignedIn({
      it. Re-asking the server is the only way to redraw it truthfully. */
   onPlanChanged?: () => void;
 }) {
+  const externalUrl = useExternalPlansUrl();
+
   const items: HubItem[] = [
     {
       href: "/account/profile",
@@ -282,8 +286,24 @@ function SignedIn({
       <HubMenu items={items} />
       {IS_MOBILE_BUILD && (
         <p className="mt-3 text-[13px] leading-5 text-slate-500">
-          You are on {planName(status.tier)}. Subscriptions are managed on {WEB_HOME}, not in the
-          app — anything you buy there works here straight away.
+          You are on {planName(status.tier)}.{" "}
+          {externalUrl ? (
+            <>
+              Subscriptions are managed on{" "}
+              <ExternalPlansLink
+                url={externalUrl}
+                className="font-medium text-indigo-700 underline underline-offset-2"
+              >
+                {WEB_HOME}
+              </ExternalPlansLink>
+              , and anything you buy there works here straight away.
+            </>
+          ) : (
+            <>
+              Subscriptions are managed on {WEB_HOME}, not in the app — anything you buy there
+              works here straight away.
+            </>
+          )}
         </p>
       )}
       {/*

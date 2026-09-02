@@ -14,6 +14,13 @@ import UIKit
   and the only place a script's first check of `Capacitor.Plugins.NativeChrome`
   or `Capacitor.Plugins.SpeechRecognition` is guaranteed to already find it.
 
+  Storefront is the third and has no npm package either. It answers which App
+  Store the app was bought from, which decides whether it may show a link to
+  the website's plan pages at all — see lib/billing/storefront.ts. Registering
+  it here matters for the same reason as the others and one of its own: the
+  web side asks the moment an account screen draws, and a plugin that is not
+  there yet answers "no storefront", which it reads as "no link".
+
   The same override point is also where the bar's height is kept honest
   across rotation: viewSafeAreaInsetsDidChange is a UIViewController callback
   the plugin has no way to receive on its own, since it owns a view rather
@@ -22,10 +29,12 @@ import UIKit
 final class MainViewController: CAPBridgeViewController {
   private let nativeChrome = NativeChromePlugin()
   private let speechRecognition = SpeechRecognitionPlugin()
+  private let storefront = StorefrontPlugin()
 
   override func capacitorDidLoad() {
     bridge?.registerPluginInstance(nativeChrome)
     bridge?.registerPluginInstance(speechRecognition)
+    bridge?.registerPluginInstance(storefront)
   }
 
   override func viewDidLoad() {

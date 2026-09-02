@@ -17,6 +17,20 @@
   Static rather than by building: `npm run build:mobile` takes minutes and is
   already in CI. This runs in milliseconds on every `npm test`, which is where
   somebody adding a "Subscribe" button will actually meet it.
+
+  ---------------------------------------------------------------------------
+  The app may now link out — from some countries
+
+  A US court held Apple in contempt in April 2025 over the part of 3.1.1 that
+  bans linking to an external purchase page, and Apple changed the US
+  guidelines the next day. So the app does link to bandup.life, but only on the
+  storefronts where that is lawful; everywhere else it still says the sentence
+  and offers nothing to press.
+
+  That gate is now the thing most worth protecting, and it is easy to lose by
+  accident: deleting one condition turns a US-only link into a worldwide one,
+  which looks correct in every simulator and is a rejection in Hong Kong. The
+  two tests at the bottom hold the shape of it.
 */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -103,5 +117,53 @@ test("the flag is read from the environment, never hard-coded", () => {
   assert.ok(
     !/SECRET|KEY|TOKEN/.test(source),
     "lib/platform.ts must not name a secret; it ships to the browser",
+  );
+});
+
+test("the external link is gated on the storefront, and starts closed", () => {
+  const source = readFileSync(join(ROOT, "lib", "billing", "storefront.ts"), "utf8");
+
+  assert.match(
+    source,
+    /EXTERNAL_LINK_STOREFRONTS\.has\(/,
+    "the plans URL must be gated on the storefront allow-list, not returned unconditionally",
+  );
+
+  /*
+    The default has to be "no link", because the first render happens before
+    StoreKit has answered. Starting at `true` would show the link everywhere
+    for a frame and then withdraw it — visible, wrong, and worst on the one
+    device where somebody is deciding whether to approve the app.
+  */
+  assert.match(
+    source,
+    /useState\(false\)/,
+    "useExternalPlansUrl must start with no link and only ever open, never close",
+  );
+});
+
+test("nothing builds an external plans URL without asking whether it may", () => {
+  const offenders = [];
+  for (const dir of ["app", "components", "lib"]) {
+    for (const file of sources(join(ROOT, dir))) {
+      const rel = relative(ROOT, file).replace(/\\/g, "/");
+      if (rel === "lib/billing/storefront.ts") continue;
+      const source = readFileSync(file, "utf8");
+      if (!source.includes("ExternalPlansLink")) continue;
+      /*
+        The component itself is the renderer and takes the URL as a prop; every
+        other file that names it has to have got that URL from the hook, which
+        is the only thing that consults the storefront.
+      */
+      if (rel === "components/billing/ExternalPlansLink.tsx") continue;
+      if (!source.includes("useExternalPlansUrl")) offenders.push(rel);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `these link out of the app without going through the storefront gate:\n  ${offenders.join(
+      "\n  ",
+    )}`,
   );
 });
