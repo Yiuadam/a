@@ -10,7 +10,7 @@ import {
   GLASS_PERFORMANCE_QUERY,
   supportsDetailedGlass,
 } from "@/lib/glass-performance";
-import { isMiniProgramShell } from "@/lib/platform";
+import { IS_MOBILE_BUILD, isMiniProgramShell } from "@/lib/platform";
 
 const FILTER_ID = "bandup-live-glass-refraction";
 /* A bevel confined to its own band at the rim, and nothing else — no dome,
@@ -705,6 +705,24 @@ function supportsDetailedLiveRefraction() {
     reason for declining has nothing to do with the pointer.
   */
   if (isMiniProgramShell()) return false;
+  /*
+    And paused inside the iOS app, on the owner's instruction, while the native
+    chrome settles. Build-time rather than a capability check, because this is a
+    decision rather than a limitation: the phones that run this app are the
+    fastest hardware the lens has, and every gate below would happily say yes.
+
+    The app's top bar is a real UIGlassEffect now, so the one surface that most
+    wanted a lens is already refracting for real, natively. What is left in the
+    web layer are the smaller segmented controls, and a per-frame displacement
+    filter underneath a native bar doing the same thing properly is paying twice
+    for one effect.
+
+    Nothing about the controls themselves changes. The track, its rim and the
+    knob are ordinary CSS glass and draw exactly as they do on an engine that
+    never supported the lens — which is the path this file has always had for
+    browsers that cannot displace anything.
+  */
+  if (IS_MOBILE_BUILD) return false;
 
   const browser = navigator as PerformanceNavigator;
   return supportsDetailedGlass({
@@ -800,6 +818,12 @@ function lensPreferencesAllow() {
     somebody else's chrome.
   */
   if (isMiniProgramShell()) return false;
+  /* Paused in the iOS app as well, and for the reason spelled out above
+     supportsDetailedLiveRefraction rather than repeated here: the bar it used to
+     sit under is native glass now, so the web lens is a second rendering of an
+     effect the platform is already doing properly. Both entry points have to
+     decline, or the clone path would keep running where the detailed one stops. */
+  if (IS_MOBILE_BUILD) return false;
   return !(navigator as PerformanceNavigator).connection?.saveData;
 }
 

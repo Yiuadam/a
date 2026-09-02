@@ -83,7 +83,17 @@ test("the lens declines inside the shell, through the gate both engines share", 
   // a lens bends what is behind it and inside a web-view that is another
   // app's chrome.
   assert.match(refraction, /if \(isMiniProgramShell\(\)\) return false;/);
-  assert.match(refraction, /import \{ isMiniProgramShell \} from "@\/lib\/platform";/);
+  /*
+    Matched as one name among however many the import happens to carry, rather
+    than as the exact line it used to be. What this test is about is that the
+    shell check comes from lib/platform and is actually called; it broke when a
+    second name was added beside it, which told us nothing about the shell and
+    only that somebody had edited a neighbouring import.
+  */
+  assert.match(
+    refraction,
+    /import \{[^}]*\bisMiniProgramShell\b[^}]*\} from "@\/lib\/platform";/,
+  );
 
   /*
     And through lensPreferencesAllow, which the split path now calls instead
