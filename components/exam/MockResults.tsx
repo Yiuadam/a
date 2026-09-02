@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import BandBadge from "@/components/BandBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
-import Review from "@/components/Review";
+import { SpeakingReport, WritingReport } from "@/components/exam/ExaminerReport";
+import ImprovementPlan, { type PlanGroup } from "@/components/exam/ImprovementPlan";
+import ModuleSection from "@/components/exam/ModuleSection";
+import ObjectiveReport, { type ObjectivePaper } from "@/components/exam/ObjectiveReport";
 import { postJSON } from "@/lib/api";
-import { bandLabel } from "@/lib/band";
 import {
   MODULE_NAMES,
   listeningPaper,
@@ -15,20 +17,33 @@ import {
   overallFrom,
   readingPaper,
   readingQuestions,
+  sittingGroups,
   writingBand,
   writingTask,
   type MockMarks,
   type MockSession,
 } from "@/lib/exam/mock";
+import {
+  markPapers,
+  marksToNextBand,
+  observations,
+  type MarkedQuestion,
+  type Observation,
+} from "@/lib/exam/breakdown";
 import { testAdvice } from "@/lib/advice";
 import { buildReview } from "@/lib/review";
+import { useProfile } from "@/lib/hooks";
 import { addMockReport, addResult } from "@/lib/store";
 import { savedAnswers } from "@/lib/results";
-import type { ModuleResultReview, WritingGrade } from "@/lib/types";
+import type {
+  ModuleResultReview,
+  WritingGrade,
+  WritingResultAttempt,
+} from "@/lib/types";
 
 /*
   The report at the end of a sitting: four bands, an overall, and everything
-  that was wrong.
+  behind all five.
 
   ---------------------------------------------------------------------------
   The overall band is withheld rather than approximated
@@ -41,7 +56,88 @@ import type { ModuleResultReview, WritingGrade } from "@/lib/types";
   So the two objective bands are reported in full, the modules that could not be
   marked are named, and the overall is absent with a sentence saying why. A
   report that admits a gap is worth more than one that fills it.
+
+  ---------------------------------------------------------------------------
+  Why the report is this long
+
+  Because the sitting is two and three-quarter hours and this is what it was
+  for. A band on its own says where a candidate is; it says nothing about how
+  to move, and the app already owns the thing that does — every question in the
+  bank carries an explanation, and the content validator fails the build
+  without one. This screen is the moment those exist for, so all eighty are
+  here, right ones as well as wrong, with what the candidate put beside what
+  the answer was.
+
+  Length is the cost of that, and it is paid with folds rather than with
+  cutting: each module is closed until it is asked for, and its heading carries
+  the band, the raw score and the distance to the next half band, which is what
+  most candidates came for.
+
+  ---------------------------------------------------------------------------
+  Why the writing feedback is read from the archive rather than held here
+
+  The marking runs once, in an effect that is skipped when the session already
+  has marks. That is right — nobody should pay to have the same essay read
+  twice — but it used to mean that a candidate who reloaded the results screen
+  found the examiner's four criteria gone, because they had only ever lived in
+  this component's state.
+
+  The sitting writes them into the results archive as it marks, so they are
+  read back from there instead, through the store this app already subscribes
+  to everywhere else. Marking populates it and a reload finds it populated, so
+  there is one path rather than two, and no re-marking and no invention on
+  either.
 */
+
+/** One module's papers, with everything the report needs to draw them again. */
+function objectivePapers(
+  ids: string[],
+  kind: "listening" | "reading",
+): ObjectivePaper[] {
+  const out: ObjectivePaper[] = [];
+  let start = 1;
+  ids.forEach((id, index) => {
+    const test = kind === "listening" ? listeningPaper(id) : readingPaper(id);
+    if (!test) return;
+    const groups = sittingGroups(test.id, test.questions);
+    const questions = groups.flatMap((group) => group.questions);
+    out.push({
+      id: test.id,
+      label: kind === "listening" ? `Part ${index + 1}` : `Passage ${index + 1}`,
+      title: test.title,
+      questions,
+      groups,
+      start,
+      source:
+        "passage" in test
+          ? { kind: "reading", passage: test.passage }
+          : { kind: "listening", script: test.script },
+    });
+    start += questions.length;
+  });
+  return out;
+}
+
+/**
+ * The line under a module's heading: what the paper was, and how close the
+ * next half band came to being the one on the badge.
+ */
+function objectiveNote(
+  module: "listening" | "reading",
+  papers: ObjectivePaper[],
+  raw: number,
+  total: number,
+): string {
+  const shape =
+    module === "listening"
+      ? `${papers.length} recordings`
+      : `${papers.length} passages`;
+  const next = marksToNextBand(raw, total, module);
+  const reach = next
+    ? ` ${next.marks} more ${next.marks === 1 ? "mark" : "marks"} would have been band ${next.band}.`
+    : "";
+  return `${shape}, ${total} questions.${reach}`;
+}
 
 export default function MockResults({
   session,
@@ -53,10 +149,14 @@ export default function MockResults({
   onRestart: () => void;
 }) {
   const [grading, setGrading] = useState(session.marks === null);
-  const [writingGrades, setWritingGrades] = useState<(WritingGrade | null)[]>([]);
+  const profile = useProfile();
   const started = useRef(false);
   const listeningSet = useMemo(() => listeningQuestions(session.paper), [session.paper]);
   const readingSet = useMemo(() => readingQuestions(session.paper), [session.paper]);
+  const tasks = useMemo(
+    () => session.paper.writing.map((id) => writingTask(id)).filter((t) => t !== undefined),
+    [session.paper.writing],
+  );
 
   const mark = useCallback(async () => {
     const objective = markObjective(session.paper, session.answers);
@@ -67,7 +167,6 @@ export default function MockResults({
       marking, which answers 402 — an ordinary state of affairs, not a fault,
       and one the report is built to describe.
     */
-    const tasks = session.paper.writing.map((id) => writingTask(id)).filter((t) => t !== undefined);
     const grades = await Promise.all(
       tasks.map(async (task) => {
         const essay = session.essays[task.id] ?? "";
@@ -84,7 +183,11 @@ export default function MockResults({
         }
       }),
     );
-    setWritingGrades(grades);
+
+    const attempts: WritingResultAttempt[] = tasks.flatMap((task, index) => {
+      const grade = grades[index];
+      return grade ? [{ task, response: session.essays[task.id] ?? "", grade }] : [];
+    });
 
     /*
       A writing band needs at least one marked task. Two nulls means the module
@@ -158,15 +261,7 @@ export default function MockResults({
           },
         };
       } else if (module === "writing") {
-        review = {
-          kind: "writing",
-          attempts: tasks.flatMap((task, index) => {
-            const grade = grades[index];
-            return grade
-              ? [{ task, response: session.essays[task.id] ?? "", grade }]
-              : [];
-          }),
-        };
+        review = { kind: "writing", attempts };
       }
       addResult({
         module,
@@ -186,13 +281,74 @@ export default function MockResults({
       completedAt: date,
       marks,
     });
-  }, [session, onMarks, listeningSet, readingSet]);
+  }, [session, tasks, onMarks, listeningSet, readingSet]);
 
   useEffect(() => {
     if (session.marks !== null || started.current) return;
     started.current = true;
     void mark();
   }, [session.marks, mark]);
+
+  /*
+    The examiner's report on the two essays, from the archive the marking wrote
+    it to — see the note at the top of the file. Empty is a real answer: it is
+    what an unmarked writing module looks like, and what a candidate who wrote
+    nothing looks like.
+  */
+  const writingAttempts = useMemo<WritingResultAttempt[]>(() => {
+    const saved = profile.results.find((r) => r.testId === `${session.id}-writing`);
+    return saved?.review?.kind === "writing" ? saved.review.attempts : [];
+  }, [profile.results, session.id]);
+
+  const listeningPapersList = useMemo(
+    () => objectivePapers(session.paper.listening, "listening"),
+    [session.paper.listening],
+  );
+  const readingPapersList = useMemo(
+    () => objectivePapers(session.paper.reading, "reading"),
+    [session.paper.reading],
+  );
+  const listeningMarked = useMemo(
+    () => markPapers(listeningPapersList, session.answers),
+    [listeningPapersList, session.answers],
+  );
+  const readingMarked = useMemo(
+    () => markPapers(readingPapersList, session.answers),
+    [readingPapersList, session.answers],
+  );
+
+  /*
+    Everything the sitting will support saying about what to do next, and
+    nothing beyond it. The writing line is the examiner's own words about the
+    criterion it marked lowest, and it appears only where one criterion really
+    is lower than another — four bands of 6 have no weakest of the four, and
+    naming one anyway would be inventing a finding.
+  */
+  const plan = useMemo<PlanGroup[]>(() => {
+    const groups: PlanGroup[] = [];
+    const listening = observations("listening", listeningMarked, listeningPapersList);
+    if (listening.length > 0) groups.push({ title: "Listening", observations: listening });
+    const reading = observations("reading", readingMarked, readingPapersList);
+    if (reading.length > 0) groups.push({ title: "Reading", observations: reading });
+
+    const criteria = writingAttempts.flatMap((attempt) =>
+      attempt.grade.criteria.map((c) => ({ ...c, task: attempt.task.task })),
+    );
+    const ranked = [...criteria].sort((a, b) => a.band - b.band);
+    const lowest = ranked[0];
+    const highest = ranked[ranked.length - 1];
+    if (lowest && highest && lowest.band < highest.band) {
+      const writing: Observation[] = [
+        {
+          id: "writing-lowest",
+          fact: `On Task ${lowest.task} the examiner marked ${lowest.name} lowest, at band ${lowest.band}.`,
+          fix: lowest.comment,
+        },
+      ];
+      groups.push({ title: "Writing", observations: writing });
+    }
+    return groups;
+  }, [listeningMarked, readingMarked, listeningPapersList, readingPapersList, writingAttempts]);
 
   if (grading || session.marks === null) {
     return (
@@ -207,33 +363,22 @@ export default function MockResults({
   }
 
   const marks = session.marks;
-  const rows = [
-    { key: "listening" as const, mark: marks.listening },
-    { key: "reading" as const, mark: marks.reading },
-    { key: "writing" as const, mark: marks.writing },
-    { key: "speaking" as const, mark: marks.speaking },
-  ];
-
-  /*
-    The sitting's papers flattened back into one question list per module, which
-    is what the candidate actually sat. `buildReview` and `testAdvice` both take
-    a QuestionSet, and a flat array is one.
-
-    Through `listeningQuestions`/`readingQuestions` so the ids are the renamed
-    ones the answers were stored under. Flattening the papers directly here was
-    the first version and it was wrong twice: three passages each contributing a
-    `q1` gave React duplicate keys, and every lookup into `answers` missed — so
-    the report told a candidate they had got every question wrong, including the
-    ones it had just counted as right.
-  */
-  const listeningReview = buildReview(listeningSet, session.answers);
-  const readingReview = buildReview(readingSet, session.answers);
+  const wrongOverall = countWrong(listeningMarked) + countWrong(readingMarked);
+  const fallback =
+    wrongOverall === 0
+      ? "You did not lose a mark in Listening or Reading, so there is nothing here for your mistakes to point at."
+      : "Your mistakes are spread across the question types and the parts of the paper rather than gathering in any one of them, so there is no single task to work on. The question-by-question review below, one explanation at a time, is where the marks are.";
 
   return (
     <div className="space-y-5">
       <section className="card flex flex-col items-center gap-5 py-7 sm:flex-row sm:justify-center sm:gap-10">
         {marks.overall !== null ? (
-          <BandBadge band={marks.overall} caption={bandLabel(marks.overall)} />
+          /*
+            No caption, so the badge prints its own — the CEFR level this band
+            sits at. It used to be handed `bandLabel`, which is the line the
+            badge already prints above it, so the disc said "Good user" twice.
+          */
+          <BandBadge band={marks.overall} />
         ) : (
           <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-slate-300 text-center text-xs leading-4 text-slate-400">
             no overall band
@@ -268,73 +413,85 @@ export default function MockResults({
         </div>
       </section>
 
-      <section className="card">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Band by module</h2>
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {rows.map(({ key, mark }) => (
-            <li
-              key={key}
-              className="flex items-baseline justify-between rounded-lg border border-slate-200 px-3 py-2"
-            >
-              <span className="text-sm text-slate-700">{MODULE_NAMES[key]}</span>
-              {mark ? (
-                <span className="text-sm font-semibold tabular-nums text-slate-900">
-                  {mark.band}
-                  {mark.total !== undefined && (
-                    <span className="ml-2 text-xs font-normal text-slate-500">
-                      {mark.raw}/{mark.total}
-                    </span>
-                  )}
-                </span>
-              ) : (
-                <span className="text-xs text-slate-400">not marked</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <ImprovementPlan groups={plan} fallback={fallback} />
 
-      {writingGrades.some((g) => g !== null) && (
-        <section className="card space-y-4">
-          <h2 className="text-sm font-semibold text-slate-900">What the examiner said</h2>
-          {writingGrades.map((grade, i) =>
-            grade === null ? null : (
-              <div key={i} className="space-y-2 border-t border-slate-100 pt-3 first:border-0 first:pt-0">
-                <p className="text-sm font-medium text-slate-800">
-                  Task {i + 1} — band {grade.overallBand}
-                </p>
-                <ul className="space-y-1">
-                  {grade.criteria.map((c) => (
-                    <li key={c.name} className="text-sm leading-6 text-slate-600">
-                      <span className="font-medium text-slate-800">
-                        {c.name} {c.band}
-                      </span>{" "}
-                      — {c.comment}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ),
-          )}
-        </section>
-      )}
+      <ModuleSection
+        title="Listening"
+        band={marks.listening.band}
+        raw={marks.listening.raw}
+        total={marks.listening.total}
+        note={objectiveNote(
+          "listening",
+          listeningPapersList,
+          marks.listening.raw ?? 0,
+          marks.listening.total ?? listeningMarked.length,
+        )}
+      >
+        <ObjectiveReport
+          papers={listeningPapersList}
+          marked={listeningMarked}
+          answers={session.answers}
+        />
+      </ModuleSection>
 
-      {/*
-        Every question that was wrong, with the explanation. One review per
-        module rather than one per recording, because the candidate sat one
-        forty-question listening paper — splitting it into four would restate
-        the numbering problem the sitting exists to avoid.
-      */}
-      <Review
-        items={listeningReview}
-        advice={testAdvice("listening", listeningSet, listeningReview.map((r) => r.id), marks.listening.band)}
-        total={marks.listening.total ?? listeningSet.length}
-      />
-      <Review
-        items={readingReview}
-        advice={testAdvice("reading", readingSet, readingReview.map((r) => r.id), marks.reading.band)}
-        total={marks.reading.total ?? readingSet.length}
-      />
+      <ModuleSection
+        title="Reading"
+        band={marks.reading.band}
+        raw={marks.reading.raw}
+        total={marks.reading.total}
+        note={objectiveNote(
+          "reading",
+          readingPapersList,
+          marks.reading.raw ?? 0,
+          marks.reading.total ?? readingMarked.length,
+        )}
+      >
+        <ObjectiveReport
+          papers={readingPapersList}
+          marked={readingMarked}
+          answers={session.answers}
+        />
+      </ModuleSection>
+
+      <ModuleSection
+        title="Writing"
+        band={marks.writing?.band ?? null}
+        note={writingNote(marks.writing !== null, writingAttempts)}
+        openLabel="See the examiner's marking"
+      >
+        <WritingReport
+          tasks={tasks}
+          attempts={writingAttempts}
+          essays={session.essays}
+          unmarked={marks.writing === null}
+        />
+      </ModuleSection>
+
+      <ModuleSection
+        title="Speaking"
+        band={marks.speaking?.band ?? null}
+        note={
+          marks.speaking === null
+            ? "A three-part interview. It was not marked for this sitting."
+            : "A three-part interview, marked by the AI examiner."
+        }
+        openLabel="See what was marked"
+      >
+        <SpeakingReport band={marks.speaking?.band ?? null} />
+      </ModuleSection>
     </div>
   );
+}
+
+function countWrong(marked: MarkedQuestion[]): number {
+  return marked.filter((m) => !m.correct).length;
+}
+
+function writingNote(marked: boolean, attempts: WritingResultAttempt[]): string {
+  if (!marked) return "Two tasks. They were not marked for this sitting.";
+  if (attempts.length === 0) return "Two tasks, marked by the AI examiner.";
+  const bands = attempts
+    .map((a) => `Task ${a.task.task} band ${a.grade.overallBand}`)
+    .join(", ");
+  return `${bands}. Task 2 counts double, which is the official weighting.`;
 }

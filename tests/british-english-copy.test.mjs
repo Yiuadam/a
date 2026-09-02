@@ -24,6 +24,7 @@ const contentLibraries = [
   "lib/completion-badges.ts",
   "lib/descriptors.ts",
   "lib/drills.ts",
+  "lib/exam/breakdown.ts",
   "lib/exam/display.ts",
   "lib/exam/mock.ts",
   "lib/glossary.ts",
