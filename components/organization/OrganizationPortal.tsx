@@ -31,6 +31,7 @@ import {
   type OrganizationLivePreviewRole,
 } from "@/lib/organizations/preview-client";
 import { sittingReviewHref } from "@/lib/organizations/student-links";
+import { shareableOrigin } from "@/lib/platform";
 import {
   EmptyState,
   GlassSection,
@@ -2779,7 +2780,7 @@ function InvitationForm({
             token,
           });
           if (!result?.invitation) return;
-          setLink(`${window.location.origin}/organization/invite?request=${encodeURIComponent(result.invitation.requestId)}#token=${encodeURIComponent(token)}`);
+          setLink(`${shareableOrigin()}/organization/invite?request=${encodeURIComponent(result.invitation.requestId)}#token=${encodeURIComponent(token)}`);
           setCopied(false);
         }}
       >
@@ -2902,7 +2903,7 @@ function UsernameInvitationForm({
               const token = invitationToken();
               const response = await act("invite_member", { organizationId, userId: result.userId, role, token });
               if (!response?.invitation) return;
-              const link = `${window.location.origin}/organization/invite?request=${encodeURIComponent(response.invitation.requestId)}#token=${encodeURIComponent(token)}`;
+              const link = `${shareableOrigin()}/organization/invite?request=${encodeURIComponent(response.invitation.requestId)}#token=${encodeURIComponent(token)}`;
               if (onInvited) onInvited(link);
               else setOwnLink(link);
               setCopied(false);

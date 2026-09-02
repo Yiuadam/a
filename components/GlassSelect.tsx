@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { IS_MOBILE_BUILD } from "@/lib/platform";
 
 export interface GlassSelectOption {
   value: string;
@@ -215,7 +216,22 @@ export default function GlassSelect({
           role="dialog"
           aria-modal="true"
           aria-labelledby={dialogTitleId}
-          className="fixed inset-0 z-[120] flex min-h-dvh flex-col bg-surface/96 text-slate-900 backdrop-blur-2xl"
+          /*
+            Full-bleed on the web; below the bar in the app.
+
+            This is the only full-screen overlay in the app that covered the
+            top of the screen — .nav-paper and the notification backdrop both
+            hang off var(--header-h) already. On the web that was harmless,
+            because the dialog's own header replaces the site's. In the app the
+            bar is a native view drawn above the web view, so it cannot be
+            covered: it stayed on top and swallowed every touch in that band,
+            including the one on this dialog's Close button. Choosing an option
+            still dismissed, so nobody was trapped — but there was no way to
+            back out without committing to something.
+          */
+          className={`fixed z-[120] flex min-h-dvh flex-col bg-surface/96 text-slate-900 backdrop-blur-2xl ${
+            IS_MOBILE_BUILD ? "inset-x-0 bottom-0 top-[var(--header-h)]" : "inset-0"
+          }`}
         >
           <header className="flex items-center justify-between gap-4 border-b border-slate-300/70 px-4 py-3.5 sm:px-6">
             <div className="min-w-0">

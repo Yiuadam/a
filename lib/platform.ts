@@ -41,6 +41,26 @@ export const IS_MOBILE_BUILD = process.env.NEXT_PUBLIC_MOBILE_BUILD === "1";
 export const WEB_HOME = "bandup.life";
 
 /**
+ * The origin to put in a link someone else will open.
+ *
+ * `window.location.origin` is the obvious answer and the wrong one inside the
+ * iOS app, where it is `capacitor://localhost` — a scheme that exists only on
+ * that one phone. An organisation invite built from it is a link no invitee
+ * can open, which is a failure the manager who sent it never sees.
+ *
+ * The mobile build already knows where the real site is, because every API
+ * call it makes goes there; that is the value to reach for. On the web the
+ * variable is empty and the current origin is right, which also keeps preview
+ * deployments generating links back to themselves rather than to production.
+ */
+export function shareableOrigin(): string {
+  const configured = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
+  if (configured) return configured;
+  if (typeof window !== "undefined") return window.location.origin;
+  return `https://${WEB_HOME}`;
+}
+
+/**
  * True when the page is running inside the WeChat mini program's web-view.
  *
  * Runtime rather than build-time, unlike IS_MOBILE_BUILD, and it has to be:

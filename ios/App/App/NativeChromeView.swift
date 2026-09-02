@@ -50,6 +50,15 @@ final class NativeChromeView: UIView {
   private let menuButton = UIButton(type: .system)
   private let accountButton = UIButton(type: .system)
   private let themeTrack: UIVisualEffectView
+  /* The track's outline and fill, in a view of their own rather than on
+     themeTrack.layer where the border started out. A view draws its own
+     layer's border after every subview it has, so an outline there is painted
+     straight across whatever sits on top of the track — and the knob is meant
+     to dome over that outline and break it, which a border drawn last can
+     never allow. Demoting it to the bottom-most subview costs one plain
+     UIView and buys the ordering the shape needs. It carries the fill for the
+     same reason: see applyTheme() for why the track needs a colour at all. */
+  private let trackOutline = UIView()
   private let themeStack = UIStackView()
   private var themeButtons: [UIButton] = []
   private let knob: UIVisualEffectView
@@ -463,6 +472,12 @@ final class NativeChromeView: UIView {
   private static let trackPadding: CGFloat = 2
   private static var stopPitch: CGFloat { stopSize + stopGap }
 
+  /// How much of the theme's accent the track's surface carries — enough to
+  /// give the knob's rim something to bend, and no more. Tuned against the
+  /// simulator rather than derived: see applyTheme() for what it is for and
+  /// what going too far costs.
+  private static let trackTintOpacity: CGFloat = 0.14
+
   /// The account circle's own diameter, sized directly since nothing but its
   /// glyph sits inside it.
   private static let accountSize: CGFloat = 40
@@ -471,21 +486,56 @@ final class NativeChromeView: UIView {
     themeTrack.translatesAutoresizingMaskIntoConstraints = false
     if #available(iOS 26.0, *) {
       themeTrack.cornerConfiguration = .capsule()
+      /*
+        Nothing along this chain clips, and that is the whole trick: the knob
+        is wider and taller than the track it lives in, so every box between
+        it and the bar has to let it through. The glass keeps its capsule
+        shape without any clipping because cornerConfiguration tells the
+        material what shape to render, rather than a rectangle being cut down
+        to one afterwards.
+
+        Below 26 that is not true — the shape there comes from
+        layer.cornerRadius, and only clipsToBounds makes a blur honour it — so
+        that path keeps clipping and keeps the knob inside the track, at the
+        size it has always been. A fallback that does not dome is the point of
+        having one; a rectangular blur where a pill should be is not.
+      */
+      themeTrack.clipsToBounds = false
+      themeTrack.contentView.clipsToBounds = false
     } else {
       themeTrack.layer.cornerRadius = NativeChromeView.stopSize / 2 + NativeChromeView.trackPadding
+      themeTrack.clipsToBounds = true
     }
     themeTrack.layer.cornerCurve = .continuous
-    themeTrack.clipsToBounds = true
-    themeTrack.layer.borderWidth = 1
+
+    /* Pinned to fill the track and added before anything else, so it is the
+       bottom-most thing in it and the knob rides over it. It never takes a
+       touch: it is the track's own surface, and the gesture recogniser that
+       cares about touches there is on themeTrack itself. */
+    trackOutline.translatesAutoresizingMaskIntoConstraints = false
+    trackOutline.isUserInteractionEnabled = false
+    if #available(iOS 26.0, *) {
+      trackOutline.cornerConfiguration = .capsule()
+    } else {
+      trackOutline.layer.cornerRadius = NativeChromeView.stopSize / 2 + NativeChromeView.trackPadding
+    }
+    trackOutline.layer.cornerCurve = .continuous
+    trackOutline.layer.borderWidth = 1
+    themeTrack.contentView.addSubview(trackOutline)
 
     themeStack.axis = .horizontal
     themeStack.spacing = NativeChromeView.stopGap
     themeStack.alignment = .center
     themeStack.translatesAutoresizingMaskIntoConstraints = false
 
-    /* The knob goes in first so it sits under the glyphs. The web control
-       spent a long time learning that a label read through frosted glass is a
-       smear; the same is true here, and the same answer applies. It is
+    /* The knob goes in after the track's surface and before the glyphs, which
+       is the only band in the stacking order that works: over the outline, so
+       the circle breaks it the way a thick lens laid on a drawn line does,
+       and under the icons, because the web control spent a long time learning
+       that a label read through frosted glass is a smear and the same is true
+       here. Both halves of that matter now that the knob is wider than a
+       stop: it overlaps its neighbour's button by a few points, and only this
+       ordering keeps that neighbour's glyph crisp. It is
        interactive despite that — isInteractive on its UIGlassEffect is what
        gives it Apple's own press-and-refract, and that only fires for a
        touch the knob view itself actually receives. Sitting under the stop
@@ -509,7 +559,7 @@ final class NativeChromeView: UIView {
     if #available(iOS 26.0, *) {
       knob.cornerConfiguration = .capsule()
     } else {
-      knob.layer.cornerRadius = NativeChromeView.stopSize / 2
+      knob.layer.cornerRadius = NativeChromeView.knobRestingSize / 2
     }
     knob.layer.cornerCurve = .continuous
     knob.clipsToBounds = true
@@ -517,10 +567,11 @@ final class NativeChromeView: UIView {
     themeTrack.contentView.addSubview(themeStack)
 
     let leading = knob.leadingAnchor.constraint(
-      equalTo: themeTrack.contentView.leadingAnchor, constant: NativeChromeView.trackPadding
+      equalTo: themeTrack.contentView.leadingAnchor,
+      constant: NativeChromeView.knobLeading(atStop: 0)
     )
-    let width = knob.widthAnchor.constraint(equalToConstant: NativeChromeView.stopSize)
-    let height = knob.heightAnchor.constraint(equalToConstant: NativeChromeView.stopSize)
+    let width = knob.widthAnchor.constraint(equalToConstant: NativeChromeView.knobRestingSize)
+    let height = knob.heightAnchor.constraint(equalToConstant: NativeChromeView.knobRestingSize)
     knobLeading = leading
     knobWidth = width
     knobHeight = height
@@ -529,6 +580,11 @@ final class NativeChromeView: UIView {
       knob.centerYAnchor.constraint(equalTo: themeTrack.contentView.centerYAnchor),
       width,
       height,
+
+      trackOutline.leadingAnchor.constraint(equalTo: themeTrack.contentView.leadingAnchor),
+      trackOutline.trailingAnchor.constraint(equalTo: themeTrack.contentView.trailingAnchor),
+      trackOutline.topAnchor.constraint(equalTo: themeTrack.contentView.topAnchor),
+      trackOutline.bottomAnchor.constraint(equalTo: themeTrack.contentView.bottomAnchor),
 
       themeStack.leadingAnchor.constraint(equalTo: themeTrack.contentView.leadingAnchor, constant: NativeChromeView.trackPadding),
       themeStack.trailingAnchor.constraint(equalTo: themeTrack.contentView.trailingAnchor, constant: -NativeChromeView.trackPadding),
@@ -677,7 +733,38 @@ final class NativeChromeView: UIView {
     divider.backgroundColor = colors.divider
 
     accountEffectView.layer.borderColor = colors.accountBorder.cgColor
-    themeTrack.layer.borderColor = colors.trackBorder.cgColor
+    trackOutline.layer.borderColor = colors.trackBorder.cgColor
+
+    /*
+      A tint on the track's surface, and this is the piece that makes the
+      refraction visible rather than merely correct.
+
+      Apple's own Liquid Glass material shots all share one thing: the glass
+      sits over a saturated band of colour, and what sells the material is
+      watching that band pinch and slide as it passes under the rim. This
+      track had no colour in it at all — clear glass over a bar that is itself
+      a near-uniform wash — so the knob was bending its backdrop faithfully
+      and there was simply nothing in that backdrop to be seen bending. That
+      is the honest answer to "where is the refraction": the physics was
+      running against a blank wall.
+
+      So the surface underneath carries the theme's own accent, thinned to
+      about a seventh. It has to stay far below the glyphs in contrast,
+      because it is something for the lens to distort and not a coloured pill
+      competing with the icons — if the icons stop reading clearly it is too
+      strong. The knob stays untinted on purpose: it is the lens, the track is
+      what the lens has to bend, and pouring colour into both would put the
+      fill back inside the glass where it was smothering the material before.
+    */
+    if #available(iOS 26.0, *) {
+      trackOutline.backgroundColor =
+        colors.iconTint.withAlphaComponent(NativeChromeView.trackTintOpacity)
+    } else {
+      /* Nothing refracts down here, so a tint whose whole job is to be
+         refracted would be a colour change with nothing to show for it. The
+         fallback keeps the site's own neutral track instead. */
+      trackOutline.backgroundColor = nil
+    }
 
     /*
       Every theme rings the knob now, where the site rings only Dark.
@@ -732,16 +819,46 @@ final class NativeChromeView: UIView {
   /// edges of both axes, so the box grows about its own centre rather than
   /// leaning right and down the way a raw width/height increase would on
   /// anchors that are pinned by their leading and top edges.
-  private static let knobGrowthPerEdge: CGFloat = 5
+  private static let knobGrowthPerEdge: CGFloat = 3
 
-  /// The knob's size at rest and while held, and the corner radius that keeps
-  /// it a circle at both. The radius has to move with the size: pinned at
-  /// half the resting width, a knob grown by 14pt across arrived as a
-  /// squircle rather than a bigger circle, which is what a drop of water is
-  /// not. Growth is deliberately slight — the swell should read as the glass
-  /// thickening under a finger, not as the control changing size.
-  private static var knobRestingSize: CGFloat { stopSize }
-  private static var knobHeldSize: CGFloat { stopSize + knobGrowthPerEdge * 2 }
+  /*
+    The knob's size at rest and while held.
+
+    46 against a 34pt stop and a 38pt track, which is the measurement that
+    matters and the one this whole arrangement exists to allow: the circle is
+    8pt larger than the track is tall, so it stands 4pt proud of it top and
+    bottom and 4pt past either end. That is what the website's knob does, and
+    it is why it reads as a thick lens laid on the track rather than a disc
+    dropped into a slot — a circle that fits inside its container has no rim
+    to catch light on, because the container's own edge is always there first.
+
+    Below 26 it stays the stop's own size, where the track still clips and a
+    46pt knob would only arrive as a clipped stripe. Every offset downstream
+    is derived from this number rather than restated, so that path collapses
+    back to exactly the geometry it had before any of this: the centring term
+    below goes to zero when the knob is one stop wide.
+
+    Growth is the same 3pt an edge either way, deliberately slight — the swell
+    should read as the glass thickening under a finger, not as the control
+    changing size.
+  */
+  private static var knobRestingSize: CGFloat {
+    if #available(iOS 26.0, *) { return 46 }
+    return stopSize
+  }
+  private static var knobHeldSize: CGFloat { knobRestingSize + knobGrowthPerEdge * 2 }
+
+  /// Where the knob's leading edge belongs for a position along the track,
+  /// given in the same continuous stop index stopFraction(forTrackX:) yields
+  /// — whole numbers land on stops, anything between them is a drag in
+  /// flight. The trailing term is the entire centring correction: a knob
+  /// wider than a stop has to be pulled back by half the difference, or it
+  /// starts where the stop starts and hangs off the right of it instead of
+  /// sitting on it. Everything that positions the knob goes through here, so
+  /// there is one copy of that correction and no way to apply it twice.
+  private static func knobLeading(atStop fraction: CGFloat) -> CGFloat {
+    trackPadding + fraction * stopPitch - (knobRestingSize - stopSize) / 2
+  }
 
   /// How far, in points, a touch has to travel along the track before this
   /// reads as a drag rather than a tap. Below it, whichever stop button the
@@ -758,7 +875,7 @@ final class NativeChromeView: UIView {
   /// right after a drag has just committed a new one.
   private var restingKnobLeading: CGFloat {
     let index = NativeChromeView.themes.firstIndex(of: selectedTheme) ?? 0
-    return NativeChromeView.trackPadding + CGFloat(index) * NativeChromeView.stopPitch
+    return NativeChromeView.knobLeading(atStop: CGFloat(index))
   }
 
   /*
@@ -805,9 +922,14 @@ final class NativeChromeView: UIView {
   /// what the web version's own drag handling deliberately avoids.
   private func trackKnob(to point: CGPoint) {
     let fraction = stopFraction(forTrackX: point.x)
-    knobLeading?.constant = NativeChromeView.trackPadding
-      + fraction * NativeChromeView.stopPitch
-      - NativeChromeView.knobGrowthPerEdge
+    /* The growth offset and the centring offset are different corrections and
+       both apply: knobLeading(atStop:) centres the resting box on the stop,
+       and the extra step back by one edge's growth keeps the held box centred
+       on the same point as the resting one. Because both are subtractions
+       about the same centre, the knob's middle stays exactly where
+       stopFraction(forTrackX:) put the finger, held or not. */
+    knobLeading?.constant =
+      NativeChromeView.knobLeading(atStop: fraction) - NativeChromeView.knobGrowthPerEdge
     layoutIfNeeded()
   }
 

@@ -57,6 +57,30 @@
 import { clearProgressStore } from "@/lib/progress/storage";
 
 /*
+  Where the auth routes live, which is not "here" in the iOS app.
+
+  Every function below took `apiBase = ""`, and no caller passed one — the 51
+  call sites wrap their own path in apiUrl() and leave this argument alone. On
+  the web that is invisible, because "" and the site's own origin are the same
+  place. In the app they are not: the bundle is served from
+  capacitor://localhost, so a relative /api/auth/refresh resolved against the
+  bundle and never left the phone.
+
+  What that broke is worse than a failed request, because it is the request
+  nobody watches. authedFetch refreshes an expired token before the call the
+  caller actually cares about; when the refresh silently failed it cleared the
+  session and carried on unauthenticated, so a signed-in learner was quietly
+  signed out the moment their token aged out. revokeSession had the same
+  defect on sign-out, which meant the server was never told.
+
+  Read from the environment directly rather than through apiUrl(), because
+  lib/api.ts imports authedFetch from this file and importing it back would
+  close the cycle.
+*/
+const AUTH_API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/$/, "");
+
+
+/*
   Exported so components/account/ClearDeviceSection.tsx can keep it. That file
   wipes the whole origin and puts back a named list, which is the right
   direction to be wrong in — but it means anything not on the list is deleted,
@@ -170,7 +194,7 @@ export function clearSession(): void {
  * local clear below remains authoritative for the device: a network error
  * must never prevent someone from signing out of this browser.
  */
-export function revokeSession(apiBase = ""): void {
+export function revokeSession(apiBase = AUTH_API_BASE): void {
   const session = getSnapshot();
   if (!session) return;
   void fetch(`${apiBase}/api/auth/signout`, {
@@ -249,7 +273,7 @@ export function isExpired(session: Session | null, now = Date.now()): boolean {
   case the caller signs out rather than retrying, because a rejected refresh
   token does not become valid by being sent again.
 */
-export async function refreshSession(session: Session, apiBase = ""): Promise<Session | null> {
+export async function refreshSession(session: Session, apiBase = AUTH_API_BASE): Promise<Session | null> {
   if (!session.refreshToken) return null;
   try {
     const res = await fetch(`${apiBase}/api/auth/refresh`, {
@@ -279,7 +303,7 @@ export async function refreshSession(session: Session, apiBase = ""): Promise<Se
  */
 export async function upgradeLegacySession(
   session: Session,
-  apiBase = "",
+  apiBase = AUTH_API_BASE,
 ): Promise<Session | null> {
   if (looksLikeNativeSessionToken(session.accessToken)) return null;
   try {
@@ -311,7 +335,7 @@ export async function upgradeLegacySession(
 export async function authedFetch(
   input: string,
   init: RequestInit = {},
-  apiBase = "",
+  apiBase = AUTH_API_BASE,
 ): Promise<Response> {
   let session = getSnapshot();
 
