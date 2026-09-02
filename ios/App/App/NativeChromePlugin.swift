@@ -99,6 +99,7 @@ public class NativeChromePlugin: CAPPlugin, CAPBridgedPlugin {
   private func makeChromeView() -> NativeChromeView {
     let view = NativeChromeView(frame: .zero)
     view.translatesAutoresizingMaskIntoConstraints = false
+    view.onHome = { [weak self] in self?.notifyListeners("homeTapped", data: nil) }
     view.onMenu = { [weak self] in self?.notifyListeners("menuTapped", data: nil) }
     view.onAccount = { [weak self] in self?.notifyListeners("accountTapped", data: nil) }
     view.onTheme = { [weak self] theme in self?.notifyListeners("themeSelected", data: ["theme": theme]) }

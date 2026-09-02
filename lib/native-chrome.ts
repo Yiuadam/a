@@ -53,6 +53,7 @@ export function isNativeChromeAvailable(): boolean {
 }
 
 export async function enableNativeChrome(handlers: {
+  onHome: () => void;
   onMenu: () => void;
   onAccount: () => void;
   onTheme: (theme: string) => void;
@@ -60,8 +61,8 @@ export async function enableNativeChrome(handlers: {
     Rotation (or any other safe-area change) can move the bar's height after
     `enable` already resolved — see NativeChromePlugin's own heightChanged
     event. Optional because that is a concern for the one caller keeping a
-    spacer in step with the bar, not part of the three-tap contract every
-    other consumer would need.
+    spacer in step with the bar, not part of the tap contract every other
+    consumer would need.
   */
   onHeightChange?: (height: number) => void;
 }): Promise<{ height: number; dispose: () => void } | null> {
@@ -69,8 +70,19 @@ export async function enableNativeChrome(handlers: {
   if (!plugin) return null;
 
   const { height } = await plugin.enable();
+  /*
+    The one page token every page that fills the screen below the bar reads
+    — see --header-h in app/globals.css. There it is the web header's own
+    row height plus a zero env(safe-area-inset-top); here, inside the app,
+    it is this bridge's only reason to touch the DOM directly rather than
+    just handing the number to React: the real height is the row plus the
+    real inset, and nothing about a page's own layout effect would know the
+    difference between the two without it.
+  */
+  document.documentElement.style.setProperty("--header-h", `${height}px`);
 
   const handles = await Promise.all([
+    plugin.addListener("homeTapped", () => handlers.onHome()),
     plugin.addListener("menuTapped", () => handlers.onMenu()),
     plugin.addListener("accountTapped", () => handlers.onAccount()),
     plugin.addListener("themeSelected", (data) => {
@@ -79,7 +91,10 @@ export async function enableNativeChrome(handlers: {
     }),
     plugin.addListener("heightChanged", (data) => {
       const next = (data as { height?: unknown } | undefined)?.height;
-      if (typeof next === "number") handlers.onHeightChange?.(next);
+      if (typeof next === "number") {
+        document.documentElement.style.setProperty("--header-h", `${next}px`);
+        handlers.onHeightChange?.(next);
+      }
     }),
   ]);
 
@@ -89,6 +104,9 @@ export async function enableNativeChrome(handlers: {
     disposed = true;
     for (const handle of handles) void handle.remove();
     void plugin.disable();
+    // Leaving the last measured height behind would keep sizing every page
+    // as if the native bar were still there after it is gone.
+    document.documentElement.style.removeProperty("--header-h");
   };
 
   return { height, dispose };

@@ -25,6 +25,7 @@ import UIKit
 */
 final class NativeChromeView: UIView {
   /// Raised when the user taps a control the web app owns the response to.
+  var onHome: (() -> Void)?
   var onMenu: (() -> Void)?
   var onAccount: (() -> Void)?
   var onTheme: ((String) -> Void)?
@@ -59,8 +60,21 @@ final class NativeChromeView: UIView {
      constant on a leading constraint is resolved in the same pass that places
      the stops, whichever order the two happen in. */
   private var knobLeading: NSLayoutConstraint?
+  /// The knob's box, also as constraints — grown while a finger holds it and
+  /// restored on release, the same reasoning as knobLeading above but for
+  /// size rather than position. Both started as anonymous constants; a drag
+  /// that can animate them needs a handle on the actual constraint object.
+  private var knobWidth: NSLayoutConstraint?
+  private var knobHeight: NSLayoutConstraint?
+  /// Where, in themeTrack.contentView, the current press began — nil
+  /// whenever no finger is down. Read at release to tell a drag from a tap
+  /// that merely landed somewhere on the track; see handleKnobPress(_:).
+  private var knobPressOrigin: CGPoint?
   private let wordmark = UILabel()
   private let logoView = UIImageView()
+  /// The hit target for both of the above at once — see build() for why
+  /// they are its subviews rather than two views tapped separately.
+  private let homeButton = UIButton(type: .system)
   private let divider = UIView()
 
   private var selectedTheme = "warm"
@@ -246,6 +260,35 @@ final class NativeChromeView: UIView {
 
     let content = barEffectView.contentView
 
+    /* The website makes the logo and wordmark together one link to `/`; this
+       is that link's native equivalent, and it has to be one tap target for
+       the same reason it is one <a> there rather than two — a mark and a
+       word that both go to the same place are one control, not a pair that
+       happen to agree. Both become subviews of the button itself, the same
+       relationship configure() sets up for a single glyph below, rather
+       than a separate transparent view stacked on top of them, so there is
+       only ever one thing here for a touch — or VoiceOver — to find.
+       isAccessibilityElement is turned off on both explicitly rather than
+       left to their defaults, since a UILabel with text is its own
+       accessibility element by default and would otherwise still read out
+       "BandUp" as a second stop right next to the button announcing it. */
+    homeButton.translatesAutoresizingMaskIntoConstraints = false
+    homeButton.accessibilityLabel = "BandUp, home"
+    homeButton.accessibilityTraits = .button
+    homeButton.addTarget(self, action: #selector(homeTapped), for: .touchUpInside)
+    /* Its own press state, manufactured rather than inherited: the glyph
+       buttons below get theirs for free because a `.system` button dims
+       whatever it manages through setImage/setTitle, but logoView and
+       wordmark are plain subviews added by hand, which that dimming does
+       not reach. Fading the button itself instead of each child means both
+       fade together as the one surface they are meant to read as. */
+    homeButton.addTarget(self, action: #selector(homePressBegan), for: [.touchDown, .touchDragEnter])
+    homeButton.addTarget(
+      self, action: #selector(homePressEnded),
+      for: [.touchUpInside, .touchUpOutside, .touchCancel, .touchDragExit]
+    )
+    content.addSubview(homeButton)
+
     /* A dedicated image set rather than the app icon. An icon in an
        AppIcon.appiconset is not an ordinary named image — UIImage(named:)
        does not reliably resolve it, and the bar would have shown a blank
@@ -256,14 +299,16 @@ final class NativeChromeView: UIView {
     logoView.clipsToBounds = true
     logoView.layer.cornerRadius = 16
     logoView.layer.cornerCurve = .continuous
+    logoView.isAccessibilityElement = false
     logoView.translatesAutoresizingMaskIntoConstraints = false
-    content.addSubview(logoView)
+    homeButton.addSubview(logoView)
 
     wordmark.text = "BandUp"
     wordmark.font = .systemFont(ofSize: 17, weight: .semibold)
     wordmark.adjustsFontForContentSizeCategory = true
+    wordmark.isAccessibilityElement = false
     wordmark.translatesAutoresizingMaskIntoConstraints = false
-    content.addSubview(wordmark)
+    homeButton.addSubview(wordmark)
 
     /* A bare glyph, same as the site: the menu button has no surface behind
        it there, so it does not get one here either. Inventing glass for a
@@ -319,15 +364,26 @@ final class NativeChromeView: UIView {
     let centreY = NativeChromeView.barContentHeight / 2
 
     NSLayoutConstraint.activate([
-      logoView.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
-      logoView.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
+      /* homeButton's own frame is independent — leading, centreY and a fixed
+         height matching the logo, the tallest of the two things inside it.
+         Its trailing edge is instead pinned to wordmark's below, the same
+         constraint menuButton's leading edge used to read directly, so the
+         button's footprint is exactly the union of the logo and the
+         wordmark it wraps rather than a number restated. */
+      homeButton.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
+      homeButton.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
+      homeButton.heightAnchor.constraint(equalToConstant: 32),
+
+      logoView.leadingAnchor.constraint(equalTo: homeButton.leadingAnchor),
+      logoView.centerYAnchor.constraint(equalTo: homeButton.centerYAnchor),
       logoView.widthAnchor.constraint(equalToConstant: 32),
       logoView.heightAnchor.constraint(equalToConstant: 32),
 
       wordmark.leadingAnchor.constraint(equalTo: logoView.trailingAnchor, constant: 10),
-      wordmark.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
+      wordmark.centerYAnchor.constraint(equalTo: homeButton.centerYAnchor),
+      homeButton.trailingAnchor.constraint(equalTo: wordmark.trailingAnchor),
 
-      menuButton.leadingAnchor.constraint(greaterThanOrEqualTo: wordmark.trailingAnchor, constant: 12),
+      menuButton.leadingAnchor.constraint(greaterThanOrEqualTo: homeButton.trailingAnchor, constant: 12),
       menuButton.trailingAnchor.constraint(equalTo: containerEffectView.leadingAnchor, constant: -10),
       menuButton.centerYAnchor.constraint(equalTo: content.bottomAnchor, constant: -centreY),
       menuButton.widthAnchor.constraint(equalToConstant: 40),
@@ -410,9 +466,16 @@ final class NativeChromeView: UIView {
 
     /* The knob goes in first so it sits under the glyphs. The web control
        spent a long time learning that a label read through frosted glass is a
-       smear; the same is true here, and the same answer applies. */
+       smear; the same is true here, and the same answer applies. It is
+       interactive despite that — isInteractive on its UIGlassEffect is what
+       gives it Apple's own press-and-refract, and that only fires for a
+       touch the knob view itself actually receives. Sitting under the stop
+       buttons would normally cost it every touch at its own position to
+       whichever button is on top there; hitTest(_:with:) below is what gets
+       it back without moving the knob in front and smearing that stop's
+       glyph, which is the thing this ordering was chosen to avoid. */
     knob.translatesAutoresizingMaskIntoConstraints = false
-    knob.isUserInteractionEnabled = false
+    knob.isUserInteractionEnabled = true
     knob.layer.cornerRadius = NativeChromeView.stopSize / 2
     knob.layer.cornerCurve = .continuous
     knob.clipsToBounds = true
@@ -422,12 +485,16 @@ final class NativeChromeView: UIView {
     let leading = knob.leadingAnchor.constraint(
       equalTo: themeTrack.contentView.leadingAnchor, constant: NativeChromeView.trackPadding
     )
+    let width = knob.widthAnchor.constraint(equalToConstant: NativeChromeView.stopSize)
+    let height = knob.heightAnchor.constraint(equalToConstant: NativeChromeView.stopSize)
     knobLeading = leading
+    knobWidth = width
+    knobHeight = height
     NSLayoutConstraint.activate([
       leading,
       knob.centerYAnchor.constraint(equalTo: themeTrack.contentView.centerYAnchor),
-      knob.widthAnchor.constraint(equalToConstant: NativeChromeView.stopSize),
-      knob.heightAnchor.constraint(equalToConstant: NativeChromeView.stopSize),
+      width,
+      height,
 
       themeStack.leadingAnchor.constraint(equalTo: themeTrack.contentView.leadingAnchor, constant: NativeChromeView.trackPadding),
       themeStack.trailingAnchor.constraint(equalTo: themeTrack.contentView.trailingAnchor, constant: -NativeChromeView.trackPadding),
@@ -448,6 +515,33 @@ final class NativeChromeView: UIView {
       themeButtons.append(button)
       themeStack.addArrangedSubview(button)
     }
+
+    installKnobGesture()
+  }
+
+  /*
+    A touch that hit-tests to the currently selected stop's button is handed
+    to the knob instead, so the glass underneath gets the touch its own
+    isInteractive effect needs — see the comment above knob's construction
+    in buildThemeControl() for why the knob cannot simply move in front to
+    get the same result. Every other touch in the bar, including the other
+    two stop buttons, passes through untouched: this only ever compares the
+    ordinary hit-test result against one specific button and only overrides
+    it when that button is the one the knob is currently sitting under.
+    Nothing here changes the button's own isUserInteractionEnabled or
+    isEnabled, so it stays a normal, focusable control for anything that
+    inspects it rather than routes a touch through it.
+  */
+  override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+    let hit = super.hitTest(point, with: event)
+    guard let selected = selectedThemeButton, hit == selected else { return hit }
+    let knobPoint = convert(point, to: knob)
+    return knob.bounds.contains(knobPoint) ? knob : hit
+  }
+
+  private var selectedThemeButton: UIButton? {
+    guard let index = NativeChromeView.themes.firstIndex(of: selectedTheme) else { return nil }
+    return themeButtons.indices.contains(index) ? themeButtons[index] : nil
   }
 
   // MARK: - Selection
@@ -477,6 +571,29 @@ final class NativeChromeView: UIView {
   /// setTheme(_:) for every change after, whether it began with a native tap
   /// or arrived from the web through the plugin.
   private func applyTheme(animated: Bool = true) {
+    /* UIGlassEffect (and the systemMaterial fallback below 26) renders
+       against the trait collection it resolves in, which by default is the
+       OS appearance rather than BandUp's own theme — so switching this app
+       to Dark while the device is in Light mode left the glass itself light
+       no matter what tint got poured into it. Overriding it here, on self,
+       makes every nested effect view inherit the resolved appearance from
+       this view rather than from the window.
+
+       This has to happen before the new effects are built just below,
+       not after, because the crossfade is live: UIGlassEffect keeps
+       rendering both the outgoing and incoming effect for the whole 0.3s,
+       not a bitmap snapshot of each. Flip the override first and the
+       incoming effect is correct from its first frame, while the outgoing
+       one briefly renders under the new appearance as it fades away — a
+       minor mismatch on a layer that is leaving anyway. Flip it after and
+       the mismatch lands on the layer that stays: the incoming effect
+       would spend the whole crossfade in the wrong appearance and then
+       snap correct once the override finally lands, which reads as a
+       glitch rather than a transition. Warm and Light both resolve here to
+       `.light`; only Dark asks for the dark appearance.
+    */
+    overrideUserInterfaceStyle = selectedTheme == "dark" ? .dark : .light
+
     let colors = NativeChromeView.themeColors[selectedTheme] ?? NativeChromeView.themeColors["warm"]!
 
     /* Tint, not fill: each of these gets a freshly built UIGlassEffect with
@@ -526,7 +643,7 @@ final class NativeChromeView: UIView {
 
   private func applyThemeSelection(animated: Bool) {
     guard let index = NativeChromeView.themes.firstIndex(of: selectedTheme) else { return }
-    knobLeading?.constant = NativeChromeView.trackPadding + CGFloat(index) * NativeChromeView.stopPitch
+    knobLeading?.constant = restingKnobLeading
 
     let move = {
       self.layoutIfNeeded()
@@ -545,7 +662,166 @@ final class NativeChromeView: UIView {
     }
   }
 
+  // MARK: - Knob drag
+
+  /// How much wider and taller the knob's box gets on each edge while a
+  /// finger holds it — 0.4375rem at the site's own 16px root, the same
+  /// swell the web control gives its draggable knob. Split across both
+  /// edges of both axes, so the box grows about its own centre rather than
+  /// leaning right and down the way a raw width/height increase would on
+  /// anchors that are pinned by their leading and top edges.
+  private static let knobGrowthPerEdge: CGFloat = 7
+
+  /// How far, in points, a touch has to travel along the track before this
+  /// reads as a drag rather than a tap. Below it, whichever stop button the
+  /// touch landed on — or, at the selected stop, hitTest(_:with:) standing
+  /// in for it — is left to decide on its own; a drag this small is closer
+  /// to a hand's natural tremor between touching down and lifting off than
+  /// to an intended pull toward another stop.
+  private static let knobDragThreshold: CGFloat = 4
+
+  /// The knob's resting leading constant for whatever selectedTheme is
+  /// right now — the same formula applyThemeSelection uses, read fresh
+  /// rather than cached, because grow and shrink both need it and can be
+  /// asked either mid-tap, where selectedTheme has not changed yet, or
+  /// right after a drag has just committed a new one.
+  private var restingKnobLeading: CGFloat {
+    let index = NativeChromeView.themes.firstIndex(of: selectedTheme) ?? 0
+    return NativeChromeView.trackPadding + CGFloat(index) * NativeChromeView.stopPitch
+  }
+
+  /*
+    A single long-press recogniser with no minimum duration, rather than the
+    separate press-and-pan pair the web's pointer handlers are split across.
+    UILongPressGestureRecognizer already reports .changed on every touch move
+    once it has begun, which a duration of 0 makes true from the instant a
+    finger lands — one recogniser's state machine is what a pan-plus-press
+    pairing would otherwise need shared state between the two of to rebuild.
+
+    It lives on themeTrack, not on the knob, because the knob only occupies
+    one stop's width at a time and a finger has to be able to land anywhere
+    along the track — on a stop nowhere near the current selection — for
+    this to feel like a slider rather than a control that only answers where
+    it already happens to be. cancelsTouchesInView is off so the stop
+    buttons underneath keep receiving their own touches unmolested; see
+    handleKnobPress(_:) for how a plain tap is still divided between this
+    recogniser and those buttons without either double-firing onTheme or
+    leaving a tapped stop dead.
+  */
+  private func installKnobGesture() {
+    let press = UILongPressGestureRecognizer(target: self, action: #selector(handleKnobPress(_:)))
+    press.minimumPressDuration = 0
+    press.cancelsTouchesInView = false
+    themeTrack.addGestureRecognizer(press)
+  }
+
+  /// The touch's x within the track, expressed as a continuous version of
+  /// the integer stop index applyThemeSelection positions the knob with —
+  /// 0 at the first stop's centre, 1 at the second's, and so on, clamped to
+  /// the two ends rather than let the knob overshoot the track. Solving the
+  /// knobLeading formula backwards for this puts the knob's own centre,
+  /// not its leading edge, under the finger, which is the point of reading
+  /// a centre-based fraction here instead of the leading-edge x directly.
+  private func stopFraction(forTrackX x: CGFloat) -> CGFloat {
+    let raw = (x - NativeChromeView.trackPadding - NativeChromeView.stopSize / 2) / NativeChromeView.stopPitch
+    return min(max(raw, 0), CGFloat(NativeChromeView.themes.count - 1))
+  }
+
+  /// Moves the knob to follow a point during an active drag. No animator —
+  /// the constant is set and the layout pass is forced through in the same
+  /// frame that reads the touch, which is what makes this track the finger
+  /// exactly rather than a beat behind it; an eased catch-up here is exactly
+  /// what the web version's own drag handling deliberately avoids.
+  private func trackKnob(to point: CGPoint) {
+    let fraction = stopFraction(forTrackX: point.x)
+    knobLeading?.constant = NativeChromeView.trackPadding
+      + fraction * NativeChromeView.stopPitch
+      - NativeChromeView.knobGrowthPerEdge
+    layoutIfNeeded()
+  }
+
+  /// The bloom a held knob gets: width and height widen by the full growth
+  /// on each edge, and knobLeading is set to the grown-and-shifted position
+  /// in the same animation rather than left for trackKnob(to:) to catch up
+  /// to on the next touch move, so the box visibly grows about its centre
+  /// even for a press that never turns into a drag at all.
+  private func growKnob() {
+    let target = restingKnobLeading - NativeChromeView.knobGrowthPerEdge
+    UIViewPropertyAnimator(duration: 0.2, dampingRatio: 0.75) {
+      self.knobWidth?.constant = NativeChromeView.stopSize + NativeChromeView.knobGrowthPerEdge * 2
+      self.knobHeight?.constant = NativeChromeView.stopSize + NativeChromeView.knobGrowthPerEdge * 2
+      self.knobLeading?.constant = target
+      self.layoutIfNeeded()
+    }.startAnimation()
+  }
+
+  /// The reverse of growKnob(), back to whatever stop is selected at the
+  /// moment it runs — called after setTheme(_:) on a committing drag, so by
+  /// then selectedTheme already names the stop this should settle onto.
+  private func shrinkKnob() {
+    let target = restingKnobLeading
+    UIViewPropertyAnimator(duration: 0.2, dampingRatio: 0.75) {
+      self.knobWidth?.constant = NativeChromeView.stopSize
+      self.knobHeight?.constant = NativeChromeView.stopSize
+      self.knobLeading?.constant = target
+      self.layoutIfNeeded()
+    }.startAnimation()
+  }
+
+  @objc private func handleKnobPress(_ gesture: UILongPressGestureRecognizer) {
+    let point = gesture.location(in: themeTrack.contentView)
+
+    switch gesture.state {
+    case .began:
+      // Grows in place rather than jumping to the touch first: a tap that
+      // never becomes a drag should read as the knob reacting to being
+      // held, not as it leaping toward whatever stop happened to catch the
+      // finger. trackKnob(to:) only starts moving it once .changed says the
+      // finger actually has.
+      knobPressOrigin = point
+      growKnob()
+
+    case .changed:
+      trackKnob(to: point)
+
+    case .ended, .cancelled, .failed:
+      defer { knobPressOrigin = nil }
+      guard let origin = knobPressOrigin else { return }
+      let dragged = abs(point.x - origin.x) > NativeChromeView.knobDragThreshold
+      let index = Int(stopFraction(forTrackX: point.x).rounded())
+      let landedOnSelected = NativeChromeView.themes[index] == selectedTheme
+      /*
+        A real drag always commits, to whichever stop it ends nearest —
+        including the one it started on, which is still a commit and not a
+        no-op cancel. A tap commits here only if it landed on the selected
+        stop, because hitTest(_:with:) has routed that one stop's touches to
+        the knob and away from its own button, so nothing else is going to
+        fire setTheme for it. A tap on either other stop does nothing here
+        on purpose: that button still has the touch and is about to fire
+        touchUpInside on its own, and calling setTheme a second time for the
+        same theme would only mean onTheme reaching the web app twice.
+      */
+      if dragged || landedOnSelected {
+        let theme = NativeChromeView.themes[index]
+        setTheme(theme)
+        onTheme?(theme)
+      }
+      shrinkKnob()
+
+    default:
+      break
+    }
+  }
+
   // MARK: - Actions
+
+  @objc private func homeTapped() { onHome?() }
+  @objc private func homePressBegan() {
+    UIView.animate(withDuration: 0.15) { self.homeButton.alpha = 0.5 }
+  }
+  @objc private func homePressEnded() {
+    UIView.animate(withDuration: 0.15) { self.homeButton.alpha = 1 }
+  }
 
   @objc private func menuTapped() { onMenu?() }
   @objc private func accountTapped() { onAccount?() }

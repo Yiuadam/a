@@ -260,6 +260,18 @@ export default function SiteHeader({
     let dispose: (() => void) | null = null;
 
     enableNativeChrome({
+      // The logo is reachable from the open menu too, so closing it here as
+      // well as navigating keeps a tap home from leaving the sheet standing
+      // over the page it just left. setOpenPath directly, not the `close`
+      // wrapper — this effect runs once, on mount, and only ever closes
+      // over values that stay valid for the app's life; `close` is a new
+      // function every render and would owe this effect a dependency the
+      // same way `onMenu` avoids one below by reading pathnameRef instead
+      // of pathname.
+      onHome: () => {
+        router.push("/");
+        setOpenPath(null);
+      },
       onMenu: () => {
         setOpenPath((current) => (current === pathnameRef.current ? null : pathnameRef.current));
       },
