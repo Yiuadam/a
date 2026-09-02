@@ -13,9 +13,9 @@
         {
           "id": "q1",
           "type": "tfng",
-          "statement": "Luke Howard was a professional meteorologist employed by the city of London.",
+          "statement": "Luke Howard compared London and village temperatures over a period of more than ten years.",
           "answer": "NOT GIVEN",
-          "explanation": "The passage calls Howard \"the amateur scientist\" but never states his profession or employer, so NOT GIVEN — do not infer that 'amateur' implies unemployed or employed elsewhere."
+          "explanation": "Paragraph 1 says Howard \"compared temperature readings taken in London with those from nearby villages\", but it never says how long he did this for. The passage gives no length of time, so NOT GIVEN. Do not supply a number the text does not give."
         },
         {
           "id": "q2",
@@ -28,8 +28,8 @@
           "id": "q3",
           "type": "tfng",
           "statement": "Waste heat from air conditioning and vehicles is the single largest cause of the urban heat island effect.",
-          "answer": "NOT GIVEN",
-          "explanation": "The passage calls waste heat \"a further, if smaller, contribution\" but never ranks all causes to identify a single largest one, so NOT GIVEN."
+          "answer": "FALSE",
+          "explanation": "The passage calls waste heat \"a further, if smaller, contribution\", which puts it below the causes described in the paragraph before it. The statement makes waste heat the largest cause, so the passage contradicts it: FALSE."
         },
         {
           "id": "q4",

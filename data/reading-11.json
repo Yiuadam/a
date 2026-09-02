@@ -22,7 +22,7 @@
           "type": "tfng",
           "statement": "Chinese craftsmen made umbrella covers waterproof by adding oil to the paper.",
           "answer": "TRUE",
-          "explanation": "Paragraph 2 says the oil made the paper waterproof, so the statement matches the passage word for word. That is why the answer is TRUE, not just similar to TRUE."
+          "explanation": "Paragraph 2 says the frames were covered with \"oiled paper or silk\" and that \"the oil made the paper waterproof\". The statement says the same thing in different words. A close paraphrase is still TRUE — the wording does not have to match the passage."
         },
         {
           "id": "q3",

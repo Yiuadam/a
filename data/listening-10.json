@@ -200,7 +200,7 @@
             "six"
           ],
           "maxWords": 3,
-          "explanation": "“Three months for most items. Electronic items we keep for six.” Three months is the general rule and the distractor."
+          "explanation": "“Three months for most items. Electronic items we keep for six months.” Three months is the general rule and the distractor."
         },
         {
           "id": "q10",
@@ -212,7 +212,7 @@
             "ten"
           ],
           "maxWords": 3,
-          "explanation": "“There's a handling charge of five pounds for a bag, and it's ten for anything with a laptop in it.” Five pounds applies to a bag without one."
+          "explanation": "“There's a handling charge of five pounds for a bag, and it's ten pounds for anything with a laptop in it.” Five pounds applies to a bag without one."
         }
       ]
     }
