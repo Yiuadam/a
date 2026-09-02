@@ -115,6 +115,34 @@
   --breakpoint-xs: 25rem;
 }
 
+/*
+  Which way round the browser should draw the parts of the page it draws
+  itself — and Warm's answer, which was missing.
+
+  Light and Dark each declare `color-scheme` in their own block below. Warm
+  never did, so it inherited `normal`, and `normal` does not mean light: it
+  means the browser decides, and what it decides from is the operating
+  system's setting. A learner whose phone is in dark mode, on the theme this
+  app ships as its default, was getting a cream page with the browser's dark
+  furniture on it — the scrollbar inside a long essay box drawn as a pale bar
+  on charcoal, the text-selection handles and the autofill list in dark, and
+  the date picker opening as a black sheet over a cream form.
+
+  It shows up worst on Android, which is why it is being fixed now, but it is
+  not an Android bug: Chrome, Safari and Firefox all behave this way and the
+  same page on a Mac in dark mode had the same mismatch. Android is simply
+  where it is most often seen, because the picker is a full-screen dialog
+  there and because a phone is far more likely to be in dark mode than a
+  laptop is.
+
+  Stated on `html` rather than on `html[data-theme="warm"]` so that it is a
+  floor rather than a third case: any theme that does not say otherwise gets
+  light furniture, and the one theme that wants the other kind says so.
+*/
+html {
+  color-scheme: light;
+}
+
 /* --------------------------------------------------------------- Light --- */
 html[data-theme="light"] {
   color-scheme: light;
@@ -393,7 +421,18 @@ body {
      rather than as a plain clear window. The touch/reduced-motion fallback
      just below keeps its own lighter value — that path exists specifically
      to bound cost on less capable hardware, and is now close to this one. */
-  --glass-blur: 18px;
+  /*
+    Raised from 18px on the owner's instruction to make the effect read more
+    strongly. It is the one number every glass surface in the product shares —
+    cards, the navigation sheet, the popover, the segmented tracks — so a change
+    here is felt everywhere at once, which is the point: the effect should be
+    one material rather than a set of surfaces that happen to look similar.
+
+    Not raised further than this. Past roughly a quarter of the smallest glass
+    element's own width the blur stops reading as depth and starts reading as
+    fog, and the smallest surfaces here are the segmented knobs.
+  */
+  --glass-blur: 22px;
   /* One decorative/navigation icon ink across every control. The token, not
      each component, changes with the active colour theme. Semantic success,
      warning and error marks intentionally keep their own status colours. */
@@ -4152,6 +4191,201 @@ textarea {
   font-size: max(16px, 1em);
 }
 
+/*
+  A field is drawn by BandUp, not by whichever operating system the learner
+  happens to be holding.
+
+  Left alone, a form control keeps the platform's own widget chrome, and the
+  three platforms this app runs on do not agree about what that looks like.
+  A date field on Android draws Chrome's black calendar glyph hard against
+  its right edge; the same field on a Mac draws a smaller one; on iOS it
+  draws none at all and centres its value instead. The learner sees a cream
+  BandUp field with a piece of Android in the corner of it — which is the
+  complaint this rule answers.
+
+  Scoped away from the controls whose entire appearance *is* their platform
+  widget. `appearance: none` on a checkbox, a radio or a range does not
+  restyle them, it erases them: the box becomes a blank inline rectangle with
+  no tick and no dot, and every multiple-choice question in the app loses its
+  buttons. Those keep the native widget and are tinted through `accent-color`
+  instead, which is the property that exists for exactly this and is the only
+  way to colour a control the platform still draws. A file input is excluded
+  for the same reason — its button is the widget — even though the one in the
+  app is visually hidden behind a label anyway.
+
+  Not `select`, and that is a decision rather than an omission. Every choice
+  in this app is made through GlassSelect, which is the product's own control
+  built out of the same glass as everything else; there is no native <select>
+  anywhere for a reset to improve. Stripping the widget off a control nobody
+  renders would only mean the first person who does reach for one gets a box
+  with no arrow in it, because the chevron a stripped select needs is drawn
+  with `background-image` and every theme below re-declares `background` on
+  `.input` at a weight a plain `select` rule cannot beat. Left native, so a
+  <select> that ever appears is at least a working control, and whoever adds
+  it can style it knowing that.
+*/
+input:not(
+  [type="checkbox"],
+  [type="radio"],
+  [type="range"],
+  [type="file"],
+  [type="color"],
+  [type="image"],
+  [type="submit"],
+  [type="reset"],
+  [type="button"]
+),
+textarea {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/*
+  The accent every control the platform still draws is tinted with: the
+  tick in a checkbox, the dot in a radio, the filled half of a slider.
+
+  Declared once at the root rather than per component. Most of them already
+  carry Tailwind's `accent-indigo-600`, but "most" is the problem — a control
+  added without it falls back to the platform default, which is Material blue
+  on Android and system blue on iOS, and neither is this product's clay.
+  Inherited, so a single declaration reaches every control in the app and
+  follows the active theme without a per-theme override.
+*/
+:root {
+  accent-color: var(--color-indigo-600);
+}
+
+/*
+  The calendar glyph, redrawn.
+
+  Chrome paints `::-webkit-calendar-picker-indicator` as a fixed bitmap in a
+  flat near-black, at its own size, with no inset from the field's edge — the
+  single most Android-looking thing on the account screen. Replaced with the
+  same stroked line icon the rest of the app's chrome is drawn in, filled
+  from `currentColor` through a mask rather than from a colour baked into the
+  SVG, so it follows the field's own text colour into Warm, Light and Dark
+  without three copies of the icon.
+
+  Note what this cannot reach, because it is worth being straight about: the
+  picker that opens when the field is tapped is an operating-system dialog.
+  Android draws Android's, iOS draws iOS's wheel, and no stylesheet touches
+  either. What is styled here is the field as it sits on the page.
+*/
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  /* Left, not centred. Safari centres a date field's value inside its box
+     when the widget is removed, which puts the one field on the account
+     screen out of line with the two above it. */
+  text-align: left;
+}
+
+input::-webkit-calendar-picker-indicator {
+  /* Declared here rather than at the root because nothing else reads it, and
+     naming it once is what keeps the prefixed and unprefixed mask from
+     carrying two copies of the same data URI. The stroke colour inside the
+     SVG is never seen: a mask uses only the shape's alpha, and the colour
+     comes from `background` above. */
+  --glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='3'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E");
+  width: 1.15em;
+  height: 1.15em;
+  padding: 0;
+  margin-inline-start: 0.5rem;
+  opacity: 1;
+  background: currentColor;
+  cursor: pointer;
+  -webkit-mask-image: var(--glyph);
+  mask-image: var(--glyph);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+/*
+  The segment under the caret — the day, the month or the year — is filled by
+  the browser with the operating system's own selection colour, which is the
+  Android accent on a phone and the macOS one on a desktop. Given the app's
+  accent instead, so moving through a date looks like the rest of the app's
+  focus states rather than like the platform's.
+*/
+input::-webkit-datetime-edit-day-field:focus,
+input::-webkit-datetime-edit-month-field:focus,
+input::-webkit-datetime-edit-year-field:focus,
+input::-webkit-datetime-edit-hour-field:focus,
+input::-webkit-datetime-edit-minute-field:focus,
+input::-webkit-datetime-edit-ampm-field:focus {
+  border-radius: 0.25rem;
+  outline: none;
+  background: var(--color-indigo-600);
+  color: var(--color-slate-50);
+}
+
+/*
+  Defensive rather than in use: the app has no number or search field today,
+  and both of those types come with their own extra widget — a spinner and a
+  clear button — that would arrive drawn by the platform the moment one is
+  added. Removed here so the first one written inherits the same field as
+  every other.
+*/
+input::-webkit-inner-spin-button,
+input::-webkit-outer-spin-button,
+input::-webkit-search-cancel-button,
+input::-webkit-search-decoration {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/*
+  What Chrome does to a field it has just filled in for the learner.
+
+  An autofilled input is painted by the engine with an internal background —
+  pale blue in a light colour scheme, slate in a dark one — and that colour
+  cannot be overridden by `background-color`, because it is applied at a
+  layer above the cascade. On an ordinary white form nobody notices. Here the
+  field is glass: a flat opaque slab dropped into it removes the blur, the
+  rim highlight and the tint in one go, and the sign-in screen ends up with
+  two fields that do not match the box they sit in.
+
+  The way through is the one the engine leaves open: a large inset box-shadow
+  paints over the internal background, and `-webkit-text-fill-color` does the
+  same job for the text on top of it. The fill is the theme's own surface
+  rather than the glass token, because a translucent shadow would let the
+  engine's colour through and the point of this is to cover it. The field's
+  own top highlight is restated in the same declaration, since a box-shadow
+  replaces rather than adds.
+
+  The long transition delay is the second half of the workaround: Chrome
+  re-applies its background on interaction, and a transition it can never
+  reach the end of means the shadow above is what stays on screen.
+
+  `html[data-theme]` is carrying weight, not describing anything: every theme
+  further down this file re-declares `.input`'s own box-shadow under a
+  `html[data-theme="…"] .input` selector, and a plain `input:-webkit-autofill`
+  loses to all three of them however late it is written. Matching the shape of
+  the selectors it has to beat, plus the pseudo-class, is what puts this one
+  ahead of them — and it does it without `!important`, so a component can
+  still override the fill for a field of its own. The attribute is written
+  bare because all three themes set it and the value is not what matters here.
+*/
+html[data-theme] input:-webkit-autofill,
+html[data-theme] input:-webkit-autofill:hover,
+html[data-theme] input:-webkit-autofill:focus,
+html[data-theme] textarea:-webkit-autofill,
+html[data-theme] select:-webkit-autofill {
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 0 0 100px var(--color-surface);
+  -webkit-text-fill-color: var(--color-slate-900);
+  caret-color: var(--color-slate-900);
+  transition: background-color 600000s 0s;
+}
+
 /* Long-form reading text: slightly larger and more leaded than UI text. */
 .prose-reading p {
   @apply mb-4 text-[16px] leading-8 text-slate-700;
@@ -4447,7 +4681,30 @@ textarea {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--exam-accent) 18%, transparent);
 }
 
-[data-exam] * {
+/*
+  Every scroller inside a paper takes the paper's own thin, quiet scrollbar —
+  except the ones that were told not to have a scrollbar at all.
+
+  `.no-scrollbar` and this rule are both one class-weight, so the tie went to
+  whichever was written later, and this is later. The swipe track under a
+  reading or writing paper carries `.no-scrollbar` precisely because it is
+  dragged rather than aimed at — the pill bar above it already says which
+  pane you are on and how many there are — and it was getting a scrollbar
+  anyway. Worse, quietly: since Chrome 121 an element that uses the standard
+  `scrollbar-width` no longer honours `::-webkit-scrollbar` on the same
+  element, so the second half of `.no-scrollbar` stopped applying too.
+
+  It showed up on Android rather than on the iPhone, and the reason is which
+  engine reads the property: Chrome draws the bar this asks for, WebKit
+  ignores `scrollbar-width` on a touch overlay scrollbar and shows nothing.
+  So the same paper had a bar across the foot of the pane on one phone and
+  not on the other.
+
+  The exclusion is only the track itself. The panes inside it keep the thin
+  bar and should: a passage that runs past the bottom of its pane needs to
+  say so.
+*/
+[data-exam] *:not(.no-scrollbar) {
   scrollbar-color: var(--exam-line) transparent;
   scrollbar-width: thin;
 }
@@ -4745,10 +5002,20 @@ html[data-theme="dark"] [data-exam] .exam-settings-popover {
 
 /* Touch devices keep ordinary backdrop sampling, but at a smaller radius to
    control fill-rate while scrolling. This is independent of cursor behaviour:
-   the live lens itself is activated only on capable desktop hardware. */
+   the live lens itself is activated only on capable desktop hardware.
+
+   Raised with the desktop value, and by the same proportion, because this is
+   the one a phone actually gets — the owner asked for a stronger effect while
+   looking at a phone, and changing only the value above would have left the
+   screen they were looking at exactly as it was.
+
+   Still well under the desktop radius. The reason for the gap has not gone
+   away: a backdrop blur is paid for per pixel on every frame it is composited,
+   and a phone scrolling a list of glass cards is the worst case this product
+   has. */
 @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   body {
-    --glass-blur: 12px;
+    --glass-blur: 15px;
   }
 
 }

@@ -149,7 +149,30 @@ export default function SwipePanels({ panels }: { panels: SwipePanel[] }) {
               Only the block padding is a utility now, because only the block
               padding was ever doing what it said.
             */
-            className="exam-swipe-panel card w-[calc(100%-0.75rem)] shrink-0 snap-center overflow-y-auto !py-3 sm:w-[calc(100%-4rem)] sm:!py-4"
+            /*
+              `snap-always` — scroll-snap-stop: always — so one swipe moves one
+              pane, whatever the finger did.
+
+              A mandatory snap says where a scroll is allowed to come to rest;
+              it does not say it may only pass one stop on the way. A flick
+              carries its own momentum through as many panes as that momentum
+              reaches, and the two engines this app runs on do not throw the
+              same distance for the same gesture: Chrome's fling is the longer
+              one, so the same swipe that lands on the next pane on an iPhone
+              can land two along on an Android phone.
+
+              With two panes that is invisible — two along and one along are
+              the same place. Writing is where it is not: a Task 1 paper with
+              a figure has three, Task / Source / Response, and a candidate
+              swiping off the task to reach their answer sails straight past
+              the chart they are supposed to be describing. Nothing tells them
+              it went by; the pill bar above simply reads Response.
+
+              The pricing deck already asks for this, for the same reason —
+              see .pricing-plan-track > .card in app/globals.css. It costs the
+              two-pane papers nothing.
+            */
+            className="exam-swipe-panel card w-[calc(100%-0.75rem)] shrink-0 snap-center snap-always overflow-y-auto !py-3 sm:w-[calc(100%-4rem)] sm:!py-4"
           >
             {panel.content}
           </section>
