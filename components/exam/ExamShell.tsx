@@ -124,6 +124,15 @@ export default function ExamShell({
    * desktop frame. Writing uses this because a frame, a paper inset and a
    * panel inset together leave too little room for a task, figure and answer.
    * From `sm` upwards the ordinary (or comfortable) frame is restored.
+   *
+   * Reading now uses it too, in both the mock and the practice paper, and the
+   * reason is worth recording: it had exactly the problem the prop was written
+   * for and simply had not been given it. A reading screen nests further than
+   * a writing one — frame, paper inset, swipe panel, question card — and on a
+   * 390px phone those four insets left a question's prompt 146px to wrap in,
+   * which is about four words a line. The frame is the layer that buys the
+   * least, because on a phone the header and the question strip already read
+   * as the edge of the exam.
    */
   edgeToEdgeOnPhone?: boolean;
   children: ReactNode;
@@ -140,7 +149,16 @@ export default function ExamShell({
   const frameSurface = edgeToEdgeOnPhone
     ? "rounded-none border-0 shadow-none sm:rounded-2xl sm:border sm:border-[color:var(--exam-line)] sm:shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)]"
     : "rounded-xl border border-[color:var(--exam-line)] shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)] sm:rounded-2xl";
-  const paperInset = edgeToEdgeOnPhone ? "px-2 py-2 sm:px-4" : "px-3 py-2 sm:px-4";
+  /*
+    A paper that has given up the frame has given up the reason for the frame's
+    breathing room too. The header above and the question strip below are both
+    glass pills with their own edge, so what this inset buys on a phone is the
+    hairline between them and the paper — not the margin a bordered window
+    needs. Halving it returns that height to the paper, which on the reading
+    screen is the thing the owner asked to be longer. Restored from `sm` up,
+    where the frame is drawn again and the room is not scarce.
+  */
+  const paperInset = edgeToEdgeOnPhone ? "px-2 py-1 sm:px-4 sm:py-2" : "px-3 py-2 sm:px-4";
 
   return (
     <div
@@ -223,7 +241,16 @@ export default function ExamShell({
         independent. A page that wants one scrolling column puts its own
         overflow-y-auto in here.
       */}
-      <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${paperInset}`}>{children}</div>
+      {/*
+        `exam-paper` marks the boundary between what is read and what is
+        operated. app/globals.css uses it to tighten the paper's leading and
+        paragraph gaps on a phone without touching the header or the question
+        strip — those are controls, and a control that has been tightened is
+        only harder to hit.
+      */}
+      <div className={`exam-paper flex min-h-0 flex-1 flex-col overflow-hidden ${paperInset}`}>
+        {children}
+      </div>
 
       {palette && palette.length > 0 ? (
         <QuestionPalette

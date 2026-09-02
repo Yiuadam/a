@@ -135,6 +135,17 @@ export default function MockReading({
       running
       endsAt={deadline}
       onExpire={onFinish}
+      /*
+        A reading paper is the widest thing in the sitting and the phone is the
+        narrowest screen it runs on, so the outer frame's own margin, border and
+        radius are chrome this screen cannot afford: they were taking 19px off
+        the width and pushing the section label, the clock and the passage
+        switcher into a second box inside a first one. Without them the header
+        and the question strip become the outermost furniture, which is where
+        the exam puts them anyway. Writing already opted in for the same reason;
+        Reading not doing so was an oversight rather than a decision.
+      */
+      edgeToEdgeOnPhone
       palette={nav.items}
       currentId={nav.currentId}
       onJump={jump}
@@ -181,11 +192,24 @@ export default function MockReading({
           <p className="shrink-0 pb-1 text-center text-[11px] text-[color:var(--exam-muted)]">
             Swipe sideways to move between the passage and the questions
           </p>
+          {/*
+            The panes are measured against the track rather than the window.
+
+            They were `w-[86vw]`, which is a fraction of the *screen* and so
+            knows nothing about the frame and the paper inset standing between
+            the two — on a 390px phone it threw away 19px that the track had
+            already paid for, on top of the 14vw it meant to spend on the peek.
+            A percentage of the track spends only what it means to, and on a
+            phone the remaining sliver is still enough to show that a second
+            pane is there. From `sm` up the generous peek returns — the same
+            proportion the practice paper's panels use, because there the
+            width was never what was scarce.
+          */}
           <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto">
-            <div className="prose-reading w-[86vw] shrink-0 snap-start overflow-y-auto">
+            <div className="prose-reading w-[calc(100%-0.75rem)] shrink-0 snap-start overflow-y-auto sm:w-[calc(100%-4rem)]">
               {passage}
             </div>
-            <div className="w-[86vw] shrink-0 snap-start overflow-y-auto">
+            <div className="w-[calc(100%-0.75rem)] shrink-0 snap-start overflow-y-auto sm:w-[calc(100%-4rem)]">
               {questions}
               <FinishButton onFinish={onFinish} />
             </div>

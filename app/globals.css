@@ -3537,6 +3537,49 @@ body::before {
       padding: 0.625rem !important;
     }
   }
+
+  /*
+    The rail an exam pays on a phone, which is not the rail a page pays.
+
+    Everywhere else a card is the first thing inside the page's own gutter, so
+    the full inset is the only thing between its text and the window. Inside an
+    exam it is the fourth: the shell, the paper inset and — on the reading
+    screen — the swipe panel are all outside it, and each has already taken its
+    share of a 390px screen. Charging the full rail again left a question's
+    prompt with 146px to wrap in, which is four words a line and is what the
+    owner reported as unreadable.
+
+    So this is the nested rail rather than the outer one, and the radius drops
+    with it beside `[data-exam] .card` further down. The two have to move
+    together — a 2.5rem corner drawn through a 0.75rem inset is exactly the
+    failure the note above `.practice-paper-card` describes. It is scoped to
+    phones because that is where the nesting does not fit; from `sm` up every
+    exam card keeps the inset it has now.
+  */
+  @media (max-width: 39.999rem) {
+    [data-exam] .card.card {
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
+
+    /*
+      The swipe panel is a window around windows. The questions inside it are
+      already cards carrying the rail above, so the panel's own inset is the
+      one layer here that buys nothing — it is chrome wrapped around chrome.
+      What it keeps is the little that the passage needs, because a passage is
+      prose rather than cards and would otherwise ride the panel's border.
+
+      It has to be said here rather than as `!p-3` on the element, and that is
+      the bug this replaces: an important utility sits in Tailwind's `utilities`
+      layer, the rule at the top of this block sits in `base`, and under the
+      reversed important layer order `base` wins. The panel asked for 0.75rem
+      and was silently given the full 1.5rem rail, on both of its sides.
+    */
+    [data-exam] .exam-swipe-panel.card.card {
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+  }
 }
 
 /* Generous radii, soft shadows and roomy padding do most of the "cosy" work. */
@@ -3900,6 +3943,32 @@ textarea {
     box-shadow 160ms ease;
 }
 
+/*
+  The other half of the phone rule in the `@layer base` block above, which cuts
+  an exam card's inset to the nested rail. The radius has to come with it, or
+  the corner is drawn through the margin the text has left.
+
+  It is here rather than up there because a border-radius is an ordinary
+  declaration, and for those an unlayered rule beats anything in `base` however
+  specific — the line above would simply have won. Same specificity as that
+  line and immediately after it, which is what settles it.
+*/
+@media (max-width: 39.999rem) {
+  [data-exam] .card {
+    border-radius: var(--radius-lg);
+  }
+
+  /*
+    The swipe panel carries the smallest inset of the three, so it takes the
+    smallest corner. Only the passage panel has prose lying directly against
+    this edge — the questions panel holds cards, which keep their own rail —
+    and prose is exactly what a corner drawn too wide for its inset spoils.
+  */
+  [data-exam] .exam-swipe-panel.card {
+    border-radius: var(--radius-md);
+  }
+}
+
 [data-exam] .exam-pane {
   border: 0.6px solid color-mix(in srgb, white 34%, var(--exam-line));
   padding-inline: var(--window-text-inset);
@@ -4126,6 +4195,39 @@ textarea {
 [data-exam] .prose-reading p {
   font-size: var(--exam-base);
   line-height: 1.8;
+}
+
+/*
+  What the paper spends on the space *between* lines, on a phone.
+
+  Leading is the cheapest vertical space there is. 1.8 is a luxurious measure —
+  right on a laptop where a passage has a wide column and the window is not the
+  constraint, and expensive on a 390px screen where it is the only constraint:
+  it puts nearly half of the passage's height into gaps rather than words. 1.5
+  is still a comfortable measure for prose, and it takes about a fifth off the
+  height of a passage without touching a single character's size, which is the
+  order these things should be spent in — the gaps before the letters.
+
+  The paragraph gap goes the same way and for the same reason: a full line of
+  nothing between paragraphs is a paragraph's worth of reading per screen.
+
+  Sizes are deliberately not touched here. They are a setting the learner owns,
+  and Settings already offers Small through Extra large; a stylesheet quietly
+  overruling that choice is the one thing this block must not do.
+
+  Scoped to `.exam-paper` so it reaches what is read and not what is pressed —
+  the header and the question strip keep their own spacing, because tightening
+  a control only makes it harder to hit.
+*/
+@media (max-width: 39.999rem) {
+  [data-exam] .exam-paper .prose-reading p {
+    margin-bottom: 0.55em;
+    line-height: 1.5;
+  }
+
+  [data-exam] .exam-paper [class*="text-sm"] {
+    line-height: 1.45;
+  }
 }
 
 /*

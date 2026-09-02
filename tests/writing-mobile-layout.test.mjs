@@ -32,12 +32,32 @@ test("writing opts into an edge-to-edge phone shell without changing other paper
   assert.match(shell, /edgeToEdgeOnPhone = false/);
   assert.match(shell, /m-0 h-\[calc\(100dvh-4rem\)\] w-full/);
   assert.match(shell, /rounded-none border-0 shadow-none sm:rounded-2xl sm:border/);
-  assert.match(shell, /edgeToEdgeOnPhone \? "px-2 py-2 sm:px-4"/);
+  /*
+    The block half of this is tighter than the inline half on a phone, and
+    deliberately: a paper with no frame around it has the header pill above and
+    the question strip below, both of which draw their own edge, so the inset
+    only has to keep them apart rather than stand a border off the window.
+  */
+  assert.match(shell, /edgeToEdgeOnPhone \? "px-2 py-1 sm:px-4 sm:py-2"/);
 
   for (const viewport of [320, 390, 430]) {
     const paperWidth = viewport - 16;
     assert.ok(paperWidth >= 304, `${viewport}px leaves ${paperWidth}px for the writing paper`);
   }
+
+  /*
+    Both reading papers opt in as well now, for the reason the prop was written
+    for: they nest one level deeper than writing does, so the frame was the
+    layer costing the most and buying the least on a phone.
+
+    Listening is the one paper that keeps the frame, and that is checked rather
+    than assumed. It has no swipe panel — its forty questions are one scrolling
+    column — so it never had the nesting the others did, and a module quietly
+    losing its frame is exactly the kind of drift this file exists to catch.
+  */
+  assert.match(read("components", "exam", "MockReading.tsx"), /^\s*edgeToEdgeOnPhone$/m);
+  assert.match(read("app", "practice", "reading", "page.tsx"), /^\s*edgeToEdgeOnPhone$/m);
+  assert.doesNotMatch(read("components", "exam", "MockListening.tsx"), /edgeToEdgeOnPhone/);
 });
 
 test("writing figures fit the phone paper instead of creating a horizontal scroller", () => {

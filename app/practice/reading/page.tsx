@@ -297,6 +297,15 @@ function ReadingTestPageRunner() {
         minutes={test.timeMinutes}
         running={mode === "timed" && !submitted}
         onExpire={submit}
+        /*
+          The same judgement as the mock reading paper, which this screen shares
+          almost all of its furniture with: on a phone the outer frame's margin,
+          border and radius are a window drawn around a window, and the passage
+          and questions need the width more than the screen needs the outline.
+          The header and the question strip become the outermost chrome, which
+          is where the exam has them.
+        */
+        edgeToEdgeOnPhone
         palette={submitted ? [] : nav.items}
         currentId={nav.currentId}
         onJump={nav.jump}
