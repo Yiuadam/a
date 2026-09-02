@@ -139,13 +139,44 @@ export default function ExamShell({
 }) {
   const display = useExamDisplay();
   const vars = SCHEME_VARS[display.scheme] ?? SCHEME_VARS.standard;
+  /*
+    The frame's height, and the one number in it that is not a constant.
+
+    Every variant here says the same thing: take the window, subtract whatever
+    is above the exam, subtract this variant's own margin, and the rest is the
+    frame. Only the margin differs between them, so only the margin is written
+    as a literal.
+
+    What is above the exam is var(--header-h), and it has to be read rather
+    than counted because it is not one number. On a desktop browser it is the
+    header's 3.75rem row and nothing else, which is what these four lines used
+    to subtract as a literal. On a notched iPhone the header also carries
+    env(safe-area-inset-top) — around 59px — because .site-header pads itself
+    by the inset so its glass runs behind the status bar. And inside the iOS
+    app there is no header element at all: lib/native-chrome.ts publishes the
+    native bar's own measured height into this same property.
+
+    Subtracting 3.75rem in the first case and calling it measured was true
+    only in the window it was measured in. On a phone the frame came out about
+    55px taller than the space it had, and because a practice route locks the
+    body to the viewport with overflow hidden (see body[data-viewport-locked]
+    in app/globals.css), those 55px were not below the fold — they were gone.
+    The question strip is the last thing in the frame, so the question strip
+    was what went, and with it the finish button on a writing paper.
+
+    The literal that remains is each variant's margin, doubled because a
+    margin is paid at the top and again at the bottom. m-0 subtracts nothing,
+    m-1 subtracts 0.5rem, m-3 subtracts 1.5rem, sm:m-2 subtracts 1rem and
+    sm:m-4 subtracts 2rem. Every variant therefore occupies exactly the window
+    minus the header, which is exactly what the page has to give it.
+  */
   const frameSize = edgeToEdgeOnPhone
     ? comfortableGutter
-      ? "m-0 h-[calc(100dvh-4rem)] w-full sm:m-4 sm:h-[calc(100dvh-5.75rem)] sm:w-[calc(100%-2rem)]"
-      : "m-0 h-[calc(100dvh-4rem)] w-full sm:m-2 sm:h-[calc(100dvh-4.75rem)] sm:w-[calc(100%-1rem)]"
+      ? "m-0 h-[calc(100dvh-var(--header-h))] w-full sm:m-4 sm:h-[calc(100dvh-var(--header-h)-2rem)] sm:w-[calc(100%-2rem)]"
+      : "m-0 h-[calc(100dvh-var(--header-h))] w-full sm:m-2 sm:h-[calc(100dvh-var(--header-h)-1rem)] sm:w-[calc(100%-1rem)]"
     : comfortableGutter
-      ? "m-3 h-[calc(100dvh-5.25rem)] w-[calc(100%-1.5rem)] sm:m-4 sm:h-[calc(100dvh-5.75rem)] sm:w-[calc(100%-2rem)]"
-      : "m-1 h-[calc(100dvh-4.25rem)] w-[calc(100%-0.5rem)] sm:m-2 sm:h-[calc(100dvh-4.75rem)] sm:w-[calc(100%-1rem)]";
+      ? "m-3 h-[calc(100dvh-var(--header-h)-1.5rem)] w-[calc(100%-1.5rem)] sm:m-4 sm:h-[calc(100dvh-var(--header-h)-2rem)] sm:w-[calc(100%-2rem)]"
+      : "m-1 h-[calc(100dvh-var(--header-h)-0.5rem)] w-[calc(100%-0.5rem)] sm:m-2 sm:h-[calc(100dvh-var(--header-h)-1rem)] sm:w-[calc(100%-1rem)]";
   const frameSurface = edgeToEdgeOnPhone
     ? "rounded-none border-0 shadow-none sm:rounded-2xl sm:border sm:border-[color:var(--exam-line)] sm:shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)]"
     : "rounded-xl border border-[color:var(--exam-line)] shadow-[0_18px_50px_-32px_rgba(42,37,33,0.55)] sm:rounded-2xl";
@@ -199,13 +230,23 @@ export default function ExamShell({
         toolbar in vh, which puts the question numbers below the fold on a
         phone until you scroll — on the one bar that must never move.
 
-        The 8.5rem is the site header and the page's own padding, measured
-        rather than guessed, with enough left over that the question numbers
-        are never the thing at the very bottom edge of the window. The document
-        is still taller than the window — the site footer is below all of
-        this — but the exam does not depend on scrolling to it.
+        What is subtracted from the window is worked out where frameSize is
+        built, above, and the note there is worth reading before changing any
+        of it: on these routes the exam is not a tall document that happens to
+        start at the top of the screen, it is the whole of the screen below the
+        header, and nothing below it can be scrolled to.
+
+        Which is also why there is no longer a 26rem floor under the height.
+        The floor arrived with the height, when the document could still
+        scroll and a frame taller than the window was merely further down the
+        page. It cannot be reached that way any more, so on a phone held
+        sideways — 390 tall, about 320 of it below the header — the floor made
+        the frame 416 and put ninety-five pixels of it, the question strip
+        included, off the bottom of a screen that does not scroll. A cramped
+        paper is worse than a roomy one; a paper you cannot finish is worse
+        than both.
       */
-      className={`${frameSize} ${frameSurface} flex min-h-[26rem] flex-col overflow-hidden bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)]`}
+      className={`${frameSize} ${frameSurface} flex min-h-0 flex-col overflow-hidden bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)]`}
     >
       <header className="exam-shell-header exam-glass z-50 m-2 mb-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-b-2 border-b-[color:var(--exam-accent)] px-3 py-1.5 sm:rounded-2xl">
         {/*

@@ -421,10 +421,21 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   blank box and forty minutes. See lib/entitlements/sessions.ts.
 */
 export default function WritingPage() {
+  /*
+    The waiting screen fills the same space the paper will, and it reads
+    var(--header-h) to know how much that is rather than subtracting a literal
+    3.75rem. The literal is the header only in a window with no safe-area
+    inset; on a notched phone the header is that much taller again, and this
+    route locks the body to the viewport, so a box sized past the space
+    available is a box with a hidden bottom rather than one you can scroll.
+    See the note at frameSize in components/exam/ExamShell.tsx. The reading and
+    listening papers already read the token here; writing was the one left
+    behind.
+  */
   return (
     <Suspense
       fallback={(
-        <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-xl items-center justify-center px-4">
+        <div className="mx-auto flex min-h-[calc(100dvh-var(--header-h))] max-w-xl items-center justify-center px-4">
           <LoadingIndicator label="Loading writing tasks…" />
         </div>
       )}

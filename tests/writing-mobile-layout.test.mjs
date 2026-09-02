@@ -105,8 +105,19 @@ test("writing opts into an edge-to-edge phone shell without changing other paper
   assert.match(writing, /comfortableGutter\s+edgeToEdgeOnPhone/);
   assert.match(writing, /className="px-0 pt-0 sm:px-4 sm:pt-4"/);
   assert.match(shell, /edgeToEdgeOnPhone = false/);
-  assert.match(shell, /m-0 h-\[calc\(100dvh-4rem\)\] w-full/);
+  assert.match(shell, /m-0 h-\[calc\(100dvh-var\(--header-h\)\)\] w-full/);
   assert.match(shell, /rounded-none border-0 shadow-none sm:rounded-2xl sm:border/);
+  /*
+    And no variant may go back to counting the header itself. Each of the four
+    used to subtract a literal that was only ever right in a window with no
+    safe-area inset: on a notched phone the header also carries
+    env(safe-area-inset-top), and inside the iOS app it is a native bar whose
+    height nothing but this property knows. Because a practice route locks the
+    body to the viewport, a frame sized past the space available does not
+    scroll — its bottom is simply gone, and its bottom is the question strip
+    and the finish button.
+  */
+  assert.doesNotMatch(shell, /h-\[calc\(100dvh-\d/);
   /*
     The block half of this is tighter than the inline half on a phone, and
     deliberately: a paper with no frame around it has the header pill above and
