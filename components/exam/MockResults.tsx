@@ -8,7 +8,7 @@ import { SpeakingReport, WritingReport } from "@/components/exam/ExaminerReport"
 import ImprovementPlan, { type PlanGroup } from "@/components/exam/ImprovementPlan";
 import ModuleSection from "@/components/exam/ModuleSection";
 import ObjectiveReport, { type ObjectivePaper } from "@/components/exam/ObjectiveReport";
-import { postJSON } from "@/lib/api";
+import { ApiError, postJSON } from "@/lib/api";
 import {
   MODULE_NAMES,
   listeningPaper,
@@ -149,6 +149,15 @@ export default function MockResults({
   onRestart: () => void;
 }) {
   const [grading, setGrading] = useState(session.marks === null);
+  /*
+    Set when the essays went unmarked for a reason that asking again could
+    change — the model timing out, a 5xx, a connection that dropped between the
+    last full stop and the Submit. It is deliberately *not* set for a 402: that
+    means the plan does not include marking, nothing is wrong, and a button
+    offering to try again would be a button that cannot work.
+  */
+  const [markingFailure, setMarkingFailure] = useState<string | null>(null);
+  const [remarking, setRemarking] = useState(false);
   const profile = useProfile();
   const started = useRef(false);
   const listeningSet = useMemo(() => listeningQuestions(session.paper), [session.paper]);
@@ -158,15 +167,19 @@ export default function MockResults({
     [session.paper.writing],
   );
 
-  const mark = useCallback(async () => {
-    const objective = markObjective(session.paper, session.answers);
+  /*
+    Both essays, in parallel, and a failure on either is a null rather than a
+    thrown error. The commonest reason to land here is a plan without AI
+    marking, which answers 402 — an ordinary state of affairs, not a fault, and
+    one the report is built to describe.
 
-    /*
-      Both essays, in parallel, and a failure on either is a null rather than a
-      thrown error. The commonest reason to land here is a plan without AI
-      marking, which answers 402 — an ordinary state of affairs, not a fault,
-      and one the report is built to describe.
-    */
+    What it now also does is say *which* kind of failure it was, so the report
+    can tell a candidate whose plan does not include marking from one whose
+    marking simply fell over. The second one gets offered another go; before
+    this, both were told the same thing and neither was.
+  */
+  const gradeEssays = useCallback(async () => {
+    let failure: string | null = null;
     const grades = await Promise.all(
       tasks.map(async (task) => {
         const essay = session.essays[task.id] ?? "";
@@ -178,11 +191,19 @@ export default function MockResults({
             essay,
             minWords: task.minWords,
           });
-        } catch {
+        } catch (err) {
+          if (err instanceof ApiError && err.retryable && failure === null) failure = err.message;
           return null;
         }
       }),
     );
+    return { grades, failure };
+  }, [tasks, session.essays]);
+
+  const mark = useCallback(async () => {
+    const objective = markObjective(session.paper, session.answers);
+    const { grades, failure } = await gradeEssays();
+    setMarkingFailure(failure);
 
     const attempts: WritingResultAttempt[] = tasks.flatMap((task, index) => {
       const grade = grades[index];
@@ -281,13 +302,75 @@ export default function MockResults({
       completedAt: date,
       marks,
     });
-  }, [session, tasks, onMarks, listeningSet, readingSet]);
+  }, [session, tasks, onMarks, listeningSet, readingSet, gradeEssays]);
 
   useEffect(() => {
     if (session.marks !== null || started.current) return;
     started.current = true;
     void mark();
   }, [session.marks, mark]);
+
+  /*
+    Mark the essays again, after marking failed the first time.
+
+    Deliberately not a re-run of mark(). That would re-mark the objective
+    papers, which did not fail and cost nothing to keep, and it would call
+    addResult a second time for listening and reading — and addResult prepends
+    rather than replaces, because a learner sitting the same practice paper
+    twice should see two entries in their history. Two entries for one sitting
+    is a different thing, and a wrong one.
+
+    So this adds only what is missing. A failed first pass recorded no writing
+    mark and no writing entry at all, so there is nothing to replace: the
+    essays are graded, the overall band is recomputed from the objective marks
+    that were already good, and the sitting's report is written again — that
+    one does replace, by id.
+  */
+  const remark = useCallback(async () => {
+    if (session.marks === null) return;
+    setRemarking(true);
+    try {
+      const { grades, failure } = await gradeEssays();
+      const attempts: WritingResultAttempt[] = tasks.flatMap((task, index) => {
+        const grade = grades[index];
+        return grade ? [{ task, response: session.essays[task.id] ?? "", grade }] : [];
+      });
+      if (attempts.length === 0) {
+        setMarkingFailure(failure ?? "Marking is still unavailable. Please try again shortly.");
+        return;
+      }
+      setMarkingFailure(null);
+
+      const writing = {
+        band: writingBand(grades[0]?.overallBand ?? null, grades[1]?.overallBand ?? null),
+      };
+      const next = overallFrom({
+        listening: session.marks.listening,
+        reading: session.marks.reading,
+        writing,
+        speaking: session.marks.speaking,
+      });
+      onMarks(next);
+
+      const date = new Date().toISOString();
+      addResult({
+        module: "writing",
+        testId: `${session.id}-writing`,
+        testTitle: `Mock exam — ${MODULE_NAMES.writing}`,
+        band: writing.band,
+        date,
+        review: { kind: "writing", attempts },
+      });
+      addMockReport({
+        id: session.id,
+        startedAt: session.startedAt,
+        completedAt: date,
+        marks: next,
+      });
+    } finally {
+      setRemarking(false);
+    }
+  }, [session, tasks, onMarks, gradeEssays]);
 
   /*
     The examiner's report on the two essays, from the archive the marking wrote
@@ -363,6 +446,9 @@ export default function MockResults({
   }
 
   const marks = session.marks;
+  /* An unmarked module and an empty one look the same in the report; only the
+     first has anything to mark again. */
+  const wroteSomething = tasks.some((t) => (session.essays[t.id] ?? "").trim().length > 0);
   const wrongOverall = countWrong(listeningMarked) + countWrong(readingMarked);
   const fallback =
     wrongOverall === 0
@@ -452,6 +538,42 @@ export default function MockResults({
           answers={session.answers}
         />
       </ModuleSection>
+
+      {/*
+        The one thing a candidate could not do after three hours: ask again.
+
+        When marking fell over — the model timing out, a 5xx, a connection that
+        dropped — the report simply said Writing was not marked and stopped
+        there. Sixty minutes of essay writing, two essays still sitting in the
+        session, and no button. This is that button, and it appears only when
+        all three things are true: the failure was the kind that asking again
+        can fix, the module really is unmarked, and there is an essay to mark.
+        A plan without AI marking answers 402 and is not offered a retry,
+        because there is nothing on the other side of it.
+      */}
+      {markingFailure !== null && marks.writing === null && wroteSomething && (
+        <div
+          role="alert"
+          className="card flex flex-col gap-2 !p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p className="text-sm leading-6 text-slate-700">
+            Your essays were not marked. {markingFailure} They are still here, so nothing has been
+            lost.
+          </p>
+          <button
+            type="button"
+            className="btn-primary shrink-0 !min-h-9 !px-4 !py-1.5 text-sm"
+            onClick={() => void remark()}
+            disabled={remarking}
+          >
+            {remarking ? (
+              <LoadingIndicator label="Marking…" announce={false} />
+            ) : (
+              "Mark them now"
+            )}
+          </button>
+        </div>
+      )}
 
       <ModuleSection
         title="Writing"

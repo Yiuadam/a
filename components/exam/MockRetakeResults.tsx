@@ -5,7 +5,7 @@ import Link from "next/link";
 import BandBadge from "@/components/BandBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import Review from "@/components/Review";
-import { postJSON } from "@/lib/api";
+import { ApiError, postJSON } from "@/lib/api";
 import { bandLabel } from "@/lib/band";
 import {
   MODULE_NAMES,
@@ -76,6 +76,12 @@ export default function MockRetakeResults({
   const [marking, setMarking] = useState(true);
   const [mark, setMark] = useState<ModuleMark | null>(null);
   const [writingGrades, setWritingGrades] = useState<(WritingGrade | null)[]>([]);
+  /*
+    Why marking produced nothing, when the reason is one that asking again
+    could change. A plan without AI marking answers 402 and is left alone: that
+    is not a failure and there is nothing behind a retry button.
+  */
+  const [markingFailure, setMarkingFailure] = useState<string | null>(null);
   const started = useRef(false);
 
   /*
@@ -135,6 +141,7 @@ export default function MockRetakeResults({
               },
       };
     } else if (retake.module === "writing") {
+      let failure: string | null = null;
       const tasks = session.paper.writing
         .map((id) => writingTask(id))
         .filter((task) => task !== undefined);
@@ -149,12 +156,14 @@ export default function MockRetakeResults({
               essay,
               minWords: task.minWords,
             });
-          } catch {
+          } catch (err) {
+            if (err instanceof ApiError && err.retryable) failure = err.message;
             return null;
           }
         }),
       );
       setWritingGrades(grades);
+      setMarkingFailure(failure);
       /*
         The same rule a full sitting uses: one marked task is enough for a band,
         two nulls means the module was not marked at all — which is different
@@ -236,6 +245,21 @@ export default function MockRetakeResults({
     void run();
   }, [run]);
 
+  /*
+    Marking again after it failed, which here is simply running the same pass a
+    second time.
+
+    That is safe in a way it is not after a full sitting: this callback writes
+    nothing at all unless it produced a band — `if (!scored) return` above — so
+    a failed pass leaves the standing report, the retake record and the history
+    row all untouched, and there is nothing for a second pass to duplicate.
+  */
+  const remark = useCallback(() => {
+    setMarking(true);
+    setMarkingFailure(null);
+    void run();
+  }, [run]);
+
   if (!retake) return null;
 
   if (marking) {
@@ -275,6 +299,32 @@ export default function MockRetakeResults({
 
   return (
     <div className="space-y-5">
+      {/*
+        First thing on the page, above the band ring, because until it is dealt
+        with the ring is showing a number that does not include the paper the
+        learner just sat. Marking a retake that failed used to leave them with
+        "not marked" and nowhere to go — an hour of writing, the essays still in
+        the session, and no button.
+      */}
+      {markingFailure !== null && mark === null && (
+        <div
+          role="alert"
+          className="card flex flex-col gap-2 !p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p className="text-sm leading-6 text-slate-700">
+            Your retake was not marked. {markingFailure} Your answers are still here, and your
+            standing band has not been changed.
+          </p>
+          <button
+            type="button"
+            className="btn-primary shrink-0 !min-h-9 !px-4 !py-1.5 text-sm"
+            onClick={remark}
+          >
+            Mark it now
+          </button>
+        </div>
+      )}
+
       <section className="card flex flex-col items-center gap-5 py-7 sm:flex-row sm:justify-center sm:gap-10">
         {/* No `caption`: BandBadge prints bandLabel as its own first line, so
             passing it again renders "Good user" twice. */}

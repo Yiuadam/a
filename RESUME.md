@@ -120,6 +120,8 @@ inside the app.
     now. The sheet that opens when it is tapped is an OS dialog and no stylesheet
     reaches it. Replacing it means building a picker and losing the native one's
     accessibility and localisation.
+  - **The longest-option cue and the listening block overlap** are still open —
+    see the two entries above; nothing about the marking retry changed them.
   - **Ten backdrop-filter surfaces cover ~90% of the dashboard viewport** at a
     15px touch radius. That is the thing most likely to make a mid-range Android
     stutter. The radius is already an owner-chosen value, so moving it is the
