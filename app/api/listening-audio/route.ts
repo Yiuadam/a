@@ -1,7 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { withCors } from "@/lib/http/cors";
 import {
-  LISTENING_AUDIO_MODEL,
   bundledListeningAudio,
   parseSingleRange,
   type ByteRange,
@@ -130,13 +129,19 @@ async function handleGET(request: Request): Promise<Response> {
   let generated: Response;
   try {
     /*
-      The model travels with the roster rather than sitting here, because Aura
+      The model travels with the voice rather than sitting here, because Aura
       shares speaker names across its two models and disagrees about their
-      accents. A model named in the route could be changed without the voices
-      beside it, which recasts every paper in the app and fails nowhere.
+      accents — athena is British on Aura-1 and American on Aura-2. A model
+      named in the route could be changed without the voices beside it, which
+      recasts every paper in the app and fails nowhere.
+
+      It is per segment rather than per app because the cast is drawn from both
+      models at once: four British voices exist only if two come from each, and
+      each turn is generated and stored on its own, so nothing has to
+      reconcile them.
     */
     generated = await env.AI.run(
-      LISTENING_AUDIO_MODEL,
+      segment.model,
       { text: segment.text, speaker: segment.voice, encoding: "mp3" },
       { returnRawResponse: true },
     );

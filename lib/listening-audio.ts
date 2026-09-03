@@ -6,7 +6,7 @@ import { LISTENING_TESTS } from "./tests";
   server audio.  Keeping the catalogue here gives the Worker a hard boundary:
   the public media endpoint cannot be used as an arbitrary, billable TTS API.
 */
-export const BUNDLED_LISTENING_AUDIO_VERSION = "aura-2-v1";
+export const BUNDLED_LISTENING_AUDIO_VERSION = "aura-british-v1";
 // Aura accepts at most 2,000 characters per request. Leave a little room
 // below that boundary so ordinary punctuation or future provider accounting
 // changes cannot turn a complete paper into a 413 response.
@@ -33,34 +33,43 @@ export const BUNDLED_LISTENING_AUDIO_IDS = LISTENING_TESTS.map((test) => test.id
   outside it does not quietly fall back to a default, it fails generation with
   AiError 5006 and the learner gets no recording at all.
 
-  What the cast is, and what it is not
-  ------------------------------------
-  This roster was athena, helios, angus and luna on Aura-1, which is two
-  British voices, one Irish and one American, because Aura-1 has only two
-  British voices and a four-person Part 3 needs four. The app is meant to be
-  British throughout — lib/speech.ts asks every device utterance for en-GB and
-  lib/neural-speech.ts downloads a British voice on purpose — so an American
-  student sitting in a British seminar was the loudest remaining exception
-  after the examiner, and the reason to move.
+  Four British voices, which needed both models at once
+  -----------------------------------------------------
+  The app is meant to be British throughout — lib/speech.ts asks every device
+  utterance for en-GB and lib/neural-speech.ts downloads a British voice on
+  purpose — and a four-person Part 3 needs four voices that are told apart
+  easily, because a candidate has to follow who is speaking.
 
-  Aura-2 does not solve it either: it has its own two British voices, pandora
-  and draco, and no third. What it does have is Australian, in hyperion and
-  theia. So the choice was between a cast that is British, British, Irish,
-  American and one that is British, British, Australian, Australian, and the
-  second one is the one with no American in it. Australia is a country IELTS
-  examines in and records in; the residue here is a Commonwealth accent a
-  candidate will genuinely meet on the day rather than the accent the app was
-  asked to stop using. Say plainly what that leaves: the third and fourth
-  speaker of a seminar are Australian, not British, and nothing on Aura can
-  currently make them British without giving two people the same larynx.
+  Neither Aura model can supply four on its own. Aura-1 has two, athena and
+  helios; the rest of its roster is Irish (angus) or American. Aura-2 has two,
+  pandora and draco; what it adds beyond them is Australian. Cast from one
+  model, the third and fourth speaker of a seminar were always going to be
+  something other than British, and both earlier attempts here duly were: first
+  Irish and American, then Australian and Australian.
 
-  The order is pandora, draco, hyperion, theia — feminine, masculine,
-  masculine, feminine, which is the alternation the old roster had, so the
-  papers keep the gender pattern they were written against. What no roster can
-  do is match a voice to a character: a fourth speaker gets theia whether the
-  script calls him Malik or her Elena, because guessing gender from a name is
-  not a thing to build. Casting properly needs a per-paper choice, and that is
-  a decision about the papers rather than about this file.
+  So the cast is drawn from both. Each voice names the model that produces it,
+  and the route asks that model rather than a module-level constant. That is
+  four distinct British voices — pandora and athena feminine, draco and helios
+  masculine — in the feminine, masculine, masculine, feminine alternation the
+  papers were written against.
+
+  It works because nothing about a recording requires one model per paper. Each
+  turn is generated on its own and stored under its own key, so a paper can be
+  two speakers on Aura-2 and two on Aura-1 without anything having to
+  reconcile them; what a listener hears is four people, which is the point.
+
+  The trap this file was written to close stays closed, and is in fact closed
+  harder: a speaker name means nothing without its model — athena is British on
+  Aura-1 and American on Aura-2 — and now the two cannot be separated even by
+  accident, because they are one object. Both enums are generated into
+  worker-configuration.d.ts from Cloudflare's own schemas, so a speaker a model
+  does not accept fails `npm run build` rather than failing generation at a
+  learner.
+
+  What no roster can do is match a voice to a character: a fourth speaker gets
+  helios whether the script calls him Malik or her Elena, because guessing
+  gender from a name is not a thing to build. Casting properly needs a per-paper
+  choice, and that is a decision about the papers rather than about this file.
 
   The price, which is the whole cache
   -----------------------------------
@@ -74,9 +83,14 @@ export const BUNDLED_LISTENING_AUDIO_IDS = LISTENING_TESTS.map((test) => test.id
   for the provider rather than for nothing. The first listener to each paper
   pays that wait; every listener after them reads it out of R2.
 */
-export const LISTENING_AUDIO_MODEL = "@cf/deepgram/aura-2-en";
-export const AURA_VOICES = ["pandora", "draco", "hyperion", "theia"] as const;
-export type BundledListeningVoice = (typeof AURA_VOICES)[number];
+export const AURA_VOICES = [
+  { speaker: "pandora", model: "@cf/deepgram/aura-2-en" },
+  { speaker: "draco", model: "@cf/deepgram/aura-2-en" },
+  { speaker: "helios", model: "@cf/deepgram/aura-1" },
+  { speaker: "athena", model: "@cf/deepgram/aura-1" },
+] as const;
+export type BundledListeningVoice = (typeof AURA_VOICES)[number]["speaker"];
+export type BundledListeningModel = (typeof AURA_VOICES)[number]["model"];
 
 export interface BundledListeningAudio {
   id: string;
@@ -89,6 +103,8 @@ export interface BundledListeningAudioPart {
   turnIndex: number;
   speaker: string;
   voice: BundledListeningVoice;
+  /** The model that produces this voice; see the roster note above. */
+  model: BundledListeningModel;
   text: string;
   contentVersion: typeof BUNDLED_LISTENING_AUDIO_VERSION;
   contentHash: string;
@@ -165,7 +181,7 @@ export function bundledListeningAudio(testId: string | null): BundledListeningAu
     const part = spokenForm(turn.text.trim());
     if (!part) continue;
     const speakerIndex = Math.max(0, speakers.indexOf(turn.speaker));
-    const voice = AURA_VOICES[speakerIndex % AURA_VOICES.length];
+    const { speaker: voice, model } = AURA_VOICES[speakerIndex % AURA_VOICES.length];
     // A reviewed dialogue turn stays whole whenever possible. Two existing
     // lecture-style turns exceed Aura's hard limit, so only those are split at
     // a completed sentence (or, as a last resort, a word) while keeping their
@@ -178,6 +194,7 @@ export function bundledListeningAudio(testId: string | null): BundledListeningAu
         turnIndex,
         speaker: turn.speaker,
         voice,
+        model,
         text: segment,
         contentVersion: BUNDLED_LISTENING_AUDIO_VERSION,
         contentHash,

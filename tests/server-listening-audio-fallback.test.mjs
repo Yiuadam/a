@@ -155,27 +155,32 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
 
     const canonicalSpeakers = [...new Set(paper.script.map((turn) => turn.speaker))];
     /*
-      The two British voices lead, because the great majority of papers have
-      one or two speakers and those are the ones a candidate hears most. Aura-2
-      has exactly two, so a third and fourth speaker cannot also be British;
-      what they must not be is American, which is what the table above pins.
+      Every voice British, which needs both models: neither has four, so the
+      cast is two from each and each voice carries the model that produces it.
+      A speaker name alone means nothing here — athena is British on Aura-1 and
+      American on Aura-2 — so the pair is what gets checked, never the name.
     */
-    assert.deepEqual(
-      audio.AURA_VOICES.slice(0, 2),
-      ["pandora", "draco"],
-      "the two British voices must lead the roster, so most papers are British throughout",
+    const modelInterfaces = {
+      "@cf/deepgram/aura-1": "Ai_Cf_Deepgram_Aura_1_Input",
+      "@cf/deepgram/aura-2-en": "Ai_Cf_Deepgram_Aura_2_En_Input",
+    };
+    assert.equal(audio.AURA_VOICES.length, 4, "a four-person Part 3 needs four voices");
+    assert.equal(
+      new Set(audio.AURA_VOICES.map((v) => v.speaker)).size,
+      4,
+      "and four distinct ones, or a candidate cannot tell who is speaking",
     );
-    const rosterAccents = NON_AMERICAN_AURA_VOICES[audio.LISTENING_AUDIO_MODEL];
-    assert.ok(rosterAccents, `no reviewed accent table for ${audio.LISTENING_AUDIO_MODEL}`);
-    const modelRoster = modelSpeakers("Ai_Cf_Deepgram_Aura_2_En_Input");
-    for (const voice of audio.AURA_VOICES) {
+    for (const { speaker, model } of audio.AURA_VOICES) {
+      const rosterAccents = NON_AMERICAN_AURA_VOICES[model];
+      assert.ok(rosterAccents, `no reviewed accent table for ${model}`);
       assert.ok(
-        modelRoster.includes(voice),
-        `${voice} is not a speaker ${audio.LISTENING_AUDIO_MODEL} accepts`,
+        modelSpeakers(modelInterfaces[model]).includes(speaker),
+        `${speaker} is not a speaker ${model} accepts`,
       );
-      assert.ok(
-        rosterAccents[voice],
-        `${voice} is American on ${audio.LISTENING_AUDIO_MODEL}, and no learner should hear that here`,
+      assert.equal(
+        rosterAccents[speaker],
+        "British",
+        `${speaker} is not British on ${model}, and the app is British throughout`,
       );
     }
     const voiceBySpeaker = new Map();
@@ -234,7 +239,8 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
       const knownVoice = voiceBySpeaker.get(turn.speaker);
       const expectedVoice =
         knownVoice ??
-        audio.AURA_VOICES[canonicalSpeakers.indexOf(turn.speaker) % audio.AURA_VOICES.length];
+        audio.AURA_VOICES[canonicalSpeakers.indexOf(turn.speaker) % audio.AURA_VOICES.length]
+          .speaker;
       voiceBySpeaker.set(turn.speaker, expectedVoice);
 
       for (const [turnPartIndex, part] of turnParts.entries()) {
@@ -244,8 +250,8 @@ test("only canonical bundled listening papers produce deterministic per-turn Bri
         assert.ok(part.text.length > 0, "an empty MP3 part would create a silent gap");
         assert.ok(part.text.length <= 1_800, "Aura input must stay below its 2,000-character limit");
         assert.ok(
-          audio.AURA_VOICES.includes(part.voice),
-          "a recording must be cast from the paper's own voice roster",
+          audio.AURA_VOICES.some((v) => v.speaker === part.voice && v.model === part.model),
+          "a recording must be cast from the paper's own voice roster, voice and model together",
         );
 
         // Keep the content fingerprint, turn-part boundary, and voice identity
@@ -400,7 +406,8 @@ test("the Worker caches one strict per-speaker listening turn as raw MP3 and fai
     that owned the model string could be repointed without the roster coming
     with it — which recasts every paper in the app and fails nowhere.
   */
-  assert.match(route, /AI\.run\(\s*LISTENING_AUDIO_MODEL,/);
+  // Per segment, because the cast is drawn from two models at once.
+  assert.match(route, /AI\.run\(\s*segment\.model,/);
   assert.doesNotMatch(route, /AI\.run\(\s*["']@cf\//u);
   assert.match(route, /from "@\/lib\/listening-audio"/);
   assert.match(route, /text:\s*(?:part|sourcePart|segment)\.text/);
