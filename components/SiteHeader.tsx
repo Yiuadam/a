@@ -640,54 +640,18 @@ export default function SiteHeader({
           */}
           <span className="bandup-mark relative h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm">
             <BandUpMark className="bandup-mark-rear h-full w-full" />
-            <svg
-              viewBox="0 0 1254 1254"
-              className="bandup-mark-front absolute inset-0 h-full w-full"
-              fill="none"
-              aria-hidden="true"
-            >
-              <defs>
-                <linearGradient id="bandup-glass-rim" x1="260" y1="250" x2="1010" y2="1080">
-                  <stop stopColor="white" stopOpacity="0.96" />
-                  <stop offset="0.45" stopColor="#dce5e7" stopOpacity="0.58" />
-                  <stop offset="1" stopColor="white" stopOpacity="0.88" />
-                </linearGradient>
-                <filter id="bandup-glass-depth" x="-20%" y="-20%" width="140%" height="150%">
-                  <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#090603" floodOpacity="0.24" />
-                </filter>
-              </defs>
-              <path
-                d="M252 1010V774H398V650H548V526H708V405H866V300H990V1038Z"
-                fill="white"
-                fillOpacity="0.035"
-                stroke="url(#bandup-glass-rim)"
-                strokeWidth="10"
-                strokeLinejoin="round"
-                filter="url(#bandup-glass-depth)"
-              />
-              <rect
-                x="438"
-                y="760"
-                width="410"
-                height="42"
-                rx="21"
-                fill="#29150d"
-                fillOpacity="0.55"
-                stroke="url(#bandup-glass-rim)"
-                strokeWidth="8"
-              />
-              <rect
-                x="355"
-                y="850"
-                width="330"
-                height="42"
-                rx="21"
-                fill="#29150d"
-                fillOpacity="0.55"
-                stroke="url(#bandup-glass-rim)"
-                strokeWidth="8"
-              />
-            </svg>
+            {/*
+              The glass rim that used to sit here is gone. It was a second SVG
+              laid over the mark — a specular edge and a stepped path drawn to
+              a 1254 viewBox — and it lined up with the raster tile it was
+              made for, not with the drawn mark that replaced it. On screen
+              that was a pale stepped shape sitting slightly off the logo,
+              which reads as a rendering fault rather than as a highlight.
+
+              Nothing replaces it. The mark is three layers and their colours
+              already say which is in front; a rim is what a device draws over
+              a Liquid Glass icon on a home screen, and the header is not one.
+            */}
           </span>
           <span className="hidden xs:inline">BandUp</span>
         </Link>

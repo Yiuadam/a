@@ -19,12 +19,15 @@ import { useId } from "react";
   the values the layers were drawn with; Light and Dark set their own in
   app/globals.css.
 
-  No shadow, and none of the layers carries one. A drop shadow under the front
-  sheet was tried and taken out: the two sheets read as two sheets from their
-  colours alone, the mark is drawn at 36px in the header where a blur is mud,
-  and the layer notes are explicit that a second shadow over the system's own
-  reads as a smudge. The header lays its own specular rim over the top
-  (`bandup-mark-front`), which is where it was before and where it stays.
+  No shadow. One was tried and taken out: the two sheets read as two sheets
+  from their colours alone, the mark is drawn at 36px in the header where a
+  blur is mud, and the layer notes are explicit that a second shadow over the
+  system's own reads as a smudge.
+
+  The two sheets carry classes so app/globals.css can lift them apart on hover
+  — the layers are real elements now, which is what makes that possible at all.
+  It used to be a raster tile with a second SVG over it, and the second SVG was
+  drawn to a different viewBox: what separated was not the artwork.
 */
 export default function BandUpMark({ className = "" }: { className?: string }) {
   /*
@@ -69,15 +72,23 @@ export default function BandUpMark({ className = "" }: { className?: string }) {
 
       {/* Layer 2, the sheet turned behind the page. Flat, not gradient: the
           depth is meant to come from the layers being separate. */}
-      <rect
-        x="272"
-        y="300"
-        width="500"
-        height="546"
-        rx="26"
-        fill="var(--mark-sheet)"
-        transform="rotate(-13 512 560)"
-      />
+      {/*
+        The rotation lives on the group and the class on the shape, so the hover
+        transform composes inside it. A CSS `transform` replaces an element's
+        own `transform` attribute rather than adding to it — put both on one
+        element and the sheet snaps square the moment a pointer arrives.
+      */}
+      <g transform="rotate(-13 512 560)">
+        <rect
+          className="bandup-sheet-back"
+          x="272"
+          y="300"
+          width="500"
+          height="546"
+          rx="26"
+          fill="var(--mark-sheet)"
+        />
+      </g>
 
       {/*
         Layer 3, the page — with the ruled lines cut out of it rather than drawn
@@ -101,13 +112,15 @@ export default function BandUpMark({ className = "" }: { className?: string }) {
         <rect x="304" y="690" width="404" height="26" rx="13" fill="#000" />
         <rect x="304" y="762" width="286" height="26" rx="13" fill="#000" />
       </mask>
-      <path
-        transform="rotate(4 512 560)"
-        fill="var(--mark-paper)"
-        mask={`url(#${ruled})`}
-        d="M 254 866 L 254 700 L 370 700 L 370 604 L 486 604 L 486 496
-           L 602 496 L 602 384 L 718 384 L 718 254 L 794 254 L 794 866 Z"
-      />
+      <g transform="rotate(4 512 560)">
+        <path
+          className="bandup-sheet-front"
+          fill="var(--mark-paper)"
+          mask={`url(#${ruled})`}
+          d="M 254 866 L 254 700 L 370 700 L 370 604 L 486 604 L 486 496
+             L 602 496 L 602 384 L 718 384 L 718 254 L 794 254 L 794 866 Z"
+        />
+      </g>
     </svg>
   );
 }

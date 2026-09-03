@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import DeleteGenerated from "@/components/DeleteGenerated";
+import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import DoneBadge, { bestResultFor } from "@/components/DoneBadge";
 import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
 import GlassSelect from "@/components/GlassSelect";
 import { LISTENING_TESTS, READING_TESTS } from "@/lib/tests";
 import writingData from "@/data/writing-tasks.json";
+import speakingData from "@/data/speaking-topics.json";
 
 import SessionCount from "@/components/SessionCount";
 import { allowanceFor } from "@/lib/entitlements/sessions";
@@ -35,6 +37,24 @@ const WRITING_TASK_DESCRIPTION: Record<string, string> = {
 };
 
 const WRITING_TASKS = (writingData as WritingTasksData).tasks;
+
+/*
+  The Part 2 cue cards, which are what a speaking library is browsed by.
+
+  Parts 1 and 3 are lists of questions inside a topic rather than things you
+  choose between — nobody picks "Home" and then decides which of five questions
+  to be asked. The cue card is the unit a candidate recognises and the unit the
+  interview starts from, so it is what this column lists; the full set of all
+  three parts is one link away at the bottom.
+*/
+const SPEAKING_CARDS = (speakingData as { part2: SpeakingCueCard[] }).part2;
+
+interface SpeakingCueCard {
+  id: string;
+  topic: string;
+  level: string;
+  cueCard: string;
+}
 
 const readingTests = READING_TESTS;
 const listeningTests = LISTENING_TESTS;
@@ -369,6 +389,45 @@ export default function PracticePage() {
             <div className="space-y-2">
               {WRITING_TASKS.map((task, i) => writingRow(task, i))}
               <MoreComing what="writing tasks" />
+            </div>
+          </section>
+
+          <section className="min-w-0">
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <h2 className="heading-rule text-sm font-semibold text-slate-900">Speaking</h2>
+              <SessionCount access={access.speaking} />
+            </div>
+            {/*
+              Listed here as well as at /speaking, because this page is where
+              somebody decides what to do and speaking was the one skill it did
+              not offer — a filter chip at the top and nothing under it. Tapping
+              a card starts the interview on that card, which is what the
+              speaking library itself does: the thing being read is the thing
+              being chosen.
+            */}
+            <p className="mb-2 text-xs leading-5 text-slate-600">
+              Part 2 cue cards. The examiner asks the Part 1 and Part 3 questions around whichever
+              you choose.
+            </p>
+            <div className="space-y-2">
+              {SPEAKING_CARDS.map((card) => (
+                <IntentPrefetchLink
+                  key={card.id}
+                  href={`/speaking?card=${encodeURIComponent(card.id)}`}
+                  className="card !p-3 block"
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h3 className="min-w-0 break-words text-sm font-semibold text-slate-900">
+                      {card.topic}
+                    </h3>
+                    <span className="shrink-0 text-xs text-slate-500">{card.level}</span>
+                  </div>
+                  <p className="mt-0.5 break-words text-xs leading-5 text-slate-600">
+                    {card.cueCard}
+                  </p>
+                </IntentPrefetchLink>
+              ))}
+              <MoreComing what="cue cards" />
             </div>
           </section>
 

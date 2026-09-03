@@ -6880,3 +6880,48 @@ html[data-theme="dark"] {
   --mark-sheet: #d9813f;
   --mark-paper: #f3ebdd;
 }
+
+/*
+  The mark's layers, lifted apart on hover.
+
+  This existed before as a 3D parting of two stacked images — a raster tile and
+  an SVG rim over it — and it was removed with them, because the rim was drawn
+  to a different viewBox and what separated was not the artwork. The mark is
+  three real shapes now, so the effect can be what it was always meant to be:
+  the page rises off the sheet behind it, and the sheet rises off the ground.
+
+  Translated in the drawing's own units, not pixels — the viewBox is 1024 wide
+  and the mark renders at 36, so 20 units is about 0.7 of a pixel on screen. It
+  is a suggestion of depth rather than a movement, which at this size is all
+  there is room for.
+
+  `transform-box: fill-box` so the origin is the shape's own centre and not the
+  SVG's, which is what stops a scale sliding the sheet across the tile.
+*/
+.bandup-sheet-back,
+.bandup-sheet-front {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 360ms cubic-bezier(0.18, 0.86, 0.22, 1);
+  will-change: transform;
+}
+
+.bandup-mark:hover .bandup-sheet-back {
+  transform: translate(-18px, -22px) scale(1.015);
+}
+
+.bandup-mark:hover .bandup-sheet-front {
+  transform: translate(22px, -40px) scale(1.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bandup-sheet-back,
+  .bandup-sheet-front {
+    transition: none;
+  }
+
+  .bandup-mark:hover .bandup-sheet-back,
+  .bandup-mark:hover .bandup-sheet-front {
+    transform: none;
+  }
+}
