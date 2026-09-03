@@ -77,6 +77,26 @@ for (const [topicIndex, topic] of data.part1.entries()) {
 }
 for (const card of data.part2) {
   staticQuestionIds.set(questionKey({ part: 2, question: card.cueCard }), `p2-${card.id}`);
+  /*
+    And the question that closes the long turn.
+
+    SpeakingSession asks it — `card.followUp?.[0]`, the short "Do you still see
+    this person often?" an examiner uses to round off Part 2 — but this
+    catalogue did not know it existed, so it had no recording and no id. The
+    consequence was not one line in the wrong voice. Every id downstream of it
+    carries the step's index, and the interview the candidate hears has this
+    step while the interview this file enumerated did not, so from the cue card
+    onward the app asked for `...-natural-pause-8` while the bucket held
+    `...-natural-pause-7`. Five of the twelve transitions missed, and the
+    examiner changed voice for the whole back half of the interview.
+
+    Registered as part 2 because that is the part the examiner is still in when
+    they ask it, which is the same reason SpeakingSession pushes it as part 2.
+  */
+  const roundingOff = card.followUp?.[0];
+  if (roundingOff) {
+    staticQuestionIds.set(questionKey({ part: 2, question: roundingOff }), `p2-${card.id}-round`);
+  }
 }
 for (const [topicIndex, topic] of data.part3.entries()) {
   for (const [questionIndex, question] of topic.questions.entries()) {
@@ -95,6 +115,15 @@ function interviewFrom(
     ...first.questions.slice(0, 3).map((question) => ({ part: 1 as const, question })),
     ...second.questions.slice(0, 3).map((question) => ({ part: 1 as const, question })),
     { part: 2 as const, question: card.cueCard },
+    /*
+      The rounding-off question, in the same position SpeakingSession puts it
+      (components/speaking/SpeakingSession.tsx). These two lists have to agree
+      step for step: this one decides which recordings exist, that one decides
+      which recordings are asked for, and a bridge id ends in the index of the
+      step it bridges from. A step present in one and absent from the other
+      does not lose one line, it renumbers every line after it.
+    */
+    ...(card.followUp?.[0] ? [{ part: 2 as const, question: card.followUp[0] }] : []),
     ...discussion.questions.slice(0, 4).map((question) => ({ part: 3 as const, question })),
   ];
 }

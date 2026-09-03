@@ -43,6 +43,40 @@ export default function AppMain({ children }: { children: ReactNode }) {
     mounted on every route and on every platform. See lib/billing/free-pro-offer.ts.
   */
   useEffect(() => startFreeProOffer(), []);
+
+  /*
+    Every page opens at the top.
+
+    A browser does this for you when the page itself is what scrolls. Here it
+    mostly is not: `data-viewport-locked` holds the body still on almost every
+    route, so the thing that actually scrolls is a container inside the page —
+    the practice library's card column, for one. Nothing resets those. React
+    reuses the DOM node when two routes render the same component (Reading and
+    Listening both draw TestChooser), so leaving one library half way down and
+    opening the other one showed it half way down too, with the heading above
+    the top of the screen and no obvious way back to it. On iOS that is worse
+    than it sounds: tapping the clock scrolls the *window*, and the window has
+    nothing to scroll, so the one gesture everybody reaches for does nothing.
+
+    So: on every route change, put the window back to the top and reset every
+    container inside the page that has been scrolled. Checking `scrollTop`
+    rather than hunting for particular class names means a container that
+    scrolls for any reason is covered, including ones added later.
+
+    Deliberately unconditional, including on Back. Restoring where somebody
+    was is the friendlier behaviour in the abstract, but it is exactly what
+    produced the report — and a page that always starts at the top is never
+    the page you cannot climb.
+  */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const main = document.querySelector("main");
+    if (!main) return;
+    if (main.scrollTop !== 0) main.scrollTop = 0;
+    for (const element of main.querySelectorAll<HTMLElement>("*")) {
+      if (element.scrollTop !== 0) element.scrollTop = 0;
+    }
+  }, [pathname]);
   const console_ = pathname.startsWith("/admin");
   const workspace = pathname.startsWith("/organization");
   const viewportLocked =

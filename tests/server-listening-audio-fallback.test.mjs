@@ -626,6 +626,24 @@ function canonicalExaminerInterviews() {
           ...first.questions.slice(0, 3).map((question) => ({ part: 1, question })),
           ...second.questions.slice(0, 3).map((question) => ({ part: 1, question })),
           { part: 2, question: card.cueCard },
+          /*
+            The rounding-off question, because the candidate hears it.
+
+            This list used to mirror lib/examiner-audio.ts's own `interviewFrom`
+            rather than the interview components/speaking/SpeakingSession.tsx
+            actually builds, and that is precisely why it certified a catalogue
+            with a hole in it. SpeakingSession pushes `card.followUp?.[0]` after
+            the cue card; the catalogue did not; and since a transition id ends
+            in the index of the step it bridges from, every id after the cue
+            card was numbered one too low. Five of twelve transitions missed
+            and the examiner changed voice for the back half of the interview,
+            with this test green throughout.
+
+            So it is built from what is spoken, not from what is catalogued.
+            The two are allowed to agree; they are not allowed to agree because
+            one was copied from the other.
+          */
+          ...(card.followUp?.[0] ? [{ part: 2, question: card.followUp[0] }] : []),
           ...discussion.questions.slice(0, 4).map((question) => ({ part: 3, question })),
         ]);
       }
