@@ -688,7 +688,7 @@ for (const name of listeningPapers) {
   build checks. That way the field cannot drift away from the paper it
   describes without the build saying so.
 */
-const WRITING_TASK_TYPES = ["chart", "table", "plan", "letter", "essay"];
+const WRITING_TASK_TYPES = ["chart", "table", "plan", "process", "letter", "essay"];
 
 function checkWritingType(task) {
   const id = task.id ?? "a task";
@@ -704,9 +704,11 @@ function checkWritingType(task) {
         ? "chart"
         : task.plans
           ? "plan"
-          : task.variant === "general"
-            ? "letter"
-            : null;
+          : task.process
+            ? "process"
+            : task.variant === "general"
+              ? "letter"
+              : null;
   /*
     Null means the task carries no evidence either way — an academic Task 1
     with neither a table nor a chart. That is already a failure a few lines
@@ -733,14 +735,28 @@ if (writing) {
     checkWritingType(task);
     if (
       task.task === 1 && task.variant === "academic" &&
-      !task.dataTable && !task.chart && !task.plans
+      !task.dataTable && !task.chart && !task.plans && !task.process
     ) {
       fail("writing-tasks.json", `${task.id} is an academic Task 1 with nothing to describe`);
     }
-    if ([task.dataTable, task.chart, task.plans].filter(Boolean).length > 1) {
+    if ([task.dataTable, task.chart, task.plans, task.process].filter(Boolean).length > 1) {
       // Two views of the same thing would let a candidate read the figures off
       // one and never interpret the other, which is the skill Task 1 tests.
       fail("writing-tasks.json", `${task.id} carries more than one figure; it should have one`);
+    }
+    /*
+      A process is a sequence, and a sequence of one or two is not one. Three
+      is the fewest that has a middle — which is where the language the task is
+      really testing lives, since "first" and "finally" come free and "the pulp
+      is then pressed" does not.
+    */
+    if (task.process !== undefined) {
+      const stages = task.process?.stages;
+      if (!Array.isArray(stages) || stages.length < 3) {
+        fail("writing-tasks.json", `${task.id} needs at least three stages to be a process`);
+      } else if (stages.some((stage) => !stage?.label)) {
+        fail("writing-tasks.json", `${task.id} has a process stage with no label`);
+      }
     }
     /*
       A map task is a *pair* of plans, because the writing it asks for is what

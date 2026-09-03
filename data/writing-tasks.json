@@ -1419,6 +1419,94 @@
       ],
       "minWords": 150,
       "timeMinutes": 20
+    },
+    {
+      "id": "w43",
+      "task": 1,
+      "variant": "academic",
+      "type": "process",
+      "title": "How glass bottles are recycled",
+      "level": "B1",
+      "prompt": "The diagram below shows how glass bottles are recycled.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "process": {
+        "title": "Recycling glass bottles",
+        "stages": [
+          {
+            "label": "Collection",
+            "note": "bottles taken from household bins"
+          },
+          {
+            "label": "Sorting",
+            "note": "separated by colour"
+          },
+          {
+            "label": "Washing",
+            "note": "labels and lids removed"
+          },
+          {
+            "label": "Crushing",
+            "note": "broken into small pieces, called cullet"
+          },
+          {
+            "label": "Melting",
+            "note": "heated in a furnace at 1,500°C"
+          },
+          {
+            "label": "Moulding",
+            "note": "shaped into new bottles"
+          },
+          {
+            "label": "Filling",
+            "note": "returned to the drinks factory"
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w44",
+      "task": 1,
+      "variant": "academic",
+      "type": "process",
+      "title": "How rainwater is made drinkable",
+      "level": "B2",
+      "prompt": "The diagram below shows how rainwater is collected and treated to make it drinkable.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "process": {
+        "title": "From rainfall to tap",
+        "stages": [
+          {
+            "label": "Rainfall",
+            "note": "collected in an upland reservoir"
+          },
+          {
+            "label": "Screening",
+            "note": "leaves and debris removed"
+          },
+          {
+            "label": "Settling",
+            "note": "heavy particles sink in a still tank"
+          },
+          {
+            "label": "Filtering",
+            "note": "passed through sand and gravel beds"
+          },
+          {
+            "label": "Disinfecting",
+            "note": "chlorine added to kill bacteria"
+          },
+          {
+            "label": "Storage",
+            "note": "held in a covered tank"
+          },
+          {
+            "label": "Distribution",
+            "note": "pumped to homes through mains pipes"
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
     }
   ]
 }

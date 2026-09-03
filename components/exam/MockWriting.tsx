@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import PlanDrawing from "@/components/PlanFigure";
+import ProcessDrawing from "@/components/ProcessFigure";
 import Chart from "@/components/Chart";
 import ExamShell from "@/components/exam/ExamShell";
 import { useIsWide } from "@/components/exam/SplitPanes";
@@ -60,6 +61,8 @@ export default function MockWriting({
 
   const figure = task.chart ? (
     <Chart spec={task.chart} />
+  ) : task.process ? (
+    <ProcessDrawing process={task.process} />
   ) : task.plans ? (
     /*
       Two plans of the same site, drawn side by side on a wide screen and

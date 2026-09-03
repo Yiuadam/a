@@ -394,7 +394,7 @@ export interface ListeningTest {
   is a Task 2, a letter is a General Training Task 1, and a chart or a table
   is the one the task actually carries. It just no longer has a bar to feed.
 */
-export const WRITING_TASK_TYPES = ["chart", "table", "plan", "letter", "essay"] as const;
+export const WRITING_TASK_TYPES = ["chart", "table", "plan", "process", "letter", "essay"] as const;
 export type WritingTaskType = (typeof WRITING_TASK_TYPES)[number];
 
 export interface WritingTask {
@@ -447,6 +447,22 @@ export interface WritingTask {
     listening labelling plans; the difference is that these carry no letters.
   */
   plans?: Array<{ caption: string; figure: PlanFigure }>;
+  /*
+    The fourth Academic Task 1 figure: a process — how something is made, how
+    water moves through a system, how a material is recycled. It asks for
+    writing the other three do not, because a process has no numbers in it at
+    all: the whole answer is sequence and passive voice ("the pulp is then
+    pressed into sheets"), and a candidate who has only described charts has
+    never had to write a word of it.
+
+    Stages in order, each with an optional note for what happens at it. Drawn as
+    boxes joined by arrows rather than as a numbered list, because reading the
+    order off a diagram is part of the task.
+  */
+  process?: {
+    title?: string;
+    stages: Array<{ label: string; note?: string }>;
+  };
   minWords: number;
   timeMinutes: number;
 }

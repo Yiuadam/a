@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import PlanDrawing from "@/components/PlanFigure";
+import ProcessDrawing from "@/components/ProcessFigure";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
@@ -213,6 +214,8 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
 
   const visual = task.chart ? (
     <Chart spec={task.chart} />
+  ) : task.process ? (
+    <ProcessDrawing process={task.process} />
   ) : task.plans ? (
     /*
       Two plans of the same site, drawn side by side on a wide screen and

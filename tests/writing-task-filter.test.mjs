@@ -138,9 +138,11 @@ test("every writing task's type matches the content it actually carries", () => 
              asks for, after a chart and a table. */
           : task.plans
             ? "plan"
-            : task.variant === "general"
-              ? "letter"
-              : null;
+            : task.process
+              ? "process"
+              : task.variant === "general"
+                ? "letter"
+                : null;
     assert.notEqual(expected, null, `${task.id} carries nothing to type it by`);
     assert.equal(task.type, expected, `${task.id} is typed ${task.type} but reads as a ${expected}`);
   }
