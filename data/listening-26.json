@@ -15,7 +15,15 @@
     },
     {
       "speaker": "Recruitment Manager",
+      "text": "I promise I'll leave plenty of time for questions at the end, so do jot things down as they occur to you."
+    },
+    {
+      "speaker": "Recruitment Manager",
       "text": "We make components for the water industry — valves, pumps, that sort of thing. Not glamorous, I'll admit, but the country stops without them."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "You'd be amazed how many different sites we supply, actually — hospitals, treatment works, all sorts of places you wouldn't necessarily think about."
     },
     {
       "speaker": "Recruitment Manager",
@@ -39,11 +47,19 @@
     },
     {
       "speaker": "Recruitment Manager",
+      "text": "That's genuinely the single biggest thing I look for when I'm reading an application form, more than any list of grades."
+    },
+    {
+      "speaker": "Recruitment Manager",
       "text": "Applications close at the end of April. There's no advantage at all in applying early, because we read them all together on the same day. There is, however, a very real disadvantage in applying late, since we don't accept anything after the closing date under any circumstances."
     },
     {
       "speaker": "Recruitment Manager",
       "text": "After that the process has three stages. First a short maths test, which is arithmetic and measurement — nothing frightening, and you may use a calculator. Then a practical morning, where we give you a task and watch how you go about it. What we're really watching is how you ask for help. And then an interview with me and one of the engineers."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "None of the three stages is designed to catch you out, by the way — we're simply trying to get to know you properly before we offer anyone a place."
     },
     {
       "speaker": "Recruitment Manager",
@@ -60,6 +76,10 @@
     {
       "speaker": "Recruitment Manager",
       "text": "There's a stand just outside with the application form on paper, and the identical form is on our website. Come and find me afterwards if you've got a question you didn't want to ask in front of everybody — in my experience that's usually the best question in the room."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "Thank you all for listening, and I do hope to see some of your application forms before the end of April."
     }
   ],
   "questions": [

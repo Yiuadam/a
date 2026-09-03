@@ -152,11 +152,14 @@ export default function ResourcesPage() {
             Out of 40. This is the conversion BandUp marks with, so a practice band and an exam
             band are read off the same scale.
           </p>
-          <div className="mt-2 overflow-x-auto">
+          {/* Held to a readable measure rather than stretched across the card:
+              three short columns spread over 700px put the reading figure a
+              long way from the band it belongs to. */}
+          <div className="mt-2 max-w-sm overflow-x-auto">
             <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="text-left text-slate-500">
-                  <th scope="col" className="py-1 pr-2 font-medium">Band</th>
+                  <th scope="col" className="w-12 py-1 pr-2 font-medium">Band</th>
                   <th scope="col" className="py-1 pr-2 font-medium">Listening</th>
                   <th scope="col" className="py-1 font-medium">Reading</th>
                 </tr>

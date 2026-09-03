@@ -20,6 +20,14 @@
     },
     {
       "speaker": "Agent",
+      "text": "Of course — is this for a special occasion, or just a weekend away?"
+    },
+    {
+      "speaker": "Customer",
+      "text": "Just a weekend away, actually. A few of us are heading to the coast."
+    },
+    {
+      "speaker": "Agent",
       "text": "No problem at all. Can I take your name first?"
     },
     {
@@ -52,6 +60,14 @@
     },
     {
       "speaker": "Agent",
+      "text": "Lovely, thank you. Have you hired with us before, or is this your first time?"
+    },
+    {
+      "speaker": "Customer",
+      "text": "First time, actually. My usual garage didn't have anything available this week."
+    },
+    {
+      "speaker": "Agent",
       "text": "Great. Now, what sort of car were you looking for?"
     },
     {
@@ -65,6 +81,14 @@
     {
       "speaker": "Customer",
       "text": "Yes, that's what I thought."
+    },
+    {
+      "speaker": "Agent",
+      "text": "It's a nice car to drive as well, easy to park, which helps if you're not used to the area."
+    },
+    {
+      "speaker": "Customer",
+      "text": "That's good to hear. We don't really know the roads round here."
     },
     {
       "speaker": "Agent",
@@ -91,12 +115,28 @@
       "text": "105 pounds, okay, that's fine."
     },
     {
+      "speaker": "Customer",
+      "text": "Is basic insurance included in that price, or is it extra?"
+    },
+    {
+      "speaker": "Agent",
+      "text": "Basic cover's included as standard. What the deposit is really for is the excess on top of that, in case there's ever a claim."
+    },
+    {
       "speaker": "Agent",
       "text": "There's also a refundable deposit, which covers the insurance excess. That's 150 pounds, taken from your card when you collect the car, and returned once it's brought back undamaged."
     },
     {
       "speaker": "Customer",
       "text": "150 pounds deposit, got it."
+    },
+    {
+      "speaker": "Agent",
+      "text": "That's the financial side sorted, then. Just a couple more questions and we'll get you on the road."
+    },
+    {
+      "speaker": "Customer",
+      "text": "Sure, go ahead."
     },
     {
       "speaker": "Agent",
@@ -116,6 +156,14 @@
     },
     {
       "speaker": "Agent",
+      "text": "I'll just need to see her licence too when you collect the car, but that's all — no extra paperwork today."
+    },
+    {
+      "speaker": "Customer",
+      "text": "That's easy enough, she's got it with her passport."
+    },
+    {
+      "speaker": "Agent",
       "text": "Which branch would you like to collect the car from? We have one at the airport and one in the town centre."
     },
     {
@@ -129,6 +177,14 @@
     {
       "speaker": "Customer",
       "text": "Driving licence and the card, understood."
+    },
+    {
+      "speaker": "Customer",
+      "text": "Out of curiosity, what colour will it be?"
+    },
+    {
+      "speaker": "Agent",
+      "text": "I can't promise a colour, I'm afraid. It depends what's available on the compact fleet that morning, but they're usually silver or grey rather than anything bright."
     },
     {
       "speaker": "Agent",
@@ -148,6 +204,14 @@
     },
     {
       "speaker": "Agent",
+      "text": "Great, most weekend trips comfortably stay within that anyway."
+    },
+    {
+      "speaker": "Customer",
+      "text": "That's what I thought. We're not planning to drive too far."
+    },
+    {
+      "speaker": "Agent",
       "text": "One more thing — please have the car back by six in the evening on the day you return it, or a late fee applies."
     },
     {
@@ -157,6 +221,14 @@
     {
       "speaker": "Agent",
       "text": "You're welcome. See you Saturday morning, Tom."
+    },
+    {
+      "speaker": "Customer",
+      "text": "Will do. Have a good weekend yourself, and thanks again for sorting all this out so quickly."
+    },
+    {
+      "speaker": "Agent",
+      "text": "You're welcome, that's what we're here for. Have a safe trip, and we'll see you on Saturday."
     }
   ],
   "questions": [

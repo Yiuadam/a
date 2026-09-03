@@ -15,7 +15,15 @@
     },
     {
       "speaker": "Ranger",
+      "text": "It's a beautiful spot whatever the weather, though I'll admit today's forecast is a little kinder than most of what we've had this month."
+    },
+    {
+      "speaker": "Ranger",
       "text": "The park covers a hundred and twenty hectares altogether, which sounds enormous, though a good third of that is the woodland at the top of the site and there are no paths through most of it. The part you'll actually walk is a good deal smaller than the figure suggests."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "Even so, there's more than enough for a good morning or afternoon out, and most people are pleasantly surprised by how much they get through."
     },
     {
       "speaker": "Ranger",
@@ -23,11 +31,23 @@
     },
     {
       "speaker": "Ranger",
+      "text": "The centre itself has toilets, a small exhibition about the park's history, and information boards if you'd rather explore at your own pace instead of joining the walk."
+    },
+    {
+      "speaker": "Ranger",
       "text": "We run a guided walk twice a day, and that costs four pounds. Children go free. You can pay at the desk in the visitor centre, or on the walk itself if you'd rather, though we do ask for the exact amount because we don't keep change out on the path."
     },
     {
       "speaker": "Ranger",
+      "text": "The guide today is one of our longest-serving volunteers, and he knows more about the wildlife here than anyone else on the team."
+    },
+    {
+      "speaker": "Ranger",
       "text": "Two small requests. Please don't feed the ducks — I know it's a hard habit to break, but bread does them real harm and we've had a lot of trouble with it this spring. And dogs are very welcome, but they must be on a lead anywhere near the meadow, because it's full of ground-nesting birds from April onwards."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "Right, that's the practical bits out of the way. Let's have a proper look at the plan now, so you all know where you're headed."
     },
     {
       "speaker": "Ranger",
@@ -39,11 +59,19 @@
     },
     {
       "speaker": "Ranger",
+      "text": "They do a lovely flapjack there, if you're tempted, and the coffee's better than you'd expect from somewhere so small."
+    },
+    {
+      "speaker": "Ranger",
       "text": "The bird hide is the one thing that takes a bit of finding. It's tucked into the corner where the lake and the meadow meet, so you want to head north-west from the visitor centre, and then look for the boardwalk on the corner between the two."
     },
     {
       "speaker": "Ranger",
       "text": "If you've brought children with you, the play area is directly to the east of the visitor centre, no more than a minute's walk. It's not signposted from the entrance, which we're aware of, so it's worth knowing before you set off."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "It's got swings, a climbing frame and a sandpit, and there are benches all round for anyone who'd rather sit and watch."
     },
     {
       "speaker": "Ranger",
@@ -56,6 +84,10 @@
     {
       "speaker": "Ranger",
       "text": "That's everything from me. The walk leaves from the visitor centre steps in ten minutes, and I'll see some of you there."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "Thank you all for your patience this morning, and do come and find me afterwards if anything wasn't clear."
     }
   ],
   "questions": [

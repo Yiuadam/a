@@ -16,12 +16,28 @@
       "text": "Thanks for coming in together. Since you're both looking at consumer behaviour this year, I thought it made sense to talk topics at the same time. Ruth, do you want to go first?"
     },
     {
+      "speaker": "Callum",
+      "text": "Happy to go first if it helps, but Ruth's probably got more to say at this stage than I have."
+    },
+    {
+      "speaker": "Ruth",
+      "text": "Only because I've rewritten mine more times than I'd like to admit."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "That's either very keen or a bad sign. Let's find out which — go on, Ruth."
+    },
+    {
       "speaker": "Ruth",
       "text": "Sure. I was originally planning to look at how supermarket loyalty cards affect spending habits generally, but the more reading I do, the more I think that's too broad for a dissertation of this length."
     },
     {
       "speaker": "Dr Fenwick",
       "text": "I'd agree with that instinct. What's a narrower angle you could take?"
+    },
+    {
+      "speaker": "Callum",
+      "text": "What about just looking at one supermarket chain instead of the whole sector?"
     },
     {
       "speaker": "Ruth",
@@ -44,12 +60,24 @@
       "text": "Yes, that feels much more realistic now."
     },
     {
+      "speaker": "Callum",
+      "text": "That's a good way to put the problem, actually — I've been trying to compare far too much in mine as well."
+    },
+    {
       "speaker": "Dr Fenwick",
       "text": "Callum, what have you got?"
     },
     {
       "speaker": "Callum",
       "text": "I'm interested in online reviews, and how much people trust them. Originally I wanted to look at reviews across several different product categories — electronics, restaurants, clothing."
+    },
+    {
+      "speaker": "Ruth",
+      "text": "Electronics and restaurants and clothing all in one dissertation does sound like rather a lot."
+    },
+    {
+      "speaker": "Callum",
+      "text": "I know. I think I was just trying to keep my options open for as long as possible."
     },
     {
       "speaker": "Dr Fenwick",
@@ -60,12 +88,28 @@
       "text": "Restaurants, definitely. I keep coming back to that in my reading anyway."
     },
     {
+      "speaker": "Ruth",
+      "text": "That's the one you always bring up in seminars anyway."
+    },
+    {
+      "speaker": "Callum",
+      "text": "Is it that obvious?"
+    },
+    {
       "speaker": "Dr Fenwick",
       "text": "Then let's narrow it there. Restaurant reviews specifically — that gives you a single, well-defined context."
     },
     {
       "speaker": "Callum",
       "text": "Okay. Should I look at trust in reviews generally, or something more specific within that?"
+    },
+    {
+      "speaker": "Ruth",
+      "text": "I read reviews before almost anything now, even things I don't really need advice on."
+    },
+    {
+      "speaker": "Callum",
+      "text": "Same. I'm not sure that's healthy, but here we are."
     },
     {
       "speaker": "Dr Fenwick",
@@ -84,6 +128,10 @@
       "text": "Yes, I like that, it's specific enough to actually answer."
     },
     {
+      "speaker": "Ruth",
+      "text": "That's a relief — at least we've both got something workable now."
+    },
+    {
       "speaker": "Dr Fenwick",
       "text": "Good. Now, both of you will need to think about method. Ruth, were you planning a survey, or interviews?"
     },
@@ -96,6 +144,10 @@
       "text": "Agreed, a survey suits a topic like yours much better than interviews would."
     },
     {
+      "speaker": "Ruth",
+      "text": "Good — interviews would have taken forever to transcribe anyway."
+    },
+    {
       "speaker": "Callum",
       "text": "What about me? I was thinking a survey too, but now that I think about it, maybe a small experiment would work better, showing people the same restaurant with and without a detailed comment."
     },
@@ -104,8 +156,24 @@
       "text": "That's a strong idea, actually — an experiment would let you isolate the effect much more clearly than a survey could. Let's go with that."
     },
     {
+      "speaker": "Ruth",
+      "text": "An experiment sounds a lot more involved than what I'm doing."
+    },
+    {
+      "speaker": "Callum",
+      "text": "Probably, yes — I'll let you know how many people I manage to rope in."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Rope in properly, with consent forms, not literally off the street."
+    },
+    {
       "speaker": "Callum",
       "text": "Great, I'll start designing it this week."
+    },
+    {
+      "speaker": "Ruth",
+      "text": "Are we nearly done? I promised I'd meet someone at four."
     },
     {
       "speaker": "Dr Fenwick",
@@ -118,6 +186,34 @@
     {
       "speaker": "Callum",
       "text": "Same here, thanks for the help narrowing this down."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Before you both go — write the methods section before you collect a single data point. If you can't explain clearly how you intend to analyse the results, you are not yet ready to gather them."
+    },
+    {
+      "speaker": "Ruth",
+      "text": "That's good to know before we start, rather than after."
+    },
+    {
+      "speaker": "Callum",
+      "text": "Definitely better than finding out in March."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Quite. I'll see you both again once the outlines are in."
+    },
+    {
+      "speaker": "Ruth",
+      "text": "Thanks — this was more useful than I expected, if I'm honest."
+    },
+    {
+      "speaker": "Callum",
+      "text": "Same. I came in convinced my three categories were the strong part of the proposal."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "They might have been, in a much longer dissertation. Off you both go."
     }
   ],
   "questions": [
