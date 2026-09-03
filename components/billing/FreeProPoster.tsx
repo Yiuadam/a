@@ -1,21 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
 import {
-  authedFetch,
   getServerSnapshot as getSessionServerSnapshot,
   getSnapshot as getSessionSnapshot,
   subscribe as subscribeSession,
 } from "@/lib/account";
-import { apiUrl } from "@/lib/api";
+import { rememberAutoAcceptIntent } from "@/lib/billing/free-pro-dismissal";
 import {
-  consumeAutoAcceptIntent,
-  dismissedAlready,
-  rememberAutoAcceptIntent,
-  rememberDecision,
-} from "@/lib/billing/free-pro-dismissal";
+  acceptFreePro,
+  dismissFreePro,
+  getFreeProOffer,
+  getFreeProOfferServerSnapshot,
+  subscribeFreeProOffer,
+} from "@/lib/billing/free-pro-offer";
 import { TIERS } from "@/lib/billing/tiers";
 
 /*
@@ -70,109 +70,29 @@ import { TIERS } from "@/lib/billing/tiers";
   changes what is drawn and changes nothing about what is granted.
 */
 
-type Phase = "idle" | "offered" | "accepting" | "accepted" | "error";
-
-/*
-  Never fires — dismissal is read once per mount, not watched for changes
-  from elsewhere, so there is nothing to subscribe to. useSyncExternalStore
-  is used anyway rather than a plain useState + useEffect pair, because
-  that pair is exactly the shape react-hooks/set-state-in-effect exists to
-  reject: this value can only be answered from localStorage, which does not
-  exist during the server render, so the server snapshot has to say "not
-  dismissed" and the real answer can only land after hydration. See
-  components/billing/UsageMeter.tsx for the same trade made the same way.
-*/
-const neverChanges = () => () => {};
-
 export default function FreeProPoster() {
   const session = useSyncExternalStore(
     subscribeSession,
     getSessionSnapshot,
     getSessionServerSnapshot,
   );
-  const dismissed = useSyncExternalStore(neverChanges, dismissedAlready, () => false);
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [message, setMessage] = useState<string>("");
   /*
-    `accept` needs to be callable from the effect below (a guest who tapped
-    "Sign up free" is auto-continued the moment a session appears, without
-    a second click) but its own identity does not need to be an effect
-    dependency — it never changes what the effect is checking, only what
-    happens once. A ref sidesteps the ordering problem cleanly: no forward
-    reference to a function declared later in the same component.
+    Both the answer and the acting on it come from lib/billing/free-pro-offer.ts
+    now. This component used to own the eligibility request and, with it, the
+    read-and-clear of the guest's auto-accept intent — which made granting the
+    trial a side effect of rendering this file. It is a reader now, so the offer
+    can be drawn in more than one place without the grant following it around.
   */
-  const acceptRef = useRef<() => Promise<void>>(() => Promise.resolve());
-
-  const accept = useCallback(async () => {
-    setPhase("accepting");
-    try {
-      const res = await authedFetch(apiUrl("/api/billing/promo"), { method: "POST" });
-      const body = (await res.json().catch(() => null)) as
-        | { granted?: boolean; error?: string }
-        | null;
-      if (res.ok && body?.granted === true) {
-        rememberDecision();
-        setPhase("accepted");
-        return;
-      }
-      setMessage(
-        typeof body?.error === "string" && body.error.length > 0
-          ? body.error
-          : "We couldn't start your free Pro trial just now. Please try again in a minute.",
-      );
-      setPhase("error");
-    } catch {
-      setMessage(
-        "We couldn't reach the server. Please check your connection and try again in a minute.",
-      );
-      setPhase("error");
-    }
-  }, []);
-
-  useEffect(() => {
-    acceptRef.current = accept;
-  }, [accept]);
-
-  useEffect(() => {
-    // A sign-out or a sign-in re-runs this. `alive` keeps the older answer from
-    // landing last and drawing a poster for the previous account.
-    let alive = true;
-    /*
-      The reset happens in the cleanup rather than here, so an already-
-      decided reader costs no render at all and the previous account's
-      poster is cleared as the session changes.
-    */
-    const done = () => {
-      alive = false;
-      setPhase("idle");
-    };
-    // A guest is rendered straight from `session`/`dismissed`, not from
-    // `phase` — there is nothing to fetch until an account exists to ask
-    // about. See the render below.
-    if (dismissed || !session) return done;
-
-    authedFetch(apiUrl("/api/billing/promo"))
-      .then(async (res) => (res.ok ? ((await res.json()) as { offered?: boolean }) : null))
-      .then((body) => {
-        if (!alive) return;
-        // Read-and-clear regardless of the answer: a guest who signed up
-        // gets one auto-continue, not one per reload of the same tab.
-        const autoAccept = consumeAutoAcceptIntent();
-        if (body?.offered !== true) return;
-        if (autoAccept) void acceptRef.current();
-        else setPhase("offered");
-      })
-      .catch(() => {
-        /* No answer means no poster. Silence is the safe direction here. */
-      });
-
-    return done;
-  }, [session, dismissed]);
-
-  const dismiss = useCallback(() => {
-    rememberDecision();
-    setPhase("idle");
-  }, []);
+  const offer = useSyncExternalStore(
+    subscribeFreeProOffer,
+    getFreeProOffer,
+    getFreeProOfferServerSnapshot,
+  );
+  const phase = offer.state;
+  const message = offer.message;
+  const accept = acceptFreePro;
+  const dismiss = dismissFreePro;
+  const dismissed = phase === "none";
 
   if (dismissed) return null;
 
@@ -238,10 +158,10 @@ export default function FreeProPoster() {
     );
   }
 
-  // Signed in, but the eligibility check is still in flight or came back
-  // false — neither is drawn, same as the original behaviour this restores:
-  // the usual case for a signed-in reader is an empty render.
-  if (phase === "idle") return null;
+  // Signed in, but the eligibility check is still in flight — nothing is drawn,
+  // which is the usual case for a signed-in reader. `none` is handled above as
+  // the dismissal it also stands for.
+  if (phase === "unknown") return null;
 
   if (phase === "accepted") {
     return (

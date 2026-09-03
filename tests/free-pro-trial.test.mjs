@@ -9,7 +9,7 @@
   feature writes a migration — the constraint it depends on is applied by hand.
 */
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { register } from "node:module";
 import { test } from "node:test";
@@ -60,11 +60,80 @@ test("a dismissed reader sees nothing, signed in or not", () => {
 
 test("accepting for a guest means signing up, and the accept continues automatically afterward", () => {
   const code = poster.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-  // The intent is recorded before the navigation to sign-up happens...
+  const store = readFileSync(join(root, "lib", "billing", "free-pro-offer.ts"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+
+  // The intent is recorded where the guest taps, which is still the poster...
   assert.match(code, /rememberAutoAcceptIntent\(\)/);
   // ...and read back — exactly once — once a session exists to act on it.
-  assert.match(code, /const autoAccept = consumeAutoAcceptIntent\(\);/);
-  assert.match(code, /if \(autoAccept\) void acceptRef\.current\(\);/);
+  assert.match(store, /const autoAccept = consumeAutoAcceptIntent\(\);/);
+  assert.match(store, /if \(autoAccept\) void acceptFreePro\(\);/);
+});
+
+/*
+  The grant must not depend on anything being on screen.
+
+  It used to: the eligibility request and the read-and-clear of the guest's
+  intent both lived in the poster's own effect, so continuing a guest's accept
+  was a side effect of rendering that component. Once the offer is also
+  announced somewhere that mounts lazily — a popover — that arrangement drops
+  grants silently, which is the worst way to lose one.
+
+  So the continuation lives in a module with no markup in it, started by the
+  shell that is mounted on every route and on every platform.
+*/
+test("the accept continuation does not depend on the offer being rendered", () => {
+  const store = readFileSync(join(root, "lib", "billing", "free-pro-offer.ts"), "utf8");
+  const shell = readFileSync(join(root, "components", "AppMain.tsx"), "utf8");
+
+  /*
+    It is a .ts module, not .tsx, and imports nothing from react — so it cannot
+    render and cannot be unmounted. That is the property that matters: a grant
+    that depends on a component being alive is a grant that can be missed.
+  */
+  assert.ok(existsSync(join(root, "lib", "billing", "free-pro-offer.ts")));
+  assert.ok(!existsSync(join(root, "lib", "billing", "free-pro-offer.tsx")));
+  assert.doesNotMatch(store, /from "react"/);
+  assert.match(store, /export function startFreeProOffer\(/);
+  assert.match(shell, /startFreeProOffer\(\)/);
+
+  // And the component that draws it no longer owns either half.
+  const code = poster.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  assert.doesNotMatch(code, /consumeAutoAcceptIntent/);
+  assert.doesNotMatch(code, /api\/billing\/promo/);
+});
+
+/*
+  Everywhere the offer is announced has to lead somewhere that exists.
+
+  The iOS app draws its own header and has no bell, and /pricing and /billing
+  are removed from that bundle entirely — so an offer that lived only in the
+  notification inbox would ship to no iOS user at all. /account is in the
+  bundle and in the navigation, and it is already where the trial is given up.
+*/
+test("the offer is reachable wherever it is announced", () => {
+  const panel = readFileSync(join(root, "components", "AccountPanel.tsx"), "utf8");
+  const inbox = readFileSync(join(root, "components", "account", "NotificationInbox.tsx"), "utf8");
+  const bell = readFileSync(join(root, "components", "account", "NotificationBell.tsx"), "utf8");
+  const nav = readFileSync(join(root, "lib", "nav.ts"), "utf8");
+
+  /* The offer itself, on the page the trial also ends on — and in BOTH arms of
+     that page, because a guest is who a free trial on a new account is for. */
+  assert.equal(panel.match(/<FreeProPoster \/>/g)?.length, 2);
+  const signedOutArm = panel.slice(panel.indexOf("<SignedOut"));
+  assert.match(panel.slice(0, panel.indexOf("<SignedOut")), /<FreeProPoster \/>/);
+  assert.match(signedOutArm, /<FreeProPoster \/>/);
+  assert.match(panel, /<GiveUpFreeProSection/);
+  // Which is in the navigation, so it is reachable without a bell.
+  assert.match(nav, /href: "\/account"/);
+
+  // The announcements point at it rather than carrying the terms themselves.
+  assert.match(inbox, /function FreeProReminder/);
+  assert.match(inbox, /href="\/account"/);
+  // Including for a visitor with no account, who used to get a dead end here.
+  assert.match(bell, /freePro \? \(/);
+  assert.match(bell, /Read the offer/);
 });
 
 test("the grant is a Pro subscription row, written only by the server", () => {

@@ -7,7 +7,6 @@ import { useProfile } from "@/lib/hooks";
 import { isValidPlacement } from "@/lib/placement";
 import { newestFirst, seriesFor } from "@/lib/results";
 import LockedCard from "@/components/LockedCard";
-import FreeProPoster from "@/components/billing/FreeProPoster";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import type { ModuleName, ModuleResult, PlacementResult } from "@/lib/types";
 import { Icon } from "@/components/Icons";
@@ -408,14 +407,16 @@ export default function Dashboard() {
       */}
       <div className="hidden min-h-0 lg:flex lg:h-full lg:flex-col">
         {/*
-          The offer stands above the board rather than on it.
+          The free Pro offer used to stand here, in the placement card's slot,
+          and it has moved to /account — the page the trial is also given up on.
 
-          It is a notice, not a module: answered once with "Sign up free" or
-          "No thanks", and FreeProPoster already knows to draw nothing to
-          somebody who has answered or to an account that does not qualify. A
-          module can be removed and added back, which for a notice means asking
-          again — so it is not one, and there is nothing in the library to put
-          it back with.
+          It moved because it had to be reachable from everywhere it is
+          announced, and this slot is not everywhere: the notification row that
+          now carries it is drawn by the web header's bell, and the iOS app has
+          no bell at all. Putting the offer where the exit already is settles
+          both — components/billing/GiveUpFreeProSection.tsx says the entrance
+          and the exit have to be reachable from the same places, and now they
+          are the same place.
         */}
 
         {organization ? (
@@ -451,10 +452,13 @@ export default function Dashboard() {
             what a reader should actually see now, so this one is sr-only
             rather than reintroducing a second visible title above it.
           */
-          <>
-            <h1 className="sr-only">BandUp</h1>
-            <FreeProPoster />
-          </>
+          /*
+            Only the name now. The poster that used to sit here is on /account;
+            this heading stays because Google's OAuth review matches the exact
+            application name against one on the consent screen's calling page,
+            and nothing else on this branch says it.
+          */
+          <h1 className="sr-only">BandUp</h1>
         )}
 
         <Board

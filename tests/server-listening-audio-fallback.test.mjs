@@ -526,11 +526,17 @@ test("listening's native player double-buffers two media elements and primes the
   // element about to play a part is never the one whose `src` just changed.
   assert.match(page, /const nativeAudioRef = useRef<HTMLAudioElement/);
   assert.match(page, /const nativeAudioBufferRef = useRef<HTMLAudioElement/);
-  assert.equal(
-    (page.match(/<audio\b/g) ?? []).length,
-    2,
-    "the listening player must render exactly two native <audio> elements",
-  );
+  /*
+    Two elements for the *dialogue*, counted by the attribute that marks them
+    rather than by counting every <audio> on the page. A third element joined
+    them — the narrator that speaks the part introduction and the closing line
+    (tests/practice-listening-frame.test.mjs) — and it is deliberately not part
+    of this pair: it plays one short line and touches none of the buffering,
+    the progress bar or the speed control. Counting tags would have made adding
+    it look like a double-buffering regression, which it is not.
+  */
+  assert.equal((page.match(/data-listening-native-audio(?![-\w])/g) ?? []).length, 1);
+  assert.equal((page.match(/data-listening-native-audio-buffer(?![-\w])/g) ?? []).length, 1);
   assert.match(page, /ref=\{nativeAudioRef\}/);
   assert.match(page, /ref=\{nativeAudioBufferRef\}/);
 

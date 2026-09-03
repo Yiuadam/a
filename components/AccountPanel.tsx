@@ -11,6 +11,7 @@ import {
 import { apiUrl } from "@/lib/api";
 import SignedOut from "@/components/account/SignedOut";
 import ClearDeviceSection from "@/components/account/ClearDeviceSection";
+import FreeProPoster from "@/components/billing/FreeProPoster";
 import GiveUpFreeProSection from "@/components/billing/GiveUpFreeProSection";
 import { HubMenu, type HubItem } from "@/components/HubMenu";
 import { TIERS, type Tier } from "@/lib/billing/tiers";
@@ -168,6 +169,16 @@ export default function AccountPanel({ localMenuPreview = false }: { localMenuPr
       */}
       {resolvedPhase === "ready" && resolvedStatus?.enabled === true && !resolvedStatus.signedIn && (
         <>
+          {/*
+            The offer, above the way to take it.
+
+            A guest is who this is aimed at — Pro is free on a *new* account —
+            and the notification announcing it links here. Drawing it only for
+            somebody already signed in would send exactly the person it is for
+            to a page that does not mention it. Its own guest branch ends in
+            "Sign up free", which is the card directly below.
+          */}
+          <FreeProPoster />
           <SignedOut providers={resolvedStatus.providers ?? []} onRecovered={reload} />
           {/*
             Shown signed out as well, and that is the case it matters most in:
@@ -312,8 +323,24 @@ function SignedIn({
         It draws for almost nobody: only an account whose Pro comes from the free
         trial, resolved server-side, so a paying subscriber and the owner never
         see it. It is here rather than on /billing because /billing is not in the
-        iOS bundle and the poster that offers the trial is — see the component.
+        iOS bundle, and the offer itself now sits directly above it for the same
+        reason.
       */}
+      {/*
+        The offer, on the page the trial is also given up on.
+
+        It was on the dashboard, in the slot most likely to be seen. It is here
+        now because being seen is not enough on its own: it is announced by a
+        notification, and a notification has to lead somewhere that exists on
+        every platform — the iOS app draws its own header and has no bell, and
+        /pricing and /billing are not in that bundle at all. This page is, and
+        it is already where the trial ends, which is the pairing the section
+        below asks for.
+
+        It draws nothing for an account that has answered or does not qualify,
+        so for almost everybody this is an empty slot.
+      */}
+      <FreeProPoster />
       <GiveUpFreeProSection onChanged={onPlanChanged} />
       <SyncStatusLine />
     </>

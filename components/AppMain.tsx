@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { startFreeProOffer } from "@/lib/billing/free-pro-offer";
 import SideRail from "@/components/SideRail";
 import SiteFooter from "@/components/SiteFooter";
 import { hasSideRail } from "@/lib/nav";
@@ -31,6 +32,17 @@ export default function AppMain({ children }: { children: ReactNode }) {
      every comparison here was false and the exam scrolled. See routePath in
      lib/platform.ts. */
   const pathname = useRoutePath();
+
+  /*
+    Ask about the free Pro trial from the shell, not from whatever draws it.
+
+    The answer is one request per session, and the same call clears the guest's
+    auto-accept intent — the thing that grants the trial to somebody who tapped
+    "Sign up free" and then went through a sign-up flow. That has to run
+    wherever they land afterwards, so it is started by the one component that is
+    mounted on every route and on every platform. See lib/billing/free-pro-offer.ts.
+  */
+  useEffect(() => startFreeProOffer(), []);
   const console_ = pathname.startsWith("/admin");
   const workspace = pathname.startsWith("/organization");
   const viewportLocked =
