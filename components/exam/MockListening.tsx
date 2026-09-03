@@ -14,7 +14,7 @@ import {
 } from "@/lib/exam/mock";
 import { useExamNavigation } from "@/lib/exam/navigation";
 import { bundledListeningAudio } from "@/lib/listening-audio";
-import { questionCount } from "@/lib/questions";
+import { questionCount, questionWidth } from "@/lib/questions";
 import { rankedEnglishVoices } from "@/lib/speech";
 
 /*
@@ -112,7 +112,12 @@ export default function MockListening({
 
   const nav = useExamNavigation(
     useMemo(
-      () => flat.map((q) => ({ id: q.id, answered: answers[q.id] !== undefined })),
+      () =>
+        flat.map((q) => ({
+          id: q.id,
+          answered: answers[q.id] !== undefined,
+          width: questionWidth(q),
+        })),
       [flat, answers],
     ),
   );
@@ -133,6 +138,20 @@ export default function MockListening({
     retry of something that has been heard.
   */
   const heardRef = useRef(false);
+  /*
+    What the reading-time silence looks like on screen, and the interval
+    ticking its countdown down.
+
+    A scripted silence and a broken recording sound identical — nothing plays
+    either way — so without this a candidate has no way to tell "the exam is
+    giving me time to read" from "the sitting has stopped working". The
+    countdown is the proof of the former: a number that keeps moving cannot be
+    mistaken for a freeze. Cleared from every place playback can move on — a
+    new part, a failure, finishing, unmounting — so a stale countdown can
+    never keep ticking over whatever the sitting does next.
+  */
+  const [silence, setSilence] = useState<{ label: string; remainingMs: number } | null>(null);
+  const silenceIntervalRef = useRef<number | null>(null);
   /*
     A volume control, which ExamShell has always had a slot for and nothing
     ever put anything in.
@@ -186,6 +205,10 @@ export default function MockListening({
       playingRef.current = false;
       playerRef.current?.stop();
       playerRef.current = null;
+      // A ref clear rather than stopSilenceCountdown(): the component is
+      // already gone by the time this runs, and setting state here would only
+      // ask React to repaint a screen nobody can see.
+      if (silenceIntervalRef.current !== null) window.clearInterval(silenceIntervalRef.current);
     },
     [],
   );
@@ -260,6 +283,15 @@ export default function MockListening({
     [markHeard, tests, ttsSupported],
   );
 
+  /** Stop the reading-time countdown, wherever playback moved on to. */
+  const stopSilenceCountdown = useCallback(() => {
+    if (silenceIntervalRef.current !== null) {
+      window.clearInterval(silenceIntervalRef.current);
+      silenceIntervalRef.current = null;
+    }
+    setSilence(null);
+  }, []);
+
   const play = useCallback(
     (index: number) => {
       const test = tests[index];
@@ -270,6 +302,7 @@ export default function MockListening({
       heardRef.current = false;
       setPlayingPart(index);
       setFailedPart(null);
+      stopSilenceCountdown();
       playingRef.current = true;
       // Browser speech may still be mid-utterance from a previous part. The
       // MP3 path does not go through the synthesiser, so silencing it here is
@@ -289,9 +322,29 @@ export default function MockListening({
       */
       playerRef.current = playBundledListening(
         test.id,
+        starts[index],
         [nativeAudioRef.current, nativeAudioBufferRef.current],
         {
           onAudible: () => markHeard(run, index),
+          onSilenceStart: ({ ms, label }) => {
+            if (playbackRunRef.current !== run) return;
+            // Absolute end time rather than a decrementing counter, so a
+            // throttled background tab catches the countdown back up to the
+            // real time remaining instead of drifting behind it.
+            const endsAt = Date.now() + ms;
+            stopSilenceCountdown();
+            setSilence({ label, remainingMs: ms });
+            silenceIntervalRef.current = window.setInterval(() => {
+              if (playbackRunRef.current !== run) return;
+              setSilence((current) =>
+                current ? { ...current, remainingMs: Math.max(0, endsAt - Date.now()) } : current,
+              );
+            }, 250);
+          },
+          onSilenceEnd: () => {
+            if (playbackRunRef.current !== run) return;
+            stopSilenceCountdown();
+          },
           onEnd: () => {
             if (playbackRunRef.current !== run) return;
             playerRef.current = null;
@@ -301,13 +354,14 @@ export default function MockListening({
           onFail: ({ heard, turnIndex }) => {
             if (playbackRunRef.current !== run) return;
             playerRef.current = null;
+            stopSilenceCountdown();
             speakScript(run, index, heard ? turnIndex : 0);
           },
         },
       );
       if (!playerRef.current) speakScript(run, index, 0);
     },
-    [markHeard, speakScript, supported, tests, ttsSupported],
+    [markHeard, speakScript, starts, stopSilenceCountdown, supported, tests, ttsSupported],
   );
 
   const finish = useCallback(() => {
@@ -315,11 +369,12 @@ export default function MockListening({
     playingRef.current = false;
     playerRef.current?.stop();
     playerRef.current = null;
+    stopSilenceCountdown();
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
     onFinish();
-  }, [onFinish]);
+  }, [onFinish, stopSilenceCountdown]);
 
   /* The next recording that has not been heard, or null once all four have. */
   const nextUnplayed = tests.findIndex((_, i) => !played.includes(i));
@@ -342,7 +397,9 @@ export default function MockListening({
         <span className="flex items-center gap-2.5">
           {playingPart !== null && (
             <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-fg)]">
-              ▶ Part {playingPart + 1}
+              {silence
+                ? `Reading time — ${Math.ceil(silence.remainingMs / 1000)}s`
+                : `▶ Part ${playingPart + 1}`}
             </span>
           )}
           <label className="flex items-center gap-1.5">
@@ -408,6 +465,11 @@ export default function MockListening({
                 </button>
               )}
             </div>
+          ) : silence ? (
+            <p className="text-sm leading-6" aria-live="polite">
+              {silence.label} No sound plays during this silence — it is reading time, exactly as
+              in the exam. ({Math.ceil(silence.remainingMs / 1000)}s)
+            </p>
           ) : playingPart !== null ? (
             <p className="text-sm leading-6">
               Part {playingPart + 1} is playing. It plays once, as in the exam — answer as you
