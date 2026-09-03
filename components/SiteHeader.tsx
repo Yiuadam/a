@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Route } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
 import { useRouter } from "next/navigation";
@@ -15,7 +14,7 @@ import { Icon } from "@/components/Icons";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import HeaderNotificationBell from "@/components/account/HeaderNotificationBell";
 import { useAccountProfile } from "@/components/account/AccountProfileProvider";
-import bandupMarkRear from "@/components/assets/steps-five-layer-rear-108.png";
+import BandUpMark from "@/components/BandUpMark";
 import {
   enableNativeChrome,
   setNativeAccount,
@@ -635,15 +634,7 @@ export default function SiteHeader({
             data-pointer-attract-strength="icon"
             className="bandup-mark relative h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm"
           >
-            <Image
-              src={bandupMarkRear}
-              alt=""
-              fill
-              sizes="36px"
-              className="bandup-mark-rear object-cover"
-              unoptimized
-              priority
-            />
+            <BandUpMark className="bandup-mark-rear h-full w-full" />
             <svg
               viewBox="0 0 1254 1254"
               className="bandup-mark-front absolute inset-0 h-full w-full"

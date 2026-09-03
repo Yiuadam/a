@@ -77,9 +77,29 @@ export default function SideRail() {
     */
     <nav
       aria-label="Sections"
-      className="side-rail sticky top-[var(--header-h)] hidden h-fit w-64 shrink-0 self-start overflow-hidden lg:block xl:w-72"
+      /*
+        The column stretches; the links inside it stick.
+
+        It used to be the other way round — the whole rail was `sticky h-fit
+        self-start`, so its box was only as tall as twelve links and its
+        background stopped there, a panel floating in the middle of the left
+        edge. Stretching the column and moving `sticky` to the child gives the
+        base something to cover from the top of the page to the bottom, and the
+        links still follow the scroll.
+
+        No `overflow-hidden`, because the base is painted by a pseudo-element
+        that starts a screen-width to the left so it reaches the edge of the
+        page (app/globals.css), and clipping the rail to its own box clipped
+        that off.
+
+        `w-52` rather than `w-64`. The longest label is "Organisation" and it
+        needs about 165px with its icon and padding; the rest was empty column,
+        and on this screen empty column is width the dashboard's own modules
+        could have been using.
+      */
+      className="side-rail hidden w-52 shrink-0 self-stretch lg:block xl:w-56"
     >
-      <div className="space-y-5 pb-6 pl-1 pr-2 pt-3">
+      <div className="sticky top-[var(--header-h)] space-y-5 pb-6 pl-1 pr-2 pt-3">
         {groups.map((group) => (
           <div key={group.title}>
             <h2 className="mb-1.5 px-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500">

@@ -178,9 +178,21 @@ export function ThisWeekCard({ profile }: { profile: Profile }) {
             }).length,
           };
         });
-  /* The tallest bar fills the track, so a quiet week is still legible rather
-     than seven slivers against an invisible ceiling. */
+  /* The busiest day sets the top of the chart, so a quiet week is still
+     legible rather than a flat line pinned to the floor. */
   const peak = Math.max(1, ...days.map((day) => day.n));
+  /*
+    History's sparkline geometry, copied deliberately: a 100 x 36 box with 4
+    of horizontal padding and 5/6 of vertical, so the two charts sit on the
+    same grid and a line at the same height means the same thing on both.
+  */
+  const weekPoints = days.map((day, i) => ({
+    x: days.length <= 1 ? 50 : 4 + (92 * i) / (days.length - 1),
+    y: 30 - (day.n / peak) * 25,
+  }));
+  const weekLine = weekPoints
+    .map((point, i) => `${i === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
 
   const byModule = MODULE_ORDER.map((module) => ({
     module,
@@ -199,33 +211,66 @@ export function ThisWeekCard({ profile }: { profile: Profile }) {
       detail={
         days.length === 0 ? null : (
           <div className="space-y-2">
-            <ol className="flex items-end gap-1">
-              {days.map((day) => (
-                <li key={day.key} className="flex min-w-0 flex-1 flex-col items-center">
-                  <span className="sr-only">
-                    {day.label}: {day.n} {day.n === 1 ? "sitting" : "sittings"}
-                  </span>
-                  {/*
-                    A fixed track with the bar grown from the bottom, so seven
-                    days line up on one baseline whatever the numbers are. A day
-                    with nothing keeps a hairline rather than disappearing —
-                    a missing bar and a zero bar look the same, and only one of
-                    them is true.
-                  */}
-                  <span aria-hidden className="flex h-9 w-full items-end">
-                    <span
-                      className={`block w-full rounded-sm ${
-                        day.n > 0 ? "bg-indigo-500" : "bg-slate-200"
-                      }`}
-                      style={{ height: day.n > 0 ? `${Math.max(12, (day.n / peak) * 100)}%` : "2px" }}
-                    />
-                  </span>
-                  <span aria-hidden className="mt-1 block text-[0.625rem] uppercase text-slate-400">
+            {/*
+              The same line the History page draws, with the same geometry.
+
+              It was bars, then a line of its own invention with its own box and
+              its own dots. Two charts in one app that mean the same thing and
+              look different is how a product stops feeling like one product —
+              so this is History's sparkline: the same 100 x 36 box, the same
+              padding, the same 2px non-scaling stroke, the same tenth-opacity
+              wash under it, and one dot on the latest point rather than seven.
+
+              What stays is the axis of weekday letters underneath, because this
+              chart is about days and History's is about sittings.
+            */}
+            <div>
+              <div className="relative h-11">
+                <svg
+                  viewBox="0 0 100 36"
+                  preserveAspectRatio="none"
+                  className="h-full w-full"
+                  role="img"
+                  aria-label={days
+                    .map((day) => `${day.label}: ${day.n} ${day.n === 1 ? "sitting" : "sittings"}`)
+                    .join(", ")}
+                >
+                  <path
+                    d={`${weekLine} L${weekPoints[weekPoints.length - 1].x.toFixed(2)} 36 L${weekPoints[0].x.toFixed(2)} 36 Z`}
+                    fill="var(--color-indigo-500)"
+                    fillOpacity="0.1"
+                  />
+                  <path
+                    d={weekLine}
+                    fill="none"
+                    stroke="var(--color-indigo-500)"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+                <span
+                  aria-hidden
+                  className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500 ring-2 ring-surface"
+                  style={{
+                    left: `${weekPoints[weekPoints.length - 1].x}%`,
+                    top: `${(weekPoints[weekPoints.length - 1].y / 36) * 100}%`,
+                  }}
+                />
+              </div>
+              <ol className="mt-1 flex">
+                {days.map((day) => (
+                  <li
+                    key={day.key}
+                    aria-hidden
+                    className="min-w-0 flex-1 text-center text-[0.625rem] uppercase text-slate-400"
+                  >
                     {day.label}
-                  </span>
-                </li>
-              ))}
-            </ol>
+                  </li>
+                ))}
+              </ol>
+            </div>
             {byModule.length > 0 && (
               <p className="text-[0.8125rem] leading-5 text-slate-600">
                 {byModule.map((entry) => `${MODULE_LABEL[entry.module]} ${entry.n}`).join(" · ")}

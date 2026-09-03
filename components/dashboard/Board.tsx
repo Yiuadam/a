@@ -65,14 +65,22 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
   };
 
   return (
-    <div className="min-w-0">
+    <div className="relative min-w-0">
       {/*
         One row, at the owner's ask. Edit board, then Add module / Reset / Done
         in the same place rather than a button above the grid and two more
         underneath it — three controls for one task, in three parts of the page,
         is a task that looks like three.
+
+        Out of the flow from `lg` up, where the board is a screen rather than a
+        list. As a row of its own it cost about ninety pixels of empty band
+        across the whole width before the first card, which is the height the
+        cards then had to lose — and on a board meant to fit the screen without
+        scrolling, ninety pixels is a module's worth of content. In the right
+        gutter it costs nothing, and it is still the first thing above the
+        board when reading order matters, because it comes first in the DOM.
       */}
-      <div className="mb-2.5 flex flex-wrap items-center justify-end gap-2">
+      <div className="mb-2.5 flex flex-wrap items-center justify-end gap-2 lg:absolute lg:right-0 lg:top-0 lg:z-10 lg:mb-0">
         {editing && (
           <>
             <button
@@ -97,7 +105,13 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
             setEditing((on) => !on);
             setLibraryOpen(false);
           }}
-          className={`!min-h-8 !px-3 text-[0.8125rem] ${editing ? "btn-primary" : "btn-secondary"}`}
+          /* Smaller than a page control, because it is not one: the board is
+             what somebody came to read, and the button that rearranges it
+             should be findable rather than prominent. It grows back to the
+             normal size while editing, when it is the way out. */
+          className={`!px-2.5 text-[0.75rem] ${
+            editing ? "btn-primary !min-h-8 !px-3 text-[0.8125rem]" : "btn-secondary !min-h-7"
+          }`}
           aria-pressed={editing}
         >
           {editing ? "Done" : "Edit board"}
@@ -115,7 +129,8 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
         height, that is the whole of what "the same size" needs. The modules are
         written `h-full` already; the wrapper below passes that down.
       */}
-      <div className="grid gap-4 lg:auto-rows-fr lg:grid-cols-2 lg:gap-5">
+      {/* The strip the toolbar sits in — its height and no more. */}
+      <div className="grid gap-4 lg:auto-rows-fr lg:grid-cols-2 lg:gap-5 lg:pt-8">
         {shown.map((id) => {
           const meta = MODULE_LIBRARY.find((m) => m.id === id);
           return (

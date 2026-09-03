@@ -6722,3 +6722,113 @@ html[data-theme="dark"] .exam-highlight {
   border-color: var(--exam-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--exam-accent) 16%, transparent);
 }
+
+/*
+  The rail's own surface.
+
+  It had none: the links sat straight on the page, and the only thing marking
+  where navigation stopped and content began was the gap between them. On a
+  wide screen that gap is large enough to read as nothing at all — the rail
+  looked like a column of text that happened to be over there rather than a
+  part of the furniture.
+
+  A tint of the page's own ink rather than a new colour, so it darkens with
+  every theme instead of needing three. The hairline down the right edge is
+  what actually says "the page starts here"; the tint is there so the line has
+  something to be the edge of.
+*/
+.side-rail {
+  position: relative;
+}
+
+/*
+  Painted by a pseudo-element that runs off the left of the screen, rather than
+  as the element's own background.
+
+  The rail sits inside the page's centred, padded container, so its own
+  background stopped where that padding began and left a stripe of page down
+  the left edge — a panel floating a few centimetres from the wall. Bleeding it
+  is not something the container can do without giving every page a different
+  layout, and a negative margin would have to know each breakpoint's padding.
+  A box that starts a screen-width to the left and ends at the rail's right
+  edge reaches the edge at every width, and needs to know nothing.
+
+  Straight, with no rounded corners: the rail is a column of the page now
+  rather than a card on it, and a rounded corner halfway down the left edge is
+  what made it read as a floating panel.
+*/
+.side-rail::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 -100vw;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  border-right: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  pointer-events: none;
+}
+
+/* Above the wash, which is painted first because it is a pseudo-element. */
+.side-rail > * {
+  position: relative;
+}
+
+html[data-theme="dark"] .side-rail::before {
+  /* Dark's page is already close to the ink, so the same 4% disappears. */
+  background: color-mix(in srgb, white 5%, transparent);
+  border-right-color: color-mix(in srgb, white 12%, transparent);
+}
+
+/*
+  The mark's palette, one set per theme.
+
+  The mark used to be a PNG: one colourway, fixed at the colours it was
+  rendered with. Drawn from the vector master instead (components/BandUpMark.tsx)
+  every colour in it is a custom property, so a theme can have its own without
+  anybody producing new artwork — and without a filter, which is how a
+  considered palette turns into whatever hue-rotate happens to give.
+
+  Warm is the original, byte for byte: the ground, the turned sheet and the
+  paper are the values the master was drawn with. The other two are the same
+  design read in that theme's own light.
+*/
+:root {
+  --mark-ground-near: #31261d;
+  --mark-ground-far: #15110e;
+  --mark-sheet-light: #b0632f;
+  --mark-sheet-shade: #7c4222;
+  --mark-paper-shade: #e6d3b8;
+  --mark-paper-mid: #f8f0e4;
+  --mark-paper-light: #fdfaf6;
+  --mark-shadow: #0d0a08;
+}
+
+/*
+  Light: a cooler, paler ground and an indigo sheet, because Light's accent is
+  indigo and a brown mark on a blue-grey page is the one thing on the screen
+  that belongs to a different set. The paper stays near-white — it is paper.
+*/
+html[data-theme="light"] {
+  --mark-ground-near: #3b4661;
+  --mark-ground-far: #1d2436;
+  --mark-sheet-light: #6673c8;
+  --mark-sheet-shade: #414d99;
+  --mark-paper-shade: #dfe3ee;
+  --mark-paper-mid: #f2f4fa;
+  --mark-paper-light: #ffffff;
+  --mark-shadow: #0b0e18;
+}
+
+/*
+  Dark: the ground goes almost to black, so the mark reads as a cut-out rather
+  than a lit tile, and the sheet comes up in brightness to survive against it —
+  the same accent the theme uses elsewhere, not a new one.
+*/
+html[data-theme="dark"] {
+  --mark-ground-near: #241c16;
+  --mark-ground-far: #0b0908;
+  --mark-sheet-light: #d9813f;
+  --mark-sheet-shade: #9c4f24;
+  --mark-paper-shade: #d8c6ac;
+  --mark-paper-mid: #efe6d8;
+  --mark-paper-light: #fbf6ee;
+  --mark-shadow: #000000;
+}
