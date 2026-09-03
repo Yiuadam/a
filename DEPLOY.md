@@ -24,7 +24,7 @@ until the first two are in place, so a half-done setup shows Apple and email
 rather than a button that fails:
 
 1. **Google Cloud console → Credentials → Create credentials → OAuth client ID
-   → iOS.** Bundle ID `com.bandup.app`. Copy the client ID.
+   → iOS.** Bundle ID `com.yiuadam.bandup`. Copy the client ID.
 2. **Set `GOOGLE_IOS_CLIENT_ID` on the Worker** to that value
    (`npx wrangler secret put GOOGLE_IOS_CLIENT_ID`, or the dashboard). It is not
    secret, but it lives with the other auth configuration.

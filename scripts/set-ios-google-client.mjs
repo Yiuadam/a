@@ -65,6 +65,49 @@ try {
   process.exit(1);
 }
 
+/*
+  The website's client, offered as the app's, is the mistake this catches.
+
+  They look identical — same format, same project number — and it is the one
+  already visible in /api/auth/google/config, so it is the obvious thing to
+  reach for. It cannot work. Google's client *types* differ in what redirect
+  they will accept: a Web application client takes http and https URLs only and
+  refuses a custom scheme outright, which is the only kind of redirect an
+  installed app can receive. The authorization request fails at Google before
+  any sheet is drawn.
+
+  An iOS client is a separate registration against the bundle identifier, and
+  making one is the whole of the fix.
+*/
+async function webClientId(origin) {
+  try {
+    const res = await fetch(`${origin}/api/auth/google/config`, { cache: "no-store" });
+    const body = res.ok ? await res.json() : null;
+    return typeof body?.clientId === "string" ? body.clientId : null;
+  } catch {
+    return null;
+  }
+}
+
+if (clientId && CLIENT_ID.test(clientId)) {
+  const web = await webClientId("https://bandup.life");
+  if (web && web === clientId) {
+    console.error(
+      "\nThat is the website's Google client, not an iOS one.\n\n" +
+        `  ${clientId}\n\n` +
+        "They look the same and it is the one on show in the config, but a Web\n" +
+        "application client accepts only http and https redirects. An installed\n" +
+        "app is redirected on a custom scheme, which that client type refuses —\n" +
+        "Google rejects the request before any sign-in sheet appears.\n\n" +
+        "Create a second client: Google Cloud console -> Credentials ->\n" +
+        "Create credentials -> OAuth client ID -> Application type: iOS,\n" +
+        "bundle ID com.yiuadam.bandup. That one has no secret and no redirect field;\n" +
+        "the scheme is derived from its ID, which is what this script writes.\n",
+    );
+    process.exit(1);
+  }
+}
+
 if (!CLIENT_ID.test(clientId)) {
   console.error(
     "\nThat is not a Google iOS client ID.\n\n" +
@@ -72,7 +115,7 @@ if (!CLIENT_ID.test(clientId)) {
       `  Given:     ${clientId || "(nothing)"}\n\n` +
       "A real one starts with your Google project number, then a hyphen.\n" +
       "Google Cloud console -> Credentials -> Create credentials ->\n" +
-      "OAuth client ID -> iOS, with bundle ID com.bandup.app.\n",
+      "OAuth client ID -> iOS, with bundle ID com.yiuadam.bandup.\n",
   );
   process.exit(1);
 }
