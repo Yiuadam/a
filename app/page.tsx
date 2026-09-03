@@ -112,7 +112,16 @@ const STUDY = [
 
 function CardBlurb({ short, full }: { short: string; full: string }) {
   return (
-    <p className="dashboard-card-blurb mt-0.5 truncate text-sm leading-5 text-slate-600 sm:text-xs">
+    /*
+      Two lines, clipped — not one line with an ellipsis.
+
+      `truncate` cut a three-word phrase to "Audio playe…", which is not a
+      shorter description, it is a broken one: the tile stops saying what the
+      skill is and the ellipsis is the widest thing on the line. Clamping to
+      two lines keeps a ceiling on the card's height, which is what truncation
+      was really for, and lets the words finish.
+    */
+    <p className="dashboard-card-blurb mt-0.5 line-clamp-2 text-sm leading-5 text-slate-600 sm:text-xs">
       <span className="dashboard-card-blurb-short">{short}</span>
       <span className="dashboard-card-blurb-full">{full}</span>
     </p>
@@ -474,14 +483,17 @@ export default function Dashboard() {
               Practise a skill
             </h2>
             {/*
-              Two-up on a phone, four-up from md — and back to two-up from xl,
-              where the column is eight twelfths rather than the whole page.
-              Four across a two-thirds column is what was truncating these:
-              "Real passages, real ques…", "An essay, marked like th…". A tile
-              whose one line of description does not fit is not a tile, and the
-              fix is fewer columns rather than shorter words.
+              Two-up, everywhere this block is drawn — it is hidden from `lg`
+              up, so its whole range is a phone or a tablet.
+
+              It used to go four-up from `md`, and 768px is too early: four
+              tiles across an 800px page leave about 180px each once the
+              padding and the "New" badge are paid for, which truncated even
+              the short blurb to "Audio playe…". The principle the previous
+              note stated was right — fewer columns rather than shorter words —
+              the breakpoint was just in the wrong place.
             */}
-            <div className="dashboard-card-grid dashboard-practice-grid grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-2 xl:gap-4">
+            <div className="dashboard-card-grid dashboard-practice-grid grid grid-cols-2 gap-3 xl:gap-4">
               {MODULES.map((m) => {
                 const isNew = moduleNeedsNewBadge(profile, m.key);
                 const skill = access[m.key];
