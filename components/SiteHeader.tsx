@@ -709,20 +709,25 @@ export default function SiteHeader({
         {!open && !onHome && (
           <PrimaryNavigation current={current} railed={hasSideRail(pathname)} />
         )}
-        {/* Takes the space the row would have, so the controls stay pinned
-            right whenever the row is not there. */}
         {/*
-          The spacer that pushes the controls to the right edge.
+          The spacer that pushes the controls to the right edge, on every route
+          and at every width.
 
-          It used to hide itself at `lg`, because from `lg` up the row of
-          primary links carried `flex-1` and did the pushing. That row is hidden
-          wherever the rail stands now, so on those pages nothing grew and the
-          menu, bell, account and theme toggle all collapsed against the
-          wordmark — every page but the homepage, and a header that sits
-          somewhere different depending on the route is the kind of thing a
-          person notices without being able to say why.
+          It was conditional twice over, and both conditions were left behind by
+          changes to what they described. It first hid itself at `lg` because
+          the row of primary links carried `flex-1` up there and did the
+          pushing; then the links were taken out of the flow and pinned to the
+          middle of the bar, at which point nothing was pushing anything and the
+          menu, bell, account and theme toggle collapsed against the wordmark on
+          every wide screen that was not the homepage or a railed page.
+
+          There is no case left where the spacer should not grow: the links are
+          absolutely positioned now, so they occupy no space to give. Unconditional
+          is not a simplification here, it is the correct rule — these four
+          controls are the same four in the same order on every page, and a
+          person navigating by muscle memory should never have to look for them.
         */}
-        <div className={open || onHome || hasSideRail(pathname) ? "flex-1" : "flex-1 lg:hidden"} />
+        <div className="flex-1" />
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <button
