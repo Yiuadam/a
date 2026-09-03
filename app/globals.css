@@ -3352,29 +3352,20 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   }
 }
 
-.bandup-mark {
-  perspective: 8rem;
-  transform-style: preserve-3d;
-}
+/*
+  No hover effect on the mark.
 
-.bandup-mark-rear,
-.bandup-mark-front {
-  transform-origin: 50% 54%;
-  transition:
-    transform 360ms cubic-bezier(0.18, 0.86, 0.22, 1),
-    filter 360ms ease;
-  will-change: transform;
-}
+  Its two layers used to lift apart in 3D on hover — a perspective on the
+  wrapper, a few pixels of translate on Z, and a drop shadow under each. It was
+  drawn for a raster mark with a real specular rim over it, where the parting
+  read as the material catching the light. On the drawn mark it reads as a
+  wobble: the whole thing is 36px, the movement is under two of them, and a
+  logo that moves when a pointer passes over it is a logo that looks unstable.
 
-.bandup-mark:hover .bandup-mark-rear {
-  transform: translate3d(-0.25px, -0.4px, 4px) scale(1.008);
-  filter: drop-shadow(0 0.75px 0.75px rgba(0, 0, 0, 0.12));
-}
-
-.bandup-mark:hover .bandup-mark-front {
-  transform: translate3d(0.3px, -1px, 10px) scale(1.018);
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.16));
-}
+  The wrapper keeps its class — the header positions the rim against it — and
+  the reduced-motion block that used to cancel this went with it, because there
+  is no longer any motion to cancel.
+*/
 
 /* The mock-exam briefing is a launch screen, not a document to scroll. */
 .exam-start {
@@ -4659,15 +4650,9 @@ html[data-theme] select:-webkit-autofill {
   }
   .liquid-glass,
   .card,
-  .bandup-mark-rear,
-  .bandup-mark-front,
   .liquid-glass::after,
   .card::after {
     transition: none;
-  }
-  .bandup-mark:hover .bandup-mark-rear,
-  .bandup-mark:hover .bandup-mark-front {
-    transform: none;
   }
 }
 

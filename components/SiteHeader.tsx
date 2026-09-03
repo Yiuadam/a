@@ -625,15 +625,20 @@ export default function SiteHeader({
             app icon has to be, so the corner has to be cut here rather than
             drawn into the file.
 
-            The selected 3D PNG is kept crisp in a header-sized, content-hashed
-            derivative, rather than sending the 1.6 MB artwork master through
-            an image optimiser on every uncached visit.
+            The mark itself is drawn rather than fetched — see
+            components/BandUpMark.tsx — so there is no artwork to optimise and
+            nothing to request.
           */}
-          <span
-            data-pointer-attract
-            data-pointer-attract-strength="icon"
-            className="bandup-mark relative h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm"
-          >
+          {/*
+            No pointer attraction and no hover lift. Both were drawn for the
+            raster mark, where the two layers parting read as the material
+            catching the light; on the drawn mark, at 36px, a logo that leans
+            toward the cursor reads as a logo that is not fixed to the page.
+            Every other icon in the header keeps its attraction — they are
+            controls, and a control that reaches for the pointer is inviting a
+            click. The wordmark is not inviting anything.
+          */}
+          <span className="bandup-mark relative h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm">
             <BandUpMark className="bandup-mark-rear h-full w-full" />
             <svg
               viewBox="0 0 1254 1254"
