@@ -347,6 +347,26 @@ export interface ReadingTest {
   title: string;
   topic: string;
   /**
+   * Academic or General Training — the two IELTS Reading papers, sitting
+   * behind the same forty numbers and the same clock but not one thing else
+   * in common. Academic passages are the kind an undergraduate is set: dense,
+   * sourced from books and journals, arguing a position. General Training
+   * swaps that for the reading an adult migrant or trainee actually meets —
+   * a staff handbook, a tenancy leaflet, a shift rota — because the
+   * candidates sitting it are proving they can live and work somewhere, not
+   * study there. `WritingTask.variant` drew this same line for Writing
+   * first; this is that precedent applied to the module named in
+   * `composeMock` (lib/exam/mock.ts) as still owing it.
+   *
+   * Not optional. `composeMock` has to draw one variant's papers and none of
+   * the other's, and a paper with no variant would not fail that draw — it
+   * would silently join whichever branch happened to read it first, an
+   * Academic sitting handed a job advertisement or a General Training
+   * candidate handed a discourse on cognitive offloading, with nothing in
+   * the type system or the build to say so.
+   */
+  variant: "academic" | "general";
+  /**
    * An estimate, authored alongside the paper rather than measured from a
    * candidate sitting it — which is exactly why no learner ever sees this
    * word. It orders the library easiest-first (lib/tests.ts) and steers

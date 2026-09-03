@@ -1,0 +1,138 @@
+{
+  "id": "reading-36",
+  "title": "The Return of the Doorstep Milk Round",
+  "topic": "Why doorstep milk delivery is seeing a small revival, and what still limits how far it can spread",
+  "variant": "general",
+  "difficulty": "medium",
+  "level": "B2",
+  "timeMinutes": 20,
+  "passage": "A\nBy the 1950s, a milkman delivering glass bottles to the doorstep before dawn was so ordinary a sight that few households gave it a second thought; in some towns, delivery vans reached nearly every street each morning. The decline that followed was driven by three changes arriving in quick succession: the spread of large supermarkets offering milk far more cheaply than a delivery round could match, a sharp rise in the number of households owning both a car and a fridge, which made a weekly supermarket trip practical, and the arrival of cheap plastic bottles that could be bought in bulk and stored for longer than a milkman's daily glass pint ever needed to be. By the early 2000s, in many areas, the milkman had all but disappeared, kept alive mainly by elderly customers who had never switched.\n\nB\nIn the last few years, however, several regional dairies have reported a steady rise in new customers, most of them under forty, and the trend, while still modest in overall size, deserves to be taken seriously rather than dismissed as nostalgia. One dairy in the north of England has more than tripled its round in five years, taking on extra drivers each spring to keep pace with new sign-ups. What is striking is less the scale of the recovery than its direction: for decades every trend in this business ran one way, and it has now, in a small but measurable fashion, begun to run the other.\n\nC\nMuch of the renewed interest is explained by packaging. A glass bottle is collected, washed and refilled dozens of times before it is finally recycled, while a plastic bottle is generally used once. Comparing the two fairly requires accounting for the energy spent washing glass bottles between uses, and once that full lifecycle is considered, the environmental case for glass over plastic turns out to be stronger than it first appears, rather than weaker, as sceptics sometimes assume. Ordering only what will actually be drunk before the next delivery, rather than a large supermarket bottle bought partly out of habit, is also credited with a modest reduction in food waste among households that have switched.\n\nD\nMost rounds today are still run from small, local dairies rather than national chains, increasingly using electric floats that are quiet enough not to wake residents on streets where deliveries begin well before six. Ordering itself has changed more than the vehicles: a mobile app now lets a customer pause, add to, or cancel an order the night before, rather than leaving a note tucked into an empty bottle as earlier generations did. Several dairies report that this single change, more than any other, is what persuades a hesitant new customer to give the service a proper try.\n\nE\nBeyond the milk itself, many customers mention a less obvious reason for staying loyal to a round: a regular visit from someone who will notice if something is wrong. More than one dairy keeps a record of customers living alone and treats an uncollected bottle as a signal worth a phone call or a knock at the door. Critics who dismiss this personal check as a minor charm rather than a genuine service are underestimating how much it matters to a customer who lives alone and might otherwise go unnoticed for days if something happened at home.\n\nF\nNone of this should be mistaken for a return to the industry's old scale. Milk rounds remain a small fraction of the market, and a litre delivered to the door typically costs noticeably more than the same litre from a supermarket shelf, a gap driven by the cost of the round itself rather than the milk. It would be wrong to expect a milk round to challenge supermarket milk on price any time soon, and the service remains limited, in practice, to areas already served by a dairy willing to invest in a fleet and a driver, which rules it out for many rural customers however much they might want it.",
+  "questions": [
+    {
+      "instruction": "The passage has six paragraphs, A-F. Which paragraph contains the following information? Write the correct letter, A-F. You may use any letter once only.",
+      "sharedOptions": [
+        { "key": "A", "text": "Paragraph A" },
+        { "key": "B", "text": "Paragraph B" },
+        { "key": "C", "text": "Paragraph C" },
+        { "key": "D", "text": "Paragraph D" },
+        { "key": "E", "text": "Paragraph E" },
+        { "key": "F", "text": "Paragraph F" }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "a comparison between two different types of packaging",
+          "answer": "C",
+          "explanation": "Paragraph C compares a glass bottle, \"collected, washed and refilled dozens of times\", with a plastic bottle, \"generally used once\"."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "a description of the vehicles used to deliver milk today",
+          "answer": "D",
+          "explanation": "Paragraph D describes rounds \"increasingly using electric floats that are quiet enough not to wake residents\"."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "a way that a delivery round can alert someone to a problem",
+          "answer": "E",
+          "explanation": "Paragraph E explains that dairies treat \"an uncollected bottle as a signal worth a phone call or a knock at the door\"."
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "a reason why the revival has not spread to every area",
+          "answer": "F",
+          "explanation": "Paragraph F says the service is \"limited, in practice, to areas already served by a dairy willing to invest in a fleet and a driver\"."
+        }
+      ]
+    },
+    {
+      "instruction": "Do the following statements agree with the claims of the writer? Write YES if the statement agrees with the writer's views, NO if it contradicts them, or NOT GIVEN if it is impossible to say what the writer thinks.",
+      "questions": [
+        {
+          "id": "q5",
+          "type": "ynng",
+          "statement": "The recent growth in milk rounds is more than simply nostalgia.",
+          "answer": "YES",
+          "explanation": "Paragraph B says the trend \"deserves to be taken seriously rather than dismissed as nostalgia\" — a direct statement of the writer's view."
+        },
+        {
+          "id": "q6",
+          "type": "ynng",
+          "statement": "Once its full lifecycle is considered, glass packaging turns out to be less beneficial to the environment than it first seems.",
+          "answer": "NO",
+          "explanation": "Paragraph C says the environmental case for glass is \"stronger than it first appears, rather than weaker\" — the opposite of the statement."
+        },
+        {
+          "id": "q7",
+          "type": "ynng",
+          "statement": "Some people underestimate how much a personal doorstep visit matters to a customer who lives alone.",
+          "answer": "YES",
+          "explanation": "Paragraph E says critics who dismiss the personal check \"are underestimating how much it matters to a customer who lives alone\"."
+        },
+        {
+          "id": "q8",
+          "type": "ynng",
+          "statement": "The writer believes supermarkets will eventually stop selling milk in plastic bottles.",
+          "answer": "NOT GIVEN",
+          "explanation": "The writer discusses glass versus plastic packaging but never states a view on whether supermarkets will stop selling milk in plastic."
+        },
+        {
+          "id": "q9",
+          "type": "ynng",
+          "statement": "It would be wrong to expect milk rounds to compete with supermarkets on price in the near future.",
+          "answer": "YES",
+          "explanation": "Paragraph F states directly: \"It would be wrong to expect a milk round to challenge supermarket milk on price any time soon.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the questions below. Write NO MORE THAN THREE WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "short-answer",
+          "question": "By which decade were milk floats delivering to nearly every street in some towns?",
+          "answer": "the 1950s",
+          "maxWords": 3,
+          "explanation": "Paragraph A opens: \"By the 1950s, a milkman delivering glass bottles to the doorstep... was so ordinary a sight.\""
+        },
+        {
+          "id": "q11",
+          "type": "short-answer",
+          "question": "Besides supermarkets and rising car ownership, what cheap product contributed to the decline of milk rounds?",
+          "answer": "plastic bottles",
+          "maxWords": 3,
+          "explanation": "Paragraph A names \"the arrival of cheap plastic bottles that could be bought in bulk\" as the third cause of the decline."
+        },
+        {
+          "id": "q12",
+          "type": "short-answer",
+          "question": "What kind of vehicle used on rounds today is quiet enough not to wake residents?",
+          "answer": "electric floats",
+          "maxWords": 3,
+          "explanation": "Paragraph D: rounds increasingly use \"electric floats that are quiet enough not to wake residents\"."
+        },
+        {
+          "id": "q13",
+          "type": "short-answer",
+          "question": "What can a customer now use the night before to pause, add to or cancel an order?",
+          "answer": "a mobile app",
+          "maxWords": 3,
+          "explanation": "Paragraph D: \"a mobile app now lets a customer pause, add to, or cancel an order the night before.\""
+        },
+        {
+          "id": "q14",
+          "type": "short-answer",
+          "question": "What did earlier generations leave in an empty bottle to communicate with the milkman?",
+          "answer": "a note",
+          "maxWords": 3,
+          "explanation": "Paragraph D contrasts the app with \"leaving a note tucked into an empty bottle as earlier generations did.\""
+        }
+      ]
+    }
+  ]
+}

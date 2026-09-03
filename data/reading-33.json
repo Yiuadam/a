@@ -1,0 +1,130 @@
+{
+  "id": "reading-33",
+  "title": "Bankside Logistics and QuickMove Couriers",
+  "topic": "A warehouse staff handbook extract and a job advertisement for a delivery driver",
+  "variant": "general",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 20,
+  "passage": "TEXT A — BANKSIDE LOGISTICS: NEW STARTER HANDBOOK (EXTRACT)\n\nWelcome to Bankside Logistics. This extract covers the policies new warehouse staff ask about most often; the full handbook is available from your supervisor. Shifts run on a rotating pattern of earlies (6 am-2 pm), lates (2 pm-10 pm) and nights (10 pm-6 am), and the rota is published two weeks in advance on the staff noticeboard and the internal app. Staff on the night shift receive an additional 15% on top of their normal hourly rate, in recognition of the less sociable hours. All employees are entitled to twenty-eight days of paid holiday a year, including bank holidays, which increases to thirty-three days after five years of continuous service. Holiday requests should be submitted at least two weeks ahead through the app and are approved in the order they are received, so staff hoping for popular weeks such as the one around Christmas are advised to apply early. Anyone unable to attend a shift because of illness must call the shift supervisor at least one hour before the shift begins; texting or emailing is not accepted as notice, because a supervisor needs to be able to ask follow-up questions and arrange cover. The first three days of any absence are unpaid, in line with company policy, and a doctor's note is required for any absence lasting more than seven days. Staff who are frequently a few minutes late are asked to speak to their supervisor before it becomes a formal disciplinary matter, since most lateness has a simple cause that a change of shift or start time can solve. Steel-toe boots and a hi-visibility vest must be worn at all times on the warehouse floor, and both are provided free of charge on a new starter's first day; a replacement for lost or damaged kit can be bought from the stores at a small charge. All new starters complete a two-day induction covering manual handling and site safety before they are permitted onto the warehouse floor unsupervised, and this induction must be repeated every two years as a refresher.\n\nTEXT B — JOB ADVERTISEMENT: DELIVERY DRIVER, QUICKMOVE COURIERS\n\nQuickMove Couriers is recruiting delivery drivers for its expanding fleet across the region. The role involves loading a van each morning at the depot, following a route planned by the scheduling app, and delivering an average of sixty to eighty parcels a day to homes and businesses. A full, clean driving licence held for at least two years is essential, and applicants must be at least twenty-one years old to meet our insurer's requirements. No previous delivery experience is necessary, as full training is provided during the first week, but candidates should be comfortable lifting parcels of up to 15kg without assistance, since heavier items are handled by a two-person team. The role is based at our depot on Fairfield Road and pays £11.80 an hour, rising to £12.50 after a successful three-month probation period, with an additional bonus for routes completed ahead of schedule. Shifts typically start at 7.30 am and finish once the round is complete, usually by 4 pm, though this can vary with the season; drivers should expect longer days in the run-up to major holidays, when parcel volumes rise sharply. Successful applicants are invited to a short driving assessment at the depot before an offer is confirmed, which takes about twenty minutes and simply checks that a candidate can reverse safely and read a delivery address correctly from the app. Each driver is issued with a company phone loaded with the scheduling app, and this must be returned undamaged at the end of employment or its cost is deducted from final pay. To apply, send a copy of your driving licence and a short covering email to recruitment@quickmovecouriers.example explaining why you are interested in the role.",
+  "questions": [
+    {
+      "instruction": "Look at the following descriptions of shift patterns and other terms at Bankside Logistics, and the list below. Match each description with the correct term, A-E.",
+      "sharedOptions": [
+        { "key": "A", "text": "Earlies" },
+        { "key": "B", "text": "Lates" },
+        { "key": "C", "text": "Nights" },
+        { "key": "D", "text": "The induction" },
+        { "key": "E", "text": "The holiday year" }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "Begins at six o'clock in the morning",
+          "answer": "A",
+          "explanation": "Text A lists \"earlies (6 am-2 pm)\" first among the three shift patterns, starting at six in the morning."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "Finishes at ten o'clock in the evening",
+          "answer": "B",
+          "explanation": "Text A gives \"lates (2 pm-10 pm)\", the shift that ends at ten in the evening."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "Is paid at a higher rate than the other two shift patterns",
+          "answer": "C",
+          "explanation": "Text A says staff \"on the night shift receive an additional 15% on top of their normal hourly rate\", unlike earlies or lates."
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "Must be completed again every two years",
+          "answer": "D",
+          "explanation": "Text A: the two-day induction \"must be repeated every two years as a refresher\"."
+        }
+      ]
+    },
+    {
+      "instruction": "Do the following statements agree with the information given in the texts? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "The staff rota is published two weeks before it takes effect.",
+          "answer": "TRUE",
+          "explanation": "Text A: \"the rota is published two weeks in advance on the staff noticeboard and the internal app.\""
+        },
+        {
+          "id": "q6",
+          "type": "tfng",
+          "statement": "Staff can report illness by text message.",
+          "answer": "FALSE",
+          "explanation": "Text A says a call is required and that \"texting or emailing is not accepted as notice\", directly contradicting the statement."
+        },
+        {
+          "id": "q7",
+          "type": "tfng",
+          "statement": "Employees are paid as normal for the first three days of any absence.",
+          "answer": "FALSE",
+          "explanation": "Text A states \"the first three days of any absence are unpaid\", the opposite of being paid as normal."
+        },
+        {
+          "id": "q8",
+          "type": "tfng",
+          "statement": "QuickMove Couriers provides its drivers with a uniform.",
+          "answer": "NOT GIVEN",
+          "explanation": "Text B describes pay, training, licence requirements and equipment such as a company phone, but never mentions a uniform."
+        },
+        {
+          "id": "q9",
+          "type": "tfng",
+          "statement": "Drivers can expect longer working days close to major holidays.",
+          "answer": "TRUE",
+          "explanation": "Text B: \"drivers should expect longer days in the run-up to major holidays, when parcel volumes rise sharply.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN ONE WORD OR A NUMBER from Text B for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "Applicants for the Delivery Driver role must be at least ___ years old.",
+          "answer": "twenty-one",
+          "accept": ["21"],
+          "maxWords": 1,
+          "explanation": "Text B: applicants \"must be at least twenty-one years old to meet our insurer's requirements.\""
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "Full ___ is provided during a new driver's first week.",
+          "answer": "training",
+          "maxWords": 1,
+          "explanation": "Text B: \"full training is provided during the first week\" for drivers with no previous experience."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "Drivers are not expected to lift parcels heavier than ___ without help.",
+          "answer": "15kg",
+          "maxWords": 1,
+          "explanation": "Text B: candidates should manage \"lifting parcels of up to 15kg without assistance\", with heavier items handled by two people."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "After a successful three-month probation period, the hourly rate rises to ___.",
+          "answer": "£12.50",
+          "maxWords": 1,
+          "explanation": "Text B: pay starts at £11.80 an hour, \"rising to £12.50 after a successful three-month probation period.\""
+        }
+      ]
+    }
+  ]
+}

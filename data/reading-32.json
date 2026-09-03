@@ -1,0 +1,129 @@
+{
+  "id": "reading-32",
+  "title": "Oakfield Lettings",
+  "topic": "Three notices from a letting agency: booking a viewing, flats currently available, and how a deposit is protected",
+  "variant": "general",
+  "difficulty": "easy",
+  "level": "B1",
+  "timeMinutes": 20,
+  "passage": "TEXT A — VIEWING A PROPERTY WITH OAKFIELD LETTINGS\n\nOakfield Lettings arranges viewings by appointment only, Monday to Saturday, between 9 am and 6 pm. To book a viewing, call the branch or use the online form; same-day viewings are possible if a slot is free, but weekends are booked up to a week in advance and should be requested early. Anyone attending a viewing should bring photo identification, since the branch keeps a record of who has visited each property for the landlord's insurance. A viewing usually lasts about fifteen minutes, and prospective tenants are welcome to return for a second look before deciding, free of charge. Pets are only permitted in properties marked \"pet-friendly\" in the listing, and permission must still be confirmed with the individual landlord before an offer is made, since the listing shows what is generally allowed rather than a guarantee for every flat. Anyone who needs to cancel a booked viewing is asked to give at least two hours' notice, since a missed appointment cannot usually be offered to anyone else at short notice. Arriving more than ten minutes late may mean the viewing has to be rescheduled, as the agent showing the property is often booked to see another applicant straight afterwards.\n\nTEXT B — FLATS CURRENTLY AVAILABLE\n\nTwo flats are ready for immediate move-in this month. The first, a one-bedroom flat on Willow Street, is £850 a month, unfurnished, with bills not included; it is close to the train station but has no parking space of its own, though on-street parking is usually available in the evening. The second, a two-bedroom flat on Marsh Lane, is £1,050 a month, part-furnished, meaning it comes with a cooker and wardrobes but no other furniture, and includes one off-street parking space. A third property, a studio flat above the Oakfield branch itself, will become available next month once the current tenant's contract ends; it is £650 a month, fully furnished, with all bills included in the price, which makes it the only listing here where the monthly figure covers gas and electricity as well as rent. Viewings for the studio can still be arranged now, ahead of its release. A fourth property, a family house on Cedar Grove, is let through Oakfield's sister branch across town and does not appear on this list. Each of the three flats above is offered on a minimum twelve-month tenancy, and an applicant who wishes to proceed is asked to pay a holding deposit of one week's rent to reserve the property while references are checked; this sum is deducted from the first month's rent once the tenancy begins, or returned in full if the application is unsuccessful through no fault of the applicant.\n\nTEXT C — YOUR DEPOSIT: WHAT YOU NEED TO KNOW\n\nAny deposit taken by Oakfield Lettings is placed in a government-approved protection scheme within thirty days of receipt, and tenants are sent written confirmation once this has happened. The deposit is usually equal to five weeks' rent, though this can rise to six weeks for a property where the monthly rent is above £1,000. At the end of a tenancy, a tenant should request the return of their deposit in writing; Oakfield aims to process this within ten working days of both parties agreeing the amount, and any disagreement about deductions is settled through the scheme's own free dispute service rather than through Oakfield directly. Common reasons for a deduction include damage beyond normal wear and tear, unpaid rent, and cleaning costs where a property is left in a worse condition than an inventory taken at the start of the tenancy recorded. The deposit itself is always returned by bank transfer rather than by cheque or in cash, so tenants should make sure Oakfield holds up-to-date account details before a tenancy ends. A tenant who disputes a proposed deduction should raise this in writing within five working days of being told about it, since a claim raised later than this is harder for the scheme to investigate fairly.",
+  "questions": [
+    {
+      "instruction": "Look at the following descriptions and the list of properties below. Match each description with the correct property, A-D.",
+      "sharedOptions": [
+        { "key": "A", "text": "The flat on Willow Street" },
+        { "key": "B", "text": "The flat on Marsh Lane" },
+        { "key": "C", "text": "The studio above the branch" },
+        { "key": "D", "text": "The house on Cedar Grove" }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "Has no parking space of its own",
+          "answer": "A",
+          "explanation": "Text B says the Willow Street flat \"has no parking space of its own, though on-street parking is usually available in the evening.\""
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "Already comes with a cooker and wardrobes",
+          "answer": "B",
+          "explanation": "The Marsh Lane flat is \"part-furnished, meaning it comes with a cooker and wardrobes but no other furniture\"."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "Is the only listing whose monthly price already covers gas and electricity",
+          "answer": "C",
+          "explanation": "The studio is \"fully furnished, with all bills included in the price, which makes it the only listing here\" covering gas and electricity."
+        }
+      ]
+    },
+    {
+      "instruction": "Do the following statements agree with the information given in the texts? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Viewings can sometimes be arranged for the same day.",
+          "answer": "TRUE",
+          "explanation": "Text A: \"same-day viewings are possible if a slot is free.\""
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "There is a charge for a second viewing of the same property.",
+          "answer": "FALSE",
+          "explanation": "Text A says tenants \"are welcome to return for a second look before deciding, free of charge\" — the opposite of a charge."
+        },
+        {
+          "id": "q6",
+          "type": "tfng",
+          "statement": "The flat on Willow Street has its own parking space.",
+          "answer": "FALSE",
+          "explanation": "Text B states this flat \"has no parking space of its own\", directly contradicting the statement."
+        },
+        {
+          "id": "q7",
+          "type": "tfng",
+          "statement": "The flat on Marsh Lane has a garden.",
+          "answer": "NOT GIVEN",
+          "explanation": "Text B describes the Marsh Lane flat's price, furnishing and parking but never mentions a garden, so this cannot be judged."
+        },
+        {
+          "id": "q8",
+          "type": "tfng",
+          "statement": "The studio flat can be viewed before it becomes available to move into.",
+          "answer": "TRUE",
+          "explanation": "Text B: \"Viewings for the studio can still be arranged now, ahead of its release.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN THREE WORDS from the texts for each answer.",
+      "questions": [
+        {
+          "id": "q9",
+          "type": "completion",
+          "sentence": "A deposit must be placed in a protection scheme within ___ of being received.",
+          "answer": "thirty days",
+          "maxWords": 3,
+          "explanation": "Text C: a deposit \"is placed in a government-approved protection scheme within thirty days of receipt\"."
+        },
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "For a property renting above £1,000 a month, the deposit can rise to ___.",
+          "answer": "six weeks",
+          "maxWords": 3,
+          "explanation": "Text C: the deposit \"can rise to six weeks for a property where the monthly rent is above £1,000\"."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "Once both sides agree the amount, Oakfield aims to return a deposit within ___.",
+          "answer": "ten working days",
+          "maxWords": 3,
+          "explanation": "Text C: Oakfield \"aims to process this within ten working days of both parties agreeing the amount\"."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "A disagreement about deductions is settled through the scheme's own free ___.",
+          "answer": "dispute service",
+          "maxWords": 3,
+          "explanation": "Text C: disagreements are \"settled through the scheme's own free dispute service rather than through Oakfield directly\"."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "A property's condition at the start of a tenancy is recorded in ___.",
+          "answer": "an inventory",
+          "maxWords": 3,
+          "explanation": "Text C refers to \"an inventory taken at the start of the tenancy\" as the record of a property's condition."
+        }
+      ]
+    }
+  ]
+}

@@ -363,6 +363,32 @@ function listeningFor(part: 1 | 2 | 3 | 4): ListeningTest[] {
   return LISTENING_TESTS.filter((t) => LISTENING_PART[t.id] === part);
 }
 
+/*
+  Which General Training reading section each shipped GT paper serves — the
+  same kind of hand-written map LISTENING_PART is above, and for the same
+  reason. Nothing in the JSON says a paper is "workplace" rather than "social
+  survival", and a GT section is not interchangeable with the others the way
+  an Academic passage is: Section 1 is always the everyday texts, Section 2
+  always the workplace ones, Section 3 always the longer discursive piece, so
+  a draw has to know which is which rather than pick any three. Every GT
+  paper, every time — tests/mock-exam.test.mjs fails if one is added and left
+  off this map.
+*/
+export const READING_GT_SECTION: Record<string, 1 | 2 | 3> = {
+  "reading-31": 1, // social survival: a leisure centre's membership notice, class timetable and locker/car-park leaflet
+  "reading-32": 1, // social survival: a letting agency's viewing notice, current listings and deposit leaflet
+  "reading-33": 2, // workplace: a warehouse staff handbook extract and a delivery-driver job advertisement
+  "reading-34": 2, // workplace: a hotel induction training note and a front-desk job advertisement
+  "reading-35": 3, // general reading: a discursive piece on why songs get stuck in our heads
+  "reading-36": 3, // general reading: a discursive piece on the small revival of doorstep milk delivery
+};
+
+function readingGTFor(section: 1 | 2 | 3): ReadingTest[] {
+  return READING_TESTS.filter(
+    (t) => t.variant === "general" && READING_GT_SECTION[t.id] === section,
+  );
+}
+
 /**
  * Choose the papers for one sitting: one recording per listening part, three
  * reading passages, one Task 1 and one Task 2.
@@ -370,35 +396,26 @@ function listeningFor(part: 1 | 2 | 3 | 4): ListeningTest[] {
  * Random, and it stays random — the same learner sitting a second mock should
  * meet a different paper. What must not change is the paper *within* a sitting,
  * which is why the result is written into the session rather than recomputed.
+ *
+ * `variant` chooses Reading and Writing Task 1. Listening and Task 2 are the
+ * same paper either way, which is also true of the real exam — the recording
+ * is identical for both, and Task 2 is an essay on both papers.
+ *
+ * Task 1 is the one that differs: General Training's is a letter written for a
+ * given reason, Academic's is a chart, a table, a pair of plans or a process.
+ * Drawing an Academic Task 1 into a General Training sitting is not a smaller
+ * problem than drawing an Academic passage into one — it is the same problem,
+ * and it was the more misleading of the two, because the sitting said General
+ * Training at the top and then asked for a chart description.
  */
-export function composeMock(): MockPaper {
+export function composeMock(variant: ReadingTest["variant"] = "academic"): MockPaper {
   const listening = ([1, 2, 3, 4] as const).map((part) => {
     const options = listeningFor(part);
     return pick(options, 1)[0]?.id ?? LISTENING_TESTS[0].id;
   });
 
-  /*
-    Academic reading, and Academic Task 1, because that is what the rest of the
-    app teaches. General Training is issue #14 and when it lands it selects
-    here — one branch, not a second sitting.
-  */
-  /*
-    Thirteen, thirteen, fourteen — the real Academic paper's split, and the only
-    way three passages come to forty.
-
-    It is not a rounding convenience. Every paper in the bank was uniform at
-    thirteen once, and when a fourteenth question was added to all of them the
-    sitting quietly became a 42-question exam that announced itself as one on
-    the start screen. A candidate's raw score is read against a 40-mark table,
-    so the length of the paper is not a presentation detail: it decides the
-    band. Two papers are drawn from the thirteens and one from the fourteens,
-    and the long one is placed last, where the exam puts it.
-  */
-  const readingCount = (test: ReadingTest) => questionCount(flatQuestions(test.questions));
-  const shortPapers = READING_TESTS.filter((t) => readingCount(t) === 13);
-  const longPapers = READING_TESTS.filter((t) => readingCount(t) === 14);
-  const reading = [...pick(shortPapers, 2), ...pick(longPapers, 1)].map((t) => t.id);
-  const task1 = pick(WRITING_TASKS.filter((t) => t.task === 1 && t.variant === "academic"), 1)[0];
+  const reading = variant === "general" ? composeGTReading() : composeAcademicReading();
+  const task1 = pick(WRITING_TASKS.filter((t) => t.task === 1 && t.variant === variant), 1)[0];
   const task2 = pick(WRITING_TASKS.filter((t) => t.task === 2), 1)[0];
 
   return {
@@ -406,6 +423,52 @@ export function composeMock(): MockPaper {
     reading,
     writing: [task1.id, task2.id],
   };
+}
+
+/*
+  Thirteen, thirteen, fourteen — the real Academic paper's split, and the only
+  way three passages come to forty.
+
+  It is not a rounding convenience. Every paper in the bank was uniform at
+  thirteen once, and when a fourteenth question was added to all of them the
+  sitting quietly became a 42-question exam that announced itself as one on
+  the start screen. A candidate's raw score is read against a 40-mark table,
+  so the length of the paper is not a presentation detail: it decides the
+  band. Two papers are drawn from the thirteens and one from the fourteens,
+  and the long one is placed last, where the exam puts it.
+
+  Restricted to `variant === "academic"` now that the bank holds both — without
+  that filter this draw would occasionally hand an Academic sitting a General
+  Training paper of the matching length, which is a harder defect to notice
+  than a wrong question count: the paper would still come to forty and still
+  read as wrong the moment a candidate reached a job advertisement in the
+  middle of an Academic passage.
+*/
+function composeAcademicReading(): string[] {
+  const readingCount = (test: ReadingTest) => questionCount(flatQuestions(test.questions));
+  const shortPapers = READING_TESTS.filter((t) => t.variant === "academic" && readingCount(t) === 13);
+  const longPapers = READING_TESTS.filter((t) => t.variant === "academic" && readingCount(t) === 14);
+  return [...pick(shortPapers, 2), ...pick(longPapers, 1)].map((t) => t.id);
+}
+
+/*
+  One paper per section, not "two of one length and one of another" — a GT
+  section is not interchangeable with the others the way an Academic passage
+  is, so the draw has to be "one social survival paper, one workplace paper,
+  one general reading paper" and trust their identities rather than pick any
+  three that happen to add up.
+
+  The same forty still has to come out the other end. Every social-survival
+  and every workplace paper in the bank is thirteen questions and every
+  general reading paper fourteen — "every GT reading paper's length matches
+  its section" in tests/mock-exam.test.mjs is what keeps that true — so
+  13 + 13 + 14 holds whichever paper each section offers.
+*/
+function composeGTReading(): string[] {
+  return ([1, 2, 3] as const).map((section) => {
+    const options = readingGTFor(section);
+    return pick(options, 1)[0]?.id ?? READING_TESTS[0].id;
+  });
 }
 
 export function readingPaper(id: string): ReadingTest | undefined {
@@ -666,12 +729,12 @@ export function clearSession(): void {
   for (const l of listeners) l();
 }
 
-export function newSession(): MockSession {
+export function newSession(variant: ReadingTest["variant"] = "academic"): MockSession {
   return {
     version: 1,
     id: `mock-${Date.now().toString(36)}`,
     startedAt: new Date().toISOString(),
-    paper: composeMock(),
+    paper: composeMock(variant),
     stage: "listening",
     deadline: null,
     answers: {},
@@ -697,12 +760,16 @@ export function newSession(): MockSession {
  * "which of these rows came from a retake and which from a standalone
  * sitting" is a question the archive should be able to answer without a join.
  */
-function newSoloSession(idPrefix: string, retake: MockRetakeIntent): MockSession {
+function newSoloSession(
+  idPrefix: string,
+  retake: MockRetakeIntent,
+  variant: ReadingTest["variant"] = "academic",
+): MockSession {
   return {
     version: 1,
     id: `${idPrefix}-${Date.now().toString(36)}`,
     startedAt: new Date().toISOString(),
-    paper: composeMock(),
+    paper: composeMock(variant),
     retake,
     stage: retake.module,
     deadline: null,
@@ -713,7 +780,15 @@ function newSoloSession(idPrefix: string, retake: MockRetakeIntent): MockSession
   };
 }
 
-/** A One Skill Retake: one module, sat on its own, against an earlier sitting. */
+/**
+ * A One Skill Retake: one module, sat on its own, against an earlier sitting.
+ *
+ * Always Academic reading, whatever the original sitting was — a
+ * `MockExamReport` does not record which variant its Reading paper drew, so
+ * there is nothing here to redraw it from. A General Training candidate who
+ * retakes Reading meets an Academic paper today; noticed rather than hidden,
+ * and left for the change that teaches a report its own variant.
+ */
 export function newRetakeSession(module: MockModule, of: string): MockSession {
   return newSoloSession("retake", { of, module });
 }
@@ -727,9 +802,19 @@ export function newRetakeSession(module: MockModule, of: string): MockSession {
  * paper, silence until the end. The only difference is `of`, left unset,
  * which is what tells components/exam/MockSkillResults.tsx there is no report
  * to update, only an ordinary result to record.
+ *
+ * `variant` changes what `module` opens when it is `"reading"` (the passages)
+ * or `"writing"` (whether Task 1 is drawn from the chart or the letter pool —
+ * composeMock now reads it for both). Listening and Speaking are the same
+ * paper either way, and the unused parts of the composed paper are strings
+ * nobody reads (see the note on `newSoloSession` above), so there is nothing
+ * for the choice to affect there.
  */
-export function newSingleSkillSession(module: MockModule): MockSession {
-  return newSoloSession("solo", { module });
+export function newSingleSkillSession(
+  module: MockModule,
+  variant: ReadingTest["variant"] = "academic",
+): MockSession {
+  return newSoloSession("solo", { module }, variant);
 }
 
 /**

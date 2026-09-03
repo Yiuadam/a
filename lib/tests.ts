@@ -28,6 +28,12 @@ import readingTwentySeven from "@/data/reading-27.json";
 import readingTwentyEight from "@/data/reading-28.json";
 import readingTwentyNine from "@/data/reading-29.json";
 import readingThirty from "@/data/reading-30.json";
+import readingThirtyOne from "@/data/reading-31.json";
+import readingThirtyTwo from "@/data/reading-32.json";
+import readingThirtyThree from "@/data/reading-33.json";
+import readingThirtyFour from "@/data/reading-34.json";
+import readingThirtyFive from "@/data/reading-35.json";
+import readingThirtySix from "@/data/reading-36.json";
 import listeningOne from "@/data/listening-1.json";
 import listeningTwo from "@/data/listening-2.json";
 import listeningThree from "@/data/listening-3.json";
@@ -148,6 +154,12 @@ export const READING_TESTS: ReadingTest[] = byDifficulty([
   readingTwentyEight,
   readingTwentyNine,
   readingThirty,
+  readingThirtyOne,
+  readingThirtyTwo,
+  readingThirtyThree,
+  readingThirtyFour,
+  readingThirtyFive,
+  readingThirtySix,
 ] as ReadingTest[]);
 
 export const LISTENING_TESTS: ListeningTest[] = byDifficulty([
