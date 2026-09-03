@@ -38,6 +38,12 @@ import { NAV_ICONS, RAIL_GROUPS, SKILL_ICONS, currentHref } from "@/lib/nav";
   the product does now (see the clamp on html in app/globals.css). A rail fixed
   in pixels beside type that scales gets proportionally thinner as the screen
   gets bigger, which is the opposite of what a bigger screen is for.
+
+  16rem, and 18rem past xl — widened at the owner's ask. The first version was
+  sized to the longest label with nothing spare, which reads as a list squeezed
+  against the edge of the window rather than as a column the page is laid out
+  around. The page beside it loses nothing: it was not short of width at these
+  sizes, which was the whole reason the rail could exist.
 */
 
 export default function SideRail() {
@@ -55,12 +61,12 @@ export default function SideRail() {
     */
     <nav
       aria-label="Sections"
-      className="side-rail sticky top-[calc(var(--header-h)+0.75rem)] hidden h-fit w-56 shrink-0 self-start lg:block xl:w-60"
+      className="side-rail sticky top-[calc(var(--header-h)+0.75rem)] hidden h-fit w-64 shrink-0 self-start lg:block xl:w-72"
     >
       <div className="space-y-5 pb-6 pl-1 pr-2">
         {groups.map((group) => (
           <div key={group.title}>
-            <h2 className="mb-1.5 px-2.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500">
+            <h2 className="mb-1.5 px-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500">
               {group.title}
             </h2>
             <ul className="space-y-0.5">
@@ -81,7 +87,7 @@ export default function SideRail() {
                         which also means it still answers it for somebody who
                         cannot separate the two colours.
                       */
-                      className={`side-rail-item flex min-h-9 items-center gap-2.5 rounded-full px-2.5 py-1.5 text-[0.875rem] font-medium transition-colors ${
+                      className={`side-rail-item flex min-h-10 items-center gap-3 rounded-full px-3 py-1.5 text-[0.9375rem] font-medium transition-colors ${
                         active
                           ? "side-rail-item-active text-slate-900"
                           : "text-slate-600 hover:text-slate-900"

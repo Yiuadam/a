@@ -6468,10 +6468,34 @@ html[data-theme="dark"] .side-rail-item-active {
 }
 
 .module-preview-inner {
-  --module-preview-scale: 0.62;
+  /* Raised from 0.62 with the sheet: at the old size the previews were
+     swatches rather than pictures of a card, which is the one thing the
+     library is for. */
+  --module-preview-scale: 0.78;
   width: calc(100% / var(--module-preview-scale));
+  /*
+    Height as well as width, so every preview is the same size.
+
+    Without it the box was a fixed height and the card inside it was whatever
+    height its own content made — so the band module, which has four rows,
+    filled the frame and the plan module, which has one button, sat in the top
+    third of an identical box. They read as two different sizes because the
+    only thing making them the same was an outline. The modules are written
+    `h-full` already; this is what gives that something to be full of.
+  */
+  height: calc(100% / var(--module-preview-scale));
   transform: scale(var(--module-preview-scale));
   transform-origin: top left;
+}
+
+/*
+  No frame. The preview is a picture of a card, and a card already has its own
+  border and its own corner — drawing a second one around it puts a frame
+  around a frame, which is what made these read as thumbnails in boxes rather
+  than as the modules themselves.
+*/
+.module-preview > * {
+  height: 100%;
 }
 
 /* A library entry is one control, so it lights up as one. */

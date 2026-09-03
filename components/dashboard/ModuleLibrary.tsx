@@ -111,7 +111,14 @@ export default function ModuleLibrary({
               role="dialog"
               aria-modal="true"
               aria-labelledby="module-library-heading"
-              className="card liquid-glass module-library-panel relative max-h-[86dvh] w-full max-w-4xl overflow-y-auto !p-5 sm:max-h-[80dvh]"
+              /*
+                A large sheet, because the point of it is the previews and a
+                preview too small to read is a swatch. It takes most of the
+                window on purpose — 92% of the width up to 84rem, 88% of the
+                height — which at 1728px is roughly three times the area the
+                first version had.
+              */
+              className="card liquid-glass module-library-panel relative max-h-[88dvh] w-[min(92vw,84rem)] overflow-y-auto !p-6"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -189,7 +196,7 @@ export default function ModuleLibrary({
                       : `Nothing matches “${query}”.`}
                   </p>
                 ) : (
-                  <ul className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <ul className="grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     {listed.map((m) => {
                       return (
                         <li key={m.id} className="min-w-0">
@@ -240,12 +247,12 @@ export default function ModuleLibrary({
                               */
                               <span
                                 aria-hidden="true"
-                                className="module-preview block h-36 w-full min-w-0 overflow-hidden rounded-xl border border-[color:var(--glass-edge)]"
+                                className="module-preview block h-56 w-full min-w-0 overflow-hidden"
                               >
                                 <span className="module-preview-inner block">{modules[m.id]}</span>
                               </span>
                             )}
-                            <span className="text-[0.8125rem] font-medium text-slate-700">
+                            <span className="text-[0.9375rem] font-medium text-slate-700">
                               {m.short}
                             </span>
                           </button>

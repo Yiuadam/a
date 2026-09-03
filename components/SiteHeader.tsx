@@ -708,7 +708,18 @@ export default function SiteHeader({
         )}
         {/* Takes the space the row would have, so the controls stay pinned
             right whenever the row is not there. */}
-        <div className={open || onHome ? "flex-1" : "flex-1 lg:hidden"} />
+        {/*
+          The spacer that pushes the controls to the right edge.
+
+          It used to hide itself at `lg`, because from `lg` up the row of
+          primary links carried `flex-1` and did the pushing. That row is hidden
+          wherever the rail stands now, so on those pages nothing grew and the
+          menu, bell, account and theme toggle all collapsed against the
+          wordmark — every page but the homepage, and a header that sits
+          somewhere different depending on the route is the kind of thing a
+          person notices without being able to say why.
+        */}
+        <div className={open || onHome || hasSideRail(pathname) ? "flex-1" : "flex-1 lg:hidden"} />
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <button
