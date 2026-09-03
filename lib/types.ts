@@ -247,11 +247,73 @@ export interface NotesSection {
   bullets: Array<string | { text: string; sub: string[] }>;
 }
 
+/**
+ * A plan or map the block's questions are answered against.
+ *
+ * The exam's labelling tasks — a site plan, a floor plan, a map of a reserve —
+ * put lettered points on a drawing and ask which letter each place is at. The
+ * candidate chooses a letter; nothing is drawn or dragged. That means the
+ * marking needs nothing new at all: the questions are ordinary `matching`
+ * questions answered from the block's own bank of letters, and what was
+ * missing was only the picture.
+ *
+ * Drawn from data rather than shipped as an image, which is the same decision
+ * `lib/chart.ts` made for the Task 1 figures. A picture is a file to store, a
+ * request to fail, and something no theme, screen size or zoom setting can
+ * adapt; a drawing described as rectangles and points is text, renders at any
+ * size, takes the paper's own colours, and can say in words what it shows.
+ *
+ * A `figure` sits above the block's questions rather than replacing them,
+ * which is the difference between it and `layout`: a table completion *is* its
+ * questions, a plan is the thing they are about.
+ */
+export type QuestionFigure = PlanFigure;
+
+export interface PlanFigure {
+  kind: "plan";
+  /** Printed above the drawing, as the paper prints it. */
+  title?: string;
+  /**
+   * Everything is positioned in a 0–100 square and scaled to whatever room the
+   * drawing gets, so a plan never has to know how wide the screen is.
+   */
+  areas: PlanArea[];
+  /** A road, path or river: points joined in the order given. */
+  routes?: PlanRoute[];
+  /** The lettered points the candidate chooses between. */
+  markers: PlanMarker[];
+  /** Where a visitor comes in, which most plans print and some questions need. */
+  entrance?: { x: number; y: number; label: string };
+}
+
+export interface PlanArea {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Named on the drawing. An unnamed block is scenery — a lake, a field. */
+  label?: string;
+}
+
+export interface PlanRoute {
+  points: Array<{ x: number; y: number }>;
+  label?: string;
+}
+
+export interface PlanMarker {
+  /** "A", "B", … — and the same key the block's bank offers. */
+  key: string;
+  x: number;
+  y: number;
+}
+
 export interface QuestionGroup {
   instruction: string;
   sharedOptions?: SharedOption[];
   /** Draw this block as a table or a flow chart rather than as a numbered list. */
   layout?: QuestionLayout;
+  /** A plan or map printed above the block's questions. */
+  figure?: QuestionFigure;
   questions: TestQuestion[];
 }
 

@@ -166,6 +166,13 @@ export const LISTENING_PART: Record<string, 1 | 2 | 3 | 4> = {
   "listening-29": 3, // three speakers on usability testing a prototype
   "listening-30": 4, // lecture: the acoustics of concert halls
   "listening-31": 4, // lecture: why languages disappear
+  /*
+    A Part 2 written around a site plan rather than retrofitted onto one. No
+    existing paper's script says where anything is in relation to anything
+    else, and a labelling task cannot be added to a recording that does not
+    describe positions — so this one describes them.
+  */
+  "listening-32": 2, // one speaker: a country park tour, with a plan
 };
 
 const WRITING_TASKS: WritingTask[] = (writingData as WritingTasksData).tasks;

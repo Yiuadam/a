@@ -59,6 +59,7 @@ import listeningTwentyEight from "@/data/listening-28.json";
 import listeningTwentyNine from "@/data/listening-29.json";
 import listeningThirty from "@/data/listening-30.json";
 import listeningThirtyOne from "@/data/listening-31.json";
+import listeningThirtyTwo from "@/data/listening-32.json";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 
 /*
@@ -181,4 +182,5 @@ export const LISTENING_TESTS: ListeningTest[] = byDifficulty([
   listeningTwentyNine,
   listeningThirty,
   listeningThirtyOne,
+  listeningThirtyTwo,
 ] as ListeningTest[]);

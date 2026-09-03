@@ -193,6 +193,91 @@ function checkGroups(file, set, groupOf) {
       }
     }
     /*
+      A plan or map the block is answered against.
+
+      The failures worth catching are the ones that look fine in the JSON. A
+      letter offered in the bank with no marker on the drawing is a choice the
+      candidate cannot make; a marker whose letter is not in the bank is a
+      position they cannot name. Two markers on top of each other are one
+      illegible character where the task needs two, and a marker outside the
+      0-100 square is simply not on the picture.
+    */
+    if (group.figure !== undefined) {
+      const figure = group.figure;
+      if (figure?.kind !== "plan") {
+        fail(file, `${where} has a figure that is not a plan`);
+      } else {
+        const inSquare = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 100;
+        if (!Array.isArray(figure.areas) || figure.areas.length === 0) {
+          fail(file, `${where} has a plan with nothing drawn on it`);
+        } else {
+          for (const area of figure.areas) {
+            if (
+              !inSquare(area?.x) || !inSquare(area?.y) ||
+              !inSquare(area?.w) || !inSquare(area?.h) ||
+              area.x + area.w > 100 || area.y + area.h > 100
+            ) {
+              fail(file, `${where} has a plan block that falls outside the drawing`);
+              break;
+            }
+          }
+        }
+
+        const markers = Array.isArray(figure.markers) ? figure.markers : [];
+        if (markers.length === 0) {
+          fail(file, `${where} has a plan with no lettered positions on it`);
+        }
+        for (const marker of markers) {
+          if (!inSquare(marker?.x) || !inSquare(marker?.y)) {
+            fail(file, `${where} places ${marker?.key} outside the drawing`);
+          }
+        }
+        for (let i = 0; i < markers.length; i += 1) {
+          for (let j = i + 1; j < markers.length; j += 1) {
+            const a = markers[i];
+            const b = markers[j];
+            if (a?.key === b?.key) {
+              fail(file, `${where} uses the letter ${a.key} twice on the same plan`);
+            } else if (Math.hypot(a.x - b.x, a.y - b.y) < 8) {
+              fail(
+                file,
+                `${where} puts ${a.key} and ${b.key} too close together to tell apart`,
+              );
+            }
+          }
+        }
+
+        /*
+          The bank and the drawing have to name the same set of letters. Either
+          direction of mismatch leaves the candidate with a question that has
+          no answer they can give.
+        */
+        const bank = (group.sharedOptions ?? []).map((o) => o?.key);
+        if (bank.length === 0) {
+          fail(file, `${where} has a plan but no bank of letters to answer it from`);
+        }
+        for (const marker of markers) {
+          if (!bank.includes(marker?.key)) {
+            fail(file, `${where} marks ${marker?.key} on the plan but does not offer it`);
+          }
+        }
+        for (const key of bank) {
+          if (!markers.some((m) => m?.key === key)) {
+            fail(file, `${where} offers ${key} but never puts it on the plan`);
+          }
+        }
+        for (const q of group.questions) {
+          if (q?.type !== "matching") {
+            fail(
+              file,
+              `${where} is a labelling task but ${q?.id} is a ${q?.type} question; a place on a plan is named by choosing its letter`,
+            );
+          }
+        }
+      }
+    }
+
+    /*
       A table or flow-chart completion, whose gaps live in cells rather than in
       a numbered list.
 

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import ExplainText from "@/components/ExplainText";
+import PlanDrawing from "@/components/PlanFigure";
 import { isCorrect, marksEarned } from "@/lib/band";
 import { numberedGroups } from "@/lib/questions";
 import type {
@@ -771,7 +772,19 @@ export default function TestQuestions({
                   : `Question ${block.from}`}
               </p>
               {block.group.instruction && <Rubric text={block.group.instruction} />}
-              {block.group.sharedOptions && (
+              {/*
+                The bank is printed above the block — unless the block has a
+                plan, in which case the plan *is* the bank.
+
+                On a labelling task the letters exist only on the drawing, and
+                printing "A — beside the path from the main entrance" beside it
+                hands over every answer: the whole task is working out where A
+                is. The descriptions stay in the JSON because the review after
+                marking needs them — "E, on the open ground south of the
+                woodland" is the feedback — but they are not printed while the
+                question is still being answered.
+              */}
+              {block.group.sharedOptions && !block.group.figure && (
                 <ul className="mt-3 space-y-1">
                   {block.group.sharedOptions.map((opt) => (
                     <li key={opt.key} className="text-sm leading-6 text-slate-700">
@@ -783,6 +796,13 @@ export default function TestQuestions({
               )}
             </div>
           )}
+
+          {/*
+            The plan a labelling block is answered against, printed above its
+            questions. Unlike a layout it does not replace them: a table
+            completion *is* its questions, a plan is what they are about.
+          */}
+          {block.group.figure && <PlanDrawing figure={block.group.figure} />}
 
           {/*
             The block's shape. A table or flow-chart completion is drawn as the
