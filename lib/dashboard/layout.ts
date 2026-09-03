@@ -27,12 +27,6 @@ export const DASHBOARD_LAYOUT_KEY = "bandup.dashboard.modules";
 /** Every module the board can draw, in the order the library lists them. */
 export const MODULE_LIBRARY = [
   {
-    id: "highlight",
-    group: "Progress",
-    name: "What is new",
-    blurb: "The offer, your placement summary, or your organisation — whichever applies.",
-  },
-  {
     id: "score",
     group: "Progress",
     name: "Your band",
@@ -81,15 +75,41 @@ const KNOWN = new Set<string>(MODULE_LIBRARY.map((m) => m.id));
 /*
   Four modules, two by two, which is what fits one screen without scrolling —
   the thing the owner asked for. Everything else starts in the library.
+
+  The free-Pro offer is deliberately not among them and is not a module at all.
+  It is a first-time notice: it is answered once, with "Sign up free" or "No
+  thanks", and an answered notice that can be put back on a board is a notice
+  that asks again. It sits above the board instead, where FreeProPoster's own
+  rule about when to draw itself is the only thing deciding whether it appears.
 */
-export const DEFAULT_LAYOUT: ModuleId[] = ["highlight", "score", "tutor", "plan"];
+export const DEFAULT_LAYOUT: ModuleId[] = ["score", "plan", "tutor", "recent"];
+
+/*
+  How many modules the board holds, which is a consequence rather than a taste.
+
+  The dashboard does not scroll — that is the point of it — so the board can
+  only carry what one screen shows. Two columns of two is what fits at every
+  width the rail appears at, down to an iPad in landscape, and a fifth module
+  would either push the fourth off the bottom or force every card shorter to
+  make room. Adding is refused at the cap rather than silently making room,
+  because a board that quietly drops what you had chosen to fit what you just
+  chose is worse than one that says it is full.
+*/
+export const MAX_MODULES = 4;
+
+/** Whether another module can be placed without breaking the one-screen rule. */
+export function boardIsFull(ids: readonly string[]): boolean {
+  return ids.length >= MAX_MODULES;
+}
 
 function parse(raw: string | null): ModuleId[] | null {
   if (!raw) return null;
   try {
     const value: unknown = JSON.parse(raw);
     if (!Array.isArray(value)) return null;
-    const ids = value.filter((id): id is ModuleId => typeof id === "string" && KNOWN.has(id));
+    const ids = value
+      .filter((id): id is ModuleId => typeof id === "string" && KNOWN.has(id))
+      .slice(0, MAX_MODULES);
     // A stored list that survives with nothing in it is a board with nothing on
     // it, which reads as broken rather than as empty on purpose.
     return ids.length > 0 ? [...new Set(ids)] : null;
@@ -119,7 +139,11 @@ export function subscribeLayout(listener: () => void): () => void {
 }
 
 export function setLayout(next: readonly ModuleId[]): void {
-  const ids = [...new Set(next.filter((id) => KNOWN.has(id)))];
+  /*
+    Trimmed to the cap on the way in, so a stored list from an older build — or
+    a hand-edited one — cannot put five modules on a page that shows four.
+  */
+  const ids = [...new Set(next.filter((id) => KNOWN.has(id)))].slice(0, MAX_MODULES);
   cache = ids.length > 0 ? ids : DEFAULT_LAYOUT;
   try {
     window.localStorage.setItem(DASHBOARD_LAYOUT_KEY, JSON.stringify(cache));

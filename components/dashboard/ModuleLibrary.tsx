@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { MODULE_GROUPS, MODULE_LIBRARY, type ModuleId } from "@/lib/dashboard/layout";
+import { MAX_MODULES, MODULE_GROUPS, MODULE_LIBRARY, boardIsFull, type ModuleId } from "@/lib/dashboard/layout";
 
 /*
   The library, as a dialog over the board, showing each module as it will look.
@@ -53,6 +53,7 @@ export default function ModuleLibrary({
     added it; showing everything and saying which are placed answers that
     without a hunt.
   */
+  const full = boardIsFull(layout);
   const needle = query.trim().toLowerCase();
   const listed = MODULE_LIBRARY.filter(
     (m) =>
@@ -114,7 +115,9 @@ export default function ModuleLibrary({
                     Module library
                   </h2>
                   <p className="mt-0.5 text-[0.875rem] leading-6 text-slate-600">
-                    Each one is shown as it will appear. Add it, then drag it where you want it.
+                    {full
+                      ? `Your board holds ${MAX_MODULES}, which is what one screen shows. Remove one with the − in its corner to make room.`
+                      : "Each one is shown as it will appear. Tap it to add it, then drag it where you want it."}
                   </p>
                 </div>
                 <button
@@ -182,15 +185,55 @@ export default function ModuleLibrary({
                       const placed = layout.includes(m.id);
                       return (
                         <li key={m.id} className="min-w-0">
-                          <div className="flex h-full min-w-0 flex-col rounded-2xl border border-[color:var(--glass-edge)] p-3">
-                            <div className="min-w-0">
-                              <p className="text-[0.9375rem] font-semibold text-slate-900">
+                          {/*
+                            The whole tile is the control. A preview with an
+                            "Add to board" button under it asks twice for one
+                            decision — the thing being pointed at is the thing
+                            being chosen, and a separate button only adds a
+                            place to miss.
+
+                            A module already on the board stays listed and
+                            stops being a button. Removing it from the list
+                            would make somebody hunt for what they just added
+                            to check that they added it.
+                          */}
+                          <button
+                            type="button"
+                            disabled={placed || full}
+                            aria-label={
+                              placed
+                                ? `${m.name} is already on your board`
+                                : full
+                                  ? `Your board is full. Remove a module to add ${m.name}.`
+                                  : `Add ${m.name} to your board`
+                            }
+                            onClick={() => {
+                              onAdd(m.id);
+                              onClose();
+                            }}
+                            className={`module-library-tile flex h-full w-full min-w-0 flex-col rounded-2xl border border-[color:var(--glass-edge)] p-3 text-left transition-colors ${
+                              placed || full
+                                ? "cursor-default opacity-60"
+                                : "active:translate-y-px"
+                            }`}
+                          >
+                            <span className="flex w-full min-w-0 items-baseline justify-between gap-2">
+                              <span className="text-[0.9375rem] font-semibold text-slate-900">
                                 {m.name}
-                              </p>
-                              <p className="mt-0.5 text-[0.8125rem] leading-5 text-slate-500">
-                                {m.blurb}
-                              </p>
-                            </div>
+                              </span>
+                              {placed ? (
+                                <span className="shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400">
+                                  On your board
+                                </span>
+                              ) : full ? (
+                                <span className="shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400">
+                                  Board full
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="mt-0.5 block text-[0.8125rem] leading-5 text-slate-500">
+                              {m.blurb}
+                            </span>
 
                             {modules[m.id] ? (
                               /*
@@ -199,28 +242,14 @@ export default function ModuleLibrary({
                                 preview that grew with its module would make
                                 the library a page about the tallest one.
                               */
-                              <div
+                              <span
                                 aria-hidden="true"
-                                className="module-preview mt-3 h-40 min-w-0 overflow-hidden rounded-xl border border-[color:var(--glass-edge)]"
+                                className="module-preview mt-3 block h-40 w-full min-w-0 overflow-hidden rounded-xl border border-[color:var(--glass-edge)]"
                               >
-                                <div className="module-preview-inner">{modules[m.id]}</div>
-                              </div>
+                                <span className="module-preview-inner block">{modules[m.id]}</span>
+                              </span>
                             ) : null}
-
-                            <button
-                              type="button"
-                              disabled={placed}
-                              onClick={() => {
-                                onAdd(m.id);
-                                onClose();
-                              }}
-                              className={`mt-3 w-full !min-h-9 text-[0.875rem] ${
-                                placed ? "btn-secondary" : "btn-primary"
-                              }`}
-                            >
-                              {placed ? "On the board" : "Add to board"}
-                            </button>
-                          </div>
+                          </button>
                         </li>
                       );
                     })}

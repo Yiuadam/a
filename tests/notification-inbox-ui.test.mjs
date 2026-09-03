@@ -232,7 +232,16 @@ test("bell and full inbox keep refresh, read controls and setup reminder", () =>
     depends on that blur came to be reported as a transparent window with the
     page's own headings readable through it.
   */
-  assert.match(bell, /createPortal\(\s*\n?\s*<NotificationPopover/);
+  /*
+    The portal now carries a ternary — a signed-out visitor gets a short "no
+    notifications yet" panel rather than the real inbox, since the bell is drawn
+    for everybody — so this checks that the popover is inside a createPortal
+    call rather than that it is the first thing in it.
+  */
+  assert.match(bell, /createPortal\(/);
+  const portal = bell.slice(bell.indexOf("createPortal("));
+  assert.match(portal, /<NotificationPopover/);
+  assert.match(portal, /document\.body/);
   assert.match(bell, /document\.body/);
   assert.match(css, /\.notification-popover \{[\s\S]*?position: fixed;[\s\S]*?top: calc\(var\(--notification-anchor-bottom/);
 

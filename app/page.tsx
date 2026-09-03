@@ -387,10 +387,18 @@ export default function Dashboard() {
         an arrangement component's business.
       */}
       <div className="hidden lg:block">
-        <Board
-          modules={{
-            highlight: (
-              organization ? (
+        {/*
+          The offer stands above the board rather than on it.
+
+          It is a notice, not a module: answered once with "Sign up free" or
+          "No thanks", and FreeProPoster already knows to draw nothing to
+          somebody who has answered or to an account that does not qualify. A
+          module can be removed and added back, which for a notice means asking
+          again — so it is not one, and there is nothing in the library to put
+          it back with.
+        */}
+
+        {organization ? (
           <OrganisationHero organization={organization} />
         ) : isValidPlacement(placement) ? (
           <ScoreTrendOverview placement={placement} results={profile.results} />
@@ -427,8 +435,10 @@ export default function Dashboard() {
             <h1 className="sr-only">BandUp</h1>
             <FreeProPoster />
           </>
-              )
-            ),
+        )}
+
+        <Board
+          modules={{
             score: <Scoreboard results={profile.results} />,
             tutor: <TutorCard />,
             plan: <PlanCard profile={profile} />,

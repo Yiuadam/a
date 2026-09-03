@@ -1,6 +1,5 @@
 "use client";
 
-import BandBadge from "@/components/BandBadge";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import { Icon } from "@/components/Icons";
 import { overallBand } from "@/lib/exam/report";
@@ -42,30 +41,38 @@ export default function Scoreboard({ results }: { results: readonly ModuleResult
 
   return (
     <section className="card flex h-full min-w-0 flex-col !p-4" aria-labelledby="dashboard-band-heading">
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id="dashboard-band-heading" className="text-[0.9375rem] font-semibold text-slate-900">
-            Your band
-          </h2>
-          <p className="mt-0.5 text-[0.8125rem] leading-5 text-slate-500">
-            {overall !== null
-              ? "The average of your four latest sittings."
-              : missing === MODULES.length
-                ? "Sit any paper and it appears here."
-                : `${missing} more skill${missing === 1 ? "" : "s"} to go before there is an overall.`}
-          </p>
-        </div>
-        {/* The badge prints its own label, so nothing repeats it beside it. */}
-        {overall !== null ? (
-          <BandBadge band={overall} size="sm" />
-        ) : (
-          <span
-            aria-hidden="true"
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-slate-300 text-[0.8125rem] text-slate-400"
-          >
-            —
-          </span>
-        )}
+      <h2 id="dashboard-band-heading" className="text-[0.9375rem] font-semibold text-slate-900">
+        Your band
+      </h2>
+
+      {/*
+        The overall band, printed at the size of the thing it is.
+
+        It was a small badge in the corner beside the heading, which put the
+        number the whole product exists to move at the same weight as the word
+        "band". The owner asked for it bigger and they are right: this is the
+        one figure somebody opens the page to see, and everything else in the
+        card is the working behind it.
+
+        Tabular figures so 6.5 and 7.0 occupy the same width — without them the
+        number shifts sideways as it changes, which on the one element a learner
+        watches over weeks is a small, constant wrongness.
+      */}
+      <div className="mt-1 flex min-w-0 items-baseline gap-3">
+        <span
+          className={`text-[2.75rem] font-semibold leading-none tabular-nums ${
+            overall !== null ? "text-slate-900" : "text-slate-300"
+          }`}
+        >
+          {overall ?? "—"}
+        </span>
+        <p className="min-w-0 flex-1 text-[0.8125rem] leading-5 text-slate-500">
+          {overall !== null
+            ? "Overall, the average of your four latest sittings."
+            : missing === MODULES.length
+              ? "Sit any paper and your band appears here."
+              : `${missing} more skill${missing === 1 ? "" : "s"} before there is an overall.`}
+        </p>
       </div>
 
       <ul className="mt-3 space-y-1">
