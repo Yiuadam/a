@@ -180,9 +180,78 @@ export interface SharedOption {
  * constraint they enforce ("each heading may be used only once") lives across
  * sibling questions rather than inside any one of them.
  */
+/**
+ * A table or a flow chart that a block's gaps are set into.
+ *
+ * Table completion and flow-chart completion are not new question types. The
+ * questions inside them are ordinary `completion` questions — one gap, one
+ * short answer, the same word limit and the same `accept` list — and they are
+ * marked by the same code as every other gap in the paper. What the real exam
+ * gives them, and what BandUp could not, is a *shape*: a timetable with a
+ * column of prices, a process with each stage in its own box. Rendered as a
+ * numbered list of sentence fragments, a table completion loses the very thing
+ * the candidate is being asked to read, because the answer to "£____ per week"
+ * is found by matching the row and the column, not by reading a sentence.
+ *
+ * So the shape belongs to the block and the marking stays where it was. A
+ * group carrying a layout renders as the figure; a group without one renders
+ * as the list it always did.
+ *
+ * Cells are plain strings with `{{id}}` where a gap belongs, naming the
+ * question that fills it. A string keeps the content readable as JSON and
+ * keeps a cell's text and its gap in the order they are read — "Cost:
+ * £{{q5}} per week" is one cell, not three fields. The validator checks that
+ * every placeholder names a question in the block and that every question in
+ * the block is placed exactly once, so a gap can neither go missing from the
+ * figure nor be drawn twice.
+ */
+export type QuestionLayout = TableLayout | FlowChartLayout | NotesLayout;
+
+export interface TableLayout {
+  kind: "table";
+  /** Printed once across the top. Omitted by a table whose rows label themselves. */
+  columns?: string[];
+  /** Row by row, each row left to right. Rows need not be the same length. */
+  rows: string[][];
+}
+
+export interface FlowChartLayout {
+  kind: "flow-chart";
+  /** One box per stage, drawn top to bottom and joined by arrows. */
+  steps: string[];
+}
+
+/**
+ * Note completion — the commonest task on the paper, and the one BandUp was
+ * furthest from.
+ *
+ * The real thing is a page of somebody's notes: a title across the top, bold
+ * headings dividing it into sections, bullets under each, and the numbered
+ * boxes sitting inside the lines. Half the task is reading that structure —
+ * a heading tells the candidate which part of the recording they are in, and
+ * the indent of a sub-bullet says the line belongs to the one above it. Drawn
+ * as a numbered list of separate sentences, all of that is gone, and the
+ * candidate is left matching each fragment to the audio on its own.
+ */
+export interface NotesLayout {
+  kind: "notes";
+  /** Centred over the notes, as the paper prints it. */
+  title?: string;
+  sections: NotesSection[];
+}
+
+export interface NotesSection {
+  /** Bold, above its bullets. Omitted by notes that run straight on. */
+  heading?: string;
+  /** A plain line, or a line that has its own indented lines beneath it. */
+  bullets: Array<string | { text: string; sub: string[] }>;
+}
+
 export interface QuestionGroup {
   instruction: string;
   sharedOptions?: SharedOption[];
+  /** Draw this block as a table or a flow chart rather than as a numbered list. */
+  layout?: QuestionLayout;
   questions: TestQuestion[];
 }
 

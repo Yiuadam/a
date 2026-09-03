@@ -17,6 +17,38 @@
   "questions": [
     {
       "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS for each answer.",
+      "layout": {
+        "kind": "notes",
+        "title": "Coral bleaching and reef recovery",
+        "sections": [
+          {
+            "heading": "Bleaching",
+            "bullets": [
+              "During bleaching a coral expels the {{q1}} that live in its tissue.",
+              "The lecturer says a bleached coral is not dead but {{q2}}."
+            ]
+          },
+          {
+            "heading": "Where larvae will settle",
+            "bullets": [
+              {
+                "text": "Larvae are choosy about the surface:",
+                "sub": [
+                  "they will not settle on loose {{q3}} that moves in storms",
+                  "they prefer hard substrate coated with pink encrusting {{q4}}"
+                ]
+              }
+            ]
+          },
+          {
+            "heading": "Grazing and stable states",
+            "bullets": [
+              "Among herbivorous fish, {{q5}} are named as the most important grazers.",
+              "Reef ecology describes coral and seaweed dominance as two stable {{q6}}."
+            ]
+          }
+        ]
+      },
       "questions": [
         {
           "id": "q1",
@@ -85,7 +117,11 @@
             "The genetic diversity of the surviving coral"
           ],
           "numAnswers": 3,
-          "answer": [0, 1, 2],
+          "answer": [
+            0,
+            1,
+            2
+          ],
           "explanation": "The lecturer lists the three directly: “The first is larvae”, “The second is a surface the larvae can attach to”, and “The third is grazing” — supporting the first, second and third options. Temperature is discussed earlier, but only as the trigger that reverses bleaching in a coral that is still alive; it is not one of the three things a dead reef needs in order to recover, so the fourth option does not belong on this list. Coral gardening is described as unable to work “at the scale of the world's reefs”, which rules out the fifth option, and neither funding nor genetic diversity is mentioned anywhere in the lecture, so the sixth and seventh options are both unsupported."
         }
       ]

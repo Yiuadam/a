@@ -65,6 +65,27 @@
   "questions": [
     {
       "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "layout": {
+        "kind": "notes",
+        "title": "Redmayne Engineering apprenticeship",
+        "sections": [
+          {
+            "heading": "The apprenticeship",
+            "bullets": [
+              "Length: {{q1}} years",
+              "Pay in the third year: £{{q2}}",
+              "One day each week at {{q3}} College"
+            ]
+          },
+          {
+            "heading": "Qualification and places",
+            "bullets": [
+              "Qualification gained: Level {{q4}} in engineering",
+              "Number of apprentices taken on each year: {{q5}}"
+            ]
+          }
+        ]
+      },
       "questions": [
         {
           "id": "q1",

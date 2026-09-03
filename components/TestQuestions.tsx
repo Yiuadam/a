@@ -4,7 +4,14 @@ import type { ReactNode } from "react";
 import ExplainText from "@/components/ExplainText";
 import { isCorrect, marksEarned } from "@/lib/band";
 import { numberedGroups } from "@/lib/questions";
-import type { QuestionSet, SharedOption, TestMode, TestQuestion } from "@/lib/types";
+import type {
+  QuestionGroup,
+  QuestionLayout,
+  QuestionSet,
+  SharedOption,
+  TestMode,
+  TestQuestion,
+} from "@/lib/types";
 
 export type AnswerMap = Record<string, string | number | undefined>;
 /** Ids the learner has asked to have marked before submitting. */
@@ -111,6 +118,409 @@ function QuestionPrompt({ q }: { q: TestQuestion }) {
     default:
       return <>{unhandledType(q)}</>;
   }
+}
+
+/*
+  The rubric, with the part that decides a mark set in bold.
+
+  The paper does this, and it is not decoration: "Write NO MORE THAN TWO WORDS
+  AND/OR A NUMBER" is the sentence a candidate loses marks by skimming, and on
+  the real screen the limit is the only bold text in the instruction. BandUp
+  printed the whole rubric in one weight, so the limit read as ordinary prose
+  and the thing worth noticing was the least noticeable part of it.
+
+  Bolding is worked out from the text rather than authored into it, so every
+  paper in the bank gained it at once and no rubric has to carry markup. The
+  rule is the one the exam uses: the parts written in capitals — the limit, the
+  letters to choose from, TRUE/FALSE/NOT GIVEN — plus the small words that hold
+  a run of them together, so "A, B or C" does not come out as three bold
+  letters with a plain word wedged between them.
+*/
+const RUBRIC_JOINERS = new Set(["or", "and", "AND/OR", "AND", "OR", "A"]);
+
+function isCapsWord(word: string): boolean {
+  const bare = word.replace(/[.,;:]+$/, "");
+  return bare.length > 0 && /^[A-Z][A-Z/\u2013-]*$/.test(bare);
+}
+
+function Rubric({ text }: { text: string }) {
+  const words = text.split(" ");
+  const runs: Array<{ bold: boolean; words: string[] }> = [];
+  for (const word of words) {
+    const caps = isCapsWord(word);
+    const joins =
+      RUBRIC_JOINERS.has(word.replace(/[.,;:]+$/, "")) &&
+      runs.length > 0 &&
+      runs[runs.length - 1].bold;
+    const bold = caps || joins;
+    const last = runs[runs.length - 1];
+    if (last && last.bold === bold) last.words.push(word);
+    else runs.push({ bold, words: [word] });
+  }
+  /*
+    A run that ended on a joiner was never emphasis — it is "…A, B or C" with
+    nothing after the "or", or a sentence that happens to end in "A". Trailing
+    joiners are handed back to the plain run beside them so the bold stops at
+    the last capital.
+  */
+  for (const run of runs) {
+    if (!run.bold) continue;
+    while (run.words.length > 0 && !isCapsWord(run.words[run.words.length - 1])) {
+      const spilled = run.words.pop() as string;
+      const at = runs.indexOf(run);
+      const after = runs[at + 1];
+      if (after && !after.bold) after.words.unshift(spilled);
+      else runs.splice(at + 1, 0, { bold: false, words: [spilled] });
+    }
+  }
+
+  return (
+    <p className="mt-1 text-sm leading-6 text-slate-700">
+      {runs
+        .filter((run) => run.words.length > 0)
+        .map((run, index, kept) => (
+          <span key={index} className={run.bold ? "font-semibold text-slate-900" : undefined}>
+            {run.words.join(" ")}
+            {index < kept.length - 1 ? " " : ""}
+          </span>
+        ))}
+    </p>
+  );
+}
+
+/**
+ * The notes page a block of gaps already is, whether or not one was authored.
+ *
+ * Every completion block in the bank was written as a list of sentences with
+ * `___` in them, and rendered as a numbered card each. The real paper renders
+ * the same block as a page of notes with the boxes set into the lines — which
+ * is not a nicer way to draw it but a different reading task: the candidate
+ * sees the shape of what they are listening for before the recording starts.
+ *
+ * Rather than rewrite thirty papers to say so, a block that is nothing but
+ * gaps is drawn as notes automatically, with each sentence's `___` replaced by
+ * its own box. An authored `layout` always wins — it can do things this cannot,
+ * like a table with columns or a heading over a group of lines — so this is the
+ * floor, not the ceiling.
+ *
+ * A sentence with no `___` in it gets its gap at the end, which is where the
+ * sentence was going to be answered anyway.
+ */
+function impliedNotes(group: QuestionGroup): QuestionLayout | undefined {
+  const gaps = group.questions.every((q) => q.type === "completion");
+  if (!gaps || group.questions.length === 0) return undefined;
+  return {
+    kind: "notes",
+    sections: [
+      {
+        bullets: group.questions.map((q) => {
+          const sentence = (q as { sentence: string }).sentence;
+          const authored = q.id.split(":").pop() ?? q.id;
+          return sentence.includes("___")
+            ? sentence.replace("___", `{{${authored}}}`)
+            : `${sentence} {{${authored}}}`;
+        }),
+      },
+    ],
+  };
+}
+
+/** One numbered question, as `numberedGroups` hands it over. */
+type Numbered = { question: TestQuestion; number: number; to: number };
+
+/**
+ * A cell's text, cut at every `{{id}}` placeholder.
+ *
+ * Returned as an alternating run of prose and gaps rather than as a template
+ * to interpolate, because a gap is an input element and cannot be spliced into
+ * a string. Odd positions of the split are the captured ids — a property of
+ * `String.split` with a capturing group, and the reason the pattern has one.
+ */
+function cellParts(text: string): Array<{ text: string } | { gap: string }> {
+  return text
+    .split(/\{\{([A-Za-z0-9_-]+)\}\}/)
+    .map((piece, index) => (index % 2 === 1 ? { gap: piece } : { text: piece }))
+    .filter((part) => ("gap" in part ? true : part.text !== ""));
+}
+
+/**
+ * The gap itself: its number, and the box the candidate types in.
+ *
+ * It carries `data-question-id` for the same reason the list items do — the
+ * exam palette scrolls to a question by that attribute and has no other way to
+ * find one, so a gap inside a table has to be findable the same way a gap in a
+ * list is.
+ */
+function LayoutGap({
+  entry,
+  given,
+  revealed,
+  correct,
+  locked,
+  onAnswer,
+}: {
+  entry: Numbered;
+  given: Given;
+  revealed: boolean;
+  correct: boolean | undefined;
+  locked: boolean;
+  onAnswer: (id: string, value: string | number) => void;
+}) {
+  const q = entry.question;
+  return (
+    /*
+      The number lives inside the box, which is how the computer-delivered
+      paper draws it: an empty numbered field in the line of text, replaced by
+      whatever the candidate types. A badge outside the box would be a second
+      thing to read on the line, and in a table cell there is no room for one.
+    */
+    <span className="inline-flex align-middle" data-question-id={q.id}>
+      <input
+        type="text"
+        value={(given as string) ?? ""}
+        disabled={locked}
+        onChange={(e) => onAnswer(q.id, e.target.value)}
+        aria-label={`Question ${entry.number}`}
+        placeholder={String(entry.number)}
+        className={`exam-gap ${
+          revealed ? (correct ? "exam-gap-right" : "exam-gap-wrong") : ""
+        }`}
+      />
+    </span>
+  );
+}
+
+/**
+ * A block drawn as the figure it is on the paper.
+ *
+ * Table completion and flow-chart completion put their gaps *inside* something
+ * — a row of a timetable, a box in a process — and the position is half of
+ * what the candidate reads. So this replaces the numbered list for those
+ * blocks rather than sitting beside it, and the verdicts move underneath: a
+ * table with an explanation wedged into every cell would be unreadable, and
+ * the explanation is the part a learner actually needs after the mark.
+ *
+ * Checking is per block rather than per gap for the same reason. One gap in a
+ * table is rarely a self-contained thought — the row above it is what makes it
+ * answerable — and a check button in every cell would double the width of the
+ * narrowest column.
+ */
+function LayoutFigure({
+  layout,
+  entries,
+  answers,
+  submitted,
+  practising,
+  checked,
+  onCheck,
+  onAnswer,
+}: {
+  layout: QuestionLayout;
+  entries: Numbered[];
+  answers: AnswerMap;
+  submitted: boolean;
+  practising: boolean;
+  checked: CheckedMap;
+  onCheck?: (id: string) => void;
+  onAnswer: (id: string, value: string | number) => void;
+}) {
+  /*
+    Placeholders are resolved by the id the paper was authored with, not by the
+    id the question is carrying at the time.
+
+    Inside a mock sitting every question is renamed `listening-12:q1`, because
+    four papers are concatenated into one forty-question exam and `q1` would
+    otherwise name four different questions (lib/exam/mock.ts). The layout in
+    the JSON says `{{q1}}` and always will — a paper cannot know which sitting
+    it will be drawn into — so the trailing segment is indexed alongside the
+    full id. Without this the notes rendered the literal text `{{q1}}` in the
+    exam while working perfectly in practice, which is the worst place for a
+    difference between the two to show up.
+  */
+  const byId = new Map<string, Numbered>();
+  for (const entry of entries) {
+    byId.set(entry.question.id, entry);
+    const authored = entry.question.id.split(":").pop();
+    if (authored && !byId.has(authored)) byId.set(authored, entry);
+  }
+
+  const renderCell = (text: string) =>
+    cellParts(text).map((part, index) => {
+      if (!("gap" in part)) return <span key={index}>{part.text}</span>;
+      const entry = byId.get(part.gap);
+      /*
+        A placeholder naming nothing renders as the plain text it was. The
+        validator fails the build on this, so it cannot reach a learner — but a
+        renderer that threw would take the whole paper down over one typo.
+      */
+      if (!entry) return <span key={index}>{`{{${part.gap}}}`}</span>;
+      const given = answers[entry.question.id];
+      const revealed = submitted || (practising && checked[entry.question.id] === true);
+      return (
+        <LayoutGap
+          key={index}
+          entry={entry}
+          given={given}
+          revealed={revealed}
+          correct={revealed ? isCorrect(entry.question, given) : undefined}
+          locked={revealed}
+          onAnswer={onAnswer}
+        />
+      );
+    });
+
+  const unchecked = entries.filter(({ question }) => checked[question.id] !== true);
+  const answeredAll = entries.every(({ question }) => {
+    const given = answers[question.id];
+    return given !== undefined && given !== "";
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="card overflow-x-auto">
+        {layout.kind === "table" ? (
+          <table className="w-full min-w-[28rem] border-collapse text-sm leading-6 text-slate-700">
+            {layout.columns && (
+              <thead>
+                <tr>
+                  {layout.columns.map((column, index) => (
+                    <th
+                      key={index}
+                      scope="col"
+                      /* Centred and in the paper's own case, as the exam prints
+                         a column head — not the small-caps label the rest of
+                         the app uses for a table. */
+                      className="border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm font-semibold text-slate-800"
+                    >
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {layout.rows.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={cellIndex}
+                      className="border border-slate-200 px-3 py-2 align-middle"
+                    >
+                      {renderCell(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : layout.kind === "notes" ? (
+          <div className="space-y-4 text-sm leading-7 text-slate-700">
+            {layout.title && (
+              <p className="text-center text-base font-semibold text-slate-900">
+                {layout.title}
+              </p>
+            )}
+            {layout.sections.map((section, sectionIndex) => (
+              <div key={sectionIndex} className="space-y-1.5">
+                {section.heading && (
+                  <p className="font-semibold text-slate-900">{section.heading}</p>
+                )}
+                <ul className="space-y-1.5">
+                  {section.bullets.map((bullet, bulletIndex) => {
+                    const line = typeof bullet === "string" ? bullet : bullet.text;
+                    const sub = typeof bullet === "string" ? [] : bullet.sub;
+                    return (
+                      <li key={bulletIndex}>
+                        {/*
+                          The bullet is punctuation the paper prints rather than
+                          a marker carrying meaning, and a screen reader is
+                          already told this is a list — so it is drawn and not
+                          announced.
+                        */}
+                        <span aria-hidden className="mr-2 text-slate-400">
+                          ·
+                        </span>
+                        {renderCell(line)}
+                        {sub.length > 0 && (
+                          <ul className="ml-6 mt-1.5 space-y-1.5">
+                            {sub.map((subLine, subIndex) => (
+                              <li key={subIndex}>
+                                <span aria-hidden className="mr-2 text-slate-400">
+                                  –
+                                </span>
+                                {renderCell(subLine)}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <ol className="space-y-1">
+            {layout.steps.map((step, index) => (
+              <li key={index} className="space-y-1">
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm leading-6 text-slate-700">
+                  {renderCell(step)}
+                </div>
+                {/*
+                  The arrow between two boxes, and nothing after the last one.
+                  It is decoration — the order is already carried by the list —
+                  so it is hidden from a screen reader rather than read out as
+                  a character between every stage.
+                */}
+                {index < layout.steps.length - 1 && (
+                  <div aria-hidden className="text-center text-slate-400">
+                    ↓
+                  </div>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      {practising && !submitted && onCheck && unchecked.length > 0 && (
+        <button
+          type="button"
+          onClick={() => unchecked.forEach(({ question }) => onCheck(question.id))}
+          disabled={!answeredAll}
+          className="text-xs font-medium text-indigo-600 underline underline-offset-4 hover:text-indigo-700 disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline"
+        >
+          {answeredAll ? "Check these answers" : "Fill every gap to check"}
+        </button>
+      )}
+
+      {entries.some(({ question }) => submitted || (practising && checked[question.id] === true)) && (
+        <ol className="space-y-2">
+          {entries.map((entry) => {
+            const revealed = submitted || (practising && checked[entry.question.id] === true);
+            if (!revealed) return null;
+            const given = answers[entry.question.id];
+            const correct = isCorrect(entry.question, given);
+            return (
+              <li key={entry.question.id} className="text-sm leading-relaxed">
+                <span className={correct ? "text-emerald-700" : "text-rose-700"}>
+                  <span className="font-medium">{entry.number}.</span>{" "}
+                  {correct ? "✓ Correct" : `✗ Answer: ${answerText(entry.question)}`}
+                </span>
+                {entry.question.explanation && (
+                  <ExplainText
+                    text={entry.question.explanation}
+                    className="block text-slate-600"
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
 }
 
 /** The controls a candidate answers with. */
@@ -345,7 +755,9 @@ export default function TestQuestions({
 
   return (
     <div className="space-y-6" data-lookupable>
-      {groups.map((block, blockIndex) => (
+      {groups.map((block, blockIndex) => {
+        const blockLayout = block.group.layout ?? impliedNotes(block.group);
+        return (
         <section key={blockIndex} className="space-y-5">
           {/*
             A block's rubric and its bank of answers are printed once above it,
@@ -358,11 +770,7 @@ export default function TestQuestions({
                   ? `Questions ${block.from}–${block.to}`
                   : `Question ${block.from}`}
               </p>
-              {block.group.instruction && (
-                <p className="mt-1 text-sm leading-6 text-slate-700">
-                  {block.group.instruction}
-                </p>
-              )}
+              {block.group.instruction && <Rubric text={block.group.instruction} />}
               {block.group.sharedOptions && (
                 <ul className="mt-3 space-y-1">
                   {block.group.sharedOptions.map((opt) => (
@@ -376,6 +784,23 @@ export default function TestQuestions({
             </div>
           )}
 
+          {/*
+            The block's shape. A table or flow-chart completion is drawn as the
+            figure it is on the paper; every other block is the numbered list
+            it has always been.
+          */}
+          {blockLayout ? (
+            <LayoutFigure
+              layout={blockLayout}
+              entries={block.questions}
+              answers={answers}
+              submitted={submitted}
+              practising={practising}
+              checked={checked}
+              onCheck={onCheck}
+              onAnswer={onAnswer}
+            />
+          ) : (
           <ol className="space-y-5">
             {block.questions.map(({ question: q, number, to }) => {
               const given = answers[q.id];
@@ -491,8 +916,10 @@ export default function TestQuestions({
               );
             })}
           </ol>
+          )}
         </section>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -6627,3 +6627,57 @@ html[data-theme="dark"] .module-library-panel.module-library-panel {
 html[data-theme="dark"] .exam-highlight {
   background: rgba(250, 204, 21, 0.24);
 }
+
+/*
+  The numbered box a candidate types into, inside a table, a flow chart or a
+  page of notes.
+
+  Not `.input`. A gap sits in the middle of a line of text and has to behave
+  like a word in that line: baseline-aligned, no taller than the line it
+  interrupts, and narrow enough that a table cell still reads as a cell. The
+  form field the rest of the app uses is a block-sized control with generous
+  padding, and dropped into a sentence it broke the line in half.
+
+  The number is the placeholder rather than a badge beside the box, which is
+  how the computer-delivered paper draws it: the field shows what it is until
+  there is an answer in it, and then the answer is all there is. It is also why
+  the placeholder is centred and the typed text is not — an empty box reads as
+  a label, a filled one as writing.
+*/
+/*
+  Doubled class names, for the reason the overlay panels above are written the
+  same way: `[data-exam] input` is one attribute and one element, which outweighs
+  a single class, and it sets the radius and background every field on the paper
+  shares. A gap is the exception to that rule rather than a variation on it — it
+  is a word-shaped box in a line of prose, not a form control — so it has to be
+  able to say so.
+*/
+.exam-gap.exam-gap {
+  @apply min-w-0 border px-2 py-1 text-[16px] leading-6 transition-colors focus:outline-none;
+  border-radius: 0.375rem;
+  border-color: color-mix(in srgb, currentColor 32%, transparent);
+  background: var(--color-surface);
+  width: 8.5rem;
+  max-width: 100%;
+}
+
+.exam-gap.exam-gap::placeholder {
+  /* Centred, and quiet: it is the question's number, not a hint about what to
+     write. The same weight the paper gives it. */
+  @apply text-center;
+  color: color-mix(in srgb, currentColor 45%, transparent);
+  opacity: 1;
+}
+
+.exam-gap.exam-gap:focus {
+  border-color: var(--exam-accent, var(--color-indigo-500));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--exam-accent, var(--color-indigo-500)) 18%, transparent);
+}
+
+.exam-gap-right.exam-gap-right {
+  border-color: var(--color-emerald-500);
+}
+
+.exam-gap-wrong.exam-gap-wrong {
+  border-color: var(--color-rose-500);
+}
