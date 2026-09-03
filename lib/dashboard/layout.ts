@@ -58,20 +58,20 @@ export const MODULE_LIBRARY = [
     blurb: "Your last six sittings and the band each one earned.",
   },
   {
-    id: "practise",
+    id: "skills",
     /* One word under the preview in the library — see ModuleLibrary. */
     short: "Skills",
     group: "Study",
-    name: "Practise a skill",
-    blurb: "The four exam skills as tiles, for going straight to a paper.",
-  },
-  {
-    id: "study",
-    /* One word under the preview in the library — see ModuleLibrary. */
-    short: "Study",
-    group: "Study",
-    name: "Study the language",
-    blurb: "Grammar and vocabulary drills, with no clock and no band.",
+    name: "Practise or study",
+    /*
+      All six, deliberately in one entry rather than one each for "practise"
+      and "study" — this used to be exactly that pair, and neither was ever
+      wired to a component, so the library filtered both out before anyone
+      could pick them (ModuleLibrary only lists an id the page can actually
+      draw). One working module, matching what the phone's own home page
+      already shows in two sections, replaces two that drew nothing.
+    */
+    blurb: "The four exam skills and the two drills, as one grid of tiles.",
   },
   {
     id: "streak",

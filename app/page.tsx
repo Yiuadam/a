@@ -15,6 +15,7 @@ import Scoreboard from "@/components/dashboard/Scoreboard";
 import TutorCard from "@/components/dashboard/TutorCard";
 import PlanCard from "@/components/dashboard/PlanCard";
 import Board from "@/components/dashboard/Board";
+import SkillsCard from "@/components/dashboard/SkillsCard";
 import {
   LastSittingCard,
   MockExamCard,
@@ -466,6 +467,7 @@ export default function Dashboard() {
             score: <Scoreboard results={profile.results} />,
             tutor: <TutorCard />,
             plan: <PlanCard profile={profile} />,
+            skills: <SkillsCard />,
             streak: <StreakCard profile={profile} />,
             week: <ThisWeekCard profile={profile} />,
             weakest: <WeakestCard profile={profile} />,
