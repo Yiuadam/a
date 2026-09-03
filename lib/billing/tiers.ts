@@ -193,14 +193,27 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     to $1.69 *and* left real money on it. Ten marked essays a month is still an
     essay every three days.
   */
-  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 2 },
+  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 1 },
   /*
     Three times Plus on the routes that matter, for the weeks before the exam.
     It is the most expensive tier to serve and therefore the one with the
     thinnest margin, which is why its caps are the ones to check first when
     anything about the cost model changes.
+
+    `generate` came down from five to two, and Plus's from two to one, to pay
+    for the live examiner. It is the only route on Sonnet and it costs HK$0.73
+    a call — five of them cost Pro more than all thirty marked essays, and one
+    of them costs what seventy-seven examiner lines cost. Measured across all
+    six plans in all ten currencies, that single change takes the worst case
+    from HK$0.19 (failing, with the examiner) to HK$1.46, which is better than
+    the HK$1.01 this app shipped with before the examiner existed.
+
+    Plus is what sets that floor, not Pro: once Plus is at one, cutting Pro
+    further moves no worst case at all, it only widens Pro's own margin. So
+    Pro is at two rather than one because there was no reason to take a third
+    away from the tier that is paying the most.
   */
-  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 5 },
+  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 2 },
   /*
     The owner's account. An admin flag that still enforced a limit would be a
     flag that did nothing.
@@ -283,7 +296,7 @@ export const TIERS: Record<Tier, TierDefinition> = {
       "Everything in Standard",
       "10 essays and 6 speaking tests marked a month",
       "50 tutor questions and 100 word lookups a month",
-      "2 fresh AI-written papers a month",
+      "1 fresh AI-written paper a month",
       "Cancel any time, one button",
     ],
   },
@@ -295,7 +308,7 @@ export const TIERS: Record<Tier, TierDefinition> = {
       "Everything in Plus, two to three times over",
       "30 essays and 20 speaking tests marked a month",
       "100 tutor questions and 175 word lookups a month",
-      "5 fresh AI-written papers a month",
+      "2 fresh AI-written papers a month",
       "Cancel any time, one button",
     ],
   },

@@ -268,7 +268,14 @@ test("the plan features promise no more than the meter allows", () => {
     const copy = TIERS[tier].includes.join(" ");
 
     for (const [phrase, route] of Object.entries(ROUTES)) {
-      const found = copy.match(new RegExp(String.raw`(\d+)\s+(?:fresh\s+)?` + phrase));
+      /*
+        The "s" is optional because the copy is meant to read correctly, and
+        "1 fresh AI-written papers" does not. Plus's generate cap moved to 1
+        when generate: 2/5 -&gt; 1/2 paid for the speaking examiner (see
+        lib/billing/tiers.ts), so this now has to match a singular count too.
+      */
+      const singular = phrase.endsWith("s") ? phrase.slice(0, -1) : phrase;
+      const found = copy.match(new RegExp(String.raw`(\d+)\s+(?:fresh\s+)?` + singular + "s?"));
       assert.ok(found, `${tier} does not say how many ${phrase} it includes`);
       assert.equal(
         Number(found[1]),
