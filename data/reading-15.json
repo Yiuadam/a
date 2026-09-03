@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "What kind of evidence first suggested horses were ridden at Botai sites?",
           "options": [
-            "Cave paintings showing riders on horseback.",
+            "Cave paintings showing riders mounted on horseback in groups.",
             "A pattern of tooth wear consistent with the use of a bit.",
-            "Written records describing horse riding.",
-            "Saddle fragments found in graves."
+            "Written records describing the riding of horses.",
+            "Fragments of saddles found in burial graves."
           ],
           "answer": 1,
           "explanation": "Paragraph 2 names tooth wear consistent with a bit as the first clear signal at Botai, matching option B. Cave paintings, written records and saddles are not mentioned anywhere in the passage."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "What did the 2021 genetic study suggest?",
           "options": [
-            "That domestication began simultaneously in several unrelated regions.",
+            "That domestication began simultaneously in several unrelated regions right across the wider Eurasian steppe.",
             "That the Volga-Don region was the likely source of the lineage behind nearly all modern domestic horses.",
-            "That Przewalski's horse is the ancestor of most modern breeds.",
-            "That horse domestication happened later than previously believed."
+            "That Przewalski's horse is the direct ancestor of most modern breeds.",
+            "That horse domestication happened rather later than had previously been believed."
           ],
           "answer": 1,
           "explanation": "Paragraph 3 names the Volga-Don region as the likely origin the 2021 study points to, matching option B directly. The other options describe claims about the 2018 study or Przewalski's horse, not the 2021 one."
@@ -81,10 +81,10 @@
           "type": "mcq",
           "question": "According to the passage, how did horses change warfare?",
           "options": [
-            "By making chariots unnecessary.",
+            "By making the war chariot entirely unnecessary.",
             "By allowing societies to raid and retreat faster than infantry could respond.",
-            "By reducing the need for organised armies altogether.",
-            "By making battles shorter but more frequent."
+            "By reducing the need for large organised standing armies of infantry altogether.",
+            "By making battles shorter but a great deal more frequent."
           ],
           "answer": 1,
           "explanation": "Paragraph 4 explains that mounted societies could raid and retreat faster than infantry could respond, which is option B. Chariots and army size are mentioned but not as the main way horses changed warfare."
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "What do historians generally believe about the Mongol relay station system?",
           "options": [
-            "It was primarily used for trade rather than governance.",
+            "It was used primarily for trade rather than for governance.",
             "It was a significant factor in the Mongols' ability to govern a huge territory.",
-            "It was less effective than earlier Chinese messaging systems.",
-            "It was abandoned before the empire reached its greatest size."
+            "It was a good deal less effective than the earlier Chinese messaging systems it replaced.",
+            "It was abandoned well before the empire reached its greatest size."
           ],
           "answer": 1,
           "explanation": "Paragraph 5 states this view directly, calling the relay network a significant factor in Mongol governance, which matches option B. Trade, comparison to China, and early abandonment are never mentioned."

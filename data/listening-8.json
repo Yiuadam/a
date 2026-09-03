@@ -76,9 +76,9 @@
           "type": "mcq",
           "question": "What does the guide say about the Mary Ann?",
           "options": [
-            "She is a full-size replica built in 1988",
+            "She is a full-size replica that was built in 1988",
             "She sailed here herself and the roof was built over her",
-            "She was carried into the hall in sections"
+            "She was carried into the hall in three separate sections"
           ],
           "answer": 1,
           "explanation": "“She is not a replica. She was sailed here under her own power in 1988 and the roof was built over her afterwards.”"
@@ -112,9 +112,9 @@
           "type": "mcq",
           "question": "What does the guide say about eating?",
           "options": [
-            "There is a cafe on the ground floor",
+            "There is a cafe on the ground floor of the main hall",
             "Visitors may eat their own food in the courtyard",
-            "Food may not be brought into the grounds"
+            "Food may not be brought into the grounds at all"
           ],
           "answer": 1,
           "explanation": "“There's no cafe in the building — the nearest is the bakery opposite … but you're welcome to eat your own food in the courtyard.”"

@@ -92,10 +92,10 @@
           "type": "mcq",
           "question": "According to the passage, which community is in the stronger position?",
           "options": [
-            "A community of twenty thousand whose children reply in another language.",
+            "A community of twenty thousand people whose own children reply in another language.",
             "A community of two thousand whose adults all speak the language to their children.",
-            "A community whose language has the largest dictionary.",
-            "A community whose language is taught as a subject in secondary school."
+            "A community whose language has by far the largest dictionary of any nearby.",
+            "A community whose language is taught as a subject in every secondary school."
           ],
           "answer": 1,
           "explanation": "The first paragraph compares exactly these two communities and says the smaller one, where adults speak the language to their children, is in the stronger position. That is option B."
@@ -105,10 +105,10 @@
           "type": "mcq",
           "question": "What does the writer say recordings cannot do?",
           "options": [
-            "Preserve songs and stories accurately.",
-            "Be understood by later researchers.",
+            "Preserve all the songs and the stories accurately.",
+            "Be understood by researchers in later years.",
             "Create people who can actually use the language.",
-            "Be stored safely for long periods."
+            "Be stored safely for very long periods of time."
           ],
           "answer": 2,
           "explanation": "The passage says a recording \"does not produce a person who can use one\". That is option C; the passage never questions the accuracy or the safety of the recordings themselves."
@@ -132,9 +132,9 @@
           "question": "Who, in the writer's view, should decide how much priority language work receives?",
           "options": [
             "The linguists who hold the recordings.",
-            "The government that funds the schools.",
+            "The government that pays for the schools.",
             "The community that lives with the consequences.",
-            "An international body of language experts."
+            "An international body of language experts and academics."
           ],
           "answer": 2,
           "explanation": "The passage says a community may reasonably rank language third behind water, a clinic or schooling, and that \"that ranking belongs to the people who live with the consequences\". That is option C."

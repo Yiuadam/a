@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "What does the term 'the weekend gap' refer to?",
           "options": [
-            "The number of hours students spend on homework at weekends.",
+            "The number of hours students spend on their homework at the weekend.",
             "The difference between sleep on school nights and sleep at weekends.",
-            "The time between finishing school on Friday and going out.",
-            "The gap between the school timetable and the bus timetable."
+            "The time between finishing school on Friday and going out that evening.",
+            "The gap between the school timetable and the local bus timetable."
           ],
           "answer": 1,
           "explanation": "The passage defines it directly: \"the difference between weekday and weekend sleep the weekend gap\". That is option B."
@@ -81,10 +81,10 @@
           "type": "mcq",
           "question": "Why have some schools decided not to start the day later?",
           "options": [
-            "Because the research showed that students slept less.",
-            "Because parents were not told about the plan.",
+            "Because the research showed clearly that the students slept a great deal less.",
+            "Because the parents of the students were never told about the plan at all.",
             "Because buses, parents' working hours and afternoon activities are fixed around the old times.",
-            "Because teachers preferred to teach difficult subjects early."
+            "Because the teachers said they preferred to teach the more difficult subjects early in the day."
           ],
           "answer": 2,
           "explanation": "The passage gives practical reasons: shared bus timetables, parents leaving before eight, and sport, jobs and clubs in the afternoon. That is option C, and the passage says these schools rejected the idea for practical rather than scientific reasons."
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "What does the passage say about naps?",
           "options": [
-            "They should be avoided completely.",
+            "They should be avoided completely at all times of day.",
             "They are helpful if they are short and taken early.",
-            "They work best immediately before bedtime.",
-            "They replace an hour of night sleep each time."
+            "They work best immediately before going to bed.",
+            "They replace an hour of night sleep every time."
           ],
           "answer": 1,
           "explanation": "The passage says \"Naps are useful if they are short and early\", and warns that a long nap after school makes evening sleep harder. That is option B."

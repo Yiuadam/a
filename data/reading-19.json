@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "What does the passage suggest about the effect of pill shape, colour and administration ritual?",
           "options": [
-            "They have no measurable effect on placebo response.",
+            "They have no measurable effect at all on the placebo response.",
             "They can produce a conditioned physiological response based on prior genuine experience.",
-            "They matter only for patients who distrust their doctor.",
-            "They were shown to be irrelevant once open-label trials began."
+            "They matter only for those patients who already distrust their doctor.",
+            "They were shown to be entirely irrelevant once the first of the open-label trials had begun."
           ],
           "answer": 1,
           "explanation": "Paragraph 3 explains this as conditioning: prior genuine relief from a pill's appearance can produce a real physiological response later, matching option B. Option D is wrong because open-label trials are discussed separately, not as evidence against this effect."
@@ -81,10 +81,10 @@
           "type": "mcq",
           "question": "Why are open-label placebo trials described as conceptually unsettling?",
           "options": [
-            "They prove that placebo effects are entirely imaginary.",
+            "They prove that placebo effects are entirely imaginary after all.",
             "They show symptom improvement without any deception about what the pill contains.",
-            "They contradict earlier findings about endorphin release.",
-            "They have only been tested on healthy volunteers."
+            "They contradict all the earlier laboratory findings about the release of endorphins.",
+            "They have only ever been tested on healthy young volunteers."
           ],
           "answer": 1,
           "explanation": "Paragraph 4 says patients are told honestly the pill is inert, yet still improve — matching option B. This is unsettling precisely because it removes the deception that was long assumed necessary, which rules out option A."
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "What is the passage's overall conclusion about the relationship between mind and body suggested by placebo research?",
           "options": [
-            "Mind and body operate as largely separate systems, as traditionally assumed.",
+            "Mind and body operate as two largely separate systems, much as tradition assumed.",
             "Expectation and measurable bodily state are more tightly coupled than clinical medicine traditionally assumed.",
-            "Placebo effects are limited entirely to pain conditions.",
-            "Belief has no measurable physiological consequence outside laboratory settings."
+            "Placebo effects are limited entirely to conditions involving pain.",
+            "Belief has no measurable physiological consequence at all outside a carefully controlled laboratory environment."
           ],
           "answer": 1,
           "explanation": "The final paragraph states this conclusion directly: expectation and bodily state are more tightly coupled than assumed, matching option B and ruling out option A, which claims mind and body stay separate."

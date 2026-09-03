@@ -9,19 +9,58 @@
     "Recruitment Manager"
   ],
   "script": [
-    { "speaker": "Recruitment Manager", "text": "Right — can everyone hear me at the back? Good. I'm Diane, I look after recruitment at Redmayne Engineering, and I've got about eight minutes to tell you what our apprenticeship actually is, because I don't think the leaflet explains it very well." },
-    { "speaker": "Recruitment Manager", "text": "We make components for the water industry — valves, pumps, that sort of thing. Not glamorous, I'll admit, but the country stops without them." },
-    { "speaker": "Recruitment Manager", "text": "The apprenticeship runs for three years. Some companies will tell you four, and that's true of theirs; ours is three, because we put you on the machines in the first month rather than keeping you in a training room for a year." },
-    { "speaker": "Recruitment Manager", "text": "You're employed from day one. That's the part people don't believe. You're on a proper contract, with holiday, sick pay and a pension, and you're paid every month — it isn't an allowance and it isn't pocket money. The first year is nineteen thousand, it rises each year, and in the third year you're on twenty-six thousand." },
-    { "speaker": "Recruitment Manager", "text": "Every Wednesday you're at Brackley College, and we pay the fees. You don't contribute anything towards the course and you don't take out a student loan. At the end of it you hold a Level 3 qualification in engineering, which is exactly the same certificate you'd have if you had paid for it yourself." },
-    { "speaker": "Recruitment Manager", "text": "Now, entry requirements, and I want to be honest here because there's a myth going round schools about this. You need maths and English at grade four or above. That is genuinely it. You do not need physics, you do not need a technical qualification, and you absolutely do not need experience — we've taken on apprentices who had never held a spanner, and they were perfectly fine by Christmas." },
-    { "speaker": "Recruitment Manager", "text": "What we do look for is something else entirely, and it doesn't appear on any certificate. We look for whether you finish things. That's the honest answer. Our best apprentice last year had rebuilt a motorbike in his bedroom over two years. Somebody else had run the same paper round for four years without missing a single day. We're not particularly impressed by clever. We're impressed by finished." },
-    { "speaker": "Recruitment Manager", "text": "Applications close at the end of April. There's no advantage at all in applying early, because we read them all together on the same day. There is, however, a very real disadvantage in applying late, since we don't accept anything after the closing date under any circumstances." },
-    { "speaker": "Recruitment Manager", "text": "After that the process has three stages. First a short maths test, which is arithmetic and measurement — nothing frightening, and you may use a calculator. Then a practical morning, where we give you a task and watch how you go about it. What we're really watching is how you ask for help. And then an interview with me and one of the engineers." },
-    { "speaker": "Recruitment Manager", "text": "A word about that practical morning. Every single year somebody rushes it and hands in something rough, because they've decided that speed is what we're measuring. It isn't. We would far rather see one careful, unfinished piece of work than a fast, sloppy one, and I'm telling you now so that nobody has to learn it the hard way in front of us." },
-    { "speaker": "Recruitment Manager", "text": "Two more things. We take eight apprentices a year, and last year we had over two hundred applications. So please apply to other companies as well — anyone who tells you to pin everything on one employer isn't being straight with you." },
-    { "speaker": "Recruitment Manager", "text": "And second, if you don't get in, ask us why. We'll tell you properly, in writing, and it's worth knowing that about a third of the people we take on are people who applied the year before, were turned down, and came back." },
-    { "speaker": "Recruitment Manager", "text": "There's a stand just outside with the application form on paper, and the identical form is on our website. Come and find me afterwards if you've got a question you didn't want to ask in front of everybody — in my experience that's usually the best question in the room." }
+    {
+      "speaker": "Recruitment Manager",
+      "text": "Right — can everyone hear me at the back? Good. I'm Diane, I look after recruitment at Redmayne Engineering, and I've got about eight minutes to tell you what our apprenticeship actually is, because I don't think the leaflet explains it very well."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "We make components for the water industry — valves, pumps, that sort of thing. Not glamorous, I'll admit, but the country stops without them."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "The apprenticeship runs for three years. Some companies will tell you four, and that's true of theirs; ours is three, because we put you on the machines in the first month rather than keeping you in a training room for a year."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "You're employed from day one. That's the part people don't believe. You're on a proper contract, with holiday, sick pay and a pension, and you're paid every month — it isn't an allowance and it isn't pocket money. The first year is nineteen thousand, it rises each year, and in the third year you're on twenty-six thousand."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "Every Wednesday you're at Brackley College, and we pay the fees. You don't contribute anything towards the course and you don't take out a student loan. At the end of it you hold a Level 3 qualification in engineering, which is exactly the same certificate you'd have if you had paid for it yourself."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "Now, entry requirements, and I want to be honest here because there's a myth going round schools about this. You need maths and English at grade four or above. That is genuinely it. You do not need physics, you do not need a technical qualification, and you absolutely do not need experience — we've taken on apprentices who had never held a spanner, and they were perfectly fine by Christmas."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "What we do look for is something else entirely, and it doesn't appear on any certificate. We look for whether you finish things. That's the honest answer. Our best apprentice last year had rebuilt a motorbike in his bedroom over two years. Somebody else had run the same paper round for four years without missing a single day. We're not particularly impressed by clever. We're impressed by finished."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "Applications close at the end of April. There's no advantage at all in applying early, because we read them all together on the same day. There is, however, a very real disadvantage in applying late, since we don't accept anything after the closing date under any circumstances."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "After that the process has three stages. First a short maths test, which is arithmetic and measurement — nothing frightening, and you may use a calculator. Then a practical morning, where we give you a task and watch how you go about it. What we're really watching is how you ask for help. And then an interview with me and one of the engineers."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "A word about that practical morning. Every single year somebody rushes it and hands in something rough, because they've decided that speed is what we're measuring. It isn't. We would far rather see one careful, unfinished piece of work than a fast, sloppy one, and I'm telling you now so that nobody has to learn it the hard way in front of us."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "Two more things. We take eight apprentices a year, and last year we had over two hundred applications. So please apply to other companies as well — anyone who tells you to pin everything on one employer isn't being straight with you."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "And second, if you don't get in, ask us why. We'll tell you properly, in writing, and it's worth knowing that about a third of the people we take on are people who applied the year before, were turned down, and came back."
+    },
+    {
+      "speaker": "Recruitment Manager",
+      "text": "There's a stand just outside with the application form on paper, and the identical form is on our website. Come and find me afterwards if you've got a question you didn't want to ask in front of everybody — in my experience that's usually the best question in the room."
+    }
   ],
   "questions": [
     {
@@ -90,8 +129,8 @@
           "question": "Which quality does the company value most in an applicant?",
           "options": [
             "the ability to finish what they start",
-            "high examination grades",
-            "experience of using tools"
+            "consistently high examination grades at school",
+            "experience of using hand tools well"
           ],
           "answer": 0,
           "explanation": "\"We look for whether you finish things.\" Her examples are a rebuilt motorbike and a paper round never missed: \"We're impressed by finished.\""
@@ -103,7 +142,7 @@
           "options": [
             "early applications are read first",
             "it makes no difference",
-            "it is necessary to reach the practical morning"
+            "it is needed for the practical"
           ],
           "answer": 1,
           "explanation": "\"There's no advantage at all in applying early, because we read them all together on the same day.\" Only applying late is a problem."

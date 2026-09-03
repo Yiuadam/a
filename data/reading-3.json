@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "Why does the writer describe fleshy fruit as 'a payment'?",
           "options": [
-            "It is costly for animals to obtain",
+            "It is unusually costly for animals to obtain",
             "The plant gives food in exchange for transport",
-            "It is sold commercially",
-            "It replaces the need for flowers"
+            "It is grown and sold commercially by farmers",
+            "It replaces the plant's need for flowers entirely"
           ],
           "answer": 1,
           "explanation": "The passage explains the metaphor itself: the plant provides food and the animal provides transport, so the fruit is what the plant pays."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "What limitation of water dispersal does the writer identify?",
           "options": [
-            "Seeds rot in salt water",
-            "It only works for light seeds",
+            "Seeds tend to rot quickly in salt water",
+            "It works only for unusually light seeds",
             "It cannot move seeds against the current",
-            "It is slower than wind"
+            "It is a good deal slower than dispersal by wind"
           ],
           "answer": 2,
           "explanation": "\"Water disperses seeds efficiently but only in the direction the water happens to be going, and a river never carries anything uphill.\""
@@ -82,9 +82,9 @@
           "question": "The example of jays and squirrels shows that plants can benefit from",
           "options": [
             "animals that fail to recover stored food",
-            "animals that avoid eating seeds",
-            "deliberate planting by animals",
-            "competition between animals"
+            "animals that avoid eating seeds altogether",
+            "the deliberate planting of seeds by animals",
+            "direct competition between animals for food"
           ],
           "answer": 0,
           "explanation": "\"A proportion of the caches are forgotten\", and the forgotten ones grow. The benefit comes from the animals' failure, not their intention."

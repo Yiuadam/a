@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "What role do zooxanthellae normally play for coral, according to the passage?",
           "options": [
-            "They protect coral from predators.",
+            "They protect the coral from most of its predators.",
             "They photosynthesise and supply most of the coral's energy.",
-            "They build the calcium carbonate skeleton.",
-            "They regulate the temperature of the surrounding water."
+            "They build the calcium carbonate skeleton itself.",
+            "They regulate the temperature of the water surrounding the colony."
           ],
           "answer": 1,
           "explanation": "Paragraph 2 gives this as the algae's normal role: photosynthesising to supply the coral's energy, matching option B. The skeleton is built by the coral itself, not the algae, which rules out option C."
@@ -69,9 +69,9 @@
           "question": "What determines whether a bleached coral eventually dies?",
           "options": [
             "Whether temperatures return to normal before its energy reserves run out.",
-            "Whether it is located in the Great Barrier Reef or elsewhere.",
-            "Whether its skeleton is colonised by new algae immediately.",
-            "The depth of water in which the coral lives."
+            "Whether it is located on the Great Barrier Reef or somewhere else entirely.",
+            "Whether its skeleton is colonised by new algae almost immediately.",
+            "The depth of the water in which the coral colony lives."
           ],
           "answer": 0,
           "explanation": "Paragraph 4 contrasts two outcomes: recovery if temperatures normalise within weeks, or death if energy reserves run out first. This matches option A; the other options are never given as the deciding factor."
@@ -81,10 +81,10 @@
           "type": "mcq",
           "question": "Why do marine biologists find the repeated Great Barrier Reef bleaching events particularly alarming?",
           "options": [
-            "Because each event has been larger in area than the last.",
+            "Because each successive event has been larger in area than the last.",
             "Because the interval between events has become shorter than the recovery time reefs need.",
-            "Because no bleaching had occurred there before 1998.",
-            "Because government funding for monitoring has decreased."
+            "Because no bleaching of any kind had occurred there before 1998.",
+            "Because government funding for monitoring the reef has decreased very sharply since then."
           ],
           "answer": 1,
           "explanation": "Paragraph 5 explains the real worry is the shrinking gap between bleaching events compared to recovery time, matching option B. Event size, first occurrence and funding are never mentioned as reasons for alarm."
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "What is the passage's overall conclusion about local interventions such as coral gardening?",
           "options": [
-            "They are ultimately more effective than reducing global emissions.",
+            "They are ultimately a good deal more effective than reducing global emissions.",
             "They are complementary measures that cannot substitute for cutting emissions.",
-            "They have been shown to be ineffective and should be discontinued.",
-            "They work only in the Persian Gulf."
+            "They have been shown to be ineffective and ought to be discontinued.",
+            "They work only in the warm waters of the Persian Gulf."
           ],
           "answer": 1,
           "explanation": "The final paragraph states this conclusion directly: interventions are complements to cutting emissions, not alternatives to it, matching option B and ruling out A and C, which claim the opposite."

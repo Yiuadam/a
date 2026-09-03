@@ -110,10 +110,10 @@
           "type": "mcq",
           "question": "Why can a six-storey block on soft sediment be damaged more than a similar block on rock?",
           "options": [
-            "Soft ground is closer to the source of most earthquakes.",
+            "Soft ground is a good deal closer to the source of most earthquakes.",
             "Soft ground amplifies and slows the shaking, favouring the rate at which such blocks sway.",
-            "Buildings on soft ground are usually built with cheaper materials.",
-            "Rock transmits the shaking for a longer period of time."
+            "Buildings put up on soft ground are usually built with rather cheaper materials throughout.",
+            "Rock transmits the shaking for a considerably longer period of time."
           ],
           "answer": 1,
           "explanation": "The passage says soft sediment \"both amplifies shaking and slows it, favouring the slower vibrations that suit taller buildings\", which is option B. Materials and distance from the source are not given as the reason."
@@ -123,10 +123,10 @@
           "type": "mcq",
           "question": "What does the passage say is the aim of ductile design in ordinary buildings?",
           "options": [
-            "To keep the building undamaged and usable.",
-            "To make repairs cheaper than rebuilding.",
+            "To keep the building undamaged and usable afterwards.",
+            "To make the repairs cheaper than a complete rebuilding.",
             "To keep the building standing long enough for people to get out.",
-            "To remove the need for inspection during construction."
+            "To remove the need for any inspection during the construction work."
           ],
           "answer": 2,
           "explanation": "The passage calls the aim \"deliberately modest\": the building may be damaged beyond repair but must \"stay standing long enough for everyone inside to walk out\". That is option C, and the passage says codes for ordinary buildings promise only this."
@@ -150,9 +150,9 @@
           "question": "What does the writer identify as the largest remaining difficulty?",
           "options": [
             "Buildings that are already standing, and the cost and responsibility of strengthening them.",
-            "The lack of an agreed method for measuring ground movement.",
-            "Disagreement among engineers about which technique works best.",
-            "The shortage of materials suitable for tall towers."
+            "The lack of any agreed method for measuring the movement of the ground.",
+            "Disagreement among the engineers about which of the techniques works best in practice.",
+            "The shortage of materials that are suitable for very tall towers."
           ],
           "answer": 0,
           "explanation": "The passage says new construction \"is the smaller part of the problem\" and that strengthening existing buildings is expensive, disruptive and often nobody's clear responsibility. That is option A."

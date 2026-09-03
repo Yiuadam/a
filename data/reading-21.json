@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "Why does ash break down faster than ordinary rock?",
           "options": [
-            "Because it is warmer than the rock around it.",
+            "Because it is a good deal warmer than the rock around it.",
             "Because its pieces are already small, so air and water reach all of them.",
-            "Because rain falls more often near a volcano.",
-            "Because plant roots grow through it more slowly."
+            "Because rain falls a good deal more often near a volcano.",
+            "Because plant roots grow through it a great deal more slowly than through rock."
           ],
           "answer": 1,
           "explanation": "Paragraph 2 gives the reason: \"The pieces are already small, so air and water can reach every part of them.\" That is option B. Warmth, rainfall and roots are not given as the reason."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "What does the passage say about a lava flow?",
           "options": [
-            "It spreads minerals over a wide area.",
-            "It makes the soil hold more water.",
+            "It spreads useful minerals over a very wide area.",
+            "It makes the soil hold a great deal more water.",
             "It cools into hard stone where little will grow for a long time.",
-            "It is the main reason farms are built on slopes."
+            "It is the main reason that farms in those areas are built on slopes."
           ],
           "answer": 2,
           "explanation": "Paragraph 3 says a lava flow \"cools into hard, black stone\" and it can be \"a century or more before anything will grow on it\". That is option C. The useful material is ash, not lava."
@@ -82,9 +82,9 @@
           "question": "Why do farmers on steep volcanic slopes build terraces?",
           "options": [
             "To stop rain washing the soil down the hillside.",
-            "To keep the fields cool at night.",
-            "To make room for larger machines.",
-            "To collect ash after an eruption."
+            "To keep the fields cool during the night.",
+            "To make room for much larger machines.",
+            "To collect the ash that falls after an eruption."
           ],
           "answer": 0,
           "explanation": "Paragraph 7 says heavy rain \"washes loose soil down the hillside\" and terraces \"hold the soil in place and slow the water down\". That is option A."

@@ -125,9 +125,9 @@
           "type": "mcq",
           "question": "Why does Dr Okafor say the household figure led the students astray?",
           "options": [
-            "The figure they used was inaccurate",
+            "The figure they had used turned out to be quite inaccurate",
             "It pointed them towards advice that campaigns already give",
-            "It applies only outside the UK"
+            "It applies only to countries outside the United Kingdom"
           ],
           "answer": 1,
           "explanation": "He confirms the figure is right, then asks what it tells an audience to do. Leyla answers “Buy less. Plan meals. Which is what every campaign already says.”"
@@ -137,9 +137,9 @@
           "type": "mcq",
           "question": "What is the students' revised argument?",
           "options": [
-            "That the largest source of waste deserves most attention",
+            "That the largest single source of waste deserves by far the most attention",
             "That the share easiest to change matters more than the largest share",
-            "That households cannot reduce waste at all"
+            "That households cannot reduce the waste they produce at all"
           ],
           "answer": 1,
           "explanation": "Tomas: “the interesting waste isn't the largest share, it's the share that's easiest to move. And that's not households.”"
@@ -149,9 +149,9 @@
           "type": "mcq",
           "question": "Why does Tomas think retail matters despite its small share?",
           "options": [
-            "Supermarkets waste more than they report",
+            "Supermarkets waste a great deal more food than they actually report",
             "A few retail decisions shape what happens in millions of kitchens",
-            "Retail waste is growing faster than household waste"
+            "Retail waste is now growing faster than household waste is"
           ],
           "answer": 1,
           "explanation": "“A supermarket makes a small number of decisions that determine what happens in millions of kitchens — how big the pack is, what the date label says…”"
@@ -162,8 +162,8 @@
           "question": "What does Leyla say about the date-label trials?",
           "options": [
             "The reductions were smaller than press releases suggested",
-            "No reductions were found at all",
-            "Only one retailer has ever tried it"
+            "No reductions of any kind at all were found in the published data",
+            "Only one retailer has ever tried the approach"
           ],
           "answer": 0,
           "explanation": "“The reductions were real but smaller than the press releases suggested. We want to be careful there.”"
@@ -173,9 +173,9 @@
           "type": "mcq",
           "question": "What does Dr Okafor advise about the weakness in their evidence?",
           "options": [
-            "To leave it out of the presentation",
+            "To leave it out of the presentation entirely",
             "To state it themselves during the talk",
-            "To mention it only if asked"
+            "To mention it only if somebody asks"
           ],
           "answer": 1,
           "explanation": "“Say that out loud in the presentation. An audience trusts you more when you name the weakness than when they find it in the questions.”"
@@ -185,9 +185,9 @@
           "type": "mcq",
           "question": "Why does he want the anaerobic digestion section cut?",
           "options": [
-            "It is too technical for the audience",
+            "It is far too technical for an audience of that kind",
             "It concerns dealing with waste rather than preventing it",
-            "The evidence for it is unreliable"
+            "The evidence for it is largely unreliable"
           ],
           "answer": 1,
           "explanation": "“It's about what to do with waste once it exists, and your argument is about preventing it. It belongs in a different talk.”"
@@ -197,7 +197,7 @@
           "type": "mcq",
           "question": "What does he tell them to send him?",
           "options": [
-            "The finished slides",
+            "The finished slides themselves",
             "A recording of their rehearsal",
             "A written script"
           ],

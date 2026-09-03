@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "According to the passage, what makes the iterated version of the prisoner's dilemma different from the one-off version?",
           "options": [
-            "The payoffs for mutual cooperation are larger in the iterated version.",
+            "The payoffs for mutual cooperation are a good deal larger in the iterated version.",
             "Players can condition their choices on the other's behaviour in previous rounds.",
-            "Betrayal is no longer possible once the game is repeated.",
-            "The iterated version allows direct communication between players."
+            "Betrayal is no longer possible at all once the game is repeated.",
+            "The iterated version allows direct communication between the players."
           ],
           "answer": 1,
           "explanation": "Paragraph 2 gives this as the key difference: repeated play lets a choice depend on the opponent's earlier moves, matching option B. The other options describe things the passage never claims about the iterated game."
@@ -81,10 +81,10 @@
           "type": "mcq",
           "question": "Why can strict tit-for-tat perform poorly in a 'noisy' environment?",
           "options": [
-            "Because noise prevents players from ever cooperating in the first round.",
+            "Because noise prevents players from ever cooperating at all in the very first round of play.",
             "Because a misread cooperative move can trigger a destructive cycle of mutual retaliation.",
-            "Because noisy environments always favour betrayal from the outset.",
-            "Because tit-for-tat cannot be programmed to handle repeated rounds."
+            "Because noisy environments always favour betrayal from the very outset.",
+            "Because tit-for-tat cannot be programmed to handle repeated rounds of play."
           ],
           "answer": 1,
           "explanation": "Paragraph 6 explains this failure mode: one misread cooperative move triggers a spiral of mutual retaliation, matching option B. The other options describe things the passage never says about noisy environments."
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "What is the passage's overall conclusion about cooperation among self-interested agents?",
           "options": [
-            "It requires an external authority to enforce agreements.",
+            "It requires an external authority to enforce the agreements that are made.",
             "It can emerge as a stable strategic equilibrium given repetition, reciprocity and an uncertain time horizon.",
-            "It is only observed in evolved biological species, not in human institutions.",
-            "Tit-for-tat is now considered the single optimal strategy in all conditions."
+            "It is only ever observed in evolved biological species, never in human institutions.",
+            "Tit-for-tat is now considered by most economists to be the single optimal strategy under any conditions at all."
           ],
           "answer": 1,
           "explanation": "The final paragraph states cooperation \"can emerge as a stable strategic equilibrium from within it, given the right structural conditions of repetition, reciprocity and an uncertain horizon\", and explicitly denies any single optimal strategy exists."

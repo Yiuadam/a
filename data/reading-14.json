@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "Why is soda added to silica when making glass?",
           "options": [
-            "To make the glass transparent.",
+            "To make the finished sheet of glass fully transparent.",
             "To lower the temperature needed to melt the silica.",
-            "To give the glass its rigid shape.",
-            "To prevent the glass from shattering."
+            "To give the cooled glass its rigid shape.",
+            "To prevent the glass from shattering in use."
           ],
           "answer": 1,
           "explanation": "Paragraph 2 gives this as soda's job: lowering the melting point, since pure silica needs too much heat to melt alone. That matches option B, while transparency and rigidity are explained elsewhere in the passage, not linked to soda."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "According to the passage, why does light pass through glass so easily?",
           "options": [
-            "Because glass contains no soda or lime.",
+            "Because glass contains no soda or lime at all.",
             "Because its disordered structure has no crystal boundaries to scatter light.",
-            "Because it is heated to very high temperatures during manufacture.",
-            "Because it is thinner than most solid materials."
+            "Because it is heated to extremely high temperatures during its own manufacture.",
+            "Because it is a good deal thinner than most other solid materials."
           ],
           "answer": 1,
           "explanation": "Paragraph 3 links glass's disordered structure directly to why light passes through: no crystal boundaries means nothing to scatter the light, matching option B and ruling out the others, which are not given as reasons."

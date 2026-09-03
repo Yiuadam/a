@@ -10,36 +10,126 @@
     "Member"
   ],
   "script": [
-    { "speaker": "Staff Member", "text": "Hi there, welcome to Pulse Fitness. How can I help you today?" },
-    { "speaker": "Member", "text": "Hi, I'm afraid I need to cancel my membership. I'm moving to a different city next month." },
-    { "speaker": "Staff Member", "text": "Oh, sorry to hear you're leaving us. Let's sort that out. Can I take your name and membership number?" },
-    { "speaker": "Member", "text": "Yes, it's Jake Turner, and the membership number is 22581." },
-    { "speaker": "Staff Member", "text": "Let me just check that. 22581, Jake Turner. Yes, I've found your account here." },
-    { "speaker": "Member", "text": "Great. So, what do I need to do?" },
-    { "speaker": "Staff Member", "text": "Normally we ask for one month's notice, but because your contract is a twelve-month plan, you're actually required to give thirty days' notice in writing, not just verbally." },
-    { "speaker": "Member", "text": "Oh, I didn't realise it had to be in writing." },
-    { "speaker": "Staff Member", "text": "It's easy though — you can either fill in a short form here at reception, or email us, whichever suits you." },
-    { "speaker": "Member", "text": "I'll fill in the form now, if that's alright." },
-    { "speaker": "Staff Member", "text": "Of course. Now, your last payment was on the fifth of this month, so your final payment will actually be next month, on the fifth, and your membership will end thirty days after that." },
-    { "speaker": "Member", "text": "So I'll still be charged one more time?" },
-    { "speaker": "Staff Member", "text": "Yes, I'm afraid so — one more payment of 38 pounds, and then no more charges after that." },
-    { "speaker": "Member", "text": "38 pounds, okay, that's fair enough given the notice period." },
-    { "speaker": "Staff Member", "text": "Now, do you have a gym bag stored in one of our lockers, or any equipment on loan from us?" },
-    { "speaker": "Member", "text": "I do have a yoga mat I borrowed, actually." },
-    { "speaker": "Staff Member", "text": "Please bring that back before your membership ends, or we'll have to charge a replacement fee of 15 pounds." },
-    { "speaker": "Member", "text": "I'll bring it next time I come in, no problem." },
-    { "speaker": "Staff Member", "text": "Great. Also, if you ever move back to this city, just so you know, returning members don't have to pay the joining fee again, so it's worth keeping your membership number safe." },
-    { "speaker": "Member", "text": "Good to know, I'll keep it somewhere safe." },
-    { "speaker": "Staff Member", "text": "One last thing — would you like to keep receiving our email newsletter, or shall I remove you from that too?" },
-    { "speaker": "Member", "text": "You can remove me from the newsletter as well, thanks." },
-    { "speaker": "Staff Member", "text": "No problem, that's all done. Before you go, can I ask what made you choose us in the first place, just for our records?" },
-    { "speaker": "Member", "text": "Honestly, it was the location, really — I could walk here from my flat in about five minutes, which made it easy to come regularly." },
-    { "speaker": "Staff Member", "text": "That's really useful feedback, thank you. And is there anything you think we could have done better?" },
-    { "speaker": "Member", "text": "The only thing I'd mention is that the changing rooms could do with an upgrade — they're a bit small compared with some other gyms I've visited." },
-    { "speaker": "Staff Member", "text": "Thanks, I'll pass that on to the manager. We're actually planning some renovations next year, so hopefully that's already on the list." },
-    { "speaker": "Member", "text": "Good to hear. Well, I've really enjoyed my time here overall." },
-    { "speaker": "Staff Member", "text": "I'm sorry to see you go, Jake, and good luck with the move." },
-    { "speaker": "Member", "text": "Thanks very much for your help." }
+    {
+      "speaker": "Staff Member",
+      "text": "Hi there, welcome to Pulse Fitness. How can I help you today?"
+    },
+    {
+      "speaker": "Member",
+      "text": "Hi, I'm afraid I need to cancel my membership. I'm moving to a different city next month."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "Oh, sorry to hear you're leaving us. Let's sort that out. Can I take your name and membership number?"
+    },
+    {
+      "speaker": "Member",
+      "text": "Yes, it's Jake Turner, and the membership number is 22581."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "Let me just check that. 22581, Jake Turner. Yes, I've found your account here."
+    },
+    {
+      "speaker": "Member",
+      "text": "Great. So, what do I need to do?"
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "Normally we ask for one month's notice, but because your contract is a twelve-month plan, you're actually required to give thirty days' notice in writing, not just verbally."
+    },
+    {
+      "speaker": "Member",
+      "text": "Oh, I didn't realise it had to be in writing."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "It's easy though — you can either fill in a short form here at reception, or email us, whichever suits you."
+    },
+    {
+      "speaker": "Member",
+      "text": "I'll fill in the form now, if that's alright."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "Of course. Now, your last payment was on the fifth of this month, so your final payment will actually be next month, on the fifth, and your membership will end thirty days after that."
+    },
+    {
+      "speaker": "Member",
+      "text": "So I'll still be charged one more time?"
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "Yes, I'm afraid so — one more payment of 38 pounds, and then no more charges after that."
+    },
+    {
+      "speaker": "Member",
+      "text": "38 pounds, okay, that's fair enough given the notice period."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "Now, do you have a gym bag stored in one of our lockers, or any equipment on loan from us?"
+    },
+    {
+      "speaker": "Member",
+      "text": "I do have a yoga mat I borrowed, actually."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "Please bring that back before your membership ends, or we'll have to charge a replacement fee of 15 pounds."
+    },
+    {
+      "speaker": "Member",
+      "text": "I'll bring it next time I come in, no problem."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "Great. Also, if you ever move back to this city, just so you know, returning members don't have to pay the joining fee again, so it's worth keeping your membership number safe."
+    },
+    {
+      "speaker": "Member",
+      "text": "Good to know, I'll keep it somewhere safe."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "One last thing — would you like to keep receiving our email newsletter, or shall I remove you from that too?"
+    },
+    {
+      "speaker": "Member",
+      "text": "You can remove me from the newsletter as well, thanks."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "No problem, that's all done. Before you go, can I ask what made you choose us in the first place, just for our records?"
+    },
+    {
+      "speaker": "Member",
+      "text": "Honestly, it was the location, really — I could walk here from my flat in about five minutes, which made it easy to come regularly."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "That's really useful feedback, thank you. And is there anything you think we could have done better?"
+    },
+    {
+      "speaker": "Member",
+      "text": "The only thing I'd mention is that the changing rooms could do with an upgrade — they're a bit small compared with some other gyms I've visited."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "Thanks, I'll pass that on to the manager. We're actually planning some renovations next year, so hopefully that's already on the list."
+    },
+    {
+      "speaker": "Member",
+      "text": "Good to hear. Well, I've really enjoyed my time here overall."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "I'm sorry to see you go, Jake, and good luck with the move."
+    },
+    {
+      "speaker": "Member",
+      "text": "Thanks very much for your help."
+    }
   ],
   "questions": [
     {
@@ -111,9 +201,9 @@
           "type": "mcq",
           "question": "How does the member choose to submit his cancellation request?",
           "options": [
-            "by email",
+            "by sending an email to the office",
             "by filling in a form at reception",
-            "over the phone"
+            "over the telephone in advance"
           ],
           "answer": 1,
           "explanation": "He is offered a form or email and says, \"I'll fill in the form now, if that's alright,\" choosing the in-person form."

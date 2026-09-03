@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "What method did coastal communities without salt lakes or mines typically use?",
           "options": [
-            "Importing rock salt from the Sahara by camel caravan.",
+            "Importing rock salt from across the Sahara by camel caravan.",
             "Evaporating seawater in shallow pans using sun and wind.",
-            "Boiling seawater over open fires continuously.",
-            "Trading gold for salt with desert merchants."
+            "Boiling seawater continuously over open wood fires.",
+            "Trading gold for salt with merchants from the desert."
           ],
           "answer": 1,
           "explanation": "Paragraph 2 describes shallow pans evaporating seawater with sun and wind — this is option B. Rock salt (option A) is mined underground and carried across the Sahara, not made on the coast. Boiling seawater (option C) is never mentioned anywhere in the passage."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "Why does the passage describe the gabelle as unusually burdensome for the poor?",
           "options": [
-            "It was collected only in years of poor harvest.",
+            "It was collected only in years when the harvest was poor.",
             "It required a fixed purchase per household regardless of income or need.",
-            "It applied only to salt bought for cooking meat.",
-            "It was enforced more strictly in rural areas."
+            "It applied only to salt bought for the cooking of meat.",
+            "It was enforced a good deal more strictly in rural districts than in towns."
           ],
           "answer": 1,
           "explanation": "The tax \"required households ... to purchase a fixed minimum amount of salt ... regardless of whether they needed it\" and \"applied per household rather than according to income\"."
@@ -81,10 +81,10 @@
           "type": "mcq",
           "question": "What did Gandhi do in 1930 in relation to the British salt tax?",
           "options": [
-            "He organised a boycott of British salt warehouses.",
+            "He organised a nationwide boycott of British salt warehouses.",
             "He walked to the sea and made salt from seawater as an act of protest.",
-            "He negotiated a reduction in the tax with colonial officials.",
-            "He wrote a book criticising the tax."
+            "He negotiated a reduction in the tax with the senior colonial officials.",
+            "He wrote a book criticising the tax and its effects."
           ],
           "answer": 1,
           "explanation": "Gandhi \"deliberately challenged\" the tax \"by walking to the sea and making salt from seawater himself, an act of civil disobedience\"."
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "According to the passage, what effect did mechanical refrigeration have on salt's importance?",
           "options": [
-            "It increased demand for salt as a flavouring.",
-            "It had little effect until the mid-twentieth century.",
+            "It increased demand for salt as a flavouring in cooking.",
+            "It had little effect of any kind until well into the middle of the twentieth century.",
             "It ended salt's central role in food preservation, narrowing its use to flavour.",
-            "It made salt more expensive to produce."
+            "It made salt considerably more expensive to produce."
           ],
           "answer": 2,
           "explanation": "Refrigeration \"removed salt's monopoly on food preservation almost overnight\", and salt's \"role narrowed from a matter of survival to a matter of flavour\"."

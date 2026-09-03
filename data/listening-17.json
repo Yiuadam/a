@@ -9,17 +9,50 @@
     "Guide"
   ],
   "script": [
-    { "speaker": "Guide", "text": "Welcome to Harborne Museum, and thank you for picking up an audio guide. Before you start exploring, let me quickly explain how the museum is organised, so you don't miss anything." },
-    { "speaker": "Guide", "text": "The museum has three floors. The ground floor covers the town's early history, from its beginnings as a small fishing village right up to the arrival of the railway. The first floor, upstairs, is dedicated to the industrial period, when the town's population grew rapidly because of the new textile mills. And the second floor, right at the top, is our temporary exhibition space, which changes every few months." },
-    { "speaker": "Guide", "text": "I should mention that the current temporary exhibition was originally going to be about local shipbuilding, but that's been postponed until next year. Instead, the second floor currently holds an exhibition on wartime life in the town, which runs until the end of this year." },
-    { "speaker": "Guide", "text": "As you move around, look out for the small blue numbers on the wall beside certain objects. These correspond to numbered stops on this audio guide — just press the matching number on your handset to hear more." },
-    { "speaker": "Guide", "text": "One object not to miss is on the ground floor: a wooden fishing boat, over two hundred years old, which was actually found buried in mud near the old harbour rather than kept above ground the whole time, which is part of why it survived so well." },
-    { "speaker": "Guide", "text": "If you get hungry, the café is on the ground floor, near the main entrance, and serves light lunches until three p.m. After that, only drinks and cakes are available, so do plan your lunch break accordingly." },
-    { "speaker": "Guide", "text": "Toilets are located on every floor, but the accessible toilet is only on the ground floor, next to the cloakroom." },
-    { "speaker": "Guide", "text": "Photography is welcome throughout the museum, but please don't use flash near the textile exhibits on the first floor, as the strong light can damage the fabric over time." },
-    { "speaker": "Guide", "text": "The museum shop is on the ground floor as well, close to the exit, and sells books, postcards, and replicas of some of the smaller objects on display." },
-    { "speaker": "Guide", "text": "We close at five p.m. on weekdays, but stay open later, until seven p.m., on Thursdays, to give people who work during the day a chance to visit after their working hours." },
-    { "speaker": "Guide", "text": "That's everything you need to get started. Enjoy your visit, and remember, if you have any questions at all, our staff in green jackets are happy to help throughout the museum." }
+    {
+      "speaker": "Guide",
+      "text": "Welcome to Harborne Museum, and thank you for picking up an audio guide. Before you start exploring, let me quickly explain how the museum is organised, so you don't miss anything."
+    },
+    {
+      "speaker": "Guide",
+      "text": "The museum has three floors. The ground floor covers the town's early history, from its beginnings as a small fishing village right up to the arrival of the railway. The first floor, upstairs, is dedicated to the industrial period, when the town's population grew rapidly because of the new textile mills. And the second floor, right at the top, is our temporary exhibition space, which changes every few months."
+    },
+    {
+      "speaker": "Guide",
+      "text": "I should mention that the current temporary exhibition was originally going to be about local shipbuilding, but that's been postponed until next year. Instead, the second floor currently holds an exhibition on wartime life in the town, which runs until the end of this year."
+    },
+    {
+      "speaker": "Guide",
+      "text": "As you move around, look out for the small blue numbers on the wall beside certain objects. These correspond to numbered stops on this audio guide — just press the matching number on your handset to hear more."
+    },
+    {
+      "speaker": "Guide",
+      "text": "One object not to miss is on the ground floor: a wooden fishing boat, over two hundred years old, which was actually found buried in mud near the old harbour rather than kept above ground the whole time, which is part of why it survived so well."
+    },
+    {
+      "speaker": "Guide",
+      "text": "If you get hungry, the café is on the ground floor, near the main entrance, and serves light lunches until three p.m. After that, only drinks and cakes are available, so do plan your lunch break accordingly."
+    },
+    {
+      "speaker": "Guide",
+      "text": "Toilets are located on every floor, but the accessible toilet is only on the ground floor, next to the cloakroom."
+    },
+    {
+      "speaker": "Guide",
+      "text": "Photography is welcome throughout the museum, but please don't use flash near the textile exhibits on the first floor, as the strong light can damage the fabric over time."
+    },
+    {
+      "speaker": "Guide",
+      "text": "The museum shop is on the ground floor as well, close to the exit, and sells books, postcards, and replicas of some of the smaller objects on display."
+    },
+    {
+      "speaker": "Guide",
+      "text": "We close at five p.m. on weekdays, but stay open later, until seven p.m., on Thursdays, to give people who work during the day a chance to visit after their working hours."
+    },
+    {
+      "speaker": "Guide",
+      "text": "That's everything you need to get started. Enjoy your visit, and remember, if you have any questions at all, our staff in green jackets are happy to help throughout the museum."
+    }
   ],
   "questions": [
     {
@@ -91,9 +124,9 @@
           "type": "mcq",
           "question": "What does the ground floor mainly cover?",
           "options": [
-            "the industrial period",
+            "the industrial period of the town",
             "the town's early history up to the railway",
-            "wartime life in the town"
+            "wartime life in the town and villages"
           ],
           "answer": 1,
           "explanation": "The ground floor covers \"the town's early history, from its beginnings as a small fishing village right up to the arrival of the railway.\""
@@ -103,9 +136,9 @@
           "type": "mcq",
           "question": "Why should visitors avoid using flash photography on the first floor?",
           "options": [
-            "it disturbs other visitors",
+            "it disturbs the other visitors nearby",
             "it can damage the textile exhibits over time",
-            "photography is banned there completely"
+            "photography is banned in there completely"
           ],
           "answer": 1,
           "explanation": "Photography is allowed throughout, but flash near the textile exhibits is discouraged because \"the strong light can damage the fabric over time.\""
@@ -116,8 +149,8 @@
           "question": "How can a visitor identify a staff member who can answer questions?",
           "options": [
             "they wear green jackets",
-            "they stand near the museum shop",
-            "they carry an audio guide handset"
+            "they stand near the shop",
+            "they carry a guide handset"
           ],
           "answer": 0,
           "explanation": "The guide closes by saying \"our staff in green jackets are happy to help throughout the museum,\" identifying them by their clothing."

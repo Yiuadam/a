@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "Why does the writer say results from actual competition cannot settle the question?",
           "options": [
-            "Because competition results are not recorded accurately enough.",
+            "Because the results of competitions are not recorded accurately enough.",
             "Because athletes who adopt new equipment change several other things at the same time.",
-            "Because governing bodies refuse to release the data they hold.",
-            "Because most athletes use the same equipment as each other."
+            "Because the governing bodies refuse to release any of the data that they hold.",
+            "Because most athletes at that level use exactly the same equipment as each other."
           ],
           "answer": 1,
           "explanation": "The passage says new equipment arrives with \"new sponsors... new coaching, new medical support and a change in training load\", so factors that were never independent cannot be separated afterwards. That is option B."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "What is the writer's objection to the criterion that a technology must be available to all?",
           "options": [
-            "It is impossible to check whether a product is genuinely on sale.",
-            "It applies only to equipment made by large manufacturers.",
+            "It is impossible to check whether a given product is genuinely on sale anywhere.",
+            "It applies only to equipment made by the largest manufacturers.",
             "It is an economic condition, met in principle long before it is met in practice.",
-            "It would prevent any new equipment from ever being approved."
+            "It would prevent any new equipment from ever being approved at all."
           ],
           "answer": 2,
           "explanation": "The passage calls it \"an economic condition dressed as a sporting one\": on sale in theory, but allocated to sponsored athletes first \"in the season that matters\". That is option C."
@@ -94,9 +94,9 @@
           "type": "mcq",
           "question": "What does the writer say competitors are entitled to?",
           "options": [
-            "A rule based on a physiological measurement everyone accepts.",
-            "Compensation when equipment they have bought is banned.",
-            "Equipment supplied to every athlete by the governing body.",
+            "A rule based on a single physiological measurement that everyone already accepts as fair.",
+            "Compensation for athletes when the equipment they have already bought is banned.",
+            "Equipment supplied directly to every athlete by the sport's own governing body.",
             "Rules published in advance, applied to future competition, with the reasoning made public."
           ],
           "answer": 3,

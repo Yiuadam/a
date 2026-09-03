@@ -176,10 +176,10 @@
           "type": "mcq",
           "question": "What is the writer's point in the final paragraph?",
           "options": [
-            "Planners should stop measuring noise levels",
+            "Planners should stop measuring noise levels altogether",
             "Consultation may matter more to outcomes than small measured gains",
-            "Acoustic engineering has been shown to be ineffective",
-            "Politics should be kept out of technical decisions"
+            "Acoustic engineering has been shown to be largely ineffective here",
+            "Politics should be kept out of technical decisions entirely"
           ],
           "answer": 1,
           "explanation": "A three-decibel improvement imposed on people can annoy them more than a one-decibel one after real consultation — so consultation belongs inside the design, not before it."

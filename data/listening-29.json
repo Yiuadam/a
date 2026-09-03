@@ -11,45 +11,162 @@
     "Baz"
   ],
   "script": [
-    { "speaker": "Dr Nowak", "text": "So — the prototype. You tested it with how many people?" },
-    { "speaker": "Ines", "text": "Eight." },
-    { "speaker": "Baz", "text": "Eight, but two of them were sort of us." },
-    { "speaker": "Dr Nowak", "text": "Meaning what, exactly?" },
-    { "speaker": "Baz", "text": "Meaning they were people on our own course, and they knew what the site was for before they sat down at it." },
-    { "speaker": "Dr Nowak", "text": "Then you tested it with six. Write six. What task did you give them?" },
-    { "speaker": "Ines", "text": "\"Report a broken street light on Denby Road.\" We timed them from the home page." },
-    { "speaker": "Dr Nowak", "text": "Good task. It's specific, and it has an obvious end point. What happened?" },
-    { "speaker": "Ines", "text": "Four of the six couldn't work out where to start. They looked at the home page for — I've got the figure here — an average of fifty-one seconds before clicking on anything at all." },
-    { "speaker": "Dr Nowak", "text": "Fifty-one seconds is an age. What were they looking for?" },
-    { "speaker": "Baz", "text": "A button. Every one of them said afterwards that they were hunting for a big obvious button, and ours is a link in the menu called Submissions." },
-    { "speaker": "Ines", "text": "Which is a word nobody outside the project uses." },
-    { "speaker": "Dr Nowak", "text": "That's your finding, then, and it's a good one. What did you do about it?" },
-    { "speaker": "Baz", "text": "We changed it to \"Report a problem\" and made it a proper button." },
-    { "speaker": "Dr Nowak", "text": "Did you test it again?" },
-    { "speaker": "Baz", "text": "...No." },
-    { "speaker": "Dr Nowak", "text": "Then you don't know. You have a hypothesis, which is better than what you had before, but the difference between design and guessing is the second test. Put it in the plan." },
-    { "speaker": "Ines", "text": "There's an accessibility problem as well. The grey text on the white background is 3.1 to 1, and the standard is four and a half to one." },
-    { "speaker": "Dr Nowak", "text": "How did you find that out?" },
-    { "speaker": "Ines", "text": "A contrast checker. It flagged eleven elements." },
-    { "speaker": "Dr Nowak", "text": "That is the sort of finding I like, because it isn't a matter of opinion — it either passes or it doesn't. Fix all eleven and run the checker again. That one you don't need users for." },
-    { "speaker": "Baz", "text": "The form is the other thing. It has nine fields, and three of them are compulsory that really don't need to be." },
-    { "speaker": "Ines", "text": "The telephone number especially. Two people stopped completely at the telephone number and wouldn't go on." },
-    { "speaker": "Baz", "text": "One of them said — I wrote it down word for word — \"why does a street light need my phone number?\"" },
-    { "speaker": "Dr Nowak", "text": "That is the best sentence in your whole report. Put it in. A quotation like that does more work than a paragraph of your own prose, because nobody can argue with it." },
-    { "speaker": "Ines", "text": "So we make the telephone number optional." },
-    { "speaker": "Dr Nowak", "text": "Make it optional, and say beside it why you are asking. People will give you a number if they are told what it's for. They will not give it to a blank box." },
-    { "speaker": "Baz", "text": "On a phone, the map doesn't load at all below a certain screen width." },
-    { "speaker": "Dr Nowak", "text": "Does not load, or loads and can't be seen?" },
-    { "speaker": "Baz", "text": "Doesn't load. It's a script error." },
-    { "speaker": "Dr Nowak", "text": "Then that isn't a design finding, that's a bug, and it belongs in a different list. Don't mix them. A report that puts a crash next to \"the heading could be bigger\" makes both of them look equally serious, and neither gets taken seriously." },
-    { "speaker": "Ines", "text": "What should we fix first? We've only got three weeks." },
-    { "speaker": "Dr Nowak", "text": "In this order: the thing that stops people finishing the task at all, then the thing that shuts people out, then the thing that merely annoys them. So the button, then the contrast, then the form. The heading sizes can wait forever." },
-    { "speaker": "Baz", "text": "And the map?" },
-    { "speaker": "Dr Nowak", "text": "The bug is not a fix-first question at all. A bug is fixed when it is found. That's a completely different rule." },
-    { "speaker": "Ines", "text": "Do we need more participants for the second round?" },
-    { "speaker": "Dr Nowak", "text": "Six again is fine, but six different ones, and at least two of them should be people who don't use a computer every day. Your six were all twenty-year-olds studying computing. The people who actually report broken street lights are not." },
-    { "speaker": "Baz", "text": "That's going to be much harder to recruit." },
-    { "speaker": "Dr Nowak", "text": "It is. Ask at the community centre on Foxhall Street — they have helped three groups before you and they have never once said no." }
+    {
+      "speaker": "Dr Nowak",
+      "text": "So — the prototype. You tested it with how many people?"
+    },
+    {
+      "speaker": "Ines",
+      "text": "Eight."
+    },
+    {
+      "speaker": "Baz",
+      "text": "Eight, but two of them were sort of us."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Meaning what, exactly?"
+    },
+    {
+      "speaker": "Baz",
+      "text": "Meaning they were people on our own course, and they knew what the site was for before they sat down at it."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Then you tested it with six. Write six. What task did you give them?"
+    },
+    {
+      "speaker": "Ines",
+      "text": "\"Report a broken street light on Denby Road.\" We timed them from the home page."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Good task. It's specific, and it has an obvious end point. What happened?"
+    },
+    {
+      "speaker": "Ines",
+      "text": "Four of the six couldn't work out where to start. They looked at the home page for — I've got the figure here — an average of fifty-one seconds before clicking on anything at all."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Fifty-one seconds is an age. What were they looking for?"
+    },
+    {
+      "speaker": "Baz",
+      "text": "A button. Every one of them said afterwards that they were hunting for a big obvious button, and ours is a link in the menu called Submissions."
+    },
+    {
+      "speaker": "Ines",
+      "text": "Which is a word nobody outside the project uses."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "That's your finding, then, and it's a good one. What did you do about it?"
+    },
+    {
+      "speaker": "Baz",
+      "text": "We changed it to \"Report a problem\" and made it a proper button."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Did you test it again?"
+    },
+    {
+      "speaker": "Baz",
+      "text": "...No."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Then you don't know. You have a hypothesis, which is better than what you had before, but the difference between design and guessing is the second test. Put it in the plan."
+    },
+    {
+      "speaker": "Ines",
+      "text": "There's an accessibility problem as well. The grey text on the white background is 3.1 to 1, and the standard is four and a half to one."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "How did you find that out?"
+    },
+    {
+      "speaker": "Ines",
+      "text": "A contrast checker. It flagged eleven elements."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "That is the sort of finding I like, because it isn't a matter of opinion — it either passes or it doesn't. Fix all eleven and run the checker again. That one you don't need users for."
+    },
+    {
+      "speaker": "Baz",
+      "text": "The form is the other thing. It has nine fields, and three of them are compulsory that really don't need to be."
+    },
+    {
+      "speaker": "Ines",
+      "text": "The telephone number especially. Two people stopped completely at the telephone number and wouldn't go on."
+    },
+    {
+      "speaker": "Baz",
+      "text": "One of them said — I wrote it down word for word — \"why does a street light need my phone number?\""
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "That is the best sentence in your whole report. Put it in. A quotation like that does more work than a paragraph of your own prose, because nobody can argue with it."
+    },
+    {
+      "speaker": "Ines",
+      "text": "So we make the telephone number optional."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Make it optional, and say beside it why you are asking. People will give you a number if they are told what it's for. They will not give it to a blank box."
+    },
+    {
+      "speaker": "Baz",
+      "text": "On a phone, the map doesn't load at all below a certain screen width."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Does not load, or loads and can't be seen?"
+    },
+    {
+      "speaker": "Baz",
+      "text": "Doesn't load. It's a script error."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Then that isn't a design finding, that's a bug, and it belongs in a different list. Don't mix them. A report that puts a crash next to \"the heading could be bigger\" makes both of them look equally serious, and neither gets taken seriously."
+    },
+    {
+      "speaker": "Ines",
+      "text": "What should we fix first? We've only got three weeks."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "In this order: the thing that stops people finishing the task at all, then the thing that shuts people out, then the thing that merely annoys them. So the button, then the contrast, then the form. The heading sizes can wait forever."
+    },
+    {
+      "speaker": "Baz",
+      "text": "And the map?"
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "The bug is not a fix-first question at all. A bug is fixed when it is found. That's a completely different rule."
+    },
+    {
+      "speaker": "Ines",
+      "text": "Do we need more participants for the second round?"
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Six again is fine, but six different ones, and at least two of them should be people who don't use a computer every day. Your six were all twenty-year-olds studying computing. The people who actually report broken street lights are not."
+    },
+    {
+      "speaker": "Baz",
+      "text": "That's going to be much harder to recruit."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "It is. Ask at the community centre on Foxhall Street — they have helped three groups before you and they have never once said no."
+    }
   ],
   "questions": [
     {
@@ -84,9 +201,9 @@
           "type": "mcq",
           "question": "What does Dr Nowak say about the map not loading?",
           "options": [
-            "it should be fixed after the form",
+            "it should be fixed straight after the form is done",
             "it should be listed as a bug rather than a design finding",
-            "it is caused by the screen width setting"
+            "it is caused by the width setting of the screen used"
           ],
           "answer": 1,
           "explanation": "\"That isn't a design finding, that's a bug, and it belongs in a different list,\" because mixing the two makes both look equally serious."
@@ -96,8 +213,8 @@
           "type": "mcq",
           "question": "What does Dr Nowak recommend for the second round of testing?",
           "options": [
-            "using the same six participants again",
-            "increasing the number of participants to eight",
+            "using the same six participants again next time",
+            "increasing the number of participants from six to eight",
             "including people who are less confident with computers"
           ],
           "answer": 2,

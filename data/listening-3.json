@@ -229,10 +229,10 @@
           "type": "mcq",
           "question": "Why does the officer recommend a half plot?",
           "options": [
-            "It is the only size available",
+            "It is the only size the site has available",
             "Beginners often find a full plot too much work",
-            "The soil is better on half plots",
-            "Full plots cost more to insure"
+            "The soil is a good deal better on half plots",
+            "Full plots cost rather more to insure each year"
           ],
           "answer": 1,
           "explanation": "\"People take a full one, get overwhelmed by the digging, and give it up within a year.\" The reason is the workload, and the officer never says a half plot is the only size."
@@ -242,10 +242,10 @@
           "type": "mcq",
           "question": "What must the caller supply herself?",
           "options": [
-            "Tools",
-            "Compost",
+            "A set of hand tools",
+            "A bag of compost",
             "A lock for the gate",
-            "Water containers"
+            "Two water containers"
           ],
           "answer": 2,
           "explanation": "Tools are in the communal shed, compost is supplied twice a year and water comes from standpipes. Only the gate lock is the tenant's responsibility."

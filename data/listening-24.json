@@ -9,21 +9,66 @@
     "Station Manager"
   ],
   "script": [
-    { "speaker": "Station Manager", "text": "Good morning everyone, and thank you for your patience. My name's Rob and I'm the duty manager here at Marchford. I'd like to explain what's happening this weekend, because I know the signs on the concourse aren't as clear as they should be." },
-    { "speaker": "Station Manager", "text": "From Friday evening until Monday morning, there will be no trains at all between Marchford and Kelby. Engineers are replacing a bridge just outside Kelby, and that work simply cannot be done with trains running over the top of it." },
-    { "speaker": "Station Manager", "text": "If you're travelling north — towards Whitton and beyond — your train will run completely as normal from Kelby onwards. It's only the eight miles between here and Kelby that are affected." },
-    { "speaker": "Station Manager", "text": "We're running replacement buses instead. They leave from Stand C, which is not on the station forecourt where you would expect it to be. It's around the corner on Argyle Street, next to the taxi rank." },
-    { "speaker": "Station Manager", "text": "There'll be staff in orange jackets pointing the way, and honestly, please follow them rather than the map on the poster. The poster is out of date and it shows the old stand." },
-    { "speaker": "Station Manager", "text": "The buses run every twenty minutes, and the journey takes about thirty-five minutes, compared with fourteen minutes by train. So please allow yourself an extra half an hour, and if you're catching a flight or a coach at the other end, allow a full hour." },
-    { "speaker": "Station Manager", "text": "Now, two things people always ask me. First, your ordinary ticket is valid on the bus. You don't need to buy anything extra and you don't need to show anything special — just the ticket you already have." },
-    { "speaker": "Station Manager", "text": "Second, refunds. If the delay to your whole journey ends up being more than fifteen minutes, you can claim under the delay repay scheme, and you do that on the website rather than here. We genuinely can't process those at the ticket office, and I'm sorry, because I know that's what everybody would prefer." },
-    { "speaker": "Station Manager", "text": "The buses are not all the same, and this matters to some of you. Most of them are ordinary coaches with steps up into them, but there are two accessible buses with a ramp, and those run at ten past and twenty to the hour." },
-    { "speaker": "Station Manager", "text": "If you use a wheelchair, or you're travelling with a pushchair, please come and speak to the staff in orange and they'll make sure you get one of those, rather than leaving you standing in the general queue." },
-    { "speaker": "Station Manager", "text": "Bicycles are the one thing we can't take, I'm afraid. There's simply no room in the luggage compartment once it's full of suitcases. If you've cycled here, you can leave your bike in the racks by the side entrance, and there's no charge for that." },
-    { "speaker": "Station Manager", "text": "The last bus on both Saturday and Sunday leaves rather earlier in the evening than the last train normally does. So if you're going out for the evening, please check the time before you go rather than afterwards." },
-    { "speaker": "Station Manager", "text": "There's also a free hot drink for anyone travelling on the replacement buses this weekend. The café by platform two is doing them — just say you're on the bus service and they'll sort you out." },
-    { "speaker": "Station Manager", "text": "And finally, if you want the times on your phone, use the station app rather than the website this weekend. The website is still showing the normal Sunday timetable, which is wrong. We've reported it, but until it's fixed, please trust the app." },
-    { "speaker": "Station Manager", "text": "That's everything from me. If you're at all unsure, ask me or anyone in an orange jacket. We would far rather answer the same question forty times than have somebody miss a connection." }
+    {
+      "speaker": "Station Manager",
+      "text": "Good morning everyone, and thank you for your patience. My name's Rob and I'm the duty manager here at Marchford. I'd like to explain what's happening this weekend, because I know the signs on the concourse aren't as clear as they should be."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "From Friday evening until Monday morning, there will be no trains at all between Marchford and Kelby. Engineers are replacing a bridge just outside Kelby, and that work simply cannot be done with trains running over the top of it."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "If you're travelling north — towards Whitton and beyond — your train will run completely as normal from Kelby onwards. It's only the eight miles between here and Kelby that are affected."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "We're running replacement buses instead. They leave from Stand C, which is not on the station forecourt where you would expect it to be. It's around the corner on Argyle Street, next to the taxi rank."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "There'll be staff in orange jackets pointing the way, and honestly, please follow them rather than the map on the poster. The poster is out of date and it shows the old stand."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "The buses run every twenty minutes, and the journey takes about thirty-five minutes, compared with fourteen minutes by train. So please allow yourself an extra half an hour, and if you're catching a flight or a coach at the other end, allow a full hour."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "Now, two things people always ask me. First, your ordinary ticket is valid on the bus. You don't need to buy anything extra and you don't need to show anything special — just the ticket you already have."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "Second, refunds. If the delay to your whole journey ends up being more than fifteen minutes, you can claim under the delay repay scheme, and you do that on the website rather than here. We genuinely can't process those at the ticket office, and I'm sorry, because I know that's what everybody would prefer."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "The buses are not all the same, and this matters to some of you. Most of them are ordinary coaches with steps up into them, but there are two accessible buses with a ramp, and those run at ten past and twenty to the hour."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "If you use a wheelchair, or you're travelling with a pushchair, please come and speak to the staff in orange and they'll make sure you get one of those, rather than leaving you standing in the general queue."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "Bicycles are the one thing we can't take, I'm afraid. There's simply no room in the luggage compartment once it's full of suitcases. If you've cycled here, you can leave your bike in the racks by the side entrance, and there's no charge for that."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "The last bus on both Saturday and Sunday leaves rather earlier in the evening than the last train normally does. So if you're going out for the evening, please check the time before you go rather than afterwards."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "There's also a free hot drink for anyone travelling on the replacement buses this weekend. The café by platform two is doing them — just say you're on the bus service and they'll sort you out."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "And finally, if you want the times on your phone, use the station app rather than the website this weekend. The website is still showing the normal Sunday timetable, which is wrong. We've reported it, but until it's fixed, please trust the app."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "That's everything from me. If you're at all unsure, ask me or anyone in an orange jacket. We would far rather answer the same question forty times than have somebody miss a connection."
+    }
   ],
   "questions": [
     {
@@ -87,9 +132,9 @@
           "type": "mcq",
           "question": "What does the manager say about the map on the poster?",
           "options": [
-            "it shows the correct stand",
+            "it shows the right stand",
             "it is out of date",
-            "it will be replaced on Friday"
+            "it will be replaced"
           ],
           "answer": 1,
           "explanation": "He tells passengers to follow the staff \"rather than the map on the poster. The poster is out of date and it shows the old stand.\""

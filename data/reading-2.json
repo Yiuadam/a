@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "Why, according to the passage, did Clark and Chalmers regard Otto's notebook as part of his mind?",
           "options": [
-            "Because Otto's Alzheimer's disease means he has no biological memory at all.",
-            "Because the notebook stores information more accurately than any human memory could.",
+            "Because Otto's Alzheimer's disease has left him without any functioning biological memory of his own.",
+            "Because the notebook stores the information he needs far more accurately and far more durably than memory does.",
             "Because it is reliably available, trusted and fluently used, fulfilling the role biological memory usually plays.",
-            "Because writing the address down helps Otto commit it to memory over time."
+            "Because the act of writing the address down helps Otto commit it to his own memory over the weeks after."
           ],
           "answer": 2,
           "explanation": "The reason given is that the notebook is \"constantly available, automatically trusted and fluently consulted\". The other options add claims the passage never makes."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "What does the passage say about the phrase 'digital amnesia'?",
           "options": [
-            "It was introduced by Sparrow to summarise the results of her experiments.",
+            "It was introduced by Sparrow herself to summarise the results of her experiments.",
             "It originated in industry-sponsored surveys rather than in academic research.",
-            "It describes a condition that longitudinal studies have now confirmed.",
-            "It refers to the failure of computers to store information permanently."
+            "It describes a condition that later longitudinal studies have now confirmed.",
+            "It refers to the failure of computers to store information permanently over time."
           ],
           "answer": 1,
           "explanation": "The phrase was \"coined in a series of industry-sponsored surveys\" — the passage explicitly separates it from academic research."
@@ -81,10 +81,10 @@
           "type": "mcq",
           "question": "The example of students photographing lecture slides is used to illustrate",
           "options": [
-            "the way external reminders improve the fulfilment of future intentions.",
+            "the way in which external reminders improve the fulfilment of intentions formed earlier.",
             "how a distorted judgement of one's own knowledge can lead people to offload too readily.",
-            "the benefits of releasing working memory capacity for reasoning.",
-            "students' unwillingness to place their trust in external memory aids."
+            "the benefits that come from releasing working memory capacity for harder reasoning.",
+            "students' general unwillingness to place any trust at all in external memory aids."
           ],
           "answer": 1,
           "explanation": "The example appears in the paragraph on metacognition, illustrating people who offload too readily: \"secure in possession, never revisit them\"."

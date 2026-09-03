@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "According to the passage, what was the main weakness of an open flame as a warning light?",
           "options": [
-            "It produced too little light to be useful.",
+            "It produced too little light to be of any real use to a ship.",
             "Its light was sent in all directions rather than towards ships.",
-            "It required more fuel than later lamps.",
-            "It could not be seen during daylight hours."
+            "It required a great deal more fuel than the lamps that followed.",
+            "It could not be seen at any distance during the hours of daylight."
           ],
           "answer": 1,
           "explanation": "The passage states the problem directly: \"The problem was not the amount of light produced but the failure to direct it where it was needed.\" It rules out the \"too little light\" option in the same sentence."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "Why did Fresnel use concentric glass rings rather than a single block of glass?",
           "options": [
-            "Rings were cheaper to manufacture.",
+            "Rings were a good deal cheaper for a workshop to manufacture.",
             "A single block would have been too heavy and likely to crack.",
-            "Rings could be coloured to identify each lighthouse.",
-            "A single block could not be polished properly."
+            "Rings could be coloured so that each lighthouse was identifiable.",
+            "A single block of glass could not be polished accurately enough."
           ],
           "answer": 1,
           "explanation": "A single block \"would have been impossibly heavy and prone to cracking\". Cost and colour are never mentioned as reasons."
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "What is suggested about the future of lighthouses in the final paragraph?",
           "options": [
-            "They will soon be dismantled everywhere.",
+            "They will be dismantled almost everywhere within a few years.",
             "They are being kept as a backup in case electronic systems fail.",
-            "They are more accurate than satellite navigation.",
-            "They are no longer maintained by any authority."
+            "They are considerably more accurate than any satellite system is.",
+            "They are no longer maintained by any authority anywhere at all."
           ],
           "answer": 1,
           "explanation": "\"Many authorities have chosen to maintain their lighthouses as a reliable fallback rather than dismantle them.\" The passage says satellite navigation is more precise, so the option claiming the opposite is wrong."

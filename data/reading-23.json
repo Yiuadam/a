@@ -93,9 +93,9 @@
           "question": "What was the advantage of the tower mill over the post mill?",
           "options": [
             "Only the top of the building had to turn, so the walls could be built of stone.",
-            "It did not need any wind to work.",
-            "It could grind grain and pump water at the same time.",
-            "It was easier to move to a different village."
+            "It did not need any wind at all to work.",
+            "It could grind grain and pump water out of the surrounding fields at the very same time.",
+            "It was a great deal easier to move to a different village."
           ],
           "answer": 0,
           "explanation": "The passage says that in the tower mill \"only the cap at the top turns, so the heavy walls can be built of brick or stone\". That is option A."
@@ -118,10 +118,10 @@
           "type": "mcq",
           "question": "What problem is created by building turbines in the windiest places?",
           "options": [
-            "The wind there changes direction too often.",
-            "The machines cannot be built tall enough there.",
+            "The wind there changes direction far too often.",
+            "The machines simply cannot be built tall enough in those places.",
             "Those places are far from cities, so long cables are needed.",
-            "Farmers there refuse to sell their land."
+            "The farmers there refuse to sell any of their land."
           ],
           "answer": 2,
           "explanation": "The passage says the windiest places \"are far from the cities that use the electricity, so long cables have to be built, and a little of the power is lost on the way\". That is option C."
@@ -131,10 +131,10 @@
           "type": "mcq",
           "question": "What does the writer say about villages in the past?",
           "options": [
-            "They were the first places to use electricity.",
+            "They were the first places anywhere to use electricity.",
             "They also argued about windmills and the wind above their fields.",
-            "They preferred animals to machines for grinding grain.",
-            "They built mills only near rivers."
+            "They preferred to use animals rather than machines for the grinding of grain.",
+            "They built their mills only near rivers."
           ],
           "answer": 1,
           "explanation": "The last paragraph says villages \"argued about them too, about who owned the wind above a field\", which is option B. The point is that objections to wind machines are not new."

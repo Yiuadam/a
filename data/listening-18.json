@@ -11,33 +11,114 @@
     "Callum"
   ],
   "script": [
-    { "speaker": "Dr Fenwick", "text": "Thanks for coming in together. Since you're both looking at consumer behaviour this year, I thought it made sense to talk topics at the same time. Ruth, do you want to go first?" },
-    { "speaker": "Ruth", "text": "Sure. I was originally planning to look at how supermarket loyalty cards affect spending habits generally, but the more reading I do, the more I think that's too broad for a dissertation of this length." },
-    { "speaker": "Dr Fenwick", "text": "I'd agree with that instinct. What's a narrower angle you could take?" },
-    { "speaker": "Ruth", "text": "Maybe just focusing on one age group — say, whether loyalty schemes influence spending differently among students compared with older shoppers." },
-    { "speaker": "Dr Fenwick", "text": "That's much more manageable. Although, thinking about it, comparing two groups means recruiting two separate samples, which is a lot of extra work for a dissertation on this timeline. What if you focused on just one group in depth instead?" },
-    { "speaker": "Ruth", "text": "That would make sense. I'll focus purely on students, then, and go deeper rather than wider." },
-    { "speaker": "Dr Fenwick", "text": "Good, that's settled. So the final topic is loyalty scheme influence on student spending specifically, not a comparison across ages." },
-    { "speaker": "Ruth", "text": "Yes, that feels much more realistic now." },
-    { "speaker": "Dr Fenwick", "text": "Callum, what have you got?" },
-    { "speaker": "Callum", "text": "I'm interested in online reviews, and how much people trust them. Originally I wanted to look at reviews across several different product categories — electronics, restaurants, clothing." },
-    { "speaker": "Dr Fenwick", "text": "Again, that sounds like three studies squeezed into one. Is there a category you find more interesting than the others?" },
-    { "speaker": "Callum", "text": "Restaurants, definitely. I keep coming back to that in my reading anyway." },
-    { "speaker": "Dr Fenwick", "text": "Then let's narrow it there. Restaurant reviews specifically — that gives you a single, well-defined context." },
-    { "speaker": "Callum", "text": "Okay. Should I look at trust in reviews generally, or something more specific within that?" },
-    { "speaker": "Dr Fenwick", "text": "What's driving your interest — is it the star rating, the written comments, or something else?" },
-    { "speaker": "Callum", "text": "Honestly, it's the written comments. I think people trust a detailed written comment more than a star rating on its own." },
-    { "speaker": "Dr Fenwick", "text": "That's actually a nicely testable claim. So your final topic could be how the presence of a detailed written comment affects trust in restaurant reviews, rather than trust in reviews generally." },
-    { "speaker": "Callum", "text": "Yes, I like that, it's specific enough to actually answer." },
-    { "speaker": "Dr Fenwick", "text": "Good. Now, both of you will need to think about method. Ruth, were you planning a survey, or interviews?" },
-    { "speaker": "Ruth", "text": "I was leaning towards interviews, to get richer detail, but given the numbers I'd need for a solid dissertation, I think a survey makes more sense here." },
-    { "speaker": "Dr Fenwick", "text": "Agreed, a survey suits a topic like yours much better than interviews would." },
-    { "speaker": "Callum", "text": "What about me? I was thinking a survey too, but now that I think about it, maybe a small experiment would work better, showing people the same restaurant with and without a detailed comment." },
-    { "speaker": "Dr Fenwick", "text": "That's a strong idea, actually — an experiment would let you isolate the effect much more clearly than a survey could. Let's go with that." },
-    { "speaker": "Callum", "text": "Great, I'll start designing it this week." },
-    { "speaker": "Dr Fenwick", "text": "One last thing for both of you — please send me a one-page outline by the end of next week, so I can check the scope is realistic before you start collecting any data." },
-    { "speaker": "Ruth", "text": "Will do, thank you." },
-    { "speaker": "Callum", "text": "Same here, thanks for the help narrowing this down." }
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Thanks for coming in together. Since you're both looking at consumer behaviour this year, I thought it made sense to talk topics at the same time. Ruth, do you want to go first?"
+    },
+    {
+      "speaker": "Ruth",
+      "text": "Sure. I was originally planning to look at how supermarket loyalty cards affect spending habits generally, but the more reading I do, the more I think that's too broad for a dissertation of this length."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "I'd agree with that instinct. What's a narrower angle you could take?"
+    },
+    {
+      "speaker": "Ruth",
+      "text": "Maybe just focusing on one age group — say, whether loyalty schemes influence spending differently among students compared with older shoppers."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "That's much more manageable. Although, thinking about it, comparing two groups means recruiting two separate samples, which is a lot of extra work for a dissertation on this timeline. What if you focused on just one group in depth instead?"
+    },
+    {
+      "speaker": "Ruth",
+      "text": "That would make sense. I'll focus purely on students, then, and go deeper rather than wider."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Good, that's settled. So the final topic is loyalty scheme influence on student spending specifically, not a comparison across ages."
+    },
+    {
+      "speaker": "Ruth",
+      "text": "Yes, that feels much more realistic now."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Callum, what have you got?"
+    },
+    {
+      "speaker": "Callum",
+      "text": "I'm interested in online reviews, and how much people trust them. Originally I wanted to look at reviews across several different product categories — electronics, restaurants, clothing."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Again, that sounds like three studies squeezed into one. Is there a category you find more interesting than the others?"
+    },
+    {
+      "speaker": "Callum",
+      "text": "Restaurants, definitely. I keep coming back to that in my reading anyway."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Then let's narrow it there. Restaurant reviews specifically — that gives you a single, well-defined context."
+    },
+    {
+      "speaker": "Callum",
+      "text": "Okay. Should I look at trust in reviews generally, or something more specific within that?"
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "What's driving your interest — is it the star rating, the written comments, or something else?"
+    },
+    {
+      "speaker": "Callum",
+      "text": "Honestly, it's the written comments. I think people trust a detailed written comment more than a star rating on its own."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "That's actually a nicely testable claim. So your final topic could be how the presence of a detailed written comment affects trust in restaurant reviews, rather than trust in reviews generally."
+    },
+    {
+      "speaker": "Callum",
+      "text": "Yes, I like that, it's specific enough to actually answer."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Good. Now, both of you will need to think about method. Ruth, were you planning a survey, or interviews?"
+    },
+    {
+      "speaker": "Ruth",
+      "text": "I was leaning towards interviews, to get richer detail, but given the numbers I'd need for a solid dissertation, I think a survey makes more sense here."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "Agreed, a survey suits a topic like yours much better than interviews would."
+    },
+    {
+      "speaker": "Callum",
+      "text": "What about me? I was thinking a survey too, but now that I think about it, maybe a small experiment would work better, showing people the same restaurant with and without a detailed comment."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "That's a strong idea, actually — an experiment would let you isolate the effect much more clearly than a survey could. Let's go with that."
+    },
+    {
+      "speaker": "Callum",
+      "text": "Great, I'll start designing it this week."
+    },
+    {
+      "speaker": "Dr Fenwick",
+      "text": "One last thing for both of you — please send me a one-page outline by the end of next week, so I can check the scope is realistic before you start collecting any data."
+    },
+    {
+      "speaker": "Ruth",
+      "text": "Will do, thank you."
+    },
+    {
+      "speaker": "Callum",
+      "text": "Same here, thanks for the help narrowing this down."
+    }
   ],
   "questions": [
     {
@@ -109,9 +190,9 @@
           "type": "mcq",
           "question": "Why does Dr Fenwick advise against Ruth comparing two age groups?",
           "options": [
-            "older shoppers are hard to recruit",
+            "older shoppers are much harder to recruit for a study of this kind",
             "it requires recruiting two separate samples, adding too much work",
-            "loyalty schemes do not apply to older shoppers"
+            "loyalty schemes do not apply to older shoppers in the same way"
           ],
           "answer": 1,
           "explanation": "Dr Fenwick points out that \"comparing two groups means recruiting two separate samples, which is a lot of extra work for a dissertation on this timeline.\""
@@ -121,9 +202,9 @@
           "type": "mcq",
           "question": "Why does Callum choose restaurants over the other product categories?",
           "options": [
-            "restaurants are easier to survey",
+            "restaurants are a good deal easier to survey",
             "he keeps returning to that category in his reading",
-            "Dr Fenwick suggests it directly"
+            "Dr Fenwick suggests that category directly"
           ],
           "answer": 1,
           "explanation": "Callum explains, \"I keep coming back to that in my reading anyway,\" which is his own reason for narrowing to restaurants, not a suggestion from his supervisor."

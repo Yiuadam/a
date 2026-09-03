@@ -130,9 +130,9 @@
           "type": "mcq",
           "question": "What does Dr Hale say is the main weakness of the group's proposal?",
           "options": [
-            "It relies on figures the council will not release.",
+            "It relies on figures the council will not give out.",
             "It tries to cover too large an area.",
-            "It repeats a study that has already been published."
+            "It repeats a study already published."
           ],
           "answer": 1,
           "explanation": "Marcus raises the council data and Dr Hale dismisses it — \"they will, in fact\". The objection is scale: \"the city centre is nineteen streets... you'd need something like thirty observers\". The problem a student names is not always the one the tutor has."

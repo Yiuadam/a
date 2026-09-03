@@ -9,18 +9,54 @@
     "Lecturer"
   ],
   "script": [
-    { "speaker": "Lecturer", "text": "Good morning, everyone. Today I want to talk about a trend that's grown enormously over the last twenty years: urban beekeeping, or keeping honeybee colonies within cities rather than in the countryside." },
-    { "speaker": "Lecturer", "text": "Historically, beekeeping was seen as a rural activity, something you'd associate with orchards and farmland, not rooftops and balconies. But that picture has changed dramatically. In many major cities, the number of registered hives has more than tripled since the year two thousand." },
-    { "speaker": "Lecturer", "text": "So why did beekeeping move into cities at all? The first driver was, perhaps surprisingly, food availability. Researchers found that urban parks, gardens and even roadside verges often provide a greater variety of flowering plants across more months of the year than intensively farmed countryside, where a single crop can dominate for miles." },
-    { "speaker": "Lecturer", "text": "A second driver was public concern about declining bee populations generally. As stories about colony collapse spread through the media, city dwellers wanted to do something practical, and keeping a hive on a rooftop felt like a direct, visible response." },
-    { "speaker": "Lecturer", "text": "Now, it would be easy to assume this trend is entirely positive, but the research is more complicated than that, and this is really the core of today's lecture." },
-    { "speaker": "Lecturer", "text": "The first issue is density. Unlike wild bees, honeybees are managed in colonies that can number in the tens of thousands, and when too many hives are placed close together in a small area, they end up competing for the same limited flowers. Some studies suggest this competition can actually harm wild, solitary bee species, which cannot travel as far to find food." },
-    { "speaker": "Lecturer", "text": "The second issue is disease. Hives kept close together in cities can spread parasites and infections more easily than scattered rural hives, and inexperienced hobbyist keepers sometimes fail to notice the early signs of a sick colony until it's too late." },
-    { "speaker": "Lecturer", "text": "A third, less obvious issue is data. Because urban beekeeping is often unregulated, or only loosely regulated, in many cities nobody actually knows the true number of hives in a given area, which makes it very difficult for scientists to study the effects properly." },
-    { "speaker": "Lecturer", "text": "So what's the way forward? Several city councils have started requiring hive registration, not to restrict beekeeping, but simply to build an accurate picture of hive density, so that new applicants can be advised against overcrowding a particular neighbourhood." },
-    { "speaker": "Lecturer", "text": "Alongside registration, some cities are now promoting what's called pollinator planting — deliberately planting a wider range of flowering species in public spaces, which benefits both managed honeybees and the wild species that were there long before them." },
-    { "speaker": "Lecturer", "text": "To summarise, then, urban beekeeping began as a well-meaning response to a genuine ecological worry, but its rapid, largely unregulated growth has created a new set of problems that cities are only now beginning to address through registration and better planting." },
-    { "speaker": "Lecturer", "text": "Next week, we'll look at one particular case study in more detail, a city that reduced hive-related complaints by forty per cent after introducing a licensing scheme. Please read the linked case study before then." }
+    {
+      "speaker": "Lecturer",
+      "text": "Good morning, everyone. Today I want to talk about a trend that's grown enormously over the last twenty years: urban beekeeping, or keeping honeybee colonies within cities rather than in the countryside."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Historically, beekeeping was seen as a rural activity, something you'd associate with orchards and farmland, not rooftops and balconies. But that picture has changed dramatically. In many major cities, the number of registered hives has more than tripled since the year two thousand."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "So why did beekeeping move into cities at all? The first driver was, perhaps surprisingly, food availability. Researchers found that urban parks, gardens and even roadside verges often provide a greater variety of flowering plants across more months of the year than intensively farmed countryside, where a single crop can dominate for miles."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "A second driver was public concern about declining bee populations generally. As stories about colony collapse spread through the media, city dwellers wanted to do something practical, and keeping a hive on a rooftop felt like a direct, visible response."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Now, it would be easy to assume this trend is entirely positive, but the research is more complicated than that, and this is really the core of today's lecture."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "The first issue is density. Unlike wild bees, honeybees are managed in colonies that can number in the tens of thousands, and when too many hives are placed close together in a small area, they end up competing for the same limited flowers. Some studies suggest this competition can actually harm wild, solitary bee species, which cannot travel as far to find food."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "The second issue is disease. Hives kept close together in cities can spread parasites and infections more easily than scattered rural hives, and inexperienced hobbyist keepers sometimes fail to notice the early signs of a sick colony until it's too late."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "A third, less obvious issue is data. Because urban beekeeping is often unregulated, or only loosely regulated, in many cities nobody actually knows the true number of hives in a given area, which makes it very difficult for scientists to study the effects properly."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "So what's the way forward? Several city councils have started requiring hive registration, not to restrict beekeeping, but simply to build an accurate picture of hive density, so that new applicants can be advised against overcrowding a particular neighbourhood."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Alongside registration, some cities are now promoting what's called pollinator planting — deliberately planting a wider range of flowering species in public spaces, which benefits both managed honeybees and the wild species that were there long before them."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "To summarise, then, urban beekeeping began as a well-meaning response to a genuine ecological worry, but its rapid, largely unregulated growth has created a new set of problems that cities are only now beginning to address through registration and better planting."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "Next week, we'll look at one particular case study in more detail, a city that reduced hive-related complaints by forty per cent after introducing a licensing scheme. Please read the linked case study before then."
+    }
   ],
   "questions": [
     {
@@ -92,9 +128,9 @@
           "type": "mcq",
           "question": "Why are some city councils now requiring hive registration?",
           "options": [
-            "to restrict how many people can keep bees",
+            "to restrict how many people are allowed to keep bees",
             "to build an accurate picture of hive density",
-            "to charge a fee for each hive"
+            "to charge a yearly fee for each hive kept"
           ],
           "answer": 1,
           "explanation": "The lecturer states registration is not meant to restrict beekeeping but \"simply to build an accurate picture of hive density,\" ruling out restriction or fees."
@@ -105,8 +141,8 @@
           "question": "What is 'pollinator planting', as described in the lecture?",
           "options": [
             "planting a wider range of flowering species in public spaces",
-            "moving hives out of city centres",
-            "training new beekeepers before they get a licence"
+            "moving all the hives out of the city centres",
+            "training new beekeepers before they are given a licence"
           ],
           "answer": 0,
           "explanation": "It is defined directly as \"deliberately planting a wider range of flowering species in public spaces,\" benefiting both managed and wild bees."
@@ -116,9 +152,9 @@
           "type": "mcq",
           "question": "What will next week's lecture focus on?",
           "options": [
-            "the history of rural beekeeping",
+            "the history of beekeeping in the rural districts nearby today",
             "a city that reduced complaints through a licensing scheme",
-            "how to identify a sick bee colony"
+            "how to identify a sick colony of bees in late summer"
           ],
           "answer": 1,
           "explanation": "The lecturer closes by previewing \"a city that reduced hive-related complaints by forty per cent after introducing a licensing scheme.\""

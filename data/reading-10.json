@@ -146,10 +146,10 @@
           "type": "mcq",
           "question": "What does the writer say journals have started to do?",
           "options": [
-            "Reject trials that report averages",
+            "Reject any trial that reports only averages",
             "Ask for the distribution of responses",
-            "Require larger sample sizes",
-            "Publish raw patient data"
+            "Require substantially larger sample sizes",
+            "Publish the raw patient data in full"
           ],
           "answer": 1,
           "explanation": "“Reporting the distribution rather than the mean would distinguish them, and journals have begun, slowly, to ask for it.”"
@@ -159,10 +159,10 @@
           "type": "mcq",
           "question": "What qualification does the writer add in the final paragraph?",
           "options": [
-            "Averages are of little value in any field",
+            "Averages are of very little value in any field of study at all",
             "The error is specifically about designing for individuals",
-            "Daniels's study has since been disproved",
-            "Statistics should be left to specialists"
+            "Daniels's study has since been disproved by later work",
+            "Statistics should be left entirely to the specialists"
           ],
           "answer": 1,
           "explanation": "Averages are “indispensable for describing populations”; the narrow error is “designing for an individual by using a statistic that describes a group”."

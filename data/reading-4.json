@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "What does the writer identify as the central peculiarity of rationing by queue?",
           "options": [
-            "It favours the wealthy",
+            "It favours the wealthy over everybody else",
             "The resource used to ration demand is destroyed",
-            "It cannot handle large crowds",
-            "It requires official supervision"
+            "It cannot cope with unusually large crowds",
+            "It requires constant supervision by paid officials"
           ],
           "answer": 1,
           "explanation": "\"A queue is a peculiar mechanism in which the resource used to ration demand vanishes rather than accruing to anyone.\" That destruction is the peculiarity the writer identifies."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "The main weakness the writer concedes in the distributional defence of queues is that",
           "options": [
-            "queues are unpopular",
+            "queues are unpopular with almost everyone",
             "an hour is not equally costly to everyone",
-            "the wealthy queue more often",
-            "waiting cannot be measured"
+            "the wealthy tend to queue rather more often",
+            "waiting time cannot be measured at all"
           ],
           "answer": 1,
           "explanation": "The writer names the weakness directly: \"the value of an hour varies enormously between a retired person and a parent working two jobs\"."
@@ -81,10 +81,10 @@
           "type": "mcq",
           "question": "What do professional queuing and ticket resale have in common, according to the passage?",
           "options": [
-            "They are both illegal",
+            "They are both illegal in most places today",
             "They both bring price back into the allocation",
-            "They both shorten queues overall",
-            "They both rely on new technology"
+            "They both shorten the overall length of queues",
+            "They both rely on relatively new technology"
           ],
           "answer": 1,
           "explanation": "\"Each of these developments quietly reintroduces the price mechanism the queue was meant to displace.\""
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "The writer's overall position is that queues are",
           "options": [
-            "an inefficient system that markets should replace",
+            "an inefficient system that markets ought in the end to replace",
             "a separate allocation system reflecting judgements about the good",
-            "a temporary response to shortage",
-            "chiefly a psychological problem"
+            "a temporary response to a shortage that will pass of its own accord",
+            "chiefly a psychological problem rather than an economic one at all"
           ],
           "answer": 1,
           "explanation": "The final paragraph calls the queue \"a distinct allocation system with its own logic\" and says \"each rule expresses a judgement about what the good is for\"."

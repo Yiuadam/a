@@ -78,10 +78,10 @@
           "type": "mcq",
           "question": "What does 'combinatorial coding' mean, as the passage describes it?",
           "options": [
-            "Each odorous molecule activates one receptor type reserved for it.",
+            "Each odorous molecule activates one receptor type that is reserved for it.",
             "An odour is identified by the profile of activation across many receptor types.",
-            "Receptors combine chemically with the molecules they detect and are used up.",
-            "Several odours must be present together before any can be detected."
+            "Receptors combine chemically with the molecules they detect and are then used up.",
+            "Several odours must be present together before any one of them can be detected."
           ],
           "answer": 1,
           "explanation": "Paragraph B says \"no molecule has a receptor of its own\" and that \"identity is carried by the pattern rather than by any one channel\". That is option B, and option A states exactly what the passage denies."
@@ -91,10 +91,10 @@
           "type": "mcq",
           "question": "What is the writer's position on the claim that smell has a privileged route to memory?",
           "options": [
-            "The anatomy is disputed and the claim is therefore false.",
+            "The anatomy is disputed, and the claim built on it is therefore false.",
             "The anatomy is correct, but the conclusion drawn from it outruns mixed evidence.",
-            "The claim is fully supported by laboratory comparisons with photographs.",
-            "The claim matters less than the question of how odours are named."
+            "The claim is fully supported by laboratory comparisons with photographs of scenes.",
+            "The claim matters a good deal less than the question of how odours are named."
           ],
           "answer": 1,
           "explanation": "Paragraph C says \"the anatomy is not in dispute\" while the inference is \"looser than its popularity suggests\", and reports mixed results. That is option B; the writer rejects the inference, not the anatomy."
@@ -117,10 +117,10 @@
           "type": "mcq",
           "question": "Why does the passage say loss of smell is often not recognised?",
           "options": [
-            "Because it usually returns without treatment within a few weeks.",
+            "Because it usually returns without any treatment within a few weeks.",
             "Because it has no visible sign and sufferers describe it as a problem with taste.",
-            "Because the tests required are expensive and rarely available.",
-            "Because those affected are unwilling to discuss it with their families."
+            "Because the tests that are required are expensive and rarely available.",
+            "Because those affected are unwilling to discuss it even with their own families."
           ],
           "answer": 1,
           "explanation": "Paragraph F gives two reasons: \"there is no visible sign of the condition\" and those affected \"commonly describe the problem as one of taste, which sends them to the wrong specialist\". That is option B."

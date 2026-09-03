@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "What is the 'urban canyon effect' as described in the passage?",
           "options": [
-            "Heat escaping more easily upward in cities than in the countryside.",
+            "Heat escaping more easily upward in cities than it does in the countryside.",
             "Tall, closely packed buildings trapping radiation between their walls.",
-            "Wind being channelled at high speed between skyscrapers.",
-            "Rivers running through the centre of major cities."
+            "Wind being channelled at high speed between tall skyscrapers.",
+            "Rivers running through the centre of most major cities."
           ],
           "answer": 1,
           "explanation": "Paragraph 2 defines the term right after naming it: buildings trapping radiation between their walls. This matches option B; wind speed and rivers are never linked to the term."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "According to the passage, why is nighttime cooling particularly important for health?",
           "options": [
-            "It is when most outdoor work and exercise takes place.",
+            "It is when most outdoor work and physical exercise takes place.",
             "It is the period during which a heat-stressed body would normally recover.",
-            "It coincides with peak energy consumption in cities.",
-            "It allows air conditioning units to be switched off."
+            "It coincides with the annual peak of household energy consumption in cities.",
+            "It allows air conditioning units to be switched off entirely."
           ],
           "answer": 1,
           "explanation": "Paragraph 4 says nighttime cooling is when a heat-stressed body would normally recover, matching option B directly. The other options describe things the passage never links to nighttime cooling."
@@ -82,9 +82,9 @@
           "question": "What does the passage say about the feedback loop involving air conditioning?",
           "options": [
             "Increased air conditioning use adds waste heat, which increases the need for further cooling.",
-            "Air conditioning has no measurable effect on outdoor temperatures.",
-            "Air conditioning use decreases as cities install more green roofs.",
-            "The feedback loop only occurs in cities without tree cover."
+            "Air conditioning has no measurable effect at all on outdoor temperatures.",
+            "Air conditioning use decreases steadily as cities install more green roofs and planted walls.",
+            "The feedback loop occurs only in cities that have no tree cover."
           ],
           "answer": 0,
           "explanation": "Paragraph 4 describes exactly this cycle: more air conditioning adds waste heat, which raises the need for still more cooling. That is option A; the other options describe effects the passage never claims."
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "What caution do researchers studying Singapore's programme raise?",
           "options": [
-            "That the temperature reductions recorded may not be genuine.",
+            "That the temperature reductions recorded may not be genuine at all.",
             "That isolating the effect of any single measure is difficult when several are applied together.",
-            "That vertical gardens have proven less effective than tree-lined boulevards.",
-            "That the programme has raised costs without any measurable benefit."
+            "That the vertical gardens have proven a good deal less effective than the tree-lined boulevards.",
+            "That the programme has raised costs without producing any measurable benefit."
           ],
           "answer": 1,
           "explanation": "Paragraph 6 states this caution directly: it is hard to isolate one measure's effect when several are used together, matching option B. The other options describe doubts the passage does not raise."

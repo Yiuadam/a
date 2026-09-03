@@ -55,10 +55,10 @@
           "type": "mcq",
           "question": "Why do beekeepers move hives from farm to farm?",
           "options": [
-            "To collect different types of honey for sale.",
+            "To collect several different types of honey for sale.",
             "To follow crops as they come into flower at different times.",
-            "Because bees cannot survive in one location for long.",
-            "Because government regulations require it."
+            "Because bees cannot survive in a single location for very long.",
+            "Because government regulations plainly require it."
           ],
           "answer": 1,
           "explanation": "Paragraph 3 describes beekeepers driving hives to a farm as its crop flowers, then moving to the next farm whose crop is flowering next — this is option B, not honey collection or survival."
@@ -68,10 +68,10 @@
           "type": "mcq",
           "question": "According to the passage, what group of factors is believed to cause colony losses?",
           "options": [
-            "A single virus that affects only certain bee species.",
+            "A single virus that affects only certain species of honey bee.",
             "Several causes acting together, including parasites, diet and pesticides.",
-            "Cold winters alone, unrelated to farming practices.",
-            "Overcrowding of hives during transport."
+            "Cold winters on their own, entirely unrelated to modern farming practices.",
+            "Overcrowding of the hives during transport by lorry."
           ],
           "answer": 1,
           "explanation": "Paragraph 4 says several causes act together, then lists the mite, reduced flower variety and pesticides — exactly the combination option B describes, ruling out the single-cause options A, C and D."
@@ -81,10 +81,10 @@
           "type": "mcq",
           "question": "What does the passage say about the economic value placed on pollination?",
           "options": [
-            "It is calculated solely from honey sales.",
+            "It is calculated solely from the value of the honey sold each year.",
             "It is an estimate of the loss farmers would face without insect pollination.",
-            "It has been precisely measured by international agreement.",
-            "It applies only to almond farming."
+            "It has been measured precisely and agreed upon by international scientific bodies.",
+            "It applies only to almond farming in California."
           ],
           "answer": 1,
           "explanation": "Paragraph 5 says the figure is an estimate of the loss farmers would face without pollination, and directly rules out option A by saying it is 'not simply the value of honey sold'."
@@ -94,10 +94,10 @@
           "type": "mcq",
           "question": "Why is hand pollination in China mentioned in the passage?",
           "options": [
-            "To show a practical, low-cost solution other regions should copy.",
+            "To show a practical, low-cost solution that other regions could easily copy.",
             "To illustrate what happens once natural pollination has already broken down.",
-            "To argue that bees are no longer needed for apple and pear trees.",
-            "To describe a government-funded research programme."
+            "To argue that bees are no longer needed for apple and pear orchards at all.",
+            "To describe a large government-funded research programme."
           ],
           "answer": 1,
           "explanation": "The text says most people \"see it as evidence of what happens once natural pollination has already failed\", not as a solution to copy."

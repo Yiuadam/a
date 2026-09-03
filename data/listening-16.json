@@ -10,33 +10,114 @@
     "Guest"
   ],
   "script": [
-    { "speaker": "Receptionist", "text": "Good afternoon, Millbrook Hall Hotel, this is Grace speaking. How can I help?" },
-    { "speaker": "Guest", "text": "Hi Grace, I'm helping to organise my sister's wedding, and we need to book some rooms for family who are coming from out of town." },
-    { "speaker": "Receptionist", "text": "Of course, congratulations to your sister. Let's get some details. Can I take your name first?" },
-    { "speaker": "Guest", "text": "Yes, it's Elena Costa." },
-    { "speaker": "Receptionist", "text": "Could you spell the surname, please?" },
-    { "speaker": "Guest", "text": "C-O-S-T-A." },
-    { "speaker": "Receptionist", "text": "C-O-S-T-A, thank you. And how many rooms are we talking about?" },
-    { "speaker": "Guest", "text": "We need six rooms altogether, all for the same weekend." },
-    { "speaker": "Receptionist", "text": "Six rooms, understood. Which dates were you thinking of?" },
-    { "speaker": "Guest", "text": "The wedding's on a Saturday, so I thought people would just need Friday and Saturday night, but actually a few relatives want to stay Sunday too, so let's book Friday through to Sunday, three nights." },
-    { "speaker": "Receptionist", "text": "Friday to Sunday, three nights, for all six rooms. Now, what type of rooms would you like? We have standard doubles, and we also have family rooms that sleep up to four." },
-    { "speaker": "Guest", "text": "Most of the family are couples, so standard doubles for four of the rooms, but two of the rooms need to be family rooms, because my aunt is bringing her two children." },
-    { "speaker": "Receptionist", "text": "Understood — four standard doubles and two family rooms. The standard doubles are 95 pounds a night, and the family rooms are 130 pounds a night." },
-    { "speaker": "Guest", "text": "That sounds reasonable. Is breakfast included?" },
-    { "speaker": "Receptionist", "text": "It isn't included as standard, but you can add it for an extra 12 pounds per person per night, which most wedding groups do choose." },
-    { "speaker": "Guest", "text": "Let's add breakfast for everyone then, that'll be easier on the day." },
-    { "speaker": "Receptionist", "text": "No problem, I'll note that against all six rooms. Now, since this is a group booking, we can hold the rooms with a smaller deposit than usual. Normally it's fifty per cent, but for wedding groups it's just twenty per cent of the total." },
-    { "speaker": "Guest", "text": "That's helpful, thank you." },
-    { "speaker": "Receptionist", "text": "The deposit needs to be paid within seven days to confirm the booking, otherwise the rooms go back on general sale." },
-    { "speaker": "Guest", "text": "Understood, I'll sort that this week. One more thing — is there parking for guests?" },
-    { "speaker": "Receptionist", "text": "There is, and it's free for hotel guests, but please let reception know your car registration numbers when you check in, or the barrier won't lift for you." },
-    { "speaker": "Guest", "text": "Good to know, I'll pass that on to everyone." },
-    { "speaker": "Receptionist", "text": "And finally, check-in on the Friday is from three p.m., though if any guests are travelling a long way, we can usually store luggage earlier and let them explore the grounds while they wait." },
-    { "speaker": "Guest", "text": "That's really helpful, some of them have a long drive." },
-    { "speaker": "Receptionist", "text": "I'll email you a confirmation with all six room numbers once the deposit is received." },
-    { "speaker": "Guest", "text": "Perfect, thank you so much for your help, Grace." },
-    { "speaker": "Receptionist", "text": "You're welcome, and congratulations again to your sister." }
+    {
+      "speaker": "Receptionist",
+      "text": "Good afternoon, Millbrook Hall Hotel, this is Grace speaking. How can I help?"
+    },
+    {
+      "speaker": "Guest",
+      "text": "Hi Grace, I'm helping to organise my sister's wedding, and we need to book some rooms for family who are coming from out of town."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "Of course, congratulations to your sister. Let's get some details. Can I take your name first?"
+    },
+    {
+      "speaker": "Guest",
+      "text": "Yes, it's Elena Costa."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "Could you spell the surname, please?"
+    },
+    {
+      "speaker": "Guest",
+      "text": "C-O-S-T-A."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "C-O-S-T-A, thank you. And how many rooms are we talking about?"
+    },
+    {
+      "speaker": "Guest",
+      "text": "We need six rooms altogether, all for the same weekend."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "Six rooms, understood. Which dates were you thinking of?"
+    },
+    {
+      "speaker": "Guest",
+      "text": "The wedding's on a Saturday, so I thought people would just need Friday and Saturday night, but actually a few relatives want to stay Sunday too, so let's book Friday through to Sunday, three nights."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "Friday to Sunday, three nights, for all six rooms. Now, what type of rooms would you like? We have standard doubles, and we also have family rooms that sleep up to four."
+    },
+    {
+      "speaker": "Guest",
+      "text": "Most of the family are couples, so standard doubles for four of the rooms, but two of the rooms need to be family rooms, because my aunt is bringing her two children."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "Understood — four standard doubles and two family rooms. The standard doubles are 95 pounds a night, and the family rooms are 130 pounds a night."
+    },
+    {
+      "speaker": "Guest",
+      "text": "That sounds reasonable. Is breakfast included?"
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "It isn't included as standard, but you can add it for an extra 12 pounds per person per night, which most wedding groups do choose."
+    },
+    {
+      "speaker": "Guest",
+      "text": "Let's add breakfast for everyone then, that'll be easier on the day."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "No problem, I'll note that against all six rooms. Now, since this is a group booking, we can hold the rooms with a smaller deposit than usual. Normally it's fifty per cent, but for wedding groups it's just twenty per cent of the total."
+    },
+    {
+      "speaker": "Guest",
+      "text": "That's helpful, thank you."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "The deposit needs to be paid within seven days to confirm the booking, otherwise the rooms go back on general sale."
+    },
+    {
+      "speaker": "Guest",
+      "text": "Understood, I'll sort that this week. One more thing — is there parking for guests?"
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "There is, and it's free for hotel guests, but please let reception know your car registration numbers when you check in, or the barrier won't lift for you."
+    },
+    {
+      "speaker": "Guest",
+      "text": "Good to know, I'll pass that on to everyone."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "And finally, check-in on the Friday is from three p.m., though if any guests are travelling a long way, we can usually store luggage earlier and let them explore the grounds while they wait."
+    },
+    {
+      "speaker": "Guest",
+      "text": "That's really helpful, some of them have a long drive."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "I'll email you a confirmation with all six room numbers once the deposit is received."
+    },
+    {
+      "speaker": "Guest",
+      "text": "Perfect, thank you so much for your help, Grace."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "You're welcome, and congratulations again to your sister."
+    }
   ],
   "questions": [
     {
@@ -120,7 +201,7 @@
           "type": "mcq",
           "question": "What do guests need to give reception in order to use the car park?",
           "options": [
-            "their room number",
+            "their room number at the hotel",
             "their car registration number",
             "a printed parking ticket"
           ],
@@ -132,9 +213,9 @@
           "type": "mcq",
           "question": "What can the hotel do for guests who arrive before official check-in time?",
           "options": [
-            "give them an early room key",
+            "give them an early key to the room they had booked",
             "store their luggage and let them explore the grounds",
-            "offer them a discount on breakfast"
+            "offer them a discount on their breakfast next day"
           ],
           "answer": 1,
           "explanation": "Check-in is from three p.m., but for guests travelling far, the hotel \"can usually store luggage earlier and let them explore the grounds while they wait.\""
