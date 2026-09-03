@@ -104,7 +104,18 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
         </button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
+      {/*
+        Equal rows, not content-height rows.
+
+        A grid stretches items to the tallest in their own row and stops there,
+        so a two-by-two of cards with different amounts in them gave two rows of
+        different heights — a band module with four rows of skills over a tutor
+        module with three short questions. `auto-rows-fr` makes every row an
+        equal fraction instead, and since the board is one screen with a known
+        height, that is the whole of what "the same size" needs. The modules are
+        written `h-full` already; the wrapper below passes that down.
+      */}
+      <div className="grid gap-4 lg:auto-rows-fr lg:grid-cols-2 lg:gap-5">
         {shown.map((id) => {
           const meta = MODULE_LIBRARY.find((m) => m.id === id);
           return (
@@ -142,7 +153,7 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
                   nudge(id, 1);
                 }
               }}
-              className={`relative min-w-0 transition-opacity ${editing ? "cursor-grab active:cursor-grabbing" : ""} ${
+              className={`relative h-full min-w-0 transition-opacity ${editing ? "cursor-grab active:cursor-grabbing" : ""} ${
                 dragging === id ? "opacity-40" : ""
               } ${over === id ? "dashboard-module-target" : ""}`}
             >

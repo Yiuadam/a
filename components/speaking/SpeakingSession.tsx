@@ -200,6 +200,13 @@ export default function SpeakingSession({
   */
   const activeEngine = IS_MOBILE_BUILD ? (sessionEngine ?? prefs.engine) : "platform";
   const usingLocal = activeEngine === "local" && localBlock === null;
+  /*
+    Whether the introduction card has a second column at all. See the comment
+    where it is used: the picker is app-only and appears only once the on-device
+    plugin has answered, so the layout has to ask the same question the cell
+    asks rather than assume the cell is there.
+  */
+  const showsEnginePicker = IS_MOBILE_BUILD && localBlock === null;
   const micSupported =
     mounted && !micBlocked && (usingLocal || speechRecognitionSupported());
 
@@ -1199,7 +1206,20 @@ export default function SpeakingSession({
         on the page whose entire job is to get someone talking.
       */
       <div className="mx-auto max-w-3xl">
-        <div className="card !p-4 grid gap-4 sm:grid-cols-2">
+        {/*
+          Two columns only when there is a second column.
+
+          The right-hand cell is the speech-engine picker, and it renders only
+          inside the app and only once the on-device plugin has answered — so
+          on the website it never rendered at all and the card kept a permanently
+          empty half beside the introduction. On a wide screen that was most of
+          a metre of nothing, which is what the owner saw.
+
+          The condition is computed once and used twice, rather than the grid
+          guessing: a layout that assumes a child exists and a child that
+          decides for itself whether to exist have to be told the same thing.
+        */}
+        <div className={`card !p-4 grid gap-4 ${showsEnginePicker ? "sm:grid-cols-2" : ""}`}>
           <div className="min-w-0">
             {!exam && <AssignedPracticeNotice className="mb-3" />}
             <div className="flex items-center gap-2.5">
@@ -1320,7 +1340,7 @@ export default function SpeakingSession({
             the picker appears when the plugin does and never before, and the
             interview quietly uses the device recogniser in the meantime.
           */}
-          {IS_MOBILE_BUILD && localBlock === null && (
+          {showsEnginePicker && (
           <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left">
             <p className="text-sm font-semibold text-slate-800">How your speech becomes text</p>
             <div
