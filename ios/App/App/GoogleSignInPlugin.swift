@@ -26,12 +26,21 @@ import UIKit
   presented by the system and dismissed by it; the app never sees the password,
   which is the point of the design.
 
-  The response type is `id_token`, so what comes back in the redirect fragment
-  is a signed assertion of who the learner is — the very thing
-  /api/auth/google/token already accepts from the website's button. No token
-  exchange, no client secret, and no new server route: an ID token is an ID
-  token whichever client minted it, and the server accepts both of this
-  project's clients by audience (lib/auth/env.ts, lib/auth/google-token.ts).
+  It is the authorization-code flow with PKCE, and that was learned the hard
+  way. The first version asked for `response_type=id_token` — the implicit flow,
+  which would have handed back a signed identity token in the redirect with no
+  second request at all. Google refuses it for an iOS client: the sheet opens,
+  the learner picks an account, and Google answers 400 unsupported_response_type.
+  Installed-app clients are permitted only the code flow, and since they have no
+  secret, PKCE is what proves the code is redeemed by the app that requested it.
+
+  So the plugin asks for a code, receives it on the redirect, and exchanges it
+  itself at Google's token endpoint with the verifier it kept back. That is one
+  HTTPS POST, needs no secret, and yields an ID token with the nonce inside it —
+  the very thing /api/auth/google/token already accepts from the website's
+  button. Nothing about the web layer or the server changed for this: an ID
+  token is an ID token whichever client minted it, and the server accepts both of
+  this project's clients by audience (lib/auth/env.ts, lib/auth/google-token.ts).
 
   ---------------------------------------------------------------------------
   The nonce, and who hashes it
@@ -103,11 +112,25 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin {
     let scheme = clientId.split(separator: ".").reversed().joined(separator: ".")
     let redirect = "\(scheme):/oauth2redirect"
 
+    /*
+      PKCE. The verifier stays here; only its SHA-256, base64url-encoded, goes
+      to Google. When the code comes back the verifier goes with it, and Google
+      checks the pair — so a code lifted off the redirect is worthless to
+      anybody who does not also hold this in-memory string.
+    */
+    guard let verifier = Self.randomNonce() else {
+      call.reject("Google sign-in could not be started")
+      return
+    }
+    let challenge = Self.sha256Base64Url(verifier)
+
     var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")
     components?.queryItems = [
       URLQueryItem(name: "client_id", value: clientId),
       URLQueryItem(name: "redirect_uri", value: redirect),
-      URLQueryItem(name: "response_type", value: "id_token"),
+      URLQueryItem(name: "response_type", value: "code"),
+      URLQueryItem(name: "code_challenge", value: challenge),
+      URLQueryItem(name: "code_challenge_method", value: "S256"),
       URLQueryItem(name: "scope", value: "openid email profile"),
       // Google requires the digest here; the raw value goes to BandUp instead.
       URLQueryItem(name: "nonce", value: Self.sha256Hex(nonce)),
@@ -142,19 +165,19 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin {
         return
       }
       /*
-        An implicit response comes back in the fragment, not the query, so the
-        parser has to look there. URLComponents will not do it for us: the
-        fragment is opaque to it, which is why it is split by hand.
+        The code flow answers in the query string, which URLComponents does
+        parse — unlike the fragment the implicit flow would have used.
       */
       guard
-        let fragment = callbackURL?.fragment,
-        let token = Self.value(of: "id_token", in: fragment),
-        !token.isEmpty
+        let callbackURL,
+        let items = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?.queryItems,
+        let code = items.first(where: { $0.name == "code" })?.value,
+        !code.isEmpty
       else {
         call.reject("Google sign-in could not be completed. Please try again.")
         return
       }
-      call.resolve(["credential": token, "nonce": nonce, "cancelled": false])
+      self.exchange(code: code, verifier: verifier, clientId: clientId, redirect: redirect, nonce: nonce, call: call)
     }
 
     session.presentationContextProvider = self
@@ -174,14 +197,39 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin {
     }
   }
 
-  /** One parameter out of a `key=value&key=value` fragment, percent-decoded. */
-  private static func value(of key: String, in fragment: String) -> String? {
-    for pair in fragment.split(separator: "&") {
-      let parts = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-      guard parts.count == 2, parts[0] == key else { continue }
-      return String(parts[1]).removingPercentEncoding ?? String(parts[1])
-    }
-    return nil
+  /*
+    Redeem the code for an ID token. No client secret is sent because an iOS
+    client has none; the verifier is what authenticates the request. The token
+    endpoint also returns an access token and, sometimes, a refresh token —
+    neither is wanted, neither is kept, and neither leaves this method.
+  */
+  private func exchange(code: String, verifier: String, clientId: String, redirect: String, nonce: String, call: CAPPluginCall) {
+    var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
+    request.httpMethod = "POST"
+    request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+    var form = URLComponents()
+    form.queryItems = [
+      URLQueryItem(name: "grant_type", value: "authorization_code"),
+      URLQueryItem(name: "code", value: code),
+      URLQueryItem(name: "code_verifier", value: verifier),
+      URLQueryItem(name: "client_id", value: clientId),
+      URLQueryItem(name: "redirect_uri", value: redirect),
+    ]
+    request.httpBody = form.percentEncodedQuery?.data(using: .utf8)
+
+    URLSession.shared.dataTask(with: request) { data, response, error in
+      guard
+        error == nil,
+        let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+        let data,
+        let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let idToken = body["id_token"] as? String, !idToken.isEmpty
+      else {
+        call.reject("Google sign-in could not be completed. Please try again.")
+        return
+      }
+      call.resolve(["credential": idToken, "nonce": nonce, "cancelled": false])
+    }.resume()
   }
 
   private static func randomNonce() -> String? {
@@ -194,6 +242,15 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin {
 
   private static func sha256Hex(_ value: String) -> String {
     SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
+  }
+
+  /** The PKCE S256 challenge: SHA-256 of the verifier, base64url without padding. */
+  private static func sha256Base64Url(_ value: String) -> String {
+    Data(SHA256.hash(data: Data(value.utf8)))
+      .base64EncodedString()
+      .replacingOccurrences(of: "+", with: "-")
+      .replacingOccurrences(of: "/", with: "_")
+      .replacingOccurrences(of: "=", with: "")
   }
 }
 
