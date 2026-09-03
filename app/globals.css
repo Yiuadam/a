@@ -2574,6 +2574,11 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
 */
 .paper-filter-base {
   width: min(100%, 34rem);
+  /* Centred under the grid of papers rather than pinned to its left edge. At
+     34rem on a wide screen the bar is a good deal narrower than the cards
+     below it, and hard against the left it read as a stray element rather than
+     as the control for the list. */
+  margin-inline: auto;
   grid-template-columns: repeat(var(--paper-filter-count, 4), minmax(0, 1fr));
   border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
   background: color-mix(in srgb, var(--color-slate-200) 82%, var(--color-background));
@@ -2592,9 +2597,27 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   min-height: 2.25rem;
 }
 
+/*
+  The pill, and its own geometry rather than the blooming knob's.
+
+  It used to take .segmented-knob, which grows about its own centre while a
+  finger holds it and stretches as it is dragged. That belongs to the small
+  bars in the header, which are chrome and are pressed deliberately. This bar
+  sits at the top of a scrolling list, so the swell mostly appeared when a
+  thumb had started a flick on it by accident — an animation that showed up
+  exactly when something had gone wrong. It slides between stops now and does
+  nothing else.
+
+  The travel is a plain one-stop stride because the width no longer changes:
+  the knob's arithmetic existed only to subtract the swell back off so the
+  stride stayed constant while the box grew.
+*/
 .paper-filter-selector {
-  --segmented-count: var(--paper-filter-count, 4);
-  --segmented-index: var(--paper-filter-index, 0);
+  --paper-filter-inset: 0.25rem;
+  position: absolute;
+  inset-block: var(--paper-filter-inset);
+  left: var(--paper-filter-inset);
+  width: calc((100% - 2 * var(--paper-filter-inset)) / var(--paper-filter-count, 4));
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
   pointer-events: none;
@@ -2604,6 +2627,9 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
     0 1px 2px var(--glass-shadow);
   -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
   backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  transform: translate3d(calc(var(--paper-filter-index, 0) * 100%), 0, 0);
+  transition: transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
+  will-change: transform;
 }
 
 /* Team pairing is a full-page working view, so the section itself must not

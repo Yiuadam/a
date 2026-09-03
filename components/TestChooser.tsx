@@ -19,7 +19,6 @@ import {
   filterValuesFor,
 } from "@/lib/paper-filters";
 import { questionCount } from "@/lib/questions";
-import { useSegmentedDrag } from "@/lib/segmented-drag";
 import type { ListeningTest, ReadingTest, WritingTask } from "@/lib/types";
 
 /*
@@ -46,11 +45,13 @@ import type { ListeningTest, ReadingTest, WritingTask } from "@/lib/types";
 
   Which words it offers is lib/paper-filters.ts's business — difficulty for
   reading and listening, task type for writing. What it does here is the same
-  either way, and it is the same control the theme switch and the organisation
-  sections use: one knob that travels between stops, the behaviour behind it in
-  lib/segmented-drag.ts. A tap commits in the option's own click; a drag ends
-  over an option that never sees a click, so it commits through onCommit
-  instead, and exactly one of the two fires per gesture.
+  either way: a pill that sits on the chosen stop and slides to the next when
+  it is tapped.
+
+  Deliberately not the draggable, blooming knob the theme switch and the
+  organisation sections use. Those are chrome in a header; this one sits on top
+  of a scrolling list of papers, where the gesture it mostly received was a
+  thumb beginning a flick down the page.
 
   Every stop carries its count, including All and including a zero. A count is
   what tells somebody whether the tap is worth making — six easy papers is a
@@ -70,63 +71,49 @@ function PaperFilter({
   value: string;
   onChange: (value: string) => void;
 }) {
+  /*
+    A plain segmented control: the pill sits on the selected stop and slides
+    when another is pressed.
+
+    It used to be the draggable, blooming kind — the knob could be pushed along
+    with a finger and swelled while it was held. That is right for the small
+    bars in the header, which are chrome; it is wrong here. This one sits at the
+    top of a scrolling list of papers, so the gesture it most often received was
+    a thumb starting a downward flick on it, and even under `pan-y` a slightly
+    diagonal flick was taken as a drag and changed the filter instead of
+    scrolling. Nothing on the screen suggested it was draggable either, so the
+    swell was an animation that only appeared when something had gone wrong.
+  */
   const selectedIndex = Math.max(0, options.findIndex((option) => option.id === value));
-  const drag = useSegmentedDrag({
-    count: options.length,
-    selectedIndex,
-    onCommit: (index) => onChange(options[index].id),
-  });
-  const { previewIndex } = drag;
-  const visibleIndex = previewIndex ?? selectedIndex;
 
   return (
     /*
-      pan-y rather than the touch-none the other three bars take, and the
-      difference is the screen this one is on.
-
-      touch-none gives the knob every gesture that starts on the bar, which is
-      the right trade for a small control in the header and an acceptable one
-      inside a popover. This bar is full width across a phone and sits at the
-      top of a list you scroll — a thumb flicking down through the papers can
-      easily begin on it, and under touch-none that flick would move a filter
-      knob instead of the list. pan-y keeps the vertical scroll where it
-      belongs and still hands a horizontal drag to the knob, because the
-      browser locks the direction within the first few pixels. A gesture it
-      takes back arrives as pointercancel, which the hook already ends cleanly.
+      No touch-action of its own any more. The bar takes taps and nothing else,
+      so every gesture that starts on it belongs to the page underneath — which
+      on a list of papers is a scroll.
     */
     <div
       role="tablist"
       aria-label={name}
       data-paper-filter
-      data-flowing={previewIndex !== null ? "" : undefined}
-      data-pressed={drag.pressed ? "" : undefined}
-      data-settling={drag.settling ? "" : undefined}
-      className="paper-filter-base premade-glass relative grid min-w-0 touch-pan-y items-center overflow-hidden rounded-full p-1"
+      className="paper-filter-base premade-glass relative grid min-w-0 items-center overflow-hidden rounded-full p-1"
       style={
         {
-          "--paper-filter-index": drag.position,
+          "--paper-filter-index": selectedIndex,
           "--paper-filter-count": options.length,
-          "--segmented-squash": drag.squash,
         } as CSSProperties
       }
-      {...drag.handlers}
     >
-      <span className="paper-filter-selector segmented-knob" aria-hidden="true" />
+      <span className="paper-filter-selector" aria-hidden="true" />
       {options.map((option, index) => (
         <button
           key={option.id}
           type="button"
           role="tab"
           aria-selected={value === option.id}
-          onPointerEnter={() => drag.preview(index)}
-          onFocus={() => drag.preview(index)}
-          onBlur={() => drag.preview(null)}
-          onClick={() => {
-            onChange(option.id);
-            drag.preview(null);
-          }}
+          onClick={() => onChange(option.id)}
           className={`paper-filter-option segmented-option relative z-10 flex min-w-0 items-center justify-center gap-1 rounded-full px-1 text-[11px] font-semibold transition-colors sm:px-2 sm:text-xs ${
-            visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
+            selectedIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
           }`}
         >
           <span className="truncate">{option.label}</span>
