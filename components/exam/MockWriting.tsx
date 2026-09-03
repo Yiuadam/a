@@ -139,6 +139,22 @@ export default function MockWriting({
       </div>
       <textarea
         id="mock-essay"
+        /*
+          No spell-check, because the exam has none.
+
+          A browser turns it on by default, so a candidate practising here saw
+          red underlines under every misspelling and a real candidate sees
+          nothing — which is the difference between finding your own errors and
+          being shown them. Lexical accuracy is a quarter of the writing band;
+          practising with a proofreader is practising a different exam.
+
+          Autocorrect and autocapitalise go with it for the same reason, and
+          they matter more on a phone, where iOS would otherwise be quietly
+          fixing the candidate's grammar as they typed.
+        */
+        spellCheck={false}
+        autoCorrect="off"
+        autoCapitalize="off"
         className={`input w-full font-sans leading-7 ${
           wide ? "h-72 resize-y" : "min-h-48 flex-1 resize-none"
         }`}

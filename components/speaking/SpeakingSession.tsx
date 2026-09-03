@@ -113,6 +113,23 @@ function buildInterview(cardId?: string | null): Step[] {
      failing: a stale link should still start an interview. */
   const card = (cardId ? data.part2.find((c) => c.id === cardId) : undefined) ?? pick(data.part2);
   steps.push({ part: 2, question: card.cueCard, cueCard: card });
+  /*
+    The rounding-off questions, which the real Part 2 always ends on and this
+    interview was skipping.
+
+    Every cue card in the bank carries two of them and nothing read the field —
+    so a candidate went from two minutes of monologue straight into Part 3's
+    abstract discussion, missing the beat an examiner uses to close the long
+    turn. They are short by design ("Do you enjoy that?"), which is why one is
+    enough: asking both would spend a minute of an interview that is already
+    shorter than the real thing.
+
+    Part 2 rather than part 3, because that is which part the examiner is still
+    in when they ask it — and the part decides the pacing rules the turn is
+    marked against (lib/speaking/turn-control.ts).
+  */
+  const roundingOff = card.followUp?.[0];
+  if (roundingOff) steps.push({ part: 2, question: roundingOff });
   const part3 = data.part3.find((p) => p.topic === card.topic) ?? pick(data.part3);
   for (const q of part3.questions.slice(0, 4)) steps.push({ part: 3, question: q });
   return steps;

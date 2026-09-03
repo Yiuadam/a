@@ -133,6 +133,18 @@ export default function MockListening({
     retry of something that has been heard.
   */
   const heardRef = useRef(false);
+  /*
+    A volume control, which ExamShell has always had a slot for and nothing
+    ever put anything in.
+
+    The real computer-delivered test offers one, and it is not a nicety: the
+    recording plays once, so a candidate who finds it too quiet has no second
+    chance to hear it and no time to go hunting for the device's own control.
+    Kept in state rather than read off the element, so both audio elements —
+    the one playing and the one holding the next turn — start at the same
+    level and a turn boundary is not also a volume change.
+  */
+  const [volume, setVolume] = useState(1);
   const nativeAudioRef = useRef<HTMLAudioElement | null>(null);
   const nativeAudioBufferRef = useRef<HTMLAudioElement | null>(null);
 
@@ -327,11 +339,36 @@ export default function MockListening({
       onNext={nav.next}
       onToggleReview={nav.toggleReview}
       topRight={
-        playingPart !== null ? (
-          <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-fg)]">
-            ▶ Part {playingPart + 1}
-          </span>
-        ) : null
+        <span className="flex items-center gap-2.5">
+          {playingPart !== null && (
+            <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-fg)]">
+              ▶ Part {playingPart + 1}
+            </span>
+          )}
+          <label className="flex items-center gap-1.5">
+            <span className="sr-only">Volume</span>
+            <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[color:var(--exam-muted)]">
+              <path d="M4 8v4h3l4 3V5L7 8H4z" />
+              <path d="M14 7.5a3.5 3.5 0 010 5" />
+            </svg>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={volume}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                setVolume(next);
+                /* Both elements, so the level survives a turn handover. */
+                if (nativeAudioRef.current) nativeAudioRef.current.volume = next;
+                if (nativeAudioBufferRef.current) nativeAudioBufferRef.current.volume = next;
+              }}
+              aria-label="Recording volume"
+              className="h-1 w-20 cursor-pointer accent-indigo-600"
+            />
+          </label>
+        </span>
       }
     >
       {/*
