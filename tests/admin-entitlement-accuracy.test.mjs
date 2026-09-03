@@ -319,7 +319,16 @@ test("admin sitting links use immutable result identity instead of a mutable arr
 
 test("the admin UI states effective access and synced-history boundaries honestly", () => {
   const list = readFileSync(join(process.cwd(), "app", "admin", "users", "page.tsx"), "utf8");
-  const detail = readFileSync(join(process.cwd(), "app", "admin", "users", "[id]", "page.tsx"), "utf8");
+  /*
+    The screen, not the route. There are two routes onto it — the website's
+    /admin/users/<id> and the app's /admin/user?user=<id> — and both render
+    this one component, so this is where the wording lives. See
+    lib/admin/user-links.ts.
+  */
+  const detail = readFileSync(
+    join(process.cwd(), "components", "admin", "UserHistoryPage.tsx"),
+    "utf8",
+  );
   assert.match(list, /Effective access/);
   assert.match(list, /organisation seat/);
   assert.doesNotMatch(list, />Plan</);
@@ -332,7 +341,12 @@ test("the admin UI states effective access and synced-history boundaries honestl
   assert.match(detail, /Drill progress/);
   assert.match(detail, /Older administrator totals may include automated diagnostic access checks/);
   assert.match(detail, /Synced \{new Intl\.DateTimeFormat\("en-GB"/);
-  assert.match(detail, /sittings\/\$\{adminSittingKey\(result\)\}/);
+  /*
+    Through the link helper rather than a hand-built path: the app has no route
+    with a dynamic segment, so a literal /admin/users/<id>/sittings/<key> here
+    would be a link to nothing in the bundle. See lib/admin/user-links.ts.
+  */
+  assert.match(detail, /adminSittingHref\(user\.id, adminSittingKey\(result\)\)/);
   assert.doesNotMatch(detail, /sittings\/\$\{index\}/);
 
   const detailRoute = readFileSync(join(process.cwd(), "app", "api", "admin", "users", "[id]", "route.ts"), "utf8");

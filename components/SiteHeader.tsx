@@ -144,7 +144,16 @@ export default function SiteHeader({
   const account = useTier();
   const { profile } = useAccountProfile();
   const isOwner = account.phase === "ready" && account.signedIn && account.tier === "admin";
-  const groups = isOwner && !IS_MOBILE_BUILD
+  /*
+    The console is in the app now. It used to be website-only because
+    `output: export` cannot build a route with a dynamic segment and
+    /admin/users/[id] has two — so the whole of app/admin was moved aside for
+    the mobile build and a link to it would have led nowhere. Those two screens
+    now have query-string twins that the app ships instead
+    (lib/admin/user-links.ts), so the section is reachable and the row belongs
+    here again.
+  */
+  const groups = isOwner
     ? NAV_GROUPS.map((group, i) =>
         i === NAV_GROUPS.length - 1
           ? { ...group, items: [...group.items, OWNER_ITEM] }

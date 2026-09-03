@@ -44,7 +44,18 @@ const stash = join(root, ".mobile-stash");
 /** Everything that must not exist in the iOS bundle, relative to the repo. */
 const EXCLUDED = [
   join("app", "api"),
-  join("app", "admin"),
+  /*
+    Only the console's two dynamic routes, not the console.
+
+    `output: export` needs a generateStaticParams() for every dynamic segment,
+    and there is no fixed list of accounts to enumerate at build time — looking
+    at whoever signed up since the last build is the point of the thing. So
+    these two are moved aside and the app ships query-string twins of them
+    instead, at /admin/user and /admin/user/sitting. See
+    lib/admin/user-links.ts, which is what every link to either screen asks for
+    its href, so the website form cannot leak into the bundle.
+  */
+  join("app", "admin", "users", "[id]"),
   join("app", "organization", "students"),
   join("app", "pricing"),
   join("app", "billing"),

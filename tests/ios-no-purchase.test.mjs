@@ -41,13 +41,29 @@ const ROOT = process.cwd();
 
 test("the build script keeps server-only and billing routes out of the bundle", () => {
   const source = readFileSync(join(ROOT, "scripts", "build-mobile.mjs"), "utf8");
-  for (const dir of ["api", "admin", "pricing", "billing"]) {
+  for (const dir of ["api", "pricing", "billing"]) {
     assert.match(
       source,
       new RegExp(`join\\("app", "${dir}"\\)`),
       `app/${dir} is no longer excluded from the iOS export`,
     );
   }
+  /*
+    The console itself ships. Only its two dynamic routes cannot: `output:
+    export` needs a generateStaticParams() for every dynamic segment and there
+    is no list of accounts to enumerate at build time. The app reaches the same
+    two screens through query strings instead — see lib/admin/user-links.ts.
+  */
+  assert.match(
+    source,
+    /join\("app", "admin", "users", "\[id\]"\)/,
+    "the console's dynamic routes must stay out of a static export",
+  );
+  assert.doesNotMatch(
+    source,
+    /join\("app", "admin"\)/,
+    "the whole console no longer needs excluding, only its dynamic routes",
+  );
   assert.match(
     source,
     /NEXT_PUBLIC_MOBILE_BUILD: "1"/,
@@ -55,12 +71,32 @@ test("the build script keeps server-only and billing routes out of the bundle", 
   );
 });
 
-test("the website owner console is absent from mobile navigation", () => {
-  const source = readFileSync(join(ROOT, "components", "SiteHeader.tsx"), "utf8");
+test("the owner console is reachable from the app, and only by routes it ships", () => {
+  const header = readFileSync(join(ROOT, "components", "SiteHeader.tsx"), "utf8");
   assert.match(
-    source,
-    /const groups = isOwner && !IS_MOBILE_BUILD/,
-    "the static iOS bundle must not link to its excluded website-only owner console",
+    header,
+    /const groups = isOwner\n/,
+    "the console row is gated on ownership alone now that the app ships the console",
+  );
+
+  /*
+    The two screens with a dynamic segment are the ones the app cannot have, so
+    nothing outside their own website routes may hard-code that form. Everything
+    asks lib/admin/user-links.ts, which answers with a path on the website and a
+    query string in the app.
+  */
+  const offenders = [];
+  for (const dir of ["app", "components", "lib"]) {
+    for (const file of sources(join(ROOT, dir))) {
+      const rel = relative(ROOT, file).replace(/\\/g, "/");
+      if (rel.startsWith("app/admin/users/[id]") || rel === "lib/admin/user-links.ts") continue;
+      if (/["'`]\/admin\/users\/\$\{/.test(readFileSync(file, "utf8"))) offenders.push(rel);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `these build a console URL the iOS bundle has no route for:\n  ${offenders.join("\n  ")}`,
   );
 });
 
