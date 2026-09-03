@@ -241,7 +241,15 @@ export default function ModuleLibrary({
                               one it is, the way every control library does it.
                             */
                             className={`module-library-tile flex w-full min-w-0 flex-col items-center gap-2 rounded-2xl p-1.5 text-center transition-colors ${
-                              full ? "cursor-default opacity-45" : "active:translate-y-px"
+                              /*
+                                A full board does not grey the library out.
+                                Every tile at 45% reads as "these are broken",
+                                which is the wrong thing to say about a module
+                                that is perfectly available the moment a slot
+                                frees. They stay legible; the label under each
+                                one says why it cannot be tapped yet.
+                              */
+                              full ? "cursor-default" : "active:translate-y-px"
                             }`}
                           >
                             {(
@@ -259,7 +267,16 @@ export default function ModuleLibrary({
                               </span>
                             )}
                             <span className="text-[0.9375rem] font-medium text-slate-700">
-                              {m.short}
+                              {full ? (
+                                <>
+                                  {m.short}
+                                  <span className="block text-[0.75rem] font-normal text-slate-400">
+                                    Remove one to add
+                                  </span>
+                                </>
+                              ) : (
+                                m.short
+                              )}
                             </span>
                           </button>
                         </li>

@@ -16,6 +16,17 @@ import Scoreboard from "@/components/dashboard/Scoreboard";
 import TutorCard from "@/components/dashboard/TutorCard";
 import PlanCard from "@/components/dashboard/PlanCard";
 import Board from "@/components/dashboard/Board";
+import {
+  LastSittingCard,
+  MockExamCard,
+  SittingsCard,
+  StreakCard,
+  StrongestCard,
+  TargetCard,
+  ThisWeekCard,
+  PapersLeftCard,
+  WeakestCard,
+} from "@/components/dashboard/Extras";
 import NewBadge from "@/components/NewBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
@@ -442,6 +453,15 @@ export default function Dashboard() {
             score: <Scoreboard results={profile.results} />,
             tutor: <TutorCard />,
             plan: <PlanCard profile={profile} />,
+            streak: <StreakCard profile={profile} />,
+            week: <ThisWeekCard profile={profile} />,
+            weakest: <WeakestCard profile={profile} />,
+            strongest: <StrongestCard profile={profile} />,
+            target: <TargetCard profile={profile} />,
+            sittings: <SittingsCard profile={profile} />,
+            last: <LastSittingCard profile={profile} />,
+            mock: <MockExamCard profile={profile} />,
+            papersLeft: <PapersLeftCard profile={profile} />,
           }}
         />
       </div>

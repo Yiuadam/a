@@ -6543,30 +6543,51 @@ html[data-theme="dark"] .side-rail-item-active {
   material it had; this deliberately does not touch --glass-fill globally, which
   would have flattened every card on every page to fix three overlays.
 */
-.nav-menu-group,
-.notification-popover,
-.module-library-panel {
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+/*
+  One material for every panel that floats: the nav sheet, the notification
+  popover and the module library.
+
+  Each class is written twice on purpose. These elements also carry .card and
+  .liquid-glass, whose theme overrides land at the same weight as a plain
+  `html[data-theme] .thing` rule and later in the file — so the first version of
+  this lost outright, and the dark dialog computed to rgba(255,255,255,0.035):
+  a pane you could only find by the text in it. Doubling the class raises the
+  weight above them without reaching for !important, and says in the selector
+  itself that it is deliberately outranking something.
+
+  Less transparent and more blur than an inline card, because the two do
+  different jobs. What shows through a card is the page's own wash: warmth, no
+  edges, nothing to read. What shows through a panel is text and buttons at
+  full contrast in the wrong place, and the eye tries to read them. The blur is
+  what turns that into light rather than content — the "glow" the owner asked
+  for — and the fill is what stops it resolving into words.
+*/
+html .nav-menu-group.nav-menu-group,
+html .notification-popover.notification-popover,
+html .module-library-panel.module-library-panel {
+  /*
+    !important, and not lightly. These elements carry .card and .liquid-glass,
+    whose per-theme rules are written with enough weight and late enough that
+    doubling the class here still lost — the dark dialog kept computing to the
+    inline card's own rgba(255,255,255,0.035). Raising the selector further
+    would mean guessing at whichever rule currently wins and would break the
+    moment that one moved. This says what is meant instead: a floating panel's
+    material is not up for negotiation with the material of a card.
+  */
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(140%) brightness(106%) !important;
+  backdrop-filter: blur(30px) saturate(140%) brightness(106%) !important;
 }
 
-html[data-theme="dark"] .nav-menu-group,
-html[data-theme="dark"] .notification-popover,
-html[data-theme="dark"] .module-library-panel {
+html[data-theme="dark"] .nav-menu-group.nav-menu-group,
+html[data-theme="dark"] .notification-popover.notification-popover,
+html[data-theme="dark"] .module-library-panel.module-library-panel {
   /*
-    A colour of its own, opaque, and lighter than the page rather than a mix of
-    something already the same colour as it.
-
-    The first attempt reused --color-surface at 94%, which works in Warm and
-    Light where the surface is well clear of the canvas. In Dark the two are
-    #17171a and #111113 — six points apart — so a panel made of one, floating
-    over the other, was a rectangle you could only find by the text in it. The
-    owner's screenshot showed the library dialog as a barely-there smear across
-    the board behind it.
-
-    Lift rather than tint: the same neutral the theme is built from, several
-    steps up, so a panel over the page reads as nearer to the light rather than
-    as a different material. The border does the rest.
+    A colour of its own rather than a mix of the surface, which in this theme
+    is six points from the canvas — #17171a against #111113 — so a panel made
+    of one floating over the other was invisible. Lifted several steps instead,
+    so a panel over the page reads as nearer the light.
   */
-  background: #232327;
-  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(38, 38, 43, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
 }
