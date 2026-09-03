@@ -192,6 +192,119 @@ function checkGroups(file, set, groupOf) {
         }
       }
     }
+    /*
+      A table or flow-chart completion, whose gaps live in cells rather than in
+      a numbered list.
+
+      Two ways to get this wrong, and both are silent at runtime. A placeholder
+      naming a question that is not in this block draws literal `{{q5}}` text
+      where a box should be, and a question in the block that no cell places
+      never gets a box at all — the candidate is asked for forty answers and
+      given thirty-nine places to write one. So the two sets have to match
+      exactly, and each question may be placed once. The renderer degrades
+      rather than throws on a bad placeholder (components/TestQuestions.tsx),
+      which is why the build is where this has to be caught.
+    */
+    if (group.layout !== undefined) {
+      const layout = group.layout;
+      let cells = null;
+      if (layout?.kind === "table") {
+        if (!Array.isArray(layout.rows) || layout.rows.length === 0) {
+          fail(file, `${where} has a table layout with no rows`);
+        } else if (layout.rows.some((row) => !Array.isArray(row))) {
+          fail(file, `${where} has a table layout whose rows are not arrays of cells`);
+        } else {
+          cells = layout.rows.flat();
+          if (layout.columns !== undefined) {
+            if (!Array.isArray(layout.columns) || layout.columns.length === 0) {
+              fail(file, `${where} has a table layout with malformed columns`);
+            } else if (layout.rows.some((row) => row.length !== layout.columns.length)) {
+              // A short row shifts every cell after it into the wrong column,
+              // which changes what the question is asking.
+              fail(
+                file,
+                `${where} has a table layout with ${layout.columns.length} columns and a row that does not match`,
+              );
+            }
+          }
+        }
+      } else if (layout?.kind === "flow-chart") {
+        if (!Array.isArray(layout.steps) || layout.steps.length === 0) {
+          fail(file, `${where} has a flow-chart layout with no steps`);
+        } else {
+          cells = layout.steps;
+        }
+      } else if (layout?.kind === "notes") {
+        if (!Array.isArray(layout.sections) || layout.sections.length === 0) {
+          fail(file, `${where} has a notes layout with no sections`);
+        } else {
+          cells = [];
+          for (const section of layout.sections) {
+            if (section?.heading !== undefined) cells.push(section.heading);
+            if (!Array.isArray(section?.bullets) || section.bullets.length === 0) {
+              fail(file, `${where} has a notes section with no bullets`);
+              cells = null;
+              break;
+            }
+            for (const bullet of section.bullets) {
+              if (typeof bullet === "string") {
+                cells.push(bullet);
+              } else if (bullet && typeof bullet.text === "string" && Array.isArray(bullet.sub)) {
+                cells.push(bullet.text, ...bullet.sub);
+              } else {
+                fail(file, `${where} has a notes bullet that is neither a line nor a line with sub-lines`);
+                cells = null;
+                break;
+              }
+            }
+            if (!cells) break;
+          }
+        }
+      } else {
+        fail(file, `${where} has a layout that is none of a table, a flow chart or a page of notes`);
+      }
+
+      if (cells) {
+        if (cells.some((cell) => typeof cell !== "string")) {
+          fail(file, `${where} has a layout cell that is not a string`);
+          cells = null;
+        }
+      }
+      if (cells) {
+        const placed = [];
+        for (const cell of cells) {
+          for (const match of cell.matchAll(/\{\{([A-Za-z0-9_-]+)\}\}/g)) placed.push(match[1]);
+        }
+        const ids = new Set(group.questions.map((q) => q?.id));
+        for (const id of placed) {
+          if (!ids.has(id)) {
+            fail(file, `${where} places a gap for ${id}, which is not a question in that block`);
+          }
+        }
+        for (const id of ids) {
+          const times = placed.filter((placedId) => placedId === id).length;
+          if (times === 0) {
+            fail(file, `${where} has a layout but never places ${id} in it`);
+          } else if (times > 1) {
+            fail(file, `${where} places ${id} ${times} times; a gap belongs in one cell`);
+          }
+        }
+        /*
+          Only a typed gap can be drawn into a cell. Everything else in the
+          exam — a matching key, a set of radio buttons — needs controls a
+          table cell has no room for, and none of the real figure tasks ask
+          for one.
+        */
+        for (const q of group.questions) {
+          if (q?.type !== "completion" && q?.type !== "short-answer") {
+            fail(
+              file,
+              `${where} is drawn as a ${layout.kind} but ${q?.id} is a ${q?.type} question; only gaps can sit in a cell`,
+            );
+          }
+        }
+      }
+    }
     for (const q of group.questions) {
       // Matching questions answer against their group's bank, so the checks
       // below need to find their way back from a question to its block.
@@ -222,8 +335,9 @@ function checkQuestions(file, set, source, expectedCount) {
   // numbers from a single JSON entry, so counting entries would under-count
   // the paper the moment one is used.
   const claimedNumbers = questions.reduce((n, q) => n + questionWidth(q), 0);
-  if (claimedNumbers !== expectedCount) {
-    fail(file, `expected ${expectedCount} questions, found ${claimedNumbers}`);
+  const allowed = Array.isArray(expectedCount) ? expectedCount : [expectedCount];
+  if (!allowed.includes(claimedNumbers)) {
+    fail(file, `expected ${allowed.join(" or ")} questions, found ${claimedNumbers}`);
   }
 
   const seenIds = new Set();
@@ -438,7 +552,16 @@ for (const name of readingPapers) {
     fail(name, `passage is ${words} words; IELTS passages run roughly 700-1000`);
   }
   checkLevel(name, test, "the paper");
-  checkQuestions(name, test.questions, test.passage, 13);
+  /*
+    Thirteen or fourteen, because a real Academic Reading paper is three
+    passages of 13, 13 and 14 — forty numbers split unevenly, with the longest
+    set on the last passage. A bank of uniform papers cannot produce that
+    total from three of them, which is exactly what happened when every paper
+    was extended to fourteen: the sitting came to 42 and said so on its own
+    start screen. `composeMock` draws two of one size and one of the other;
+    this is the check that keeps both pools stocked with papers it can use.
+  */
+  checkQuestions(name, test.questions, test.passage, [13, 14]);
 }
 
 // ---- Listening ----

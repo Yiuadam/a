@@ -375,7 +375,22 @@ export function composeMock(): MockPaper {
     app teaches. General Training is issue #14 and when it lands it selects
     here — one branch, not a second sitting.
   */
-  const reading = pick(READING_TESTS, 3).map((t) => t.id);
+  /*
+    Thirteen, thirteen, fourteen — the real Academic paper's split, and the only
+    way three passages come to forty.
+
+    It is not a rounding convenience. Every paper in the bank was uniform at
+    thirteen once, and when a fourteenth question was added to all of them the
+    sitting quietly became a 42-question exam that announced itself as one on
+    the start screen. A candidate's raw score is read against a 40-mark table,
+    so the length of the paper is not a presentation detail: it decides the
+    band. Two papers are drawn from the thirteens and one from the fourteens,
+    and the long one is placed last, where the exam puts it.
+  */
+  const readingCount = (test: ReadingTest) => questionCount(flatQuestions(test.questions));
+  const shortPapers = READING_TESTS.filter((t) => readingCount(t) === 13);
+  const longPapers = READING_TESTS.filter((t) => readingCount(t) === 14);
+  const reading = [...pick(shortPapers, 2), ...pick(longPapers, 1)].map((t) => t.id);
   const task1 = pick(WRITING_TASKS.filter((t) => t.task === 1 && t.variant === "academic"), 1)[0];
   const task2 = pick(WRITING_TASKS.filter((t) => t.task === 2), 1)[0];
 

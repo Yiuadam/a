@@ -183,6 +183,19 @@
           ],
           "answer": 1,
           "explanation": "A three-decibel improvement imposed on people can annoy them more than a one-decibel one after real consultation — so consultation belongs inside the design, not before it."
+        },
+        {
+          "id": "q14",
+          "type": "mcq",
+          "question": "How does the writer describe the question of whether treating consultation as part of acoustic design counts as engineering or politics?",
+          "options": [
+            "As settled long ago and firmly in favour of calling it purely a matter of engineering",
+            "As a question the profession has not settled, though its effect on outcomes is hard to dismiss",
+            "As irrelevant now that noise levels can be measured with complete precision by modern equipment",
+            "As a matter for politicians alone, with nothing at all for acoustic engineers to contribute"
+          ],
+          "answer": 1,
+          "explanation": "The final paragraph says \"Whether that counts as engineering or politics is a question the profession has not settled, but the evidence that it changes outcomes is now difficult to dismiss.\""
         }
       ]
     }

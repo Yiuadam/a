@@ -112,10 +112,22 @@ test("the listening paper asks forty questions", () => {
   );
 });
 
-test("the reading paper is close enough to forty that scaling is not distorting", () => {
-  const paper = composeMock();
-  const total = claimedNumbers(readingQuestions(paper));
-  assert.ok(total >= 39 && total <= 40, `reading paper has ${total} questions`);
+/*
+  Exactly forty, not nearly forty.
+
+  This assertion used to allow 39 because the bank held only thirteen-question
+  papers and three of them could never reach the number. Both lengths exist now
+  — 13, 13, 14, the real Academic split — so the paper either comes to forty or
+  something has gone wrong with the draw. Left loose, the check would have said
+  nothing at all about the run where every paper was extended to fourteen and a
+  sitting quietly became a 42-question exam.
+*/
+test("the reading paper asks exactly forty questions", () => {
+  for (let sitting = 0; sitting < 50; sitting += 1) {
+    const paper = composeMock();
+    const total = claimedNumbers(readingQuestions(paper));
+    assert.equal(total, 40, `reading paper has ${total} questions`);
+  }
 });
 
 /*

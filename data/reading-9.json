@@ -138,6 +138,19 @@
           ],
           "answer": 1,
           "explanation": "“The old work counted rings and measured them. The new work reads the chemistry inside them”, using late-wood density and oxygen isotope ratios."
+        },
+        {
+          "id": "q14",
+          "type": "mcq",
+          "question": "What does the writer say the new chemical techniques have begun to achieve?",
+          "options": [
+            "They have entirely replaced the need to count rings in any sample collected in the field.",
+            "They have shown conclusively that tropical trees cannot be studied by this method at all.",
+            "They have begun to recover a seasonal climate record from regions that had none.",
+            "They have proved that oxygen isotopes are unrelated to climate in every species studied so far."
+          ],
+          "answer": 2,
+          "explanation": "The passage says the new work \"reads the chemistry inside them, and in doing so has begun to recover a seasonal record of climate from regions that had none.\""
         }
       ]
     }

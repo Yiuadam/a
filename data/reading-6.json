@@ -140,6 +140,19 @@
           "explanation": "The final paragraph separates the two questions: night trains “plainly can” be popular, but whether they can cover their costs without public support “is not yet clear”."
         }
       ]
+    },
+    {
+      "instruction": "Answer the question below. Write NO MORE THAN THREE WORDS from the passage for the answer.",
+      "questions": [
+        {
+          "id": "q14",
+          "type": "short-answer",
+          "question": "Besides the age of the carriages, what other cost was said to be high when sleeper services were cut?",
+          "answer": "staffing costs",
+          "maxWords": 3,
+          "explanation": "The passage gives the reasons together: \"the carriages were old, the staffing costs were high, and a budget airline could carry the same passenger the same distance for a fraction of the fare.\" Staffing costs are the other cost named alongside old carriages."
+        }
+      ]
     }
   ]
 }

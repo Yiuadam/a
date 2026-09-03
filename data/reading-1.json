@@ -138,6 +138,14 @@
           "answer": "oil",
           "maxWords": 1,
           "explanation": "\"Electric lamps replaced oil, removing the need for constant refuelling.\""
+        },
+        {
+          "id": "q14",
+          "type": "completion",
+          "sentence": "By the end of the twentieth century, one by one, the ___ were withdrawn from lighthouses.",
+          "answer": "keepers",
+          "maxWords": 1,
+          "explanation": "The passage says \"One by one, the keepers were withdrawn, and by the end of the century almost all lighthouses in the industrialised world operated without anyone living inside them.\" The gap needs the word for the people who were withdrawn."
         }
       ]
     }

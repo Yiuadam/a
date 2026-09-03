@@ -84,18 +84,18 @@
         {
           "id": "q7",
           "type": "completion",
-          "sentence": "New cockpits had to accommodate the middle ___ per cent of the measured population.",
-          "answer": "ninety",
-          "maxWords": 2,
-          "explanation": "The specification became “a set of ranges that had to accommodate the middle ninety per cent of the measured population”."
-        },
-        {
-          "id": "q8",
-          "type": "completion",
           "sentence": "Because body measurements are ___, the true proportion is higher than pure multiplication suggests.",
           "answer": "correlated",
           "maxWords": 3,
           "explanation": "“Real body measurements are correlated, so the true figure is higher than that” — though still not high enough to produce anybody."
+        },
+        {
+          "id": "q8",
+          "type": "completion",
+          "sentence": "New cockpits had to accommodate the middle ___ per cent of the measured population.",
+          "answer": "ninety",
+          "maxWords": 2,
+          "explanation": "The specification became “a set of ranges that had to accommodate the middle ninety per cent of the measured population”."
         }
       ]
     },
@@ -166,6 +166,19 @@
           ],
           "answer": 1,
           "explanation": "Averages are “indispensable for describing populations”; the narrow error is “designing for an individual by using a statistic that describes a group”."
+        },
+        {
+          "id": "q14",
+          "type": "mcq",
+          "question": "What final point does the writer make about the statistic used by the cockpit designers?",
+          "options": [
+            "It was later shown to be mathematically incorrect.",
+            "It should have been replaced by a larger sample sooner.",
+            "A number about people is easy to mistake for a person.",
+            "It was never used again after the 1950s."
+          ],
+          "answer": 2,
+          "explanation": "The passage ends: \"the statistic they used was about people, and a number about people is easy to mistake for a person.\""
         }
       ]
     }

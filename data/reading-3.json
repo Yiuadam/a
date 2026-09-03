@@ -53,19 +53,6 @@
         {
           "id": "q6",
           "type": "mcq",
-          "question": "Why does the writer describe fleshy fruit as 'a payment'?",
-          "options": [
-            "It is unusually costly for animals to obtain",
-            "The plant gives food in exchange for transport",
-            "It is grown and sold commercially by farmers",
-            "It replaces the plant's need for flowers entirely"
-          ],
-          "answer": 1,
-          "explanation": "The passage explains the metaphor itself: the plant provides food and the animal provides transport, so the fruit is what the plant pays."
-        },
-        {
-          "id": "q7",
-          "type": "mcq",
           "question": "What limitation of water dispersal does the writer identify?",
           "options": [
             "Seeds tend to rot quickly in salt water",
@@ -75,6 +62,19 @@
           ],
           "answer": 2,
           "explanation": "\"Water disperses seeds efficiently but only in the direction the water happens to be going, and a river never carries anything uphill.\""
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "Why does the writer describe fleshy fruit as 'a payment'?",
+          "options": [
+            "It is unusually costly for animals to obtain",
+            "The plant gives food in exchange for transport",
+            "It is grown and sold commercially by farmers",
+            "It replaces the plant's need for flowers entirely"
+          ],
+          "answer": 1,
+          "explanation": "The passage explains the metaphor itself: the plant provides food and the animal provides transport, so the fruit is what the plant pays."
         },
         {
           "id": "q8",
@@ -138,6 +138,14 @@
           "answer": "distance",
           "maxWords": 1,
           "explanation": "\"Seedling survival often rises sharply with distance from the parent.\""
+        },
+        {
+          "id": "q14",
+          "type": "completion",
+          "sentence": "Dispersal is partly about escaping the ___ of the previous generation.",
+          "answer": "shadow",
+          "maxWords": 1,
+          "explanation": "The final paragraph says dispersal \"is about escaping the shadow, in every sense, of the previous generation.\" The gap needs that one-word image."
         }
       ]
     }

@@ -110,18 +110,18 @@
         {
           "id": "q10",
           "type": "completion",
-          "sentence": "The French salt tax was known as the ___.",
-          "answer": "gabelle",
-          "maxWords": 2,
-          "explanation": "Paragraph 4 names the tax right after 'known as', the same signal phrase used in the question, giving the answer 'gabelle'."
-        },
-        {
-          "id": "q11",
-          "type": "completion",
           "sentence": "Some regions relied on ___ mined from underground deposits.",
           "answer": "rock salt",
           "maxWords": 2,
           "explanation": "Paragraph 2 names the material mined from underground deposits as rock salt, matching the gap directly."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "The French salt tax was known as the ___.",
+          "answer": "gabelle",
+          "maxWords": 2,
+          "explanation": "Paragraph 4 names the tax right after 'known as', the same signal phrase used in the question, giving the answer 'gabelle'."
         },
         {
           "id": "q12",

@@ -10,14 +10,38 @@
     {
       "instruction": "The passage has seven paragraphs, A–G. Choose the correct heading for each of paragraphs B–F from the list of headings below. There are more headings than paragraphs, so you will not use them all.",
       "sharedOptions": [
-        { "key": "i", "text": "A military code repurposed for a different audience" },
-        { "key": "ii", "text": "The limits of raised-letter reading before braille" },
-        { "key": "iii", "text": "A young inventor refines an imperfect idea" },
-        { "key": "iv", "text": "Resistance from those already trained in older methods" },
-        { "key": "v", "text": "Why the six-dot design succeeded technically" },
-        { "key": "vi", "text": "Tools and translations that carried braille worldwide" },
-        { "key": "vii", "text": "A digital-age debate about reading and listening" },
-        { "key": "viii", "text": "Government funding for schools for the blind" }
+        {
+          "key": "i",
+          "text": "A military code repurposed for a different audience"
+        },
+        {
+          "key": "ii",
+          "text": "The limits of raised-letter reading before braille"
+        },
+        {
+          "key": "iii",
+          "text": "A young inventor refines an imperfect idea"
+        },
+        {
+          "key": "iv",
+          "text": "Resistance from those already trained in older methods"
+        },
+        {
+          "key": "v",
+          "text": "Why the six-dot design succeeded technically"
+        },
+        {
+          "key": "vi",
+          "text": "Tools and translations that carried braille worldwide"
+        },
+        {
+          "key": "vii",
+          "text": "A digital-age debate about reading and listening"
+        },
+        {
+          "key": "viii",
+          "text": "Government funding for schools for the blind"
+        }
       ],
       "questions": [
         {
