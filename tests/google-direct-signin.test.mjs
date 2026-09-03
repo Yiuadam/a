@@ -74,15 +74,53 @@ test("the app's Google sign-in is native, and this component stays a website one
 
   const plugin = readFileSync(join(root, "ios/App/App/GoogleSignInPlugin.swift"), "utf8");
   assert.match(plugin, /ASWebAuthenticationSession/);
-  // response_type=id_token, so no client secret is needed and none can ship.
-  assert.match(plugin, /response_type", value: "id_token"/);
-  assert.doesNotMatch(plugin, /client_secret/);
+  assert.doesNotMatch(plugin, /client_secret/, "an installed app has no secret to send");
   // The digest goes to Google and the raw nonce to BandUp, as Apple's does.
   assert.match(plugin, /name: "nonce", value: Self\.sha256Hex\(nonce\)/);
   assert.match(plugin, /"nonce": nonce/);
 
   const main = readFileSync(join(root, "ios/App/App/MainViewController.swift"), "utf8");
   assert.match(main, /registerPluginInstance\(googleSignIn\)/);
+
+  // In the Xcode target, or the file exists and does not compile — which is
+  // exactly what happened: "Cannot find 'GoogleSignInPlugin' in scope".
+  const pbx = readFileSync(join(root, "ios/App/App.xcodeproj/project.pbxproj"), "utf8");
+  assert.match(pbx, /GoogleSignInPlugin\.swift in Sources/);
+});
+
+/*
+  The authorization-code flow with PKCE, and never the implicit one.
+
+  This is a regression test for a real failure, not a preference. The first
+  version asked Google for `response_type=id_token`, which is what the website's
+  button effectively receives — and Google refuses it for an installed
+  application. The sheet opened, the account was picked, and Google answered
+  400 unsupported_response_type. Nothing in the app could have reported that
+  more clearly; it is Google's own rule about client types.
+
+  PKCE is what makes the code flow usable without a client secret, so the two
+  belong together: asking for a code without sending a challenge would be a
+  different bug with a quieter failure.
+*/
+test("the app uses the code flow with PKCE, which is the only one Google allows it", () => {
+  const plugin = readFileSync(join(root, "ios/App/App/GoogleSignInPlugin.swift"), "utf8");
+
+  assert.match(plugin, /"response_type", value: "code"/);
+  assert.doesNotMatch(
+    plugin,
+    /"response_type", value: "id_token"/,
+    "implicit is not permitted for an iOS client — Google answers 400",
+  );
+
+  assert.match(plugin, /"code_challenge_method", value: "S256"/);
+  assert.match(plugin, /"code_challenge", value: challenge/);
+  assert.match(plugin, /"code_verifier", value: verifier/);
+  assert.match(plugin, /sha256Base64Url/, "S256 means base64url, not hex");
+
+  // The code is redeemed by the app itself, and the ID token is what comes back.
+  assert.match(plugin, /https:\/\/oauth2\.googleapis\.com\/token/);
+  assert.match(plugin, /"grant_type", value: "authorization_code"/);
+  assert.match(plugin, /body\["id_token"\] as\? String/);
 });
 
 test("web Google sign-in falls back to the established full-navigation flow", () => {
