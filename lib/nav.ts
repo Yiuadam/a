@@ -205,3 +205,44 @@ export const NAV_ICONS: Partial<Record<string, CardIconName>> = {
   "/admin": "settings",
   ...(!IS_MOBILE_BUILD ? { "/pricing": "plans" as const, "/billing": "usage" as const } : {}),
 };
+
+/*
+  The short list the standing rail draws, which is not the whole menu.
+
+  NAV_GROUPS is everything and stays everything — nothing is being taken away,
+  and the menu button beside the logo still opens all of it. But a rail is read
+  by scanning it, and eighteen rows is a list to search rather than a set of
+  places to go. What is here is what a learner opens on an ordinary evening:
+  the four skills, where they stand, what to do next, and the tutor.
+
+  What is deliberately not here: the practice index and the mock exam (reached
+  from the skills themselves, and a three-hour sitting is not an ordinary
+  evening), the organisation workspace, guides, account, plans, billing, about,
+  and the owner console. Each is one tap away in the menu, which is where you go
+  when you are looking for something rather than doing something.
+*/
+export const RAIL_GROUPS: NavGroup[] = [
+  {
+    title: "Practise",
+    items: [
+      { href: "/practice/listening", label: "Listening" },
+      { href: "/practice/reading", label: "Reading" },
+      { href: "/practice/writing", label: "Writing" },
+      { href: "/speaking", label: "Speaking" },
+    ],
+  },
+  {
+    title: "Study",
+    items: [
+      { href: "/", label: "Home" },
+      { href: "/plan", label: "My plan" },
+      { href: "/history", label: "History" },
+      { href: "/grammar", label: "Grammar" },
+      { href: "/vocabulary", label: "Vocabulary" },
+    ],
+  },
+  {
+    title: "Help",
+    items: [{ href: "/chat", label: "Ask a tutor" }],
+  },
+];

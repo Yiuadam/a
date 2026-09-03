@@ -12,6 +12,9 @@ import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import type { ModuleName, ModuleResult, PlacementResult } from "@/lib/types";
 import { Icon } from "@/components/Icons";
 import CardIcon from "@/components/CardIcon";
+import Scoreboard from "@/components/dashboard/Scoreboard";
+import TutorCard from "@/components/dashboard/TutorCard";
+import PlanCard from "@/components/dashboard/PlanCard";
 import NewBadge from "@/components/NewBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
@@ -361,21 +364,22 @@ export default function Dashboard() {
         as there is any. The main column gets its width back and its tiles stop
         being letterboxes.
       */}
-      <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-12 xl:gap-5">
-        {/*
-          The hero, and where it sits on a wide screen.
+      {/*
+        The board: four modules, two by two, filling one screen and no more.
 
-          It is the same element in both places, positioned rather than
-          duplicated: below xl it is the first row across the full width, as it
-          always was; from xl it moves into the rail so the rail is never empty
-          and the working column starts with the thing a learner came to press.
+        On a large display the dashboard used to be a row of wide short tiles
+        with most of a 1080px screen empty underneath — and the tiles named the
+        same six places the rail beside them now names permanently. Naming them
+        twice is what left nothing to put in the space.
 
-          Explicit row and column starts because this is the only way to say
-          "second column, first row" to a grid whose other children are placed
-          by span alone — without them the browser flows it after the sections
-          and the rail sits below a screenful of tiles.
-        */}
-        <div className="min-w-0 lg:col-span-3 xl:col-span-4 xl:col-start-9 xl:row-start-1">
+        So the tiles go, on a screen that has the rail, and the space carries
+        what a dashboard is for: the offer or the score summary, where the
+        learner stands, what to do next, and the tutor that can answer why.
+        Below `lg` there is no rail, the tiles are the only way through, and
+        the page is exactly what it was.
+      */}
+      <div className="hidden gap-4 lg:grid lg:grid-cols-2 lg:gap-5">
+        <div className="min-w-0">
         {organization ? (
           <OrganisationHero organization={organization} />
         ) : isValidPlacement(placement) ? (
@@ -416,21 +420,14 @@ export default function Dashboard() {
         )}
         </div>
 
-        {/*
-          Two thirds when there is something in the third column, all three
-          when there is not.
+        <Scoreboard results={profile.results} />
+        <TutorCard />
+        <PlanCard profile={profile} />
+      </div>
 
-          The right column only renders once a learner has practised. Before
-          that the left column was still spanning 2 of 3, so a new account got
-          its six tiles squeezed into two thirds of the page with 524px of
-          nothing beside them — measured at 1920px. The grid was reserving room
-          for a section that had decided not to appear.
-        */}
-        <div
-          className={`dashboard-sections min-w-0 space-y-4 xl:col-span-8 xl:col-start-1 xl:row-start-1 ${
-            recent.length > 0 ? "lg:col-span-2" : "lg:col-span-3"
-          }`}
-        >
+      {/* Below `lg`: no rail, so the tiles are still the way through. */}
+      <div className="grid gap-4 lg:hidden">
+        <div className="dashboard-sections min-w-0 space-y-4">
           <section>
             <h2 className="heading-rule mb-2.5 text-sm font-semibold text-slate-900">
               Practise a skill

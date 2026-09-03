@@ -4,8 +4,7 @@ import Link from "next/link";
 import CardIcon from "@/components/CardIcon";
 import { Icon } from "@/components/Icons";
 import { useRoutePath } from "@/lib/hooks";
-import { NAV_GROUPS, NAV_ICONS, OWNER_ITEM, SKILL_ICONS, currentHref } from "@/lib/nav";
-import { useTier } from "@/lib/billing/useTier";
+import { NAV_ICONS, RAIL_GROUPS, SKILL_ICONS, currentHref } from "@/lib/nav";
 
 /*
   The navigation, standing open, on a screen with room for it.
@@ -18,9 +17,12 @@ import { useTier } from "@/lib/billing/useTier";
   about a horizontal strip, and it was being applied to screens with five
   hundred pixels of empty paper down each side.
 
-  So the same list, in the space that was already empty. Nothing new to
-  maintain: this reads NAV_GROUPS, the menu reads NAV_GROUPS, and a destination
-  added to that file appears in both.
+  So navigation in the space that was already empty — but the short list, not
+  the whole menu. Eighteen rows standing open is something to search rather
+  than a set of places to go, so the rail draws RAIL_GROUPS: the four skills,
+  where you stand, what to do next, and the tutor. Everything else is still one
+  tap away behind the menu button, which is unchanged. See lib/nav.ts for what
+  was left out and why.
 
   ---------------------------------------------------------------------------
   Why 64rem and not a pixel width
@@ -40,14 +42,8 @@ import { useTier } from "@/lib/billing/useTier";
 
 export default function SideRail() {
   const pathname = useRoutePath();
-  const account = useTier();
-  const isOwner = account.phase === "ready" && account.signedIn && account.tier === "admin";
-  const groups = isOwner
-    ? NAV_GROUPS.map((group, i) =>
-        i === NAV_GROUPS.length - 1 ? { ...group, items: [...group.items, OWNER_ITEM] } : group,
-      )
-    : NAV_GROUPS;
   const here = currentHref(pathname);
+  const groups = RAIL_GROUPS;
 
   return (
     /*
