@@ -134,9 +134,13 @@ test("every writing task's type matches the content it actually carries", () => 
         ? "table"
         : task.chart
           ? "chart"
-          : task.variant === "general"
-            ? "letter"
-            : null;
+          /* A pair of plans of the same site: the third thing Academic Task 1
+             asks for, after a chart and a table. */
+          : task.plans
+            ? "plan"
+            : task.variant === "general"
+              ? "letter"
+              : null;
     assert.notEqual(expected, null, `${task.id} carries nothing to type it by`);
     assert.equal(task.type, expected, `${task.id} is typed ${task.type} but reads as a ${expected}`);
   }

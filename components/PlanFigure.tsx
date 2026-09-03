@@ -40,7 +40,7 @@ function describe(figure: PlanFigure): string {
   };
 
   const places = named.map((area) => area.label).join(", ");
-  const letters = figure.markers
+  const letters = (figure.markers ?? [])
     .map((marker) => {
       const near = nearest(marker);
       return near ? `${marker.key}, beside the ${near}` : marker.key;
@@ -134,7 +134,7 @@ export default function PlanDrawing({ figure }: { figure: PlanFigure }) {
           </text>
         )}
 
-        {figure.markers.map((marker) => (
+        {(figure.markers ?? []).map((marker) => (
           <g key={marker.key}>
             {/*
               A filled disc rather than an outline. The letters sit on top of

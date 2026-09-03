@@ -688,7 +688,7 @@ for (const name of listeningPapers) {
   build checks. That way the field cannot drift away from the paper it
   describes without the build saying so.
 */
-const WRITING_TASK_TYPES = ["chart", "table", "letter", "essay"];
+const WRITING_TASK_TYPES = ["chart", "table", "plan", "letter", "essay"];
 
 function checkWritingType(task) {
   const id = task.id ?? "a task";
@@ -702,9 +702,11 @@ function checkWritingType(task) {
       ? "table"
       : task.chart
         ? "chart"
-        : task.variant === "general"
-          ? "letter"
-          : null;
+        : task.plans
+          ? "plan"
+          : task.variant === "general"
+            ? "letter"
+            : null;
   /*
     Null means the task carries no evidence either way — an academic Task 1
     with neither a table nor a chart. That is already a failure a few lines
@@ -729,13 +731,49 @@ if (writing) {
     if (!task.prompt || !task.title) fail("writing-tasks.json", `${task.id} is missing a prompt or title`);
     checkLevel("writing-tasks.json", task, task.id ?? "a task");
     checkWritingType(task);
-    if (task.task === 1 && task.variant === "academic" && !task.dataTable && !task.chart) {
-      fail("writing-tasks.json", `${task.id} is an academic Task 1 with no data to describe`);
+    if (
+      task.task === 1 && task.variant === "academic" &&
+      !task.dataTable && !task.chart && !task.plans
+    ) {
+      fail("writing-tasks.json", `${task.id} is an academic Task 1 with nothing to describe`);
     }
-    if (task.dataTable && task.chart) {
-      // Both would let a candidate read the figures off the table and never
-      // interpret the chart, which is the skill Task 1 is testing.
-      fail("writing-tasks.json", `${task.id} has both a table and a chart; it should have one`);
+    if ([task.dataTable, task.chart, task.plans].filter(Boolean).length > 1) {
+      // Two views of the same thing would let a candidate read the figures off
+      // one and never interpret the other, which is the skill Task 1 tests.
+      fail("writing-tasks.json", `${task.id} carries more than one figure; it should have one`);
+    }
+    /*
+      A map task is a *pair* of plans, because the writing it asks for is what
+      changed between them. One plan on its own leaves nothing to compare and
+      turns a change description into a list of what is there.
+    */
+    if (task.plans !== undefined) {
+      if (!Array.isArray(task.plans) || task.plans.length < 2) {
+        fail("writing-tasks.json", `${task.id} needs at least two plans to compare`);
+      } else {
+        for (const plan of task.plans) {
+          if (!plan?.caption) {
+            fail("writing-tasks.json", `${task.id} has a plan with no caption saying when it is`);
+          }
+          const figure = plan?.figure;
+          if (figure?.kind !== "plan" || !Array.isArray(figure.areas) || figure.areas.length === 0) {
+            fail("writing-tasks.json", `${task.id} has a plan with nothing drawn on it`);
+            continue;
+          }
+          for (const area of figure.areas) {
+            const ok = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 100;
+            if (!ok(area?.x) || !ok(area?.y) || !ok(area?.w) || !ok(area?.h) ||
+                area.x + area.w > 100 || area.y + area.h > 100) {
+              fail("writing-tasks.json", `${task.id} has a plan block that falls outside the drawing`);
+              break;
+            }
+          }
+          if (Array.isArray(figure.markers) && figure.markers.length > 0) {
+            // Letters are for choosing between, and nothing is chosen here.
+            fail("writing-tasks.json", `${task.id} puts lettered markers on a plan that is only described`);
+          }
+        }
+      }
     }
     if (task.chart) {
       const { kind, categories, series } = task.chart;

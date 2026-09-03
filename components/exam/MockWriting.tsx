@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PlanDrawing from "@/components/PlanFigure";
 import Chart from "@/components/Chart";
 import ExamShell from "@/components/exam/ExamShell";
 import { useIsWide } from "@/components/exam/SplitPanes";
@@ -59,6 +60,22 @@ export default function MockWriting({
 
   const figure = task.chart ? (
     <Chart spec={task.chart} />
+  ) : task.plans ? (
+    /*
+      Two plans of the same site, drawn side by side on a wide screen and
+      stacked on a narrow one. Side by side is how the paper prints them and
+      how the comparison is actually made — a candidate describing what changed
+      is looking from one to the other — but on a phone two plans in a row are
+      two illegible plans, so below the breakpoint they stack.
+    */
+    <div className="grid gap-4 sm:grid-cols-2">
+      {task.plans.map((plan) => (
+        <div key={plan.caption} className="min-w-0">
+          <p className="mb-1 text-center text-sm font-semibold text-slate-700">{plan.caption}</p>
+          <PlanDrawing figure={plan.figure} />
+        </div>
+      ))}
+    </div>
   ) : task.dataTable ? (
     /*
       `overscroll-x-contain` because this sideways scroller now lives inside

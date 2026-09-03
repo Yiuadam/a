@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import PlanDrawing from "@/components/PlanFigure";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
@@ -212,6 +213,22 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
 
   const visual = task.chart ? (
     <Chart spec={task.chart} />
+  ) : task.plans ? (
+    /*
+      Two plans of the same site, drawn side by side on a wide screen and
+      stacked on a narrow one. Side by side is how the paper prints them and
+      how the comparison is actually made — a candidate describing what changed
+      is looking from one to the other — but on a phone two plans in a row are
+      two illegible plans, so below the breakpoint they stack.
+    */
+    <div className="grid gap-4 sm:grid-cols-2">
+      {task.plans.map((plan) => (
+        <div key={plan.caption} className="min-w-0">
+          <p className="mb-1 text-center text-sm font-semibold text-slate-700">{plan.caption}</p>
+          <PlanDrawing figure={plan.figure} />
+        </div>
+      ))}
+    </div>
   ) : task.dataTable ? (
     <div className="min-w-0 max-w-full sm:overflow-x-auto">
       <p className="mb-2 text-sm font-semibold text-slate-700">{task.dataTable.title}</p>

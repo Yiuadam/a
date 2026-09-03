@@ -280,8 +280,15 @@ export interface PlanFigure {
   areas: PlanArea[];
   /** A road, path or river: points joined in the order given. */
   routes?: PlanRoute[];
-  /** The lettered points the candidate chooses between. */
-  markers: PlanMarker[];
+  /**
+   * The lettered points the candidate chooses between.
+   *
+   * Absent on a plan that is being *described* rather than labelled — a
+   * Writing Task 1 map has named blocks and no letters, because nothing is
+   * being chosen from it. A listening labelling block must have them, and the
+   * validator requires them there rather than here.
+   */
+  markers?: PlanMarker[];
   /** Where a visitor comes in, which most plans print and some questions need. */
   entrance?: { x: number; y: number; label: string };
 }
@@ -387,7 +394,7 @@ export interface ListeningTest {
   is a Task 2, a letter is a General Training Task 1, and a chart or a table
   is the one the task actually carries. It just no longer has a bar to feed.
 */
-export const WRITING_TASK_TYPES = ["chart", "table", "letter", "essay"] as const;
+export const WRITING_TASK_TYPES = ["chart", "table", "plan", "letter", "essay"] as const;
 export type WritingTaskType = (typeof WRITING_TASK_TYPES)[number];
 
 export interface WritingTask {
@@ -426,6 +433,20 @@ export interface WritingTask {
     rows: string[][];
   };
   chart?: ChartSpec;
+  /*
+    The third thing Academic Task 1 asks for, after a chart and a table: a map
+    or a plan, almost always two of them — the same site before and after, with
+    the candidate describing what changed. It is a different piece of writing
+    from a chart description, because the language is position and change
+    rather than trend and comparison ("the orchard to the north was cleared
+    and replaced by"), and a candidate who has only ever practised on charts
+    meets it for the first time in the exam.
+
+    Two entries, not one, because a single plan gives nothing to compare and
+    the real task is nearly always a pair. Drawn by the same renderer as the
+    listening labelling plans; the difference is that these carry no letters.
+  */
+  plans?: Array<{ caption: string; figure: PlanFigure }>;
   minWords: number;
   timeMinutes: number;
 }
