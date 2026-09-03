@@ -8,6 +8,7 @@ import MockListening from "@/components/exam/MockListening";
 import MockReading from "@/components/exam/MockReading";
 import MockResults from "@/components/exam/MockResults";
 import MockRetakeResults from "@/components/exam/MockRetakeResults";
+import MockSkillResults from "@/components/exam/MockSkillResults";
 import MockWriting from "@/components/exam/MockWriting";
 import { useMounted, useProfile } from "@/lib/hooks";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
@@ -21,6 +22,7 @@ import {
   listeningPaper,
   newRetakeSession,
   newSession,
+  newSingleSkillSession,
   nextStage,
   readingPaper,
   saveSession,
@@ -125,6 +127,32 @@ function ExamRunner() {
     fresh.deadline = Date.now() + MODULE_MINUTES.listening * 60_000;
     update(fresh);
   }, [update]);
+
+  /**
+   * Start a standalone single-skill exam: one module, sat on its own, with no
+   * earlier sitting behind it.
+   *
+   * The deadline is computed the same way the retake-starting effect below
+   * computes one, and for the same reason: `fresh.stage` is `MockSession`'s
+   * general "which stage" field, so it reads as `MockModule | "results"` to
+   * the compiler even though `newSingleSkillSession` only ever sets it to the
+   * module just chosen. Both branches are excluded rather than assumed away —
+   * "results" because the type admits it, "speaking" because it really can
+   * arrive here: the check exists for the day something other than today's
+   * "One skill" chooser calls this with "speaking", since that chooser itself
+   * sends Speaking to /speaking, which is already this exact sitting.
+   */
+  const startSingleSkill = useCallback(
+    (module: MockModule) => {
+      const fresh = newSingleSkillSession(module);
+      fresh.deadline =
+        fresh.stage === "speaking" || fresh.stage === "results"
+          ? null
+          : Date.now() + MODULE_MINUTES[fresh.stage] * 60_000;
+      update(fresh);
+    },
+    [update],
+  );
 
   /**
    * Move to the next module, starting its clock. Speaking runs without one.
@@ -254,7 +282,7 @@ function ExamRunner() {
   /* Nothing is drawn until storage has been read, or the clock flashes wrong. */
   if (!mounted) return null;
 
-  if (!session) return <StartScreen onStart={start} />;
+  if (!session) return <StartScreen onStart={start} onStartSkill={startSingleSkill} />;
 
   switch (session.stage) {
     case "listening":
@@ -301,23 +329,43 @@ function ExamRunner() {
       );
     case "results":
       /*
-        A retake never reaches MockResults, and that separation is load-bearing
-        rather than cosmetic. MockResults marks every module of the paper it is
-        handed; a retake's paper carries all four for the reasons
-        `newRetakeSession` sets out, but only one of them was ever opened, so
-        the other three would be scored as forty unanswered questions and
-        written into the learner's history as band 2. The routing here is what
-        makes that impossible.
+        A session with a `retake` never reaches MockResults, and that
+        separation is load-bearing rather than cosmetic. MockResults marks
+        every module of the paper it is handed; a solo session's paper carries
+        all four for the reasons `newSoloSession` sets out, but only one of
+        them was ever opened, so the other three would be scored as forty
+        unanswered questions and written into the learner's history as band 2.
+        The routing here is what makes that impossible.
+
+        The second branch is the same distinction `MockRetakeIntent` itself
+        draws: `of` present is a One Skill Retake, updating a report that
+        already exists, and goes to MockRetakeResults; `of` absent is a
+        standalone single-skill exam, with no report to update, and goes to
+        MockSkillResults. Getting this wrong in either direction would be
+        silent and wrong in opposite ways — a standalone sitting marked as a
+        retake would go looking for a report that was never sat, and a retake
+        marked as standalone would leave the report it was booked against
+        exactly as it was before.
       */
-      return session.retake ? (
+      if (!session.retake) {
+        return <MockResults session={session} onMarks={setMarks} onRestart={restart} />;
+      }
+      return session.retake.of ? (
         <MockRetakeResults session={session} onLeave={restart} />
       ) : (
-        <MockResults session={session} onMarks={setMarks} onRestart={restart} />
+        <MockSkillResults session={session} onLeave={restart} />
       );
   }
 }
 
-function StartScreen({ onStart }: { onStart: () => void }) {
+function StartScreen({
+  onStart,
+  onStartSkill,
+}: {
+  onStart: () => void;
+  /** Starts a standalone single-skill exam — see the "One skill" card below. */
+  onStartSkill: (module: MockModule) => void;
+}) {
   /*
     What this sitting will and will not mark, for whoever is about to spend
     three hours on it.
@@ -330,6 +378,12 @@ function StartScreen({ onStart }: { onStart: () => void }) {
     a gap in it, three hours later — the request is refused and the result
     screen swallows it. Being told beforehand is the difference between a
     choice and a surprise.
+
+    The same reasoning carries over to a standalone Writing exam below: it is
+    a real sitting rather than a lesson, and the honest gap belongs on this
+    screen, before the hour is spent, not as a surprise on the results screen
+    after it. Listening and Reading never need this notice at all — both are
+    marked from an answer key, on every tier, always.
   */
   const access = useSessionAccess();
   const unmarked = (["writing", "speaking"] as const).filter(
@@ -359,6 +413,14 @@ function StartScreen({ onStart }: { onStart: () => void }) {
 
   return (
     <section className="exam-start mx-auto flex h-[calc(100dvh-var(--header-h))] w-full max-w-6xl items-center overflow-y-auto px-3 sm:px-5">
+      {/*
+        The clear choice the owner asked for: a full sitting or one skill,
+        both visible together rather than a step a learner has to find. Two
+        cards rather than one growing to hold both, because "which of these am
+        I choosing" reads faster from two labelled boxes than from a single
+        page where a heading changes meaning halfway down.
+      */}
+      <div className="mx-auto flex w-full flex-col gap-3">
       <div className="exam-start-window card premade-glass relative mx-auto w-full overflow-hidden !p-[clamp(1rem,3vw,2rem)]">
         <div className="exam-start-content premade-glass-content mx-auto w-full space-y-[clamp(0.75rem,2.4vh,1.5rem)]">
         <header className="max-w-2xl">
@@ -408,35 +470,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           </p>
         </div>
 
-        {unmarked.length > 0 && (
-          <p
-            role="status"
-            className="text-inset-compact rounded-lg bg-amber-50 px-3 py-2 text-xs leading-snug text-amber-900"
-          >
-            <strong className="font-semibold">
-              {unmarked.map((module) => MODULE_NAMES[module]).join(" and ")}{" "}
-              {unmarked.length === 1 ? "will not be marked" : "will not be marked"} on this
-              account.
-            </strong>{" "}
-            You can still sit {unmarked.length === 1 ? "it" : "them"}, and everything else is
-            marked as usual — but {unmarked.length === 1 ? "that band" : "those bands"} will be
-            missing from your report.{" "}
-            {/* No route to a billing page from the iOS bundle: those pages are
-                not in it, and pointing at one is what the App Store rules are
-                about. The sentence still has to say what would fix it. */}
-            {IS_MOBILE_BUILD ? (
-              "Marking is part of a paid plan."
-            ) : (
-              <>
-                Marking is part of a paid plan; see the{" "}
-                <Link href="/pricing" className="font-medium underline underline-offset-4">
-                  plans
-                </Link>
-                .
-              </>
-            )}
-          </p>
-        )}
+        <UnmarkedNotice modules={unmarked} />
 
         <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
           <button className="btn-primary premade-glass min-w-44" onClick={onStart}>
@@ -451,6 +485,122 @@ function StartScreen({ onStart }: { onStart: () => void }) {
         </div>
         </div>
       </div>
+
+      {/*
+        Deliberately not a fifth thing called "practice" — /practice already
+        is that, untimed and marked as you go. This is the exam's own real
+        timing and its own silence until the end, applied to a single module
+        instead of four, which is a different activity from either of the
+        other two cards on this page and needs its own name rather than
+        borrowing one.
+      */}
+      <div className="exam-start-window card premade-glass relative mx-auto w-full overflow-hidden !p-[clamp(1rem,3vw,2rem)]">
+        <div className="premade-glass-content mx-auto w-full space-y-3">
+          <header className="max-w-2xl">
+            <p className="liquid-glass mb-2 inline-flex min-h-7 items-center rounded-full border px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-indigo-700">
+              One skill
+            </p>
+            <h2 className="text-[clamp(1.15rem,2.6vw,1.5rem)] font-semibold leading-none tracking-tight text-slate-900">
+              Sit one skill on its own
+            </h2>
+            <p className="mt-2 text-[clamp(0.8rem,1.6vw,0.9375rem)] leading-snug text-slate-600">
+              The complete paper for one skill, at its own real timing, marked the same way as a
+              full sitting — silence until the end, then a band. It is a full exam of one module,
+              not a shortened one.
+            </p>
+          </header>
+
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+            {rows.map(({ module, detail }) => {
+              /*
+                Speaking's tile leaves through /speaking rather than this
+                screen's own session machinery. That page already is the
+                complete interview, sat and marked on exactly these terms —
+                rebuilding it here would be a second copy of a working thing
+                for no learner-visible gain, only a second place to keep it
+                right.
+              */
+              const tile = (
+                <>
+                  <span className="block text-sm font-semibold text-slate-900">
+                    {MODULE_NAMES[module]}
+                  </span>
+                  <span className="block text-xs text-slate-500">{detail}</span>
+                  <span className="mt-0.5 block text-xs font-medium tabular-nums text-slate-700">
+                    {MODULE_MINUTES[module]} min
+                  </span>
+                </>
+              );
+              const tileClass =
+                "liquid-glass block min-w-0 rounded-[var(--radius-xl)] border px-4 py-3.5 text-center transition-colors hover:bg-surface/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500";
+              return (
+                <li key={module}>
+                  {module === "speaking" ? (
+                    <Link href="/speaking" className={tileClass}>
+                      {tile}
+                    </Link>
+                  ) : (
+                    <button type="button" onClick={() => onStartSkill(module)} className={`${tileClass} w-full`}>
+                      {tile}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          {/*
+            Scoped to Writing alone, unlike the full sitting's notice above.
+            Speaking is not a button in this card — it leaves through
+            /speaking, which carries its own lock — so naming it here would be
+            warning about a door this card never opens.
+          */}
+          <UnmarkedNotice modules={unmarked.filter((module) => module === "writing")} />
+        </div>
+      </div>
+      </div>
     </section>
+  );
+}
+
+/**
+ * The one honest thing a screen about to start an AI-marked module has to say
+ * beforehand: which of them this account cannot get a band for.
+ *
+ * Shared between the full-sitting card and the one-skill card above rather
+ * than written twice, because it is the same fact stated at the same moment —
+ * before the clock starts, not after. "Missing" rather than "missing from
+ * your report": the full sitting has a report to be missing from and a
+ * standalone single-skill exam never does, and one sentence has to be true
+ * for both callers.
+ */
+function UnmarkedNotice({ modules }: { modules: readonly ("writing" | "speaking")[] }) {
+  if (modules.length === 0) return null;
+  return (
+    <p
+      role="status"
+      className="text-inset-compact rounded-lg bg-amber-50 px-3 py-2 text-xs leading-snug text-amber-900"
+    >
+      <strong className="font-semibold">
+        {modules.map((module) => MODULE_NAMES[module]).join(" and ")} will not be marked on this
+        account.
+      </strong>{" "}
+      You can still sit {modules.length === 1 ? "it" : "them"}, and everything else is marked as
+      usual — but {modules.length === 1 ? "that band" : "those bands"} will be missing.{" "}
+      {/* No route to a billing page from the iOS bundle: those pages are not in
+          it, and pointing at one is what the App Store rules are about. The
+          sentence still has to say what would fix it. */}
+      {IS_MOBILE_BUILD ? (
+        "Marking is part of a paid plan."
+      ) : (
+        <>
+          Marking is part of a paid plan; see the{" "}
+          <Link href="/pricing" className="font-medium underline underline-offset-4">
+            plans
+          </Link>
+          .
+        </>
+      )}
+    </p>
   );
 }

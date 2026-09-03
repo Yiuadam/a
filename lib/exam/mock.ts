@@ -55,12 +55,20 @@ import type {
   ---------------------------------------------------------------------------
   A sitting is not always all four
 
-  A One Skill Retake is a sitting of one module — the same paper, the same
-  clock, the same silence until the end, and then a band that replaces one line
-  of an earlier report. `MockSession.retake` below is what makes a session that
-  rather than a full one, and `sittingModules` is the single answer to "which
-  modules is this?" that everything downstream asks. What the retake changes,
-  and what it deliberately does not, is written up in lib/exam/report.ts.
+  Two different things produce a sitting of one module rather than four, and
+  they share this file's machinery because they are the same paper, the same
+  clock and the same silence until the end — they differ only in what happens
+  once the band exists. A One Skill Retake replaces one line of an earlier
+  report. A standalone single-skill exam has no earlier report to update and
+  simply records its own band, the way a full sitting would for that module
+  alone, if the other three had never been sat.
+
+  `MockSession.retake` below is what makes a session either of these rather
+  than a full one — `of` present for a retake, absent for a standalone sitting
+  — and `sittingModules` is the single answer to "which modules is this?" that
+  everything downstream asks. What each kind changes, and what it deliberately
+  does not, is written up in lib/exam/report.ts for the retake and at the top
+  of components/exam/MockSkillResults.tsx for the standalone sitting.
 */
 
 /*
@@ -197,17 +205,29 @@ export interface MockMarks {
 }
 
 /**
- * What makes a session a One Skill Retake rather than a full sitting.
+ * What makes a session cover one module rather than all four.
  *
- * `of` names the `MockExamReport` whose form this retake updates, which is the
- * real rule as well: a retake is booked against a specific test and updates
- * that test's report, not "your score" in the abstract. Recording it means the
- * band can be attached to the right sitting even if the learner sits another
- * full mock in between.
+ * `of` names the `MockExamReport` this session updates once it is marked,
+ * which is the real rule as well: a retake is booked against a specific test
+ * and updates that test's report, not "your score" in the abstract. Recording
+ * it means the band can be attached to the right sitting even if the learner
+ * sits another full mock in between.
+ *
+ * `of` is absent for a standalone single-skill exam — the same one module,
+ * the same paper, the same clock, sat with no earlier sitting behind it and
+ * therefore nothing for a band to update. That is not a lesser kind of
+ * retake; it is the other reason a sitting can be one module rather than
+ * four, and the two are kept as one struct rather than two so that
+ * `sittingModules`, `nextStage` and the rest of this file cannot drift out of
+ * step for one of them while staying in step for the other. What tells them
+ * apart downstream is exactly this field: present,
+ * components/exam/MockRetakeResults.tsx marks the module and writes the band
+ * over an existing report; absent, components/exam/MockSkillResults.tsx marks
+ * it and writes an ordinary result with no report involved at all.
  */
 export interface MockRetakeIntent {
-  /** The `MockExamReport.id` this retake updates. */
-  of: string;
+  /** The `MockExamReport.id` this session updates, or absent for a standalone sitting. */
+  of?: string;
   module: MockModule;
 }
 
@@ -228,8 +248,9 @@ export interface MockSession {
   startedAt: string;
   paper: MockPaper;
   /**
-   * Absent for a full sitting. Present for a One Skill Retake, naming the one
-   * module being re-sat and the report it belongs to.
+   * Absent for a full sitting. Present for a sitting of one module — a One
+   * Skill Retake when `retake.of` names the report it updates, or a
+   * standalone single-skill exam when it does not. See `MockRetakeIntent`.
    */
   retake?: MockRetakeIntent;
   /** Where the candidate is. "results" once the whole sitting is marked. */
@@ -624,29 +645,29 @@ export function newSession(): MockSession {
 }
 
 /**
- * A One Skill Retake: one module, sat on its own, against an earlier sitting.
+ * The session both a retake and a standalone single-skill exam build: one
+ * module, sat on its own, everything else about the sitting held in common.
  *
  * The paper is composed in full even though only one module of it will ever be
  * opened. That looks wasteful and is the safe choice — `MockPaper` promises
- * three passages and four recordings to everything downstream, and a retake
+ * three passages and four recordings to everything downstream, and a session
  * that shipped a half-empty paper would put an "or undefined" into every
  * consumer for the sake of saving nothing at all. The unused papers are three
  * strings; the stage machinery below is what guarantees they are never shown.
+ *
+ * `idPrefix` is the only reason this is not simply `newRetakeSession` with an
+ * optional `of` parameter. Both ids end up in a `ModuleResult.testId`, and
+ * "which of these rows came from a retake and which from a standalone
+ * sitting" is a question the archive should be able to answer without a join.
  */
-export function newRetakeSession(module: MockModule, of: string): MockSession {
+function newSoloSession(idPrefix: string, retake: MockRetakeIntent): MockSession {
   return {
     version: 1,
-    /*
-      Distinguishable from a full sitting's id at a glance, and deliberately so.
-      This id ends up in a `ModuleResult.testId`, and "which of these rows came
-      from a retake" is a question the archive should be able to answer without
-      a join.
-    */
-    id: `retake-${Date.now().toString(36)}`,
+    id: `${idPrefix}-${Date.now().toString(36)}`,
     startedAt: new Date().toISOString(),
     paper: composeMock(),
-    retake: { of, module },
-    stage: module,
+    retake,
+    stage: retake.module,
     deadline: null,
     answers: {},
     essays: {},
@@ -655,8 +676,28 @@ export function newRetakeSession(module: MockModule, of: string): MockSession {
   };
 }
 
+/** A One Skill Retake: one module, sat on its own, against an earlier sitting. */
+export function newRetakeSession(module: MockModule, of: string): MockSession {
+  return newSoloSession("retake", { of, module });
+}
+
 /**
- * Which modules this session covers: all four, or the one being retaken.
+ * A standalone single-skill exam: the complete paper for one module, at its
+ * real timing, sat with no earlier sitting behind it.
+ *
+ * Built on exactly the same session a retake is — see `newSoloSession` —
+ * because it is the same activity in every way that matters: one clock, one
+ * paper, silence until the end. The only difference is `of`, left unset,
+ * which is what tells components/exam/MockSkillResults.tsx there is no report
+ * to update, only an ordinary result to record.
+ */
+export function newSingleSkillSession(module: MockModule): MockSession {
+  return newSoloSession("solo", { module });
+}
+
+/**
+ * Which modules this session covers: all four, or the one module a retake or
+ * a standalone single-skill exam is sitting on its own.
  *
  * The single place that question is answered. Everything that walks a sitting —
  * choosing the next stage, deciding what to mark, deciding what to record —
@@ -724,6 +765,13 @@ export function nextStage(session: MockSession, from: MockModule): MockModule | 
  * direction this has to fail in. The opposite arrangement, where a retake
  * staked a claim on the module the moment it began, would let a learner lower
  * their own recorded band by tapping the wrong thing and closing the tab.
+ *
+ * A standalone single-skill exam follows the same rule for a slightly simpler
+ * reason: there was never a report for it to leave untouched, only the
+ * ordinary `ModuleResult` that components/exam/MockSkillResults.tsx writes
+ * once marking finishes. Leaving early means that write never happens, so
+ * nothing is recorded at all — not a low band, not a gap where one used to
+ * be, simply nothing, exactly as if the sitting had never been started.
  */
 export function abandonSession(): void {
   const current = sessionSnapshot();
@@ -738,12 +786,16 @@ export function abandonSession(): void {
 // lives here rather than in the screen that draws the result, because "what a
 // finished sitting leaves behind" is a property of the exam model.
 //
-// There is deliberately no matching recordSitting for a full mock. A full
+// There is deliberately no matching recordSitting for a full mock, and no
+// version of this function for a standalone single-skill exam either. A full
 // sitting is recorded by components/exam/MockResults.tsx calling addMockReport,
-// which is fine because a retake can never reach that screen: app/exam/page.tsx
-// routes a session with a `retake` to MockRetakeResults instead, which is the
-// stronger guard anyway — it stops the retake being *marked* as four modules,
-// not merely recorded as four.
+// and a standalone sitting by components/exam/MockSkillResults.tsx calling the
+// ordinary addResult — neither can reach this function's screen, because
+// app/exam/page.tsx routes a session by what `retake` contains: no `retake` at
+// all goes to MockResults, `retake.of` present goes to MockRetakeResults,
+// `retake.of` absent goes to MockSkillResults. That is the stronger guard
+// anyway — it stops a sitting being *marked* as the wrong shape, not merely
+// recorded as one.
 // ---------------------------------------------------------------------------
 
 /**
@@ -757,17 +809,26 @@ export function abandonSession(): void {
  * learner would open history and find the 7.0 they earned last month has become
  * "not marked" because they tried to improve it. So nothing is written, the
  * standing form keeps the band it had, and the screen says why.
+ *
+ * A session with no `of` is refused for the same reason a full sitting is: it
+ * is not a retake, so there is no `MockExamReport` for a `MockRetake.of` to
+ * name. `of` is exactly the field a standalone single-skill exam leaves unset
+ * on `MockRetakeIntent` — components/exam/MockSkillResults.tsx never calls
+ * this function, but the guard stays regardless, because the one thing worse
+ * than a retake silently failing to record is a standalone sitting silently
+ * being recorded as one.
  */
 export function recordRetake(
   session: MockSession,
   mark: ModuleMark | null,
   at: string,
 ): MockRetake | null {
-  if (!session.retake || !mark) return null;
+  const intent = session.retake;
+  if (!intent?.of || !mark) return null;
   const retake: MockRetake = {
     id: session.id,
-    of: session.retake.of,
-    module: session.retake.module,
+    of: intent.of,
+    module: intent.module,
     band: mark.band,
     raw: mark.raw,
     total: mark.total,

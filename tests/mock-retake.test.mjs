@@ -33,7 +33,15 @@ const {
   standingRecord,
 } = await load("lib", "exam", "report.ts");
 const { mergeProfiles } = await load("lib", "progress", "merge.ts");
-const { MOCK_MODULES, nextStage, overallFrom, recordRetake, sittingModules } = await load(
+const {
+  MOCK_MODULES,
+  newRetakeSession,
+  newSingleSkillSession,
+  nextStage,
+  overallFrom,
+  recordRetake,
+  sittingModules,
+} = await load(
   "lib",
   "exam",
   "mock.ts",
@@ -302,6 +310,62 @@ test("a session read back without a retake key is a full sitting", () => {
   const stored = JSON.parse('{"version":1,"id":"mock-x","stage":"reading"}');
   assert.deepEqual([...sittingModules(stored)], [...MOCK_MODULES]);
   assert.equal(nextStage(stored, "reading"), "writing");
+});
+
+/* ----------------------------------------------- the standalone single-skill exam */
+
+test("a standalone single-skill session covers one module and ends after it, exactly like a retake", () => {
+  /*
+    `retake.of` is the only difference between a One Skill Retake and a
+    standalone sitting, and `sittingModules`/`nextStage` must not be able to
+    tell the two apart — a marker that treated a solo Writing exam as covering
+    all four modules would score three untouched papers as forty wrong
+    answers apiece.
+  */
+  for (const skill of MOCK_MODULES) {
+    const solo = { retake: { module: skill } };
+    assert.deepEqual([...sittingModules(solo)], [skill]);
+    assert.equal(nextStage(solo, skill), "results", `a standalone ${skill} exam must end at the results`);
+  }
+});
+
+test("newSingleSkillSession builds a sitting with nothing to update", () => {
+  for (const skill of MOCK_MODULES) {
+    const session = newSingleSkillSession(skill);
+    assert.equal(session.retake.module, skill);
+    assert.equal(session.retake.of, undefined, "a standalone exam must not name a report to update");
+    assert.equal(session.stage, skill, "the sitting must open straight on the chosen module");
+    assert.deepEqual([...sittingModules(session)], [skill]);
+    /*
+      Distinguishable from a retake's id at a glance, the same way a retake's
+      is distinguishable from a full sitting's — see the comment on
+      `newSoloSession` in lib/exam/mock.ts for why that matters to the archive.
+    */
+    assert.match(session.id, /^solo-/);
+  }
+});
+
+test("newRetakeSession still names the report it updates, and its id says so", () => {
+  const session = newRetakeSession("reading", "mock-1");
+  assert.equal(session.retake.of, "mock-1");
+  assert.equal(session.retake.module, "reading");
+  assert.match(session.id, /^retake-/);
+});
+
+test("recordRetake refuses a standalone sitting exactly as it refuses a full one", () => {
+  /*
+    The guard that stops a standalone exam ever being written into the
+    archive as though it were a retake — see the comment on `recordRetake` in
+    lib/exam/mock.ts. Nothing calls this function for a standalone sitting
+    today, which is exactly why the function has to refuse one on its own
+    terms rather than trust every future caller to check first.
+  */
+  const solo = {
+    id: "solo-1",
+    startedAt: "2026-02-01T09:00:00.000Z",
+    retake: { module: "listening" },
+  };
+  assert.equal(recordRetake(solo, { band: 7 }, "2026-02-01T10:00:00.000Z"), null);
 });
 
 test("a retake that could not be marked records nothing at all", () => {
