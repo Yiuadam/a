@@ -143,7 +143,16 @@ test("the on-device speech engine is offered only when the plugin answers", () =
     "utf8",
   );
 
-  assert.match(session, /\{IS_MOBILE_BUILD && localBlock === null && \(/);
+  /*
+    The guard is a named constant now rather than an inline condition, because
+    the introduction card's layout has to ask the same question the cell asks —
+    it used to lay out two columns whether or not the second one rendered, which
+    on the website left a permanently empty half. Both halves are checked here:
+    the condition itself, and that the layout is driven by it.
+  */
+  assert.match(session, /const showsEnginePicker = IS_MOBILE_BUILD && localBlock === null;/);
+  assert.match(session, /\{showsEnginePicker && \(/);
+  assert.match(session, /showsEnginePicker \? "sm:grid-cols-2" : ""/);
   assert.doesNotMatch(session, /\{IS_MOBILE_BUILD && \(/);
   // Nothing left inside the picker reports that on-device transcription is
   // unavailable, because the picker cannot be drawn while it is.
