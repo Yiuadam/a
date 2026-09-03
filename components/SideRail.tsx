@@ -64,13 +64,20 @@ export default function SideRail() {
 
       `self-start` is what lets a sticky element work inside a flex row: without
       it the item stretches to the row's height and has nothing left to stick
-      within. `max-h` and its own scroller are for the short window — a rail
-      taller than the viewport with nowhere to scroll would simply have its last
-      rows cut off, and Help is the group that would go.
+      within.
+
+      It does not scroll, at the owner's ask, and that is a decision with a
+      cost worth naming: on a window shorter than the rail the last group is
+      simply not reachable. It is an acceptable cost here because the rail is
+      twelve rows and the shortest window this appears in is an iPad in
+      landscape at 768 tall, where twelve rows fit with room to spare — and
+      because the menu button still holds every destination for the window that
+      does not. A rail with its own scrollbar is two scrollbars on one screen,
+      and the owner is right that it reads as a mistake.
     */
     <nav
       aria-label="Sections"
-      className="side-rail sticky top-[var(--header-h)] hidden max-h-[calc(100dvh-var(--header-h))] w-64 shrink-0 self-start overflow-y-auto lg:block xl:w-72"
+      className="side-rail sticky top-[var(--header-h)] hidden h-fit w-64 shrink-0 self-start overflow-hidden lg:block xl:w-72"
     >
       <div className="space-y-5 pb-6 pl-1 pr-2 pt-3">
         {groups.map((group) => (

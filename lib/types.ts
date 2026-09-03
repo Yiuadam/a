@@ -1,8 +1,4 @@
 import type { ChartSpec } from "./chart";
-/* The vocabulary lives with the filter bar it drives, and the array and the
-   union there are the same declaration, so a word can never be offered as a
-   stop without being spellable here. */
-import type { WritingTaskType } from "./paper-filters";
 // Shared content and result types for the IELTS prep app.
 
 export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
@@ -181,6 +177,14 @@ export interface ReadingTest {
   id: string;
   title: string;
   topic: string;
+  /**
+   * An estimate, authored alongside the paper rather than measured from a
+   * candidate sitting it — which is exactly why no learner ever sees this
+   * word. It orders the library easiest-first (lib/tests.ts) and steers
+   * AI generation (app/api/generate/route.ts) toward a target band; it does
+   * not drive a filter or a card label any more. Presenting an estimate as a
+   * fact a learner could rely on was the whole complaint that removed both.
+   */
   difficulty: string;
   /** CEFR level, judged on the passage's actual language demand — not derived from `difficulty`. */
   level: CEFRLevel;
@@ -198,6 +202,7 @@ export interface ListeningTest {
   id: string;
   title: string;
   context: string;
+  /** Same estimate, same reason it is kept and the same reason it is not shown — see `ReadingTest.difficulty`. */
   difficulty: string;
   /** CEFR level, judged on the script's actual language demand — not derived from `difficulty`. */
   level: CEFRLevel;
@@ -209,19 +214,31 @@ export interface ListeningTest {
 
 // ---- Writing ----
 
+/*
+  What a writing task asks the candidate to produce: read a chart, read a
+  table, write a letter, write an essay. This used to be what the paper
+  chooser's filter bar ran on; the bar now runs on `task` instead (a real,
+  authored 1-or-2, where this was an essay-vs-letter classification that
+  needed a closed vocabulary and a build-time check to keep honest — see
+  components/TestChooser.tsx and scripts/validate-content.mjs). The type
+  itself stays, because it is still true and still worth checking: an essay
+  is a Task 2, a letter is a General Training Task 1, and a chart or a table
+  is the one the task actually carries. It just no longer has a bar to feed.
+*/
+export const WRITING_TASK_TYPES = ["chart", "table", "letter", "essay"] as const;
+export type WritingTaskType = (typeof WRITING_TASK_TYPES)[number];
+
 export interface WritingTask {
   id: string;
   task: 1 | 2;
   variant: "academic" | "general";
   /*
     What this task asks the candidate to produce, authored rather than worked
-    out on the fly. It is what the chooser's filter bar runs on, and it is a
-    field because the alternative was reading it out of the title: the Task 2
-    titles carry their essay type in brackets, and across the bank those
-    brackets say both "problem-solution" and "problem and solution" for the
-    same thing, with one title saying nothing at all. Parsing that would put
-    the inconsistency straight into the interface as two stops for one type
-    and a task belonging to none.
+    out on the fly. The alternative was reading it out of the title: the
+    Task 2 titles carry their essay type in brackets, and across the bank
+    those brackets say both "problem-solution" and "problem and solution" for
+    the same thing, with one title saying nothing at all. Parsing that would
+    put the inconsistency straight into whatever reads it.
 
     Structural, so it can be checked rather than trusted — an essay is a Task
     2, a letter is a General Training Task 1, and a chart or a table is the

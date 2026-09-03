@@ -5,8 +5,9 @@
   `level` alongside their existing `difficulty` — the same six-point scale
   data/placement.json already grades every placement question by. This file
   checks three things: every shipped content item has a valid level, the
-  validator actually rejects one that is missing or bogus, and the card that
-  shows a learner a paper's difficulty shows the CEFR code beside it.
+  validator actually rejects one that is missing or bogus, and the cards that
+  show a learner a paper's CEFR level print it ungarbled — with no difficulty
+  word beside it any more, since that word was an estimate shown as a fact.
 */
 import assert from "node:assert/strict";
 import {
@@ -129,17 +130,12 @@ test("the validator rejects a paper with a bogus level", () => {
   assert.match(result.stderr, /unknown CEFR level: Z9/);
 });
 
-// ---- The card renders both ----
+// ---- The card renders the level, and no longer renders the difficulty ----
 
-test("TestChooser shows the CEFR level ungarbled beside the difficulty", () => {
+test("TestChooser shows the CEFR level ungarbled, with no difficulty word beside it", () => {
   const source = read("components", "TestChooser.tsx");
   const levelAt = source.indexOf("objectiveTest?.level");
   assert.notEqual(levelAt, -1, "TestChooser must render objectiveTest?.level");
-  const difficultyAt = source.indexOf("objectiveTest?.difficulty");
-  assert.notEqual(difficultyAt, -1);
-  // Level reads first, because it is the scale the placement result already
-  // speaks — the difficulty word is the secondary, familiar label.
-  assert.ok(levelAt < difficultyAt, "the CEFR level must come before the difficulty word");
 
   // The span carrying the level must not sit inside a `capitalize` class —
   // CSS text-transform would turn "B1" into "B1" visually undamaged only by
@@ -149,18 +145,21 @@ test("TestChooser shows the CEFR level ungarbled beside the difficulty", () => {
   const lineEnd = source.indexOf("\n", levelAt);
   const line = source.slice(lineStart, lineEnd);
   assert.doesNotMatch(line, /capitalize/, "the level span must not be CSS-capitalized");
+
+  // The difficulty word this card used to print beside the level is gone —
+  // difficulty is an estimate, not a fact worth labelling a paper with.
+  assert.doesNotMatch(source, /objectiveTest\?\.difficulty/);
 });
 
-test("the practice hub card shows the CEFR level ungarbled beside the difficulty", () => {
+test("the practice hub card shows the CEFR level ungarbled, with no difficulty word beside it", () => {
   const source = read("app", "practice", "page.tsx");
   const levelAt = source.indexOf("{t.level}");
   assert.notEqual(levelAt, -1, "the practice hub card must render {t.level}");
-  const difficultyAt = source.indexOf("{t.difficulty}");
-  assert.notEqual(difficultyAt, -1);
-  assert.ok(levelAt < difficultyAt, "the CEFR level must come before the difficulty word");
 
   const lineStart = source.lastIndexOf("\n", levelAt);
   const lineEnd = source.indexOf("\n", levelAt);
   const line = source.slice(lineStart, lineEnd);
   assert.doesNotMatch(line, /capitalize/, "the level span must not be CSS-capitalized");
+
+  assert.doesNotMatch(source, /\{t\.difficulty\}/);
 });

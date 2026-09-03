@@ -1,17 +1,23 @@
 /*
-  The chooser's filter bar, against the content bank it filters.
+  Writing's filter bar, against the content bank it filters — and a guard
+  that difficulty's is actually gone.
 
-  The failure this file exists for is a quiet one. A paper carries a word — its
-  difficulty, or for writing its task type — and the bar offers a stop per
-  word. Nothing anywhere makes the two agree: a paper authored as "Easy" with a
-  capital, or an essay typed "problem-solution", still loads, still validates,
-  still renders its card. It simply stops appearing under every stop but All,
-  and no test that only reads the bank or only reads the component would
-  notice, because each is fine on its own.
+  This file used to be tests/paper-filters.test.mjs and covered three bars:
+  difficulty on reading and listening, task type on writing. The owner's
+  instruction was blunt — difficulty is an estimate, not a promise, and it
+  must stop being a thing a learner can filter or choose anywhere in the
+  product — so two of those three bars are deleted rather than adjusted, and
+  the tests that pinned them go with them rather than being weakened to pass.
 
-  So the assertions here are deliberately about the join. Every word in the
-  bank has a stop, every stop has papers, and the vocabulary the component
-  offers is the one the data was written against.
+  What is left is writing's bar, now keyed on `task` (1 or 2) instead of
+  `type` (chart, table, letter, essay). `task` is a real, authored property —
+  it is how IELTS itself divides its own writing paper — so the failure mode
+  the old file worried about barely applies: there is no vocabulary a task
+  could misspell its way out of, because scripts/validate-content.mjs already
+  rejects a task number that is not 1 or 2 before this file ever runs. What
+  the join tests below still earn their keep on is the same thing they always
+  did — a stop with nothing behind it is dead interface, and only the bank
+  knows if that has happened.
 */
 import assert from "node:assert/strict";
 import {
@@ -33,85 +39,91 @@ const DATA = join(process.cwd(), "data");
 const read = (...parts) => readFileSync(join(process.cwd(), ...parts), "utf8");
 const load = (name) => JSON.parse(read("data", name));
 
-function papers(prefix) {
-  return readdirSync(DATA)
-    .filter((f) => new RegExp(`^${prefix}-\\d+\\.json$`).test(f))
-    .sort();
-}
+// ---- Difficulty's filter is gone, not just unused ----
 
-/*
-  The vocabularies, read out of the module that declares them rather than
-  copied here. A copy would pass this whole file while the bar showed something
-  else entirely, which is the one outcome it must not be possible to get.
-*/
-function vocabulary(name) {
-  const source = read("lib", "paper-filters.ts");
-  const match = new RegExp(`export const ${name} = \\[([^\\]]*)\\] as const;`).exec(source);
-  assert.ok(match, `lib/paper-filters.ts must export ${name} as a const array`);
-  return [...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-}
+test("the difficulty filter model has been deleted, not merely stopped", () => {
+  assert.throws(() => read("lib", "paper-filters.ts"), /ENOENT/);
 
-const DIFFICULTIES = vocabulary("DIFFICULTIES");
-const WRITING_TASK_TYPES = vocabulary("WRITING_TASK_TYPES");
+  // Nothing left in the app should still reach for the module that used to
+  // hold it — an orphaned import would be a build error today, but this is
+  // the assertion that says why one can never reappear quietly: there is
+  // nothing at that path to import.
+  for (const file of [
+    join("lib", "tests.ts"),
+    join("lib", "types.ts"),
+    join("components", "TestChooser.tsx"),
+  ]) {
+    const source = read(file);
+    assert.doesNotMatch(
+      source,
+      /paper-filters/,
+      `${file} must not reference the deleted filter model`,
+    );
+  }
+});
 
-// ---- Reading and listening: every difficulty in the bank has a stop ----
+test("reading and listening render no filter bar at all", () => {
+  const source = read("components", "TestChooser.tsx");
+  // The bar is written once, guarded on kind === "writing" — there is no
+  // second bar, disabled or hidden, standing by for reading or listening.
+  assert.match(
+    source,
+    /\{kind === "writing" && \(\s*<WritingTaskFilter/,
+    "the bar must be reachable only when kind is writing",
+  );
+  assert.equal(
+    (source.match(/<WritingTaskFilter/g) ?? []).length,
+    1,
+    "there must be exactly one filter bar in the component",
+  );
+});
 
-test("every reading and listening paper's difficulty is a stop on the bar", () => {
-  for (const prefix of ["reading", "listening"]) {
-    for (const name of papers(prefix)) {
-      const paper = load(name);
-      assert.ok(
-        DIFFICULTIES.includes(paper.difficulty),
-        `${name} has difficulty ${JSON.stringify(paper.difficulty)}, which is not one of ` +
-          `${DIFFICULTIES.join(", ")} — it would show under All and nowhere else`,
-      );
-    }
+test("no paper anywhere still carries a rendered difficulty word", () => {
+  // The two cards that used to print "Easy" / "Medium" / "Hard" next to the
+  // CEFR level. Both are gone; neither is worth a difficulty label a learner
+  // could mistake for a fact.
+  const chooser = read("components", "TestChooser.tsx");
+  assert.doesNotMatch(chooser, /objectiveTest\?\.difficulty/);
+  const hub = read("app", "practice", "page.tsx");
+  assert.doesNotMatch(hub, /\{t\.difficulty\}/);
+});
+
+// ---- Writing: the join, on the authored task number ----
+
+test("every writing task carries a real task number", () => {
+  const { tasks } = load("writing-tasks.json");
+  assert.ok(tasks.length > 0);
+  for (const task of tasks) {
+    assert.ok(
+      task.task === 1 || task.task === 2,
+      `${task.id} has task ${JSON.stringify(task.task)}, which is neither 1 nor 2`,
+    );
   }
 });
 
 /*
   And the other way round, because a stop nobody can reach is dead interface: a
-  learner reads "Easy 0", taps it to check, and gets a sentence saying there is
-  nothing there. If the bank genuinely loses its last easy paper this test is
-  how that gets noticed, and the fix is a decision about the bar rather than a
+  learner reads "Task 2 0", taps it to check, and gets a sentence saying there
+  is nothing there. If the bank genuinely loses every Task 2 this test is how
+  that gets noticed, and the fix is a decision about the bar rather than a
   line to delete.
 */
-test("every difficulty stop has papers behind it", () => {
-  for (const prefix of ["reading", "listening"]) {
-    const found = new Set(papers(prefix).map((name) => load(name).difficulty));
-    for (const difficulty of DIFFICULTIES) {
-      assert.ok(found.has(difficulty), `no ${prefix} paper is ${difficulty}`);
-    }
-  }
-});
-
-// ---- Writing: the same join, on the authored task type ----
-
-test("every writing task's type is a stop on the bar", () => {
+test("both task stops have tasks behind them", () => {
   const { tasks } = load("writing-tasks.json");
-  assert.ok(tasks.length > 0);
-  for (const task of tasks) {
-    assert.ok(
-      WRITING_TASK_TYPES.includes(task.type),
-      `${task.id} has type ${JSON.stringify(task.type)}, which is not one of ` +
-        `${WRITING_TASK_TYPES.join(", ")}`,
-    );
+  const found = new Set(tasks.map((task) => task.task));
+  for (const taskNumber of [1, 2]) {
+    assert.ok(found.has(taskNumber), `no writing task is Task ${taskNumber}`);
   }
 });
 
-test("every writing task type stop has tasks behind it", () => {
-  const { tasks } = load("writing-tasks.json");
-  const found = new Set(tasks.map((task) => task.type));
-  for (const type of WRITING_TASK_TYPES) {
-    assert.ok(found.has(type), `no writing task is typed ${type}`);
-  }
-});
+// ---- Writing: the type field is still real, still checked, no longer a filter ----
 
 /*
   The type is meant to describe the task, not to be an independent opinion
-  about it. Reading it back off the content is what keeps the bar honest when
+  about it. Reading it back off the content is what keeps it honest when
   somebody edits a prompt: a Task 1 that gains a chart and keeps the type
-  "letter" is filed under a word that is now wrong.
+  "letter" is filed under a word that is now wrong — even though nothing in
+  the interface reads that word any more.
 */
 test("every writing task's type matches the content it actually carries", () => {
   const { tasks } = load("writing-tasks.json");
@@ -145,7 +157,7 @@ function runValidator(cwd) {
   `data/` from process.cwd().
 */
 function withBrokenWritingTask(mutate, run) {
-  const scratch = mkdtempSync(join(tmpdir(), "bandup-paper-filters-"));
+  const scratch = mkdtempSync(join(tmpdir(), "bandup-writing-task-filter-"));
   const scratchData = join(scratch, "data");
   mkdirSync(scratchData);
   for (const name of readdirSync(DATA)) {
@@ -187,11 +199,19 @@ test("the validator rejects a writing task whose type contradicts its content", 
   assert.match(result.stderr, /is typed "letter" but its content is a essay/);
 });
 
+test("the validator rejects a writing task with an invalid task number", () => {
+  const result = withBrokenWritingTask((tasks) => {
+    tasks[0].task = 3;
+  }, runValidator);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /invalid task number/);
+});
+
 // ---- The bar is actually on the chooser, and starts on All ----
 
 test("the chooser renders the filter bar above the paper grid", () => {
   const source = read("components", "TestChooser.tsx");
-  const barAt = source.indexOf("<PaperFilter");
+  const barAt = source.indexOf("<WritingTaskFilter");
   assert.notEqual(barAt, -1, "TestChooser must render the filter bar");
   const gridAt = source.indexOf("practice-paper-grid");
   assert.notEqual(gridAt, -1);
@@ -212,7 +232,9 @@ test("the filter starts on All, and All is a stop of its own", () => {
   Narrowing the list must not renumber it. Both the padlock and the
   "AI-generated" badge are decided by a paper's position in the full library,
   so a filtered view that indexed its own rows would hand a visitor whichever
-  paper happened to come first under the stop they tapped.
+  paper happened to come first under the stop they tapped. This is unchanged
+  by what the bar now filters on — it was never about difficulty or type in
+  the first place.
 */
 test("the padlock is decided by position in the whole library, not the filtered view", () => {
   const source = read("components", "TestChooser.tsx");
@@ -230,20 +252,5 @@ test("the padlock is decided by position in the whole library, not the filtered 
 test("an empty stop explains itself instead of showing a blank list", () => {
   const source = read("components", "TestChooser.tsx");
   assert.match(source, /shown\.length === 0 && \(/);
-  assert.match(source, /data-paper-filter-empty/);
-});
-
-/*
-  One vocabulary, not two. lib/tests.ts sorts the papers easiest first and used
-  to keep its own copy of the three words; if that copy and the bar's ever
-  disagreed, a paper could sort under a heading the bar cannot show.
-*/
-test("the paper order and the filter bar read the same difficulty list", () => {
-  const source = read("lib", "tests.ts");
-  assert.match(source, /import \{ DIFFICULTIES \} from "@\/lib\/paper-filters";/);
-  assert.doesNotMatch(
-    source,
-    /DIFFICULTY_ORDER = \[/,
-    "lib/tests.ts must not keep a second copy of the difficulty words",
-  );
+  assert.match(source, /data-writing-task-filter-empty/);
 });

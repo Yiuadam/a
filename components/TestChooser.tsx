@@ -12,12 +12,6 @@ import { paperNeedsNewBadge } from "@/lib/completion-badges";
 import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { useProfile } from "@/lib/hooks";
-import {
-  filterLabel,
-  filterNameFor,
-  filterValueOf,
-  filterValuesFor,
-} from "@/lib/paper-filters";
 import { questionCount } from "@/lib/questions";
 import type { ListeningTest, ReadingTest, WritingTask } from "@/lib/types";
 
@@ -41,12 +35,28 @@ import type { ListeningTest, ReadingTest, WritingTask } from "@/lib/types";
 */
 
 /*
-  The bar that takes the library down to one kind of paper.
+  The bar that takes the writing library down to one task number.
 
-  Which words it offers is lib/paper-filters.ts's business — difficulty for
-  reading and listening, task type for writing. What it does here is the same
-  either way: a pill that sits on the chosen stop and slides to the next when
-  it is tapped.
+  Reading and listening used to carry a bar of their own — three stops, easy
+  to hard — and it is gone from every skill it once appeared on. It filtered
+  papers by an estimate the app itself had made, offered back to a learner
+  dressed as a fact they could rely on. Writing's bar survives because what it
+  narrows by is not an estimate: `task` is 1 or 2 because IELTS itself divides
+  writing that way, authored on every task and checked at build time
+  (scripts/validate-content.mjs), never guessed.
+
+  This used to also carry writing's own estimate — a task *type* (chart,
+  table, letter, essay) standing in for the four things a task actually asks a
+  candidate to produce, because grouping by IELTS's own Task 1/Task 2 split
+  put fifteen of the bank's forty essays behind one stop and nothing else to
+  choose from. Task 2 counting double in IELTS scoring is what changed that
+  calculus: a candidate who wants to know they are practising enough of the
+  half that counts twice needs exactly the split IELTS uses, not a finer one
+  invented to make the bar look busier.
+
+  What it does is unchanged from the bar reading and listening used to share:
+  a pill that sits on the chosen stop and slides to the next when it is
+  tapped.
 
   Deliberately not the draggable, blooming knob the theme switch and the
   organisation sections use. Those are chrome in a header; this one sits on top
@@ -54,19 +64,16 @@ import type { ListeningTest, ReadingTest, WritingTask } from "@/lib/types";
   thumb beginning a flick down the page.
 
   Every stop carries its count, including All and including a zero. A count is
-  what tells somebody whether the tap is worth making — six easy papers is a
-  practice session, and none is a reason to stay where you are — and finding
-  that out by tapping and reading an empty screen is the thing this bar exists
-  to save.
+  what tells somebody whether the tap is worth making — fifteen Task 2 essays
+  is a practice session, and none is a reason to stay where you are — and
+  finding that out by tapping and reading an empty screen is the thing this bar
+  exists to save.
 */
-function PaperFilter({
-  name,
+function WritingTaskFilter({
   options,
   value,
   onChange,
 }: {
-  /** What the bar is called, for a reader who cannot see the stops. */
-  name: string;
   options: ReadonlyArray<{ id: string; label: string; count: number }>;
   value: string;
   onChange: (value: string) => void;
@@ -94,17 +101,17 @@ function PaperFilter({
     */
     <div
       role="tablist"
-      aria-label={name}
-      data-paper-filter
-      className="paper-filter-base premade-glass relative grid min-w-0 items-center overflow-hidden rounded-full p-1"
+      aria-label="Task"
+      data-writing-task-filter
+      className="writing-task-filter-base premade-glass relative grid min-w-0 items-center overflow-hidden rounded-full p-1"
       style={
         {
-          "--paper-filter-index": selectedIndex,
-          "--paper-filter-count": options.length,
+          "--writing-task-filter-index": selectedIndex,
+          "--writing-task-filter-count": options.length,
         } as CSSProperties
       }
     >
-      <span className="paper-filter-selector" aria-hidden="true" />
+      <span className="writing-task-filter-selector" aria-hidden="true" />
       {options.map((option, index) => (
         <button
           key={option.id}
@@ -112,7 +119,7 @@ function PaperFilter({
           role="tab"
           aria-selected={value === option.id}
           onClick={() => onChange(option.id)}
-          className={`paper-filter-option segmented-option relative z-10 flex min-w-0 items-center justify-center gap-1 rounded-full px-1 text-[0.6875rem] font-semibold transition-colors sm:px-2 sm:text-xs ${
+          className={`writing-task-filter-option segmented-option relative z-10 flex min-w-0 items-center justify-center gap-1 rounded-full px-1 text-[0.6875rem] font-semibold transition-colors sm:px-2 sm:text-xs ${
             selectedIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
           }`}
         >
@@ -162,8 +169,8 @@ export default function TestChooser({
     keeps a learner's work per tab and their device settings in localStorage,
     and a scan of a list on the way to picking a paper is neither.
 
-    The cost is one tap. Sit a hard paper, come back for another, and the bar
-    is on All again. Worth saying plainly, because the fix — putting the choice
+    The cost is one tap. Sit a Task 2, come back for another, and the bar is
+    on All again. Worth saying plainly, because the fix — putting the choice
     in the URL, where the back button would restore it — is a real option that
     was not taken here.
   */
@@ -177,21 +184,30 @@ export default function TestChooser({
     Position is fixed here, before anything is filtered out, because two rules
     below are counted from it: which papers the tier has unlocked, and which
     were generated on this device. Numbering a narrowed list instead would hand
-    a visitor the first hard paper as their one free opening simply because
-    they had tapped Hard.
+    a visitor the first Task 2 as their one free opening simply because they
+    had tapped it.
   */
   const entries = all.map((paper, index) => ({ paper, index }));
-  const options = filterValuesFor(kind).map((id) => ({
-    id,
-    label: filterLabel(id),
-    /* Counted across the whole library, locked papers included: a padlocked
-       paper is still on the screen with its title readable, so leaving it out
-       would make the count disagree with what the stop actually shows. */
-    count: entries.filter(({ paper }) => filterValueOf(paper) === id).length,
-  }));
-  const shown = filter === "all"
-    ? entries
-    : entries.filter(({ paper }) => filterValueOf(paper) === filter);
+  /*
+    Writing is the only skill left with anything to narrow by. `task` is
+    always 1 or 2 — never a third value a paper could be typo'd into and
+    silently drop out of every stop but All — so the two stops are written out
+    rather than built from a shared vocabulary the way the old bar's were.
+  */
+  const writingTaskOptions = kind === "writing"
+    ? ([1, 2] as const).map((taskNumber) => ({
+        id: String(taskNumber),
+        label: `Task ${taskNumber}`,
+        /* Counted across the whole library, locked papers included: a
+           padlocked paper is still on the screen with its title readable, so
+           leaving it out would make the count disagree with what the stop
+           actually shows. */
+        count: entries.filter(({ paper }) => (paper as WritingTask).task === taskNumber).length,
+      }))
+    : [];
+  const shown = kind === "writing" && filter !== "all"
+    ? entries.filter(({ paper }) => String((paper as WritingTask).task) === filter)
+    : entries;
   /* The cap the tier unlocks, not what is left of it — see app/practice/page.tsx. */
   const limit = allowanceFor(access.tier, kind).perWeek;
   const label = kind === "reading" ? "Reading" : kind === "listening" ? "Listening" : "Writing";
@@ -245,15 +261,17 @@ export default function TestChooser({
       )}
 
       {/* Its own row above the cards rather than beside the heading: at 390px
-          four or five stops need the whole line, and a control that changes
-          what the list below it contains belongs directly above that list.
-          How wide it is allowed to grow past a phone is in globals.css. */}
-      <PaperFilter
-        name={filterNameFor(kind)}
-        options={[{ id: "all", label: "All", count: all.length }, ...options]}
-        value={filter}
-        onChange={setFilter}
-      />
+          three stops need the whole line, and a control that changes what
+          the list below it contains belongs directly above that list. Only
+          writing has one — reading and listening have nothing left to narrow
+          by. How wide it is allowed to grow past a phone is in globals.css. */}
+      {kind === "writing" && (
+        <WritingTaskFilter
+          options={[{ id: "all", label: "All", count: all.length }, ...writingTaskOptions]}
+          value={filter}
+          onChange={setFilter}
+        />
+      )}
 
       {/*
         A stop with nothing under it says so. The bar has already put a zero on
@@ -261,19 +279,17 @@ export default function TestChooser({
         and having to work out that it was the filter is a worse few seconds
         than a sentence. Above the grid rather than inside it, because the grid
         gives every row a fixed ten rem and a sentence does not want one.
+
+        Writing-only, like the bar above it: reading and listening no longer
+        filter, so `shown` can only be empty for them if the library itself is
+        — a case with nothing to reset, so there is nothing useful to say here.
       */}
-      {shown.length === 0 && (
+      {kind === "writing" && shown.length === 0 && (
         <p
-          data-paper-filter-empty
+          data-writing-task-filter-empty
           className="rounded-xl border border-slate-200 bg-surface px-3 py-2 text-sm leading-6 text-slate-600"
         >
-          {/* Two sentences, because the two bars name different things. A
-              paper is *marked* easy — somebody judged it — while a writing
-              task simply is or is not a chart, and "marked chart" is not
-              English. */}
-          {kind === "writing"
-            ? `There are no ${filterLabel(filter).toLowerCase()} tasks yet.`
-            : `No ${label.toLowerCase()} papers are marked ${filterLabel(filter).toLowerCase()} yet.`}{" "}
+          {filter === "all" ? "There are no writing tasks yet." : `There are no Task ${filter} tasks yet.`}{" "}
           Choose All to see everything there is.
         </p>
       )}
@@ -320,10 +336,11 @@ export default function TestChooser({
                 ) : (
                   <>
                     {/* CEFR code first, since it's the scale the placement result already speaks —
-                        and never lower-cased or capitalised, "B1" is not "b1" title-cased back up. */}
+                        and never lower-cased or capitalised, "B1" is not "b1" title-cased back up.
+                        No difficulty word beside it any more: it was an estimate printed as though
+                        it were a fact, and the CEFR level is the one honest scale a learner can
+                        actually place themselves on. */}
                     <span>{objectiveTest?.level}</span>
-                    <span aria-hidden>·</span>
-                    <span className="capitalize">{objectiveTest?.difficulty}</span>
                     <span aria-hidden>·</span>
                     <span>{objectiveTest ? questionCount(objectiveTest.questions) : 0} questions</span>
                     <span aria-hidden>·</span>

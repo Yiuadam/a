@@ -116,10 +116,9 @@ export default function PracticePage() {
         </p>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
           {/* CEFR code first, since it's the scale the placement result already speaks — and
-              never lower-cased or capitalised, "B1" is not "b1" title-cased back up. */}
+              never lower-cased or capitalised, "B1" is not "b1" title-cased back up. No
+              difficulty word beside it: it was an estimate printed as though it were a fact. */}
           <span>{t.level}</span>
-          <span aria-hidden>·</span>
-          <span className="capitalize">{t.difficulty}</span>
           <span aria-hidden>·</span>
           <span>{questionCount(t.questions)} questions</span>
           <span aria-hidden>·</span>

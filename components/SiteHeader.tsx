@@ -611,7 +611,10 @@ export default function SiteHeader({
         "--header-h": "calc(var(--header-row-h) + env(safe-area-inset-top))",
       } as React.CSSProperties}
     >
-      <div className="mx-auto flex h-[var(--header-row-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
+      {/* `relative` so the nav row can centre itself on the bar rather than on
+          whatever space is left between the wordmark and the controls — see
+          PrimaryNavigation. */}
+      <div className="relative mx-auto flex h-[var(--header-row-h)] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
         <Link
           href="/"
           prefetch={false}
@@ -860,8 +863,15 @@ function PrimaryNavigation({ current, railed }: { current: string | null; railed
         used to appear at — the five destinations here are the first five in
         the rail, and naming them twice on one screen is how a header starts
         arguing with the page. On a route with no rail it is unchanged.
+
+        Centred on the bar, not on the space between its neighbours. `flex-1`
+        with `justify-center` centres the row inside whatever is left after the
+        wordmark and the controls, and those two are different widths — so the
+        links sat visibly left of centre on every page that draws them. Taking
+        it out of the flow and pinning it to the middle is the only way to mean
+        the middle of the header.
       */
-      className={`relative hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-sm ${
+      className={`absolute left-1/2 hidden min-w-0 -translate-x-1/2 items-center justify-center gap-0.5 text-sm ${
         railed ? "" : "lg:flex"
       }`}
     >

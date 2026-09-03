@@ -2623,30 +2623,41 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
 }
 
 /*
-  The paper library's filter bar — difficulty on reading and listening, task
-  type on writing. Same lens and the same travel as the three bars above it;
-  what is its own is the width and the stride.
+  The writing library's filter bar — Task 1 or Task 2, the one split IELTS
+  itself makes. Reading and listening carried a bar of the same shape until it
+  was removed: it read a paper's difficulty, an estimate the app had made
+  about itself, and offered that back to a learner as though it were a fact
+  worth choosing by. Writing's bar survives on the strength of the one thing
+  that estimate never had — `task` is authored, not guessed, and checked
+  against a task's own content at build time.
+
+  Same lens and the same travel as the three bars above it; what is its own is
+  the width and the stride.
 
   The stride first: this is the one bar whose number of stops is decided at
   render rather than written into a rule, so the grid takes its column count
   from the same custom property the knob steps by. Two declarations of "how
-  many stops" is how a knob ends up landing between two options.
+  many stops" is how a knob ends up landing between two options. In practice
+  it is always three — All, Task 1, Task 2 — but it is still read from the
+  render rather than fixed here, on the same reasoning that kept it dynamic
+  when a fourth or fifth stop was a real possibility: one place to keep it
+  correct rather than two that could disagree.
 
   Then the width, which is the whole reason this bar looks different from the
   organisation tabs it is otherwise a copy of. It is full width on a phone
-  because four or five stops with their counts have nothing to spare at 390px,
-  and it stops growing at 34rem because the grid behind it reaches three
-  columns of cards — a control stretched that far stops reading as something
-  to press and starts reading as a band across the page.
+  because three stops with their counts have nothing to spare at 390px, and it
+  stops growing at 34rem because the grid behind it reaches three columns of
+  cards — a control stretched that far stops reading as something to press and
+  starts reading as a band across the page.
 */
-.paper-filter-base {
+.writing-task-filter-base {
   width: min(100%, 34rem);
   /* Centred under the grid of papers rather than pinned to its left edge. At
      34rem on a wide screen the bar is a good deal narrower than the cards
      below it, and hard against the left it read as a stray element rather than
      as the control for the list. */
   margin-inline: auto;
-  grid-template-columns: repeat(var(--paper-filter-count, 4), minmax(0, 1fr));
+  grid-template-columns: repeat(var(--writing-task-filter-count, 3), minmax(0, 1fr));
   border: 1px solid color-mix(in srgb, var(--color-slate-400) 24%, transparent);
   background: color-mix(in srgb, var(--color-slate-200) 82%, var(--color-background));
   box-shadow:
@@ -2660,7 +2671,7 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   this bar is the first control on a phone screen full of cards. The track has
   0.25rem of padding above and below, so the stops carry the rest.
 */
-.paper-filter-option {
+.writing-task-filter-option {
   min-height: 2.25rem;
 }
 
@@ -2679,12 +2690,12 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   the knob's arithmetic existed only to subtract the swell back off so the
   stride stayed constant while the box grew.
 */
-.paper-filter-selector {
-  --paper-filter-inset: 0.25rem;
+.writing-task-filter-selector {
+  --writing-task-filter-inset: 0.25rem;
   position: absolute;
-  inset-block: var(--paper-filter-inset);
-  left: var(--paper-filter-inset);
-  width: calc((100% - 2 * var(--paper-filter-inset)) / var(--paper-filter-count, 4));
+  inset-block: var(--writing-task-filter-inset);
+  left: var(--writing-task-filter-inset);
+  width: calc((100% - 2 * var(--writing-task-filter-inset)) / var(--writing-task-filter-count, 3));
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
   pointer-events: none;
@@ -2694,7 +2705,7 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
     0 1px 2px var(--glass-shadow);
   -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
   backdrop-filter: blur(18px) saturate(108%) brightness(104%);
-  transform: translate3d(calc(var(--paper-filter-index, 0) * 100%), 0, 0);
+  transform: translate3d(calc(var(--writing-task-filter-index, 0) * 100%), 0, 0);
   transition: transform 440ms cubic-bezier(0.18, 0.9, 0.22, 1.12);
   will-change: transform;
 }
@@ -4765,7 +4776,7 @@ html[data-theme] select:-webkit-autofill {
   .notification-filter-selector,
   .panel-toggle-selector,
   .organization-view-selector,
-  .paper-filter-selector,
+  .writing-task-filter-selector,
   .speaking-engine-selector,
   .nav-primary-selector,
   .nav-menu-selector,
@@ -5062,7 +5073,7 @@ html[data-theme="dark"] .theme-toggle-base,
 html[data-theme="dark"] .interval-toggle-base,
 html[data-theme="dark"] .notification-filter-base,
 html[data-theme="dark"] .panel-toggle-base,
-html[data-theme="dark"] .paper-filter-base,
+html[data-theme="dark"] .writing-task-filter-base,
 html[data-theme="dark"] .organization-view-tabs {
   border-color: rgba(255, 255, 255, 0.1);
   background: #1b1b1e;
@@ -5079,7 +5090,7 @@ html[data-theme="dark"] .interval-toggle-selector,
 html[data-theme="dark"] .notification-filter-selector,
 html[data-theme="dark"] .panel-toggle-selector,
 html[data-theme="dark"] .organization-view-selector,
-html[data-theme="dark"] .paper-filter-selector,
+html[data-theme="dark"] .writing-task-filter-selector,
 html[data-theme="dark"] .speaking-engine-selector,
 html[data-theme="dark"] .nav-primary-selector,
 html[data-theme="dark"] .nav-menu-selector {
@@ -5437,7 +5448,7 @@ html[data-theme="light"] .interval-toggle-base,
 html[data-theme="light"] .notification-filter-base,
 html[data-theme="light"] .panel-toggle-base,
 html[data-theme="light"] .organization-view-tabs,
-html[data-theme="light"] .paper-filter-base,
+html[data-theme="light"] .writing-task-filter-base,
 html[data-theme="light"] .input {
   border-color: var(--color-indigo-300);
   background: color-mix(in srgb, var(--color-indigo-100) 46%, transparent);
@@ -5504,7 +5515,7 @@ html[data-theme="light"] .theme-toggle-base,
 html[data-theme="light"] .interval-toggle-base,
 html[data-theme="light"] .notification-filter-base,
 html[data-theme="light"] .panel-toggle-base,
-html[data-theme="light"] .paper-filter-base,
+html[data-theme="light"] .writing-task-filter-base,
 html[data-theme="light"] .organization-view-tabs {
   background: color-mix(in srgb, rgb(22, 23, 26) 7%, transparent);
 }
@@ -5555,7 +5566,7 @@ html[data-theme="light"] .interval-toggle-selector,
 html[data-theme="light"] .notification-filter-selector,
 html[data-theme="light"] .panel-toggle-selector,
 html[data-theme="light"] .organization-view-selector,
-html[data-theme="light"] .paper-filter-selector,
+html[data-theme="light"] .writing-task-filter-selector,
 html[data-theme="light"] .speaking-engine-selector,
 html[data-theme="light"] .nav-primary-selector,
 html[data-theme="light"] .nav-menu-selector {
@@ -5572,7 +5583,7 @@ html[data-theme="dark"] .interval-toggle-base,
 html[data-theme="dark"] .notification-filter-base,
 html[data-theme="dark"] .panel-toggle-base,
 html[data-theme="dark"] .organization-view-tabs,
-html[data-theme="dark"] .paper-filter-base,
+html[data-theme="dark"] .writing-task-filter-base,
 html[data-theme="dark"] .input {
   border-color: var(--glass-edge);
   background: var(--glass-fill);
@@ -5639,7 +5650,7 @@ html[data-theme="dark"] .interval-toggle-selector,
 html[data-theme="dark"] .notification-filter-selector,
 html[data-theme="dark"] .panel-toggle-selector,
 html[data-theme="dark"] .organization-view-selector,
-html[data-theme="dark"] .paper-filter-selector,
+html[data-theme="dark"] .writing-task-filter-selector,
 html[data-theme="dark"] .speaking-engine-selector,
 html[data-theme="dark"] .nav-primary-selector,
 html[data-theme="dark"] .nav-menu-selector {

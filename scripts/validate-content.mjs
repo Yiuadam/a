@@ -404,19 +404,24 @@ for (const name of listeningPapers) {
 }
 
 /*
-  The task type the chooser's filter bar runs on.
+  What a writing task asks the candidate to produce.
 
-  Mirrors WRITING_TASK_TYPES in lib/paper-filters.ts, kept as a literal for the
-  same reason CEFR_LEVELS above is: this script imports node:fs and nothing
-  else, so that it can run before the app builds rather than after it.
+  This used to be the vocabulary the chooser's filter bar ran on; the bar runs
+  on `task` (1 or 2) now, a field that needs no validating because it is
+  either the number the type is derived from or it is rejected below. The type
+  stays and is still checked, because it is still true independent of any bar:
+  an essay has to be a Task 2, a letter a General Training Task 1, and a chart
+  or a table the one the task actually carries.
+
+  Mirrors WRITING_TASK_TYPES in lib/types.ts, kept as a literal for the same
+  reason CEFR_LEVELS above is: this script imports node:fs and nothing else,
+  so that it can run before the app builds rather than after it.
 
   Two things are checked, and the second is the one worth having. A type
-  outside the set would put a task in no stop of the bar but All, silently. A
-  type that its own content contradicts is worse, because the task is filed
-  under a word and shows up under it looking correct — so an essay has to be a
-  Task 2, a letter a General Training Task 1, and a chart or a table the one
-  the task actually carries. That way the field cannot drift away from the
-  paper it describes without the build saying so.
+  outside the set is simply wrong. A type that its own content contradicts is
+  worse, because it reads as correct to anyone who does not check — so the
+  build checks. That way the field cannot drift away from the paper it
+  describes without the build saying so.
 */
 const WRITING_TASK_TYPES = ["chart", "table", "letter", "essay"];
 

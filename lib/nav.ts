@@ -231,10 +231,6 @@ export const RAIL_GROUPS: NavGroup[] = [
       { href: "/practice/reading", label: "Reading" },
       { href: "/practice/writing", label: "Writing" },
       { href: "/speaking", label: "Speaking" },
-      /* The questions themselves, readable before answering one — see
-         app/speaking/questions/page.tsx for why browsing them is its own page
-         rather than a panel inside the interview. */
-      { href: "/speaking/questions", label: "Speaking questions" },
     ],
   },
   {

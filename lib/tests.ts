@@ -59,7 +59,6 @@ import listeningTwentyEight from "@/data/listening-28.json";
 import listeningTwentyNine from "@/data/listening-29.json";
 import listeningThirty from "@/data/listening-30.json";
 import listeningThirtyOne from "@/data/listening-31.json";
-import { DIFFICULTIES } from "@/lib/paper-filters";
 import type { ListeningTest, ReadingTest } from "@/lib/types";
 
 /*
@@ -86,16 +85,25 @@ import type { ListeningTest, ReadingTest } from "@/lib/types";
   the list is choosing, not browsing, and the choice they can most often make
   well is "start with a straightforward one". Within a difficulty the authored
   order is kept, so a paper's position only moves when its difficulty does.
+
+  This ordering is the one place left that reads `difficulty` as a ranking
+  rather than a label. Nothing renders the word any more — there is no filter
+  bar and no card prints it — so there is no learner-facing promise being made
+  here, only a quiet, invisible default for where a paper sits in the list.
 */
 
-/* The same three words, in the same order, that the chooser's filter bar
-   offers as stops — see lib/paper-filters.ts. Two lists would be two chances
-   for a paper to sort under a word no stop shows. */
+/* Private to this module. It used to be shared with the filter bar's own
+   model so the sort order and the bar's stops could never drift apart; now
+   that the bar is gone, there is nothing left to share it with, and a paper
+   that carries a word outside this list simply sorts last rather than
+   breaking anything a learner can see. */
+const DIFFICULTY_ORDER = ["easy", "medium", "hard"] as const;
+
 function byDifficulty<T extends { difficulty: string }>(tests: T[]): T[] {
   /* Widened on purpose: a paper is free to carry a word that is not one of
      these, and the whole point of the lines below is deciding where it goes.
      Narrowing the haystack to the needle's type would make that unsayable. */
-  const order: readonly string[] = DIFFICULTIES;
+  const order: readonly string[] = DIFFICULTY_ORDER;
   return [...tests]
     .map((t, i) => ({ t, i }))
     .sort((a, b) => {
