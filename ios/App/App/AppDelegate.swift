@@ -1,3 +1,4 @@
+import AVFoundation
 import UIKit
 import Capacitor
 
@@ -7,7 +8,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        /*
+          The listening test has to be audible with the ringer switch off.
+
+          A WKWebView plays into the `ambient` audio session by default, and
+          `ambient` is silenced by the hardware mute switch — so a candidate
+          whose phone is on silent, which on a phone kept in a pocket is most of
+          them, would start a listening paper and hear nothing at all. In the
+          real exam the audio plays once and does not come back; here the paper
+          would be lost to a switch on the side of the device, with no error and
+          nothing on screen to explain it.
+
+          `playback` is the category for audio that is the point of the app
+          rather than a decoration on it, and it ignores the mute switch. It is
+          set once at launch rather than per recording, because by the time a
+          recording is playing it is already too late to have decided.
+
+          Deliberately not `.mixWithOthers`: a listening test playing over
+          somebody's music is a listening test they will fail. Interrupting the
+          music is the correct rudeness.
+
+          SpeechRecognitionPlugin sets its own category while the microphone is
+          open and deactivates the session afterwards, which returns the app to
+          this one. The two do not fight; recording simply takes precedence for
+          as long as it is recording.
+        */
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+
         return true
     }
 
