@@ -18,6 +18,7 @@ import { tierShows, useTier } from "@/lib/billing/useTier";
 import VolumeMeter from "@/components/speaking/VolumeMeter";
 import { apiUrl, postJSON } from "@/lib/api";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
+import { useSearchParams } from "next/navigation";
 import speakingData from "@/data/speaking-topics.json";
 import { useMounted } from "@/lib/hooks";
 import {
@@ -92,13 +93,25 @@ function pick<T>(arr: T[]): T {
 }
 
 /** Build a shortened but structurally faithful mock interview. */
-function buildInterview(): Step[] {
+/*
+  `cardId` is what the question library passes when somebody chooses a card
+  rather than taking whichever one comes up.
+
+  Only Part 2 is chosen. Parts 1 and 3 stay as they are — Part 1 because its
+  small talk is not the thing anybody is browsing for, and Part 3 because it is
+  a discussion *of the chosen topic* and is already picked to match the card.
+  So choosing one card settles two thirds of the interview, which is what makes
+  the choice worth offering.
+*/
+function buildInterview(cardId?: string | null): Step[] {
   const steps: Step[] = [];
   const topics = [...data.part1].sort(() => Math.random() - 0.5).slice(0, 2);
   for (const t of topics) {
     for (const q of t.questions.slice(0, 3)) steps.push({ part: 1, question: q });
   }
-  const card = pick(data.part2);
+  /* An id that no longer exists falls back to a random card rather than
+     failing: a stale link should still start an interview. */
+  const card = (cardId ? data.part2.find((c) => c.id === cardId) : undefined) ?? pick(data.part2);
   steps.push({ part: 2, question: card.cueCard, cueCard: card });
   const part3 = data.part3.find((p) => p.topic === card.topic) ?? pick(data.part3);
   for (const q of part3.questions.slice(0, 4)) steps.push({ part: 3, question: q });
@@ -207,6 +220,14 @@ export default function SpeakingSession({
     asks rather than assume the cell is there.
   */
   const showsEnginePicker = IS_MOBILE_BUILD && localBlock === null;
+  /*
+    Which cue card to build the interview around, when the question library sent
+    somebody here to practise a particular one. Read once on mount rather than
+    subscribed to: an interview is built when it starts, and a query string that
+    changed halfway through would be describing an interview that is already
+    under way.
+  */
+  const chosenCardId = useSearchParams().get("card");
   const micSupported =
     mounted && !micBlocked && (usingLocal || speechRecognitionSupported());
 
@@ -922,7 +943,7 @@ export default function SpeakingSession({
     pendingNudgeTextRef.current = "";
     prepGenerationRef.current = null;
     advancingRef.current = false;
-    const list = buildInterview();
+    const list = buildInterview(chosenCardId);
     setSteps(list);
     setStepIndex(0);
     setTranscript([]);

@@ -192,9 +192,19 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
 
       {editing && (
         <ModuleLibrary
-          layout={layout}
+          layout={shown}
           modules={modules}
-          onAdd={(id) => setLayout([...layout, id])}
+          /*
+            Added onto what is actually drawn, not onto the stored list.
+
+            A module the page has no data for stays in the layout but draws
+            nothing — `shown` filters it out — so a board of four ids could show
+            three cards and still report itself full. Somebody looking at three
+            modules was told there was no room for a fourth, which is a bug
+            twice over: it is wrong, and the reason is invisible. Rebuilding
+            from `shown` drops the dead id in the same motion.
+          */
+          onAdd={(id) => setLayout([...shown, id])}
           onReset={() => setLayout(DEFAULT_LAYOUT)}
           onClose={() => setLibraryOpen(false)}
           open={libraryOpen}
