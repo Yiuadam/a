@@ -154,12 +154,14 @@ export function ThisWeekCard({ profile }: { profile: Profile }) {
   const count = week.length;
 
   /*
-    One marker per day, oldest on the left.
+    A bar a day, oldest on the left — how many, not merely whether.
 
-    "3 sittings this week" and "one sitting on each of three days" are very
-    different weeks, and the number alone cannot tell them apart — which is
-    exactly the thing somebody looking at a practice dashboard wants to know.
-    Seven markers say which days, and the gaps say the rest.
+    "3 sittings this week" and "one on each of three days" are very different
+    weeks, and the number alone cannot tell them apart. A row of on/off marks
+    fixed that much and no more: it still drew a day with four sittings exactly
+    as it drew a day with one. Heights say which, and the shape of the week —
+    building up, tailing off, one heroic Sunday — is the thing somebody is
+    actually looking for on a practice dashboard.
   */
   const days =
     now === null
@@ -170,12 +172,15 @@ export function ThisWeekCard({ profile }: { profile: Profile }) {
           return {
             key: end,
             label: new Date(end).toLocaleDateString(undefined, { weekday: "narrow" }),
-            sat: week.some((r) => {
+            n: week.filter((r) => {
               const at = new Date(r.date).getTime();
               return at > start && at <= end;
-            }),
+            }).length,
           };
         });
+  /* The tallest bar fills the track, so a quiet week is still legible rather
+     than seven slivers against an invisible ceiling. */
+  const peak = Math.max(1, ...days.map((day) => day.n));
 
   const byModule = MODULE_ORDER.map((module) => ({
     module,
@@ -194,16 +199,28 @@ export function ThisWeekCard({ profile }: { profile: Profile }) {
       detail={
         days.length === 0 ? null : (
           <div className="space-y-2">
-            <ol className="flex items-center gap-1">
+            <ol className="flex items-end gap-1">
               {days.map((day) => (
-                <li key={day.key} className="min-w-0 flex-1">
-                  <span
-                    aria-hidden
-                    className={`block h-1.5 rounded-full ${
-                      day.sat ? "bg-indigo-500" : "bg-slate-200"
-                    }`}
-                  />
-                  <span className="mt-1 block text-center text-[0.625rem] uppercase text-slate-400">
+                <li key={day.key} className="flex min-w-0 flex-1 flex-col items-center">
+                  <span className="sr-only">
+                    {day.label}: {day.n} {day.n === 1 ? "sitting" : "sittings"}
+                  </span>
+                  {/*
+                    A fixed track with the bar grown from the bottom, so seven
+                    days line up on one baseline whatever the numbers are. A day
+                    with nothing keeps a hairline rather than disappearing —
+                    a missing bar and a zero bar look the same, and only one of
+                    them is true.
+                  */}
+                  <span aria-hidden className="flex h-9 w-full items-end">
+                    <span
+                      className={`block w-full rounded-sm ${
+                        day.n > 0 ? "bg-indigo-500" : "bg-slate-200"
+                      }`}
+                      style={{ height: day.n > 0 ? `${Math.max(12, (day.n / peak) * 100)}%` : "2px" }}
+                    />
+                  </span>
+                  <span aria-hidden className="mt-1 block text-[0.625rem] uppercase text-slate-400">
                     {day.label}
                   </span>
                 </li>
