@@ -123,10 +123,38 @@ export default function QuestionPalette({
            the app's own bottom edge rather than part of a document. */
         className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overscroll-x-none py-0.5"
       >
-        {items.map((item) => {
+        {items.map((item, index) => {
           const isCurrent = item.id === currentId;
+          /*
+            The label that starts a part, as the exam's own strip prints it:
+            "Part 1: 1 2 3 …". A sitting renames every question after the paper
+            it came from — `listening-12:q1` — so the paper changes exactly
+            where the prefix does, and the parts fall out of the ids without
+            anything having to be threaded down here. A practice paper has no
+            prefix and so gets one unnamed group, which is right: there is only
+            one part, and printing "Part 1:" over the whole strip would be
+            naming a division that does not exist.
+          */
+          const paper = item.id.includes(":") ? item.id.slice(0, item.id.lastIndexOf(":")) : null;
+          const previous = index > 0 ? items[index - 1].id : null;
+          const previousPaper =
+            previous && previous.includes(":") ? previous.slice(0, previous.lastIndexOf(":")) : null;
+          const startsPart = paper !== null && paper !== previousPaper;
+          const partNumber = startsPart
+            ? new Set(
+                items
+                  .slice(0, index + 1)
+                  .map((i) => (i.id.includes(":") ? i.id.slice(0, i.id.lastIndexOf(":")) : ""))
+                  .filter(Boolean),
+              ).size
+            : 0;
           return (
-            <li key={item.id} className="shrink-0">
+            <li key={item.id} className="flex shrink-0 items-center gap-1">
+              {startsPart && (
+                <span className="ml-1 shrink-0 text-xs font-semibold text-[color:var(--exam-fg)] first:ml-0">
+                  Part {partNumber}:
+                </span>
+              )}
               <button
                 type="button"
                 ref={isCurrent ? lit : null}
