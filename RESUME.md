@@ -70,86 +70,37 @@ days — the Apple Developer enrolment is not done, so there is no TestFlight.
 Nothing is running. Each of these is written so it can be picked up without
 this conversation.
 
-**Re-measure the listening pace.** The 165 wpm figure was measured on aura-1
-recordings, and every one of them has been retired — so the number no longer
-describes the app and nothing should be calibrated against it. Re-measure Part 4
-words per minute and silence share on the new aura-2 recordings first. Real
-Part 4 runs 133.5 wpm inclusive of pauses, ~169 articulation, 21% silence.
-Neither Aura model takes a speed parameter; the only lever is client
-`playbackRate` with `preservesPitch`, which practice exposes and the mock pins
-at 1.
+### Exam fidelity — the current programme
 
-**Structural pauses** — the announced gaps a real paper gives for reading ahead
-and checking — are described but not built. They need announcements written from
-scratch, and the 30-minute mock clock has to absorb three or four minutes of
-added silence per paper.
+An audit against the computer-delivered IELTS spec produced this list. Some of
+it is already done; what remains is here. The audit's own correction is worth
+repeating because it saved a large piece of unnecessary work: **listening is
+already four parts of ten**. `composeMock` combines four papers into a 40-question
+sitting and `LISTENING_PART` classifies all 31 into parts 1-4. There is no
+structural rewrite needed there.
 
-**Four of eighteen vocabulary titles still clamp at 768px** — down from sixteen,
-and the remainder are long titles legitimately wrapping to two lines rather than
-being cut mid-word. Worth a look, not a defect.
+  - **Table and flow-chart completion cannot be drawn.** `CompletionQuestion` is
+    one line and one blank, rendered as a single text input per question, so a
+    table completion could only ever look like a numbered list of fragments.
+    This needs a grid renderer before any content can follow.
+  - **Diagram, plan and map labelling.** No image, SVG or coordinate field
+    exists. The answer is a letter or a word, so the marking needs nothing new —
+    what is missing is a diagram spec and its renderer. The product already
+    draws figures from data (`lib/chart.ts`, writing Task 1), which is the model
+    to follow rather than shipping images.
+  - **Listening audio runs about half the real length.** Scripts average 607
+    words a paper, roughly 4-5 minutes at natural pace, against the real ~30
+    minutes for four parts. The question count is right; the audio is short. This
+    is an estimate from word count, not a measured duration — measure before
+    acting.
+  - **Matching sentence endings** is never authored, though `MatchingQuestion`
+    and its renderer already support the shape. Content only.
+  - **General Training reading** is not representable: `ReadingTest` has no
+    `variant`. The mock says it is Academic now, which is honest, but a GT
+    candidate has no paper. `lib/exam/mock.ts` names its own tracking issue.
+    Writing already has both variants and practice offers all 40 tasks.
 
-## Decisions waiting on the owner
+### Older, still true
 
-  - **The longest option is correct 79% of the time** in reading-21..30 and 77%
-    in reading-1..20. The new papers inherited the cue rather than introducing
-    it, so fixing only the ten leaves "always pick the longest" working. It is a
-    102-question sweep across all thirty, or nothing.
-  - **Ten of ten new listening papers, and eleven of nineteen old ones,** let the
-    second question block start before the first one ends. Same argument: a
-    bank-wide pass or none.
-  - **Two of the four listening voices are Australian.** Neither Aura model can
-    cast four British speakers: aura-1 offered British, British, Irish, American;
-    aura-2 offers British, British, Australian, Australian. The one without an
-    American in it was chosen, since removing American was the brief and a
-    candidate genuinely meets Australian in a real paper. That is 66 of 676
-    recordings, 9.8%, all of them the third and fourth speakers in multi-speaker
-    seminars. If the owner wants pure British it means two speakers per paper.
-  - **The tutor is automatic, with no switch.** A learner who would rather it did
-    not read their speaking has one lever: clearing their history, which deletes
-    the interviews entirely. There is no setting that keeps the results but
-    withholds them. The owner should know this was decided; the cheapest reversal
-    is a default-on switch, one line of UI, identical behaviour for anyone who
-    never touches it.
-  - **The date picker.** The field is this product's design on every platform
-    now. The sheet that opens when it is tapped is an OS dialog and no stylesheet
-    reaches it. Replacing it means building a picker and losing the native one's
-    accessibility and localisation.
-  - **The longest-option cue and the listening block overlap** are still open —
-    see the two entries above; nothing about the marking retry changed them.
-  - **Ten backdrop-filter surfaces cover ~90% of the dashboard viewport** at a
-    15px touch radius. That is the thing most likely to make a mid-range Android
-    stutter. The radius is already an owner-chosen value, so moving it is the
-    owner's call.
+  - **UI sweep** across three widths and three themes, for layout breaks and
 
-## Known-broken, so nobody re-diagnoses it
-
-  - `--header-h` is 60px; the header actually draws 64.75px. The exam shell
-    subtracts the variable, so it is ~4.75px out on every platform. Entangled
-    with the iOS native chrome, which is why it was left.
-  - `components/exam/MockResults.tsx` records no review for the speaking module,
-    so a mock-exam interview reaches the tutor as a band and a date rather than
-    as answers. A Standard-tier interview calls no `addResult` at all and leaves
-    no record of any kind.
-  - `SENTENCE_GAP_MS` and `SPEAKER_CHANGE_GAP_MS` in `lib/exam/playback.ts` say
-    320 ms was measured from the MP3s the server serves. Those MP3s are retired,
-    so the provenance is stale even if the number still happens to be right.
-  - All 676 listening recordings and 1,933 examiner prompts regenerate on first
-    play, because the cache version moved. Nothing breaks while they do: a miss
-    generates and stores one file, exactly as a brand-new paper does. The first
-    listener per paper waits on the provider; everyone after reads R2.
-  - CI is Node 22, local is Node 24. `NextResponse` is undefined on 22 in
-    `tests/cutover-write-barrier.test.mjs`.
-
-## Before any push
-
-    npx eslint .
-    npm run build
-    npm test
-    node scripts/validate-content.mjs
-    node scripts/simulate-placement.mjs
-    npm run build:mobile
-    npm run cf:build
-    node scripts/check-delivery.mjs
-
-And exercise the change in a real browser. A preview the owner has to debug is
-worse than no preview.
