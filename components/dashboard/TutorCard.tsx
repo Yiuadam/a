@@ -40,7 +40,7 @@ export default function TutorCard() {
           <h2 id="dashboard-tutor-heading" className="text-[0.9375rem] font-semibold text-slate-900">
             Ask a tutor
           </h2>
-          <p className="mt-0.5 text-[0.8125rem] leading-5 text-slate-500">
+          <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-5 text-slate-500">
             It reads your saved speaking results, so the advice is about how you actually speak.
           </p>
         </div>
@@ -52,7 +52,17 @@ export default function TutorCard() {
       <p className="mt-3 text-[0.75rem] font-medium uppercase tracking-wide text-slate-400">
         Or start with
       </p>
-      <ul className="mt-1 min-w-0 flex-1 space-y-1">
+      {/*
+        `min-h-0` so this list is what gives way when the tile is short.
+
+        A tile on the board is a fixed share of the screen, and the parts of
+        this one are not equally important: the box to type in and the way
+        through to the tutor have to be there, and the third suggested opener
+        does not. Without `min-h-0` a flex child refuses to shrink below its
+        content, so the tile clipped its own footer instead — the link out was
+        the first thing to go.
+      */}
+      <ul className="mt-1 min-h-0 min-w-0 flex-1 space-y-1 overflow-hidden">
         {OPENERS.map((opener) => (
           <li key={opener.ask}>
             <IntentPrefetchLink

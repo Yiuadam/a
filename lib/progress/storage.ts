@@ -181,7 +181,10 @@ export function removeLearnerItem(key: string): void {
 */
 
 /** Every sessionStorage key that holds a piece of a learner's progress. */
-export const PROGRESS_KEYS = ["ielts-prep-v1", "bandup.drills.v1", "bandup.lookups.v1"] as const;
+/* The learner profile's own key, named so nothing has to repeat the string. */
+export const PROFILE_STORAGE_KEY = "ielts-prep-v1";
+
+export const PROGRESS_KEYS = [PROFILE_STORAGE_KEY, "bandup.drills.v1", "bandup.lookups.v1"] as const;
 export type ProgressKey = (typeof PROGRESS_KEYS)[number];
 
 /*

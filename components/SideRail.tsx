@@ -105,10 +105,28 @@ export default function SideRail() {
         that is the header counted twice — sixty-seven pixels of empty rail
         above the first group, at rest, before anything has been scrolled.
       */}
-      <div className="sticky top-0 space-y-5 pb-6 pl-1 pr-2 pt-2">
+      {/*
+        The first group starts level with the first module.
+
+        `pt-9` is the board's own offset — its section padding plus the strip
+        the Edit board control sits in — so "Practise" and "Your band" begin on
+        the same line. Two columns side by side that start at different heights
+        read as one of them having slipped, and it was the rail that looked
+        wrong even though the board was the one with the extra padding.
+
+        `max-h-full overflow-hidden` is a guard, not a scroller.
+
+        The rail is a column of the page now, and the footer sits below the row
+        it lives in — so a rail taller than its column painted its last two
+        links straight over the legal text. The rows below are sized so twelve
+        of them fit the shortest window this appears in, and this is what
+        guarantees the failure is a clipped link rather than two pieces of text
+        on top of each other if a future group makes that untrue.
+      */}
+      <div className="max-h-full space-y-3 overflow-hidden pb-3 pl-1 pr-2 pt-9">
         {groups.map((group) => (
           <div key={group.title}>
-            <h2 className="mb-1.5 px-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500">
+            <h2 className="mb-1 px-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500">
               {group.title}
             </h2>
             <ul className="space-y-0.5">
@@ -129,7 +147,7 @@ export default function SideRail() {
                         which also means it still answers it for somebody who
                         cannot separate the two colours.
                       */
-                      className={`side-rail-item flex min-h-10 items-center gap-3 rounded-full px-3 py-1.5 text-[0.9375rem] font-medium transition-colors ${
+                      className={`side-rail-item flex min-h-8 items-center gap-3 rounded-full px-3 py-1 text-[0.9375rem] font-medium transition-colors ${
                         active
                           ? "side-rail-item-active text-slate-900"
                           : "text-slate-600 hover:text-slate-900"

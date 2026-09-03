@@ -698,6 +698,22 @@ export interface Profile {
     one of the lengths this build offers.
   */
   planDays?: number;
+  /*
+    The dashboard board, in the order the learner arranged it.
+
+    On the profile rather than in localStorage alone, because it is a choice
+    about the app rather than about this browser: somebody who puts the tutor
+    beside their band on a laptop and then opens BandUp on a phone should find
+    the same board, and did not. Ids only, validated on the way out — see
+    lib/dashboard/layout.ts, which forgets an id this build does not recognise
+    and leaves a new module off until it is chosen.
+
+    Absent means "never arranged", which is different from "arranged to be
+    empty" and is why this is optional: absent falls back to the default board,
+    and the merge must not let a device that has never touched it overwrite one
+    that has.
+  */
+  dashboardModules?: string[];
   results: ModuleResult[];
   /** Full-mock score reports, newest first. */
   mockReports?: MockExamReport[];

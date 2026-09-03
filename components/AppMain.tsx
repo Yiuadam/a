@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import SideRail from "@/components/SideRail";
+import SiteFooter from "@/components/SiteFooter";
 import { hasSideRail } from "@/lib/nav";
 import { useRoutePath } from "@/lib/hooks";
 
@@ -143,7 +144,27 @@ export default function AppMain({ children }: { children: ReactNode }) {
     </main>
   );
 
-  if (!railed) return page;
+  /*
+    The footer belongs to the page column, not to the window.
+
+    It used to be a sibling of this whole row, which put a full-width band of
+    legal text under the rail — so the rail's column stopped short of the
+    bottom of the screen with a hard edge across it, and the navigation looked
+    like it had been cut off rather than ended. Inside the column, the rail
+    runs the full height and the footer sits under the content it belongs to.
+
+    The privacy policy lives here rather than in the menu: it is a page a
+    learner visits once, if ever, while Apple needs it publicly reachable to
+    accept a submission at all. A footer is where people look for it.
+  */
+  if (!railed) {
+    return (
+      <>
+        {page}
+        <SiteFooter />
+      </>
+    );
+  }
 
   return (
     /*
@@ -152,9 +173,22 @@ export default function AppMain({ children }: { children: ReactNode }) {
       width tiers move onto this wrapper instead. Below `lg` the rail renders
       nothing and this collapses back to exactly what it was.
     */
-    <div className="mx-auto flex w-full max-w-5xl flex-1 gap-6 px-0 lg:max-w-6xl lg:gap-7 lg:px-5 xl:max-w-7xl 2xl:max-w-[96rem] min-[1920px]:max-w-[116rem]">
+    /*
+      `min-h-0` so this row can be shorter than its contents. A flex item
+      defaults to `min-height: auto` — "never shrink below what is inside me" —
+      so on a locked page the body was the height of the window, this row was
+      the height of the page, and the overflow came straight back out through
+      it. The column inside can only scroll once something above it is allowed
+      to be smaller than its own content.
+    */
+    <div className="mx-auto flex w-full min-h-0 max-w-5xl flex-1 gap-6 px-0 lg:max-w-6xl lg:gap-7 lg:px-5 xl:max-w-7xl 2xl:max-w-[96rem] min-[1920px]:max-w-[116rem]">
       <SideRail />
-      {page}
+      {/* `min-w-0` so a wide table inside the page cannot push the column past
+          the row and squeeze the rail. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {page}
+        <SiteFooter />
+      </div>
     </div>
   );
 }

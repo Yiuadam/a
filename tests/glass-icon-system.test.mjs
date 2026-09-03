@@ -218,15 +218,25 @@ test("the header mark is drawn, not fetched, and takes its colours from the them
     to be: black and white there are the channel, not a palette — they say
     which parts of the paper are holes.
   */
-  assert.doesNotMatch(mark, /(?:stopColor|fill)="#[0-9a-fA-F]{3,8}"/);
+  /*
+    The mask is exempt, and has to be: black and white inside it are the
+    channel, not a palette — they say which parts of the paper are holes.
+  */
+  const painted = mark.slice(0, mark.indexOf("<mask")) + mark.slice(mark.indexOf("</mask>"));
+  assert.doesNotMatch(painted, /(?:stopColor|fill)="#[0-9a-fA-F]{3,8}"/);
 
   /*
-    And it is the glass design, not the flat control beside it in that folder:
-    three composited layers with the rules cut out of the page by `evenodd`,
-    and a ground on the diagonal rather than the flat icon's radial wash.
+    And the rules are cut by a mask rather than by an `evenodd` sub-path. The
+    sheet is a staircase, so a hole that starts left of its upper steps is a
+    hole in mid-air; a mask only removes where the paper already is. This is
+    the one detail that has been got wrong twice.
   */
-  assert.match(mark, /fillRule="evenodd"/);
-  assert.match(mark, /linearGradient id="bandup-mark-ground"/);
+  assert.match(mark, /mask=\{`url\(#\$\{ruled\}\)`\}/);
+  /* A gradient, and one whose id is per-instance: `url(#…)` resolves against
+     the whole document, so a shared id makes a second mark borrow the first
+     one's colours. */
+  assert.match(mark, /linearGradient id=\{gradient\}/);
+  assert.match(mark, /useId\(\)/);
   for (const token of [
     "--mark-ground-near",
     "--mark-ground-mid",

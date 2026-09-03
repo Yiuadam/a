@@ -40,7 +40,7 @@ export default function Scoreboard({ results }: { results: readonly ModuleResult
   const missing = bands.filter((b) => b.band === null).length;
 
   return (
-    <section className="card flex h-full min-w-0 flex-col !p-4" aria-labelledby="dashboard-band-heading">
+    <section className="card flex h-full min-w-0 flex-col overflow-hidden !p-4" aria-labelledby="dashboard-band-heading">
       <h2 id="dashboard-band-heading" className="text-[0.9375rem] font-semibold text-slate-900">
         Your band
       </h2>
@@ -75,12 +75,19 @@ export default function Scoreboard({ results }: { results: readonly ModuleResult
         </p>
       </div>
 
-      <ul className="mt-3 space-y-1">
+      {/*
+        The four skills are what gives way when the tile is short — `min-h-0`
+        so this list may shrink, `overflow-hidden` so it clips rather than
+        pushing the card's own edge past itself. A tile on the board is a fixed
+        share of the screen, and a fourth skill row half-drawn over the card
+        below it is worse than a fourth skill row that is not there.
+      */}
+      <ul className="mt-2 min-h-0 flex-1 space-y-0.5 overflow-hidden">
         {bands.map((m) => (
           <li key={m.key}>
             <IntentPrefetchLink
               href={`/history?module=${m.key}`}
-              className="flex min-h-9 items-center justify-between gap-3 rounded-lg px-1.5 text-[0.875rem] transition-colors hover:bg-[color:color-mix(in_srgb,var(--color-slate-400)_12%,transparent)]"
+              className="flex min-h-8 items-center justify-between gap-3 rounded-lg px-1.5 text-[0.875rem] transition-colors hover:bg-[color:color-mix(in_srgb,var(--color-slate-400)_12%,transparent)]"
             >
               <span className="flex min-w-0 items-center gap-2 text-slate-700">
                 <Icon name={m.icon} className="h-4 w-4 shrink-0 text-indigo-600" />

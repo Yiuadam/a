@@ -55,7 +55,7 @@ function Tile({
   detail?: ReactNode;
 }) {
   return (
-    <section className="card flex h-full min-w-0 flex-col !p-4">
+    <section className="card flex h-full min-w-0 flex-col overflow-hidden !p-4">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <h2 className="text-[0.9375rem] font-semibold text-slate-900">{title}</h2>
         <CardIcon name={icon} size={20} />

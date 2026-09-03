@@ -65,7 +65,13 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
   };
 
   return (
-    <div className="relative min-w-0">
+        /*
+      A column that fills what it is given, from `lg` up, so the grid below can
+      divide the height rather than take it. Without a height to divide,
+      `auto-rows-fr` only makes the two rows equal to each other — which is
+      what left the second row hanging below the fold on a short window.
+    */
+    <div className="relative min-w-0 lg:flex lg:h-full lg:flex-col">
       {/*
         One row, at the owner's ask. Edit board, then Add module / Reset / Done
         in the same place rather than a button above the grid and two more
@@ -136,7 +142,7 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
           board keeps the height, and the control reads as belonging to the
           board rather than floating above it. `z-10` on the toolbar is what
           keeps it on top of the card it overlaps. */}
-      <div className="grid gap-4 lg:auto-rows-fr lg:grid-cols-2 lg:gap-5 lg:pt-4">
+      <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:auto-rows-fr lg:grid-cols-2 lg:gap-5 lg:pt-4">
         {shown.map((id) => {
           const meta = MODULE_LIBRARY.find((m) => m.id === id);
           return (

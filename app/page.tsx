@@ -406,7 +406,7 @@ export default function Dashboard() {
         the results, and the tiles need the entitlement checks, none of which is
         an arrangement component's business.
       */}
-      <div className="hidden lg:block">
+      <div className="hidden min-h-0 lg:flex lg:h-full lg:flex-col">
         {/*
           The offer stands above the board rather than on it.
 

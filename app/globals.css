@@ -597,6 +597,36 @@ body[data-viewport-locked] {
     min-height: 0;
     overflow: hidden;
   }
+
+  /*
+    And the content column scrolls, exactly as on a page-locked route.
+
+    Without this the lock only stopped the *body* from scrolling: the content
+    kept its full height, overflowed, and the footer — which comes after it in
+    the same column — was painted straight across the rail and the cards.
+    Locking a page without giving its content somewhere to go does not make
+    the page fit, it makes the page lie.
+
+    On a board that does fit, which is what the dashboard is for, this scrolls
+    nothing and is invisible.
+  */
+  body[data-home-locked] main {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /*
+    And the dashboard column takes exactly that height.
+
+    `main` is a block, so its child is as tall as its content unless told
+    otherwise — which meant the board divided a height it had invented rather
+    than the one on the screen, and the second row of modules sat below the
+    fold with `auto-rows-fr` cheerfully reporting that both rows were equal.
+    Equal to each other, and both too tall.
+  */
+  body[data-home-locked] main > .dashboard-screen {
+    height: 100%;
+  }
 }
 
 /* Reading and Listening share TestChooser, so their paper cards also share
@@ -6814,25 +6844,43 @@ html[data-theme="dark"] .side-rail::before {
   Warm is the layers' own values, unchanged. The other two are the same design
   read in that theme's light.
 */
+/*
+  Warm: a light brown ground, not the near-black one the layers shipped with.
+
+  The dark ground was drawn for a home screen, where an icon sits on whatever
+  wallpaper somebody chose and needs its own weight. In the header it sits on
+  BandUp's own cream page, and a near-black tile there is the heaviest thing on
+  the screen by a distance — it reads as a hole rather than as a mark.
+
+  The sheet is lighter than the ground rather than darker, which is the one
+  real choice here: both keep the two sheets separate, and this way round keeps
+  the mark warm and the page the brightest thing in it — the stack reads
+  light-on-dark from the top down, ground, sheet, page, instead of doubling back.
+*/
 :root {
-  --mark-ground-near: #3a2c1e;
-  --mark-ground-mid: #241c15;
-  --mark-ground-far: #14100d;
-  --mark-sheet: #a95d2f;
-  --mark-paper: #f6ede0;
+  --mark-ground-near: #a9784a;
+  --mark-ground-mid: #87582f;
+  --mark-ground-far: #603a1c;
+  --mark-sheet: #e09a5a;
+  --mark-paper: #fdf8f0;
 }
 
 /*
-  Light: a cooler ground and an indigo sheet. Light's accent is indigo, and a
-  brown mark on its blue-grey page was the one thing on screen belonging to a
-  different set. The page stays near-white, because it is paper.
+  Light: the same treatment in indigo. Its accent is indigo, and a brown mark on
+  its blue-grey page was the one thing on screen belonging to a different set.
+  A very light blue ground, and no brown anywhere in it. Warm's stack runs
+  light sheet on dark ground; this one runs the other way — a pale ground with
+  the sheet darker than it — because a dark blue tile on Light's own pale page
+  was the heaviest thing on the screen, which is the complaint the warm mark
+  started with. The page stays near-white, because it is paper, and it is still
+  the brightest thing in the mark.
 */
 html[data-theme="light"] {
-  --mark-ground-near: #46536f;
-  --mark-ground-mid: #2b3449;
-  --mark-ground-far: #1a2030;
-  --mark-sheet: #5f6cc4;
-  --mark-paper: #f4f6fb;
+  --mark-ground-near: #dbe3f5;
+  --mark-ground-mid: #c2cdea;
+  --mark-ground-far: #a6b4dd;
+  --mark-sheet: #5866c2;
+  --mark-paper: #fbfcfe;
 }
 
 /*

@@ -1,3 +1,7 @@
+"use client";
+
+import { useId } from "react";
+
 /*
   The app mark: the Liquid Glass design, drawn, so it can take a colour per
   theme.
@@ -15,13 +19,33 @@
   the values the layers were drawn with; Light and Dark set their own in
   app/globals.css.
 
-  What is deliberately not here is the specular rim and the per-layer shadow.
-  On a device the system draws those; in the header SiteHeader lays its own
-  approximation over the top (`bandup-mark-front`), which is where it was
-  before and where it stays. Painting a second set here would be the smudge the
-  layer notes warn about.
+  No shadow, and none of the layers carries one. A drop shadow under the front
+  sheet was tried and taken out: the two sheets read as two sheets from their
+  colours alone, the mark is drawn at 36px in the header where a blur is mud,
+  and the layer notes are explicit that a second shadow over the system's own
+  reads as a smudge. The header lays its own specular rim over the top
+  (`bandup-mark-front`), which is where it was before and where it stays.
 */
 export default function BandUpMark({ className = "" }: { className?: string }) {
+  /*
+    A gradient id unique to this instance.
+
+    `url(#…)` resolves against the whole document, so two marks on one page both
+    painted with the first one's gradient — and the first one's gradient reads
+    *its* element's custom properties. Rendered side by side in different themes
+    that showed as a blue mark on a brown ground: the sheet took its own colour
+    and the ground took the neighbour's. One mark on a page hid it; it was still
+    wrong.
+  */
+  /*
+    Ids unique to this instance. `url(#…)` resolves against the whole document,
+    so two marks on one page both painted with the first one's gradient — and
+    that gradient reads *its* element's custom properties. Rendered side by side
+    in different themes it showed as a blue mark on a brown ground.
+  */
+  const id = useId();
+  const gradient = `bandup-mark-ground-${id}`;
+  const ruled = `bandup-mark-ruled-${id}`;
   return (
     <svg viewBox="0 0 1024 1024" className={className} aria-hidden="true" focusable="false">
       <defs>
@@ -31,7 +55,7 @@ export default function BandUpMark({ className = "" }: { className?: string }) {
           direction harmonises with it, where a radial puts its light in the
           middle and fights it. Straight from the layer's own notes.
         */}
-        <linearGradient id="bandup-mark-ground" x1="0" y1="0" x2="0.85" y2="1">
+        <linearGradient id={gradient} x1="0" y1="0" x2="0.85" y2="1">
           <stop offset="0" stopColor="var(--mark-ground-near)" />
           <stop offset="0.55" stopColor="var(--mark-ground-mid)" />
           <stop offset="1" stopColor="var(--mark-ground-far)" />
@@ -41,7 +65,7 @@ export default function BandUpMark({ className = "" }: { className?: string }) {
       {/* Layer 1. Edge to edge and opaque; no rounded corners, because the
           header rounds the tile itself and baking a second mask in doubles the
           corner. */}
-      <rect width="1024" height="1024" fill="url(#bandup-mark-ground)" />
+      <rect width="1024" height="1024" fill={`url(#${gradient})`} />
 
       {/* Layer 2, the sheet turned behind the page. Flat, not gradient: the
           depth is meant to come from the layers being separate. */}
@@ -55,18 +79,34 @@ export default function BandUpMark({ className = "" }: { className?: string }) {
         transform="rotate(-13 512 560)"
       />
 
-      {/* Layer 3, the page — with the ruled lines cut out of it rather than
-          drawn on top, which is the thing that makes this design what it is.
-          One path with `evenodd`, so the rules are holes and pick up the sheet
-          behind them. */}
+      {/*
+        Layer 3, the page — with the ruled lines cut out of it rather than drawn
+        on top, which is the thing that makes this design what it is.
+
+        A mask, not an `evenodd` hole, and the difference is not stylistic. The
+        sheet is a staircase: above y=700 its left edge is the step at x=370,
+        not x=254. An `evenodd` sub-path that starts left of the sheet does not
+        stop at the outline — it draws a hole in mid-air and opens onto the
+        ground. A mask only removes where the sheet already is, so the same
+        rectangle can start at x=304 and simply have no effect where there is
+        no paper. That is how the master does it, and it is why the master's
+        rules can sit where they look right rather than where the geometry
+        permits.
+
+        Both rules 26 units tall with a 13 radius, at y=690 and y=762 — the
+        master's own numbers, not re-derived.
+      */}
+      <mask id={ruled}>
+        <rect width="1024" height="1024" fill="#fff" />
+        <rect x="304" y="690" width="404" height="26" rx="13" fill="#000" />
+        <rect x="304" y="762" width="286" height="26" rx="13" fill="#000" />
+      </mask>
       <path
         transform="rotate(4 512 560)"
         fill="var(--mark-paper)"
-        fillRule="evenodd"
+        mask={`url(#${ruled})`}
         d="M 254 866 L 254 700 L 370 700 L 370 604 L 486 604 L 486 496
-           L 602 496 L 602 384 L 718 384 L 718 254 L 794 254 L 794 866 Z
-           M 304 684 H 688 A 20 20 0 0 1 688 724 H 304 A 20 20 0 0 1 304 684 Z
-           M 304 754 H 570 A 20 20 0 0 1 570 794 H 304 A 20 20 0 0 1 304 754 Z"
+           L 602 496 L 602 384 L 718 384 L 718 254 L 794 254 L 794 866 Z"
       />
     </svg>
   );
