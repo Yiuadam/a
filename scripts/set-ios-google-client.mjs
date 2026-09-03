@@ -15,7 +15,11 @@
 
   Usage:
 
-    node scripts/set-ios-google-client.mjs 1234-abc.apps.googleusercontent.com
+    node scripts/set-ios-google-client.mjs 1234567890-abcdefghij.apps.googleusercontent.com
+
+  or, once the deployment knows its own client, with nothing to copy at all:
+
+    node scripts/set-ios-google-client.mjs --from https://bandup.life
 
   The client ID is not a secret. Google issues no secret for an iOS client,
   because a secret inside an app is not one; the redirect scheme is what proves
@@ -24,13 +28,49 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 const PLIST = "ios/App/App/Info.plist";
-const clientId = (process.argv[2] ?? "").trim();
 
-if (!/^[A-Za-z0-9-]+\.apps\.googleusercontent\.com$/.test(clientId)) {
+/*
+  A real Google client ID is a project number, a hyphen, then a random label:
+  digits first, always a hyphen, always something after it. Checking that shape
+  rather than "some characters" is the difference between catching a
+  placeholder pasted out of the documentation and writing it into the plist,
+  where it fails silently at the one moment somebody is trying to sign in.
+*/
+const CLIENT_ID = /^\d+-[A-Za-z0-9]+\.apps\.googleusercontent\.com$/;
+
+async function resolveClientId(args) {
+  if (args[0] === "--from") {
+    const origin = (args[1] ?? "").replace(/\/$/, "");
+    if (!origin) throw new Error("--from needs an origin, for example https://bandup.life");
+    const res = await fetch(`${origin}/api/auth/google/config`, { cache: "no-store" });
+    const body = res.ok ? await res.json() : null;
+    const id = typeof body?.iosClientId === "string" ? body.iosClientId : "";
+    if (!id) {
+      throw new Error(
+        `${origin} reports no iOS Google client.\n` +
+          "Either GOOGLE_IOS_CLIENT_ID is not set on that Worker, or the\n" +
+          "deployment predates the config field — deploy first, then retry.",
+      );
+    }
+    return id;
+  }
+  return (args[0] ?? "").trim();
+}
+
+let clientId;
+try {
+  clientId = await resolveClientId(process.argv.slice(2));
+} catch (error) {
+  console.error(`\n${error instanceof Error ? error.message : String(error)}\n`);
+  process.exit(1);
+}
+
+if (!CLIENT_ID.test(clientId)) {
   console.error(
-    "\nThat does not look like a Google iOS client ID.\n\n" +
+    "\nThat is not a Google iOS client ID.\n\n" +
       "  Expected:  1234567890-abcdefghij.apps.googleusercontent.com\n" +
       `  Given:     ${clientId || "(nothing)"}\n\n` +
+      "A real one starts with your Google project number, then a hyphen.\n" +
       "Google Cloud console -> Credentials -> Create credentials ->\n" +
       "OAuth client ID -> iOS, with bundle ID com.bandup.app.\n",
   );

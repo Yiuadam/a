@@ -109,7 +109,7 @@
 			<string>com.bandup.app.google-signin</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.REPLACE-WITH-IOS-CLIENT-ID</string>
+				<string>com.googleusercontent.apps.YOUR-ID</string>
 			</array>
 		</dict>
 	</array>
