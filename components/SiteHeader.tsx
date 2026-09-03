@@ -8,7 +8,7 @@ import SignInLink from "@/components/account/SignInLink";
 import { useRouter } from "next/navigation";
 import { useRoutePath } from "@/lib/hooks";
 import ThemeToggle from "@/components/ThemeToggle";
-import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref } from "@/lib/nav";
+import { NAV_GROUPS, OWNER_ITEM, PRIMARY, currentHref, hasSideRail } from "@/lib/nav";
 import { useTier } from "@/lib/billing/useTier";
 import CardIcon, { type CardIconName } from "@/components/CardIcon";
 import { Icon } from "@/components/Icons";
@@ -704,7 +704,7 @@ export default function SiteHeader({
           account and theme controls.
         */}
         {!open && !onHome && (
-          <PrimaryNavigation current={current} />
+          <PrimaryNavigation current={current} railed={hasSideRail(pathname)} />
         )}
         {/* Takes the space the row would have, so the controls stay pinned
             right whenever the row is not there. */}
@@ -808,7 +808,7 @@ export default function SiteHeader({
   );
 }
 
-function PrimaryNavigation({ current }: { current: string | null }) {
+function PrimaryNavigation({ current, railed }: { current: string | null; railed: boolean }) {
   const links = useRef<Array<HTMLAnchorElement | null>>([]);
   const nav = useRef<HTMLElement | null>(null);
   const selected = PRIMARY.findIndex((item) => item.href === current);
@@ -844,7 +844,15 @@ function PrimaryNavigation({ current }: { current: string | null }) {
       ref={nav}
       aria-label="Main"
       onPointerLeave={() => setPreview(null)}
-      className="relative hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-sm lg:flex"
+      /*
+        Hidden exactly where the rail stands, which is the same `lg` this row
+        used to appear at — the five destinations here are the first five in
+        the rail, and naming them twice on one screen is how a header starts
+        arguing with the page. On a route with no rail it is unchanged.
+      */
+      className={`relative hidden min-w-0 flex-1 items-center justify-center gap-0.5 text-sm ${
+        railed ? "" : "lg:flex"
+      }`}
     >
       {selector && (
         <span

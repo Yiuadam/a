@@ -324,44 +324,6 @@ export default function Dashboard() {
         used to be a paragraph and a 96px band badge stacked above everything
         else, which cost a third of a laptop screen before the first link.
       */}
-      {organization ? (
-        <OrganisationHero organization={organization} />
-      ) : isValidPlacement(placement) ? (
-        <ScoreTrendOverview placement={placement} results={profile.results} />
-      ) : (
-        /*
-          The free Pro trial poster stands in the placement-test card's own
-          slot, always — not offered as a modal over this page, and not
-          moved to /pricing, where the people this is for never look.
-
-          It replaces the placement-test card specifically rather than
-          sitting beside it: this slot is the one guaranteed to be seen by
-          a first-time visitor and a fresh account alike, exactly the
-          audience this offer is for, and the 5-minute test is still one
-          tap away from the practice tiles and from /placement directly —
-          it is only this hero position that changed hands.
-
-          Drawing here has nothing to do with `organization`/`placement`
-          state; a returning account with a real placement never reaches
-          this branch and never sees the poster stack up beside a trend
-          chart it does not belong next to. The component decides its own
-          content from there — a guest sees the pitch and a "Sign up free"
-          button, a signed-in account sees the real accept flow, and a
-          dismissed or already-decided account renders nothing at all, at
-          which point nothing stands in this slot either.
-
-          The app's own name used to be this branch's visible page title,
-          in PlacementHero. It still has to appear as an <h1> here — Google's
-          OAuth review matches the exact application name against one on the
-          consent screen's calling page — but the poster's own heading is
-          what a reader should actually see now, so this one is sr-only
-          rather than reintroducing a second visible title above it.
-        */
-        <>
-          <h1 className="sr-only">BandUp</h1>
-          <FreeProPoster />
-        </>
-      )}
 
       {/*
         Practice, study and history side by side on a laptop rather than three
@@ -385,7 +347,75 @@ export default function Dashboard() {
         screen. Every grid or flex child in this app that contains a grid needs
         it, which is the same trap /practice hit at 390px.
       */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      {/*
+        A working column and a rail beside it, from xl up.
+
+        Before this the page was one row of wide, short tiles with the rest of
+        a 1080px screen empty underneath — the thing the owner circled. The
+        right column existed but only appeared once a learner had practised, so
+        the case that needed it most, a first visit, was exactly the case that
+        never got it.
+
+        Now the rail always has something in it: the offer or the score summary
+        moves in from the top of the page, and recent practice joins it as soon
+        as there is any. The main column gets its width back and its tiles stop
+        being letterboxes.
+      */}
+      <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-12 xl:gap-5">
+        {/*
+          The hero, and where it sits on a wide screen.
+
+          It is the same element in both places, positioned rather than
+          duplicated: below xl it is the first row across the full width, as it
+          always was; from xl it moves into the rail so the rail is never empty
+          and the working column starts with the thing a learner came to press.
+
+          Explicit row and column starts because this is the only way to say
+          "second column, first row" to a grid whose other children are placed
+          by span alone — without them the browser flows it after the sections
+          and the rail sits below a screenful of tiles.
+        */}
+        <div className="min-w-0 lg:col-span-3 xl:col-span-4 xl:col-start-9 xl:row-start-1">
+        {organization ? (
+          <OrganisationHero organization={organization} />
+        ) : isValidPlacement(placement) ? (
+          <ScoreTrendOverview placement={placement} results={profile.results} />
+        ) : (
+          /*
+            The free Pro trial poster stands in the placement-test card's own
+            slot, always — not offered as a modal over this page, and not
+            moved to /pricing, where the people this is for never look.
+
+            It replaces the placement-test card specifically rather than
+            sitting beside it: this slot is the one guaranteed to be seen by
+            a first-time visitor and a fresh account alike, exactly the
+            audience this offer is for, and the 5-minute test is still one
+            tap away from the practice tiles and from /placement directly —
+            it is only this hero position that changed hands.
+
+            Drawing here has nothing to do with `organization`/`placement`
+            state; a returning account with a real placement never reaches
+            this branch and never sees the poster stack up beside a trend
+            chart it does not belong next to. The component decides its own
+            content from there — a guest sees the pitch and a "Sign up free"
+            button, a signed-in account sees the real accept flow, and a
+            dismissed or already-decided account renders nothing at all, at
+            which point nothing stands in this slot either.
+
+            The app's own name used to be this branch's visible page title,
+            in PlacementHero. It still has to appear as an <h1> here — Google's
+            OAuth review matches the exact application name against one on the
+            consent screen's calling page — but the poster's own heading is
+            what a reader should actually see now, so this one is sr-only
+            rather than reintroducing a second visible title above it.
+          */
+          <>
+            <h1 className="sr-only">BandUp</h1>
+            <FreeProPoster />
+          </>
+        )}
+        </div>
+
         {/*
           Two thirds when there is something in the third column, all three
           when there is not.
@@ -397,19 +427,23 @@ export default function Dashboard() {
           for a section that had decided not to appear.
         */}
         <div
-          className={`dashboard-sections min-w-0 space-y-4 ${recent.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}
+          className={`dashboard-sections min-w-0 space-y-4 xl:col-span-8 xl:col-start-1 xl:row-start-1 ${
+            recent.length > 0 ? "lg:col-span-2" : "lg:col-span-3"
+          }`}
         >
           <section>
             <h2 className="heading-rule mb-2.5 text-sm font-semibold text-slate-900">
               Practise a skill
             </h2>
             {/*
-              Two-up on a phone, four-up from xl. More columns rather than
-              wider cards: a tile is a title and one line, and stretching it to
-              600px makes an icon with a lot of whitespace after it, not a
-              better tile.
+              Two-up on a phone, four-up from md — and back to two-up from xl,
+              where the column is eight twelfths rather than the whole page.
+              Four across a two-thirds column is what was truncating these:
+              "Real passages, real ques…", "An essay, marked like th…". A tile
+              whose one line of description does not fit is not a tile, and the
+              fix is fewer columns rather than shorter words.
             */}
-            <div className="dashboard-card-grid dashboard-practice-grid grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="dashboard-card-grid dashboard-practice-grid grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-2 xl:gap-4">
               {MODULES.map((m) => {
                 const isNew = moduleNeedsNewBadge(profile, m.key);
                 const skill = access[m.key];
@@ -521,7 +555,7 @@ export default function Dashboard() {
         </div>
 
         {recent.length > 0 && (
-          <section className="dashboard-recent min-w-0 lg:col-span-1">
+          <section className="dashboard-recent min-w-0 lg:col-span-1 xl:col-span-4 xl:col-start-9 xl:row-start-2">
             <div className="mb-2.5 flex items-baseline justify-between gap-3">
               <h2 className="heading-rule flex-1 text-sm font-semibold text-slate-900">
                 Your recent practice

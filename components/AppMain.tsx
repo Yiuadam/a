@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import SideRail from "@/components/SideRail";
+import { hasSideRail } from "@/lib/nav";
 import { useRoutePath } from "@/lib/hooks";
 
 /*
@@ -50,7 +52,14 @@ export default function AppMain({ children }: { children: ReactNode }) {
     };
   }, [viewportLocked]);
 
-  return (
+  /*
+    The rail stands beside the page, not inside it, so a full-bleed route keeps
+    its full bleed and the exam keeps its own chrome. It draws nothing below
+    `lg` and nothing on the routes that own the whole window.
+  */
+  const railed = hasSideRail(pathname);
+
+  const page = (
     <main
       /*
         `data-lookupable` means any word a learner selects anywhere in the app —
@@ -75,10 +84,25 @@ export default function AppMain({ children }: { children: ReactNode }) {
                larger inside a box that stays put. It is a ceiling, not a
                target: prose caps itself far below this (see app/privacy and
                the reading passage), which is deliberate and unaffected. */
-            "mx-auto w-full min-h-0 max-w-5xl flex-1 px-5 py-6 sm:py-10 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] min-[1920px]:max-w-[116rem]"
+            "mx-auto w-full min-h-0 max-w-5xl flex-1 px-5 py-6 sm:py-10 lg:mx-0 lg:max-w-none lg:px-0 xl:max-w-none 2xl:max-w-none"
       }
     >
       {children}
     </main>
+  );
+
+  if (!railed) return page;
+
+  return (
+    /*
+      One row: rail, then page. The row is what centres the pair, so the shell's
+      own `mx-auto` on the page would fight it — hence `lg:mx-0` there, and the
+      width tiers move onto this wrapper instead. Below `lg` the rail renders
+      nothing and this collapses back to exactly what it was.
+    */
+    <div className="mx-auto flex w-full max-w-5xl flex-1 gap-6 px-0 lg:max-w-6xl lg:gap-7 lg:px-5 xl:max-w-7xl 2xl:max-w-[96rem] min-[1920px]:max-w-[116rem]">
+      <SideRail />
+      {page}
+    </div>
   );
 }

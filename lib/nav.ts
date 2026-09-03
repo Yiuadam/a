@@ -1,4 +1,5 @@
 import type { Route } from "next";
+import type { CardIconName } from "@/components/CardIcon";
 import { IS_MOBILE_BUILD, routePath } from "./platform";
 
 /*
@@ -139,3 +140,68 @@ export function currentHref(pathname: string): string | null {
   }
   return best;
 }
+
+/*
+  Whether a route shows the standing navigation rail.
+
+  Two components need the same answer and must not disagree about it:
+  AppMain draws the rail, and SiteHeader hides its own row of primary links
+  when the rail is there, because the two would otherwise name the same five
+  destinations twice on the same screen.
+
+  The routes excluded are the ones that own the whole window — the console and
+  the organisation workspace draw their own chrome, and the exam, the tutor and
+  a practice paper are locked to one viewport so a rail beside them would be
+  taking width from the thing being read. See components/AppMain.tsx.
+*/
+export function hasSideRail(pathname: string): boolean {
+  const path = routePath(pathname);
+  if (path.startsWith("/admin") || path.startsWith("/organization")) return false;
+  return !(
+    path === "/chat" ||
+    path === "/practice/listening" ||
+    path === "/practice/reading" ||
+    path === "/practice/writing" ||
+    path === "/exam"
+  );
+}
+
+
+/*
+  Which glyph each destination carries, in two families.
+
+  Here rather than in the component that draws them, and that is not tidiness.
+  The tables are keyed by href, so wherever they live is a file that names
+  every route in the app — including /pricing and /billing, which the iOS build
+  must not offer. Keeping them beside the lists that already gate those routes
+  means the gate and the names it hides are one file apart rather than two, and
+  a component that reads from here cannot reintroduce a route this file has
+  removed.
+
+  Two families because they are different shapes at different weights and
+  neither stands in for the other: the four exam skills and the two drill
+  sections are drawn from the homepage set, everything else from the card set.
+*/
+export const SKILL_ICONS: Partial<Record<string, string>> = {
+  "/practice/listening": "listening",
+  "/practice/reading": "reading",
+  "/practice/writing": "writing",
+  "/speaking": "speaking",
+  "/grammar": "grammar",
+  "/vocabulary": "vocabulary",
+};
+
+export const NAV_ICONS: Partial<Record<string, CardIconName>> = {
+  "/": "home",
+  "/plan": "plan",
+  "/history": "history",
+  "/organization": "organization",
+  "/practice": "practice",
+  "/exam": "mock",
+  "/chat": "tutor",
+  "/resources": "guides",
+  "/about": "about",
+  "/account": "profile",
+  "/admin": "settings",
+  ...(!IS_MOBILE_BUILD ? { "/pricing": "plans" as const, "/billing": "usage" as const } : {}),
+};

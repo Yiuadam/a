@@ -6320,3 +6320,45 @@ html .input:focus-visible {
     inset 0 1px 0 var(--glass-highlight),
     0 0 0 3px color-mix(in srgb, var(--color-indigo-500) 28%, transparent);
 }
+
+/*
+  The standing navigation rail, in the product's own material.
+
+  It is not a card: a rail that draws its own glass panel puts a second window
+  frame inside the first one, and the page beside it already has cards of its
+  own. So the rail itself is transparent and only the row a learner is on takes
+  a surface — which is also the cheapest thing to draw, because one small
+  backdrop-filtered pill costs a fraction of a full-height blurred column on a
+  page that is already ten glass surfaces deep.
+
+  See components/SideRail.tsx for why it exists and why it starts at `lg`.
+*/
+.side-rail-item-active {
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-fill-strong);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+  backdrop-filter: blur(18px) saturate(108%) brightness(104%);
+}
+
+/* The same neutral treatment the rest of this theme gives a control surface. */
+html[data-theme="light"] .side-rail-item-active {
+  border-color: var(--color-indigo-400);
+  background: var(--color-indigo-200);
+}
+
+html[data-theme="dark"] .side-rail-item-active {
+  border-color: color-mix(in srgb, var(--color-indigo-500) 34%, var(--glass-edge));
+  background: color-mix(in srgb, var(--color-indigo-100) 76%, white);
+}
+
+/*
+  A hover that reads without moving anything. The rail is a list of fifteen
+  rows; a hover that changed the row's size would make the whole column twitch
+  as a pointer crossed it.
+*/
+.side-rail-item:hover:not(.side-rail-item-active) {
+  background: color-mix(in srgb, var(--color-slate-400) 12%, transparent);
+}
