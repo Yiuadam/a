@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import ExamSettings, { useExamDisplay } from "./ExamSettings";
 import ExamTimer from "./ExamTimer";
@@ -190,6 +191,32 @@ export default function ExamShell({
     where the frame is drawn again and the room is not scarce.
   */
   const paperInset = edgeToEdgeOnPhone ? "px-2 py-1 sm:px-4 sm:py-2" : "px-3 py-2 sm:px-4";
+
+  /*
+    Mark where the candidate is on the paper itself, not only in the strip.
+
+    The real exam tints the question you are on, and it earns its keep on a
+    forty-question sitting: the strip tells you the number, the tint tells you
+    which of the six things on screen that number belongs to. Without it a
+    candidate who jumped to 23 lands somewhere in a page of similar-looking
+    blocks and has to count.
+
+    Written onto the DOM rather than passed down as a prop because "where you
+    are" is the shell's idea and nothing on the paper needs to hold it. The
+    paper renders questions; it already stamps each one with the id this looks
+    up (`data-question-id`), which the palette's jumping has depended on since
+    it was written. Passing it down instead would mean threading a prop through
+    both mock modules and into every question so that one of them could change
+    colour.
+  */
+  useEffect(() => {
+    if (!currentId) return;
+    const marked = document.querySelector(`[data-question-id="${CSS.escape(currentId)}"]`);
+    marked?.setAttribute("data-current", "true");
+    return () => {
+      marked?.removeAttribute("data-current");
+    };
+  }, [currentId]);
 
   return (
     <div

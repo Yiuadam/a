@@ -6681,3 +6681,36 @@ html[data-theme="dark"] .exam-highlight {
 .exam-gap-wrong.exam-gap-wrong {
   border-color: var(--color-rose-500);
 }
+
+/*
+  The question the candidate is on.
+
+  Set by ExamShell as the paper is scrolled, and drawn here rather than there
+  so it costs a class on one element instead of a prop threaded through both
+  mock modules. The tint is the paper's own accent at a strength that reads as
+  "here" and not as "wrong" — the marked states beside it are green and red, so
+  this had to be neither.
+*/
+[data-exam] [data-current="true"] {
+  background: color-mix(in srgb, var(--exam-accent) 10%, transparent);
+  box-shadow: inset 3px 0 0 0 var(--exam-accent);
+}
+
+/*
+  The same "you are here" on a gap, which is a box in a line rather than a
+  block with room for a tint behind it.
+
+  A background wash and a bar down the left edge work on a question card and
+  read as a stray stripe beside an inline field, so a gap says it differently:
+  the box takes the accent on its own border. Same signal, drawn at the size of
+  the thing being marked.
+*/
+[data-exam] [data-current="true"]:has(.exam-gap) {
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-exam] [data-current="true"] .exam-gap.exam-gap {
+  border-color: var(--exam-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--exam-accent) 16%, transparent);
+}

@@ -152,7 +152,14 @@ export default function QuestionPalette({
             <li key={item.id} className="flex shrink-0 items-center gap-1">
               {startsPart && (
                 <span className="ml-1 shrink-0 text-xs font-semibold text-[color:var(--exam-fg)] first:ml-0">
-                  Part {partNumber}:
+                  {/*
+                    The paper's own word for its divisions. Reading is three
+                    passages and the paper says "Passage 2" at the top of the
+                    second one; listening is four parts and says "Part 2". A
+                    strip that said "Part" over both would be disagreeing with
+                    the page above it in one of the two modules.
+                  */}
+                  {paper.startsWith("reading-") ? "Passage" : "Part"} {partNumber}:
                 </span>
               )}
               <button
