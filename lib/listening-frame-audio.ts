@@ -128,7 +128,33 @@ export type ListeningSequenceStep = ListeningAudioStep | ListeningSilenceStep;
   pause and the one partway through Parts 1 to 3, because nothing about a
   generated paper distinguishes how much either moment is worth reading.
 */
-const READING_TIME_MS = 25_000;
+/*
+  How long the candidate gets to read, and to check.
+
+  The real test does not use one number. It gives about twenty seconds before
+  the first block of a conversation, about thirty before the second, and around
+  forty-five for Part 4, where all ten questions are read at once because a
+  lecture is never interrupted. A flat twenty-five seconds was therefore
+  generous in Part 1 and, much worse, mean in Part 4: ten questions in the time
+  the real test allows for four or five. That does not make BandUp harder in a
+  useful way, it makes it harder than the thing it is preparing someone for.
+
+  So the reading time is a rate — a little under five seconds a question —
+  held between the shortest and longest the real test is ever observed to give.
+  A block of four gets twenty seconds, a block of ten gets forty-five.
+*/
+function readingTimeMs(questionsInBlock: number): number {
+  const seconds = Math.round(Math.min(45, Math.max(20, questionsInBlock * 4.5)));
+  return seconds * 1_000;
+}
+
+/*
+  And half a minute at the end of the part to check, which the real test always
+  gives and this frame did not. It is not dead air: it is the last chance to
+  fill a gap before the answers stop being markable, and a candidate who has
+  never practised with it is meeting it for the first time in the exam.
+*/
+const CHECK_TIME_MS = 30_000;
 
 const ONES = [
   "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
@@ -273,10 +299,17 @@ function buildLineText(
   if (kind === "end") {
     return {
       id,
+      /*
+        The check line belongs to the end line rather than to a kind of its
+        own. It is one breath in the real test — "That is the end of part
+        three. You now have half a minute to check your answers." — and
+        splitting it in two would buy a second cached object, a second request
+        and a second chance to fail, to say the same sentence with a seam in it.
+      */
       text:
         partNumber === 4
-          ? "That is the end of part four, and the end of the Listening test."
-          : `That is the end of part ${numberWord(partNumber)}.`,
+          ? "That is the end of part four, and the end of the Listening test. You now have half a minute to check your answers."
+          : `That is the end of part ${numberWord(partNumber)}. You now have half a minute to check your answers.`,
     };
   }
   if (from === undefined) return null;
@@ -293,9 +326,19 @@ function buildLineText(
           : `You have some time to look at questions ${numberWord(from)} to ${numberWord(firstTo)}.`,
       };
     case "resume1":
+      /*
+        Part 1 carries the warning, and only Part 1 — which is where the real
+        test puts it, once, at the start of the paper. It matters more than it
+        reads: a candidate practising with a replay button has no reason to
+        believe it, and the sentence is the exam telling them plainly that the
+        habit they have built will not be available.
+      */
       return {
         id,
-        text: `Now listen carefully and answer questions ${numberWord(from)} to ${numberWord(firstTo)}.`,
+        text:
+          partNumber === 1
+            ? `Now listen carefully and answer questions ${numberWord(from)} to ${numberWord(firstTo)}. You should answer the questions as you listen, because you will not hear the recording a second time.`
+            : `Now listen carefully and answer questions ${numberWord(from)} to ${numberWord(firstTo)}.`,
       };
     case "reading2":
       if (!structure.hasPause) return null;
@@ -469,7 +512,13 @@ export function listeningSequence(
   const steps: ListeningSequenceStep[] = [
     intro.step,
     reading1.step,
-    { kind: "silence", ms: READING_TIME_MS, label: reading1.text },
+    /* The first block's own size, not a fixed number — a Part 4 opener is all
+       ten questions and gets the forty-five seconds the real test gives it. */
+    {
+      kind: "silence",
+      ms: readingTimeMs(structure.hasPause ? structure.mid : questionCount(test.questions)),
+      label: reading1.text,
+    },
     resume1.step,
     ...firstChunk.map(dialogueStep),
   ];
@@ -485,12 +534,16 @@ export function listeningSequence(
     if (!reading2 || !resume2) return null;
     steps.push(
       reading2.step,
-      { kind: "silence", ms: READING_TIME_MS, label: reading2.text },
+      { kind: "silence", ms: readingTimeMs(questionCount(test.questions) - structure.mid), label: reading2.text },
       resume2.step,
       ...secondChunk.map(dialogueStep),
     );
   }
 
   steps.push(end.step);
+  /* And the half minute the closing line just promised. A line that says a
+     candidate has time to check, followed immediately by silence ending, would
+     be the one part of the frame that lies to them. */
+  steps.push({ kind: "silence", ms: CHECK_TIME_MS, label: end.text });
   return steps;
 }

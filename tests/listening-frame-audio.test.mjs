@@ -82,18 +82,43 @@ test("every listening paper produces a complete, well-formed spoken frame", () =
       `${paper.id} must play every dialogue segment, in order, exactly once`,
     );
 
-    // Part 4 is the one section the real test does not interrupt.
+    /*
+      Part 4 is the one section the real test does not interrupt, so it has one
+      reading block rather than two — and every part ends with the half minute
+      to check that the closing line promises. That check pause is the last
+      silence, which is why the counts below are reading blocks plus one.
+    */
     const expectsPause = partNumber !== 4;
+    const readingSilences = silenceSteps.slice(0, -1);
+    const checkSilence = silenceSteps[silenceSteps.length - 1];
     assert.equal(
-      silenceSteps.length,
+      readingSilences.length,
       expectsPause ? 2 : 1,
       `${paper.id} (part ${partNumber}) has the wrong number of reading-time silences`,
     );
     assert.equal(frameSteps.length, expectsPause ? 6 : 4, `${paper.id} has the wrong number of narrator lines`);
-    for (const silence of silenceSteps) {
-      assert.equal(silence.ms, 25_000, `${paper.id} silence duration`);
+
+    /*
+      Reading time is a rate, not a constant, because the real test's is.
+      Roughly four and a half seconds a question, held between the twenty
+      seconds it gives before a short first block and the forty-five it gives a
+      Part 4 candidate reading all ten at once. A flat number was mean to Part
+      4 in exactly the way that makes practice harder than the exam.
+    */
+    for (const silence of readingSilences) {
+      assert.ok(
+        silence.ms >= 20_000 && silence.ms <= 45_000,
+        `${paper.id} reading time ${silence.ms}ms is outside what the real test gives`,
+      );
       assert.ok(silence.label.length > 0, `${paper.id} silence must carry a label for the UI to show`);
     }
+    if (partNumber === 4) {
+      assert.equal(readingSilences[0].ms, 45_000, `${paper.id} Part 4 reads all ten questions at once`);
+    }
+
+    // And the half minute to check, which the closing line has just promised.
+    assert.equal(checkSilence.ms, 30_000, `${paper.id} must end with the half-minute check`);
+    assert.match(checkSilence.label, /half a minute to check your answers/);
 
     // Every narrator line the sequence points at must actually resolve, with
     // real words in it, cast in the shared narrator voice, hashed and keyed
@@ -137,7 +162,11 @@ test("every listening paper produces a complete, well-formed spoken frame", () =
     const endText = bundledListeningFrameAudio(idFromUrl(frameSteps[frameSteps.length - 1].url)).text;
     assert.doesNotMatch(endText, /\d/);
     assert.match(endText, new RegExp(`^That is the end of part ${numberWord(partNumber)}\\b`));
-    if (partNumber === 4) assert.match(endText, /the end of the Listening test\.$/);
+    /* The closing line now carries the check offer too, which is one breath in
+       the real test rather than two lines. Part 4 still says the test is over
+       before it says it. */
+    if (partNumber === 4) assert.match(endText, /the end of the Listening test\./);
+    assert.match(endText, /You now have half a minute to check your answers\.$/);
 
     // The mid-part split, when there is one, must land on a question number
     // the paper's own rubric actually uses — not a guessed halfway point —
