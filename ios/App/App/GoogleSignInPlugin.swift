@@ -205,6 +205,19 @@ extension GoogleSignInPlugin: ASWebAuthenticationPresentationContextProviding {
       presented over the app — at which point the sheet would try to attach to a
       window that is no longer on screen.
     */
-    bridge?.viewController?.view.window ?? UIApplication.shared.windows.first { $0.isKeyWindow } ?? ASPresentationAnchor()
+    if let window = bridge?.viewController?.view.window {
+      return window
+    }
+    /*
+      The scene route rather than UIApplication.shared.windows, which has been
+      deprecated since iOS 15 and warns on every build. Same fallback the Apple
+      plugin uses: the first connected foreground window scene, then its key
+      window, then any window it has.
+    */
+    let scene = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .first { $0.activationState == .foregroundActive }
+      ?? UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+    return scene?.keyWindow ?? scene?.windows.first ?? ASPresentationAnchor()
   }
 }
