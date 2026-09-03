@@ -76,6 +76,35 @@ export default function AppMain({ children }: { children: ReactNode }) {
   }, [home]);
 
   /*
+    Every other railed page is one screen too, from `lg` up.
+
+    The owner's rule is that nothing scrolls except the library of practice
+    papers. Taken literally that is impossible — History is every sitting ever
+    recorded and the guides are a reference — so this is the honest version of
+    it: the *page* never scrolls. The header, the rail and the footer stay
+    where they are, and a page with more in it than fits scrolls inside its own
+    column instead of moving the furniture. On the pages that do fit, which is
+    most of them, nothing scrolls at all and the difference is invisible.
+
+    `/practice` is the exception the rule names, and it keeps the ordinary page
+    scroll: it is a list of sixty papers, its whole shape is "keep going", and
+    an inner scroller inside a page that does not move is a worse way to read a
+    long list than simply reading down it.
+
+    Below `lg` none of this applies, for the reason `data-home-locked` gives:
+    without the rail these pages are a stack, and locking a stack takes the
+    footer's height out of the content and hides the end of it.
+  */
+  const pageLocked = hasSideRail(pathname) && !viewportLocked && pathname !== "/practice" && pathname !== "/";
+  useEffect(() => {
+    if (!pageLocked) return;
+    document.body.setAttribute("data-page-locked", "");
+    return () => {
+      document.body.removeAttribute("data-page-locked");
+    };
+  }, [pageLocked]);
+
+  /*
     The rail stands beside the page, not inside it, so a full-bleed route keeps
     its full bleed and the exam keeps its own chrome. It draws nothing below
     `lg` and nothing on the routes that own the whole window.

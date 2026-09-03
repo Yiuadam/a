@@ -109,8 +109,10 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
              what somebody came to read, and the button that rearranges it
              should be findable rather than prominent. It grows back to the
              normal size while editing, when it is the way out. */
-          className={`!px-2.5 text-[0.75rem] ${
-            editing ? "btn-primary !min-h-8 !px-3 text-[0.8125rem]" : "btn-secondary !min-h-7"
+          className={`${
+            editing
+              ? "btn-primary !min-h-8 !px-3 text-[0.8125rem]"
+              : "btn-secondary !min-h-0 !px-2.5 !py-1 text-[0.6875rem]"
           }`}
           aria-pressed={editing}
         >
@@ -129,8 +131,12 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
         height, that is the whole of what "the same size" needs. The modules are
         written `h-full` already; the wrapper below passes that down.
       */}
-      {/* The strip the toolbar sits in — its height and no more. */}
-      <div className="grid gap-4 lg:auto-rows-fr lg:grid-cols-2 lg:gap-5 lg:pt-8">
+      {/* Less headroom than the toolbar is tall, so the button sits half over
+          the first card's top edge rather than in a clear band above it — the
+          board keeps the height, and the control reads as belonging to the
+          board rather than floating above it. `z-10` on the toolbar is what
+          keeps it on top of the card it overlaps. */}
+      <div className="grid gap-4 lg:auto-rows-fr lg:grid-cols-2 lg:gap-5 lg:pt-4">
         {shown.map((id) => {
           const meta = MODULE_LIBRARY.find((m) => m.id === id);
           return (

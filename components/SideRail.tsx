@@ -99,7 +99,13 @@ export default function SideRail() {
       */
       className="side-rail hidden w-52 shrink-0 self-stretch lg:block xl:w-56"
     >
-      <div className="sticky top-[var(--header-h)] space-y-5 pb-6 pl-1 pr-2 pt-3">
+      {/*
+        `top-0`, not `top-[var(--header-h)]`. The column itself now begins at
+        the header's lower edge, so an offset of the header's height on top of
+        that is the header counted twice — sixty-seven pixels of empty rail
+        above the first group, at rest, before anything has been scrolled.
+      */}
+      <div className="sticky top-0 space-y-5 pb-6 pl-1 pr-2 pt-2">
         {groups.map((group) => (
           <div key={group.title}>
             <h2 className="mb-1.5 px-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500">

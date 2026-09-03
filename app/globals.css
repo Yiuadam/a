@@ -566,6 +566,31 @@ body[data-viewport-locked] {
   See components/AppMain.tsx, which sets the attribute, for why it is not
   data-viewport-locked.
 */
+/*
+  Every other railed page, held to one screen from `lg` up — see AppMain.
+
+  The page does not scroll; the content column inside it does, and only when
+  there is more than fits. That is the honest reading of "nothing scrolls":
+  the furniture stays still, which is the thing a person actually notices, and
+  nothing is clipped, which no amount of trimming could guarantee for a page
+  like History.
+
+  `overscroll-contain` so reaching the end of the column does not hand the
+  gesture to the page behind it, which has nowhere to go and would rubber-band.
+*/
+@media (min-width: 64rem) {
+  body[data-page-locked] {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body[data-page-locked] main {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 @media (min-width: 64rem) {
   body[data-home-locked] {
     height: 100dvh;
@@ -6780,55 +6805,45 @@ html[data-theme="dark"] .side-rail::before {
 /*
   The mark's palette, one set per theme.
 
-  The mark used to be a PNG: one colourway, fixed at the colours it was
-  rendered with. Drawn from the vector master instead (components/BandUpMark.tsx)
-  every colour in it is a custom property, so a theme can have its own without
-  anybody producing new artwork — and without a filter, which is how a
-  considered palette turns into whatever hue-rotate happens to give.
+  The mark is the Liquid Glass design drawn from its own shipping layers
+  (components/BandUpMark.tsx): a ground, a turned sheet and the page. It used
+  to be a PNG, which is one colourway — and the only way to move a raster's
+  colours is a filter, which turns a chosen palette into whatever hue-rotate
+  gives.
 
-  Warm is the original, byte for byte: the ground, the turned sheet and the
-  paper are the values the master was drawn with. The other two are the same
-  design read in that theme's own light.
+  Warm is the layers' own values, unchanged. The other two are the same design
+  read in that theme's light.
 */
 :root {
-  --mark-ground-near: #31261d;
-  --mark-ground-far: #15110e;
-  --mark-sheet-light: #b0632f;
-  --mark-sheet-shade: #7c4222;
-  --mark-paper-shade: #e6d3b8;
-  --mark-paper-mid: #f8f0e4;
-  --mark-paper-light: #fdfaf6;
-  --mark-shadow: #0d0a08;
+  --mark-ground-near: #3a2c1e;
+  --mark-ground-mid: #241c15;
+  --mark-ground-far: #14100d;
+  --mark-sheet: #a95d2f;
+  --mark-paper: #f6ede0;
 }
 
 /*
-  Light: a cooler, paler ground and an indigo sheet, because Light's accent is
-  indigo and a brown mark on a blue-grey page is the one thing on the screen
-  that belongs to a different set. The paper stays near-white — it is paper.
+  Light: a cooler ground and an indigo sheet. Light's accent is indigo, and a
+  brown mark on its blue-grey page was the one thing on screen belonging to a
+  different set. The page stays near-white, because it is paper.
 */
 html[data-theme="light"] {
-  --mark-ground-near: #3b4661;
-  --mark-ground-far: #1d2436;
-  --mark-sheet-light: #6673c8;
-  --mark-sheet-shade: #414d99;
-  --mark-paper-shade: #dfe3ee;
-  --mark-paper-mid: #f2f4fa;
-  --mark-paper-light: #ffffff;
-  --mark-shadow: #0b0e18;
+  --mark-ground-near: #46536f;
+  --mark-ground-mid: #2b3449;
+  --mark-ground-far: #1a2030;
+  --mark-sheet: #5f6cc4;
+  --mark-paper: #f4f6fb;
 }
 
 /*
-  Dark: the ground goes almost to black, so the mark reads as a cut-out rather
+  Dark: the ground goes almost to black so the mark reads as a cut-out rather
   than a lit tile, and the sheet comes up in brightness to survive against it —
-  the same accent the theme uses elsewhere, not a new one.
+  the accent this theme already uses, not a new one.
 */
 html[data-theme="dark"] {
-  --mark-ground-near: #241c16;
-  --mark-ground-far: #0b0908;
-  --mark-sheet-light: #d9813f;
-  --mark-sheet-shade: #9c4f24;
-  --mark-paper-shade: #d8c6ac;
-  --mark-paper-mid: #efe6d8;
-  --mark-paper-light: #fbf6ee;
-  --mark-shadow: #000000;
+  --mark-ground-near: #2a2019;
+  --mark-ground-mid: #16110d;
+  --mark-ground-far: #090706;
+  --mark-sheet: #d9813f;
+  --mark-paper: #f3ebdd;
 }
