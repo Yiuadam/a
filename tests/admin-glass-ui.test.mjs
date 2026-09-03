@@ -64,3 +64,64 @@ test("admin charts use the indigo glass visual system", () => {
     assert.match(styles, /prefers-reduced-transparency/);
   }
 });
+
+/*
+  The console still gets the native app's own top clearance.
+
+  Reported as "the top of the site setting is being cut" — and it was: on the
+  iOS app the header bar is a real UIGlassEffect view floating above the
+  WKWebView, not DOM, so every page needs a spacer of its own height reserved
+  in the page's own flow or the bar sits over whatever draws first. SiteHeader
+  is that spacer everywhere it renders (the invisible div keyed off
+  `nativeChromeHeight`, components/SiteHeader.tsx) — except the console, which
+  used to return null before ever reaching that branch. The bar still floated;
+  only the reservation was missing.
+
+  `enableNativeChrome` runs from an effect declared above every return in the
+  component, so it always measures the bar and always sets `--header-h` —
+  including on /admin — regardless of what gets rendered. The bug was never in
+  the measurement, only in the console skipping the one render branch that
+  used it. So the fix is source order: the console's own early return has to
+  come panel to panel with, and after, the spacer branch — never in front of
+  it — or a future edit could put the early return back above it without
+  anyone noticing until the next screenshot.
+*/
+test("the console reserves the native bar's height instead of rendering under it", () => {
+  const header = read("components", "SiteHeader.tsx");
+
+  // The console's own opt-out is now conditioned on there being no bar to miss.
+  assert.match(header, /if \(onConsole && nativeChromeHeight === null\) return null;/);
+
+  // And the spacer that reserves the bar's real height still exists, and the
+  // console's guard sits before it in source order rather than after.
+  const consoleGuard = header.indexOf("if (onConsole && nativeChromeHeight === null) return null;");
+  const spacer = header.indexOf("style={{ height: nativeChromeHeight }}");
+  assert.ok(consoleGuard > -1 && spacer > -1, "both the guard and the spacer must exist");
+  assert.ok(
+    consoleGuard < spacer,
+    "the console's early return must come before the native spacer branch, so /admin can still reach it",
+  );
+});
+
+/*
+  The admin overview's own rows, shorter — not every row everywhere.
+
+  HubMenu is shared with /account and /billing, which each show one screen's
+  worth of choice at a time and can afford the taller default target. Admin's
+  overview is the one screen carrying four stat cards and five menu rows at
+  once, which is what "make every button slightly shorter to fit" was asked
+  about — so the shrink is a `compact` prop this page opts into, not a change
+  to the shared default the other two pages were never reported as broken.
+*/
+test("the admin overview asks HubMenu for its compact rows, and the shared default is unchanged", () => {
+  const overview = read("app", "admin", "page.tsx");
+  const hub = read("components", "HubMenu.tsx");
+
+  assert.match(overview, /<HubMenu items={menu} compact \/>/);
+  assert.match(hub, /compact = false/);
+  assert.match(hub, /min-h-\[6\.25rem\]/);
+  assert.match(hub, /min-h-\[4\.75rem\]/);
+
+  const account = read("components", "AccountPanel.tsx");
+  assert.doesNotMatch(account, /<HubMenu[^>]*compact/);
+});

@@ -448,7 +448,25 @@ export default function SiteHeader({
     };
   }, [router]);
 
-  if (onConsole) return null;
+  /*
+    Not simply `if (onConsole) return null` — that was the bug.
+
+    The console draws its own header and wants nothing from this component on
+    an ordinary web tab, where returning null here is the whole story: nothing
+    else on the page is expecting header space to have been reserved for it.
+
+    Inside the app it is a different question. The glass bar above the WebView
+    is native and floats there on every screen this component ever mounts on,
+    /admin included — enableNativeChrome runs unconditionally above, before
+    either return, because it lives in an effect and the rules of hooks do not
+    let it wait for `onConsole` to be known. Returning null before the spacer
+    branch below skipped the one thing that keeps that bar from floating over
+    a page's own content: the invisible div that reserves its height in DOM
+    flow. Every other page gets that div. The console did not, and its own
+    title sat under the bar as a result — the report was "the top is being
+    cut", and it was, by exactly `nativeChromeHeight` pixels.
+  */
+  if (onConsole && nativeChromeHeight === null) return null;
 
   /*
     The navigation sheet — every destination, not just the five-word row

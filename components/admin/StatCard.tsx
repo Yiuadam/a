@@ -42,8 +42,8 @@ export default function StatCard({
       figure, where it still separates one tile from the next at a glance and
       no longer claims a line of its own.
     */
-    <div className="card flex min-h-[4.75rem] items-center gap-3 rounded-2xl border border-slate-200 bg-surface p-3 sm:gap-3.5 sm:p-4">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100/70 text-indigo-700">
+    <div className="card flex min-h-[4rem] items-center gap-2.5 rounded-2xl border border-slate-200 bg-surface p-2.5 sm:gap-3 sm:p-3.5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100/70 text-indigo-700">
         {icon}
       </span>
 
@@ -60,7 +60,7 @@ export default function StatCard({
           </>
         ) : (
           <>
-            <p className="text-[1.375rem] font-semibold leading-none tracking-tight text-slate-900 tabular-nums">
+            <p className="text-[1.25rem] font-semibold leading-none tracking-tight text-slate-900 tabular-nums">
               {value}
             </p>
             <p className="mt-1 truncate text-[0.75rem] leading-4 text-slate-500">{label}</p>
