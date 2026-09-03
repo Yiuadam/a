@@ -155,8 +155,15 @@ const KNOWN = new Set<string>(MODULE_LIBRARY.map((m) => m.id));
   thanks", and an answered notice that can be put back on a board is a notice
   that asks again. It sits above the board instead, where FreeProPoster's own
   rule about when to draw itself is the only thing deciding whether it appears.
+
+  "skills" in the top-left rather than "plan" or "recent" — the owner's own
+  choice, arranged on a real board first and asked for as the default second.
+  It is the one module that is a way *in* rather than a report on what has
+  already happened, which is the right thing to lead with for an account that
+  has not sat anything yet, where every other module in this default four
+  would otherwise be describing an empty history.
 */
-export const DEFAULT_LAYOUT: ModuleId[] = ["score", "plan", "tutor", "recent"];
+export const DEFAULT_LAYOUT: ModuleId[] = ["skills", "score", "tutor", "week"];
 
 /*
   How many modules the board holds, which is a consequence rather than a taste.

@@ -124,3 +124,14 @@ test("no lock-state or badge logic is duplicated here — the destination pages 
   assert.doesNotMatch(card, /useSessionAccess/);
   assert.doesNotMatch(card, /LockedCard/);
 });
+
+test("the new module leads the default board, arranged the way the owner actually kept it", () => {
+  /*
+    Asked for directly, after trying the board: "make these four the default
+    modules" — skills top-left, the band top-right, the tutor bottom-left,
+    the week bottom-right, which is grid order (Board.tsx lays `layout` into
+    a two-column grid left to right, top to bottom).
+  */
+  const entry = layout.slice(layout.indexOf("export const DEFAULT_LAYOUT"));
+  assert.match(entry, /\["skills", "score", "tutor", "week"\]/);
+});
