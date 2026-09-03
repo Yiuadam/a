@@ -408,15 +408,42 @@ function readingGTFor(section: 1 | 2 | 3): ReadingTest[] {
  * and it was the more misleading of the two, because the sitting said General
  * Training at the top and then asked for a chart description.
  */
-export function composeMock(variant: ReadingTest["variant"] = "academic"): MockPaper {
+/*
+  Papers this learner has not sat, when there are any.
+
+  A mock is meant to measure, and a paper you have already answered measures
+  how well you remember it. The bank is big enough that this almost always has
+  something to offer — but not infinite, so it falls back to the whole pool
+  rather than refusing to compose a sitting: somebody who has worked through
+  every listening paper should still be able to sit another exam, and a
+  familiar paper is a worse measurement than a fresh one but a far better one
+  than no exam at all.
+
+  A preference, not a guarantee, and deliberately silent about which it gave
+  you. Telling a candidate "you have seen this before" mid-sitting would change
+  how they sit it.
+*/
+function unsat<T extends { id: string }>(options: T[], sat: ReadonlySet<string>): T[] {
+  const fresh = options.filter((option) => !sat.has(option.id));
+  return fresh.length > 0 ? fresh : options;
+}
+
+export function composeMock(
+  variant: ReadingTest["variant"] = "academic",
+  /* Test ids this learner has already sat — see `unsat`. */
+  sat: ReadonlySet<string> = new Set(),
+): MockPaper {
   const listening = ([1, 2, 3, 4] as const).map((part) => {
-    const options = listeningFor(part);
+    const options = unsat(listeningFor(part), sat);
     return pick(options, 1)[0]?.id ?? LISTENING_TESTS[0].id;
   });
 
-  const reading = variant === "general" ? composeGTReading() : composeAcademicReading();
-  const task1 = pick(WRITING_TASKS.filter((t) => t.task === 1 && t.variant === variant), 1)[0];
-  const task2 = pick(WRITING_TASKS.filter((t) => t.task === 2), 1)[0];
+  const reading = variant === "general" ? composeGTReading(sat) : composeAcademicReading(sat);
+  const task1 = pick(
+    unsat(WRITING_TASKS.filter((t) => t.task === 1 && t.variant === variant), sat),
+    1,
+  )[0];
+  const task2 = pick(unsat(WRITING_TASKS.filter((t) => t.task === 2), sat), 1)[0];
 
   return {
     listening,
@@ -444,11 +471,17 @@ export function composeMock(variant: ReadingTest["variant"] = "academic"): MockP
   read as wrong the moment a candidate reached a job advertisement in the
   middle of an Academic passage.
 */
-function composeAcademicReading(): string[] {
+function composeAcademicReading(sat: ReadonlySet<string> = new Set()): string[] {
   const readingCount = (test: ReadingTest) => questionCount(flatQuestions(test.questions));
   const shortPapers = READING_TESTS.filter((t) => t.variant === "academic" && readingCount(t) === 13);
   const longPapers = READING_TESTS.filter((t) => t.variant === "academic" && readingCount(t) === 14);
-  return [...pick(shortPapers, 2), ...pick(longPapers, 1)].map((t) => t.id);
+  /*
+    Each pool filtered on its own, not the three papers as a set. The lengths
+    are what make the sitting come to forty, so a fresh paper may only replace
+    a paper of its own length — preferring novelty across the whole draw would
+    quietly produce a 39- or 41-question exam.
+  */
+  return [...pick(unsat(shortPapers, sat), 2), ...pick(unsat(longPapers, sat), 1)].map((t) => t.id);
 }
 
 /*
@@ -464,9 +497,12 @@ function composeAcademicReading(): string[] {
   its section" in tests/mock-exam.test.mjs is what keeps that true — so
   13 + 13 + 14 holds whichever paper each section offers.
 */
-function composeGTReading(): string[] {
+function composeGTReading(sat: ReadonlySet<string> = new Set()): string[] {
   return ([1, 2, 3] as const).map((section) => {
-    const options = readingGTFor(section);
+    /* Per section, for the reason the Academic draw filters per length: a
+       section's papers are interchangeable with each other and with nothing
+       else, so novelty may only be preferred inside one. */
+    const options = unsat(readingGTFor(section), sat);
     return pick(options, 1)[0]?.id ?? READING_TESTS[0].id;
   });
 }
@@ -729,12 +765,17 @@ export function clearSession(): void {
   for (const l of listeners) l();
 }
 
-export function newSession(variant: ReadingTest["variant"] = "academic"): MockSession {
+export function newSession(
+  variant: ReadingTest["variant"] = "academic",
+  /* Test ids already sat, so a fresh sitting prefers papers this learner has
+     not answered — see `unsat`. */
+  sat: ReadonlySet<string> = new Set(),
+): MockSession {
   return {
     version: 1,
     id: `mock-${Date.now().toString(36)}`,
     startedAt: new Date().toISOString(),
-    paper: composeMock(variant),
+    paper: composeMock(variant, sat),
     stage: "listening",
     deadline: null,
     answers: {},

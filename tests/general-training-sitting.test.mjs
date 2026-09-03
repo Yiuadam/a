@@ -67,3 +67,32 @@ test("Task 2 is the same essay bank either way", () => {
   }
   assert.equal(seen.size, 2);
 });
+
+/*
+  A sitting prefers papers this learner has not answered.
+
+  A mock is meant to measure, and a paper you have already sat measures how
+  well you remember it. Preference rather than guarantee — the bank is finite,
+  and a familiar paper is a worse measurement than a fresh one but a far better
+  one than refusing to compose a sitting at all.
+*/
+test("a fresh sitting avoids papers already sat, and still composes when none are left", () => {
+  const first = composeMock("academic");
+  const sat = new Set([...first.reading, ...first.listening, ...first.writing]);
+  for (let i = 0; i < 40; i += 1) {
+    const next = composeMock("academic", sat);
+    for (const id of next.reading) assert.ok(!sat.has(id), `${id} was already sat`);
+    for (const id of next.listening) assert.ok(!sat.has(id), `${id} was already sat`);
+  }
+
+  /* Everything sat: it must still hand back a whole paper rather than nothing. */
+  const everything = new Set();
+  for (let i = 0; i < 200; i += 1) {
+    const paper = composeMock("academic");
+    for (const id of [...paper.reading, ...paper.listening, ...paper.writing]) everything.add(id);
+  }
+  const exhausted = composeMock("academic", everything);
+  assert.equal(exhausted.reading.length, 3);
+  assert.equal(exhausted.listening.length, 4);
+  assert.equal(exhausted.writing.length, 2);
+});

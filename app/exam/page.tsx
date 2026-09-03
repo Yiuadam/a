@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import SpeakingSession from "@/components/speaking/SpeakingSession";
@@ -133,11 +133,22 @@ function ExamRunner() {
     };
   }, []);
 
+  /*
+    Every paper this learner has already sat, so a fresh sitting prefers ones
+    they have not — a mock is meant to measure, and a paper you have answered
+    before measures how well you remember it. Preference, not guarantee: see
+    `unsat` in lib/exam/mock.ts for what happens once the bank runs out.
+  */
+  const sat = useMemo(
+    () => new Set(profile.results.map((result) => result.testId)),
+    [profile.results],
+  );
+
   const start = useCallback(() => {
-    const fresh = newSession(variant);
+    const fresh = newSession(variant, sat);
     fresh.deadline = Date.now() + MODULE_MINUTES.listening * 60_000;
     update(fresh);
-  }, [update, variant]);
+  }, [update, variant, sat]);
 
   /**
    * Start a standalone single-skill exam: one module, sat on its own, with no
