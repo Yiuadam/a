@@ -1,5 +1,5 @@
-import { isCorrect, rawToBand, roundToHalf } from "@/lib/band";
-import { flatQuestions, toGroups } from "@/lib/questions";
+import { marksEarned, rawToBand, roundToHalf } from "@/lib/band";
+import { flatQuestions, questionCount, toGroups } from "@/lib/questions";
 import { LISTENING_TESTS, READING_TESTS } from "@/lib/tests";
 import {
   MOCK_EXAM_KEY,
@@ -459,12 +459,27 @@ export function markObjective(
   paper: MockPaper,
   answers: Record<string, string | number>,
 ): { listening: ModuleMark; reading: ModuleMark } {
+  /*
+    Marks, not questions answered — and the two stopped being the same number
+    the day multi-select arrived.
+
+    "Choose TWO letters" is one entry in the JSON and two marks on the paper: it
+    claims two of the forty numbers, and a candidate who gets one letter right
+    earns one of them. Counting `isCorrect` per object would have scored that
+    group out of one and left the sitting's denominator short by a mark for
+    every multi-select in it — so a perfect paper would have read 38 of 38 while
+    the real one is 40 of 40, and every band derived from it would have been
+    computed against the wrong total.
+
+    `marksEarned` is the generalisation: 0 or 1 for every other type, 0 to
+    `numAnswers` for this one. `questionCount` sums the same widths, so the two
+    halves of the fraction are measured the same way.
+  */
   const score = (questions: TestQuestion[], module: "listening" | "reading") => {
     let raw = 0;
-    for (const q of questions) {
-      if (isCorrect(q, answers[q.id])) raw++;
-    }
-    return { raw, total: questions.length, band: rawToBand(raw, questions.length, module) };
+    for (const q of questions) raw += marksEarned(q, answers[q.id]);
+    const total = questionCount(questions);
+    return { raw, total, band: rawToBand(raw, total, module) };
   };
 
   return {

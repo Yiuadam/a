@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import ExplainText from "@/components/ExplainText";
-import { isCorrect } from "@/lib/band";
+import { isCorrect, marksEarned } from "@/lib/band";
 import { numberedGroups } from "@/lib/questions";
 import type { QuestionSet, SharedOption, TestMode, TestQuestion } from "@/lib/types";
 
@@ -11,6 +11,26 @@ export type AnswerMap = Record<string, string | number | undefined>;
 export type CheckedMap = Record<string, true | undefined>;
 
 type Given = string | number | undefined;
+
+/**
+ * The option indices a candidate has ticked for a multi-select question,
+ * decoded from the comma-joined string its answer is stored as.
+ *
+ * `AnswerMap` holds one `string | number` per question id, which has nowhere
+ * to put more than one tick mark on its own — so a multi-select's live
+ * selection is kept as a sorted, comma-joined string of option indices, and
+ * this is the one place that reading is done. `lib/band.ts` decodes the same
+ * string independently for marking; both have to read a stored answer the
+ * same way, which is why this stays a plain parse rather than growing rules
+ * of its own.
+ */
+function chosenIndices(given: Given): number[] {
+  if (given === undefined || given === "") return [];
+  return String(given)
+    .split(",")
+    .map(Number)
+    .filter((n) => Number.isInteger(n));
+}
 
 /**
  * The branch reached only if a question type has no case above.
@@ -32,6 +52,11 @@ function unhandledType(question: never): ReactNode {
 
 function answerText(q: TestQuestion, options?: SharedOption[]): string {
   if (q.type === "mcq") return `${String.fromCharCode(65 + q.answer)}. ${q.options[q.answer]}`;
+  if (q.type === "multi-select") {
+    return q.answer
+      .map((idx) => `${String.fromCharCode(65 + idx)}. ${q.options[idx]}`)
+      .join("; ");
+  }
   if (q.type === "matching") {
     /*
       A revealed answer of "vii" teaches nothing once the heading list has
@@ -54,6 +79,15 @@ function QuestionPrompt({ q }: { q: TestQuestion }) {
       return <>{q.statement}</>;
     case "mcq":
       return <>{q.question}</>;
+    case "multi-select":
+      return (
+        <>
+          {q.question}
+          <span className="ml-2 text-xs font-normal text-slate-400">
+            (choose {q.numAnswers})
+          </span>
+        </>
+      );
     case "matching":
       return <>{q.prompt}</>;
     case "short-answer":
@@ -148,6 +182,85 @@ function QuestionInput({
           ))}
         </div>
       );
+
+    case "multi-select": {
+      const chosen = chosenIndices(given);
+      const toggle = (idx: number) => {
+        const next = chosen.includes(idx) ? chosen.filter((i) => i !== idx) : [...chosen, idx];
+        /*
+          Sorted before it is stored, so "B then D" and "D then B" become the
+          same string. Order is not part of the answer — the group scores B,D
+          exactly as it scores D,B — and a stored value that varied with tick
+          order would make two identical answers compare unequal everywhere
+          downstream that reads it back rather than only where it is marked.
+        */
+        onAnswer(q.id, [...next].sort((a, b) => a - b).join(","));
+      };
+      return (
+        <div className="space-y-2">
+          {/*
+            Never disabled past the limit. The real exam's rule is that
+            choosing more letters than asked for scores zero for the whole
+            group — not that a candidate is physically stopped from doing it —
+            and blocking the tick here would make that rule impossible to
+            meet in practice, which is the one place meeting it costs nothing.
+            The count below is the running warning a paper answer sheet
+            cannot give.
+          */}
+          <p
+            className={`text-xs font-medium ${
+              chosen.length > q.numAnswers ? "text-rose-600" : "text-slate-400"
+            }`}
+          >
+            {chosen.length} of {q.numAnswers} chosen
+            {chosen.length > q.numAnswers
+              ? " — more than this scores zero for the whole group"
+              : ""}
+          </p>
+          {q.options.map((opt, idx) => {
+            const isChecked = chosen.includes(idx);
+            const isKey = q.answer.includes(idx);
+            /*
+              Once revealed, a correct letter is shown in green whether or not
+              it was ticked — a missed correct letter is exactly what a
+              candidate needs to see — and a ticked wrong letter is shown in
+              rose. Untouched wrong letters stay neutral; there is nothing to
+              say about an option nobody chose and that was never going to be
+              right.
+            */
+            const cls = locked
+              ? isKey
+                ? "border-emerald-400 bg-emerald-50"
+                : isChecked
+                  ? "border-rose-400 bg-rose-50"
+                  : "border-slate-200 bg-surface"
+              : isChecked
+                ? "border-indigo-500 bg-indigo-50"
+                : "border-slate-200 bg-surface hover:bg-slate-50";
+            return (
+              <label
+                key={idx}
+                className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${cls} ${
+                  locked ? "cursor-default" : ""
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  disabled={locked}
+                  onChange={() => toggle(idx)}
+                  className="accent-indigo-600"
+                />
+                <span className="text-slate-700">
+                  <span className="mr-1 font-medium">{String.fromCharCode(65 + idx)}.</span>
+                  {opt}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      );
+    }
 
     case "completion":
     case "short-answer":
@@ -264,7 +377,7 @@ export default function TestQuestions({
           )}
 
           <ol className="space-y-5">
-            {block.questions.map(({ question: q, number }) => {
+            {block.questions.map(({ question: q, number, to }) => {
               const given = answers[q.id];
               /*
                 A checked question is locked, so its verdict is final. In exam
@@ -295,8 +408,20 @@ export default function TestQuestions({
                   }`}
                 >
                   <div className="mb-3 flex items-start gap-2 text-sm font-medium text-slate-800">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-600">
-                      {number}
+                    {/*
+                      A wider pill rather than the usual circle whenever a
+                      question claims more than one number — a multi-select's
+                      single prompt is "Questions 15 and 16" on the real paper,
+                      and a badge that could only ever hold one digit would
+                      quietly drop the second number the candidate is meant to
+                      write an answer against.
+                    */}
+                    <span
+                      className={`mt-0.5 flex h-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-600 ${
+                        to > number ? "w-auto min-w-6 px-1.5" : "w-6"
+                      }`}
+                    >
+                      {to > number ? `${number}–${to}` : number}
                     </span>
                     <span>
                       <QuestionPrompt q={q} />
@@ -338,6 +463,22 @@ export default function TestQuestions({
                       >
                         {correct ? "✓ Correct" : `✗ Answer: ${answerText(q, block.group.sharedOptions)}`}
                       </p>
+                      {/*
+                        A multi-select that is not fully correct still earned
+                        some of its two or three marks unless it was
+                        over-selected, and "✗" alone would read as "zero"
+                        either way. This is the one place that difference is
+                        shown — nowhere else can a single question earn more
+                        than one mark or less than all of it.
+                      */}
+                      {!correct && q.type === "multi-select" && (
+                        <p className="text-sm text-slate-600">
+                          {marksEarned(q, given)} of {q.numAnswers} marks for this group
+                          {chosenIndices(given).length > q.numAnswers
+                            ? ` — ${chosenIndices(given).length} letters were chosen, and choosing more than ${q.numAnswers} scores zero`
+                            : "."}
+                        </p>
+                      )}
                       {q.explanation && (
                         <ExplainText
                           text={q.explanation}

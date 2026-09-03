@@ -20,7 +20,7 @@ const mock = await import(pathToFileURL(join(process.cwd(), "lib", "exam", "mock
 const { LISTENING_TESTS } = await import(
   pathToFileURL(join(process.cwd(), "lib", "tests.ts")).href
 );
-const { numberedGroups, questionCount } = await import(
+const { numberedGroups, questionCount, questionWidth } = await import(
   pathToFileURL(join(process.cwd(), "lib", "questions.ts")).href
 );
 
@@ -92,10 +92,21 @@ test("a sitting is four recordings in part order, three passages, two writing ta
   }
 });
 
+/*
+  Counted in numbers claimed, not in array entries held. A multi-select
+  question ("Choose TWO letters") is one JSON entry worth two of the paper's
+  numbers, so `.length` alone under-counts it the moment content ever uses
+  the type — the same reason `questionCount` sums `questionWidth` rather than
+  counting entries.
+*/
+function claimedNumbers(questions) {
+  return questions.reduce((n, q) => n + questionWidth(q), 0);
+}
+
 test("the listening paper asks forty questions", () => {
   const paper = composeMock();
   assert.equal(
-    listeningQuestions(paper).length,
+    claimedNumbers(listeningQuestions(paper)),
     40,
     "IELTS listening is forty questions; a short paper makes rawToBand scale and coarsens the band",
   );
@@ -103,7 +114,7 @@ test("the listening paper asks forty questions", () => {
 
 test("the reading paper is close enough to forty that scaling is not distorting", () => {
   const paper = composeMock();
-  const total = readingQuestions(paper).length;
+  const total = claimedNumbers(readingQuestions(paper));
   assert.ok(total >= 39 && total <= 40, `reading paper has ${total} questions`);
 });
 
@@ -121,7 +132,12 @@ test("questions are numbered continuously across the papers of a module", () => 
   const seen = [];
   for (const t of tests) {
     for (const block of numberedGroups(t.questions, next)) {
-      for (const { number } of block.questions) seen.push(number);
+      // Every number a question claims, not only the first of them — a
+      // multi-select's `number` and `to` differ, and both have to appear here
+      // in order for the sequence below to be genuinely unbroken.
+      for (const { number, to } of block.questions) {
+        for (let n = number; n <= to; n++) seen.push(n);
+      }
     }
     next += questionCount(t.questions);
   }
@@ -137,14 +153,30 @@ test("marking counts the whole paper, and a perfect score is band 9", () => {
   const paper = composeMock();
   const questions = [...listeningQuestions(paper), ...readingQuestions(paper)];
 
-  /* Every answer right, taken from the key itself. */
+  /*
+    Every answer right, taken from the key itself. A multi-select's key is an
+    array of indices, encoded the same comma-joined way `TestQuestions` stores
+    a live selection — see lib/band.ts's `selectedIndices`.
+  */
   const answers = {};
   for (const q of questions) {
-    answers[q.id] = q.type === "mcq" ? String(q.answer) : q.answer;
+    answers[q.id] =
+      q.type === "mcq" ? String(q.answer) : q.type === "multi-select" ? q.answer.join(",") : q.answer;
   }
 
   const marks = markObjective(paper, answers);
-  assert.equal(marks.listening.raw, 40);
+  /*
+    Raw compared against this sitting's own total rather than a hardcoded 40,
+    matching the reading assertion below. `markObjective` counts one raw mark
+    per question *object* it marks correct — right for every type here except
+    multi-select, which is worth more than one mark for a single object, so a
+    sitting that happens to include one no longer scores exactly 40 raw for a
+    perfect paper even though it still claims forty numbers (proved by "the
+    listening paper asks forty questions" above). What must still hold for a
+    perfect paper is that nothing was marked wrong, which raw === total says
+    regardless of how the objects underneath are counted.
+  */
+  assert.equal(marks.listening.raw, marks.listening.total);
   assert.equal(marks.listening.band, 9);
   assert.equal(marks.reading.raw, marks.reading.total);
   assert.equal(marks.reading.band, 9);

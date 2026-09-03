@@ -135,25 +135,26 @@
           "answer": "daylighting",
           "maxWords": 3,
           "explanation": "Paragraph D defines the term directly: “a practice now known as daylighting — removing the roof from a buried river”."
-        },
+        }
+      ]
+    },
+    {
+      "instruction": "Choose TWO letters, A-E.",
+      "questions": [
         {
           "id": "q12",
-          "type": "short-answer",
-          "question": "According to the passage, what now kills more city dwellers than floods?",
-          "answer": "heatwaves",
-          "maxWords": 3,
-          "explanation": "Paragraph E: “cities where heatwaves now kill more people than floods do”. Copy the word exactly as the passage spells it."
-        },
-        {
-          "id": "q13",
-          "type": "short-answer",
-          "question": "What must planners accept will occasionally be under water on purpose?",
-          "answer": "some land",
-          "accept": [
-            "land"
+          "type": "multi-select",
+          "question": "Which TWO of the following benefits of daylighting does the writer mention in the passage?",
+          "options": [
+            "Nearby residents paid less for household insurance",
+            "Summer air temperatures on nearby streets fell",
+            "The number of community meetings about local rivers fell",
+            "House prices near the new channels increased",
+            "Local councils reduced how much they spent on flood defences generally"
           ],
-          "maxWords": 3,
-          "explanation": "Paragraph G asks planners “to accept that some land will occasionally be under water on purpose”."
+          "numAnswers": 2,
+          "answer": [1, 3],
+          "explanation": "Paragraph E gives both directly: “Streets beside daylighted rivers recorded summer air temperatures noticeably lower than comparable streets nearby” supports the second option, and “Property values rose, which pleased councils” supports the fourth. Insurance appears only in paragraph C, where claims were rising rather than falling, so the first option reverses what is written. The same paragraph says community groups formed, which points to more meetings rather than fewer, so the third option is also the opposite of the passage. General council spending on flood defences is never mentioned at all, so the fifth option is not supported either."
         }
       ]
     }

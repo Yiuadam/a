@@ -202,13 +202,28 @@ function checkGroups(file, set, groupOf) {
   return flat;
 }
 
+/*
+  How many paper numbers one question claims — 1 for every type but
+  multi-select, whose single prompt is worth `numAnswers` marks and claims
+  that many consecutive numbers ("Questions 15 and 16" for one item). Mirrors
+  `questionWidth` in lib/questions.ts; kept as a literal here for the same
+  reason CEFR_LEVELS is — this script must not import app code.
+*/
+function questionWidth(q) {
+  return q.type === "multi-select" && Number.isInteger(q.numAnswers) ? q.numAnswers : 1;
+}
+
 function checkQuestions(file, set, source, expectedCount) {
   if (!Array.isArray(set)) return fail(file, "questions is not an array");
 
   const groupOf = new Map();
   const questions = checkGroups(file, set, groupOf);
-  if (questions.length !== expectedCount) {
-    fail(file, `expected ${expectedCount} questions, found ${questions.length}`);
+  // Numbers claimed, not questions held — a multi-select claims two or three
+  // numbers from a single JSON entry, so counting entries would under-count
+  // the paper the moment one is used.
+  const claimedNumbers = questions.reduce((n, q) => n + questionWidth(q), 0);
+  if (claimedNumbers !== expectedCount) {
+    fail(file, `expected ${expectedCount} questions, found ${claimedNumbers}`);
   }
 
   const seenIds = new Set();
@@ -239,6 +254,48 @@ function checkQuestions(file, set, source, expectedCount) {
         fail(file, `${q.id} has an answer index outside its options`);
       }
       if (!q.question) fail(file, `${q.id} has no question text`);
+    } else if (q.type === "multi-select") {
+      if (!q.question) fail(file, `${q.id} has no question text`);
+      // Real IELTS never asks for anything but two or three letters — not a
+      // style choice, the whole "Choose TWO letters" rubric depends on it.
+      if (q.numAnswers !== 2 && q.numAnswers !== 3) {
+        fail(file, `${q.id} must choose 2 or 3 letters, not ${q.numAnswers}`);
+      }
+      if (!Array.isArray(q.options) || q.options.length < (q.numAnswers ?? 0) + 2) {
+        // At least two spare options, so eliminating the others is not free —
+        // the same reasoning `checkGroups` applies to a matching bank.
+        fail(file, `${q.id} needs at least ${(q.numAnswers ?? 0) + 2} options for ${q.numAnswers} correct letters`);
+      }
+      if (!Array.isArray(q.answer) || q.answer.length !== q.numAnswers) {
+        fail(file, `${q.id} answer must list exactly ${q.numAnswers} letters, found ${q.answer?.length}`);
+      } else {
+        const seenIdx = new Set();
+        for (const idx of q.answer) {
+          if (
+            !Number.isInteger(idx) ||
+            idx < 0 ||
+            (Array.isArray(q.options) && idx >= q.options.length)
+          ) {
+            fail(file, `${q.id} has an answer index outside its options`);
+          } else if (seenIdx.has(idx)) {
+            // The same letter cannot be "correct" twice; order is the only
+            // thing this type does not care about, not repetition.
+            fail(file, `${q.id} lists the same letter twice in its answer`);
+          }
+          seenIdx.add(idx);
+        }
+      }
+      /*
+        The "Choose TWO letters, A-E" rubric lives on the enclosing group's
+        instruction, not on the question itself — there is nowhere else for it
+        to be printed. A multi-select with no group, or a group with no real
+        instruction, would show a candidate a list of letters and never say
+        how many to pick.
+      */
+      const group = groupOf.get(q.id);
+      if (!group || !group.instruction || group.instruction.trim().length < 10) {
+        fail(file, `${q.id} is a multi-select question but has no group instruction telling the candidate how many letters to choose`);
+      }
     } else if (q.type === "completion") {
       if (!q.sentence?.includes("___")) fail(file, `${q.id} has no ___ blank to fill`);
       if (!q.answer) {

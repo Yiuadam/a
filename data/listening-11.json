@@ -69,44 +69,30 @@
       ]
     },
     {
-      "instruction": "Choose the correct letter, A, B or C.",
+      "instruction": "Choose THREE letters, A-G.",
       "questions": [
         {
           "id": "q7",
-          "type": "mcq",
-          "question": "What does the lecturer say determines whether a damaged reef receives new larvae?",
+          "type": "multi-select",
+          "question": "According to the lecturer, which THREE factors does a dead reef's recovery depend on?",
           "options": [
-            "Its own condition before the damage",
-            "Its position within a network of reefs",
-            "The depth of water above it"
+            "Enough coral larvae reaching the reef",
+            "A stable surface for larvae to attach to",
+            "Sufficient grazing by herbivorous fish and sea urchins",
+            "Sea temperature returning to its normal range",
+            "Large-scale coral gardening programmes",
+            "Government funding for nursery projects",
+            "The genetic diversity of the surviving coral"
           ],
-          "answer": 1,
-          "explanation": "“This is why the position of a reef within a network matters more than its own condition.” An isolated reef has no upstream source."
-        },
-        {
-          "id": "q8",
-          "type": "mcq",
-          "question": "Why can a reef with plenty of larvae still fail to recover?",
-          "options": [
-            "The larvae arrive at the wrong time of year",
-            "Seaweed already occupies the available space",
-            "The water is too cold for settlement"
-          ],
-          "answer": 1,
-          "explanation": "Without grazers, seaweed “holds the space indefinitely and coral larvae cannot compete” — the reef can have perfect temperature and abundant larvae and still fail."
-        },
-        {
-          "id": "q9",
-          "type": "mcq",
-          "question": "What does the Caribbean urchin disease illustrate?",
-          "options": [
-            "That disease is now the main threat to reefs",
-            "That reefs with intact fish populations coped better",
-            "That urchins are more important than any fish"
-          ],
-          "answer": 1,
-          "explanation": "Reefs that had lost their large herbivorous fish shifted to seaweed and did not shift back, while “reefs where fish populations were intact fared considerably better with the same urchin losses”."
-        },
+          "numAnswers": 3,
+          "answer": [0, 1, 2],
+          "explanation": "The lecturer lists the three directly: “The first is larvae”, “The second is a surface the larvae can attach to”, and “The third is grazing” — supporting the first, second and third options. Temperature is discussed earlier, but only as the trigger that reverses bleaching in a coral that is still alive; it is not one of the three things a dead reef needs in order to recover, so the fourth option does not belong on this list. Coral gardening is described as unable to work “at the scale of the world's reefs”, which rules out the fifth option, and neither funding nor genetic diversity is mentioned anywhere in the lecture, so the sixth and seventh options are both unsupported."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
         {
           "id": "q10",
           "type": "mcq",

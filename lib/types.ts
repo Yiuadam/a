@@ -39,6 +39,36 @@ export interface MCQQuestion {
   explanation?: string;
 }
 
+/**
+ * "Choose TWO letters, A-E" (sometimes THREE, from A-G) — real IELTS Listening
+ * and Reading, and asked from one list of options rather than the
+ * sentence-by-sentence prompts the other grouped types use.
+ *
+ * It looks like `MCQQuestion` with more than one answer and is not, in two
+ * ways that matter. First, one of these is worth `numAnswers` marks rather
+ * than one, and it claims that many consecutive numbers in the paper —
+ * "Questions 15 and 16" prints beside a single prompt — even though it is
+ * authored, asked and answered as one item; `numAnswers` carries both facts,
+ * and `questionWidth` in lib/questions.ts is the one other place that has to
+ * read it that way. Second, the real exam's rule for it cannot be reduced to
+ * a single right-or-wrong: each correct letter is a mark on its own, order is
+ * never significant (B,D and D,B are the same answer), and choosing more
+ * letters than asked for scores nothing at all for the group, not one mark
+ * short. See `isCorrect` and `marksEarned` in lib/band.ts, which is where
+ * that rule actually lives.
+ */
+export interface MultiSelectQuestion {
+  id: string;
+  type: "multi-select";
+  question: string;
+  options: string[];
+  /** How many letters are correct — 2 or 3 in the real exam — and how many question numbers the group claims. */
+  numAnswers: number;
+  /** Indices into `options`, exactly `numAnswers` of them. Order carries no meaning. */
+  answer: number[];
+  explanation?: string;
+}
+
 export interface CompletionQuestion {
   id: string;
   type: "completion";
@@ -120,6 +150,7 @@ export interface ShortAnswerQuestion {
 export type TestQuestion =
   | TFNGQuestion
   | MCQQuestion
+  | MultiSelectQuestion
   | CompletionQuestion
   | YNNGQuestion
   | MatchingQuestion

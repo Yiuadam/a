@@ -11,7 +11,7 @@ import TestQuestions, {
   type CheckedMap,
 } from "@/components/TestQuestions";
 import { testAdvice } from "@/lib/advice";
-import { isCorrect, rawToBand } from "@/lib/band";
+import { marksEarned, rawToBand } from "@/lib/band";
 import { rankedEnglishVoices } from "@/lib/speech";
 import { apiUrl } from "@/lib/api";
 import { playScript } from "@/lib/exam/playback";
@@ -25,7 +25,7 @@ import {
   waitForNaturalExaminerVoice,
 } from "@/lib/neural-speech";
 import { useMounted, useProfile } from "@/lib/hooks";
-import { flatQuestions, questionCount } from "@/lib/questions";
+import { flatQuestions, questionCount, questionWidth } from "@/lib/questions";
 import { buildReview } from "@/lib/review";
 import { savedAnswers } from "@/lib/results";
 import { addResult } from "@/lib/store";
@@ -129,7 +129,12 @@ function ListeningTestPageRunner() {
   );
   const nav = useExamNavigation(
     useMemo(
-      () => flat.map((q) => ({ id: q.id, answered: answers[q.id] !== undefined })),
+      () =>
+        flat.map((q) => ({
+          id: q.id,
+          answered: answers[q.id] !== undefined,
+          width: questionWidth(q),
+        })),
       [flat, answers],
     ),
   );
@@ -603,11 +608,16 @@ function ListeningTestPageRunner() {
     if (!test || submitted) return;
     stopAudio();
     const asked = flatQuestions(test.questions);
+    /*
+      Summed as marks, not as questions answered right — see the identical
+      comment in app/practice/reading/page.tsx. A multi-select can earn one of
+      its two marks without earning both.
+    */
     let correct = 0;
     for (const q of asked) {
-      if (isCorrect(q, answers[q.id])) correct++;
+      correct += marksEarned(q, answers[q.id]);
     }
-    const b = rawToBand(correct, asked.length, "listening");
+    const b = rawToBand(correct, questionCount(test.questions), "listening");
     const reviewItems = buildReview(test.questions, answers);
     const advice = testAdvice(
       "listening",
