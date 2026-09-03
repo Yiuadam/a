@@ -275,7 +275,16 @@ export default function ExamShell({
       */
       className={`${frameSize} ${frameSurface} flex min-h-0 flex-col overflow-hidden bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)]`}
     >
-      <header className="exam-shell-header exam-glass z-50 m-2 mb-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-b-2 border-b-[color:var(--exam-accent)] px-3 py-1.5 sm:rounded-2xl">
+      {/*
+        Padded to clear its own corners.
+
+        The bar is an inset card with a 16px radius, and it was carrying 12px of
+        horizontal padding — so the first characters of "READING" sat inside the
+        curve rather than beside it, while the controls on the right looked fine
+        because a button brings its own padding. A rounded box needs more inset
+        than a square one before its content stops touching the shape.
+      */}
+      <header className="exam-shell-header exam-glass z-50 m-2 mb-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-b-2 border-b-[color:var(--exam-accent)] px-4 py-2 sm:rounded-2xl sm:px-5">
         {/*
           Where the exam prints the candidate's name and number. There is no
           candidate here, so it says which paper you are on — the same corner,
