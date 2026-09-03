@@ -431,7 +431,8 @@ function StartScreen({
             Full mock exam
           </h1>
           <p className="exam-start-summary mt-2 text-[clamp(0.82rem,1.8vw,1rem)] leading-snug text-slate-600">
-            All four IELTS skills, real timings, results only at the end.
+            All four IELTS skills, real timings, results only at the end. Academic — the
+            reading passages and the Task 1 chart are the Academic paper&rsquo;s.
           </p>
         </header>
 

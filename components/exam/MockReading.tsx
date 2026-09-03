@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import TestQuestions, { type AnswerMap } from "@/components/TestQuestions";
 import ExamShell from "@/components/exam/ExamShell";
+import HighlightablePassage from "@/components/exam/HighlightablePassage";
 import SplitPanes, { useIsWide } from "@/components/exam/SplitPanes";
 import {
   MODULE_MINUTES,
@@ -12,7 +13,7 @@ import {
   type MockPaper,
 } from "@/lib/exam/mock";
 import { useExamNavigation } from "@/lib/exam/navigation";
-import { questionCount } from "@/lib/questions";
+import { questionCount, questionWidth } from "@/lib/questions";
 
 /*
   The reading paper of a mock sitting: three passages, one hour, and no
@@ -70,7 +71,12 @@ export default function MockReading({
   const flat = useMemo(() => readingQuestions(paper), [paper]);
   const nav = useExamNavigation(
     useMemo(
-      () => flat.map((q) => ({ id: q.id, answered: answers[q.id] !== undefined })),
+      () =>
+        flat.map((q) => ({
+          id: q.id,
+          answered: answers[q.id] !== undefined,
+          width: questionWidth(q),
+        })),
       [flat, answers],
     ),
   );
@@ -103,17 +109,25 @@ export default function MockReading({
   if (!test) return null;
 
   const passage = (
-    <>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
-          Passage {active + 1}
-        </h2>
-        <span className="text-[0.6875rem] text-[color:var(--exam-muted)]">{test.title}</span>
-      </div>
-      {test.passage.split(/\n\n+/).map((p, i) => (
-        <p key={i}>{p}</p>
-      ))}
-    </>
+    /*
+      The passage is highlightable, because the computer-delivered exam's is.
+      A candidate marks what they have already checked so the second pass — and
+      with forty questions in an hour there is always a second pass — is not a
+      reread of paragraphs they have already ruled out. See
+      components/exam/HighlightablePassage.tsx for how a mark is stored.
+    */
+    <HighlightablePassage
+      testId={test.id}
+      paragraphs={test.passage.split(/\n\n+/)}
+      heading={
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
+            Passage {active + 1}
+          </h2>
+          <span className="text-[0.6875rem] text-[color:var(--exam-muted)]">{test.title}</span>
+        </div>
+      }
+    />
   );
 
   const questions = (

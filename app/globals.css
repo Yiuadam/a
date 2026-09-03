@@ -6602,3 +6602,28 @@ html[data-theme="dark"] .module-library-panel.module-library-panel {
   background: rgba(38, 38, 43, 0.94) !important;
   border-color: rgba(255, 255, 255, 0.16) !important;
 }
+
+/*
+  A highlight on an exam passage.
+
+  Yellow, because that is what a highlighter is and a candidate should not have
+  to learn a new colour under a clock — but a warm, low-saturation yellow rather
+  than the marker-pen one, which over a full passage of dense text is exhausting
+  to read through. The text colour is untouched: a highlight marks a place, it
+  does not restate the words.
+
+  In the dark theme the same yellow at full strength would glare, so it is
+  carried as a tint of the paper's own foreground instead, which keeps the
+  contrast of the text above it.
+*/
+.exam-highlight {
+  border-radius: 0.2em;
+  background: rgba(250, 204, 21, 0.38);
+  color: inherit;
+  cursor: pointer;
+  padding: 0.05em 0;
+}
+
+html[data-theme="dark"] .exam-highlight {
+  background: rgba(250, 204, 21, 0.24);
+}

@@ -980,7 +980,11 @@ export default function SpeakingSession({
     setStage("interview");
     await askCurrent(0, list);
     beginningRef.current = false;
-  }, [askCurrent, localBlock, prefs.engine, updateAnswerWindow, warmUpLocal]);
+    /* `chosenCardId` belongs here: without it a learner who opens the question
+       library, picks a card, and starts the interview from a page this callback
+       was already built on would get whichever card the closure captured — the
+       previous one, or none. */
+  }, [askCurrent, chosenCardId, localBlock, prefs.engine, updateAnswerWindow, warmUpLocal]);
 
   const gradeInterview = useCallback(
     async (finalTranscript: Turn[]) => {

@@ -194,6 +194,21 @@ export default function LookupProvider({ children }: { children: React.ReactNode
         setPill(null);
         return;
       }
+      /*
+        Not inside an exam. The real IELTS gives a candidate no dictionary, and
+        a word lookup on a passage under a clock is not a small help — it is the
+        difference between inferring a word from context, which is a third of
+        what reading is testing, and being told it.
+
+        It also settles a collision: the exam's own highlighter marks what is
+        selected, and a candidate who selected a word to look it up would have
+        highlighted it instead. Only one of the two can own a selection inside
+        a paper, and in an exam it should be the tool the exam actually has.
+      */
+      if (element.closest("[data-exam]")) {
+        setPill(null);
+        return;
+      }
       const rect = selection.getRangeAt(0).getBoundingClientRect();
       if (rect.width === 0 && rect.height === 0) {
         setPill(null);
