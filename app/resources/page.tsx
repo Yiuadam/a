@@ -82,14 +82,51 @@ export default function ResourcesPage() {
       </div>
 
       {/*
-        Four guides and the band scale on one screen. Each guide opens where it
-        stands rather than sending the reader down a page of prose: the tips are
-        all still here, in the same words, one tap away and never more than one
-        section at a time. Nothing is summarised away — <summary> carries the
-        module, the timing and how many tips are inside.
+        The four guides first, as buttons, then the reference cards.
+
+        Two plain grids, and no `order-*` or `col-span` between them. The
+        previous version put a two-column block inside a three-column grid and
+        reordered the pieces around it, which held together only while there
+        were exactly two things in the left column — adding a third dropped the
+        raw-score table into a cell it did not fit and clipped it halfway down.
+        A layout that has to be counted before it can be changed is the wrong
+        layout for a page that gains sections.
       */}
-      <div className="grid gap-3 lg:grid-cols-3">
-        <section className="card !p-4 order-2 h-fit min-w-0 lg:order-1">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {/*
+          Four buttons, not four drawers.
+
+          Opened, the drawers put twenty-two paragraphs of advice on a page
+          whose job is to show what there is; closed, they made somebody click
+          four times before reading anything. A button says what is inside and
+          costs one click to get there, and the advice gets a page with room
+          for it — see app/resources/[skill]/page.tsx.
+          */}
+        {SKILL_GUIDES.map((guide) => (
+          <Link
+            key={guide.slug}
+            href={`/resources/${guide.slug}`}
+            className="card !p-4 group flex h-fit min-w-0 items-center gap-2.5"
+          >
+            <Icon name={guide.icon} className="h-5 w-5 shrink-0 text-indigo-600" strokeWidth={1.6} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-slate-900">{guide.title}</span>
+              <span className="block text-xs text-slate-500">
+              {guide.time} · {guide.tips.length} tips
+              </span>
+            </span>
+            <span aria-hidden className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5">
+              ›
+            </span>
+          </Link>
+          ))}
+
+      </div>
+
+      {/* The reference cards. `items-start` so a short card stops where its
+          content stops instead of stretching to the tallest in its row. */}
+      <div className="grid items-start gap-3 lg:grid-cols-3">
+        <section className="card !p-4 min-w-0">
           <h2 className="text-sm font-semibold text-slate-900">What the band numbers mean</h2>
           <p className="mt-0.5 text-xs leading-5 text-slate-600">
             A band from 1 to 9 per skill, then an overall band — the average, rounded to the
@@ -109,7 +146,7 @@ export default function ResourcesPage() {
           </ul>
         </section>
 
-        <section className="card !p-4 order-3 h-fit min-w-0 lg:order-3">
+        <section className="card !p-4 min-w-0">
           <h2 className="text-sm font-semibold text-slate-900">Raw score to band</h2>
           <p className="mt-0.5 text-xs leading-5 text-slate-600">
             Out of 40. This is the conversion BandUp marks with, so a practice band and an exam
@@ -152,36 +189,7 @@ export default function ResourcesPage() {
           </div>
         </section>
 
-        <div className="order-1 grid min-w-0 gap-3 sm:grid-cols-2 lg:order-2 lg:col-span-2 2xl:grid-cols-3 lg:content-start">
-          {/*
-            Four buttons, not four drawers.
-
-            Opened, the drawers put twenty-two paragraphs of advice on a page
-            whose job is to show what there is; closed, they made somebody click
-            four times before reading anything. A button says what is inside and
-            costs one click to get there, and the advice gets a page with room
-            for it — see app/resources/[skill]/page.tsx.
-          */}
-          {SKILL_GUIDES.map((guide) => (
-            <Link
-              key={guide.slug}
-              href={`/resources/${guide.slug}`}
-              className="card !p-4 group flex h-fit min-w-0 items-center gap-2.5"
-            >
-              <Icon name={guide.icon} className="h-5 w-5 shrink-0 text-indigo-600" strokeWidth={1.6} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-slate-900">{guide.title}</span>
-                <span className="block text-xs text-slate-500">
-                  {guide.time} · {guide.tips.length} tips
-                </span>
-              </span>
-              <span aria-hidden className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5">
-                ›
-              </span>
-            </Link>
-          ))}
-
-          <section className="card !p-4 h-fit min-w-0">
+          <section className="card !p-4 min-w-0">
             <h2 className="text-sm font-semibold text-slate-900">Question types you will meet</h2>
             <p className="mt-0.5 text-xs leading-5 text-slate-600">
               Every one of these appears in BandUp&rsquo;s papers, drawn the way the exam draws it.
@@ -196,7 +204,7 @@ export default function ResourcesPage() {
             </dl>
           </section>
 
-          <section className="card !p-4 h-fit min-w-0">
+          <section className="card !p-4 min-w-0">
             <h2 className="text-sm font-semibold text-slate-900">On the day</h2>
             <p className="mt-0.5 text-xs leading-5 text-slate-600">
               How the computer-delivered test actually runs.
@@ -210,7 +218,6 @@ export default function ResourcesPage() {
               ))}
             </dl>
           </section>
-        </div>
       </div>
     </div>
   );

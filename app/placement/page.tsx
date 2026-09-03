@@ -33,16 +33,38 @@ import type {
 const bank = (placementData as PlacementData).questions;
 
 /** A quiet cue that the test is tracking difficulty, without naming a level. */
+/*
+  Which level this question is pitched at.
+
+  Two attempts before this one. Anonymous dashes showed that a scale existed
+  and never said what it measured or where on it you were; printing all six
+  level codes said it, but six labels in a status line is a lot of reading for
+  a number that changes with every question.
+
+  So the level is named once — it is one code, and it is the thing being
+  reported — and the scale behind it stays a meter: reached segments in the
+  accent colour, everything above the current level in grey, which is the part
+  that says how much of the range is still ahead.
+*/
 function DifficultyMeter({ level }: { level: CEFRLevel }) {
-  const filled = Math.max(1, LEVELS.indexOf(level) + 1);
+  const reached = Math.max(0, LEVELS.indexOf(level));
   return (
-    <span className="inline-flex items-center gap-1" title="Question difficulty">
-      {LEVELS.map((_, i) => (
-        <span
-          key={i}
-          className={`h-1.5 w-3 rounded-full ${i < filled ? "bg-indigo-400" : "bg-slate-200"}`}
-        />
-      ))}
+    <span
+      className="inline-flex items-center gap-1.5"
+      title={`This question is pitched at ${level}`}
+    >
+      <span className="text-[0.6875rem] font-semibold text-indigo-700">{level}</span>
+      <span className="sr-only">Question level: {level}</span>
+      <span aria-hidden className="inline-flex items-center gap-0.5">
+        {LEVELS.map((name, i) => (
+          <span
+            key={name}
+            className={`h-1.5 w-3 rounded-full ${
+              i < reached ? "bg-indigo-300" : i === reached ? "bg-indigo-500" : "bg-slate-200"
+            }`}
+          />
+        ))}
+      </span>
     </span>
   );
 }
