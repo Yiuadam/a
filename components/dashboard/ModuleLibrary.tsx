@@ -103,7 +103,13 @@ export default function ModuleLibrary({
               type="button"
               aria-label="Close the module library"
               onClick={onClose}
-              className="absolute inset-0 cursor-default bg-[color:color-mix(in_srgb,var(--color-slate-900)_38%,transparent)]"
+              /*
+                A scrim in plain black, not in the theme's own ramp. The dark
+                theme inverts that ramp — slate-900 is the *lightest* value
+                there — so a scrim mixed from it lit the page up instead of
+                dimming it, which is the opposite of what a scrim is for.
+              */
+              className="absolute inset-0 cursor-default bg-[rgba(0,0,0,0.46)]"
             />
             <div
               ref={panel}

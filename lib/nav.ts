@@ -203,6 +203,7 @@ export const NAV_ICONS: Partial<Record<string, CardIconName>> = {
   "/about": "about",
   "/account": "profile",
   "/admin": "settings",
+  "/settings": "gear",
   ...(!IS_MOBILE_BUILD ? { "/pricing": "plans" as const, "/billing": "usage" as const } : {}),
 };
 
@@ -237,6 +238,8 @@ export const RAIL_GROUPS: NavGroup[] = [
       { href: "/", label: "Home" },
       { href: "/plan", label: "My plan" },
       { href: "/history", label: "History" },
+      /* A teacher's roster is a place they go every day, not a setting. */
+      { href: "/organization", label: "Organisation" },
       { href: "/grammar", label: "Grammar" },
       { href: "/vocabulary", label: "Vocabulary" },
     ],
@@ -245,4 +248,31 @@ export const RAIL_GROUPS: NavGroup[] = [
     title: "Help",
     items: [{ href: "/chat", label: "Ask a tutor" }],
   },
+  /*
+    Account and settings sit at the foot of the rail, apart from the three
+    groups above, because they are about the app rather than about studying —
+    the same reason the account button has always sat beside the theme toggle
+    rather than in the row of destinations. Settings is the door to everything
+    the rail leaves out; see RAIL_OVERFLOW.
+  */
+  {
+    title: "You",
+    items: [
+      { href: "/account", label: "Your account" },
+      { href: "/settings", label: "Settings" },
+    ],
+  },
 ];
+
+/*
+  Everything the rail does not carry, which is what /settings is a page of.
+
+  Derived rather than listed, so the two cannot drift: a destination added to
+  NAV_GROUPS and not to RAIL_GROUPS appears on the settings page without anyone
+  remembering to put it there, and one promoted to the rail leaves the settings
+  page by the same arithmetic.
+*/
+export const RAIL_OVERFLOW: NavItem[] = NAV_GROUPS.flatMap((group) => group.items).filter(
+  (item) =>
+    !RAIL_GROUPS.some((group) => group.items.some((railItem) => railItem.href === item.href)),
+);

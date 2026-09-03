@@ -385,9 +385,25 @@ html {
   with those in place raising the root would have moved the headings and left
   almost every label, hint and caption exactly where it was.
 */
-@media (min-width: 90rem) {
+@media (min-width: 80rem) {
   html {
-    font-size: clamp(16px, 0.357vw + 10.86px, 20px);
+    /*
+      Raised twice, both times because reading it on the real screen said so.
+
+      It began at 16px until 1440 and 20px at 2560, which fixed the arithmetic
+      and not the feeling: a 27-inch display still asked somebody to lean in.
+      The owner's words for what it should be were "bigger according to the
+      screen size" and "read effortless", and effortless is the higher bar —
+      text you take in rather than text you can make out.
+
+      So it starts at 1280, where a laptop stops and an external display
+      begins, and reaches 24px at 2560. That is half again the old 16px: body
+      copy at 24px, a card's metadata at 22, the dashboard's band at 66. Held
+      by a clamp so a 32-inch screen stops there rather than continuing into
+      billboard type, and continuous rather than stepped so a resized window
+      does not jump.
+    */
+    font-size: clamp(16px, 0.625vw + 8px, 24px);
   }
 }
 
@@ -5266,10 +5282,16 @@ html[data-theme="light"] {
      for actual "paper" surfaces (modals, popovers) the same way Warm and
      Dark each keep their own background/surface distinction, but the
      canvas itself is now a flat light blue rather than white — see the
-     `body` rule below for where this actually paints. Lightened and
-     desaturated once from the original #cfe7fb, on a direct request for a
-     softer wash — same hue, pulled further toward white. */
-  --color-background: #dfecf6;
+     `body` rule below for where this actually paints.
+
+     Lightened twice on the same request, and this is the second: #cfe7fb, then
+     #dfecf6, and now #eef5fa. Each step keeps the hue and pulls further toward
+     white, because what was being asked for was never a different colour — it
+     was less of this one. At this point the blue is a cast on white rather than
+     a colour of its own, which is what a daylight paper should be: the cards
+     sit on it as white-on-almost-white and the page reads as lit rather than
+     tinted. */
+  --color-background: #eef5fa;
   --color-surface: #ffffff;
   --wash-one: transparent;
   --wash-two: transparent;
@@ -5313,7 +5335,7 @@ html[data-theme="light"] body {
      this colour exactly the way it already bent the gradient, without
      needing to change anything about the cards themselves. Softened once
      from #cfe7fb to the lighter, less saturated --color-background above. */
-  background: #dfecf6;
+  background: #eef5fa;
   color: var(--color-foreground);
 }
 
@@ -6530,7 +6552,21 @@ html[data-theme="dark"] .side-rail-item-active {
 html[data-theme="dark"] .nav-menu-group,
 html[data-theme="dark"] .notification-popover,
 html[data-theme="dark"] .module-library-panel {
-  /* Dark's surface is already near the page colour, so it leans on the mix
-     being heavier rather than on a colour of its own. */
-  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  /*
+    A colour of its own, opaque, and lighter than the page rather than a mix of
+    something already the same colour as it.
+
+    The first attempt reused --color-surface at 94%, which works in Warm and
+    Light where the surface is well clear of the canvas. In Dark the two are
+    #17171a and #111113 — six points apart — so a panel made of one, floating
+    over the other, was a rectangle you could only find by the text in it. The
+    owner's screenshot showed the library dialog as a barely-there smear across
+    the board behind it.
+
+    Lift rather than tint: the same neutral the theme is built from, several
+    steps up, so a panel over the page reads as nearer to the light rather than
+    as a different material. The border does the rest.
+  */
+  background: #232327;
+  border-color: rgba(255, 255, 255, 0.14);
 }
