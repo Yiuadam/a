@@ -291,3 +291,46 @@ test("every real Part 3 question the server will accept actually exists in the s
     assert.ok(topic.questions.length >= 2, `${topic.topic} needs a next question to bridge to`);
   }
 });
+
+/*
+  ---------------------------------------------------------------------------
+  The bug this file's earlier tests did not catch
+
+  fireExaminerLine is called from the 250ms control loop with
+  promptGenerationRef.current *un-incremented* — the generation of the turn
+  still in progress. nextQuestion, when that turn ends, increments the same
+  counter before deciding whether to use what was fetched — so a comparison
+  against nextQuestion's own post-increment value can never match what the
+  fetch was tagged with; it is always exactly one behind. That shipped once:
+  every earlier assertion here checked that a generation guard *existed*,
+  none checked which of nextQuestion's two numbers — the one before its
+  increment or the one after — it actually compared against, so a test suite
+  passing in full was consistent with a feature that could never fire.
+*/
+test("the fetch's generation is compared against the turn it was fired under, not the one that follows it", () => {
+  const nextQ = session.slice(
+    session.indexOf("const nextQuestion = useCallback"),
+    session.indexOf("const readMicrophoneLevel"),
+  );
+
+  // A name for "the turn now ending" has to exist, captured before the
+  // increment moves the counter on to the next turn.
+  assert.match(nextQ, /const endingGeneration = promptGenerationRef\.current;/);
+  const capture = nextQ.indexOf("const endingGeneration = promptGenerationRef.current;");
+  const increment = nextQ.indexOf("const promptGeneration = ++promptGenerationRef.current;");
+  assert.ok(capture > -1 && increment > -1 && capture < increment,
+    "endingGeneration must be read before the counter increments, not after");
+
+  // And the gate has to compare against that captured value — not against
+  // `promptGeneration`, which by the time this line runs already names the
+  // *next* turn and can never equal what a fetch fired during this one was
+  // tagged with.
+  assert.match(nextQ, /examinerLineGenerationRef\.current === endingGeneration/);
+  assert.doesNotMatch(nextQ, /examinerLineGenerationRef\.current === promptGeneration[^R]/);
+});
+
+test("fireExaminerLine is always called with the un-incremented, current-turn generation", () => {
+  const loop = session.slice(session.indexOf("A quarter-second control loop"));
+  const call = loop.slice(loop.indexOf("fireExaminerLine("), loop.indexOf("fireExaminerLine(") + 80);
+  assert.match(call, /fireExaminerLine\(promptGenerationRef\.current,/);
+});

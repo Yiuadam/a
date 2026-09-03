@@ -1264,6 +1264,16 @@ export default function SpeakingSession({
   const nextQuestion = useCallback(async (reason: TurnEndReason = "natural-pause") => {
     if (!step || !answerWindowOpen || advancingRef.current) return;
     advancingRef.current = true;
+    /*
+      The turn that is ending, before it stops being current — this is the
+      generation fireExaminerLine fired under, in the control loop below,
+      while this was still the turn in progress. `promptGeneration` right
+      after this is the *next* one; a live reaction fetched during this turn
+      can never match that later number, only this one. Read once, here,
+      because incrementing the counter on the next line moves it out from
+      under this turn for good.
+    */
+    const endingGeneration = promptGenerationRef.current;
     const promptGeneration = ++promptGenerationRef.current;
     // Read before resetting: this turn's nudge, if any, belongs on the
     // transcript line the code below is about to write for the question that
@@ -1315,7 +1325,7 @@ export default function SpeakingSession({
         !finalQuestion &&
         steps[nextIndex]?.part === 3 &&
         examinerLineStatusRef.current === "ready" &&
-        examinerLineGenerationRef.current === promptGeneration &&
+        examinerLineGenerationRef.current === endingGeneration &&
         examinerLineBlobUrlRef.current !== null;
 
       const promptPromise: Promise<boolean> = canUseExaminerLine
