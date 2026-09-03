@@ -6690,10 +6690,18 @@ html[data-theme="dark"] .exam-highlight {
   mock modules. The tint is the paper's own accent at a strength that reads as
   "here" and not as "wrong" — the marked states beside it are green and red, so
   this had to be neither.
+
+  Behind the question's own line of text, not behind the whole card. Washing
+  the card and ruling its left edge marked the right question and looked like
+  damage: an accent bar appeared beside one card and nowhere else, and read as
+  a stray border rather than as a place. The exam tints the stem and leaves the
+  card alone, which says the same thing without introducing an edge that has no
+  meaning. The spread shadow is padding the tint cannot have — the stem is a
+  flex row whose spacing the layout owns.
 */
-[data-exam] [data-current="true"] {
-  background: color-mix(in srgb, var(--exam-accent) 10%, transparent);
-  box-shadow: inset 3px 0 0 0 var(--exam-accent);
+[data-exam] [data-current="true"] .exam-stem {
+  background: color-mix(in srgb, var(--exam-accent) 12%, transparent);
+  box-shadow: 0 0 0 0.4rem color-mix(in srgb, var(--exam-accent) 12%, transparent);
 }
 
 /*

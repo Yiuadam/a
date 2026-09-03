@@ -832,7 +832,7 @@ export default function TestQuestions({
                       : ""
                   }`}
                 >
-                  <div className="mb-3 flex items-start gap-2 text-sm font-medium text-slate-800">
+                  <div className="exam-stem mb-3 flex items-start gap-2 rounded-lg text-sm font-medium text-slate-800">
                     {/*
                       A wider pill rather than the usual circle whenever a
                       question claims more than one number — a multi-select's
