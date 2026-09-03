@@ -276,9 +276,21 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
         <label htmlFor="writing-response" className="text-sm font-semibold text-slate-900">
           Your response
         </label>
-        <span className={wordCount >= task.minWords ? "text-xs text-emerald-600" : "text-xs text-slate-500"}>
-          {wordCount} / {task.minWords}
-        </span>
+        {/*
+          A count, not a ration.
+
+          It read "0 / 150", which is how a character limit is written, and it
+          was next to a box somebody was about to write an essay in — so it said
+          the essay had to fit in 150 words. IELTS has no upper limit at all:
+          150 is a floor, going under it costs marks, and going over it costs
+          nothing. The exam itself prints a plain "Word count", and the task
+          above already says "Write at least 150 words" twice.
+
+          The colour went with the ratio. Turning green at 150 makes it a line
+          to cross rather than a minimum to clear, and 149 against 151 is not
+          the difference that colour implies.
+        */}
+        <span className="text-xs text-slate-500">Word count: {wordCount}</span>
       </div>
       {/*
         The swipe track reaches into the editor, which it did not used to.
@@ -402,7 +414,7 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
       running={started && !grade}
       comfortableGutter
       edgeToEdgeOnPhone
-      bottomLeft={grade ? `Band ${grade.overallBand}` : `${wordCount} / ${task.minWords} words`}
+      bottomLeft={grade ? `Band ${grade.overallBand}` : `Word count: ${wordCount}`}
       bottomRight={
         grade ? (
           <div className="flex gap-2">

@@ -111,6 +111,17 @@ export default function MockReading({
     [groups, active, nav],
   );
 
+  const isLast = active === tests.length - 1;
+  /*
+    Forward by jumping to the next passage's first question rather than by
+    setting the index: `jump` already switches the passage and then scrolls to
+    the anchor a frame later, which is exactly what is wanted here.
+  */
+  const goToNextPassage = () => {
+    const next = groups[active + 1]?.[0]?.questions[0]?.id;
+    if (next) jump(next);
+  };
+
   const test = tests[active];
   if (!test) return null;
 
@@ -126,19 +137,32 @@ export default function MockReading({
       testId={test.id}
       paragraphs={test.passage.split(/\n\n+/)}
       heading={
-        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
-            {/*
-              The numbers this passage covers, which the paper prints above
-              every one of them. The three passages are 13, 13 and 14 questions
-              and a candidate cannot work out from the page which range they are
-              looking at — the strip at the bottom knows, and until now this did
-              not.
-            */}
+        <div className="mb-3">
+          {/*
+            The numbers this passage covers, which the paper prints above every
+            one of them. The three passages are 13, 13 and 14 questions and a
+            candidate cannot work out from the page which range they are looking
+            at — the strip at the bottom knows, and until now this did not.
+          */}
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
             Passage {active + 1} · Questions {starts[active]}–
             {(starts[active + 1] ?? readingTotal + 1) - 1}
+          </p>
+          {/*
+            The passage's own title, centred over it, the size the paper prints
+            it at. It used to be a grey line of small text tucked to the right
+            of the range — which is where a caption goes, not a title. A title
+            is the first thing read and it frames everything under it: knowing
+            the text is about windmills before the first sentence is how a
+            reader starts predicting, and that is the skill being tested.
+
+            Not in the passage switcher, though — the header keeps numbers
+            only, because a title up there names passages that have not been
+            read yet.
+          */}
+          <h2 className="mt-1 text-center text-base font-semibold text-[color:var(--exam-fg)]">
+            {test.title}
           </h2>
-          <span className="text-[0.6875rem] text-[color:var(--exam-muted)]">{test.title}</span>
         </div>
       }
     />
@@ -211,7 +235,7 @@ export default function MockReading({
           right={
             <>
               {questions}
-              <FinishButton onFinish={onFinish} />
+              <PassageFooter isLast={isLast} onFinish={onFinish} onNext={goToNextPassage} />
             </>
           }
         />
@@ -242,7 +266,7 @@ export default function MockReading({
             </div>
             <div className="w-[calc(100%-0.75rem)] shrink-0 snap-start overflow-y-auto sm:w-[calc(100%-4rem)]">
               {questions}
-              <FinishButton onFinish={onFinish} />
+              <PassageFooter isLast={isLast} onFinish={onFinish} onNext={goToNextPassage} />
             </div>
           </div>
         </>
@@ -251,7 +275,42 @@ export default function MockReading({
   );
 }
 
-function FinishButton({ onFinish }: { onFinish: () => void }) {
+/*
+  What sits under the last question of a passage.
+
+  It used to be "Finish the reading paper" under every passage, including the
+  two that are not the end of anything. A candidate who reached the bottom of
+  Passage 2 was offered a button that ends all three, with no way forward
+  beside it — so the honest reading of that screen was that the paper was over,
+  and the only way on was to notice the small numbers in the header. Two thirds
+  of the paper had a wrong exit and no right one.
+
+  Now the way on is where the way on should be: at the end of the questions you
+  have just answered. It moves to the first question of the next passage rather
+  than only switching the tab, so the pane scrolls to the top of the new
+  passage the way it does when the palette is used — landing halfway down a
+  passage you have not read yet is its own kind of lost.
+
+  The finish button appears once, under the last question of the last passage.
+*/
+function PassageFooter({
+  isLast,
+  onFinish,
+  onNext,
+}: {
+  isLast: boolean;
+  onFinish: () => void;
+  onNext: () => void;
+}) {
+  if (!isLast) {
+    return (
+      <div className="mt-5">
+        <button type="button" className="btn-secondary w-full" onClick={onNext}>
+          Next passage
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="mt-5">
       <button type="button" className="btn-primary w-full" onClick={onFinish}>

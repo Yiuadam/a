@@ -109,10 +109,24 @@ export default function SideRail() {
                           : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
+                      {/*
+                        Heavier than the 1.3 these glyphs were drawn with,
+                        because the rail draws them at 17px and not at the 24
+                        they were chosen at. A stroke is a fraction of the
+                        viewBox, so it shrinks with the mark: at this size 1.3
+                        lands under a physical pixel and the icon goes fainter
+                        than the word beside it, which does not get lighter as
+                        it gets smaller. 1.75 is 1.3 scaled back up by the same
+                        ratio, near enough.
+                      */}
                       {skill ? (
-                        <Icon name={skill} className="h-[1.0625rem] w-[1.0625rem] shrink-0 text-indigo-600" />
+                        <Icon
+                          name={skill}
+                          strokeWidth={1.75}
+                          className="h-[1.0625rem] w-[1.0625rem] shrink-0 text-indigo-600"
+                        />
                       ) : icon ? (
-                        <CardIcon name={icon} size={17} />
+                        <CardIcon name={icon} size={17} strokeWidth={1.75} />
                       ) : null}
                       <span className="min-w-0 truncate">{item.label}</span>
                     </Link>

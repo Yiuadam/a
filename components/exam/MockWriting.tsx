@@ -151,11 +151,12 @@ export default function MockWriting({
         <label htmlFor="mock-essay" className="font-medium">
           Your response
         </label>
-        <span
-          className={count >= task.minWords ? "text-emerald-600" : "text-[color:var(--exam-muted)]"}
-        >
-          {count} / {task.minWords} words
-        </span>
+        {/*
+          A count, not a ration — the same reason as the practice page. "0 / 250"
+          is how a limit is written, and IELTS has no upper limit: the number is
+          a floor, and the prompt beside this already says so in words.
+        */}
+        <span className="text-[color:var(--exam-muted)]">Word count: {count}</span>
       </div>
       <textarea
         id="mock-essay"

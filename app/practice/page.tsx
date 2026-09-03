@@ -8,6 +8,8 @@ import LockedCard from "@/components/LockedCard";
 import MoreComing from "@/components/MoreComing";
 import GlassSelect from "@/components/GlassSelect";
 import { LISTENING_TESTS, READING_TESTS } from "@/lib/tests";
+import writingData from "@/data/writing-tasks.json";
+
 import SessionCount from "@/components/SessionCount";
 import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
@@ -15,8 +17,24 @@ import { useProfile } from "@/lib/hooks";
 import { questionCount } from "@/lib/questions";
 import { postJSON } from "@/lib/api";
 import { addGeneratedTest } from "@/lib/store";
-import type { GeneratedTest, ListeningTest, ReadingTest } from "@/lib/types";
+import type { GeneratedTest, ListeningTest, ReadingTest, WritingTasksData } from "@/lib/types";
 import LoadingIndicator from "@/components/LoadingIndicator";
+
+/*
+  What a candidate is being asked to write, in the words they would use to
+  choose between two tasks. The `type` field is the authored one — see
+  WRITING_TASK_TYPES in lib/types.ts — and these are its plain-English faces.
+*/
+const WRITING_TASK_DESCRIPTION: Record<string, string> = {
+  chart: "Describe a chart: what it shows and how the figures compare.",
+  table: "Describe a table: what it shows and how the figures compare.",
+  plan: "Describe two plans of the same place and say what changed.",
+  process: "Describe a process: the stages, in order.",
+  letter: "Write a letter for the reason the task gives.",
+  essay: "Write an essay answering the question in full.",
+};
+
+const WRITING_TASKS = (writingData as WritingTasksData).tasks;
 
 const readingTests = READING_TESTS;
 const listeningTests = LISTENING_TESTS;
@@ -83,7 +101,7 @@ export default function PracticePage() {
     for a visitor, two for a free account. The weekly counter is a separate
     idea and lives in the heading.
   */
-  const openable = (kind: "reading" | "listening") =>
+  const openable = (kind: "reading" | "listening" | "writing") =>
     allowanceFor(access.tier, kind).perWeek;
 
   const testRow = (
@@ -165,6 +183,70 @@ export default function PracticePage() {
       <div key={t.id} className="relative">
         {link}
         <DeleteGenerated id={t.id} title={t.title} />
+      </div>
+    );
+  };
+
+  /*
+    A writing task, listed the same way a reading or listening paper is.
+
+    The column used to hold one card that said writing existed and linked to a
+    page where the tasks actually were. Reading listed thirty papers and
+    listening thirty-two, so writing read as the skill with nothing in it —
+    when it has more tasks than either. A learner choosing what to do tonight
+    should be able to see the choice, not be told there is one.
+
+    Not `testRow`: a paper carries a topic, a question count and a `questions`
+    array, and a writing task carries none of those. What it has instead is the
+    thing a candidate actually picks by — which task it is, and what kind of
+    thing they will have to write.
+  */
+  const writingRow = (task: (typeof WRITING_TASKS)[number], index: number) => {
+    const limit = openable("writing");
+    const beyond = limit !== null && index >= limit;
+    const reason = access.writing.reason ?? (access.tier === "anonymous" ? "sign-in" : "subscribe");
+
+    const inner = (
+      <>
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="min-w-0 break-words text-sm font-semibold text-slate-900">{task.title}</h3>
+          <DoneBadge result={bestResultFor(profile.results, task.id)} />
+        </div>
+        <p className="mt-0.5 break-words text-xs leading-5 text-slate-600">
+          {WRITING_TASK_DESCRIPTION[task.type] ?? task.type}
+        </p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+          <span>{task.level}</span>
+          <span aria-hidden>·</span>
+          <span>Task {task.task}</span>
+          <span aria-hidden>·</span>
+          <span>{task.minWords}+ words</span>
+          <span aria-hidden>·</span>
+          <span>{task.timeMinutes} min</span>
+        </p>
+      </>
+    );
+
+    if (access.writing.pending) {
+      return (
+        <div key={task.id} className="card relative !p-3 min-w-0 cursor-wait opacity-60" aria-busy="true">
+          <LoadingIndicator label="Checking access…" className="absolute right-3 top-3 text-sm text-indigo-600" textClassName="sr-only" />
+          {inner}
+        </div>
+      );
+    }
+    if (beyond) {
+      return (
+        <LockedCard key={task.id} reason={reason} label={`${task.title}, a writing task`} fill>
+          <div className="card !p-3 h-full">{inner}</div>
+        </LockedCard>
+      );
+    }
+    return (
+      <div key={task.id}>
+        <Link href={`/practice/writing?id=${task.id}`} className="card !p-3 block">
+          {inner}
+        </Link>
       </div>
     );
   };
@@ -270,34 +352,24 @@ export default function PracticePage() {
               <SessionCount access={access.writing} />
             </div>
             {/*
-              The card is drawn either way, and locked over the top when it is
-              not available. It is not swapped for a different card: a learner
-              deciding whether an account is worth making needs to see what is
-              behind the lock. See components/LockedCard.tsx.
+              Every task, the way reading and listening list every paper.
+
+              This was one card saying writing existed, with the tasks a click
+              away. Beside two columns of thirty it read as the skill with
+              nothing in it, when it has more tasks than either — and a learner
+              deciding what to do tonight could not see what the choice was.
+
+              The lock is per card and by position, as it is for a paper: the
+              first N are open and the rest are drawn and locked over, so
+              somebody weighing up an account can see what is behind it.
             */}
-            {access.writing.locked && access.writing.reason ? (
-              <LockedCard reason={access.writing.reason} label="Writing practice">
-                <div className="card !p-3">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Writing tasks with AI examiner feedback
-                  </h3>
-                  <p className="mt-0.5 text-xs leading-5 text-slate-600">
-                    Task 1 reports and letters, Task 2 essays — graded on all four criteria with a
-                    rewritten model paragraph.
-                  </p>
-                </div>
-              </LockedCard>
-            ) : (
-              <Link href="/practice/writing" className="card !p-3 block">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Writing tasks with AI examiner feedback
-                </h3>
-                <p className="mt-0.5 text-xs leading-5 text-slate-600">
-                  Task 1 reports and letters, Task 2 essays — graded on all four criteria with a
-                  rewritten model paragraph.
-                </p>
-              </Link>
-            )}
+            <p className="mb-2 text-xs leading-5 text-slate-600">
+              Graded on all four criteria by the AI examiner, with a rewritten model paragraph.
+            </p>
+            <div className="space-y-2">
+              {WRITING_TASKS.map((task, i) => writingRow(task, i))}
+              <MoreComing what="writing tasks" />
+            </div>
           </section>
 
           {/*
