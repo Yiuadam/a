@@ -65,13 +65,10 @@ To redo after any change:
 Then open `ios/App/App.xcworkspace` and run to the device. Builds last seven
 days — the Apple Developer enrolment is not done, so there is no TestFlight.
 
-## What was in flight
+## Still open
 
-Re-spawn these. Each is written so it can be handed over without this
-conversation.
-
-**UI sweep** across three widths and three themes, for layout breaks and
-centring.
+Nothing is running. Each of these is written so it can be picked up without
+this conversation.
 
 **Re-measure the listening pace.** The 165 wpm figure was measured on aura-1
 recordings, and every one of them has been retired — so the number no longer
