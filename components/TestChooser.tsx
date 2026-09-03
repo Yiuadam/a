@@ -205,7 +205,15 @@ export default function TestChooser({
       site header stays fixed.
     */
     <div
-      className="mx-auto h-full w-full max-w-7xl space-y-4 overflow-y-auto overscroll-y-contain px-4 py-5 sm:px-6"
+      /*
+        The paper library has its own width, and used to stop at max-w-7xl —
+        1280px — with nothing past it. These three routes are viewport-locked,
+        so AppMain contributes no width at all and this cap was the only one in
+        play: at 2560px the library sat in 1280px with 640px of empty paper down
+        each side, narrower even than the /practice hub beside it. It grows now,
+        the same way the rest of the product does.
+      */
+      className="mx-auto h-full w-full max-w-7xl space-y-4 overflow-y-auto overscroll-y-contain px-4 py-5 sm:px-6 2xl:max-w-[96rem] min-[1920px]:max-w-[116rem]"
       data-paper-chooser
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -272,7 +280,10 @@ export default function TestChooser({
 
       {/* min-w-0 and break-words keep long titles inside the column without
           replacing meaningful words with an ellipsis. */}
-      <div className="practice-paper-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      <div /* A fourth column past 1536px and a fifth past 1920, so a wider window shows
+             more papers rather than wider ones — a paper card is a title and two
+             short lines, and stretching it only adds whitespace after the text. */
+          className="practice-paper-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[1920px]:grid-cols-5">
         {shown.map(({ paper: t, index: i }) => {
           const isGenerated = i >= tests.length;
           /* Strictly by position — see app/practice/page.tsx for why. */

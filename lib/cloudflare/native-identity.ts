@@ -358,10 +358,27 @@ export async function resolveAppleIdentity(
     if (!update.success) throw new Error("native identity could not be updated");
   }
 
+  /*
+    `max(...)` on email_verified, not a plain assignment.
+
+    Apple's identity token carries the email claim on the first authorization
+    and may omit it on every one after — a case this file already handles for
+    the address itself, with `coalesce(?, email)` so a later silent sign-in
+    cannot empty an address that is still perfectly good. The verified flag had
+    no such guard, and it is derived from the address being present
+    (VerifiedAppleIdentity.emailVerified is `email !== null && ...`), so a token
+    with no email claim wrote a 0 over the 1. The row then said: here is a
+    verified address, and it is not verified.
+
+    Monotonic is the same rule the backfill already applies
+    (native-identity-backfill.ts) and the same one resolveGoogleIdentity gets by
+    hardcoding 1: verification is a thing that happened, and a later sign-in
+    that simply did not mention it is not evidence that it un-happened.
+  */
   await bindings.db.prepare(`
     UPDATE app_user_identities
        SET email = coalesce(?, email),
-           email_verified = ?,
+           email_verified = max(email_verified, ?),
            last_seen_at = ?
      WHERE provider = 'apple' AND provider_subject = ? AND user_id = ?
   `).bind(

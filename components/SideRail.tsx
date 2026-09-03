@@ -53,17 +53,26 @@ export default function SideRail() {
 
   return (
     /*
-      `sticky` rather than `fixed`: the rail scrolls with the page until its top
-      reaches the header and then stays, which keeps it out of the way of the
-      footer instead of floating over it. `self-start` is what lets a sticky
-      element work inside a flex row — without it the item stretches to the row's
-      height and has nothing to stick within.
+      The rail does not move, at the owner's ask: on a page long enough to
+      scroll, the page scrolls and the navigation stays where it is.
+
+      `sticky` with a zero-distance top does that without `fixed`. It began as
+      sticky-below-the-header, which meant the rail travelled upward with the
+      page until its top met the header and only then stopped — a first
+      scroll that moved the one thing on screen that should be a fixed point.
+      Pinned from the start, it never moves at all.
+
+      `self-start` is what lets a sticky element work inside a flex row: without
+      it the item stretches to the row's height and has nothing left to stick
+      within. `max-h` and its own scroller are for the short window — a rail
+      taller than the viewport with nowhere to scroll would simply have its last
+      rows cut off, and Help is the group that would go.
     */
     <nav
       aria-label="Sections"
-      className="side-rail sticky top-[calc(var(--header-h)+0.75rem)] hidden h-fit w-64 shrink-0 self-start lg:block xl:w-72"
+      className="side-rail sticky top-[var(--header-h)] hidden max-h-[calc(100dvh-var(--header-h))] w-64 shrink-0 self-start overflow-y-auto lg:block xl:w-72"
     >
-      <div className="space-y-5 pb-6 pl-1 pr-2">
+      <div className="space-y-5 pb-6 pl-1 pr-2 pt-3">
         {groups.map((group) => (
           <div key={group.title}>
             <h2 className="mb-1.5 px-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500">
