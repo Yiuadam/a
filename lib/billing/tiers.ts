@@ -125,6 +125,13 @@ export const FEATURES = [
   "grade-speaking",
   /** The conversational tutor — /api/chat. */
   "tutor-chat",
+  /**
+   * The live examiner reaction in Part 3 of speaking practice —
+   * /api/speaking/examiner-line. Distinct from grade-speaking: this is spent
+   * during the interview itself, on every tier that gets it, whether or not
+   * that interview is ever marked afterward.
+   */
+  "speaking-examiner",
   /** Carrying progress between devices. Free with any account, and stays free. */
   "progress-sync",
 ] as const;
@@ -146,6 +153,7 @@ export const FEATURE_ROUTES: Record<Exclude<Feature, "progress-sync">, CostedRou
   "grade-writing": "grade/writing",
   "grade-speaking": "grade/speaking",
   "tutor-chat": "chat",
+  "speaking-examiner": "examiner",
 };
 
 /**
@@ -172,7 +180,7 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     requests a day is up to six hundred a month, from an account that costs
     nothing to create, of which somebody can create as many as they like.
   */
-  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
   /*
     Also nothing, and that is what Standard is: the whole library, unlocked, with
     no AI. It exists because most of what BandUp does needs no model — a reading
@@ -180,7 +188,7 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     as the expensive kind. Somebody who wants unlimited practice and does not
     want an essay marked should not be made to pay for marking.
   */
-  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
   /*
     Enough AI for a normal month of preparation: an essay marked most weeks, a
     speaking test a fortnight, a couple of questions a day, and a fresh paper.
@@ -192,8 +200,15 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     was never what made the price — the AI was. Halving the allowance took Plus
     to $1.69 *and* left real money on it. Ten marked essays a month is still an
     essay every three days.
+
+    `examiner` is 30 — five reactions for each of the six speaking tests this
+    tier can afford to have marked, even though examiner reactions are not
+    metered by whether marking happens. Five is a ceiling this route never
+    actually reaches (SpeakingSession.tsx fires at most three per interview,
+    once per Part 3 transition), so a subscriber who takes more interviews than
+    they mark still has real headroom rather than none.
   */
-  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 1 },
+  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 1, examiner: 30 },
   /*
     Three times Plus on the routes that matter, for the weeks before the exam.
     It is the most expensive tier to serve and therefore the one with the
@@ -205,7 +220,7 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     a call — five of them cost Pro more than all thirty marked essays, and one
     of them costs what seventy-seven examiner lines cost. Measured across all
     six plans in all ten currencies, that single change takes the worst case
-    from HK$0.19 (failing, with the examiner) to HK$1.46, which is better than
+    from HK$0.19 (failing, with the examiner) to HK$1.43, which is better than
     the HK$1.01 this app shipped with before the examiner existed.
 
     Plus is what sets that floor, not Pro: once Plus is at one, cutting Pro
@@ -213,12 +228,19 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     Pro is at two rather than one because there was no reason to take a third
     away from the tier that is paying the most.
   */
-  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 2 },
+  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 2, examiner: 100 },
   /*
     The owner's account. An admin flag that still enforced a limit would be a
     flag that did nothing.
   */
-  admin: { define: null, chat: null, "grade/writing": null, "grade/speaking": null, generate: null },
+  admin: {
+    define: null,
+    chat: null,
+    "grade/writing": null,
+    "grade/speaking": null,
+    generate: null,
+    examiner: null,
+  },
 };
 
 /**
@@ -242,11 +264,25 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
  * allowance.
  */
 export const WEEKLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> = {
-  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
-  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
-  plus: { define: 24, chat: 12, "grade/writing": 3, "grade/speaking": 2, generate: 1 },
-  pro: { define: 41, chat: 24, "grade/writing": 7, "grade/speaking": 5, generate: 2 },
-  admin: { define: null, chat: null, "grade/writing": null, "grade/speaking": null, generate: null },
+  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
+  standard: {
+    define: 0,
+    chat: 0,
+    "grade/writing": 0,
+    "grade/speaking": 0,
+    generate: 0,
+    examiner: 0,
+  },
+  plus: { define: 24, chat: 12, "grade/writing": 3, "grade/speaking": 2, generate: 1, examiner: 7 },
+  pro: { define: 41, chat: 24, "grade/writing": 7, "grade/speaking": 5, generate: 2, examiner: 24 },
+  admin: {
+    define: null,
+    chat: null,
+    "grade/writing": null,
+    "grade/speaking": null,
+    generate: null,
+    examiner: null,
+  },
 };
 
 export interface TierDefinition {
@@ -297,6 +333,7 @@ export const TIERS: Record<Tier, TierDefinition> = {
       "10 essays and 6 speaking tests marked a month",
       "50 tutor questions and 100 word lookups a month",
       "1 fresh AI-written paper a month",
+      "A live examiner reacts to you in Part 3 of speaking practice",
       "Cancel any time, one button",
     ],
   },
@@ -309,6 +346,7 @@ export const TIERS: Record<Tier, TierDefinition> = {
       "30 essays and 20 speaking tests marked a month",
       "100 tutor questions and 175 word lookups a month",
       "2 fresh AI-written papers a month",
+      "A live examiner reacts to you in Part 3 of speaking practice",
       "Cancel any time, one button",
     ],
   },

@@ -17,6 +17,7 @@ import UpgradePanel from "@/components/billing/UpgradePanel";
 import { tierShows, useTier } from "@/lib/billing/useTier";
 import VolumeMeter from "@/components/speaking/VolumeMeter";
 import { apiUrl, postJSON } from "@/lib/api";
+import { authedFetch } from "@/lib/account";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import { useSearchParams } from "next/navigation";
 import speakingData from "@/data/speaking-topics.json";
@@ -67,6 +68,7 @@ import {
   examinerFollowUp,
   examinerNudge,
   examinerQuestion,
+  EXAMINER_LINE_TRIGGER_WORDS,
   SPEAKING_PART_INTRO,
   type NudgeKind,
   type TurnEndReason,
@@ -103,7 +105,65 @@ function pick<T>(arr: T[]): T {
   So choosing one card settles two thirds of the interview, which is what makes
   the choice worth offering.
 */
-function buildInterview(cardId?: string | null): Step[] {
+/** Which part a candidate asked to drill, or the full three-part interview. */
+export type SpeakingFocusPart = 1 | 2 | 3 | null;
+
+/** The introduction screen's own segmented control — see buildInterview. */
+const FOCUS_PART_OPTIONS: { id: SpeakingFocusPart; label: string }[] = [
+  { id: null, label: "Full interview" },
+  { id: 1, label: "Part 1" },
+  { id: 2, label: "Part 2" },
+  { id: 3, label: "Part 3" },
+];
+
+const FOCUS_PART_DESCRIPTION: Record<1 | 2 | 3, string> = {
+  1: "Short questions about you, on their own — more of them than the full interview asks, since nothing else is sharing the time. About 3 minutes.",
+  2: "One topic card. A minute to prepare, then talk for one to two minutes, the same as the full interview. About 3 minutes.",
+  3: "A discussion of bigger ideas, on its own — every question on the topic, not just the four a full interview has time for. About 4 minutes.",
+};
+
+/*
+  Build the interview — the whole thing, or one part of it, drilled on its
+  own.
+
+  `focusPart: null` is byte-for-byte what this function always did: two
+  random Part 1 topics trimmed to three questions each, a Part 2 card and its
+  rounding-off question, and four Part 3 questions on that card's topic — the
+  fourteen-minute shape a real sitting has to fit into.
+
+  A focused session drops the fourteen-minute budget along with the two
+  parts it does not ask, and that changes what "trimmed" means: nothing here
+  is sharing time with anything else, so each part uses more of its own bank
+  rather than less. Part 1 keeps two topics but asks everything under them.
+  Part 3 keeps one topic but asks everything under it too. Part 2 was never
+  trimmed in the first place — one card and its rounding-off question is the
+  whole of it, focused or not.
+
+  Turn timing needs no change for any of this: decideTurnEnd and decideNudge
+  already key entirely off `step.part`, never off the interview's shape.
+*/
+function buildInterview(cardId?: string | null, focusPart: SpeakingFocusPart = null): Step[] {
+  if (focusPart === 1) {
+    const topics = [...data.part1].sort(() => Math.random() - 0.5).slice(0, 2);
+    return topics.flatMap((t) => t.questions.map((q) => ({ part: 1 as const, question: q })));
+  }
+
+  if (focusPart === 2) {
+    const card = (cardId ? data.part2.find((c) => c.id === cardId) : undefined) ?? pick(data.part2);
+    const steps: Step[] = [{ part: 2, question: card.cueCard, cueCard: card }];
+    const roundingOff = card.followUp?.[0];
+    if (roundingOff) steps.push({ part: 2, question: roundingOff });
+    return steps;
+  }
+
+  if (focusPart === 3) {
+    /* A chosen card still settles which discussion is asked, exactly as it
+       does for the full interview — the card itself is just never spoken. */
+    const card = cardId ? data.part2.find((c) => c.id === cardId) : undefined;
+    const part3 = (card && data.part3.find((p) => p.topic === card.topic)) ?? pick(data.part3);
+    return part3.questions.map((q) => ({ part: 3 as const, question: q }));
+  }
+
   const steps: Step[] = [];
   const topics = [...data.part1].sort(() => Math.random() - 0.5).slice(0, 2);
   for (const t of topics) {
@@ -245,6 +305,24 @@ export default function SpeakingSession({
     under way.
   */
   const chosenCardId = useSearchParams().get("card");
+  const requestedPart = useSearchParams().get("part");
+  /*
+    Which part to drill, or the whole interview.
+
+    Only when this page is not the last module of a timed mock sitting —
+    `exam` — where the shape of the interview is the exam's own promise, not
+    a choice this screen can make. Everywhere else it starts from `?part=`,
+    the same way `chosenCardId` starts from `?card=`, so the question library
+    can link straight into a focused session — and can still be changed on
+    the introduction screen before Start is pressed.
+  */
+  const [focusPart, setFocusPart] = useState<SpeakingFocusPart>(
+    exam
+      ? null
+      : requestedPart === "1" || requestedPart === "2" || requestedPart === "3"
+        ? (Number(requestedPart) as 1 | 2 | 3)
+        : null,
+  );
   const micSupported =
     mounted && !micBlocked && (usingLocal || speechRecognitionSupported());
 
@@ -273,11 +351,48 @@ export default function SpeakingSession({
   const examinerAudioCreatedRef = useRef<HTMLAudioElement | null>(null);
   const [examinerAudioCurrentTime, setExaminerAudioCurrentTime] = useState(0);
   const [examinerAudioDuration, setExaminerAudioDuration] = useState(0);
+  /*
+    The live examiner's reaction, fetched speculatively and consumed at most
+    once. See the 250ms control loop below for when this is asked for, and
+    nextQuestion for the only place it is played.
+
+    `status` rather than a boolean: "idle" is what makes the loop below ask
+    again next turn, "pending" is what stops it asking twice for the same one,
+    and the difference between "ready" and "unavailable" is the difference
+    between playing a blob and quietly using the scripted bank instead — both
+    of which nextQuestion needs to tell apart without inspecting the blob URL
+    itself.
+  */
+  const examinerLineGenerationRef = useRef<number | null>(null);
+  const examinerLineStatusRef = useRef<"idle" | "pending" | "ready" | "unavailable">("idle");
+  const examinerLineBlobUrlRef = useRef<string | null>(null);
+  const examinerLineAbortRef = useRef<AbortController | null>(null);
 
   const updateAnswerWindow = useCallback((open: boolean) => {
     answerWindowOpenRef.current = open;
     setAnswerWindowOpen(open);
   }, []);
+
+  /*
+    Abandon whatever the live examiner was doing for the turn that just ended
+    — an in-flight request, a blob nobody is going to play, or both.
+
+    A blob URL is a real, if small, allocation the browser holds until told
+    otherwise; a bridge is one-shot audio that is never replayed, so once a
+    turn is behind it there is nothing left to keep it for. Called at the
+    start of every new turn (continueAfterQuestion) so the control loop's own
+    "idle" check is true again for the turn now starting, and on the two ways
+    an interview can stop having turns at all — unmount and endTest.
+  */
+  const clearExaminerLine = useCallback(() => {
+    examinerLineAbortRef.current?.abort();
+    examinerLineAbortRef.current = null;
+    if (examinerLineBlobUrlRef.current) URL.revokeObjectURL(examinerLineBlobUrlRef.current);
+    examinerLineBlobUrlRef.current = null;
+    examinerLineGenerationRef.current = null;
+    examinerLineStatusRef.current = "idle";
+  }, []);
+
 
   // Whether the local recogniser can actually run here.
   useEffect(() => {
@@ -337,7 +452,9 @@ export default function SpeakingSession({
       recRef.current?.abort();
       sessionRef.current?.abort();
       sessionRef.current = null;
+      clearExaminerLine();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount only, by design
   }, []);
 
   /*
@@ -681,6 +798,8 @@ export default function SpeakingSession({
 
   const continueAfterQuestion = useCallback((current: Step, promptGeneration: number) => {
     if (promptGeneration !== promptGenerationRef.current) return;
+    // A fresh turn, a fresh chance to ask — see clearExaminerLine.
+    clearExaminerLine();
     if (current.part === 2) {
       updateAnswerWindow(false);
       prepGenerationRef.current = promptGeneration;
@@ -689,7 +808,7 @@ export default function SpeakingSession({
     }
     prepGenerationRef.current = null;
     openAnswerWindow(promptGeneration);
-  }, [openAnswerWindow, updateAnswerWindow]);
+  }, [clearExaminerLine, openAnswerWindow, updateAnswerWindow]);
 
   /*
     One-minute preparation countdown for Part 2. The moment it ends is the
@@ -744,6 +863,109 @@ export default function SpeakingSession({
     setExaminerAudioCurrentTime(0);
     setExaminerAudioDuration(0);
   }, []);
+
+  /*
+    Ask for the live examiner's reaction, without anybody waiting on the
+    answer.
+
+    Fired once per Part 3 turn by the control loop below, as soon as there is
+    enough answer to react to — nowhere near when the turn is expected to
+    end. That gap is the entire design: a Part 3 answer runs to at least
+    earliestNaturalEnd (28s) and often much longer, which is far more lead
+    time than one Haiku call plus one Aura synthesis needs, so by the time
+    nextQuestion actually asks "is it ready", it usually already is. If it
+    is not — slow network, the route refused, the tier has none of this left
+    — nextQuestion finds `examinerLineStatusRef.current` still "pending" or
+    turned "unavailable" and falls back to the fixed transition bank exactly
+    as it always has. Nothing on the turn-ending path ever awaits this call.
+  */
+  const fireExaminerLine = useCallback(
+    (expectedGeneration: number, question: string, answerSoFar: string) => {
+      examinerLineStatusRef.current = "pending";
+      examinerLineGenerationRef.current = expectedGeneration;
+      const controller = new AbortController();
+      examinerLineAbortRef.current = controller;
+      const stillWanted = () =>
+        expectedGeneration === promptGenerationRef.current &&
+        expectedGeneration === examinerLineGenerationRef.current;
+
+      void authedFetch(apiUrl("/api/speaking/examiner-line"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, answer: answerSoFar }),
+        signal: controller.signal,
+      })
+        .then(async (res) => {
+          if (!stillWanted()) return;
+          if (!res.ok) {
+            examinerLineStatusRef.current = "unavailable";
+            return;
+          }
+          const blob = await res.blob();
+          if (!stillWanted()) return;
+          // Smaller than any real MP3 could be — the same floor the server
+          // itself refuses to serve audio under.
+          if (blob.size < 8) {
+            examinerLineStatusRef.current = "unavailable";
+            return;
+          }
+          examinerLineBlobUrlRef.current = URL.createObjectURL(blob);
+          examinerLineStatusRef.current = "ready";
+        })
+        .catch(() => {
+          if (stillWanted()) examinerLineStatusRef.current = "unavailable";
+        });
+    },
+    [],
+  );
+
+  /*
+    Play one blob URL once, with no fallback of its own.
+
+    playExaminerPrompt's fallback is the device voice, which is right for a
+    scripted line that must be heard one way or another — but the live
+    examiner's reaction has a *better* fallback than a robotic voice reading
+    an ad-libbed sentence: the fixed, reviewed transition bank every other
+    turn already uses. So this stays deliberately dumb. It reports whether the
+    bridge played and nothing more; nextQuestion decides what "no" means.
+  */
+  const playExaminerBlobOnce = useCallback(
+    (url: string, expectedGeneration: number): Promise<boolean> => {
+      const media = ensureExaminerAudio();
+      if (!media) return Promise.resolve(false);
+      const run = ++examinerAudioRunRef.current;
+      cancelSpeech();
+      return new Promise((resolve) => {
+        let finished = false;
+        const isCurrent = () =>
+          run === examinerAudioRunRef.current && expectedGeneration === promptGenerationRef.current;
+        const cleanUp = () => {
+          media.removeEventListener("ended", onEnded);
+          media.removeEventListener("error", onError);
+        };
+        const finish = (played: boolean) => {
+          if (finished) return;
+          finished = true;
+          cleanUp();
+          resolve(played && isCurrent());
+        };
+        const onEnded = () => finish(true);
+        const onError = () => finish(false);
+        media.addEventListener("ended", onEnded);
+        media.addEventListener("error", onError);
+        try {
+          media.pause();
+          media.currentTime = 0;
+          media.src = url;
+          media.load();
+          void media.play().catch(() => finish(false));
+        } catch {
+          finish(false);
+        }
+      });
+    },
+    [ensureExaminerAudio],
+  );
 
   /*
     Built-in examiner prompts are served as real MP3s from our strict,
@@ -928,6 +1150,7 @@ export default function SpeakingSession({
     advancingRef.current = false;
     cancelSpeech();
     stopExaminerAudio();
+    clearExaminerLine();
     wantRecordingRef.current = false;
     recRef.current?.abort();
     recRef.current = null;
@@ -946,7 +1169,7 @@ export default function SpeakingSession({
     setAnswer("");
     answerRef.current = "";
     setStage("intro");
-  }, [stopExaminerAudio, updateAnswerWindow]);
+  }, [clearExaminerLine, stopExaminerAudio, updateAnswerWindow]);
 
   const begin = useCallback(async (forcePlatform = false) => {
     if (beginningRef.current) return;
@@ -960,7 +1183,7 @@ export default function SpeakingSession({
     pendingNudgeTextRef.current = "";
     prepGenerationRef.current = null;
     advancingRef.current = false;
-    const list = buildInterview(chosenCardId);
+    const list = buildInterview(chosenCardId, focusPart);
     setSteps(list);
     setStepIndex(0);
     setTranscript([]);
@@ -983,8 +1206,9 @@ export default function SpeakingSession({
     /* `chosenCardId` belongs here: without it a learner who opens the question
        library, picks a card, and starts the interview from a page this callback
        was already built on would get whichever card the closure captured — the
-       previous one, or none. */
-  }, [askCurrent, chosenCardId, localBlock, prefs.engine, updateAnswerWindow, warmUpLocal]);
+       previous one, or none. Same reasoning for `focusPart`, which the
+       introduction screen can still change up until this button is pressed. */
+  }, [askCurrent, chosenCardId, focusPart, localBlock, prefs.engine, updateAnswerWindow, warmUpLocal]);
 
   const gradeInterview = useCallback(
     async (finalTranscript: Turn[]) => {
@@ -1071,13 +1295,59 @@ export default function SpeakingSession({
       if (!finalQuestion) setStepIndex(nextIndex);
       setVoiceProblem(false);
       setExaminerSpeaking(true);
-      const prompt = examinerFollowUp(steps, stepIndex, reason);
-      const promptPromise = playExaminerPrompt(
-        examinerFollowUpAudioId(steps, stepIndex, reason),
-        prompt,
-        0.96,
-        promptGeneration,
-      );
+
+      /*
+        A live reaction, if one was asked for and is actually ready — never
+        for Parts 1 and 2, never for the last Part 3 question (that closing
+        line stays fixed either way), and never if the fetch is still in
+        flight or came back empty. This is the only place any of this is
+        awaited, and it is a synchronous ref check, not the fetch itself:
+        by the time a Part 3 turn can end at all, the request fired by the
+        control loop above has usually had ten seconds or more to finish.
+
+        A live line that fails to PLAY falls back to the full scripted bridge
+        rather than to silence — the candidate still needs to hear the next
+        question one way or another, exactly as every other examiner prompt
+        in this file already guarantees.
+      */
+      const canUseExaminerLine =
+        step.part === 3 &&
+        !finalQuestion &&
+        steps[nextIndex]?.part === 3 &&
+        examinerLineStatusRef.current === "ready" &&
+        examinerLineGenerationRef.current === promptGeneration &&
+        examinerLineBlobUrlRef.current !== null;
+
+      const promptPromise: Promise<boolean> = canUseExaminerLine
+        ? (async () => {
+            const bridgeUrl = examinerLineBlobUrlRef.current as string;
+            const bridgePlayed = await playExaminerBlobOnce(bridgeUrl, promptGeneration);
+            // One-shot audio — played or not, this URL is never used again.
+            clearExaminerLine();
+            if (promptGeneration !== promptGenerationRef.current) return false;
+            if (!bridgePlayed) {
+              const fallbackPrompt = examinerFollowUp(steps, stepIndex, reason);
+              return playExaminerPrompt(
+                examinerFollowUpAudioId(steps, stepIndex, reason),
+                fallbackPrompt,
+                0.96,
+                promptGeneration,
+              );
+            }
+            const nextPrompt = examinerQuestion(steps, nextIndex);
+            return playExaminerPrompt(
+              examinerQuestionAudioId(steps, nextIndex),
+              nextPrompt,
+              0.95,
+              promptGeneration,
+            );
+          })()
+        : playExaminerPrompt(
+            examinerFollowUpAudioId(steps, stepIndex, reason),
+            examinerFollowUp(steps, stepIndex, reason),
+            0.96,
+            promptGeneration,
+          );
       const [spoken, promptPlayed] = await Promise.all([spokenPromise, promptPromise]);
       if (promptGeneration !== promptGenerationRef.current) return;
       setExaminerSpeaking(false);
@@ -1134,6 +1404,8 @@ export default function SpeakingSession({
     exam,
     continueAfterQuestion,
     playExaminerPrompt,
+    playExaminerBlobOnce,
+    clearExaminerLine,
     updateAnswerWindow,
   ]);
 
@@ -1233,10 +1505,41 @@ export default function SpeakingSession({
       }
       const nudge = decideNudge(evidence);
       if (nudge) void askNudge(nudge);
+
+      /*
+        Ask the live examiner for its reaction, once, well before the turn
+        that needs it could plausibly end.
+
+        Only a Part 3 answer that leads into another Part 3 question ever
+        qualifies — never Parts 1 or 2, and never the last Part 3 question,
+        whose closing line stays fixed. Same evidence the decisions above
+        already used; this is a third thing to check against it rather than
+        a second loop.
+      */
+      if (
+        step.part === 3 &&
+        steps[stepIndex + 1]?.part === 3 &&
+        examinerLineStatusRef.current === "idle" &&
+        evidence.wordCount >= EXAMINER_LINE_TRIGGER_WORDS
+      ) {
+        const answerSoFar = `${answerRef.current} ${interimRef.current}`.trim();
+        if (answerSoFar) fireExaminerLine(promptGenerationRef.current, step.question, answerSoFar);
+      }
     }, 250);
 
     return () => window.clearInterval(timer);
-  }, [recording, step, examinerSpeaking, prepSeconds, usingLocal, nextQuestion, askNudge]);
+  }, [
+    recording,
+    step,
+    steps,
+    stepIndex,
+    examinerSpeaking,
+    prepSeconds,
+    usingLocal,
+    nextQuestion,
+    askNudge,
+    fireExaminerLine,
+  ]);
 
   // ---------- Screens ----------
 
@@ -1273,20 +1576,55 @@ export default function SpeakingSession({
                 ? "An AI examiner asks you questions out loud. You answer out loud. At the end you get a band and feedback on the four things the real exam marks you on."
                 : "An examiner asks you questions out loud and you answer out loud, in exam order and against the exam clock. At the end you get your full transcript. AI marking is on Plus."}
             </p>
-            <ol className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
-              <li className="flex gap-2.5">
-                <span className="font-semibold text-indigo-600">1</span> Short questions about you
-                (about 4 minutes)
-              </li>
-              <li className="flex gap-2.5">
-                <span className="font-semibold text-indigo-600">2</span> A topic card — 1 minute to
-                prepare, then talk for 2 minutes
-              </li>
-              <li className="flex gap-2.5">
-                <span className="font-semibold text-indigo-600">3</span> A discussion of bigger
-                ideas around that topic
-              </li>
-            </ol>
+
+            {/*
+              A mock exam sitting asks the whole interview because that is the
+              exam's own promise — this control does not exist there. Standing
+              practice is the one place a candidate can drill a single weak
+              part without the ten minutes of the other two first.
+            */}
+            {!exam && (
+              <div
+                className="panel-toggle-base relative mt-3 grid w-full rounded-xl p-0.5"
+                role="tablist"
+                aria-label="Which part to practise"
+                style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}
+              >
+                {FOCUS_PART_OPTIONS.map((option) => (
+                  <button
+                    key={option.id ?? "full"}
+                    type="button"
+                    role="tab"
+                    aria-selected={focusPart === option.id}
+                    onClick={() => setFocusPart(option.id)}
+                    className={`relative z-10 min-w-0 truncate rounded-lg px-2 py-1.5 text-[0.8125rem] font-medium transition-colors ${
+                      focusPart === option.id ? "side-rail-item-active text-slate-900" : "text-slate-600"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {focusPart === null ? (
+              <ol className="mt-2 space-y-1.5 text-sm leading-6 text-slate-600">
+                <li className="flex gap-2.5">
+                  <span className="font-semibold text-indigo-600">1</span> Short questions about you
+                  (about 4 minutes)
+                </li>
+                <li className="flex gap-2.5">
+                  <span className="font-semibold text-indigo-600">2</span> A topic card — 1 minute to
+                  prepare, then talk for 2 minutes
+                </li>
+                <li className="flex gap-2.5">
+                  <span className="font-semibold text-indigo-600">3</span> A discussion of bigger
+                  ideas around that topic
+                </li>
+              </ol>
+            ) : (
+              <p className="mt-2 text-sm leading-6 text-slate-600">{FOCUS_PART_DESCRIPTION[focusPart]}</p>
+            )}
             {!micSupported && (
               <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
                 Your browser can&apos;t record speech. You can still take the test by typing your
@@ -1300,9 +1638,13 @@ export default function SpeakingSession({
               onClick={() => void begin()}
               disabled={localStatus !== null}
             >
-              {localStatus !== null
-                ? <LoadingIndicator label="Getting ready…" announce={false} />
-                : "Start the interview"}
+              {localStatus !== null ? (
+                <LoadingIndicator label="Getting ready…" announce={false} />
+              ) : focusPart === null ? (
+                "Start the interview"
+              ) : (
+                `Start Part ${focusPart} practice`
+              )}
             </button>
             {localStatus && (
               <div className="mt-3 rounded-2xl bg-indigo-50 px-4 py-3 text-left" aria-live="polite">
