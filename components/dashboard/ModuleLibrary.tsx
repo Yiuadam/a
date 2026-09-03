@@ -31,7 +31,6 @@ export default function ModuleLibrary({
   onAdd,
   onReset,
   open,
-  onOpen,
   onClose,
 }: {
   layout: readonly ModuleId[];
@@ -39,7 +38,6 @@ export default function ModuleLibrary({
   onAdd: (id: ModuleId) => void;
   onReset: () => void;
   open: boolean;
-  onOpen: () => void;
   onClose: () => void;
 }) {
   const panel = useRef<HTMLDivElement>(null);
@@ -57,6 +55,21 @@ export default function ModuleLibrary({
   const needle = query.trim().toLowerCase();
   const listed = MODULE_LIBRARY.filter(
     (m) =>
+      /*
+        Only what the page can actually draw. A module with no node here is one
+        this page has no data for, and listing it would offer something that
+        adds a row to the layout and nothing to the board — the worst kind of
+        broken, because it looks like it worked.
+      */
+      modules[m.id] !== undefined &&
+      /*
+        A module on the board is not in the library. It was listed and greyed,
+        on the theory that a learner might look for what they had just added —
+        but the board is right there, and a greyed row for every module already
+        placed leaves the library mostly full of things that cannot be chosen.
+        The owner asked for them gone and the page answers the question anyway.
+      */
+      !layout.includes(m.id) &&
       (group === null || m.group === group) &&
       (needle === "" ||
         m.name.toLowerCase().includes(needle) ||
@@ -77,12 +90,6 @@ export default function ModuleLibrary({
 
   return (
     <>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={onOpen} className="btn-primary !min-h-9 text-[0.875rem]">
-          Add a module
-        </button>
-      </div>
-
       {open &&
         typeof document !== "undefined" &&
         createPortal(
@@ -104,7 +111,7 @@ export default function ModuleLibrary({
               role="dialog"
               aria-modal="true"
               aria-labelledby="module-library-heading"
-              className="card liquid-glass relative max-h-[86dvh] w-full max-w-4xl overflow-y-auto !p-5 sm:max-h-[80dvh]"
+              className="card liquid-glass module-library-panel relative max-h-[86dvh] w-full max-w-4xl overflow-y-auto !p-5 sm:max-h-[80dvh]"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -177,12 +184,13 @@ export default function ModuleLibrary({
 
                 {listed.length === 0 ? (
                   <p className="text-[0.875rem] text-slate-600">
-                    Nothing matches “{query}”.
+                    {query.trim() === ""
+                      ? "Every module is on your board. Remove one with the − in its corner to see it here again."
+                      : `Nothing matches “${query}”.`}
                   </p>
                 ) : (
-                  <ul className="grid min-w-0 gap-3 sm:grid-cols-2">
+                  <ul className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {listed.map((m) => {
-                      const placed = layout.includes(m.id);
                       return (
                         <li key={m.id} className="min-w-0">
                           {/*
@@ -199,43 +207,31 @@ export default function ModuleLibrary({
                           */}
                           <button
                             type="button"
-                            disabled={placed || full}
+                            disabled={full}
                             aria-label={
-                              placed
-                                ? `${m.name} is already on your board`
-                                : full
-                                  ? `Your board is full. Remove a module to add ${m.name}.`
-                                  : `Add ${m.name} to your board`
+                              full
+                                ? `Your board is full. Remove a module to add ${m.name}.`
+                                : `Add ${m.name} to your board`
                             }
                             onClick={() => {
                               onAdd(m.id);
                               onClose();
                             }}
-                            className={`module-library-tile flex h-full w-full min-w-0 flex-col rounded-2xl border border-[color:var(--glass-edge)] p-3 text-left transition-colors ${
-                              placed || full
-                                ? "cursor-default opacity-60"
-                                : "active:translate-y-px"
+                            /*
+                              The module and its name, and nothing else.
+
+                              This used to be a bordered card carrying a title,
+                              a sentence of description and a preview — a frame
+                              around a frame, with prose explaining a thing that
+                              was already on screen. The preview is the
+                              description; a short word underneath says which
+                              one it is, the way every control library does it.
+                            */
+                            className={`module-library-tile flex w-full min-w-0 flex-col items-center gap-2 rounded-2xl p-1.5 text-center transition-colors ${
+                              full ? "cursor-default opacity-45" : "active:translate-y-px"
                             }`}
                           >
-                            <span className="flex w-full min-w-0 items-baseline justify-between gap-2">
-                              <span className="text-[0.9375rem] font-semibold text-slate-900">
-                                {m.name}
-                              </span>
-                              {placed ? (
-                                <span className="shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400">
-                                  On your board
-                                </span>
-                              ) : full ? (
-                                <span className="shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400">
-                                  Board full
-                                </span>
-                              ) : null}
-                            </span>
-                            <span className="mt-0.5 block text-[0.8125rem] leading-5 text-slate-500">
-                              {m.blurb}
-                            </span>
-
-                            {modules[m.id] ? (
+                            {(
                               /*
                                 A window onto the real card at 62%. The height
                                 is fixed so every entry is the same size — a
@@ -244,11 +240,14 @@ export default function ModuleLibrary({
                               */
                               <span
                                 aria-hidden="true"
-                                className="module-preview mt-3 block h-40 w-full min-w-0 overflow-hidden rounded-xl border border-[color:var(--glass-edge)]"
+                                className="module-preview block h-36 w-full min-w-0 overflow-hidden rounded-xl border border-[color:var(--glass-edge)]"
                               >
                                 <span className="module-preview-inner block">{modules[m.id]}</span>
                               </span>
-                            ) : null}
+                            )}
+                            <span className="text-[0.8125rem] font-medium text-slate-700">
+                              {m.short}
+                            </span>
                           </button>
                         </li>
                       );

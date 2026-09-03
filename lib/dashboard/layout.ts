@@ -28,36 +28,48 @@ export const DASHBOARD_LAYOUT_KEY = "bandup.dashboard.modules";
 export const MODULE_LIBRARY = [
   {
     id: "score",
+    /* One word under the preview in the library — see ModuleLibrary. */
+    short: "Band",
     group: "Progress",
     name: "Your band",
     blurb: "The overall band and the four skills that make it, each linking to its history.",
   },
   {
     id: "plan",
+    /* One word under the preview in the library — see ModuleLibrary. */
+    short: "Plan",
     group: "Study",
     name: "What to do next",
     blurb: "The first two blocks of your study plan, with a way into the rest.",
   },
   {
     id: "tutor",
+    /* One word under the preview in the library — see ModuleLibrary. */
+    short: "Tutor",
     group: "Help",
     name: "Ask a tutor",
     blurb: "Three openers only a tutor that has read your own work can answer.",
   },
   {
     id: "recent",
+    /* One word under the preview in the library — see ModuleLibrary. */
+    short: "Recent",
     group: "Progress",
     name: "Recent practice",
     blurb: "Your last six sittings and the band each one earned.",
   },
   {
     id: "practise",
+    /* One word under the preview in the library — see ModuleLibrary. */
+    short: "Skills",
     group: "Study",
     name: "Practise a skill",
     blurb: "The four exam skills as tiles, for going straight to a paper.",
   },
   {
     id: "study",
+    /* One word under the preview in the library — see ModuleLibrary. */
+    short: "Study",
     group: "Study",
     name: "Study the language",
     blurb: "Grammar and vocabulary drills, with no clock and no band.",

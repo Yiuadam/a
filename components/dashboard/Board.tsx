@@ -66,11 +66,38 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
 
   return (
     <div className="min-w-0">
-      <div className="mb-2.5 flex items-center justify-end gap-2">
+      {/*
+        One row, at the owner's ask. Edit board, then Add module / Reset / Done
+        in the same place rather than a button above the grid and two more
+        underneath it — three controls for one task, in three parts of the page,
+        is a task that looks like three.
+      */}
+      <div className="mb-2.5 flex flex-wrap items-center justify-end gap-2">
+        {editing && (
+          <>
+            <button
+              type="button"
+              onClick={() => setLibraryOpen(true)}
+              className="btn-secondary !min-h-8 !px-3 text-[0.8125rem]"
+            >
+              Add a module
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayout(DEFAULT_LAYOUT)}
+              className="btn-secondary !min-h-8 !px-3 text-[0.8125rem]"
+            >
+              Reset
+            </button>
+          </>
+        )}
         <button
           type="button"
-          onClick={() => setEditing((on) => !on)}
-          className="btn-secondary !min-h-8 !px-3 text-[0.8125rem]"
+          onClick={() => {
+            setEditing((on) => !on);
+            setLibraryOpen(false);
+          }}
+          className={`!min-h-8 !px-3 text-[0.8125rem] ${editing ? "btn-primary" : "btn-secondary"}`}
           aria-pressed={editing}
         >
           {editing ? "Done" : "Edit board"}
@@ -160,7 +187,6 @@ export default function Board({ modules }: { modules: Partial<Record<ModuleId, R
           onReset={() => setLayout(DEFAULT_LAYOUT)}
           onClose={() => setLibraryOpen(false)}
           open={libraryOpen}
-          onOpen={() => setLibraryOpen(true)}
         />
       )}
 

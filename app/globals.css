@@ -6479,3 +6479,34 @@ html[data-theme="dark"] .side-rail-item-active {
   background: color-mix(in srgb, var(--color-slate-400) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-indigo-500) 40%, var(--glass-edge));
 }
+
+/*
+  Overlay panels are not windows.
+
+  A card inline on the page can afford to be mostly transparent: what shows
+  through it is the page's own wash, a few points of warmth, and nothing with
+  edges. A panel that floats *over* the page is a different case — what shows
+  through it is text, cards and buttons, at full contrast and in the wrong
+  place, and the eye tries to read them. The owner's word for it was
+  distracting, which is exactly right: the material was competing with its own
+  contents.
+
+  So the three surfaces that float get a fill of their own, opaque enough that
+  the page behind them stops resolving into words while the blur still does the
+  work of saying there is a page back there. Everything inline keeps the lighter
+  material it had; this deliberately does not touch --glass-fill globally, which
+  would have flattened every card on every page to fix three overlays.
+*/
+.nav-menu-group,
+.notification-popover,
+.module-library-panel {
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+html[data-theme="dark"] .nav-menu-group,
+html[data-theme="dark"] .notification-popover,
+html[data-theme="dark"] .module-library-panel {
+  /* Dark's surface is already near the page colour, so it leans on the mix
+     being heavier rather than on a colour of its own. */
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+}
