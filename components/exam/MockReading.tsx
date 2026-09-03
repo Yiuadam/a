@@ -60,6 +60,12 @@ export default function MockReading({
     [tests],
   );
 
+  /* The paper's last number, so a passage header can name the range it covers. */
+  const readingTotal = useMemo(
+    () => tests.reduce((n, t) => n + questionCount(t.questions), 0),
+    [tests],
+  );
+
   const [active, setActive] = useState(0);
   const wide = useIsWide();
 
@@ -122,7 +128,15 @@ export default function MockReading({
       heading={
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
-            Passage {active + 1}
+            {/*
+              The numbers this passage covers, which the paper prints above
+              every one of them. The three passages are 13, 13 and 14 questions
+              and a candidate cannot work out from the page which range they are
+              looking at — the strip at the bottom knows, and until now this did
+              not.
+            */}
+            Passage {active + 1} · Questions {starts[active]}–
+            {(starts[active + 1] ?? readingTotal + 1) - 1}
           </h2>
           <span className="text-[0.6875rem] text-[color:var(--exam-muted)]">{test.title}</span>
         </div>

@@ -98,6 +98,11 @@ export default function MockListening({
       ),
     [tests],
   );
+  /* The paper's last number, so a part header can name the range it covers. */
+  const total = useMemo(
+    () => tests.reduce((n, t) => n + questionCount(t.questions), 0),
+    [tests],
+  );
 
   /*
     Renamed once, here, and used for both the palette and the rendering. Two
@@ -497,7 +502,15 @@ export default function MockListening({
         {tests.map((test, index) => (
           <section key={test.id} className="mb-6">
             <h2 className="mb-2 border-b border-[color:var(--exam-line)] pb-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
-              Part {index + 1}
+              {/*
+                The numbers this part covers, which the exam says out loud and
+                prints at the top of every part. In a forty-question sitting it
+                is the answer to "am I in the right place" — a candidate who
+                has jumped to 23 needs to know it belongs to Part 3 without
+                counting the questions above it. The next part's first number
+                gives the range; the last part runs to the end of the paper.
+              */}
+              Part {index + 1} · Questions {starts[index]}–{(starts[index + 1] ?? total + 1) - 1}
               {played.includes(index) ? "" : " — not yet played"}
             </h2>
             <TestQuestions
