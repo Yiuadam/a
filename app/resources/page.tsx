@@ -242,7 +242,7 @@ export default function ResourcesPage() {
           <section className="card !p-4 h-fit min-w-0">
             <h2 className="text-sm font-semibold text-slate-900">Question types you will meet</h2>
             <p className="mt-0.5 text-xs leading-5 text-slate-600">
-              Every one of these appears in BandUp's papers, drawn the way the exam draws it.
+              Every one of these appears in BandUp&rsquo;s papers, drawn the way the exam draws it.
             </p>
             <dl className="mt-2 space-y-1.5">
               {QUESTION_TYPES.map(([name, what]) => (
