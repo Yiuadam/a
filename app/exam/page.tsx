@@ -457,7 +457,22 @@ function StartScreen({
   ];
 
   return (
-    <section className="exam-start mx-auto flex h-[calc(100dvh-var(--header-h))] w-full max-w-6xl items-center overflow-y-auto px-3 sm:px-5">
+    /*
+      `items-center` and `overflow-y-auto` on the same box is the bug that made
+      this screen unscrollable upwards on a phone.
+
+      A flex item centred with `align-items` and taller than its container
+      overflows in both directions, and the overflow above the container's top
+      edge is not reachable: scrolling only ever exposes what is below the
+      start of the scroll box, so the heading and the first card sat above zero
+      with nothing that could bring them back. It reads as a page that scrolls
+      down and refuses to come up.
+
+      Auto margins do the same centring and do not do that. A flex item with
+      `margin: auto` is centred while it fits and pinned to the start once it
+      does not, which is what a scroll box needs.
+    */
+    <section className="exam-start mx-auto flex h-[calc(100dvh-var(--header-h))] w-full max-w-6xl overflow-y-auto px-3 sm:px-5">
       {/*
         The clear choice the owner asked for: a full sitting or one skill,
         both visible together rather than a step a learner has to find. Two
@@ -465,7 +480,7 @@ function StartScreen({
         I choosing" reads faster from two labelled boxes than from a single
         page where a heading changes meaning halfway down.
       */}
-      <div className="mx-auto flex w-full flex-col gap-3">
+      <div className="m-auto flex w-full flex-col gap-3">
       {/*
         The one choice this screen asks for, and it settles two papers, not
         one: Reading and the Writing Task 1 figure both read `variant` off

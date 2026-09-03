@@ -104,7 +104,19 @@ export default function QuestionPalette({
           }`}
           aria-pressed={current?.flagged ?? false}
         >
-          {current?.flagged ? `Q${current.number} marked hard` : `Mark Q${current?.number ?? ""} hard`}
+          {/*
+            A word on a phone, a sentence from `sm` up.
+
+            The full label is 105px of a 358px bar, and with the two arrows
+            that left the numbers 144px to hold fourteen of them — a strip so
+            short that every flick overshoots and springs back, which is what
+            reads as bounce. The button still says what it does, and what it
+            does is already obvious from the state of the number beside it.
+          */}
+          <span className="sm:hidden">{current?.flagged ? "Hard" : "Mark"}</span>
+          <span className="hidden sm:inline">
+            {current?.flagged ? `Q${current.number} marked hard` : `Mark Q${current?.number ?? ""} hard`}
+          </span>
         </button>
       </div>
 
