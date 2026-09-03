@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import CardIcon, { type CardIconName } from "@/components/CardIcon";
 import { newestFirst } from "@/lib/results";
@@ -63,16 +65,48 @@ function Tile({
 
 const DAY = 86_400_000;
 
+/*
+  Today, read after mount rather than during render.
+
+  `Date.now()` in a render body is an impure call — the lint rule that catches
+  it is not being fussy, it is describing a real bug: the server renders one
+  day, the browser may render another, and React reconciles two different
+  answers. Reading it in an effect means the first paint shows the same thing
+  the server sent and the real figure arrives a frame later, which for a streak
+  or a seven-day count nobody will see.
+
+  `null` until then, and every caller treats that as "no answer yet" rather
+  than as zero — a dashboard that flashes 0 before showing 12 has told the
+  learner something false, however briefly.
+*/
+function useNow(): number | null {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    /*
+      A frame later rather than synchronously. Setting state inside an effect
+      body makes React render, commit and immediately render again — harmless
+      once, and the lint rule that objects is right that it is a habit worth
+      not having. A clock nobody is watching to the millisecond can wait for
+      the next frame, and the cancel keeps a component that unmounts in that
+      frame from setting state after it has gone.
+    */
+    const frame = requestAnimationFrame(() => setNow(Date.now()));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  return now;
+}
+
 /** Calendar days, not elapsed hours: two sittings either side of midnight are two days. */
 function dayKey(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
 }
 
 export function StreakCard({ profile }: { profile: Profile }) {
+  const now = useNow();
   const days = new Set(profile.results.map((r) => dayKey(r.date)));
   let streak = 0;
-  for (let i = 0; ; i += 1) {
-    const day = new Date(Date.now() - i * DAY).toISOString().slice(0, 10);
+  for (let i = 0; now !== null; i += 1) {
+    const day = new Date(now - i * DAY).toISOString().slice(0, 10);
     if (!days.has(day)) {
       /*
         Today not being in the set does not break a streak — it is not over
@@ -101,8 +135,10 @@ export function StreakCard({ profile }: { profile: Profile }) {
 }
 
 export function ThisWeekCard({ profile }: { profile: Profile }) {
-  const since = Date.now() - 7 * DAY;
-  const count = profile.results.filter((r) => new Date(r.date).getTime() >= since).length;
+  const now = useNow();
+  const since = (now ?? 0) - 7 * DAY;
+  const count =
+    now === null ? 0 : profile.results.filter((r) => new Date(r.date).getTime() >= since).length;
   return (
     <Tile
       title="This week"
@@ -132,9 +168,12 @@ const MODULE_HREF: Record<ModuleName, string> = {
 
 function latestBands(results: readonly ModuleResult[]): { module: ModuleName; band: number }[] {
   const out: { module: ModuleName; band: number }[] = [];
-  for (const module of Object.keys(MODULE_LABEL) as ModuleName[]) {
-    const latest = newestFirst(results.filter((r) => r.module === module))[0];
-    if (latest) out.push({ module, band: latest.band });
+  /* Named `skill` rather than `module`: assigning to `module` at file scope is
+     what Next's no-assign-module-variable rule is about, and a loop binding of
+     that name trips it even where nothing is being reassigned. */
+  for (const skill of Object.keys(MODULE_LABEL) as ModuleName[]) {
+    const latest = newestFirst(results.filter((r) => r.module === skill))[0];
+    if (latest) out.push({ module: skill, band: latest.band });
   }
   return out;
 }
