@@ -7,6 +7,7 @@ import { saveSession } from "@/lib/account";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import AppleSignIn from "./AppleSignIn";
 import GoogleSignIn from "./GoogleSignIn";
+import NativeGoogleSignIn from "./NativeGoogleSignIn";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { consumeAuthReturnPath } from "@/lib/auth/return-path";
 
@@ -50,33 +51,34 @@ export default function SignedOut({
 }) {
   const [showRecovery, setShowRecovery] = useState(false);
   /*
-    Google is a website button. The iOS build offers it to nobody, and either
-    of two reasons would be enough on its own.
+    Google in the app is a different button from Google on the website, and for
+    a while it was no button at all.
 
-    It never worked there. Capacitor cancels any top-level navigation off the
-    app's own origin and hands the URL to Safari, so tapping it took the
-    learner out of BandUp, signed them in on the website, and returned them to
-    an app that was still signed out — there is no custom URL scheme, no
-    associated domain and no listener anywhere that could carry that session
-    home. Nothing about a button that leaves and does not come back is worth
-    keeping.
+    The website's is Google Identity Services, which renders itself by running
+    a script from accounts.google.com and falls back to a full navigation. In a
+    WKWebView that fallback is the whole problem: Capacitor cancels any
+    top-level navigation off the app's own origin and hands the URL to Safari,
+    so tapping it took the learner out of BandUp, signed them in on the website
+    and returned them to an app that was still signed out. It was removed for
+    that reason, with a note saying what putting it back would take —
+    ASWebAuthenticationSession, a callback scheme in Info.plist, and a bridge
+    handing the result to the web view.
 
-    And offering any third-party login at all puts the app under App Review
-    guideline 4.8, which then wants an equivalent way in that lets somebody
-    keep their email address private. BandUp's own sign-up needs a real,
-    confirmable address, and Sign in with Apple is configured but dormant, so
-    there is no such alternative to point at. Offering no third-party login is
-    what 4.8 itself excepts: an app that uses only the developer's own account
-    system.
+    That is now built. GoogleSignInPlugin.swift presents the system's OAuth
+    sheet and returns a signed ID token, which is the same thing the website's
+    button produces and which /api/auth/google/token already accepts. So the
+    app draws NativeGoogleSignIn instead, and only when the plugin is actually
+    present: an app built before that work, or a browser, gets nothing rather
+    than a button that cannot work.
 
-    Making Google work in the app means ASWebAuthenticationSession, a callback
-    scheme registered in Info.plist and a bridge that hands the returned
-    session to the WebView. That is the work; this filter is not a substitute
-    for it, and anyone deleting the condition should build it first.
+    The 4.8 arithmetic changes with it. Offering Google means the app owes an
+    equivalent private way in, and Sign in with Apple is the intended one —
+    it is written and waiting on its server configuration. Until that is live
+    the app is offering a third-party login without its counterpart, which is
+    a submission risk rather than a runtime one, and it is written down in
+    APPSTORE.md rather than left for review to find.
   */
-  const available = PROVIDER_BUTTONS.filter(
-    (p) => providers.includes(p.id) && !(IS_MOBILE_BUILD && p.id === "google"),
-  );
+  const available = PROVIDER_BUTTONS.filter((p) => providers.includes(p.id));
 
   /*
     Naming only what is actually on offer. Saying "Google and Apple" while
@@ -129,7 +131,13 @@ export default function SignedOut({
                 that redirect goes to.
               */}
               {available.map(({ id }) =>
-                id === "google" ? <GoogleSignIn key={id} /> : <AppleSignIn key={id} />,
+                id !== "google" ? (
+                  <AppleSignIn key={id} />
+                ) : IS_MOBILE_BUILD ? (
+                  <NativeGoogleSignIn key={id} />
+                ) : (
+                  <GoogleSignIn key={id} />
+                ),
               )}
             </div>
             <p className="mt-3 text-xs leading-5 text-slate-500">

@@ -101,13 +101,23 @@ async function verificationKey(kid: string): Promise<CryptoKey | null> {
  */
 export async function verifyGoogleIdToken(
   token: string,
-  expectedAudience: string,
+  /*
+    One audience or several, because BandUp has more than one Google client and
+    a token names exactly one of them. The website's button mints a token whose
+    `aud` is the web client; the iOS app's own sign-in mints one whose `aud` is
+    the iOS client, which is a different string and a different registration.
+    Accepting a list is not a loosening: every entry is a client this project
+    owns, and a token addressed to anybody else's client still fails.
+  */
+  expectedAudience: string | readonly string[],
   rawNonce: string,
   now = Date.now(),
   nonceEncoding: GoogleNonceEncoding = "sha256",
 ): Promise<VerifiedGoogleIdentity | null> {
   assertServerOnly(MODULE);
-  if (!token || token.length > 16_384 || !expectedAudience || !rawNonce || rawNonce.length > 256) {
+  const audiences = (typeof expectedAudience === "string" ? [expectedAudience] : expectedAudience)
+    .filter((value) => typeof value === "string" && value.length > 0);
+  if (!token || token.length > 16_384 || audiences.length === 0 || !rawNonce || rawNonce.length > 256) {
     return null;
   }
   const parts = token.split(".");
@@ -134,7 +144,8 @@ export async function verifyGoogleIdToken(
     subject.length < 1 || subject.length > 255
     || email.length < 3 || email.length > 254
     || (payload.email_verified !== true && payload.email_verified !== "true")
-    || payload.aud !== expectedAudience
+    || typeof payload.aud !== "string"
+    || !audiences.includes(payload.aud)
     || typeof payload.iss !== "string" || !GOOGLE_ISSUERS.has(payload.iss)
     || typeof payload.exp !== "number" || !Number.isFinite(payload.exp) || payload.exp <= nowSeconds
     || nonce !== (nonceEncoding === "raw" ? rawNonce : await nonceDigest(rawNonce))

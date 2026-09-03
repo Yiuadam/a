@@ -37,26 +37,52 @@ test("Google auth API stays server-mediated and CORS-capable", () => {
 });
 
 /*
-  The iOS build offers no Google sign-in at all, and two things hold that.
+  The app signs in with Google through the system's OAuth sheet, and this
+  component is not what does it.
 
-  The sign-in screen drops Google from the providers it will draw a button for
-  whenever IS_MOBILE_BUILD is set, and this component no longer carries a
-  mobile branch of its own. The second matters as much as the first: that
-  branch rendered a plain link to the server's Google start route, and
-  Capacitor answers a top-level navigation off the app's origin by opening it
-  in Safari — so the learner signed in on the website and came back to an app
-  that was still signed out. Between them they also keep the app inside
-  guideline 4.8's exception for an app that uses only its own account system,
-  which is why this is a test and not a preference.
+  What must never come back is the branch this file used to carry: a plain link
+  to the server's Google start route. Capacitor answers a top-level navigation
+  off the app's own origin by opening it in Safari, so the learner signed in on
+  the website and returned to an app that was still signed out. That is why the
+  assertion below is about this component staying free of any mobile branch —
+  the native path lives in NativeGoogleSignIn.tsx and GoogleSignInPlugin.swift,
+  and a second, quieter route back into Safari is exactly the regression worth
+  failing a build over.
+
+  The app's button also refuses to draw itself unless it can work: the plugin
+  has to be registered and the deployment has to have an iOS Google client. A
+  build made before either is done offers Apple and email rather than a Google
+  button that ends in an error.
 */
-test("the iOS build offers no Google sign-in at all", () => {
+test("the app's Google sign-in is native, and this component stays a website one", () => {
   const signedOut = readFileSync(join(root, "components/account/SignedOut.tsx"), "utf8");
-  assert.match(signedOut, /import \{ IS_MOBILE_BUILD \} from "@\/lib\/platform";/);
-  assert.match(
-    signedOut,
-    /providers\.includes\(p\.id\) && !\(IS_MOBILE_BUILD && p\.id === "google"\)/,
-  );
+  const native = readFileSync(join(root, "components/account/NativeGoogleSignIn.tsx"), "utf8");
+
+  // The app draws the native button; the website keeps Google Identity Services.
+  assert.match(signedOut, /IS_MOBILE_BUILD \? \(\s*<NativeGoogleSignIn key=\{id\} \/>/);
+  // And this file still has no idea it is ever running inside an app.
   assert.doesNotMatch(component, /IS_MOBILE_BUILD/);
+
+  // The sheet, not a navigation: the plugin returns a credential to post.
+  assert.match(native, /capacitor\?\.isNativePlatform\?\.\(\)/);
+  assert.match(native, /capacitor\.Plugins\?\.GoogleSignIn/);
+  assert.match(native, /apiUrl\("\/api\/auth\/google\/token"\)/);
+  assert.doesNotMatch(native, /href=/, "a link is how the broken version worked");
+
+  // Nothing is drawn without both halves of what makes it work.
+  assert.match(native, /if \(!plugin \|\| !clientId\) return null;/);
+
+  const plugin = readFileSync(join(root, "ios/App/App/GoogleSignInPlugin.swift"), "utf8");
+  assert.match(plugin, /ASWebAuthenticationSession/);
+  // response_type=id_token, so no client secret is needed and none can ship.
+  assert.match(plugin, /response_type", value: "id_token"/);
+  assert.doesNotMatch(plugin, /client_secret/);
+  // The digest goes to Google and the raw nonce to BandUp, as Apple's does.
+  assert.match(plugin, /name: "nonce", value: Self\.sha256Hex\(nonce\)/);
+  assert.match(plugin, /"nonce": nonce/);
+
+  const main = readFileSync(join(root, "ios/App/App/MainViewController.swift"), "utf8");
+  assert.match(main, /registerPluginInstance\(googleSignIn\)/);
 });
 
 test("web Google sign-in falls back to the established full-navigation flow", () => {

@@ -3,6 +3,7 @@ import {
   accountsEnabled,
   bandUpSessionSigningKey,
   googleClientId,
+  googleIosClientId,
 } from "@/lib/auth/env";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { verifyGoogleIdToken } from "@/lib/auth/google-token";
@@ -44,7 +45,17 @@ async function handlePOST(req: Request) {
       logInternal("auth/google/native", new Error("native auth is enabled without a session signing key"));
       return safeJsonError("Google sign-in could not be completed. Please try again.", 503);
     }
-    const identity = await verifyGoogleIdToken(credential, clientId, nonce);
+    /*
+      Both of this project's Google clients. A token names one audience, and
+      which one depends on where the sign-in happened: the website's button
+      mints for the web client, the app's own sheet for the iOS client. See
+      lib/auth/env.ts.
+    */
+    const identity = await verifyGoogleIdToken(
+      credential,
+      [clientId, googleIosClientId()].filter((value): value is string => Boolean(value)),
+      nonce,
+    );
     if (!identity) {
       return safeJsonError("Google sign-in could not be completed. Please try again.", 401);
     }

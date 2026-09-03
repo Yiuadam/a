@@ -37,12 +37,14 @@ final class MainViewController: CAPBridgeViewController {
   private let speechRecognition = SpeechRecognitionPlugin()
   private let storefront = StorefrontPlugin()
   private let signInWithApple = SignInWithApplePlugin()
+  private let googleSignIn = GoogleSignInPlugin()
 
   override func capacitorDidLoad() {
     bridge?.registerPluginInstance(nativeChrome)
     bridge?.registerPluginInstance(speechRecognition)
     bridge?.registerPluginInstance(storefront)
     bridge?.registerPluginInstance(signInWithApple)
+    bridge?.registerPluginInstance(googleSignIn)
   }
 
   override func viewDidLoad() {

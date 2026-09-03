@@ -86,5 +86,32 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!--
+	  The redirect Google sends the app back to after a native sign-in.
+
+	  It is the iOS OAuth client ID with its dot-separated parts reversed, which
+	  is the form Google requires for an installed application, and iOS will
+	  only deliver a URL with this scheme to the app that claims it here.
+	  GoogleSignInPlugin.swift builds the same string from the client ID it is
+	  given at run time, so the two agree by construction rather than by anyone
+	  remembering to keep them in step.
+
+	  The value below is a placeholder. Replacing it is one of the three steps
+	  in DEPLOY.md's "Google sign-in in the iOS app", and the button does not
+	  appear in the app until the matching GOOGLE_IOS_CLIENT_ID is set on the
+	  Worker — so an app built before that step is done offers Apple and email
+	  rather than a Google button that would fail.
+	-->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.bandup.app.google-signin</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.REPLACE-WITH-IOS-CLIENT-ID</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

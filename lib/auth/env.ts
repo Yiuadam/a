@@ -68,6 +68,25 @@ export function googleClientId(): string | undefined {
 }
 
 /**
+ * The iOS application's own Google OAuth client, if one has been created.
+ *
+ * A separate client from the web one, and it has to be: Google issues an ID
+ * token to a specific audience, and a token minted for an iOS client carries
+ * that client as its `aud` rather than the website's. Both are accepted at
+ * /api/auth/google/token for exactly that reason.
+ *
+ * It is public in the same way the web client ID is — an iOS OAuth client has
+ * no secret at all, because a secret shipped inside an app is not one. It is
+ * read from the environment rather than hard-coded only so a fork or a second
+ * deployment can carry its own.
+ */
+export function googleIosClientId(): string | undefined {
+  assertServerOnly(MODULE);
+  const value = process.env["GOOGLE_IOS_CLIENT_ID"];
+  return value && value.length > 0 ? value : undefined;
+}
+
+/**
  * Confidential credential for BandUp's server-side Google authorization-code
  * exchange. It is used only by the Worker, never by a browser or the iOS
  * bundle. The normal Google Identity Services button does not need it.

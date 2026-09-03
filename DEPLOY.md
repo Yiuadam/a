@@ -9,6 +9,42 @@ https://bandup.life
 
 Nothing to run by hand, ever.
 
+## Google sign-in in the iOS app
+
+The app signs in with Google through the system's OAuth sheet
+(`ios/App/App/GoogleSignInPlugin.swift`), not through the website's button —
+Capacitor hands a navigation off the app's own origin to Safari, which is why
+the old version signed people in somewhere the app could not read.
+
+It needs an **iOS OAuth client**, which is a different registration from the
+website's and has no client secret at all: Google does not issue one for an
+installed application, because a secret shipped inside an app is not a secret.
+Three steps, and they have to be done together — the app draws no Google button
+until the first two are in place, so a half-done setup shows Apple and email
+rather than a button that fails:
+
+1. **Google Cloud console → Credentials → Create credentials → OAuth client ID
+   → iOS.** Bundle ID `com.bandup.app`. Copy the client ID.
+2. **Set `GOOGLE_IOS_CLIENT_ID` on the Worker** to that value
+   (`npx wrangler secret put GOOGLE_IOS_CLIENT_ID`, or the dashboard). It is not
+   secret, but it lives with the other auth configuration.
+3. **Paste the reversed client ID into `ios/App/App/Info.plist`**, replacing
+   `com.googleusercontent.apps.REPLACE-WITH-IOS-CLIENT-ID`. Reversed means the
+   dot-separated parts in the opposite order, which is the redirect scheme
+   Google requires and the one the plugin builds for itself at run time.
+
+Nothing about the server routes changes. The sheet returns a signed Google ID
+token, which is the same thing the website's button produces, and
+`/api/auth/google/token` accepts either of the two clients by audience.
+
+**One thing to settle before submitting.** Offering any third-party login puts
+the app under App Review guideline 4.8, which wants an equivalent way in that
+lets somebody keep their email address private — and that is Sign in with Apple,
+which is written but returns `enabled: false` because it has no server
+configuration yet. Either finish Apple's setup or leave `GOOGLE_IOS_CLIENT_ID`
+unset until you do; with neither third-party login offered the app falls under
+4.8's own exception for an app that uses only the developer's account system.
+
 ## Does the URL change?
 
 No. A Worker has one stable address for its lifetime, and every deployment
