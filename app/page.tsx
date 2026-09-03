@@ -177,7 +177,7 @@ function OrganisationHero({ organization }: { organization: HomeOrganizationShor
             <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-indigo-700">
               Your organisation
             </span>
-            <h1 className="mt-0.5 truncate text-xl font-semibold text-slate-900 sm:text-[22px]">
+            <h1 className="mt-0.5 truncate text-xl font-semibold text-slate-900 sm:text-[1.375rem]">
               {organization.name}
             </h1>
             <span className="mt-0.5 block truncate text-sm text-slate-600">
@@ -286,7 +286,7 @@ function ScoreTrendOverview({
         <span className="flex min-w-0 items-center gap-2.5">
           <BandBadge band={placement.band} size="sm" />
           <span className="min-w-0">
-            <h1 id="dashboard-score-heading" className="truncate text-xl font-semibold text-slate-900 sm:text-[22px]">
+            <h1 id="dashboard-score-heading" className="truncate text-xl font-semibold text-slate-900 sm:text-[1.375rem]">
               Your score trends
             </h1>
             <span className="block text-xs text-slate-500">Placement band {placement.band}</span>

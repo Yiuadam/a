@@ -384,7 +384,7 @@ export default function CloudflareMigrationReadiness() {
               </ul>
             </div>
           )}
-          <p className="mt-3 text-[11px] leading-4 text-slate-400">
+          <p className="mt-3 text-[0.6875rem] leading-4 text-slate-400">
             Learner mode {report.modes.learner}; organisation mode {report.modes.organization}. Evidence format {report.fingerprintVersion}. Checked {new Date(report.generatedAt).toLocaleString()}.
           </p>
         </>

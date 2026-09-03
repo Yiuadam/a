@@ -138,7 +138,7 @@ export default function ClearDeviceSection() {
         the screen they are deciding about. The first tap destroys nothing,
         which is what makes moving them legitimate.
       */}
-      <p className="text-[14px] leading-6 text-slate-600">
+      <p className="text-[0.875rem] leading-6 text-slate-600">
         Clears your placement result, practice scores, study plan, saved words, drill progress and
         any exam in progress from this browser, straight away.
       </p>
@@ -149,7 +149,7 @@ export default function ClearDeviceSection() {
         </button>
       ) : (
         <div className="mt-3 space-y-2 rounded-xl bg-rose-50 px-3 py-3">
-          <p className="text-[14px] leading-6 text-rose-900">
+          <p className="text-[0.875rem] leading-6 text-rose-900">
             Clear everything saved in this browser, including any exam in progress? This cannot be
             undone here. Your theme and your sign-in are kept.
           </p>
@@ -163,19 +163,19 @@ export default function ClearDeviceSection() {
             thing instead of the one part that happened to be true.
           */}
           {session ? (
-            <p className="text-[13px] leading-5 text-rose-800/80">
+            <p className="text-[0.8125rem] leading-5 text-rose-800/80">
               This is not your account. BandUp clears the synced copy first — sittings, placement,
               drill scores and saved words — and deletes the drill and saved-word records from
               your account rather than emptying them, so none of it returns on another device.
               Your sign-in and account profile remain.
             </p>
           ) : (
-            <p className="text-[13px] leading-5 text-rose-800/80">
+            <p className="text-[0.8125rem] leading-5 text-rose-800/80">
               Only this browser is affected. There is no signed-in account to change.
             </p>
           )}
           {error ? (
-            <p className="text-[13px] leading-5 text-rose-900" role="alert">
+            <p className="text-[0.8125rem] leading-5 text-rose-900" role="alert">
               {error}
             </p>
           ) : null}

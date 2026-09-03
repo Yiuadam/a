@@ -8,7 +8,7 @@ export default function LookupHistoryPage() {
     <div className="mx-auto max-w-5xl space-y-3">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-[22px]">
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-[1.375rem]">
             Lookup history
           </h1>
           <p className="mt-1 text-sm leading-6 text-slate-600">

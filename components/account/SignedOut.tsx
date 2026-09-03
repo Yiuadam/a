@@ -93,7 +93,7 @@ export default function SignedOut({
   return (
     <div className="space-y-6">
       <section className="card">
-        <h2 className="text-[17px] font-semibold text-slate-900">Sign in</h2>
+        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Sign in</h2>
         {/*
           The second half of that sentence is a promise about the buttons
           below it, so it is only made when there are any. In the app there
@@ -101,7 +101,7 @@ export default function SignedOut({
           offering "an account you already have" with nothing underneath to
           use it with reads as something having failed to load.
         */}
-        <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+        <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
           {available.length > 0
             ? "With an email address and a password, or with an account you already have."
             : "With an email address and a password."}
@@ -160,7 +160,7 @@ export default function SignedOut({
       <section className="card !py-3">
         {showRecovery ? (
           <>
-            <h2 className="text-[15px] font-semibold text-slate-900">Email me a sign-in link</h2>
+            <h2 className="text-[0.9375rem] font-semibold text-slate-900">Email me a sign-in link</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
               A one-time link to the address on your account, for when you can&rsquo;t get into the
               account you signed up with.
@@ -301,7 +301,7 @@ function PasswordForm() {
 
   if (confirm) {
     return (
-      <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[15px] leading-7 text-emerald-800">
+      <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[0.9375rem] leading-7 text-emerald-800">
         Check your inbox — there is a link there that finishes setting up your account. If that
         address already had an account, use your existing password instead.
       </p>
@@ -406,7 +406,7 @@ function RecoveryForm({ onDone }: { onDone: () => void }) {
 
   if (sent) {
     return (
-      <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[15px] leading-7 text-emerald-800">
+      <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[0.9375rem] leading-7 text-emerald-800">
         {/*
           Says "if" on purpose. The server will not confirm whether an address
           has an account, because a form that does is a way to ask whether any

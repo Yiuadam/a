@@ -90,7 +90,7 @@ function UsageBreakdown({ rows }: { rows: UsageBreakdownRow[] }) {
       </p>
       <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200/80">
         <table className="w-full min-w-[620px] text-left text-xs">
-          <thead className="border-b border-slate-200 text-[10px] uppercase tracking-wide text-slate-400">
+          <thead className="border-b border-slate-200 text-[0.625rem] uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-3 py-2">Feature</th>
               <th className="px-3 py-2">Caller</th>
@@ -234,7 +234,7 @@ export function SiteSwitch({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-slate-900">{heading}</h2>
-          <p className="mt-1 text-[13px] leading-5 text-slate-600">{displayedDetail}</p>
+          <p className="mt-1 text-[0.8125rem] leading-5 text-slate-600">{displayedDetail}</p>
         </div>
         <button
           type="button"
@@ -249,7 +249,7 @@ export function SiteSwitch({
       {error && (
         <p
           role="alert"
-          className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[13px] leading-5 text-rose-700"
+          className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[0.8125rem] leading-5 text-rose-700"
         >
           {error}
         </p>
@@ -264,7 +264,7 @@ export function SiteSwitch({
       {state.deployProblem && (
         <p
           role="alert"
-          className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[13px] leading-5 text-rose-800"
+          className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[0.8125rem] leading-5 text-rose-800"
         >
           {state.deployProblem}
         </p>
@@ -279,7 +279,7 @@ export function SiteSwitch({
         to: a variable name is developer-speak in a sentence a person reads.
       */}
       {!deploys && !compact && (
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[12px] leading-5 text-amber-900">
+        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[0.75rem] leading-5 text-amber-900">
           <span className="font-semibold">This switch cannot deploy.</span> No deploy token is set
           on the Worker, so it can only record what you decide. Add one — DEPLOY.md says how — or
           run the <span className="font-medium">Deploy to Cloudflare</span> workflow yourself with
@@ -288,13 +288,13 @@ export function SiteSwitch({
       )}
 
       {!deploys && compact && (
-        <p className="mt-2 text-[11px] leading-4 text-amber-900">
+        <p className="mt-2 text-[0.6875rem] leading-4 text-amber-900">
           No deploy token is set, so this control can only record the decision.
         </p>
       )}
 
       {state.deployStarted && (
-        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[12px] leading-5 text-slate-600">
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[0.75rem] leading-5 text-slate-600">
           Deployment started. Reload this page in a couple of minutes to confirm it landed.
         </p>
       )}
@@ -308,12 +308,12 @@ export function SiteSwitch({
         already live.
       */}
       {deploys && !compact && (
-        <p className="mt-2 text-[11px] leading-4 text-slate-500">
+        <p className="mt-2 text-[0.6875rem] leading-4 text-slate-500">
           Either way this deploys <span className="font-medium">main</span> as it stands now.
         </p>
       )}
 
-      <div className="mt-2 flex items-center justify-between gap-3 text-[11px] leading-4 text-slate-500">
+      <div className="mt-2 flex items-center justify-between gap-3 text-[0.6875rem] leading-4 text-slate-500">
         <p>{state.changedAt && `Last changed ${new Date(state.changedAt).toLocaleString()}.`}</p>
         {compact && (
           <Link href="/admin/site" className="shrink-0 font-medium hover:text-slate-900">
@@ -335,18 +335,18 @@ export function ConfigList({ checks, compact = false }: { checks: Check[] | null
       <section className="card rounded-2xl border border-slate-200 bg-surface p-3.5">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-900">Configuration</h2>
-          <Link href="/admin/config" className="shrink-0 text-[11px] font-medium text-slate-500 hover:text-slate-900">
+          <Link href="/admin/config" className="shrink-0 text-[0.6875rem] font-medium text-slate-500 hover:text-slate-900">
             Details ›
           </Link>
         </div>
         {checks === null ? (
-          <p className="mt-2 text-[13px] text-slate-500">Couldn&rsquo;t read the checks just now.</p>
+          <p className="mt-2 text-[0.8125rem] text-slate-500">Couldn&rsquo;t read the checks just now.</p>
         ) : failing.length > 0 ? (
-          <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-[13px] leading-5 text-rose-800">
+          <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-[0.8125rem] leading-5 text-rose-800">
             {failing.length} of {checks.length} checks need attention.
           </p>
         ) : (
-          <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[13px] leading-5 text-emerald-800">
+          <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[0.8125rem] leading-5 text-emerald-800">
             All {checks.length} checks are passing.
           </p>
         )}
@@ -359,7 +359,7 @@ export function ConfigList({ checks, compact = false }: { checks: Check[] | null
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-semibold text-slate-900">Configuration</h2>
         {checks && (
-          <span className="text-[11px] text-slate-500">
+          <span className="text-[0.6875rem] text-slate-500">
             {failing.length === 0
               ? `${checks.length} checks passing`
               : `${failing.length} of ${checks.length} need attention`}
@@ -368,7 +368,7 @@ export function ConfigList({ checks, compact = false }: { checks: Check[] | null
       </div>
 
       {checks === null ? (
-        <p className="mt-3 text-[13px] text-slate-500">Couldn&rsquo;t read the checks just now.</p>
+        <p className="mt-3 text-[0.8125rem] text-slate-500">Couldn&rsquo;t read the checks just now.</p>
       ) : (
         /*
           Only what is wrong, with the rest collapsed to a count. A list of
@@ -378,12 +378,12 @@ export function ConfigList({ checks, compact = false }: { checks: Check[] | null
         <ul className="mt-3 space-y-2">
           {failing.map((c) => (
             <li key={c.name} className="rounded-lg border border-rose-200 bg-rose-50/50 px-3 py-2">
-              <p className="text-[13px] font-medium text-rose-800">{c.name}</p>
-              <p className="mt-0.5 text-[11px] leading-4 text-rose-700">{c.detail}</p>
+              <p className="text-[0.8125rem] font-medium text-rose-800">{c.name}</p>
+              <p className="mt-0.5 text-[0.6875rem] leading-4 text-rose-700">{c.detail}</p>
             </li>
           ))}
           {failing.length === 0 && (
-            <li className="rounded-lg bg-emerald-50 px-3 py-2 text-[13px] leading-5 text-emerald-800">
+            <li className="rounded-lg bg-emerald-50 px-3 py-2 text-[0.8125rem] leading-5 text-emerald-800">
               Everything is configured. Nothing needs your attention.
             </li>
           )}
@@ -435,8 +435,8 @@ export function CheckoutAlarm({ checks }: { checks: Check[] | null }) {
       className="card mb-3 rounded-2xl border border-rose-300 bg-rose-50 p-3.5 sm:p-4"
     >
       <p className="text-sm font-semibold text-rose-900">Checkout is failing. Nobody can pay.</p>
-      <p className="mt-1 text-[13px] leading-5 text-rose-800">{checkout.detail}</p>
-      <p className="mt-2 text-[11px] leading-4 text-rose-700">
+      <p className="mt-1 text-[0.8125rem] leading-5 text-rose-800">{checkout.detail}</p>
+      <p className="mt-2 text-[0.6875rem] leading-4 text-rose-700">
         No learner sees any of this — they are told only that checkout could not start, and nothing
         has been charged. What Stripe itself said is on the configuration screen.{" "}
         <Link href="/admin/config" className="font-medium underline">

@@ -109,7 +109,7 @@ export default function ExamTimer({
     <div className="select-none text-center">
       <div
         aria-hidden="true"
-        className={`font-mono text-[19px] font-semibold tabular-nums transition-colors ${
+        className={`font-mono text-[1.1875rem] font-semibold tabular-nums transition-colors ${
           critical
             ? "animate-pulse text-rose-600"
             : low
@@ -127,7 +127,7 @@ export default function ExamTimer({
       <p className="sr-only" role="timer" aria-live="polite">
         {critical ? "Under one minute remaining" : `${Math.ceil(remaining / 60)} minutes remaining`}
       </p>
-      <div className="text-[10px] uppercase tracking-wide text-[color:var(--exam-muted)]">
+      <div className="text-[0.625rem] uppercase tracking-wide text-[color:var(--exam-muted)]">
         {running ? "time remaining" : "not started"}
       </div>
     </div>

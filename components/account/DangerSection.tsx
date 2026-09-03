@@ -94,7 +94,7 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
 
   return (
     <section className="card !p-4 sm:!p-6">
-      <h3 className="text-[16px] font-semibold text-slate-900">Delete your account</h3>
+      <h3 className="text-[1rem] font-semibold text-slate-900">Delete your account</h3>
       {/*
         The short version at rest and the full one behind the button, for the
         same reason as ClearDeviceSection: the words about what survives are
@@ -102,13 +102,13 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
         a button they have not pressed. Nothing is removed — the second
         paragraph now sits inside the confirm step.
       */}
-      <p className="mt-1.5 text-[14px] leading-6 text-slate-600">
+      <p className="mt-1.5 text-[0.875rem] leading-6 text-slate-600">
         Removes your account and everything stored against it. It cannot be undone.
       </p>
 
       {deleted ? (
         <p
-          className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[15px] leading-7 text-emerald-800"
+          className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[0.9375rem] leading-7 text-emerald-800"
           role="status"
         >
           <LoadingIndicator label="Your account was deleted. Returning to sign in…" announce={false} />
@@ -119,7 +119,7 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
         </button>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
-          <p className="text-[14px] leading-6 text-slate-600">
+          <p className="text-[0.875rem] leading-6 text-slate-600">
             Your email address, your details, your picture and any practice you have synced all go.
             The practice saved in this browser stays — it was never on our side to delete, and you
             can clear it from your browser&rsquo;s settings whenever you like.
@@ -136,12 +136,12 @@ export function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
             onChange={(e) => setConfirm(e.target.value)}
           />
           {progress && (
-            <p className="text-[14px] leading-6 text-slate-600" role="status" aria-live="polite">
+            <p className="text-[0.875rem] leading-6 text-slate-600" role="status" aria-live="polite">
               <LoadingIndicator label={progress} announce={false} />
             </p>
           )}
           {problem && (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[15px] leading-7 text-rose-800">
+            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[0.9375rem] leading-7 text-rose-800">
               {problem}
             </p>
           )}

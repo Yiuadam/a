@@ -149,14 +149,14 @@ export default function AdminOverviewCharts({
   return (
     <section aria-labelledby="admin-overview-charts-heading">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 id="admin-overview-charts-heading" className="text-[11px] font-medium text-slate-500">
+        <h2 id="admin-overview-charts-heading" className="text-[0.6875rem] font-medium text-slate-500">
           Overview charts
         </h2>
         <button
           type="button"
           onClick={openChooser}
           aria-haspopup="dialog"
-          className="liquid-glass rounded-full border border-slate-200 bg-surface px-3 py-1.5 text-[11px] font-medium text-indigo-700 hover:text-indigo-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          className="liquid-glass rounded-full border border-slate-200 bg-surface px-3 py-1.5 text-[0.6875rem] font-medium text-indigo-700 hover:text-indigo-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
         >
           Customise
         </button>
@@ -200,7 +200,7 @@ export default function AdminOverviewCharts({
                 </h2>
                 <p
                   id="admin-chart-chooser-description"
-                  className="mt-1 text-[13px] leading-5 text-slate-600"
+                  className="mt-1 text-[0.8125rem] leading-5 text-slate-600"
                 >
                   Pick up to two different charts. This layout is saved only in this browser.
                 </p>
@@ -235,7 +235,7 @@ export default function AdminOverviewCharts({
             </div>
 
             {storageProblem && (
-              <p role="alert" className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-[13px] text-rose-800">
+              <p role="alert" className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-[0.8125rem] text-rose-800">
                 {storageProblem}
               </p>
             )}
@@ -310,8 +310,8 @@ function ChartSlot({
                 className="mt-0.5 accent-indigo-600"
               />
               <span className="min-w-0">
-                <span className="block text-[13px] font-medium text-slate-800">{choice.label}</span>
-                <span className="block text-[11px] leading-4 text-slate-500">
+                <span className="block text-[0.8125rem] font-medium text-slate-800">{choice.label}</span>
+                <span className="block text-[0.6875rem] leading-4 text-slate-500">
                   {disabled ? "Already used in the other slot." : choice.description}
                 </span>
               </span>

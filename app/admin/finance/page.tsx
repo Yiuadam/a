@@ -180,9 +180,9 @@ function FinanceReport({ finance }: { finance: FinanceData }) {
                 <div key={`${row.currency}-${category.category}`} className="rounded-xl border border-slate-200 px-3 py-2">
                   <div className="flex justify-between gap-3">
                     <span>{category.category.replaceAll("_", " ")}</span>
-                    <span className="tabular-nums">{formatExactMoney(category[range].net)} <span className="text-[10px] text-slate-400">{row.currency}</span></span>
+                    <span className="tabular-nums">{formatExactMoney(category[range].net)} <span className="text-[0.625rem] text-slate-400">{row.currency}</span></span>
                   </div>
-                  <p className="mt-0.5 text-[11px] text-slate-400">
+                  <p className="mt-0.5 text-[0.6875rem] text-slate-400">
                     {category[range].count.toLocaleString()} entries. {categoryExplanation(category.classification)}
                   </p>
                 </div>
@@ -203,9 +203,9 @@ function FinanceReport({ finance }: { finance: FinanceData }) {
 function MoneyCard({ label, values, hint }: { label: string; values: ExactMoney[]; hint: string }) {
   return (
     <section className="card min-w-0 rounded-2xl border border-slate-200 bg-surface p-3.5">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-400">{label}</p>
       <MoneyValues label={label} values={values} />
-      <p className="mt-1 text-[11px] leading-4 text-slate-500">{hint}</p>
+      <p className="mt-1 text-[0.6875rem] leading-4 text-slate-500">{hint}</p>
     </section>
   );
 }
@@ -265,9 +265,9 @@ function HkdEstimate({
       <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-3 border-t border-slate-200 pt-3 xs:grid-cols-2 xl:grid-cols-5">
         {values.map(([label, value]) => (
           <div key={label} className="min-w-0">
-            <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</dt>
+            <dt className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-400">{label}</dt>
             <dd className="mt-0.5 text-xl font-semibold tabular-nums text-slate-900">
-              {formatExactMoney(value)} <span className="text-[11px] font-medium text-slate-400">HKD</span>
+              {formatExactMoney(value)} <span className="text-[0.6875rem] font-medium text-slate-400">HKD</span>
             </dd>
           </div>
         ))}
@@ -321,7 +321,7 @@ function MoneyValues({ label, values, compact = false }: { label: string; values
     <ul aria-label={`${label} by currency`} className={compact ? "space-y-0.5 text-right" : "mt-1 space-y-0.5"}>
       {values.map((value) => (
         <li key={value.currency} className={`${compact ? "text-sm" : "text-xl"} font-semibold tabular-nums text-slate-900`}>
-          {formatExactMoney(value)} <span className={`${compact ? "text-[10px]" : "text-[11px]"} font-medium text-slate-400`}>{value.currency}</span>
+          {formatExactMoney(value)} <span className={`${compact ? "text-[0.625rem]" : "text-[0.6875rem]"} font-medium text-slate-400`}>{value.currency}</span>
         </li>
       ))}
     </ul>

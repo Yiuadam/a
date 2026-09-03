@@ -30,15 +30,15 @@ const BUILT_WITH: { name: string; what: string }[] = [
 export default function AboutPage() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-2.5 sm:space-y-4">
-      <h1 className="text-[21px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
+      <h1 className="text-[1.3125rem] font-semibold tracking-tight text-slate-900 sm:text-[1.625rem]">
         About BandUp
       </h1>
 
       <section className="card !p-4 sm:!p-6">
-        <h2 className="mb-1.5 text-[15px] font-semibold text-slate-900">
+        <h2 className="mb-1.5 text-[0.9375rem] font-semibold text-slate-900">
           Founded and made by Adam
         </h2>
-        <p className="text-[14px] leading-[22px] text-slate-600">
+        <p className="text-[0.875rem] leading-[1.375rem] text-slate-600">
           BandUp was founded, designed, built and written by{" "}
           <strong className="font-semibold text-slate-900">Adam</strong> — one person, not a
           company. Every test, explanation and word of it is written from scratch, so anything
@@ -47,10 +47,10 @@ export default function AboutPage() {
       </section>
 
       <section className="card !p-4 sm:!p-6">
-        <h2 className="mb-1.5 text-[15px] font-semibold text-slate-900">Built with</h2>
+        <h2 className="mb-1.5 text-[0.9375rem] font-semibold text-slate-900">Built with</h2>
         <ul className="grid grid-cols-2 gap-x-4 gap-y-0.5">
           {BUILT_WITH.map((tool) => (
-            <li key={tool.name} className="text-[13px] leading-5">
+            <li key={tool.name} className="text-[0.8125rem] leading-5">
               <span className="block font-medium text-slate-900">{tool.name}</span>
               <span className="block text-slate-500">{tool.what}</span>
             </li>
@@ -59,8 +59,8 @@ export default function AboutPage() {
       </section>
 
       <section className="card !p-4 sm:!p-6">
-        <h2 className="mb-1.5 text-[15px] font-semibold text-slate-900">What BandUp is not</h2>
-        <p className="text-[14px] leading-[22px] text-slate-600">
+        <h2 className="mb-1.5 text-[0.9375rem] font-semibold text-slate-900">What BandUp is not</h2>
+        <p className="text-[0.875rem] leading-[1.375rem] text-slate-600">
           An independent study tool — not affiliated with, endorsed by or connected to IELTS, the
           British Council, IDP or Cambridge English. No band it gives you is official; they are
           practice estimates, to help you decide what to work on next. Every word of the material
@@ -68,7 +68,7 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <p className="pt-0.5 text-[12px] text-slate-500">
+      <p className="pt-0.5 text-[0.75rem] text-slate-500">
         <Link href="/privacy" className="font-medium text-indigo-700 underline underline-offset-2">
           Privacy policy
         </Link>

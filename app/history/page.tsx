@@ -400,7 +400,7 @@ export default function HistoryPage() {
         above a page whose point is the numbers underneath it.
       */}
       <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-[22px]">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-[1.375rem]">
           History
         </h1>
         <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">
@@ -419,7 +419,7 @@ export default function HistoryPage() {
       ) : (
         results.length > 0 && (
           <div className="card">
-            <p className="text-[15px] leading-7 text-slate-600">
+            <p className="text-[0.9375rem] leading-7 text-slate-600">
               <span className="font-medium text-slate-800">No overall band yet.</span> An overall
               is the mean of four skills measured in one sitting, so it comes from a{" "}
               <Link href="/exam" className="font-medium text-indigo-700 underline underline-offset-2">
@@ -435,7 +435,7 @@ export default function HistoryPage() {
       {results.length === 0 ? (
         standing ? null : (
           <div className="card">
-            <p className="text-[15px] leading-7 text-slate-600">
+            <p className="text-[0.9375rem] leading-7 text-slate-600">
               Sit any practice test and it lands here automatically —{" "}
               <Link href="/practice" className="font-medium text-indigo-700 underline underline-offset-2">
                 start with a reading or listening test

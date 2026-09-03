@@ -362,7 +362,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
       <div className="exam-start-window card premade-glass relative mx-auto w-full overflow-hidden !p-[clamp(1rem,3vw,2rem)]">
         <div className="exam-start-content premade-glass-content mx-auto w-full space-y-[clamp(0.75rem,2.4vh,1.5rem)]">
         <header className="max-w-2xl">
-          <p className="liquid-glass mb-2 inline-flex min-h-7 items-center rounded-full border px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700">
+          <p className="liquid-glass mb-2 inline-flex min-h-7 items-center rounded-full border px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-indigo-700">
             Full sitting
           </p>
           <h1 className="text-[clamp(1.9rem,5vw,3.5rem)] font-semibold leading-none tracking-tight text-slate-900">

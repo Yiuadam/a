@@ -100,23 +100,23 @@ export default function PayingWhileFreeNotice() {
 
   return (
     <section className="card">
-      <h2 className="text-[17px] font-semibold text-slate-900">
+      <h2 className="text-[1.0625rem] font-semibold text-slate-900">
         Pro is free at the moment, and you are paying for a plan
       </h2>
-      <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+      <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
         We are giving Pro to every account for nothing while the trial runs, so you are paying
         for something other people are being given. We would rather tell you than have you find
         out.
       </p>
       {renews === false ? (
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           You paid once for a pass, so there is nothing to cancel and nothing further will be
           charged — it simply runs to its date, which is on this page. Your payment is very welcome
           and it was not required. The free trial may be cancelled at any time in the future, and
           if it ends, an account with no paid access goes back to the free plan.
         </p>
       ) : (
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           You are welcome to cancel your subscription and take the free trial instead — everything
           you have written or practised stays where it is either way. Your subscription is very
           welcome and it is not required. The free trial may be cancelled at any time in the
@@ -132,7 +132,7 @@ export default function PayingWhileFreeNotice() {
         is one mount away from being wrong. It says where to go instead.
       */}
       {IS_MOBILE_BUILD ? (
-        <p className="mt-4 text-[15px] leading-7 text-slate-600">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-600">
           Subscriptions are managed on bandup.life, in a browser.
         </p>
       ) : (

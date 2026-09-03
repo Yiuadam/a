@@ -68,7 +68,14 @@ export default function AppMain({ children }: { children: ReactNode }) {
             /* `min-h-0` so a child that wants to scroll inside this column can.
                Without it a flex item refuses to shrink below its content and
                the whole page scrolls instead of the conversation. */
-            "mx-auto w-full min-h-0 max-w-5xl flex-1 px-5 py-6 sm:py-10 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]"
+            /* One more tier past 2xl, because the column used to stop growing
+               at 1536px and a 2560px display was left with 512 pixels of empty
+               paper down each side. 116rem grows with the root as well, so the
+               measure and the type widen together rather than the text getting
+               larger inside a box that stays put. It is a ceiling, not a
+               target: prose caps itself far below this (see app/privacy and
+               the reading passage), which is deliberate and unaffected. */
+            "mx-auto w-full min-h-0 max-w-5xl flex-1 px-5 py-6 sm:py-10 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] min-[1920px]:max-w-[116rem]"
       }
     >
       {children}

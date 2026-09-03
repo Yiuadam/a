@@ -202,7 +202,7 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
     <div className="min-w-0 space-y-3">
       <div className="min-w-0">
         <h2 className="mb-2 text-sm font-semibold text-slate-900">Task {task.task}</h2>
-        <p className="whitespace-pre-line break-words text-[15px] leading-7 text-slate-800">{task.prompt}</p>
+        <p className="whitespace-pre-line break-words text-[0.9375rem] leading-7 text-slate-800">{task.prompt}</p>
         <p className="mt-3 text-xs text-slate-500">
           At least {task.minWords} words · {task.timeMinutes} minutes
         </p>
@@ -367,7 +367,7 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
           content: (
             <div>
               <h3 className="mb-2 text-sm font-semibold text-slate-900">One band higher</h3>
-              <ExplainText text={grade.rewrittenExcerpt} className="block whitespace-pre-line text-[15px] leading-7 text-slate-700" />
+              <ExplainText text={grade.rewrittenExcerpt} className="block whitespace-pre-line text-[0.9375rem] leading-7 text-slate-700" />
             </div>
           ),
         },
@@ -404,7 +404,7 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
              reason: this draft survives a reload and nothing else. Both strings
              render under the identical condition, so a learner was being told
              two different things about their essay on one screen. */
-          <span className="text-[11px] text-slate-500">Kept if you reload</span>
+          <span className="text-[0.6875rem] text-slate-500">Kept if you reload</span>
         )
       }
     >

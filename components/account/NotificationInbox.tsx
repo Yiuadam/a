@@ -249,7 +249,7 @@ function NotificationRow({
           {!item.readAt && <span className="notification-unread-dot mt-1.5 h-2 w-2 shrink-0 rounded-full" aria-label="Unread" />}
         </span>
         <span className={`notification-row-copy mt-0.5 block text-slate-600 ${compact ? "line-clamp-2 text-xs leading-4" : "text-sm leading-5"}`}>{copy.body}</span>
-        <span className="notification-row-meta mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+        <span className="notification-row-meta mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.6875rem] text-slate-500">
           <time dateTime={item.createdAt}>{friendlyDate(item.createdAt)}</time>
           {item.assignment?.dueAt && item.type === "practice_assigned" && (
             <><span aria-hidden="true">·</span><span>Due {friendlyDate(item.assignment.dueAt)}</span></>
@@ -460,9 +460,9 @@ export function NotificationPopover({
         <h2 className="text-sm font-semibold text-slate-900">Notifications</h2>
         <div className="flex items-center gap-2">
           {feed.unreadCount > 0 && !previewRole && (
-            <button type="button" disabled={busy !== null} onClick={() => void markAll()} className="text-[11px] font-medium text-indigo-800 hover:underline disabled:opacity-50">{busy === "all" ? <LoadingIndicator label="Marking all read…" announce={false} /> : "Mark all read"}</button>
+            <button type="button" disabled={busy !== null} onClick={() => void markAll()} className="text-[0.6875rem] font-medium text-indigo-800 hover:underline disabled:opacity-50">{busy === "all" ? <LoadingIndicator label="Marking all read…" announce={false} /> : "Mark all read"}</button>
           )}
-          {(feed.unreadCount + (needsSetup ? 1 : 0)) > 0 && <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-800">{feed.unreadCount + (needsSetup ? 1 : 0)} new</span>}
+          {(feed.unreadCount + (needsSetup ? 1 : 0)) > 0 && <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[0.625rem] font-semibold text-indigo-800">{feed.unreadCount + (needsSetup ? 1 : 0)} new</span>}
         </div>
       </div>
       <div className="max-h-[min(28rem,calc(100dvh-8rem))] space-y-2 overflow-y-auto overscroll-contain pr-0.5">
@@ -548,7 +548,7 @@ export default function NotificationInbox({ previewRole = null }: { previewRole?
             type="button"
             disabled={busy !== null}
             onClick={() => void markAll()}
-            className="notification-compact-action shrink-0 rounded-full border bg-surface/55 px-3 text-[11px] font-semibold text-slate-800 transition-colors hover:bg-surface/85 disabled:opacity-50 sm:px-3.5"
+            className="notification-compact-action shrink-0 rounded-full border bg-surface/55 px-3 text-[0.6875rem] font-semibold text-slate-800 transition-colors hover:bg-surface/85 disabled:opacity-50 sm:px-3.5"
           >
             {busy === "all" ? <LoadingIndicator label="Marking all read…" announce={false} textClassName="sr-only" /> : "Mark all read"}
           </button>

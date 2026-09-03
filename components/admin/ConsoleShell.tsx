@@ -49,8 +49,8 @@ export default function ConsoleShell({
               />
             </span>
             <span>
-              <strong className="block text-[15px] font-semibold tracking-tight">BandUp</strong>
-              <span className="block text-[10px] font-medium uppercase tracking-[0.13em] text-slate-500">
+              <strong className="block text-[0.9375rem] font-semibold tracking-tight">BandUp</strong>
+              <span className="block text-[0.625rem] font-medium uppercase tracking-[0.13em] text-slate-500">
                 Owner console
               </span>
             </span>
@@ -131,7 +131,7 @@ export const CONSOLE_NAV: { href: Route; title: string; detail: string }[] = [
 export function NotFound({ mayNeedSignIn }: { mayNeedSignIn: boolean }) {
   return (
     <div className="mx-auto max-w-md py-16 text-center">
-      <h1 className="text-[22px] font-semibold text-slate-900">Page not found</h1>
+      <h1 className="text-[1.375rem] font-semibold text-slate-900">Page not found</h1>
       <p className="mt-2 text-sm leading-6 text-slate-600">
         {mayNeedSignIn ? "You may need to sign in." : "There's nothing at this address."}
       </p>

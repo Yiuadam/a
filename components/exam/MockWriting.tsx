@@ -180,7 +180,7 @@ export default function MockWriting({
               type="button"
               onClick={() => setActive(i)}
               aria-current={i === active}
-              className={`rounded px-2 py-0.5 text-[11px] font-semibold ${
+              className={`rounded px-2 py-0.5 text-[0.6875rem] font-semibold ${
                 i === active
                   ? "border-[1.5px] border-[color:var(--exam-accent)]"
                   : "border border-[color:var(--exam-line)] hover:bg-[color:var(--exam-hover)]"

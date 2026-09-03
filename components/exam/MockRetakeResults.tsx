@@ -267,7 +267,7 @@ export default function MockRetakeResults({
   if (marking) {
     return (
       <div className="card mx-auto max-w-xl space-y-3 py-10 text-center">
-        <h1 className="text-[22px] font-semibold text-slate-900">
+        <h1 className="text-[1.375rem] font-semibold text-slate-900">
           <LoadingIndicator label={`Marking your ${MODULE_NAMES[retake.module]} retake`} />
         </h1>
         <p className="text-sm leading-6 text-slate-600">

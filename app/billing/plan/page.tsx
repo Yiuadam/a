@@ -32,7 +32,7 @@ export default function PlanScreen() {
           <>
             <section className="card space-y-3">
               <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <h2 className="text-[19px] font-semibold text-slate-900">{definition.name}</h2>
+                <h2 className="text-[1.1875rem] font-semibold text-slate-900">{definition.name}</h2>
                 {/* The owner tier is named after its owner, so the name alone
                     does not say what it is. */}
                 {tier === "admin" && (
@@ -41,13 +41,13 @@ export default function PlanScreen() {
                   </span>
                 )}
                 {monthly && (
-                  <span className="text-[14px] text-slate-500">
+                  <span className="text-[0.875rem] text-slate-500">
                     {formatPrice(monthly.amountMinor, monthly.currency)} a month
                   </span>
                 )}
               </div>
 
-              <p className="text-[14px] leading-6 text-slate-600">{definition.blurb}</p>
+              <p className="text-[0.875rem] leading-6 text-slate-600">{definition.blurb}</p>
 
               <Link
                 href="/pricing"
@@ -77,12 +77,12 @@ export default function PlanScreen() {
             <AccessNotice state={state} planName={definition.name} />
 
             <section className="card">
-              <h2 className="heading-rule mb-3 text-[15px] font-semibold text-slate-900">
+              <h2 className="heading-rule mb-3 text-[0.9375rem] font-semibold text-slate-900">
                 What {definition.name} includes
               </h2>
               <ul className="space-y-1.5">
                 {definition.includes.map((line) => (
-                  <li key={line} className="flex gap-2.5 text-[14px] leading-6 text-slate-700">
+                  <li key={line} className="flex gap-2.5 text-[0.875rem] leading-6 text-slate-700">
                     <span
                       aria-hidden="true"
                       className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"

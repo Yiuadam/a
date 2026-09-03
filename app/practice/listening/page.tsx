@@ -667,7 +667,7 @@ function ListeningTestPageRunner() {
       <div className="mx-auto flex min-h-[calc(100dvh-var(--header-h))] max-w-xl items-center px-4">
         <div className="card w-full space-y-4 py-8 text-center">
           <AssignedPracticeNotice />
-          <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>
+          <h1 className="text-[1.625rem] font-semibold text-slate-900">{test.title}</h1>
           <p className="text-sm text-slate-600">{test.context}</p>
           <p className="text-sm text-slate-600">
             The recording is read aloud with BandUp audio, with your browser as a fallback ({test.script.length} turns,{" "}

@@ -55,7 +55,7 @@ export default function billingBlocker(state: TierState): ReactNode | null {
   if (state.phase === "loading") {
     return (
       <div className="card">
-        <p className="text-[15px] text-slate-500"><LoadingIndicator label="Checking your account…" /></p>
+        <p className="text-[0.9375rem] text-slate-500"><LoadingIndicator label="Checking your account…" /></p>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export default function billingBlocker(state: TierState): ReactNode | null {
     return (
       <div className="card border-amber-300 bg-amber-50">
         <h2 className="font-semibold text-slate-900">Your account details are not loading</h2>
-        <p className="mt-1.5 text-[15px] leading-7 text-slate-700">
+        <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-700">
           Everything you have done is still saved on this device, and every practice test and drill
           still works. This page will fill in once the connection comes back.
         </p>
@@ -76,7 +76,7 @@ export default function billingBlocker(state: TierState): ReactNode | null {
     return (
       <div className="card">
         <h2 className="font-semibold text-slate-900">Accounts are not switched on here</h2>
-        <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+        <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
           This copy of BandUp has no accounts and no subscriptions, so there is nothing to bill and
           no allowance to track. Everything on the app works as it is.
         </p>
@@ -88,7 +88,7 @@ export default function billingBlocker(state: TierState): ReactNode | null {
     return (
       <div className="card">
         <h2 className="font-semibold text-slate-900">Sign in to see your usage</h2>
-        <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+        <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
           Your allowance belongs to an account, so there is nothing to show until you are in one.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">

@@ -96,7 +96,7 @@ export default function SwipePanels({ panels }: { panels: SwipePanel[] }) {
               onFocus={() => setPreview(index)}
               onBlur={() => setPreview(null)}
               onClick={() => show(index)}
-              className={`relative z-10 min-w-0 truncate rounded-lg px-2 py-1 text-[11px] font-medium transition-colors ${
+              className={`relative z-10 min-w-0 truncate rounded-lg px-2 py-1 text-[0.6875rem] font-medium transition-colors ${
                 visible === index
                   ? "text-[color:var(--exam-fg)]"
                   : "text-[color:var(--exam-muted)]"

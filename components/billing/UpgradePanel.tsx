@@ -59,8 +59,8 @@ export default function UpgradePanel({
   if (!signedIn) {
     return (
       <div className={`card ${className}`}>
-        <h2 className="text-[17px] font-semibold text-slate-900">Sign in to {feature}</h2>
-        <p className="mt-2 text-[15px] leading-7 text-slate-600">
+        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Sign in to {feature}</h2>
+        <p className="mt-2 text-[0.9375rem] leading-7 text-slate-600">
           An account is free, and it also carries your progress between your phone and your
           laptop. Everything you have done so far stays where it is.
         </p>
@@ -98,14 +98,14 @@ export default function UpgradePanel({
           </svg>
         </span>
         <div className="min-w-0">
-          <h2 className="text-[17px] font-semibold text-slate-900">
+          <h2 className="text-[1.0625rem] font-semibold text-slate-900">
             To {feature}, you need {definition.name}
           </h2>
           {/*
             The reassurance, immediately. The worry behind hitting a wall is
             that the whole app is about to start charging.
           */}
-          <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+          <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
             Everything else stays free and unlimited — the placement test, your study plan, and
             every grammar and vocabulary drill. Nothing you have done is affected.
           </p>
@@ -114,7 +114,7 @@ export default function UpgradePanel({
 
       <ul className="mt-4 space-y-1.5">
         {definition.includes.slice(0, 4).map((line) => (
-          <li key={line} className="flex gap-2.5 text-[15px] leading-6 text-slate-700">
+          <li key={line} className="flex gap-2.5 text-[0.9375rem] leading-6 text-slate-700">
             <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600" />
             {line}
           </li>

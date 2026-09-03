@@ -87,13 +87,13 @@ function UserHistory({ user }: { user: UserDetail }) {
   </div>;
 }
 
-function Fact({ label, value }: { label: string; value: string }) { return <div><p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</p><p className="mt-0.5 truncate text-sm font-semibold capitalize text-slate-900">{value}</p></div>; }
+function Fact({ label, value }: { label: string; value: string }) { return <div><p className="text-[0.625rem] font-medium uppercase tracking-wide text-slate-400">{label}</p><p className="mt-0.5 truncate text-sm font-semibold capitalize text-slate-900">{value}</p></div>; }
 
 function SyncTime({ value }: { value?: string | null }) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return <p className="mt-0.5 text-[11px] text-slate-400">Synced {new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(date)}</p>;
+  return <p className="mt-0.5 text-[0.6875rem] text-slate-400">Synced {new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(date)}</p>;
 }
 
 function validDrillScore(value: unknown): value is DrillScore {

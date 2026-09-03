@@ -172,7 +172,7 @@ export default function LockedCard({
         <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
         <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
       </svg>
-      <span className="whitespace-nowrap text-[11px] font-semibold text-slate-700">{line}</span>
+      <span className="whitespace-nowrap text-[0.6875rem] font-semibold text-slate-700">{line}</span>
     </>
   );
 
@@ -251,7 +251,7 @@ export default function LockedCard({
         Small, upper-case and muted, because it is a state label and not a call
         to action — the whole card is already the link.
       */}
-      <span className="pointer-events-none absolute bottom-2 right-4 inline-flex sm:bottom-auto sm:top-2 sm:right-4 items-center gap-1 rounded-full border border-slate-300/70 bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm transition-colors group-hover:text-slate-700">
+      <span className="pointer-events-none absolute bottom-2 right-4 inline-flex sm:bottom-auto sm:top-2 sm:right-4 items-center gap-1 rounded-full border border-slate-300/70 bg-surface/90 px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-slate-500 shadow-sm transition-colors group-hover:text-slate-700">
         <svg
           viewBox="0 0 24 24"
           width="12"

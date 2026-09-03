@@ -204,20 +204,20 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
     const tier = notice?.kind === "released" ? notice.tier : null;
     return (
       <section className="card" aria-live="polite">
-        <h2 className="text-[17px] font-semibold text-slate-900">
+        <h2 className="text-[1.0625rem] font-semibold text-slate-900">
           Your free Pro trial has been given up
         </h2>
-        <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+        <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
           Your account is on {planName(tier)} now. Everything you have written or practised is
           exactly where it was — your study plan, your test results and your saved words are all
           still there, and nothing has been deleted.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           You can start the trial again while it is still open, either from the button below or
           from the offer on the home page.
         </p>
         {problem && (
-          <p className="mt-3 text-[15px] leading-7 text-amber-800" role="alert">
+          <p className="mt-3 text-[0.9375rem] leading-7 text-amber-800" role="alert">
             {problem}
           </p>
         )}
@@ -232,24 +232,24 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
 
   return (
     <section className="card">
-      <h2 className="text-[17px] font-semibold text-slate-900">Your free Pro trial</h2>
+      <h2 className="text-[1.0625rem] font-semibold text-slate-900">Your free Pro trial</h2>
       {notice?.kind === "restarted" && (
-        <p className="mt-1.5 text-[15px] leading-7 text-slate-600" aria-live="polite">
+        <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600" aria-live="polite">
           Your free Pro trial is on again, and your account is back on Pro.
         </p>
       )}
-      <p className="mt-1.5 text-[15px] leading-7 text-slate-600">
+      <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
         Pro is on your account as a free trial. Nothing is being charged for it and no card is
         held.
       </p>
-      <p className="mt-3 text-[15px] leading-7 text-slate-700">
+      <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
         If you would rather go back to the free plan, you can give the trial up here. Everything
         you have written or practised stays exactly where it is — the free plan keeps all of it,
         with smaller allowances for the AI marking, the tutor and word lookups. You can start the
         trial again later while it is still open.
       </p>
       {problem && (
-        <p className="mt-3 text-[15px] leading-7 text-amber-800" role="alert">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-amber-800" role="alert">
           {problem}
         </p>
       )}

@@ -62,7 +62,7 @@ export default async function PricingPage() {
         </Suspense>
       </PricingPlans>
 
-      <p className="pricing-page-description max-w-2xl text-[15px] leading-6 text-slate-600">
+      <p className="pricing-page-description max-w-2xl text-[0.9375rem] leading-6 text-slate-600">
         Most of BandUp is free. Standard unlocks every practice paper; Plus and Pro add the
         part that costs money to run — the AI examiner, the tutor and word lookup.
       </p>
@@ -72,13 +72,13 @@ export default async function PricingPage() {
           <span aria-hidden="true" className="chev text-slate-400 transition-transform">›</span>
           Free forever, on every plan
         </summary>
-        <p className="mt-3 text-[15px] leading-7 text-slate-600">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-600">
           These are shipped inside the app. Serving them a thousand times costs the same as
           serving them once, which is nothing — so there is nothing to charge for.
         </p>
         <ul className="mt-4 space-y-2">
           {ALWAYS_FREE.map((line) => (
-            <li key={line} className="text-[15px] leading-7 text-slate-700">
+            <li key={line} className="text-[0.9375rem] leading-7 text-slate-700">
               — {line}
             </li>
           ))}
@@ -90,7 +90,7 @@ export default async function PricingPage() {
           <span aria-hidden="true" className="chev text-slate-400 transition-transform">›</span>
           Things worth knowing before you pay
         </summary>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>A band score here is an estimate, not a result.</strong> The AI examiner is a
           language model. It can be wrong, and it can be confidently wrong. Nothing this app
           shows you has any standing with a university, an employer or an immigration
@@ -107,13 +107,13 @@ export default async function PricingPage() {
           subscription and reads, to somebody about to pay with Alipay, as though
           their pass were a subscription they would have to remember to stop.
         */}
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>A card subscription renews until you cancel</strong>, and you can cancel at any
           time from the button on this page — the same one place you subscribed from. You keep what
           you have paid for until the end of the period you paid for, and nothing further is
           charged after that.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>An Alipay or WeChat Pay pass is a single payment</strong> for one month or one
           year, because neither wallet can make a recurring charge. It does not renew and there is
           nothing to cancel: when the time runs out the account goes back to Free, with everything
@@ -121,13 +121,13 @@ export default async function PricingPage() {
           pay, and paying again before then adds to the time you have left rather than replacing
           it.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>Each AI allowance runs over a rolling 30 days</strong>, not a calendar month.
           There is no reset day: a request frees itself up 30 days after you make it, one at a
           time. Every kind of AI has its own allowance rather than sharing one pool, so a month
           of word lookups cannot use up the essays you have left.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>On iPhone, subscriptions will be bought through Apple.</strong> Apple requires
           in-app purchase for digital goods, so the App Store version will offer the same plans
           through its own payment system rather than the one on this page. That is not built

@@ -158,7 +158,7 @@ export default function DrillSection({
             </span>
           </div>
         ) : (
-          <h1 className="text-[26px] font-semibold text-slate-900">{title}</h1>
+          <h1 className="text-[1.625rem] font-semibold text-slate-900">{title}</h1>
         )}
         <p
           className={

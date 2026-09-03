@@ -84,7 +84,7 @@ export default function SiteFooter() {
         instead of two hundred and thirty, which is the difference between a
         menu that ends on the screen and one that does not.
       */}
-      <div className="mx-auto max-w-5xl space-y-2 px-5 py-4 text-[11px] leading-4 text-slate-400 sm:space-y-3 sm:py-6 sm:text-xs sm:leading-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
+      <div className="mx-auto max-w-5xl space-y-2 px-5 py-4 text-[0.6875rem] leading-4 text-slate-400 sm:space-y-3 sm:py-6 sm:text-xs sm:leading-5 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
         {introduce && (
           <p>
             <span className="font-medium text-slate-500">BandUp</span> is free IELTS preparation: a

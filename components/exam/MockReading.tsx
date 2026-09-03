@@ -105,10 +105,10 @@ export default function MockReading({
   const passage = (
     <>
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
+        <h2 className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
           Passage {active + 1}
         </h2>
-        <span className="text-[11px] text-[color:var(--exam-muted)]">{test.title}</span>
+        <span className="text-[0.6875rem] text-[color:var(--exam-muted)]">{test.title}</span>
       </div>
       {test.passage.split(/\n\n+/).map((p, i) => (
         <p key={i}>{p}</p>
@@ -164,7 +164,7 @@ export default function MockReading({
               type="button"
               onClick={() => setActive(i)}
               aria-current={i === active}
-              className={`h-6 w-6 rounded text-[11px] font-semibold ${
+              className={`h-6 w-6 rounded text-[0.6875rem] font-semibold ${
                 i === active
                   ? "border-[1.5px] border-[color:var(--exam-accent)] bg-[color:var(--exam-bg)]"
                   : "border border-[color:var(--exam-line)] hover:bg-[color:var(--exam-hover)]"
@@ -189,7 +189,7 @@ export default function MockReading({
         />
       ) : (
         <>
-          <p className="shrink-0 pb-1 text-center text-[11px] text-[color:var(--exam-muted)]">
+          <p className="shrink-0 pb-1 text-center text-[0.6875rem] text-[color:var(--exam-muted)]">
             Swipe sideways to move between the passage and the questions
           </p>
           {/*
@@ -229,7 +229,7 @@ function FinishButton({ onFinish }: { onFinish: () => void }) {
       <button type="button" className="btn-primary w-full" onClick={onFinish}>
         Finish the reading paper
       </button>
-      <p className="mt-1 text-center text-[11px] text-[color:var(--exam-muted)]">
+      <p className="mt-1 text-center text-[0.6875rem] text-[color:var(--exam-muted)]">
         This ends all three passages. You cannot come back.
       </p>
     </div>

@@ -290,10 +290,10 @@ export default function AvatarEditor({
         tabIndex={-1}
         className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-2xl border border-slate-200 bg-surface p-5 shadow-xl focus:outline-none"
       >
-        <h2 id="avatar-editor-title" className="text-[17px] font-semibold text-slate-900">
+        <h2 id="avatar-editor-title" className="text-[1.0625rem] font-semibold text-slate-900">
           Frame your picture
         </h2>
-        <p className="mt-2 text-[15px] leading-7 text-slate-600">
+        <p className="mt-2 text-[0.9375rem] leading-7 text-slate-600">
           Drag the picture to move it, and use the slider to zoom. The circle is what other
           parts of BandUp will show.
         </p>
@@ -378,7 +378,7 @@ export default function AvatarEditor({
         )}
 
         {problem && (
-          <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[15px] leading-7 text-rose-800">
+          <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[0.9375rem] leading-7 text-rose-800">
             {problem}
           </p>
         )}

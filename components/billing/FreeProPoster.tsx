@@ -179,7 +179,7 @@ export default function FreeProPoster() {
   if (!session) {
     return (
       <section className="card">
-        <h2 className="text-[17px] font-semibold text-slate-900">Pro, free, if you want it</h2>
+        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Pro, free, if you want it</h2>
         {/*
           Kept to two lines and two points on purpose. This sits above the
           practice list on the home page, and at four points and two body
@@ -191,14 +191,14 @@ export default function FreeProPoster() {
           The remaining points are the two largest; the full list is a tap
           away on the plans page.
         */}
-        <p className="mt-1 text-[14px] leading-6 text-slate-600">
+        <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
           Pro is the plan for the weeks before your exam, and it is free on every new account —
           no card.
         </p>
 
         <ul className="mt-2.5 space-y-1">
           {TIERS.pro.includes.slice(0, 2).map((line) => (
-            <li key={line} className="flex gap-2.5 text-[14px] leading-5 text-slate-700">
+            <li key={line} className="flex gap-2.5 text-[0.875rem] leading-5 text-slate-700">
               <span
                 aria-hidden="true"
                 className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"
@@ -211,7 +211,7 @@ export default function FreeProPoster() {
         {/* A footnote rather than a paragraph. It is a term of the offer and
             has to stay, but it is not what the poster is for, and at body
             size it was costing two lines of the first screen. */}
-        <p className="mt-2.5 text-[13px] leading-5 text-slate-600">
+        <p className="mt-2.5 text-[0.8125rem] leading-5 text-slate-600">
           It starts as soon as you sign up, and may be cancelled at any time in the future.
         </p>
 
@@ -246,8 +246,8 @@ export default function FreeProPoster() {
   if (phase === "accepted") {
     return (
       <section className="card" aria-live="polite">
-        <h2 className="text-[17px] font-semibold text-slate-900">Your free Pro trial has started</h2>
-        <p className="mt-1 text-[14px] leading-6 text-slate-600">
+        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Your free Pro trial has started</h2>
+        <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
           Your account is on Pro now. Nothing has been charged and no card has been asked for.
           You can see what you have used on your account page, and give the trial up there
           whenever you like.
@@ -265,18 +265,18 @@ export default function FreeProPoster() {
 
   return (
     <section className="card">
-      <h2 className="text-[17px] font-semibold text-slate-900">Pro, free, if you want it</h2>
+      <h2 className="text-[1.0625rem] font-semibold text-slate-900">Pro, free, if you want it</h2>
       {/* Trimmed alongside the signed-out poster above, and for the same
           reason. The paragraph below it is not trimmed with them: that one is
           a promise about money, and shortening it would be shortening the
           part a reader is entitled to have in full. */}
-      <p className="mt-1 text-[14px] leading-6 text-slate-600">
+      <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
         Pro is the plan for the weeks before your exam, and it is free on your account — no card.
       </p>
 
       <ul className="mt-2.5 space-y-1">
         {TIERS.pro.includes.slice(0, 2).map((line) => (
-          <li key={line} className="flex gap-2.5 text-[14px] leading-5 text-slate-700">
+          <li key={line} className="flex gap-2.5 text-[0.875rem] leading-5 text-slate-700">
             <span
               aria-hidden="true"
               className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600"
@@ -290,7 +290,7 @@ export default function FreeProPoster() {
         The part that must be read. Same size as the rest, in the body, above
         the button rather than under it.
       */}
-      <p className="mt-3 text-[14px] leading-6 text-slate-700">
+      <p className="mt-3 text-[0.875rem] leading-6 text-slate-700">
         This is a free trial of Pro. It may be cancelled at any time in the future, and you can
         give it up yourself whenever you like, from your account page. If it ends, your account
         goes back to the free plan and everything you have written or practised stays where it is.
@@ -298,7 +298,7 @@ export default function FreeProPoster() {
       </p>
 
       {phase === "error" && (
-        <p className="mt-3 text-[15px] leading-7 text-amber-800" role="alert">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-amber-800" role="alert">
           {message}
         </p>
       )}

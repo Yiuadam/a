@@ -98,7 +98,7 @@ export default function SkillGate({
   if (skill.pending) {
     return (
       <div className={`card ${className}`} aria-busy="true">
-        <p className="text-[15px] text-slate-500"><LoadingIndicator label="Checking your account…" /></p>
+        <p className="text-[0.9375rem] text-slate-500"><LoadingIndicator label="Checking your account…" /></p>
       </div>
     );
   }

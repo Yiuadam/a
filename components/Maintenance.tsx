@@ -78,11 +78,11 @@ export default function Maintenance() {
           it reusable — and reusable is what stops somebody shipping a rushed
           sentence at the moment they are least able to write one.
         */}
-        <h1 className="mt-8 text-[32px] font-semibold leading-[1.15] tracking-[-0.02em] text-balance text-slate-900 sm:text-[38px]">
+        <h1 className="mt-8 text-[2rem] font-semibold leading-[1.15] tracking-[-0.02em] text-balance text-slate-900 sm:text-[2.375rem]">
           BandUp is getting an upgrade
         </h1>
 
-        <p className="mx-auto mt-5 max-w-sm text-[15px] leading-7 text-pretty text-slate-600">
+        <p className="mx-auto mt-5 max-w-sm text-[0.9375rem] leading-7 text-pretty text-slate-600">
           We&rsquo;re making some improvements behind the scenes. The site is closed for a short
           while so that nothing breaks halfway through — it will be back to normal shortly.
         </p>
@@ -95,7 +95,7 @@ export default function Maintenance() {
           >
             <div className="maintenance-bar h-full w-1/3 rounded-full bg-indigo-600" />
           </div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">
+          <p className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-slate-400">
             Back shortly
           </p>
         </div>

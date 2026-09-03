@@ -115,10 +115,10 @@ export default function BillingPage() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-5">
       <div className="space-y-1.5">
-        <h1 className="text-[22px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
+        <h1 className="text-[1.375rem] font-semibold tracking-tight text-slate-900 sm:text-[1.625rem]">
           Bill and usage
         </h1>
-        <p className="text-[14px] leading-6 text-slate-600">
+        <p className="text-[0.875rem] leading-6 text-slate-600">
           Everything about what you pay and what you have left. Pick one.
         </p>
       </div>
@@ -154,7 +154,7 @@ export default function BillingPage() {
 
           <HubMenu items={items} />
 
-          <p className="text-[13px] text-slate-500">
+          <p className="text-[0.8125rem] text-slate-500">
             <Link
               href="/pricing"
               className="font-medium text-indigo-700 underline underline-offset-2"

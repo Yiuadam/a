@@ -91,20 +91,20 @@ export function HubMenu({ items }: { items: HubItem[] }) {
             {item.icon && <CardIcon name={item.icon} size={27} />}
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-[15px] font-semibold text-slate-900">{item.title}</span>
+                <span className="text-[0.9375rem] font-semibold text-slate-900">{item.title}</span>
                 {item.badge && (
-                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-800">
+                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[0.6875rem] font-semibold text-indigo-800">
                     {item.badge}
                   </span>
                 )}
               </span>
-              <span className="mt-0.5 block text-[13px] leading-5 text-slate-500">
+              <span className="mt-0.5 block text-[0.8125rem] leading-5 text-slate-500">
                 {item.detail}
               </span>
               {item.value && item.valuePlacement === "below" && (
                 <span
                   title={item.value}
-                  className="mt-1 block truncate text-[13px] font-medium text-slate-700"
+                  className="mt-1 block truncate text-[0.8125rem] font-medium text-slate-700"
                 >
                   {item.value}
                 </span>
@@ -121,7 +121,7 @@ export function HubMenu({ items }: { items: HubItem[] }) {
                   and the full value stays available on hover and to a screen
                   reader through the title.
                 */
-                className={`min-w-0 max-w-[55%] truncate text-[13px] font-medium tabular-nums ${
+                className={`min-w-0 max-w-[55%] truncate text-[0.8125rem] font-medium tabular-nums ${
                   item.tone === "warn" ? "text-amber-700" : "text-slate-700"
                 }`}
               >
@@ -166,14 +166,14 @@ export function HubScreen({
       <div className="space-y-2">
         <Link
           href={back}
-          className="inline-flex items-center gap-1 text-[13px] font-medium text-slate-500 transition-colors hover:text-slate-900"
+          className="inline-flex items-center gap-1 text-[0.8125rem] font-medium text-slate-500 transition-colors hover:text-slate-900"
         >
           <span aria-hidden="true">‹</span> {backLabel}
         </Link>
-        <h1 className="text-[22px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
+        <h1 className="text-[1.375rem] font-semibold tracking-tight text-slate-900 sm:text-[1.625rem]">
           {title}
         </h1>
-        {lead && <p className="text-[14px] leading-6 text-slate-600">{lead}</p>}
+        {lead && <p className="text-[0.875rem] leading-6 text-slate-600">{lead}</p>}
       </div>
       {children}
     </div>

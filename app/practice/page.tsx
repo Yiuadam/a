@@ -173,7 +173,7 @@ export default function PracticePage() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">Practice tests</h1>
+        <h1 className="text-xl font-semibold text-slate-900 sm:text-[1.375rem]">Practice tests</h1>
         <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">
           Real exam format, with band scores.
         </p>

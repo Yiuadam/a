@@ -62,7 +62,7 @@ function BandTrendCard({
       <div className="flex items-start justify-between gap-2">
         <span>
           <span className="block truncate text-[clamp(8px,2.5vw,12px)] font-semibold leading-tight text-slate-600">{skillLabel}</span>
-          <span className="mt-0.5 hidden text-[9px] text-slate-500 sm:block">
+          <span className="mt-0.5 hidden text-[0.5625rem] text-slate-500 sm:block">
             {points.length} scored sitting{points.length === 1 ? "" : "s"}
           </span>
         </span>
@@ -129,10 +129,10 @@ export default function StudentBandTrends({
     <section aria-labelledby="student-progress-heading">
       <div className="mb-2 flex items-end justify-between gap-3 px-1">
         <div>
-          <h2 id="student-progress-heading" className="text-[15px] font-semibold text-slate-900">Score trends</h2>
-          <p className="text-[11px] text-slate-500">All saved sittings, oldest to newest.</p>
+          <h2 id="student-progress-heading" className="text-[0.9375rem] font-semibold text-slate-900">Score trends</h2>
+          <p className="text-[0.6875rem] text-slate-500">All saved sittings, oldest to newest.</p>
         </div>
-        <span className="text-[10px] text-slate-500">IELTS band 0–9</span>
+        <span className="text-[0.625rem] text-slate-500">IELTS band 0–9</span>
       </div>
       <div className="grid grid-cols-2 gap-[clamp(.25rem,1vw,.5rem)] sm:grid-cols-4">
         {ORGANIZATION_BAND_SKILLS.map((skill) => (

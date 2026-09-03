@@ -72,13 +72,13 @@ export default function CloseScreen() {
           </button>
           {signOutProblem && (
             <p
-              className="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] leading-5 text-rose-800"
+              className="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[0.8125rem] leading-5 text-rose-800"
               role="alert"
             >
               {signOutProblem}
             </p>
           )}
-          <p className="mt-2 text-[13px] leading-5 text-slate-500">
+          <p className="mt-2 text-[0.8125rem] leading-5 text-slate-500">
             Ends the session on this device and clears what is stored here, so the next person to
             sign in on it cannot see your practice. Nothing is deleted from your account — sign
             back in and your placement result, plan and saved words return.

@@ -108,7 +108,7 @@ export default function ExamSettings() {
               className="exam-settings-popover pointer-events-auto fixed rounded-2xl border p-3"
             >
             <fieldset>
-              <legend className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
+              <legend className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
                 Text size
               </legend>
               <div className="mt-1.5 grid grid-cols-4 gap-1">
@@ -132,7 +132,7 @@ export default function ExamSettings() {
             </fieldset>
 
             <fieldset className="mt-3">
-              <legend className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
+              <legend className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
                 Colours
               </legend>
               <div className="mt-1.5 space-y-1">
@@ -152,7 +152,7 @@ export default function ExamSettings() {
                     {/* A swatch in the actual colours, so the label is checkable. */}
                     <span
                       aria-hidden="true"
-                      className="flex h-5 w-8 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--exam-line)] text-[10px] font-bold"
+                      className="flex h-5 w-8 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--exam-line)] text-[0.625rem] font-bold"
                       style={
                         scheme.id === "standard"
                           ? {

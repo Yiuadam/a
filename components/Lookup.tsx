@@ -354,7 +354,7 @@ export default function LookupProvider({ children }: { children: React.ReactNode
                     {panel.definition.partOfSpeech}
                   </span>
                 )}
-                <p className="text-[15px] leading-7 text-slate-800">{panel.definition.short}</p>
+                <p className="text-[0.9375rem] leading-7 text-slate-800">{panel.definition.short}</p>
                 {panel.definition.example && (
                   <p className="text-inset-compact rounded-lg bg-indigo-50 py-2 text-sm italic leading-6 text-indigo-800">
                     {panel.definition.example}

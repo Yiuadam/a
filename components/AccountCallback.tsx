@@ -132,18 +132,18 @@ export default function AccountCallback() {
   return (
     <div className="space-y-10">
       <div className="max-w-xl space-y-2">
-        <h1 className="text-[26px] font-semibold text-slate-900">
+        <h1 className="text-[1.625rem] font-semibold text-slate-900">
           {shownFailure ? "That didn’t work" : <LoadingIndicator label="Signing you in…" />}
         </h1>
         {shownFailure ? (
           <>
-            <p className="text-[15px] leading-7 text-slate-600">{shownFailure}</p>
-            <p className="pt-2 text-[15px] leading-7 text-slate-600">
+            <p className="text-[0.9375rem] leading-7 text-slate-600">{shownFailure}</p>
+            <p className="pt-2 text-[0.9375rem] leading-7 text-slate-600">
               Nothing on your device has changed, and your practice is untouched.
             </p>
           </>
         ) : (
-          <p className="text-[15px] leading-7 text-slate-600">
+          <p className="text-[0.9375rem] leading-7 text-slate-600">
             One moment — finishing up and taking you back to your account.
           </p>
         )}

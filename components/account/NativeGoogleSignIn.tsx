@@ -173,7 +173,7 @@ export default function NativeGoogleSignIn() {
     <div className="space-y-2">
       <button
         type="button"
-        className="btn-secondary flex min-h-10 w-full items-center justify-center gap-2 rounded-full text-[15px] font-medium"
+        className="btn-secondary flex min-h-10 w-full items-center justify-center gap-2 rounded-full text-[0.9375rem] font-medium"
         onClick={() => void signIn(plugin, clientId)}
         disabled={busy}
       >
@@ -187,7 +187,7 @@ export default function NativeGoogleSignIn() {
         )}
       </button>
       {error && (
-        <p role="alert" className="text-[13px] leading-5 text-rose-700">
+        <p role="alert" className="text-[0.8125rem] leading-5 text-rose-700">
           {error}
         </p>
       )}

@@ -78,7 +78,7 @@ export default function InvitationAcceptance({ requestId }: { requestId: string 
     <InvitationFrame>
       {error && <div role="alert" className="rounded-xl border border-rose-300 bg-rose-50/75 px-4 py-3 text-sm text-rose-800">{error}</div>}
       <GlassSection title="Accept organisation invitation" lead={`This invitation will be attached to ${session.email ?? "your signed-in BandUp account"}.`}>
-        <label className="mb-3 flex min-w-0 items-start gap-3 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/35 px-3.5 py-3 text-[13px] leading-5 text-slate-600">
+        <label className="mb-3 flex min-w-0 items-start gap-3 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/35 px-3.5 py-3 text-[0.8125rem] leading-5 text-slate-600">
           <input
             type="checkbox"
             checked={consent}
@@ -135,7 +135,7 @@ function InvitationFrame({ children }: { children: React.ReactNode }) {
     <div className="mx-auto w-full max-w-xl space-y-3 px-4 py-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-700">BandUp for organisations</p>
-        <h1 className="mt-1 text-[24px] font-semibold tracking-tight text-slate-900">Invitation</h1>
+        <h1 className="mt-1 text-[1.5rem] font-semibold tracking-tight text-slate-900">Invitation</h1>
       </div>
       {children}
     </div>

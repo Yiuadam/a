@@ -181,7 +181,7 @@ function Panel({
         {SIZES.map((px) => (
           <div key={px} className="flex flex-col items-center gap-1.5">
             <Icon slug={slug} px={px} rounded />
-            <span className="text-[10px] text-slate-400">{px}</span>
+            <span className="text-[0.625rem] text-slate-400">{px}</span>
           </div>
         ))}
       </div>
@@ -195,10 +195,10 @@ export default function IconPreviewPage() {
   return (
     <div className="space-y-14">
       <header className="max-w-2xl space-y-3">
-        <h1 className="heading-rule text-[26px] font-semibold text-slate-900">
+        <h1 className="heading-rule text-[1.625rem] font-semibold text-slate-900">
           Folio — ten variations
         </h1>
-        <p className="text-[15px] leading-7 text-slate-600">
+        <p className="text-[0.9375rem] leading-7 text-slate-600">
           Folio is a page whose edge rises into the band scale: read it as paper and the steps are
           a torn edge, read it as the scale and the page is a chart. These ten vary the idea rather
           than the drawing — how many steps, where the page turns into the scale, what the gutter
@@ -234,7 +234,7 @@ export default function IconPreviewPage() {
               {VARIATIONS.map((v) => (
                 <div key={v.slug} className="flex w-16 flex-col items-center gap-2">
                   <Icon slug={v.slug} px={32} rounded />
-                  <span className="text-center text-[10px] leading-tight text-slate-400">
+                  <span className="text-center text-[0.625rem] leading-tight text-slate-400">
                     {v.name}
                   </span>
                 </div>
@@ -265,7 +265,7 @@ export default function IconPreviewPage() {
                 <p className="text-xs font-medium uppercase tracking-wide text-indigo-700">
                   Varies: {v.varies}
                 </p>
-                <p className="text-[15px] leading-7 text-slate-700">{v.idea}</p>
+                <p className="text-[0.9375rem] leading-7 text-slate-700">{v.idea}</p>
                 <p className="text-sm leading-6 text-slate-500">{v.verdict}</p>
                 <p className="text-xs text-slate-400">
                   <code className="rounded bg-slate-100 px-1.5 py-0.5">

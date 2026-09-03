@@ -1460,7 +1460,7 @@ export default function SpeakingSession({
     return (
       <div className="mx-auto flex min-h-[55vh] max-w-xl items-center">
         <div className="card w-full space-y-3 py-12 text-center">
-          <p className="text-[15px] text-slate-700"><LoadingIndicator label="The examiner is marking your interview…" iconClassName="text-2xl text-indigo-600" /></p>
+          <p className="text-[0.9375rem] text-slate-700"><LoadingIndicator label="The examiner is marking your interview…" iconClassName="text-2xl text-indigo-600" /></p>
           <p className="text-sm text-slate-500">This usually takes under a minute.</p>
         </div>
       </div>
@@ -1662,7 +1662,7 @@ export default function SpeakingSession({
             {examinerSpeaking ? <LoadingIndicator label="Playing…" announce={false} /> : "Replay question"}
           </button>
         </div>
-        <p className="text-[17px] leading-7 text-slate-900">{step?.question}</p>
+        <p className="text-[1.0625rem] leading-7 text-slate-900">{step?.question}</p>
 
         {voiceProblem && (
           <div className="mt-3 flex flex-wrap gap-2">

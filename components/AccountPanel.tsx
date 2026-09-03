@@ -125,7 +125,7 @@ export default function AccountPanel({ localMenuPreview = false }: { localMenuPr
   return (
     <div className={`mx-auto w-full space-y-6 ${signingIn ? "max-w-lg" : "max-w-2xl"}`}>
       <div className="space-y-1.5">
-        <h1 className="text-[22px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
+        <h1 className="text-[1.375rem] font-semibold tracking-tight text-slate-900 sm:text-[1.625rem]">
           Your account
         </h1>
         {/*
@@ -133,7 +133,7 @@ export default function AccountPanel({ localMenuPreview = false }: { localMenuPr
           for, which is the right thing to read when you are deciding — and the
           wrong thing on the screen of somebody who decided months ago.
         */}
-        <p className="text-[14px] leading-6 text-slate-600">
+        <p className="text-[0.875rem] leading-6 text-slate-600">
           {signingIn
             ? "Optional — everything works without one. Signing in carries your progress between devices."
             : "Everything about you, and the account itself. Pick one."}
@@ -148,10 +148,10 @@ export default function AccountPanel({ localMenuPreview = false }: { localMenuPr
 
       {resolvedPhase === "unavailable" && (
         <section className="card">
-          <h2 className="text-[17px] font-semibold text-slate-900">
+          <h2 className="text-[1.0625rem] font-semibold text-slate-900">
             Accounts aren&rsquo;t reachable right now
           </h2>
-          <p className="mt-2 text-[15px] leading-7 text-slate-600">
+          <p className="mt-2 text-[0.9375rem] leading-7 text-slate-600">
             Everything else on BandUp still works — nothing about your practice depends on this
             page. Please try again in a minute.
           </p>
@@ -199,12 +199,12 @@ export default function AccountPanel({ localMenuPreview = false }: { localMenuPr
 function AccountsNotYetOpen() {
   return (
     <section className="card">
-      <h2 className="text-[17px] font-semibold text-slate-900">Accounts aren&rsquo;t open yet</h2>
-      <p className="mt-2 text-[15px] leading-7 text-slate-600">
+      <h2 className="text-[1.0625rem] font-semibold text-slate-900">Accounts aren&rsquo;t open yet</h2>
+      <p className="mt-2 text-[0.9375rem] leading-7 text-slate-600">
         Sign-in is built but not switched on. Nothing you have done so far is affected: your
         placement result, plan and saved words are stored on this device and stay there.
       </p>
-      <p className="mt-3 text-[15px] leading-7 text-slate-600">
+      <p className="mt-3 text-[0.9375rem] leading-7 text-slate-600">
         When accounts open you&rsquo;ll be able to sign in with Google or Apple, and your existing
         progress will be carried up to the account rather than replaced by it.
       </p>
@@ -285,7 +285,7 @@ function SignedIn({
     <>
       <HubMenu items={items} />
       {IS_MOBILE_BUILD && (
-        <p className="mt-3 text-[13px] leading-5 text-slate-500">
+        <p className="mt-3 text-[0.8125rem] leading-5 text-slate-500">
           You are on {planName(status.tier)}.{" "}
           {externalUrl ? (
             <>
@@ -342,7 +342,7 @@ function SyncStatusLine() {
   if (at === null && !failed) return null;
 
   return (
-    <p className="mt-3 text-[13px] leading-5 text-slate-500">
+    <p className="mt-3 text-[0.8125rem] leading-5 text-slate-500">
       {at ? `This device last synced ${friendlyWhen(at)}.` : "This device has not synced yet."}
       {failed
         ? " It could not sync just now — nothing here is lost, and it will try again automatically."

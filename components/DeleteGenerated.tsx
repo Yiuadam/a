@@ -43,7 +43,7 @@ export default function DeleteGenerated({ id, title }: { id: string; title: stri
         <button
           type="button"
           onClick={() => removeGeneratedTest(id)}
-          className="rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm hover:bg-rose-700"
+          className="rounded-full bg-rose-600 px-2 py-0.5 text-[0.6875rem] font-semibold text-white shadow-sm hover:bg-rose-700"
         >
           Delete?
         </button>
@@ -51,7 +51,7 @@ export default function DeleteGenerated({ id, title }: { id: string; title: stri
           type="button"
           onClick={() => setArmed(false)}
           aria-label="Keep it"
-          className="rounded-full bg-surface px-1.5 py-0.5 text-[11px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200 hover:text-slate-900"
+          className="rounded-full bg-surface px-1.5 py-0.5 text-[0.6875rem] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200 hover:text-slate-900"
         >
           No
         </button>

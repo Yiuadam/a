@@ -112,7 +112,7 @@ function PaperFilter({
           role="tab"
           aria-selected={value === option.id}
           onClick={() => onChange(option.id)}
-          className={`paper-filter-option segmented-option relative z-10 flex min-w-0 items-center justify-center gap-1 rounded-full px-1 text-[11px] font-semibold transition-colors sm:px-2 sm:text-xs ${
+          className={`paper-filter-option segmented-option relative z-10 flex min-w-0 items-center justify-center gap-1 rounded-full px-1 text-[0.6875rem] font-semibold transition-colors sm:px-2 sm:text-xs ${
             selectedIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
           }`}
         >
@@ -126,7 +126,7 @@ function PaperFilter({
             hierarchy in every theme, because it moves with the text it is
             attached to rather than against the surface underneath.
           */}
-          <span className="text-[10px] font-medium opacity-75">{option.count}</span>
+          <span className="text-[0.625rem] font-medium opacity-75">{option.count}</span>
         </button>
       ))}
     </div>
@@ -209,7 +209,7 @@ export default function TestChooser({
       data-paper-chooser
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">{label} practice</h1>
+        <h1 className="text-xl font-semibold text-slate-900 sm:text-[1.375rem]">{label} practice</h1>
         <p className="min-w-0 flex-1 basis-72 text-sm leading-6 text-slate-600">
           {kind === "reading"
             ? "Read one passage, answer the questions, and get your band as soon as you submit."

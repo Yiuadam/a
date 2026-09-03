@@ -378,7 +378,7 @@ export default function TutorChat() {
     */
     <div className="flex h-[calc(100dvh-var(--header-h))] min-h-0 w-full flex-col overflow-hidden bg-slate-50">
       <div className="liquid-glass z-10 mx-3 mt-3 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border px-4 sm:mx-5 sm:px-6">
-        <h1 className="text-[20px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
+        <h1 className="text-[1.25rem] font-semibold tracking-tight text-slate-900 sm:text-[1.625rem]">
           Ask a tutor
         </h1>
         {!off && !locked && <Allowance status={status} />}
@@ -419,7 +419,7 @@ export default function TutorChat() {
           </section>
 
           {problem && (
-            <p className="mx-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-[14px] leading-6 text-rose-800 sm:mx-6">
+            <p className="mx-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-[0.875rem] leading-6 text-rose-800 sm:mx-6">
               {problem}
             </p>
           )}
@@ -442,7 +442,7 @@ export default function TutorChat() {
             fact is not.
           */}
           {attaching && (
-            <p className="z-10 mx-2 mb-2 rounded-2xl border border-slate-200 bg-surface px-3.5 py-2 text-[12px] leading-5 text-slate-600 sm:mx-3 sm:px-4">
+            <p className="z-10 mx-2 mb-2 rounded-2xl border border-slate-200 bg-surface px-3.5 py-2 text-[0.75rem] leading-5 text-slate-600 sm:mx-3 sm:px-4">
               The tutor reads your saved speaking results, so its advice is about how you
               actually speak.
             </p>
@@ -485,7 +485,7 @@ export default function TutorChat() {
             key does, and what happens to what you type. The full privacy
             answer is one tap away and has been all along.
           */}
-          <p className="shrink-0 bg-surface px-4 pb-2 text-[11px] leading-4 text-slate-400 sm:px-6">
+          <p className="shrink-0 bg-surface px-4 pb-2 text-[0.6875rem] leading-4 text-slate-400 sm:px-6">
             {overLength
               ? `That's ${draft.length} characters — the tutor takes ${MAX_CHARS} at a time.`
               : attaching
@@ -510,13 +510,13 @@ export default function TutorChat() {
 function NotSwitchedOn() {
   return (
     <section className="card mx-3 mt-2 sm:mx-5">
-      <h2 className="text-[17px] font-semibold text-slate-900">The tutor isn&rsquo;t available here</h2>
-      <p className="mt-2 text-[15px] leading-7 text-slate-600">
+      <h2 className="text-[1.0625rem] font-semibold text-slate-900">The tutor isn&rsquo;t available here</h2>
+      <p className="mt-2 text-[0.9375rem] leading-7 text-slate-600">
         This copy of BandUp has no connection to the AI tutor, so there is nobody to answer
         questions. Nothing you have done is affected, and nothing about your practice depends on
         it.
       </p>
-      <p className="mt-3 text-[15px] leading-7 text-slate-600">
+      <p className="mt-3 text-[0.9375rem] leading-7 text-slate-600">
         Everything that does not need AI still works as usual — the placement test, your study
         plan, the practice tests, and both sets of drills.
       </p>
@@ -593,7 +593,7 @@ function Allowance({ status }: { status: AccountStatus | null }) {
   const unlimited = status.unlimited === true || quota === null;
 
   return (
-    <p className="text-[12px] leading-5 text-slate-500 sm:text-sm sm:leading-6">
+    <p className="text-[0.75rem] leading-5 text-slate-500 sm:text-sm sm:leading-6">
       {unlimited ? (
         "No limit on this account."
       ) : !status.signedIn ? (
@@ -656,12 +656,12 @@ function Empty({
 }) {
   return (
     <div className="flex h-full min-h-[15rem] flex-col justify-center">
-      <p className="text-[15px] font-medium text-slate-700">
+      <p className="text-[0.9375rem] font-medium text-slate-700">
         {attaching
           ? "Ask about your own speaking, or about a question, grammar rule, vocabulary choice or study strategy."
           : "Ask about a question, grammar rule, vocabulary choice, or study strategy."}
       </p>
-      <p className="mt-1 text-[12px] leading-5 text-slate-500">
+      <p className="mt-1 text-[0.75rem] leading-5 text-slate-500">
         Study help, not an official IELTS examiner.
       </p>
       {/*
@@ -671,7 +671,7 @@ function Empty({
         before, and nothing on this screen suggests otherwise.
       */}
       {!attaching && (
-        <p className="mt-1 text-[12px] leading-5 text-slate-500">
+        <p className="mt-1 text-[0.75rem] leading-5 text-slate-500">
           Finish a marked speaking interview and the tutor reads it, so it can answer about your
           own answers rather than about the exam in general.
         </p>
@@ -724,7 +724,7 @@ function Bubble({
           }
         >
           {paragraphs.map((p, i) => (
-            <p key={i} className="text-[15px] leading-7 text-slate-700 [&+&]:mt-3">
+            <p key={i} className="text-[0.9375rem] leading-7 text-slate-700 [&+&]:mt-3">
               {p}
             </p>
           ))}

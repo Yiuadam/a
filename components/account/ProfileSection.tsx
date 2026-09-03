@@ -152,7 +152,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
   if (state === "error") {
     return (
       <section className="card">
-        <p className="text-[15px] leading-7 text-slate-600">
+        <p className="text-[0.9375rem] leading-7 text-slate-600">
           Your details aren&rsquo;t loading right now. Nothing has changed — please try again in a
           minute.
         </p>
@@ -167,7 +167,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
 
   return (
     <section className="account-profile-card card">
-      <p className="account-profile-intro text-[14px] leading-6 text-slate-600">
+      <p className="account-profile-intro text-[0.875rem] leading-6 text-slate-600">
         Your display name and username identify this BandUp account. Your photo and date of birth stay optional.
       </p>
 
@@ -265,7 +265,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
         {email && (
           <div className="account-profile-email flex min-w-0 flex-col gap-1.5 sm:col-span-2 sm:grid sm:grid-cols-[auto_minmax(0,1fr)] sm:items-baseline sm:gap-x-3">
             <span className="text-sm font-medium text-slate-700">Email</span>
-            <p className="break-words text-[15px] leading-7 text-slate-600">{email}</p>
+            <p className="break-words text-[0.9375rem] leading-7 text-slate-600">{email}</p>
             <p className="account-profile-field-note text-xs leading-5 text-slate-500 sm:col-start-2">
               From your sign-in account; it can&rsquo;t be changed here.
             </p>
@@ -273,7 +273,7 @@ export default function ProfileSection({ sessionEmail }: { sessionEmail: string 
         )}
 
         {problem && (
-          <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[15px] leading-7 text-rose-800 sm:col-span-2">
+          <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[0.9375rem] leading-7 text-rose-800 sm:col-span-2">
             {problem}
           </p>
         )}

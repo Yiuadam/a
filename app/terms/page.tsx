@@ -48,8 +48,8 @@ export default function TermsPage() {
     */
     <div className="mx-auto max-w-3xl space-y-10">
       <div className="max-w-xl space-y-2">
-        <h1 className="text-[26px] font-semibold text-slate-900">Terms of use</h1>
-        <p className="text-[15px] leading-7 text-slate-600">
+        <h1 className="text-[1.625rem] font-semibold text-slate-900">Terms of use</h1>
+        <p className="text-[0.9375rem] leading-7 text-slate-600">
           What BandUp offers, what it does not, and what we ask of you. Short, because a
           document nobody reads protects nobody.
         </p>
@@ -57,16 +57,16 @@ export default function TermsPage() {
       </div>
 
       <Section title="The band scores here are estimates, not results">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           This is the most important thing on this page, so it is first.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Every number BandUp shows you — from the placement test, a practice test, or the AI
           examiner — is an <strong>estimate produced by software</strong>. It is not an IELTS
           result, it is not issued or recognised by anyone, and it has no standing with any
           university, employer, or immigration authority.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Please do not use a number from this app to decide whether you are ready to book a
           test, to skip preparation, or to make any application. Real bands come from a real
           exam. We built this to help you prepare for that exam, and it can be wrong about you
@@ -75,30 +75,30 @@ export default function TermsPage() {
       </Section>
 
       <Section title="What BandUp is">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           An independent study tool for people preparing for an English exam. It is not
           affiliated with, endorsed by, or connected to IELTS, the British Council, IDP: IELTS
           Australia, or Cambridge University Press &amp; Assessment. &ldquo;IELTS&rdquo; is
           their registered trademark and is used here only to say what this app helps you
           prepare for.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           All questions, passages, scripts and explanations are written from scratch for this
           app. None of it is taken from a real past paper.
         </p>
       </Section>
 
       <Section title="Accounts">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           An account is optional — the placement test, your study plan and every drill work
           without one, and so do practice papers, with a weekly limit until you pay. If you make
           an account, please keep it to yourself and use an email address you control.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp is intended for people aged 13 and over. If you are under 13, please do not
           create an account.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           You can delete your account at any time from your account page. It is immediate and
           permanent. We may close an account that is being used to attack the service or to
           resell access, and we will say why if we do.
@@ -106,19 +106,19 @@ export default function TermsPage() {
       </Section>
 
       <Section title="Fair use of the AI features">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Writing feedback, the speaking examiner, the tutor, word lookup and generated tests
           each cost money to run, so each one carries its own allowance, counted over two rolling
           windows at once — seven days and thirty. Running out of one leaves the others
           untouched, and you can see what is left of each on your billing page.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           There is also a limit on how many AI requests come from a single internet address each
           week. It is there so that one address cannot spend the whole budget by making accounts,
           and it is worth knowing about because a whole school or office behind one connection
           shares it — you can reach it before you reach your own allowance.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Drills and your study plan cost nothing to serve, do not count towards any allowance,
           and are never limited. Practice papers do not count towards an AI allowance either, but
           they do have a weekly limit until you pay: signed out you get one reading and one
@@ -126,28 +126,28 @@ export default function TermsPage() {
           papers are locked in both cases, because neither a visitor nor a free account has the
           AI that marks them.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Please do not automate requests, share an account to multiply the allowance, or use
           the AI features for anything other than preparing for an English exam.
         </p>
       </Section>
 
       <Section title="Organisations and shared learning records">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           An organisation workspace can include owners, managers, teachers and students. Any
           signed-in person can create one and becomes its owner at once; there is nothing to
           apply for and nobody approves it. Teachers see assigned students only; managers manage
           their own organisation; BandUp administrators can suspend or remove an organisation
           across the service. An invitation must be accepted by the account it was addressed to.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           A student asks to leave and an organisation manager approves or rejects the request.
           Work completed after joining is shared during membership. Sharing earlier history is a
           separate choice; changing access while membership is active also uses an approval
           request. These controls exist so neither a learner nor a teacher can silently change an
           organisation&rsquo;s records.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Not everything needs your request, and it is fairer to say so than to leave you to find
           out. A manager can change your role, suspend you or remove you from their organisation
           without asking you first. Joining as a student needs a paid plan or a seat that
@@ -155,7 +155,7 @@ export default function TermsPage() {
           practice history, because the organisation&rsquo;s record of it is not yours alone to
           delete.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Teachers may archive the organisation&rsquo;s view of an assigned student&rsquo;s attempt.
           Managers may permanently remove an attempt from that organisation with a recorded
           reason. Neither action deletes the learner&rsquo;s original BandUp record. Attempts to evade
@@ -199,7 +199,7 @@ export default function TermsPage() {
         at all.
       */}
       <Section title="Paid access, and how the money works">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp is free to use, and most of it stays free whatever you do: the placement test,
           your study plan, some of the practice papers each week, and every grammar and
           vocabulary drill. What every paid plan buys is the whole library of practice papers
@@ -213,7 +213,7 @@ export default function TermsPage() {
             const monthly = plansForTier(id).find((p) => p.interval === "month");
             const yearly = plansForTier(id).find((p) => p.interval === "year");
             return (
-              <div key={id} className="text-[15px] leading-7 text-slate-700">
+              <div key={id} className="text-[0.9375rem] leading-7 text-slate-700">
                 <dt className="inline font-semibold">{TIERS[id].name}</dt>
                 <dd className="inline">
                   {" — "}
@@ -227,13 +227,13 @@ export default function TermsPage() {
             );
           })}
         </dl>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           The prices above are in Hong Kong dollars. The plans page shows them in your own
           currency where we have a price in it, and that is the amount you are charged. An
           Alipay or WeChat Pay pass is charged in Hong Kong dollars when your currency is one
           those wallets cannot take.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>Card subscriptions renew automatically</strong>, at the same price, on the same
           date each period, until you cancel. That is what the button on the plans page starts, and
           it says so on itself. <strong>Alipay and WeChat Pay passes do not renew</strong>: one
@@ -242,7 +242,7 @@ export default function TermsPage() {
           ends is shown on your billing page from the moment the payment reaches us. We repeat the
           applicable terms beside each payment control before you choose it.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           The AI allowances are counted per feature — so many essays marked, so many tutor
           questions, so many word lookups — against two rolling windows at once: a weekly one,
           which is the allowance refilling as you go, and a monthly one, which is the total. Both
@@ -259,12 +259,12 @@ export default function TermsPage() {
           and on your own billing page, where you can see what is left. They do not reset when you
           cancel and subscribe again; each request simply expires thirty days after you made it.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Payment is taken by <strong>Stripe</strong>, not by us. Your card or wallet details go
           to Stripe and the payment provider and never reach BandUp&rsquo;s servers — we could not see
           them if we wanted to.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           If we ever change a price, we will tell you by email before it takes effect. For a card
           subscription the new price applies only from your next renewal, and you can cancel in the
           meantime so nothing further is charged. A pass is charged once, at the price shown when
@@ -273,7 +273,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="Cancelling, and getting your money back">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>Cancel a card subscription whenever you like.</strong> On the web it is one
           button on your billing page. From the iPhone app, open your billing page on
           bandup.life, because the app does not carry one. Either way there is no email, no
@@ -281,12 +281,12 @@ export default function TermsPage() {
           no future payment to cancel; if we refund one, the access it bought ends at the same
           time.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Cancelling stops the next charge. You keep the plan you are on until the end of the
           period you have already paid for, and then the account drops back to Free — with
           everything you have done still in it. Nothing is deleted for cancelling.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>
             If the law where you live gives you a right to cancel, that right applies and
             nothing below takes it away.
@@ -303,18 +303,18 @@ export default function TermsPage() {
           may keep a proportionate amount for the days you had it — on a monthly plan that is
           usually a matter of pence.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>Everywhere else, refunds are by request within two days of a charge.</strong>{" "}
           Write to the same address, tell us what went wrong, and we will answer within three
           working days. We are a small operation and we read every one of these ourselves; where
           the reason is a fair one you get your money back.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Most of the time cancelling serves you better than a refund. It is one button, it takes
           effect immediately, and you keep everything you have paid for until the period runs
           out.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           If something has genuinely gone wrong — you were charged twice, or the app was broken
           for you — write to us whenever it happened. Those are not refunds under a policy, they
           are mistakes, and we fix mistakes.
@@ -322,18 +322,18 @@ export default function TermsPage() {
       </Section>
 
       <Section title="What we do not promise">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp is offered as it is. We do not promise it will always be available, that the
           AI feedback will be accurate, or that using it will improve your score. The AI
           examiner is a language model: it can be wrong, and it can be confidently wrong.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Without an account, your practice is stored on the device you are using and is cleared
           when you close the browser — nothing about it reaches us, so there is nothing for us to
           restore. With an account it is synced and comes back on any device you sign in to. We
           cannot recover progress that was never synced.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Where the law allows it, our liability to you is limited to what you have paid us in
           the twelve months before whatever went wrong. Nothing here limits liability for death,
           personal injury, fraud, or anything else that cannot lawfully be limited — and if you
@@ -357,16 +357,16 @@ export default function TermsPage() {
         honestly rather than shipping a fake company.
       */}
       <Section title="Who runs BandUp">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp is an independent study tool. It is not affiliated with IELTS, the British
           Council, IDP, or Cambridge University Press &amp; Assessment.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp is run by <strong>Adam Yiu</strong>, as an individual rather than through a
           company. There is no company registration number to give, because there is no company —
           the person you are contracting with is the person named here.
         </p>
-        <address className="mt-3 not-italic text-[15px] leading-7 text-slate-700">
+        <address className="mt-3 not-italic text-[0.9375rem] leading-7 text-slate-700">
           Adam Yiu
           <br />
           11B, Chai Kung Mansion
@@ -375,7 +375,7 @@ export default function TermsPage() {
           <br />
           Hong Kong
         </address>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Contact:{" "}
           <a
             href="mailto:hello@bandup.life"
@@ -388,10 +388,10 @@ export default function TermsPage() {
       </Section>
 
       <Section title="Changes and contact">
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           If these terms change in a way that matters, the date at the top changes with them.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Questions about these terms, or about your data:{" "}
           <a
             href="mailto:hello@bandup.life"

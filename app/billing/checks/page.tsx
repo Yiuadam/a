@@ -30,7 +30,7 @@ export default function ChecksScreen() {
         <OwnerDiagnostics />
       ) : (
         <div className="card">
-          <p className="text-[15px] leading-7 text-slate-600">
+          <p className="text-[0.9375rem] leading-7 text-slate-600">
             There is nothing here for this account.{" "}
             <Link href="/billing" className="font-medium text-indigo-700 underline underline-offset-2">
               Back to bill and usage

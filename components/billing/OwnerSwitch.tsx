@@ -68,10 +68,10 @@ export default function OwnerSwitch() {
                   className="mt-1 h-4 w-4 shrink-0 accent-indigo-600"
                 />
                 <span className="min-w-0">
-                  <span className="block text-[14px] font-medium text-slate-900 sm:text-[15px]">
+                  <span className="block text-[0.875rem] font-medium text-slate-900 sm:text-[0.9375rem]">
                     {t.label}
                   </span>
-                  <span className="block text-[11px] leading-4 text-slate-500 sm:text-xs sm:leading-5">
+                  <span className="block text-[0.6875rem] leading-4 text-slate-500 sm:text-xs sm:leading-5">
                     {t.note}
                   </span>
                 </span>

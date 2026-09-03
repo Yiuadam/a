@@ -39,7 +39,7 @@ export default function PlanPage() {
       */}
       <section className="card !p-4">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-          <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">
+          <h1 className="text-xl font-semibold text-slate-900 sm:text-[1.375rem]">
             Your {plan.duration.heading} study plan
           </h1>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -92,7 +92,7 @@ export default function PlanPage() {
         {plan.blocks.map((b) => (
           <section key={b.step} className="card !p-4">
             <div className="flex items-baseline gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[11px] font-bold text-accent-fg">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[0.6875rem] font-bold text-accent-fg">
                 {b.step}
               </span>
               <h2 className="text-sm font-semibold text-slate-900">

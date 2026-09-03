@@ -55,16 +55,16 @@ export default function StatCard({
               very different mornings, and a dashboard that renders the second
               as the first is one somebody acts on.
             */}
-            <p className="text-[14px] font-medium text-slate-400">Unavailable</p>
-            <p className="mt-0.5 text-[11px] leading-4 text-slate-400">{unavailable}</p>
+            <p className="text-[0.875rem] font-medium text-slate-400">Unavailable</p>
+            <p className="mt-0.5 text-[0.6875rem] leading-4 text-slate-400">{unavailable}</p>
           </>
         ) : (
           <>
-            <p className="text-[22px] font-semibold leading-none tracking-tight text-slate-900 tabular-nums">
+            <p className="text-[1.375rem] font-semibold leading-none tracking-tight text-slate-900 tabular-nums">
               {value}
             </p>
-            <p className="mt-1 truncate text-[12px] leading-4 text-slate-500">{label}</p>
-            {hint && <p className="hidden text-[11px] leading-4 text-slate-400 xl:block">{hint}</p>}
+            <p className="mt-1 truncate text-[0.75rem] leading-4 text-slate-500">{label}</p>
+            {hint && <p className="hidden text-[0.6875rem] leading-4 text-slate-400 xl:block">{hint}</p>}
           </>
         )}
       </div>

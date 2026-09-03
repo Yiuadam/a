@@ -236,7 +236,7 @@ export default function AppleSignIn() {
   const label = "Continue with Apple";
   const classes = [
     "mx-auto flex min-h-11 w-full max-w-[406px] items-center justify-center gap-2",
-    "rounded-full px-5 text-[15px] font-medium tracking-[-0.01em]",
+    "rounded-full px-5 text-[0.9375rem] font-medium tracking-[-0.01em]",
     appearance,
     busy ? "pointer-events-none opacity-60" : "",
   ].join(" ");

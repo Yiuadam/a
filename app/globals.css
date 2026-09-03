@@ -361,6 +361,37 @@ html {
 }
 
 /*
+  Type that grows with the display, above the width a laptop stops at.
+
+  The product is one rem scale, so this one declaration moves all of it. Below
+  1440px nothing changes at all — the clamp floor is 16px, which is what every
+  size in the app was drawn against. Past that it climbs to 20px at 2560px and
+  stops, so a 27-inch screen reads at about a quarter larger than a 13-inch one
+  and no further.
+
+  Why it was needed: nothing scaled upward. A phone got 17px (see the
+  max-width:480px rule below, which still wins there) and everything from a
+  laptop to a 32-inch display got exactly 16px, so the owner's larger monitor
+  showed laptop-sized words marooned in a very wide page. The one @media
+  (min-width:1280px) rule in this entire stylesheet was about the pricing grid.
+
+  vw rather than a set of breakpoints because a jump in body text at a
+  particular width is visible and unpleasant when a window is being resized;
+  this is continuous. And px inside the clamp, never rem: a root font-size
+  written in rem resolves against itself.
+
+  This only worked once the product's arbitrary type was in rem. There were 457
+  text-[15px]-style classes across 78 files, all of them literal pixels, and
+  with those in place raising the root would have moved the headings and left
+  almost every label, hint and caption exactly where it was.
+*/
+@media (min-width: 90rem) {
+  html {
+    font-size: clamp(16px, 0.357vw + 10.86px, 20px);
+  }
+}
+
+/*
   How much room the top chrome takes, as a page token.
 
   Pages that want to fill the rest of the screen were each subtracting a
@@ -4842,12 +4873,18 @@ html[data-theme] select:-webkit-autofill {
 
    Only the sizes that appear inside an exam are here; grep before adding a new
    one to a component that renders in this shell.
+
+   These match on the class *name*, which makes them quietly fragile: the
+   product's arbitrary type is written in rem now so that it grows with the
+   root on a large display, and a selector still looking for text-[11px] would
+   have matched nothing and reported nothing. If a size here is ever renamed
+   again, these go with it.
 --------------------------------------------------------------------------- */
 
-[data-exam] [class*="text-[10px]"] {
+[data-exam] [class*="text-[0.625rem]"] {
   font-size: calc(var(--exam-base) * 0.62);
 }
-[data-exam] [class*="text-[11px]"] {
+[data-exam] [class*="text-[0.6875rem]"] {
   font-size: calc(var(--exam-base) * 0.68);
 }
 [data-exam] [class*="text-xs"] {
@@ -4862,10 +4899,10 @@ html[data-theme] select:-webkit-autofill {
   font-size: var(--exam-base);
   line-height: 1.6;
 }
-[data-exam] [class*="text-[19px]"] {
+[data-exam] [class*="text-[1.1875rem]"] {
   font-size: calc(var(--exam-base) * 1.15);
 }
-[data-exam] [class*="text-[26px]"] {
+[data-exam] [class*="text-[1.625rem]"] {
   font-size: calc(var(--exam-base) * 1.5);
 }
 

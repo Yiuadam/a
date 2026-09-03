@@ -558,12 +558,12 @@ function AdminWorkspaceSummary({
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 lg:grid-cols-[minmax(12rem,1fr)_minmax(28rem,auto)_auto] lg:items-center">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="break-words text-[16px] font-semibold leading-5 tracking-tight text-slate-900 sm:text-[18px] sm:leading-6">{organization.name}</h2>
+            <h2 className="break-words text-[1rem] font-semibold leading-5 tracking-tight text-slate-900 sm:text-[1.125rem] sm:leading-6">{organization.name}</h2>
             <StatusPill tone={organization.status === "active" ? "good" : "warn"}>{titleCase(organization.status)}</StatusPill>
           </div>
           <div className="organization-membership-details" aria-hidden={compact || undefined}>
             <div>
-              <p className="mt-1 text-[11px] text-slate-500">BandUp administrator workspace</p>
+              <p className="mt-1 text-[0.6875rem] text-slate-500">BandUp administrator workspace</p>
             </div>
           </div>
         </div>
@@ -596,13 +596,13 @@ function PortalFrame({ children, dashboard = false, preview = false, focused = f
             <CardIcon name="organization" size={21} className="hidden text-current sm:block" />
           </span>
           <div>
-            <p className="hidden text-[9px] font-semibold uppercase tracking-[0.16em] text-indigo-700 sm:block">BandUp workspace</p>
-            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-slate-900 sm:text-[24px]">Organisation</h1>
+            <p className="hidden text-[0.5625rem] font-semibold uppercase tracking-[0.16em] text-indigo-700 sm:block">BandUp workspace</p>
+            <h1 className="text-[1.125rem] font-semibold tracking-[-0.025em] text-slate-900 sm:text-[1.5rem]">Organisation</h1>
           </div>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-          {preview && <span role="status" className="rounded-full border border-indigo-200/80 bg-indigo-50/65 px-2.5 py-1 text-[10px] font-medium text-indigo-800">Preview data</span>}
-          <p className="hidden max-w-xl text-[11px] leading-4 text-slate-600 sm:block sm:text-[12px]">
+          {preview && <span role="status" className="rounded-full border border-indigo-200/80 bg-indigo-50/65 px-2.5 py-1 text-[0.625rem] font-medium text-indigo-800">Preview data</span>}
+          <p className="hidden max-w-xl text-[0.6875rem] leading-4 text-slate-600 sm:block sm:text-[0.75rem]">
             Students, teachers and managers share progress in one controlled workspace.
           </p>
         </div>
@@ -806,11 +806,11 @@ function OrganizationViewTabs({
             onOpen(id);
             drag.preview(null);
           }}
-          className={`segmented-option relative z-10 min-h-9 min-w-0 rounded-[calc(var(--radius-xl)-0.3rem)] px-1.5 text-[11px] font-semibold transition-colors lg:px-2 lg:text-[12px] ${visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
+          className={`segmented-option relative z-10 min-h-9 min-w-0 rounded-[calc(var(--radius-xl)-0.3rem)] px-1.5 text-[0.6875rem] font-semibold transition-colors lg:px-2 lg:text-[0.75rem] ${visibleIndex === index ? "text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
         >
           <span className="truncate">{label}</span>
           {count !== null && count > 0 && (
-            <span className="ml-1 hidden text-[10px] font-medium text-slate-500 xl:inline">{count}</span>
+            <span className="ml-1 hidden text-[0.625rem] font-medium text-slate-500 xl:inline">{count}</span>
           )}
         </button>
       ))}
@@ -853,14 +853,14 @@ function MembershipSummary({
     >
       <div className={`${managerWorkspace ? "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(12rem,1fr)_minmax(28rem,auto)_auto] lg:items-center" : "flex flex-wrap items-center justify-between gap-3"}`}>
         <div className="min-w-0 flex-1">
-          <h2 className="break-words text-[16px] font-semibold leading-5 tracking-tight text-slate-900 sm:text-[18px] sm:leading-6">
+          <h2 className="break-words text-[1rem] font-semibold leading-5 tracking-tight text-slate-900 sm:text-[1.125rem] sm:leading-6">
             {membership.organization.name}
           </h2>
           <div className="organization-membership-details" aria-hidden={compact || undefined}>
             <div>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <StatusPill tone={statusTone}>{titleCase(membership.status)}</StatusPill>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[0.6875rem] text-slate-500">
                   {titleCase(membership.role)} · {membership.joinedAt ? `Joined ${formatDate(membership.joinedAt)}` : "Awaiting confirmation"}
                 </p>
               </div>
@@ -891,15 +891,15 @@ function MembershipSummary({
         {!(managerWorkspace && managerView && onOpenManagerView) && (
         <div className={`${compact ? "hidden" : managerWorkspace ? "hidden sm:flex" : "grid"} w-full min-w-0 grid-cols-4 gap-1 sm:w-auto sm:items-center`} aria-label="Organisation summary">
           {membership.organization.studentCount !== null && (
-            <span className="min-w-0 border-l border-slate-300/60 px-0.5 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{membership.organization.studentCount}</strong><span className="block text-[8px] uppercase tracking-wide text-slate-500 sm:text-[9px]">Students</span></span>
+            <span className="min-w-0 border-l border-slate-300/60 px-0.5 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{membership.organization.studentCount}</strong><span className="block text-[0.5rem] uppercase tracking-wide text-slate-500 sm:text-[0.5625rem]">Students</span></span>
           )}
           {membership.organization.memberCount !== null && (
-            <span className="min-w-0 border-l border-slate-300/60 px-0.5 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{membership.organization.memberCount}</strong><span className="block text-[8px] uppercase tracking-wide text-slate-500 sm:text-[9px]">Members</span></span>
+            <span className="min-w-0 border-l border-slate-300/60 px-0.5 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{membership.organization.memberCount}</strong><span className="block text-[0.5rem] uppercase tracking-wide text-slate-500 sm:text-[0.5625rem]">Members</span></span>
           )}
           {(membership.role === "manager" || membership.role === "owner") && (
             <>
-              <span className="min-w-0 border-l border-slate-300/60 px-0.5 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{pending}</strong><span className="block text-[8px] uppercase tracking-wide text-slate-500 sm:text-[9px]">Pending</span></span>
-              <span className="min-w-0 border-l border-slate-300/60 px-0.5 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{assigned}</strong><span className="block text-[8px] uppercase tracking-wide text-slate-500 sm:text-[9px]">Assigned</span></span>
+              <span className="min-w-0 border-l border-slate-300/60 px-0.5 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{pending}</strong><span className="block text-[0.5rem] uppercase tracking-wide text-slate-500 sm:text-[0.5625rem]">Pending</span></span>
+              <span className="min-w-0 border-l border-slate-300/60 px-0.5 text-center sm:min-w-16 sm:px-2.5"><strong className="block text-sm tabular-nums text-slate-900">{assigned}</strong><span className="block text-[0.5rem] uppercase tracking-wide text-slate-500 sm:text-[0.5625rem]">Assigned</span></span>
             </>
           )}
         </div>
@@ -985,7 +985,7 @@ function StudentArea({
                     <StatusPill tone={assignment.completedAt ? "good" : "plain"}>{assignment.completedAt ? "Done" : "To do"}</StatusPill>
                   </div>
                   {assignment.note && <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-slate-600">{assignment.note}</p>}
-                  {assignment.dueAt && <p className="mt-1 text-[11px] text-slate-500">Due {formatDate(assignment.dueAt)}</p>}
+                  {assignment.dueAt && <p className="mt-1 text-[0.6875rem] text-slate-500">Due {formatDate(assignment.dueAt)}</p>}
                 </div>
                 <Link href={assignment.href} className="btn-primary shrink-0 !rounded-[var(--radius-lg)] !px-3 !py-2 text-xs">
                   {assignment.completedAt ? "Practise again" : "Start"}
@@ -1011,9 +1011,9 @@ function StudentArea({
                 data-notification-target={item.attemptId === focusedAttemptId ? "teacher-feedback" : undefined}
                 className={`text-inset-compact scroll-mt-24 rounded-[var(--radius-lg)] border py-2.5 outline-none transition-colors ${item.attemptId === focusedAttemptId ? "border-indigo-300 bg-indigo-50/55 ring-2 ring-indigo-300/45" : "border-slate-200/70 bg-surface/30"}`}
               >
-                {item.attemptId === focusedAttemptId && <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-indigo-800">New teacher feedback</p>}
+                {item.attemptId === focusedAttemptId && <p className="mb-1 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-indigo-800">New teacher feedback</p>}
                 <p className="text-xs leading-5 text-slate-700">{item.message}</p>
-                <p className="mt-1 text-[11px] text-slate-500">{item.teacherName ?? "Teacher"} · {formatDate(item.updatedAt)}</p>
+                <p className="mt-1 text-[0.6875rem] text-slate-500">{item.teacherName ?? "Teacher"} · {formatDate(item.updatedAt)}</p>
               </div>
             ))}
           </div>
@@ -1124,15 +1124,15 @@ function SharingRequestRow({
     <div className="grid min-w-0 gap-2 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/30 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[14px] font-medium text-slate-800">{label}</p>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${shared ? "bg-emerald-100/80 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
+          <p className="text-[0.875rem] font-medium text-slate-800">{label}</p>
+          <span className={`rounded-full px-2 py-0.5 text-[0.625rem] font-semibold ${shared ? "bg-emerald-100/80 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
             {shared ? "Currently shared" : "Currently private"}
           </span>
           {pending && <StatusPill tone="warn">Pending</StatusPill>}
         </div>
-        <p className="mt-0.5 text-[12px] leading-4 text-slate-500">{detail}</p>
+        <p className="mt-0.5 text-[0.75rem] leading-4 text-slate-500">{detail}</p>
         {pending && (
-          <p role="status" className="mt-1 text-[11px] leading-4 text-amber-800">
+          <p role="status" className="mt-1 text-[0.6875rem] leading-4 text-amber-800">
             {shared ? "You asked to stop sharing." : "You asked to start sharing."} Current access stays unchanged until approval.
           </p>
         )}
@@ -1357,8 +1357,8 @@ function PracticeAssignmentForm({
             onClose={() => setStudentPickerOpen(false)}
           >
             <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 px-2 py-1.5">
-              <button type="button" className="text-[11px] font-semibold text-indigo-700" onClick={() => setStudentUserIds(availableStudents.map((student) => student.userId))}>Select all</button>
-              <button type="button" className="text-[11px] font-semibold text-slate-500" onClick={() => setStudentUserIds([])}>Clear</button>
+              <button type="button" className="text-[0.6875rem] font-semibold text-indigo-700" onClick={() => setStudentUserIds(availableStudents.map((student) => student.userId))}>Select all</button>
+              <button type="button" className="text-[0.6875rem] font-semibold text-slate-500" onClick={() => setStudentUserIds([])}>Clear</button>
             </div>
             {availableStudents.map((student) => {
               const selected = studentUserIds.includes(student.userId);
@@ -1371,7 +1371,7 @@ function PracticeAssignmentForm({
                   className={`mt-1 flex min-h-10 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm ${selected ? "bg-indigo-100/65 text-slate-900" : "text-slate-700 hover:bg-surface/55"}`}
                   onClick={() => setStudentUserIds((current) => selected ? current.filter((id) => id !== student.userId) : [...current, student.userId])}
                 >
-                  <span className={`grid size-5 place-items-center rounded-md border text-[12px] ${selected ? "border-indigo-400 bg-indigo-600 text-white" : "border-slate-300"}`}>{selected ? "✓" : ""}</span>
+                  <span className={`grid size-5 place-items-center rounded-md border text-[0.75rem] ${selected ? "border-indigo-400 bg-indigo-600 text-white" : "border-slate-300"}`}>{selected ? "✓" : ""}</span>
                   <span className="truncate">{student.displayName ?? student.email ?? "Student"}</span>
                 </button>
               );
@@ -1443,7 +1443,7 @@ function PracticeAssignmentSummary({
             onClick={() => onOpenStudent(item.studentId)}
           >
             <span className="truncate text-xs font-semibold text-slate-900">{item.name}</span>
-            <span className="flex shrink-0 items-center gap-1.5 text-[10px] tabular-nums text-slate-500">
+            <span className="flex shrink-0 items-center gap-1.5 text-[0.625rem] tabular-nums text-slate-500">
               <strong className="text-xs text-slate-900">{item.done}/{item.total}</strong>
               <span>done</span>
               <span aria-hidden="true" className="text-sm transition-transform group-hover:translate-x-0.5">›</span>
@@ -1459,7 +1459,7 @@ function PracticeAssignmentSummary({
               >
                 <span className="block h-full rounded-full bg-indigo-600" style={{ width: `${percentage}%` }} />
               </span>
-              <span className="w-8 shrink-0 text-right text-[10px] font-semibold tabular-nums text-slate-600">{percentage}%</span>
+              <span className="w-8 shrink-0 text-right text-[0.625rem] font-semibold tabular-nums text-slate-600">{percentage}%</span>
             </span>
           </button>
         );
@@ -1489,7 +1489,7 @@ function AssignmentDirectoryCard({
       <CardIcon name="plan" size={28} className="shrink-0 text-indigo-700" />
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-slate-900">Student assignments</span>
-        <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">
+        <span className="mt-0.5 block text-[0.6875rem] leading-4 text-slate-500">
           {assignments.length === 0
             ? "No tasks have been set yet"
             : `${todo} to do · ${done} done · ${students} student${students === 1 ? "" : "s"}`}
@@ -1550,15 +1550,15 @@ function AssignmentDesktopWorkspace({
         <span className="flex min-w-0 items-start justify-between gap-2">
           <span className="min-w-0">
             <span className="block text-sm font-semibold leading-5 text-slate-900">{assignment.title}</span>
-            <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">
+            <span className="mt-0.5 block text-[0.6875rem] leading-4 text-slate-500">
               {assignment.dueAt ? `Due ${formatDate(assignment.dueAt)}` : `Set ${formatDate(assignment.assignedAt)}`}
               {assignment.assignedByName ? ` · ${assignment.assignedByName}` : ""}
             </span>
           </span>
           <StatusPill tone={assignment.completedAt ? "good" : "plain"}>{assignment.completedAt ? "Done" : "To do"}</StatusPill>
         </span>
-        {assignment.note && <span className="mt-1.5 line-clamp-2 block text-[11px] leading-4 text-slate-600">{assignment.note}</span>}
-        <span className="mt-2 flex items-center justify-between text-[11px] font-semibold text-indigo-700">
+        {assignment.note && <span className="mt-1.5 line-clamp-2 block text-[0.6875rem] leading-4 text-slate-600">{assignment.note}</span>}
+        <span className="mt-2 flex items-center justify-between text-[0.6875rem] font-semibold text-indigo-700">
           <span>{resultHref ? "Review sitting" : "Waiting for completion"}</span>
           {resultHref && <span aria-hidden="true">›</span>}
         </span>
@@ -1580,7 +1580,7 @@ function AssignmentDesktopWorkspace({
       <div className="min-w-0 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/20 p-2">
         <div className="flex items-center justify-between gap-2 px-1 pb-2">
           <h3 className="text-sm font-semibold text-slate-900">Students</h3>
-          <span className="text-[11px] tabular-nums text-slate-500">{sortedStudents.length}</span>
+          <span className="text-[0.6875rem] tabular-nums text-slate-500">{sortedStudents.length}</span>
         </div>
         <div role="listbox" aria-label="Student assignment records" className="max-h-[23rem] space-y-1 overflow-y-auto overscroll-contain pr-0.5">
           {sortedStudents.map((student) => {
@@ -1600,7 +1600,7 @@ function AssignmentDesktopWorkspace({
                 <span className="min-w-0 flex-1"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></span>
                 <span className="shrink-0 text-right">
                   <strong className="block text-xs tabular-nums text-slate-900">{todo} to do</strong>
-                  <span className="block text-[10px] tabular-nums text-slate-500">{done} done</span>
+                  <span className="block text-[0.625rem] tabular-nums text-slate-500">{done} done</span>
                 </span>
               </button>
             );
@@ -1614,11 +1614,11 @@ function AssignmentDesktopWorkspace({
             <div className="flex min-w-0 items-center justify-between gap-3 border-b border-slate-200/70 pb-2.5">
               <span className="min-w-0 flex-1">
                 <strong className="block text-sm font-semibold text-slate-900">Assignment progress</strong>
-                <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">
+                <span className="mt-0.5 block text-[0.6875rem] leading-4 text-slate-500">
                   {selectedTodo.length} to do · {selectedDone.length} done
                 </span>
               </span>
-              <span className="shrink-0 text-right text-[11px] leading-4 text-slate-500" aria-label={`${selectedAssignments.length} assigned tasks`}>
+              <span className="shrink-0 text-right text-[0.6875rem] leading-4 text-slate-500" aria-label={`${selectedAssignments.length} assigned tasks`}>
                 <strong className="block text-sm tabular-nums text-slate-900">{selectedAssignments.length}</strong>
                 task{selectedAssignments.length === 1 ? "" : "s"}
               </span>
@@ -1627,13 +1627,13 @@ function AssignmentDesktopWorkspace({
               {selectedAssignments.length === 0 && <EmptyState>No practice has been assigned to this student yet.</EmptyState>}
               {selectedTodo.length > 0 && (
                 <section>
-                  <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">To do · {selectedTodo.length}</h4>
+                  <h4 className="mb-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-slate-500">To do · {selectedTodo.length}</h4>
                   <div className="grid gap-2 xl:grid-cols-2">{selectedTodo.map(taskCard)}</div>
                 </section>
               )}
               {selectedDone.length > 0 && (
                 <section>
-                  <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Done · {selectedDone.length}</h4>
+                  <h4 className="mb-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-slate-500">Done · {selectedDone.length}</h4>
                   <div className="grid gap-2 xl:grid-cols-2">{selectedDone.map(taskCard)}</div>
                 </section>
               )}
@@ -1710,15 +1710,15 @@ function AssignmentDirectory({
                 <span className="flex min-w-0 items-start justify-between gap-2">
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold text-slate-900">{assignment.title}</span>
-                    <span className="mt-0.5 block text-[11px] text-slate-500">
+                    <span className="mt-0.5 block text-[0.6875rem] text-slate-500">
                       {assignment.dueAt ? `Due ${formatDate(assignment.dueAt)}` : `Set ${formatDate(assignment.assignedAt)}`}
                       {assignment.assignedByName ? ` · ${assignment.assignedByName}` : ""}
                     </span>
                   </span>
                   <StatusPill tone={assignment.completedAt ? "good" : "plain"}>{assignment.completedAt ? "Done" : "To do"}</StatusPill>
                 </span>
-                {assignment.note && <span className="mt-1.5 line-clamp-2 block text-[11px] leading-4 text-slate-600">{assignment.note}</span>}
-                <span className="mt-2 flex items-center justify-between text-[11px] font-semibold text-indigo-700">
+                {assignment.note && <span className="mt-1.5 line-clamp-2 block text-[0.6875rem] leading-4 text-slate-600">{assignment.note}</span>}
+                <span className="mt-2 flex items-center justify-between text-[0.6875rem] font-semibold text-indigo-700">
                   <span>{resultHref ? "Review sitting" : "Waiting for completion"}</span>
                   {resultHref && <span aria-hidden="true">›</span>}
                 </span>
@@ -1752,7 +1752,7 @@ function AssignmentDirectory({
                 <span className="min-w-0 flex-1"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></span>
                 <span className="shrink-0 text-right">
                   <strong className="block text-sm tabular-nums text-slate-900">{todo} to do</strong>
-                  <span className="block text-[10px] text-slate-500">{done} done</span>
+                  <span className="block text-[0.625rem] text-slate-500">{done} done</span>
                 </span>
                 <span aria-hidden="true" className="text-lg text-slate-400 transition-transform group-hover:translate-x-0.5">›</span>
               </button>
@@ -1772,17 +1772,17 @@ function StudentCard({ student, previewRole = null }: { student: NonNullable<Por
         <div className="min-w-0 flex-1"><Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} /></div>
         <span className="shrink-0 text-right">
           <strong className="block text-sm tabular-nums text-slate-900">{student.completedAttempts}</strong>
-          <span className="block text-[9px] uppercase tracking-wide text-slate-500">Sittings</span>
+          <span className="block text-[0.5625rem] uppercase tracking-wide text-slate-500">Sittings</span>
         </span>
         <span aria-hidden="true" className="text-lg text-slate-400 transition-transform group-hover:translate-x-0.5">›</span>
       </div>
       <div className="mt-2 flex min-w-0 items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
         <div className="flex min-w-0 flex-wrap gap-1">
           {bands.length ? bands.map(([skill, band]) => (
-            <span key={skill} className="rounded-md bg-slate-100/70 px-1.5 py-0.5 text-[10px] text-slate-600"><span className="sm:hidden">{skill.slice(0, 1).toUpperCase()}</span><span className="hidden sm:inline">{titleCase(skill)}</span> {band}</span>
-          )) : <span className="text-[10px] text-slate-500">No scores yet</span>}
+            <span key={skill} className="rounded-md bg-slate-100/70 px-1.5 py-0.5 text-[0.625rem] text-slate-600"><span className="sm:hidden">{skill.slice(0, 1).toUpperCase()}</span><span className="hidden sm:inline">{titleCase(skill)}</span> {band}</span>
+          )) : <span className="text-[0.625rem] text-slate-500">No scores yet</span>}
         </div>
-        <span className="shrink-0 text-[10px] text-slate-500">{student.lastActiveAt ? formatDate(student.lastActiveAt) : "No activity"}</span>
+        <span className="shrink-0 text-[0.625rem] text-slate-500">{student.lastActiveAt ? formatDate(student.lastActiveAt) : "No activity"}</span>
       </div>
     </StudentLink>
   );
@@ -1869,7 +1869,7 @@ function MobileManagerDashboard({
           <CardIcon name={card.icon} size={34} className="text-indigo-700" />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-slate-900">{card.label}</span>
-            <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">{card.detail}</span>
+            <span className="mt-0.5 block text-[0.6875rem] leading-4 text-slate-500">{card.detail}</span>
           </span>
           <span className="flex shrink-0 items-center gap-2">
             <strong className="text-lg font-semibold tabular-nums tracking-tight text-slate-900">{card.value}</strong>
@@ -1902,7 +1902,7 @@ function MobileDashboardBack({
           <path d="m7.5 12 9-6.5v13Z" />
         </svg>
       </button>
-      <button type="button" onClick={onBack} className="btn-secondary !hidden !min-h-9 !rounded-[var(--radius-lg)] !px-2.5 !py-1.5 text-[11px] sm:!inline-flex">
+      <button type="button" onClick={onBack} className="btn-secondary !hidden !min-h-9 !rounded-[var(--radius-lg)] !px-2.5 !py-1.5 text-[0.6875rem] sm:!inline-flex">
         <span aria-hidden="true">‹</span> {desktopLabel}
       </button>
     </>
@@ -2080,10 +2080,10 @@ function ManagerArea({
                       <Person name={student.displayName} email={student.email} avatarUrl={student.avatarUrl} />
                       <span className="shrink-0 text-right">
                         <strong className="block text-sm tabular-nums text-slate-900">{student.completedAttempts}</strong>
-                        <span className="block text-[9px] uppercase tracking-wide text-slate-500">Sittings</span>
+                        <span className="block text-[0.5625rem] uppercase tracking-wide text-slate-500">Sittings</span>
                       </span>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500">{student.lastActiveAt ? `Active ${formatDate(student.lastActiveAt)}` : "No activity yet"}</p>
+                    <p className="mt-2 text-[0.6875rem] text-slate-500">{student.lastActiveAt ? `Active ${formatDate(student.lastActiveAt)}` : "No activity yet"}</p>
                   </StudentLink>
                 ))}
               </div>
@@ -2492,7 +2492,7 @@ function TeamDirectoryCard({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-slate-900">{title}</span>
-        <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">{detail}</span>
+        <span className="mt-0.5 block text-[0.6875rem] leading-4 text-slate-500">{detail}</span>
       </span>
       <span aria-hidden="true" className="shrink-0 text-lg text-slate-400 transition-transform group-hover:translate-x-0.5">›</span>
     </button>
@@ -2584,7 +2584,7 @@ function TeamGroups({ members, assignments, organizationId, act, busy }: {
                     )}
                     {pendingUnassign === `${teacher.userId}:${student.userId}` && (
                       <>
-                        <span role="status" className="text-[10px] font-semibold text-rose-700">Confirm?</span>
+                        <span role="status" className="text-[0.625rem] font-semibold text-rose-700">Confirm?</span>
                         <button
                           type="button"
                           className="btn-secondary grid !size-8 !min-h-8 shrink-0 place-items-center !rounded-full !p-0 text-slate-600"
@@ -3019,8 +3019,8 @@ function TeacherAssignments({
               onClose={() => setStudentPickerOpen(false)}
             >
               <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 px-2 py-1.5">
-                <button type="button" className="text-[11px] font-semibold text-indigo-700" onClick={() => setStudentUserIds(availableStudents.map((student) => student.userId))}>Select all</button>
-                <button type="button" className="text-[11px] font-semibold text-slate-500" onClick={() => setStudentUserIds([])}>Clear</button>
+                <button type="button" className="text-[0.6875rem] font-semibold text-indigo-700" onClick={() => setStudentUserIds(availableStudents.map((student) => student.userId))}>Select all</button>
+                <button type="button" className="text-[0.6875rem] font-semibold text-slate-500" onClick={() => setStudentUserIds([])}>Clear</button>
               </div>
               {availableStudents.length === 0 ? (
                 <p className="px-2 py-3 text-xs text-slate-500">Every active student is already assigned to this teacher.</p>
@@ -3035,7 +3035,7 @@ function TeacherAssignments({
                     className={`mt-1 flex min-h-10 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm ${selected ? "bg-indigo-100/65 text-slate-900" : "text-slate-700 hover:bg-surface/55"}`}
                     onClick={() => setStudentUserIds((current) => selected ? current.filter((id) => id !== student.userId) : [...current, student.userId])}
                   >
-                    <span className={`grid h-5 w-5 place-items-center rounded-md border text-[12px] ${selected ? "border-indigo-400 bg-indigo-600 text-white" : "border-slate-300"}`}>{selected ? "✓" : ""}</span>
+                    <span className={`grid h-5 w-5 place-items-center rounded-md border text-[0.75rem] ${selected ? "border-indigo-400 bg-indigo-600 text-white" : "border-slate-300"}`}>{selected ? "✓" : ""}</span>
                     <span className="truncate">{student.displayName ?? student.email ?? "Student"}</span>
                   </button>
                 );
@@ -3092,12 +3092,12 @@ function RequestRow({
       data-notification-target={highlighted ? "organization-request" : undefined}
       className={`text-inset-compact scroll-mt-24 rounded-[var(--radius-lg)] border border-slate-200/70 bg-surface/25 py-2.5 outline-none transition-colors ${highlighted ? "!border-indigo-300/75 !bg-indigo-50/55 !px-4 !py-4 ring-2 ring-inset ring-indigo-300/55 sm:!px-5" : ""}`}
     >
-      {highlighted && <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-indigo-800">Needs your attention</p>}
+      {highlighted && <p className="mb-1 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-indigo-800">Needs your attention</p>}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <span><span className="block text-sm font-semibold text-slate-900">{request.requesterName ?? request.requesterEmail ?? "Member"}</span><span className="block text-xs text-slate-500">{requestLabel} · {formatDate(request.createdAt)}</span></span>
         <StatusPill tone="warn">Pending</StatusPill>
       </div>
-      {visibleNote && <p className="mt-1.5 line-clamp-1 text-[11px] leading-4 text-slate-600">{visibleNote}</p>}
+      {visibleNote && <p className="mt-1.5 line-clamp-1 text-[0.6875rem] leading-4 text-slate-600">{visibleNote}</p>}
       <div className="mt-2 grid grid-cols-2 gap-1.5 sm:flex">
         <button type="button" aria-label={`Approve ${requestLabel.toLowerCase()} request from ${request.requesterName ?? request.requesterEmail ?? "member"}`} className="btn-primary min-h-11 w-full !px-3 !py-1.5 text-xs sm:w-auto" disabled={busy} onClick={() => void act(action, { requestId: request.id, approve: true })}>Approve</button>
         <button type="button" aria-label={`Reject ${requestLabel.toLowerCase()} request from ${request.requesterName ?? request.requesterEmail ?? "member"}`} className="btn-secondary min-h-11 w-full !px-3 !py-1.5 text-xs sm:w-auto" disabled={busy} onClick={() => void act(action, { requestId: request.id, approve: false })}>Reject</button>
@@ -3150,7 +3150,7 @@ function OrganizationDeletionControl({
       <div className="mt-2 flex justify-end" data-organization-deletion-control>
         <button
           type="button"
-          className="btn-secondary !min-h-8 !rounded-[var(--radius-lg)] !border-rose-200 !px-2.5 !py-1 text-[11px] font-semibold !text-rose-800"
+          className="btn-secondary !min-h-8 !rounded-[var(--radius-lg)] !border-rose-200 !px-2.5 !py-1 text-[0.6875rem] font-semibold !text-rose-800"
           aria-label={`Delete ${organizationName} organisation`}
           aria-expanded="false"
           disabled={busy || submitting}
@@ -3190,7 +3190,7 @@ function OrganizationDeletionControl({
             </button>
           )}
         </div>
-        <p id={copyId} className="mt-1.5 w-full text-[11px] leading-4 text-rose-800">
+        <p id={copyId} className="mt-1.5 w-full text-[0.6875rem] leading-4 text-rose-800">
           Permanently removes this workspace, its memberships, requests, assignments and shared organisation records. Learners keep their own practice history. This cannot be undone.
         </p>
       </div>
@@ -3254,13 +3254,13 @@ function PlatformAdminCard({
         <CardIcon name="gear" size={21} className="text-current" />
       </span>
       <span className="min-w-0 flex-1">
-        <strong className="block text-[15px] font-semibold tracking-tight text-slate-900 sm:text-base">BandUp administration</strong>
-        <span className="mt-0.5 block text-[11px] leading-4 text-slate-500 sm:text-xs">
+        <strong className="block text-[0.9375rem] font-semibold tracking-tight text-slate-900 sm:text-base">BandUp administration</strong>
+        <span className="mt-0.5 block text-[0.6875rem] leading-4 text-slate-500 sm:text-xs">
           Manage every organisation workspace.
         </span>
       </span>
       <span className="hidden shrink-0 text-right sm:block">
-        <span className="block text-[10px] text-slate-500">
+        <span className="block text-[0.625rem] text-slate-500">
           {organizations.length} organisation{organizations.length === 1 ? "" : "s"}
         </span>
       </span>
@@ -3286,8 +3286,8 @@ function PlatformAdminArea({
       <div className="flex min-w-0 items-start gap-2 px-0.5">
         <MobileDashboardBack onBack={onBack} ariaLabel="Back to organisation overview" />
         <div className="min-w-0">
-          <h2 id="bandup-administration-title" className="text-[19px] font-semibold tracking-tight text-slate-900 sm:text-[22px]">BandUp administration</h2>
-          <p className="mt-0.5 text-xs leading-4 text-slate-600 sm:text-[13px]">Platform-level workspace controls.</p>
+          <h2 id="bandup-administration-title" className="text-[1.1875rem] font-semibold tracking-tight text-slate-900 sm:text-[1.375rem]">BandUp administration</h2>
+          <p className="mt-0.5 text-xs leading-4 text-slate-600 sm:text-[0.8125rem]">Platform-level workspace controls.</p>
         </div>
       </div>
       <div className="grid min-w-0 gap-2.5">

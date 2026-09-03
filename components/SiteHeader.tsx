@@ -540,7 +540,7 @@ export default function SiteHeader({
                           onPointerEnter={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
                           onFocus={() => setMenuPreview({ group: groupIndex, item: itemIndex })}
                           onBlur={() => setMenuPreview(null)}
-                          className={`relative z-10 flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[16px] font-semibold transition-colors ${
+                          className={`relative z-10 flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[1rem] font-semibold transition-colors ${
                             item.href === current
                               ? "text-slate-900"
                               : "text-slate-700 hover:text-slate-900"
@@ -615,7 +615,7 @@ export default function SiteHeader({
         <Link
           href="/"
           prefetch={false}
-          className="group flex shrink-0 items-center gap-2.5 text-[17px] font-semibold text-slate-900"
+          className="group flex shrink-0 items-center gap-2.5 text-[1.0625rem] font-semibold text-slate-900"
         >
           {/*
             The app icon, not a letter. `overflow-hidden` with the same radius

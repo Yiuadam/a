@@ -254,7 +254,7 @@ export default function ExamShell({
           candidate here, so it says which paper you are on — the same corner,
           doing the same job of telling you where you are.
         */}
-        <div className="exam-section-block min-w-0 self-stretch text-[11px] leading-tight">
+        <div className="exam-section-block min-w-0 self-stretch text-[0.6875rem] leading-tight">
           <div className="whitespace-nowrap font-semibold uppercase tracking-wide text-[color:var(--exam-fg)]">
             {section}
           </div>

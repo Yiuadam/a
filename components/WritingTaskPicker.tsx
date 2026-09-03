@@ -125,7 +125,7 @@ export default function WritingTaskPicker({
     <div ref={rootRef} className="min-w-0">
       <span
         id={labelId}
-        className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500"
+        className="mb-1 block text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500"
       >
         Choose a task
       </span>
@@ -148,7 +148,7 @@ export default function WritingTaskPicker({
         className="exam-glass group relative flex min-h-11 w-full min-w-0 items-center gap-3 rounded-xl border px-3.5 py-2 text-left text-[color:var(--exam-fg)] transition-[border-color,background-color,box-shadow] hover:bg-[color:var(--exam-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--exam-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--exam-bg)]"
       >
         <span id={`${id}-value`} className="min-w-0 flex-1">
-          <span className="block truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--exam-muted)]">
+          <span className="block truncate text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-[color:var(--exam-muted)]">
             Task {selected.task} · {selected.variant}
           </span>
           <span className="block truncate text-sm font-medium">{selected.title}</span>
@@ -195,7 +195,7 @@ export default function WritingTaskPicker({
                 }`}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[10px] font-semibold uppercase tracking-[0.08em]">
+                  <span className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em]">
                     Task {option.task} · {option.variant}
                   </span>
                   <span className="block break-words text-sm font-medium leading-5 text-[color:var(--exam-fg)]">

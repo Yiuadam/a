@@ -54,17 +54,17 @@ export default function IconFinalPage() {
   return (
     <div className="space-y-12">
       <header className="max-w-2xl space-y-3">
-        <h1 className="heading-rule text-[26px] font-semibold text-slate-900">
+        <h1 className="heading-rule text-[1.625rem] font-semibold text-slate-900">
           The chosen icon, flat and in glass
         </h1>
-        <p className="text-[15px] leading-7 text-slate-600">
+        <p className="text-[0.9375rem] leading-7 text-slate-600">
           Folio, five steps, flat on — preserved as chosen — beside a layered version prepared for
           Apple&rsquo;s Icon Composer. The layers themselves are in{" "}
-          <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[13px]">
+          <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[0.8125rem]">
             public/icons/final/glass/
           </code>
           , with the research and assembly steps in{" "}
-          <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[13px]">
+          <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[0.8125rem]">
             public/icons/final/README.md
           </code>
           .
@@ -107,7 +107,7 @@ export default function IconFinalPage() {
               {VERSIONS.map((v) => (
                 <div key={v.file} className="flex w-20 flex-col items-center gap-2">
                   <Icon file={v.file} px={32} rounded />
-                  <span className="text-center text-[10px] leading-tight text-slate-400">
+                  <span className="text-center text-[0.625rem] leading-tight text-slate-400">
                     {v.file === "glass-approx.svg" ? "Glass" : "Flat"}
                   </span>
                 </div>
@@ -123,7 +123,7 @@ export default function IconFinalPage() {
             <Icon file={v.file} px={160} rounded />
             <div className="min-w-0 flex-1 space-y-2">
               <h2 className="text-base font-semibold text-slate-900">{v.name}</h2>
-              <p className="text-[15px] leading-7 text-slate-700">{v.note}</p>
+              <p className="text-[0.9375rem] leading-7 text-slate-700">{v.note}</p>
               <p className="text-xs text-slate-400">
                 <code className="rounded bg-slate-100 px-1.5 py-0.5">
                   public/icons/final/{v.file}
@@ -146,7 +146,7 @@ export default function IconFinalPage() {
                   {SIZES.map((px) => (
                     <div key={px} className="flex flex-col items-center gap-1.5">
                       <Icon file={v.file} px={px} rounded />
-                      <span className="text-[10px] text-slate-400">{px}</span>
+                      <span className="text-[0.625rem] text-slate-400">{px}</span>
                     </div>
                   ))}
                 </div>
@@ -165,7 +165,7 @@ export default function IconFinalPage() {
 
       <section className="card space-y-3">
         <h2 className="text-base font-semibold text-slate-900">The layers, separately</h2>
-        <p className="text-[15px] leading-7 text-slate-700">
+        <p className="text-[0.9375rem] leading-7 text-slate-700">
           These are what go into Icon Composer, bottom to top. They are deliberately flat and
           shadowless — under Liquid Glass the depth comes from the layers being separate, and any
           shadow painted here would be drawn twice. Layers above the background are transparent

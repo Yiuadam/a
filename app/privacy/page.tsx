@@ -112,8 +112,8 @@ export default function PrivacyPage() {
     */
     <div className="mx-auto max-w-3xl space-y-10">
       <div className="max-w-xl space-y-2">
-        <h1 className="text-[26px] font-semibold text-slate-900">Privacy</h1>
-        <p className="text-[15px] leading-7 text-slate-600">
+        <h1 className="text-[1.625rem] font-semibold text-slate-900">Privacy</h1>
+        <p className="text-[0.9375rem] leading-7 text-slate-600">
           Without an account, your practice stays on your device and is gone when you close the
           browser. With one, it is synced so a second device can pick it up. An account is
           optional and changes only what is named below. This page says exactly what that means,
@@ -135,7 +135,7 @@ export default function PrivacyPage() {
             "BandUp never uploads audio from your microphone and never saves it as a file.",
             "On the web you can choose to have your speech transcribed on your own device, so the audio never leaves it at all. The recogniser built into your browser or phone is still the default.",
           ].map((line) => (
-            <li key={line} className="flex gap-3 text-[15px] leading-7 text-slate-700">
+            <li key={line} className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
               {line}
             </li>
@@ -147,7 +147,7 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           What is stored, and where
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Signed out, everything BandUp remembers about you lives in the browser you are using
           and nowhere else. Your practice is held in the tab: close it and that work is gone, and
           you start fresh. Your theme and speech choices are settings rather than work, so they
@@ -162,7 +162,7 @@ export default function PrivacyPage() {
           {STORED.map((s) => (
             <li key={s.key}>
               <p className="font-mono text-xs text-indigo-700">{s.key}</p>
-              <p className="text-[15px] leading-7 text-slate-700">{s.what}</p>
+              <p className="text-[0.9375rem] leading-7 text-slate-700">{s.what}</p>
             </li>
           ))}
         </ul>
@@ -188,7 +188,7 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           What leaves your device
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Five features need a model to think about your English, and those are the only times
           anything you write is sent anywhere. Each one goes to BandUp&rsquo;s server, which
           passes it to Anthropic&rsquo;s API for the answer and sends that answer back to you.
@@ -196,7 +196,7 @@ export default function PrivacyPage() {
           save your completed practice, its feedback record can include the essay or speaking
           transcript so your history can be reopened later.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           One of those five sends more than what you have just typed. When you ask the tutor a
           question, extracts from your own mock speaking interviews go with it, because
           otherwise its advice can only be about IELTS in general. What travels is the text of
@@ -224,7 +224,7 @@ export default function PrivacyPage() {
                 {s.feature}{" "}
                 <span className="font-mono text-xs font-normal text-slate-500">{s.route}</span>
               </p>
-              <p className="text-[15px] leading-7 text-slate-700">{s.what}</p>
+              <p className="text-[0.9375rem] leading-7 text-slate-700">{s.what}</p>
             </li>
           ))}
         </ul>
@@ -266,7 +266,7 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           The microphone, in full
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           The speaking test asks for microphone access so it can hear your answers. This is the
           part worth reading carefully, because the speaking test now offers two ways of turning
           speech into text and they differ in exactly this respect. You choose on the screen
@@ -277,13 +277,13 @@ export default function PrivacyPage() {
           Your device&rsquo;s recogniser — the default
         </h3>
         <ul className="mt-3 space-y-3">
-          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+          <li className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
             Your speech is turned into text by the recogniser built into the device or browser
             you are using — Apple&rsquo;s speech recognition in the iOS app, the browser&rsquo;s
             own Web Speech API on the web. BandUp receives only the words it returns.
           </li>
-          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+          <li className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
             Those recognisers are not ours, and some of them send audio to their own servers to
             transcribe it — Chrome&rsquo;s uploads to Google. Apple and the makers of Chrome,
@@ -298,19 +298,19 @@ export default function PrivacyPage() {
           On-device transcription — if you turn it on
         </h3>
         <ul className="mt-3 space-y-3">
-          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+          <li className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
             With this on, your audio never leaves your device. A speech model called Whisper
             runs inside your own browser and does the transcription there. Nothing is sent to
             BandUp, to us, or to anyone else, and no recogniser outside your device hears it.
           </li>
-          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+          <li className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
             Your answer is held in memory while you speak, because this model needs the whole
             answer before it can transcribe it. It is never written to a file and it is
             discarded as soon as the text comes back.
           </li>
-          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+          <li className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
             There is one exception worth being exact about, and it is not audio. The model
             itself has to be downloaded before it can run, and it comes from Hugging Face, who
@@ -321,7 +321,7 @@ export default function PrivacyPage() {
             BandUp&rsquo;s server for the same file instead, and then it is we who ask Hugging
             Face rather than you.
           </li>
-          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+          <li className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
             This option is available on the web. The iOS app does not offer it yet: the
             on-device model there is written but not yet built into a released version, so in
@@ -330,7 +330,7 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <p className="mt-6 text-[15px] leading-7 text-slate-700">
+        <p className="mt-6 text-[0.9375rem] leading-7 text-slate-700">
           Both ways share the rest: BandUp never uploads your audio and never saves it as a
           file. Only the finished transcript — text — is sent for marking, and only when you ask
           for feedback. The microphone is used during the speaking test and at no other time.
@@ -347,14 +347,14 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           If you sign in
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp can be used entirely signed out, and is by default. The placement test, your
           study plan and both sets of drills work without an account and always will, and so do
           practice papers, with a weekly limit until you pay. An account exists to carry that
           work between your phone and your laptop. AI feedback needs a Plus or Pro plan: a free
           account has none of it, and neither does a signed-out visitor.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           You can sign in with Google, with Apple, or with an email address and a password &mdash;
           except inside the iOS app, which offers Apple and email only. With
           Google or Apple, BandUp never sees a password at all: the provider confirms it is you,
@@ -366,7 +366,7 @@ export default function PrivacyPage() {
           password is right and cannot be turned back into it. Nobody here can read your password,
           including us.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Apple passes on one thing more, and only once. The very first time you use Sign in with
           Apple, Apple sends the first and last name on your Apple ID, and never sends it again —
           not on the next sign-in, and not if we ask. BandUp writes it into your display name if
@@ -376,7 +376,7 @@ export default function PrivacyPage() {
           when they look you up by your exact username. If you decline to give Apple&rsquo;s
           sheet your name, nothing is stored and nothing else about the sign-in changes.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">If you do sign in, we hold:</p>
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">If you do sign in, we hold:</p>
         <ul className="mt-4 space-y-3">
           {[
             "Your email address, so the account can be recovered if you lose access to Google or Apple.",
@@ -386,30 +386,30 @@ export default function PrivacyPage() {
             "For completed writing and speaking practice, the saved history can include your essay or transcript and the feedback, so you can revisit the original sitting.",
             "Your unique username. Unless you change it, it is taken from the part of your email address before the @, and you can also ask BandUp for a random suggestion instead. A username is public — it appears in an organisation's team directory and works as a sign-in name — so type over the suggestion if you would rather not publish part of your address. A display name can be added later. A profile picture and date of birth remain optional.",
           ].map((line) => (
-            <li key={line} className="flex gap-3 text-[15px] leading-7 text-slate-700">
+            <li key={line} className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
               {line}
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-700">
           <strong>Your date of birth is used for exactly one thing:</strong> confirming you are
           13 or over. This app is not intended for younger children, and a date of birth is the
           only way that can be checked rather than assumed. Nothing else reads it — it does not
           affect your plan, your band or anything you see.
         </p>
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-700">
           We previously asked for your gender. It has been removed, because nothing in BandUp
           ever used it and holding personal information with no purpose is not something we
           want to do. Any gender already stored has been deleted along with the field.
         </p>
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-700">
           Your profile picture is stored privately and is never public. The only person who
           ever sees it is you: no teacher, manager or organisation is ever shown it. There are
           no profile pages and no leaderboards. It is served through a link that expires after
           an hour rather than from a permanent address.
         </p>
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-700">
           There is one way another person can find you, and it is worth being exact about.
           Somebody who owns, manages or teaches in an organisation can look you up by typing
           your exact username, which is how an invitation reaches the right account. They are
@@ -417,7 +417,7 @@ export default function PrivacyPage() {
           browsed, listed or searched for by anybody in any other way, and a partial match
           finds nothing.
         </p>
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-700">
           Authentication and the core account record are stored with Supabase, and a copy of
           your account, profile, synced practice and usage counts is mirrored to Cloudflare D1.
           Your profile picture is kept as a private file in Cloudflare R2, and so is any synced
@@ -427,20 +427,20 @@ export default function PrivacyPage() {
           our behalf and their servers may be in a different country from yours, which is worth
           saying rather than leaving you to assume otherwise.
         </p>
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-700">
           Questions about any of this, or a request about your data, go to{" "}
           <a href="mailto:hello@bandup.life" className="underline underline-offset-2 hover:text-slate-900">
             hello@bandup.life
           </a>
           .
         </p>
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-700">
           Signing out ends the session on that device and clears the copy kept there. Nothing is
           deleted from your account — sign back in and your synced progress comes back — but
           anything that was never synced does not, including an exam you had started and not
           finished.
         </p>
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-700">
           To close the account altogether, use <strong>Delete your account</strong> on your
           account page. Your sign-in is removed straight away — including the permanent
           identifier Google or Apple gave us for you, so that signing in with the same one
@@ -449,7 +449,7 @@ export default function PrivacyPage() {
           practice, are erased within minutes of it, in both Supabase and Cloudflare. It cannot
           be undone.
         </p>
-        <p className="mt-4 text-[15px] leading-7 text-slate-700">
+        <p className="mt-4 text-[0.9375rem] leading-7 text-slate-700">
           The copy in your own browser is separate, and you do not have to go into browser
           settings to be rid of it. Use <strong>Clear this device</strong> on your account page:
           it empties this browser and, while you are signed in, the synced copy of the work as
@@ -467,19 +467,19 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           Organisations, teachers and shared progress
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           If you join a school or other organisation in BandUp, that workspace stores your
           membership, role, teacher assignment and requests to join, leave or change access.
           Work completed after joining is shared with that organisation. Sharing work from
           before joining is a separate choice and, while you remain a student member, changing
           it uses an approval request.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Owners, managers and any teacher you are assigned to can see your email address next to
           your name. A manager can also change your role, suspend you or remove you from the
           organisation without a request from you.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Assigned teachers can see only their assigned students. Organisation managers can see
           members and student history in their own organisation. That history can include scores,
           answers, feedback, essays and speaking transcripts. BandUp administrators can access
@@ -487,7 +487,7 @@ export default function PrivacyPage() {
           learners cannot see them. Anyone signed in can create an organisation and becomes its
           owner at once, so an organisation is not something BandUp has checked.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Your private notification inbox records typed events such as an assigned task, new
           teacher feedback, a completed assignment, an invitation or a membership request. Each
           item stores the organisation and event reference, who caused it when relevant, its time
@@ -496,7 +496,7 @@ export default function PrivacyPage() {
           recipient. Closing your account deletes notifications received by you; if you caused an
           item kept in somebody else&rsquo;s inbox, your identity is removed from that item.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           An active, suspended or leaving student member cannot clear their history. Teachers may
           archive an assigned student&rsquo;s organisation view; managers may permanently remove an
           attempt from that organisation only, with a recorded reason. Neither action deletes the
@@ -517,13 +517,13 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           Cookies and tracking
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           There are none. BandUp sets no cookies, includes no analytics or advertising scripts,
           and loads nothing from a third party that could watch you across sites. There is no
           consent banner here because there is nothing to consent to. Signing in does not change
           this: the session is held in your device&rsquo;s own storage, not in a cookie.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           One honest edge: if you subscribe, the payment page is Stripe&rsquo;s own, on
           Stripe&rsquo;s domain, and it sets its own cookies under its own policy — as any
           payment page does. You are on their site for those two minutes, and back here after.
@@ -548,17 +548,17 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           If you subscribe
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>Your card details never reach BandUp.</strong> Paying takes you to Stripe, the
           payment company, and the card is typed on their page and stored by them. Nothing here
           ever sees a card number, an expiry date or a security code, which means there is no
           version of this app being breached that exposes your card.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           You can also pay once with Alipay or WeChat Pay instead of subscribing. Those details
           go to the payment provider in the same way and never reach us either.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Stripe tells us what you have bought: that a subscription or a pass started, renewed or
           ended, which plan it is, and an identifier that links it to your account. That is what
           the app records. We also keep Stripe&rsquo;s own message about the payment as the
@@ -567,7 +567,7 @@ export default function PrivacyPage() {
           which means it outlives the account it came from. Nothing else about your practice
           does.
         </p>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Stripe is a separate company and handles your payment information under{" "}
           <a
             href="https://stripe.com/privacy"
@@ -590,17 +590,17 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           Deleting your data
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Without an account everything is on your device, so deleting it is entirely in your
           hands and takes effect immediately:
         </p>
         <ul className="mt-4 space-y-3">
-          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+          <li className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
             Easiest, on the web and in the app alike: <strong>Clear this device</strong> on your
             account page. It empties everything BandUp is keeping in this browser.
           </li>
-          <li className="flex gap-3 text-[15px] leading-7 text-slate-700">
+          <li className="flex gap-3 text-[0.9375rem] leading-7 text-slate-700">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
             On the web you can also clear site data for this site in your browser&rsquo;s
             settings, and in the app you can delete BandUp from your device. Its storage goes
@@ -616,7 +616,7 @@ export default function PrivacyPage() {
 
       <section className="card">
         <h2 className="heading-rule text-base font-semibold text-slate-900">Children</h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp is a study tool for people preparing for an English exam and is not aimed at
           children under 13. Without an account it collects nothing that identifies anybody. With
           one it holds an email address, and whatever else you choose to add, which is why the
@@ -643,12 +643,12 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           Who is responsible for your data
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp is run by <strong>Adam Yiu</strong>, as an individual rather than through a
           company. That is the person responsible for the data described on this page — what the
           GDPR calls the controller — and the person any request or complaint reaches.
         </p>
-        <address className="mt-3 not-italic text-[15px] leading-7 text-slate-700">
+        <address className="mt-3 not-italic text-[0.9375rem] leading-7 text-slate-700">
           Adam Yiu
           <br />
           11B, Chai Kung Mansion
@@ -657,7 +657,7 @@ export default function PrivacyPage() {
           <br />
           Hong Kong
         </address>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Write to{" "}
           <a href="mailto:hello@bandup.life" className="underline underline-offset-2 hover:text-slate-900">
             hello@bandup.life
@@ -672,7 +672,7 @@ export default function PrivacyPage() {
         <h2 className="heading-rule text-base font-semibold text-slate-900">
           Changes to this policy
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-slate-700">
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           If what BandUp stores or sends ever changes, this page changes with it and the date
           at the top is updated. The version you are reading ships inside the app you have
           installed, so it always describes that version.
@@ -680,7 +680,7 @@ export default function PrivacyPage() {
       </section>
 
       <div className="card flex flex-col items-center gap-3 text-center">
-        <p className="text-[15px] text-slate-700">
+        <p className="text-[0.9375rem] text-slate-700">
           That is the whole policy. Back to the practice:
         </p>
         <div className="flex flex-wrap justify-center gap-2">

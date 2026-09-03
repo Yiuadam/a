@@ -27,12 +27,12 @@ const WAYS_BACK: { href: string; label: string; detail: string }[] = [
 export default function NotFound() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-2.5 sm:space-y-4">
-      <h1 className="text-[21px] font-semibold tracking-tight text-slate-900 sm:text-[26px]">
+      <h1 className="text-[1.3125rem] font-semibold tracking-tight text-slate-900 sm:text-[1.625rem]">
         That page is not here
       </h1>
 
       <section className="card !p-4 sm:!p-6">
-        <p className="text-[15px] leading-7 text-slate-700">
+        <p className="text-[0.9375rem] leading-7 text-slate-700">
           The address may have been mistyped, or the page may have moved since the link to it was
           made. Nothing you have done has been lost — your practice and your history are exactly
           where they were.
@@ -46,10 +46,10 @@ export default function NotFound() {
                 className="card hub-menu-card flex items-center gap-3 !px-4 !py-3 active:translate-y-px"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-semibold text-slate-900">
+                  <span className="block text-[0.9375rem] font-semibold text-slate-900">
                     {way.label}
                   </span>
-                  <span className="mt-0.5 block text-[13px] leading-5 text-slate-500">
+                  <span className="mt-0.5 block text-[0.8125rem] leading-5 text-slate-500">
                     {way.detail}
                   </span>
                 </span>

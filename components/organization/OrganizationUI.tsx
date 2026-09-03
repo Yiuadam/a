@@ -23,10 +23,10 @@ export function GlassSection({
     <section className={`card min-w-0 max-w-full !rounded-[var(--radius-xl)] !p-3.5 sm:!p-4 ${className}`}>
       <div className={`flex flex-wrap items-start justify-between gap-2.5 ${headerClassName}`}>
         <div className="min-w-0">
-          <h2 className="text-[17px] font-semibold tracking-tight text-slate-900 sm:text-[19px]">
+          <h2 className="text-[1.0625rem] font-semibold tracking-tight text-slate-900 sm:text-[1.1875rem]">
             {title}
           </h2>
-          {lead && <p className="mt-0.5 text-[12px] leading-4 text-slate-600 sm:text-[13px]">{lead}</p>}
+          {lead && <p className="mt-0.5 text-[0.75rem] leading-4 text-slate-600 sm:text-[0.8125rem]">{lead}</p>}
         </div>
         {action}
       </div>
@@ -51,7 +51,7 @@ export function StatusPill({
   return (
     <span
       data-tone={tone}
-      className={`organization-status-pill inline-flex rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold ${colors[tone]}`}
+      className={`organization-status-pill inline-flex rounded-full border border-transparent px-2.5 py-1 text-[0.6875rem] font-semibold ${colors[tone]}`}
     >
       {children}
     </span>

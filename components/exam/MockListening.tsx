@@ -328,7 +328,7 @@ export default function MockListening({
       onToggleReview={nav.toggleReview}
       topRight={
         playingPart !== null ? (
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--exam-fg)]">
+          <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-fg)]">
             ▶ Part {playingPart + 1}
           </span>
         ) : null
@@ -397,7 +397,7 @@ export default function MockListening({
 
         {tests.map((test, index) => (
           <section key={test.id} className="mb-6">
-            <h2 className="mb-2 border-b border-[color:var(--exam-line)] pb-1 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
+            <h2 className="mb-2 border-b border-[color:var(--exam-line)] pb-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
               Part {index + 1}
               {played.includes(index) ? "" : " — not yet played"}
             </h2>
@@ -415,7 +415,7 @@ export default function MockListening({
         <button type="button" className="btn-primary mb-4 w-full" onClick={finish}>
           Finish the listening paper
         </button>
-        <p className="mb-2 text-center text-[11px] text-[color:var(--exam-muted)]">
+        <p className="mb-2 text-center text-[0.6875rem] text-[color:var(--exam-muted)]">
           You cannot come back to it.
         </p>
       </div>

@@ -89,7 +89,7 @@ function TeacherFeedbackPanel({
           {(attempt.teacherFeedback ?? []).map((item) => (
             <div key={item.id} className="border-b border-slate-200/70 pb-2 last:border-b-0 last:pb-0">
               <p className="text-xs leading-5 text-slate-700">{item.message}</p>
-              <p className="mt-0.5 text-[11px] text-slate-500">{item.teacherName ?? "Teacher"} · {formatDate(item.updatedAt)}</p>
+              <p className="mt-0.5 text-[0.6875rem] text-slate-500">{item.teacherName ?? "Teacher"} · {formatDate(item.updatedAt)}</p>
             </div>
           ))}
         </div>
@@ -229,11 +229,11 @@ export default function StudentHistoryPage({
           {error && <div role="alert" className="rounded-xl border border-rose-300 bg-rose-50/75 px-4 py-3 text-sm text-rose-800">{error}</div>}
           <section className="card !rounded-[var(--radius-xl)] !px-3.5 !py-3 sm:!px-4">
             <div className="flex min-w-0 items-center gap-2.5">
-              <h1 className="shrink-0 text-[17px] font-semibold tracking-tight text-slate-900 sm:text-[19px]">
+              <h1 className="shrink-0 text-[1.0625rem] font-semibold tracking-tight text-slate-900 sm:text-[1.1875rem]">
                 {history.student.displayName ?? history.student.email ?? "Student"}
               </h1>
               <span aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-slate-400" />
-              <p className="min-w-0 flex-1 truncate text-[12px] text-slate-600 sm:text-[13px]">
+              <p className="min-w-0 flex-1 truncate text-[0.75rem] text-slate-600 sm:text-[0.8125rem]">
                 {history.organization.name} · {history.student.completedAttempts} completed attempts
               </p>
               {history.student.archivedAt
@@ -275,7 +275,7 @@ export default function StudentHistoryPage({
                   <article key={attempt.id} className="rounded-xl border border-slate-200/70 bg-surface/25 px-4 py-3">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <span className="min-w-0"><span className="block truncate text-sm font-semibold text-slate-900">{attempt.title}</span><span className="block text-xs text-slate-500">{titleCase(attempt.skill)} · {formatDate(attempt.submittedAt)}</span></span>
-                      <span className="shrink-0 text-right"><span className="block text-xl font-semibold tabular-nums text-slate-900">{attempt.band ?? "—"}</span><span className="block text-[11px] text-slate-500">Band</span></span>
+                      <span className="shrink-0 text-right"><span className="block text-xl font-semibold tabular-nums text-slate-900">{attempt.band ?? "—"}</span><span className="block text-[0.6875rem] text-slate-500">Band</span></span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
                       <span>{attempt.score !== null && attempt.scoreOutOf !== null ? `${attempt.score}/${attempt.scoreOutOf} correct` : "Examiner scored"}</span>

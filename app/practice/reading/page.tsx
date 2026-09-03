@@ -141,7 +141,7 @@ function ReadingTestPageRunner() {
       <div className="mx-auto flex min-h-[calc(100dvh-var(--header-h))] max-w-xl items-center px-4">
         <div className="card w-full space-y-4 py-8 text-center">
           <AssignedPracticeNotice />
-          <h1 className="text-[26px] font-semibold text-slate-900">{test.title}</h1>
+          <h1 className="text-[1.625rem] font-semibold text-slate-900">{test.title}</h1>
           <p className="text-sm text-slate-600">{test.topic}</p>
           <p className="text-sm text-slate-600">
             One passage to read, {questionCount(test.questions)} questions,{" "}
@@ -205,10 +205,10 @@ function ReadingTestPageRunner() {
   const passage = (
     <>
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
+        <h2 className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[color:var(--exam-muted)]">
           Passage
         </h2>
-        <span className="text-[11px] text-[color:var(--exam-muted)]">
+        <span className="text-[0.6875rem] text-[color:var(--exam-muted)]">
           Select any word to look it up
         </span>
       </div>

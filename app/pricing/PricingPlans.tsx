@@ -217,7 +217,7 @@ function Price({
   if (id === null) {
     return (
       <p className="pricing-plan-price mt-4">
-        <span className="text-[28px] font-semibold text-slate-900">Free</span>
+        <span className="text-[1.75rem] font-semibold text-slate-900">Free</span>
         <span className="ml-2 text-sm text-slate-500">no card, no trial that expires</span>
       </p>
     );
@@ -235,7 +235,7 @@ function Price({
   return (
     <div className="pricing-plan-price mt-4">
       <p>
-        <span className="text-[28px] font-semibold text-slate-900">
+        <span className="text-[1.75rem] font-semibold text-slate-900">
           {formatPrice(amount, currency)}
         </span>
         <span className="ml-2 text-sm text-slate-500">
@@ -368,7 +368,7 @@ export default function PricingPlans({
   return (
     <div className="pricing-plans space-y-2 sm:space-y-4">
       <div className="pricing-heading-row flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold leading-8 text-slate-900 sm:text-[26px]">
+        <h1 className="text-2xl font-semibold leading-8 text-slate-900 sm:text-[1.625rem]">
           Plans
         </h1>
         <IntervalToggle value={interval} onChange={setInterval} />
@@ -418,7 +418,7 @@ export default function PricingPlans({
               }
             >
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-[18px] font-semibold text-slate-900">{tier.name}</h2>
+                <h2 className="text-[1.125rem] font-semibold text-slate-900">{tier.name}</h2>
                 {isCurrent && (
                   <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700">
                     Your plan
@@ -819,7 +819,7 @@ function PayControls({
             page from the moment the payment lands, and the fold-out below this deck
             says so at length.
           */}
-          <p className="pricing-wallet-terms mt-1 text-[11px] leading-4 text-slate-600">
+          <p className="pricing-wallet-terms mt-1 text-[0.6875rem] leading-4 text-slate-600">
             {walletLength}, and it does not renew — then back to Free.
           </p>
         </div>

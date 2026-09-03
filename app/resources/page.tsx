@@ -68,7 +68,7 @@ export default function ResourcesPage() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1 basis-80">
-          <h1 className="text-xl font-semibold text-slate-900 sm:text-[22px]">Exam guides</h1>
+          <h1 className="text-xl font-semibold text-slate-900 sm:text-[1.375rem]">Exam guides</h1>
           <p className="text-sm leading-6 text-slate-600">
             What each part of the test asks of you, and the habits that move your score most.
           </p>
