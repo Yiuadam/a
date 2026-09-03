@@ -23,6 +23,7 @@
 		BA0DE71B0000000000000005 /* NativeNavListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0DE71A0000000000000005 /* NativeNavListViewController.swift */; };
 		BA0DE71B0000000000000006 /* StorefrontPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0DE71A0000000000000006 /* StorefrontPlugin.swift */; };
 		BA0DE71B0000000000000007 /* SignInWithApplePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0DE71A0000000000000007 /* SignInWithApplePlugin.swift */; };
+		BA0DE71B0000000000000009 /* GoogleSignInPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0DE71A0000000000000009 /* GoogleSignInPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +45,7 @@
 		BA0DE71A0000000000000005 /* NativeNavListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeNavListViewController.swift; sourceTree = "<group>"; };
 		BA0DE71A0000000000000006 /* StorefrontPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorefrontPlugin.swift; sourceTree = "<group>"; };
 		BA0DE71A0000000000000007 /* SignInWithApplePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInWithApplePlugin.swift; sourceTree = "<group>"; };
+		BA0DE71A0000000000000009 /* GoogleSignInPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInPlugin.swift; sourceTree = "<group>"; };
 		BA0DE71A0000000000000008 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -89,6 +91,7 @@
 				BA0DE71A0000000000000003 /* MainViewController.swift */,
 				BA0DE71A0000000000000006 /* StorefrontPlugin.swift */,
 				BA0DE71A0000000000000007 /* SignInWithApplePlugin.swift */,
+				BA0DE71A0000000000000009 /* GoogleSignInPlugin.swift */,
 				BA0DE71A0000000000000008 /* App.entitlements */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -190,6 +193,7 @@
 				BA0DE71B0000000000000003 /* MainViewController.swift in Sources */,
 				BA0DE71B0000000000000006 /* StorefrontPlugin.swift in Sources */,
 				BA0DE71B0000000000000007 /* SignInWithApplePlugin.swift in Sources */,
+				BA0DE71B0000000000000009 /* GoogleSignInPlugin.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
