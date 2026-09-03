@@ -38,10 +38,13 @@ export default function AppMain({ children }: { children: ReactNode }) {
     pathname === "/practice/reading" ||
     pathname === "/practice/writing" ||
     pathname === "/exam";
-  /* The homepage is full-bleed, but it is still a document. Locking it to one
-     viewport makes the legal footer take height away from the card grid; in a
-     narrow or short window the hero then collapses and the final study cards
-     sit behind a separate inner scroller. */
+  /* The homepage is full-bleed, and on a large screen it is also locked to one
+     viewport (above). That lock is deliberately only applied where the rail is:
+     locking a narrow window makes the legal footer take height from the card
+     grid, the hero collapses, and the final study cards end up behind a
+     separate inner scroller. The media query lives in app/globals.css against
+     [data-viewport-locked], so the same attribute means "one screen" on a
+     laptop and nothing at all on a phone. */
   const fullBleed = pathname === "/" || viewportLocked;
 
   useEffect(() => {
@@ -51,6 +54,26 @@ export default function AppMain({ children }: { children: ReactNode }) {
       document.body.removeAttribute("data-viewport-locked");
     };
   }, [viewportLocked]);
+
+  /*
+    The dashboard is one screen, at the owner's ask — but only where it can be.
+
+    Its own attribute rather than data-viewport-locked, because that one locks
+    at every width and this must not. With the rail beside it the page is four
+    modules two by two and genuinely fits; without the rail it is the tile stack
+    it always was, and locking that makes the legal footer take height from the
+    grid, collapses the hero, and puts the last study cards behind a second
+    inner scroller. So the CSS for this attribute lives inside a `lg` media
+    query and the same attribute means nothing on a phone.
+  */
+  const home = pathname === "/";
+  useEffect(() => {
+    if (!home) return;
+    document.body.setAttribute("data-home-locked", "");
+    return () => {
+      document.body.removeAttribute("data-home-locked");
+    };
+  }, [home]);
 
   /*
     The rail stands beside the page, not inside it, so a full-bleed route keeps

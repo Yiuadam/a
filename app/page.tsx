@@ -15,6 +15,7 @@ import CardIcon from "@/components/CardIcon";
 import Scoreboard from "@/components/dashboard/Scoreboard";
 import TutorCard from "@/components/dashboard/TutorCard";
 import PlanCard from "@/components/dashboard/PlanCard";
+import Board from "@/components/dashboard/Board";
 import NewBadge from "@/components/NewBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
@@ -378,9 +379,18 @@ export default function Dashboard() {
         Below `lg` there is no rail, the tiles are the only way through, and
         the page is exactly what it was.
       */}
-      <div className="hidden gap-4 lg:grid lg:grid-cols-2 lg:gap-5">
-        <div className="min-w-0">
-        {organization ? (
+      {/*
+        The board arranges itself; this only says what each module is. See
+        components/dashboard/Board.tsx for why the content is handed over by id
+        rather than imported there — the plan needs the profile, the score needs
+        the results, and the tiles need the entitlement checks, none of which is
+        an arrangement component's business.
+      */}
+      <div className="hidden lg:block">
+        <Board
+          modules={{
+            highlight: (
+              organization ? (
           <OrganisationHero organization={organization} />
         ) : isValidPlacement(placement) ? (
           <ScoreTrendOverview placement={placement} results={profile.results} />
@@ -417,12 +427,13 @@ export default function Dashboard() {
             <h1 className="sr-only">BandUp</h1>
             <FreeProPoster />
           </>
-        )}
-        </div>
-
-        <Scoreboard results={profile.results} />
-        <TutorCard />
-        <PlanCard profile={profile} />
+              )
+            ),
+            score: <Scoreboard results={profile.results} />,
+            tutor: <TutorCard />,
+            plan: <PlanCard profile={profile} />,
+          }}
+        />
       </div>
 
       {/* Below `lg`: no rail, so the tiles are still the way through. */}

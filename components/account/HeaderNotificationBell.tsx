@@ -23,6 +23,19 @@ export default function HeaderNotificationBell({
   const previewRole = isolatedOrganizationPreview
     ? parseOrganizationLivePreviewRole(search.get("preview")) ?? "manager"
     : null;
-  if (!signedIn && !previewRole) return null;
-  return <NotificationBell previewRole={previewRole} />;
+  /*
+    Drawn whether or not anybody is signed in, at the owner's ask.
+
+    It used to disappear entirely for a signed-out visitor, which made the
+    header change shape on sign-in — the account button jumping sideways as a
+    control it had never seen appeared beside it. A bell that is always in the
+    same place is one fewer thing to relearn, and NotificationBell already
+    knows how to be empty: it fetches nothing without a session and opens on a
+    panel that says so.
+
+    `signedIn` is still read, because the isolated organisation preview needs
+    its synthetic role and that must never come from a query string on
+    bandup.life.
+  */
+  return <NotificationBell previewRole={previewRole} signedOut={!signedIn && !previewRole} />;
 }

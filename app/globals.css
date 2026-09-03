@@ -538,6 +538,26 @@ body[data-viewport-locked] {
   overflow: hidden;
 }
 
+/*
+  The dashboard, held to one screen from `lg` up.
+
+  Only from `lg`, and the width is the whole point: that is where the standing
+  rail appears, which is what let the board drop the six tiles that used to run
+  down the page. Below it the dashboard is still that tile stack and still has
+  to scroll — locking it there would take the footer's height out of the grid
+  and leave the last cards inside a second scroller.
+
+  See components/AppMain.tsx, which sets the attribute, for why it is not
+  data-viewport-locked.
+*/
+@media (min-width: 64rem) {
+  body[data-home-locked] {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 /* Reading and Listening share TestChooser, so their paper cards also share
    one row contract. A definite row size is intentional: content-based rows
    made Listening six pixels taller than Reading on a phone even though both
@@ -6361,4 +6381,95 @@ html[data-theme="dark"] .side-rail-item-active {
 */
 .side-rail-item:hover:not(.side-rail-item-active) {
   background: color-mix(in srgb, var(--color-slate-400) 12%, transparent);
+}
+
+/*
+  The card a dragged module is about to land on.
+
+  A ring rather than a moved card: showing the drop by shuffling the grid means
+  everything under the pointer moves while the pointer is still deciding, and on
+  a four-card board that is the whole screen rearranging itself twice. The
+  outline says where it will go and nothing moves until it does.
+*/
+.dashboard-module-target {
+  outline: 2px dashed var(--color-indigo-500);
+  outline-offset: 3px;
+  border-radius: var(--radius-lg);
+}
+
+/*
+  The one control a module carries while the board is being arranged.
+
+  Inside the card's own top-right corner, which is where the owner asked for it
+  and where a card's dismiss has always lived. It is drawn here rather than
+  with .btn-secondary because `@utility btn` applies `position: relative` — the
+  same weight as an `absolute` utility and written later, so the button landed
+  in the card's flow at the top left instead of in its corner.
+
+  Small, round and quiet: it appears on four cards at once, and four solid
+  buttons would read as the page's main action rather than as a way to tidy it.
+*/
+.dashboard-module-remove {
+  position: absolute;
+  /*
+    Overlapping the card's top-left corner rather than sitting inside it, which
+    is where every edit-mode grid on this platform puts the same control and
+    what the owner asked for. Outside is the better place for a reason beyond
+    convention: a badge inside the card covers the card's own content, and on
+    a module whose top-right corner already holds an icon it would land on top
+    of it.
+  */
+  top: -0.5rem;
+  left: -0.5rem;
+  z-index: 20;
+  display: inline-flex;
+  height: 1.5rem;
+  width: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--color-slate-900) 24%, transparent);
+  border-radius: 999px;
+  /*
+    Solid and contrasting, not glass. Every other small control in this app is
+    a pane of the same material as what is under it, which is right when it
+    belongs to the surface — this one has to read as attached to the card while
+    standing off it, and a translucent badge over the page's own wash would
+    disappear against half the cards it sits on.
+  */
+  color: var(--color-slate-50);
+  background: var(--color-slate-700);
+  box-shadow: 0 1px 3px var(--glass-shadow);
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.dashboard-module-remove:hover {
+  background: var(--color-rose-700);
+  transform: scale(1.06);
+}
+
+/*
+  A live module, shown small.
+
+  The library previews each module by drawing the real component and scaling
+  it, rather than by keeping a picture of it — a picture is a second copy of
+  the design and goes stale the first time the real one changes.
+
+  `pointer-events: none` because it is a picture of a control, not a control:
+  without it somebody could open the tutor from inside a dialog about arranging
+  the page. The width is the inverse of the scale so the card lays out at its
+  real size first and is then shrunk, which is what stops the text reflowing
+  into a narrower, wrong-looking version of itself.
+*/
+.module-preview {
+  pointer-events: none;
+  position: relative;
+}
+
+.module-preview-inner {
+  --module-preview-scale: 0.62;
+  width: calc(100% / var(--module-preview-scale));
+  transform: scale(var(--module-preview-scale));
+  transform-origin: top left;
 }

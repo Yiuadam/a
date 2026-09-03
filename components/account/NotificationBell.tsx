@@ -14,12 +14,27 @@ const NotificationPopover = dynamic(
   { ssr: false },
 );
 
-export default function NotificationBell({ previewRole = null }: { previewRole?: OrganizationLivePreviewRole | null }) {
+export default function NotificationBell({
+  previewRole = null,
+  signedOut = false,
+}: {
+  previewRole?: OrganizationLivePreviewRole | null;
+  /*
+    The header draws this bell for everybody now, including a visitor with no
+    account (see HeaderNotificationBell). There is nothing to fetch for them and
+    nothing to count, so this says so explicitly rather than being inferred from
+    a `phase` that also covers "still loading" — which would have shown an empty
+    panel for a moment to somebody who was about to have a full one.
+  */
+  signedOut?: boolean;
+}) {
   const { phase, profile } = useAccountProfile();
   const [open, setOpen] = useState(false);
   const [notificationUnread, setNotificationUnread] = useState(0);
   const root = useRef<HTMLDivElement>(null);
-  const signedIn = previewRole !== null || phase === "loading" || phase === "ready" || phase === "unavailable";
+  const signedIn =
+    !signedOut &&
+    (previewRole !== null || phase === "loading" || phase === "ready" || phase === "unavailable");
   const needsSetup = phase === "ready" && !accountIdentityComplete(profile);
   const accountKey = previewRole ?? profile?.email ?? phase;
   const displayedNotificationUnread = phase === "loading" && previewRole === null ? 0 : notificationUnread;
@@ -189,7 +204,13 @@ export default function NotificationBell({ previewRole = null }: { previewRole?:
     };
   }, [open]);
 
-  if (!signedIn) return null;
+  /*
+    Drawn for a signed-out visitor too, at the owner's ask — it used to vanish
+    entirely, so the header changed shape on sign-in and a control appeared
+    where none had been. `signedIn` still governs everything it *does*: no
+    fetch, no polling, no count, and a panel that says there is nothing rather
+    than an empty list that looks like a failure.
+  */
   return (
     <div ref={root} data-notification-bell-root className="relative isolate">
       <button
@@ -231,7 +252,27 @@ export default function NotificationBell({ previewRole = null }: { previewRole?:
         selector check in the effect above rather than by DOM containment.
       */}
       {open && createPortal(
-        <NotificationPopover previewRole={previewRole} needsSetup={needsSetup} onClose={() => setOpen(false)} onUnreadCount={setNotificationUnread} />,
+        /*
+          A visitor with no account gets a panel that says so, not the real
+          inbox: the inbox would fetch, fail, and show an empty list, which
+          reads as "your notifications are gone" rather than "you have not got
+          any yet". Portalled to the body like the real one, so it escapes the
+          header's backdrop root the same way.
+        */
+        signedOut ? (
+          <div className="notification-popover liquid-glass fixed z-[130] w-72 rounded-2xl border p-4" role="dialog" aria-label="Notifications">
+            <p className="text-[0.875rem] font-semibold text-slate-900">No notifications</p>
+            <p className="mt-1 text-[0.8125rem] leading-5 text-slate-600">
+              Marked work, plan reminders and anything from your teacher arrive here once you have
+              an account.
+            </p>
+            <a href="/account" className="btn-secondary mt-3 w-full !min-h-9 text-[0.875rem]">
+              Sign in
+            </a>
+          </div>
+        ) : (
+          <NotificationPopover previewRole={previewRole} needsSetup={needsSetup} onClose={() => setOpen(false)} onUnreadCount={setNotificationUnread} />
+        ),
         document.body,
       )}
     </div>
