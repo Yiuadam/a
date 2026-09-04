@@ -6,6 +6,10 @@ import type { QuestionSet, TestQuestion } from "./types";
 const TYPE_LABEL: Record<TestQuestion["type"], string> = {
   tfng: "true / false / not given",
   mcq: "multiple choice",
+  // Named apart from plain "multiple choice" on purpose: it is marked by a
+  // different rule (more than one mark, zero for choosing too many), and a
+  // learner reviewing a mistake needs to see which task actually cost them.
+  "multi-select": "multiple choice — choose more than one",
   completion: "sentence completion",
   // Named apart from true/false on purpose: a learner reviewing a mistake
   // needs to see which of the two tasks they were actually doing.
@@ -29,6 +33,7 @@ export function questionTypeNames(questions: QuestionSet): string[] {
   // A stable order, so the sentence does not reshuffle between papers.
   const order: TestQuestion["type"][] = [
     "mcq",
+    "multi-select",
     "tfng",
     "ynng",
     "matching",
@@ -50,6 +55,7 @@ function prompt(q: TestQuestion): string {
     case "ynng":
       return q.statement;
     case "mcq":
+    case "multi-select":
     case "short-answer":
       return q.question;
     case "matching":
@@ -59,11 +65,28 @@ function prompt(q: TestQuestion): string {
   }
 }
 
+/** A multi-select answer's stored indices, back into the letters a learner recognises. */
+function letters(q: { options: string[] }, indices: number[]): string {
+  return indices
+    .map((idx) => `${String.fromCharCode(65 + idx)}. ${q.options[idx] ?? "?"}`)
+    .join("; ");
+}
+
 function shown(q: TestQuestion, value: string | number | undefined): string {
   if (value === undefined || value === "") return "";
   if (q.type === "mcq") {
     const idx = Number(value);
     return q.options[idx] ?? String(value);
+  }
+  if (q.type === "multi-select") {
+    const chosen = String(value)
+      .split(",")
+      .map(Number)
+      .filter((n) => Number.isInteger(n));
+    // Falls back to the raw stored value on a malformed answer rather than
+    // showing nothing, which would read as "left blank" to a learner who did
+    // in fact answer.
+    return chosen.length > 0 ? letters(q, chosen) : String(value);
   }
   return String(value);
 }
@@ -80,7 +103,11 @@ export function buildReview(
       prompt: prompt(q),
       yourAnswer: shown(q, answers[q.id]),
       correctAnswer:
-        q.type === "mcq" ? q.options[q.answer] : String(q.answer),
+        q.type === "mcq"
+          ? q.options[q.answer]
+          : q.type === "multi-select"
+            ? letters(q, q.answer)
+            : String(q.answer),
       explanation: q.explanation,
       tag: TYPE_LABEL[q.type],
     }));

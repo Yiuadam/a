@@ -17,16 +17,17 @@ import { pathToFileURL } from "node:url";
 register("./alias-resolve.mjs", import.meta.url);
 
 const mock = await import(pathToFileURL(join(process.cwd(), "lib", "exam", "mock.ts")).href);
-const { LISTENING_TESTS } = await import(
+const { LISTENING_TESTS, READING_TESTS } = await import(
   pathToFileURL(join(process.cwd(), "lib", "tests.ts")).href
 );
-const { numberedGroups, questionCount } = await import(
+const { numberedGroups, questionCount, questionWidth, flatQuestions } = await import(
   pathToFileURL(join(process.cwd(), "lib", "questions.ts")).href
 );
 
 const {
   LISTENING_PART,
   MODULE_MINUTES,
+  READING_GT_SECTION,
   composeMock,
   listeningQuestions,
   markObjective,
@@ -69,6 +70,64 @@ test("each of the four parts has at least one recording to draw on", () => {
   }
 });
 
+/*
+  The same three checks as the listening classification above, aimed at
+  READING_GT_SECTION instead: every General Training paper has to be
+  classified, the classification has to name a real paper, and every section
+  has to have something to draw on — a section composeGTReading cannot fill
+  is a sitting that silently falls back to the wrong paper.
+*/
+test("every General Training reading paper is classified into a section", () => {
+  const unclassified = READING_TESTS.filter(
+    (t) => t.variant === "general" && !READING_GT_SECTION[t.id],
+  ).map((t) => t.id);
+  assert.deepEqual(
+    unclassified,
+    [],
+    "add these to READING_GT_SECTION in lib/exam/mock.ts — a paper with no section can never appear in a General Training sitting",
+  );
+});
+
+test("READING_GT_SECTION names no paper that does not exist", () => {
+  const onDisk = new Set(
+    readdirSync(join(process.cwd(), "data"))
+      .filter((f) => /^reading-\d+\.json$/.test(f))
+      .map((f) => f.replace(/\.json$/, "")),
+  );
+  for (const id of Object.keys(READING_GT_SECTION)) {
+    assert.ok(onDisk.has(id), `${id} is classified but is not in data/`);
+  }
+});
+
+test("each of the three General Training sections has at least one paper to draw on", () => {
+  for (const section of [1, 2, 3]) {
+    const available = READING_TESTS.filter(
+      (t) => t.variant === "general" && READING_GT_SECTION[t.id] === section,
+    ).length;
+    assert.ok(available > 0, `no reading paper can serve as GT Section ${section}`);
+  }
+});
+
+/*
+  The invariant composeGTReading's own comment leans on: every social-survival
+  and workplace paper is thirteen questions, every general-reading paper
+  fourteen. Get this wrong for even one paper and "the GT reading paper asks
+  exactly forty questions" below starts failing on whichever draw happens to
+  pick it — a flaky test pointing at a bug that is actually here.
+*/
+test("every General Training reading paper's length matches its section", () => {
+  const expected = { 1: 13, 2: 13, 3: 14 };
+  for (const t of READING_TESTS.filter((t) => t.variant === "general")) {
+    const section = READING_GT_SECTION[t.id];
+    const count = questionCount(flatQuestions(t.questions));
+    assert.equal(
+      count,
+      expected[section],
+      `${t.id} is GT Section ${section} and should ask ${expected[section]} questions, asks ${count}`,
+    );
+  }
+});
+
 test("a sitting is four recordings in part order, three passages, two writing tasks", () => {
   /* Composition is random, so it is checked repeatedly rather than once. */
   for (let i = 0; i < 40; i++) {
@@ -92,19 +151,98 @@ test("a sitting is four recordings in part order, three passages, two writing ta
   }
 });
 
+/*
+  The General Training equivalent of the composition test above: three
+  distinct reading papers, one per section, in section order rather than in
+  the "two short, one long" shape the Academic branch draws. Section order
+  matters here in a way it does not for Academic — components/exam/MockReading
+  labels a sitting's passages by their position in `paper.reading`, so a draw
+  that put Section 3 before Section 1 would show a General Training candidate
+  the discursive text first and the everyday notices last.
+*/
+test("a General Training sitting draws one reading paper per section, in section order", () => {
+  for (let i = 0; i < 40; i++) {
+    const paper = composeMock("general");
+
+    assert.equal(paper.reading.length, 3);
+    assert.equal(new Set(paper.reading).size, 3, "the same paper twice in one sitting");
+    assert.deepEqual(
+      paper.reading.map((id) => READING_GT_SECTION[id]),
+      [1, 2, 3],
+      "the papers must be in section order: social survival, workplace, general reading",
+    );
+  }
+});
+
+/*
+  The two branches must never bleed into each other. An Academic sitting
+  handed a General Training paper of the matching length would still come to
+  forty and still look right on the start screen — the only place it would
+  show is a candidate reaching a job advertisement partway through what was
+  promised as an Academic passage.
+*/
+test("a sitting never mixes reading variants", () => {
+  const byId = new Map(READING_TESTS.map((t) => [t.id, t]));
+  for (let i = 0; i < 40; i++) {
+    for (const id of composeMock("academic").reading) {
+      assert.equal(byId.get(id)?.variant, "academic", `${id} is not an Academic paper`);
+    }
+    for (const id of composeMock("general").reading) {
+      assert.equal(byId.get(id)?.variant, "general", `${id} is not a General Training paper`);
+    }
+  }
+});
+
+/*
+  Counted in numbers claimed, not in array entries held. A multi-select
+  question ("Choose TWO letters") is one JSON entry worth two of the paper's
+  numbers, so `.length` alone under-counts it the moment content ever uses
+  the type — the same reason `questionCount` sums `questionWidth` rather than
+  counting entries.
+*/
+function claimedNumbers(questions) {
+  return questions.reduce((n, q) => n + questionWidth(q), 0);
+}
+
 test("the listening paper asks forty questions", () => {
   const paper = composeMock();
   assert.equal(
-    listeningQuestions(paper).length,
+    claimedNumbers(listeningQuestions(paper)),
     40,
     "IELTS listening is forty questions; a short paper makes rawToBand scale and coarsens the band",
   );
 });
 
-test("the reading paper is close enough to forty that scaling is not distorting", () => {
-  const paper = composeMock();
-  const total = readingQuestions(paper).length;
-  assert.ok(total >= 39 && total <= 40, `reading paper has ${total} questions`);
+/*
+  Exactly forty, not nearly forty.
+
+  This assertion used to allow 39 because the bank held only thirteen-question
+  papers and three of them could never reach the number. Both lengths exist now
+  — 13, 13, 14, the real Academic split — so the paper either comes to forty or
+  something has gone wrong with the draw. Left loose, the check would have said
+  nothing at all about the run where every paper was extended to fourteen and a
+  sitting quietly became a 42-question exam.
+*/
+test("the reading paper asks exactly forty questions", () => {
+  for (let sitting = 0; sitting < 50; sitting += 1) {
+    const paper = composeMock();
+    const total = claimedNumbers(readingQuestions(paper));
+    assert.equal(total, 40, `reading paper has ${total} questions`);
+  }
+});
+
+/*
+  The same rule, drawn from the other branch. General Training reaches forty
+  by a different route — one paper per section rather than two short and one
+  long — so it needs its own fifty-draw run rather than trusting the Academic
+  result to say anything about it.
+*/
+test("the General Training reading paper asks exactly forty questions", () => {
+  for (let sitting = 0; sitting < 50; sitting += 1) {
+    const paper = composeMock("general");
+    const total = claimedNumbers(readingQuestions(paper));
+    assert.equal(total, 40, `General Training reading paper has ${total} questions`);
+  }
 });
 
 /*
@@ -121,7 +259,12 @@ test("questions are numbered continuously across the papers of a module", () => 
   const seen = [];
   for (const t of tests) {
     for (const block of numberedGroups(t.questions, next)) {
-      for (const { number } of block.questions) seen.push(number);
+      // Every number a question claims, not only the first of them — a
+      // multi-select's `number` and `to` differ, and both have to appear here
+      // in order for the sequence below to be genuinely unbroken.
+      for (const { number, to } of block.questions) {
+        for (let n = number; n <= to; n++) seen.push(n);
+      }
     }
     next += questionCount(t.questions);
   }
@@ -137,14 +280,30 @@ test("marking counts the whole paper, and a perfect score is band 9", () => {
   const paper = composeMock();
   const questions = [...listeningQuestions(paper), ...readingQuestions(paper)];
 
-  /* Every answer right, taken from the key itself. */
+  /*
+    Every answer right, taken from the key itself. A multi-select's key is an
+    array of indices, encoded the same comma-joined way `TestQuestions` stores
+    a live selection — see lib/band.ts's `selectedIndices`.
+  */
   const answers = {};
   for (const q of questions) {
-    answers[q.id] = q.type === "mcq" ? String(q.answer) : q.answer;
+    answers[q.id] =
+      q.type === "mcq" ? String(q.answer) : q.type === "multi-select" ? q.answer.join(",") : q.answer;
   }
 
   const marks = markObjective(paper, answers);
-  assert.equal(marks.listening.raw, 40);
+  /*
+    Raw compared against this sitting's own total rather than a hardcoded 40,
+    matching the reading assertion below. `markObjective` counts one raw mark
+    per question *object* it marks correct — right for every type here except
+    multi-select, which is worth more than one mark for a single object, so a
+    sitting that happens to include one no longer scores exactly 40 raw for a
+    perfect paper even though it still claims forty numbers (proved by "the
+    listening paper asks forty questions" above). What must still hold for a
+    perfect paper is that nothing was marked wrong, which raw === total says
+    regardless of how the objects underneath are counted.
+  */
+  assert.equal(marks.listening.raw, marks.listening.total);
   assert.equal(marks.listening.band, 9);
   assert.equal(marks.reading.raw, marks.reading.total);
   assert.equal(marks.reading.band, 9);

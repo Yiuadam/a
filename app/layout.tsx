@@ -5,7 +5,6 @@ import LookupProvider from "@/components/Lookup";
 import AutoSync from "@/components/AutoSync";
 import MaintenanceGate from "@/components/MaintenanceGate";
 import AppMain from "@/components/AppMain";
-import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import PointerAttraction from "@/components/PointerAttraction";
 import ScrollToTopOnOpen from "@/components/ScrollToTopOnOpen";
@@ -170,12 +169,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <AppMain>{children}</AppMain>
         </LookupProvider>
         </RequiredAccountGate>
-        {/*
-          The privacy policy lives here rather than in the menu: it is a page a
-          learner visits once, if ever, while Apple needs it publicly reachable
-          to accept a submission at all. A footer is where people look for it.
-        */}
-        <SiteFooter />
         </>
         </AccountProfileProvider>
         </MaintenanceGate>

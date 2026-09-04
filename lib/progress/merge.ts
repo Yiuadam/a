@@ -320,6 +320,15 @@ export function mergeProfiles(
     the learner chose on their phone the evening before the exam.
   */
   const planDays = remoteIsNewer ? (b.planDays ?? a.planDays) : (a.planDays ?? b.planDays);
+  /*
+    The board's arrangement, by the same rule and for the same reason. A device
+    where the learner has never rearranged the board holds nothing here, and
+    nothing must not be allowed to mean "the default board" — that would
+    overwrite an arrangement made on another device with a board nobody chose.
+  */
+  const dashboardModules = remoteIsNewer
+    ? (b.dashboardModules ?? a.dashboardModules)
+    : (a.dashboardModules ?? b.dashboardModules);
 
   const localHistory = asArray<string[]>(a.placementHistory);
   const remoteHistory = asArray<string[]>(b.placementHistory);
@@ -338,6 +347,7 @@ export function mergeProfiles(
     placement,
     targetBand,
     planDays,
+    dashboardModules,
     placementHistory,
     visited,
     results,

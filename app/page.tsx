@@ -7,7 +7,6 @@ import { useProfile } from "@/lib/hooks";
 import { isValidPlacement } from "@/lib/placement";
 import { newestFirst, seriesFor } from "@/lib/results";
 import LockedCard from "@/components/LockedCard";
-import FreeProPoster from "@/components/billing/FreeProPoster";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import type { ModuleName, ModuleResult, PlacementResult } from "@/lib/types";
 import { Icon } from "@/components/Icons";
@@ -16,6 +15,7 @@ import Scoreboard from "@/components/dashboard/Scoreboard";
 import TutorCard from "@/components/dashboard/TutorCard";
 import PlanCard from "@/components/dashboard/PlanCard";
 import Board from "@/components/dashboard/Board";
+import SkillsCard from "@/components/dashboard/SkillsCard";
 import {
   LastSittingCard,
   MockExamCard,
@@ -112,7 +112,16 @@ const STUDY = [
 
 function CardBlurb({ short, full }: { short: string; full: string }) {
   return (
-    <p className="dashboard-card-blurb mt-0.5 truncate text-sm leading-5 text-slate-600 sm:text-xs">
+    /*
+      Two lines, clipped — not one line with an ellipsis.
+
+      `truncate` cut a three-word phrase to "Audio playe…", which is not a
+      shorter description, it is a broken one: the tile stops saying what the
+      skill is and the ellipsis is the widest thing on the line. Clamping to
+      two lines keeps a ceiling on the card's height, which is what truncation
+      was really for, and lets the words finish.
+    */
+    <p className="dashboard-card-blurb mt-0.5 line-clamp-2 text-sm leading-5 text-slate-600 sm:text-xs">
       <span className="dashboard-card-blurb-short">{short}</span>
       <span className="dashboard-card-blurb-full">{full}</span>
     </p>
@@ -397,16 +406,18 @@ export default function Dashboard() {
         the results, and the tiles need the entitlement checks, none of which is
         an arrangement component's business.
       */}
-      <div className="hidden lg:block">
+      <div className="hidden min-h-0 lg:flex lg:h-full lg:flex-col">
         {/*
-          The offer stands above the board rather than on it.
+          The free Pro offer used to stand here, in the placement card's slot,
+          and it has moved to /account — the page the trial is also given up on.
 
-          It is a notice, not a module: answered once with "Sign up free" or
-          "No thanks", and FreeProPoster already knows to draw nothing to
-          somebody who has answered or to an account that does not qualify. A
-          module can be removed and added back, which for a notice means asking
-          again — so it is not one, and there is nothing in the library to put
-          it back with.
+          It moved because it had to be reachable from everywhere it is
+          announced, and this slot is not everywhere: the notification row that
+          now carries it is drawn by the web header's bell, and the iOS app has
+          no bell at all. Putting the offer where the exit already is settles
+          both — components/billing/GiveUpFreeProSection.tsx says the entrance
+          and the exit have to be reachable from the same places, and now they
+          are the same place.
         */}
 
         {organization ? (
@@ -442,10 +453,13 @@ export default function Dashboard() {
             what a reader should actually see now, so this one is sr-only
             rather than reintroducing a second visible title above it.
           */
-          <>
-            <h1 className="sr-only">BandUp</h1>
-            <FreeProPoster />
-          </>
+          /*
+            Only the name now. The poster that used to sit here is on /account;
+            this heading stays because Google's OAuth review matches the exact
+            application name against one on the consent screen's calling page,
+            and nothing else on this branch says it.
+          */
+          <h1 className="sr-only">BandUp</h1>
         )}
 
         <Board
@@ -453,6 +467,7 @@ export default function Dashboard() {
             score: <Scoreboard results={profile.results} />,
             tutor: <TutorCard />,
             plan: <PlanCard profile={profile} />,
+            skills: <SkillsCard />,
             streak: <StreakCard profile={profile} />,
             week: <ThisWeekCard profile={profile} />,
             weakest: <WeakestCard profile={profile} />,
@@ -474,14 +489,17 @@ export default function Dashboard() {
               Practise a skill
             </h2>
             {/*
-              Two-up on a phone, four-up from md — and back to two-up from xl,
-              where the column is eight twelfths rather than the whole page.
-              Four across a two-thirds column is what was truncating these:
-              "Real passages, real ques…", "An essay, marked like th…". A tile
-              whose one line of description does not fit is not a tile, and the
-              fix is fewer columns rather than shorter words.
+              Two-up, everywhere this block is drawn — it is hidden from `lg`
+              up, so its whole range is a phone or a tablet.
+
+              It used to go four-up from `md`, and 768px is too early: four
+              tiles across an 800px page leave about 180px each once the
+              padding and the "New" badge are paid for, which truncated even
+              the short blurb to "Audio playe…". The principle the previous
+              note stated was right — fewer columns rather than shorter words —
+              the breakpoint was just in the wrong place.
             */}
-            <div className="dashboard-card-grid dashboard-practice-grid grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-2 xl:gap-4">
+            <div className="dashboard-card-grid dashboard-practice-grid grid grid-cols-2 gap-3 xl:gap-4">
               {MODULES.map((m) => {
                 const isNew = moduleNeedsNewBadge(profile, m.key);
                 const skill = access[m.key];

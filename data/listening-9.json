@@ -16,6 +16,22 @@
       "text": "Right — Tomas, Leyla, let's look at where you've got to with the food waste presentation. You sent me an outline. What's the argument?"
     },
     {
+      "speaker": "Leyla",
+      "text": "Before Tomas starts — we did rewrite the whole outline twice over the weekend, so apologies if it still reads a bit rough in places."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "That's exactly why we're doing this now rather than after you've printed it. What made you go back to it a second time?"
+    },
+    {
+      "speaker": "Tomas",
+      "text": "Honestly, the first version bored us, and if it bored us writing it, it was going to bore everyone else too."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "That is, without exception, the best reason there is to rewrite anything. Go on, then — where did you end up?"
+    },
+    {
       "speaker": "Tomas",
       "text": "We started with the household angle, because that's where most of the waste is. About seventy per cent of it in the UK happens after the food reaches someone's kitchen."
     },
@@ -40,12 +56,28 @@
       "text": "So we changed it. We're now arguing that the interesting waste isn't the largest share, it's the share that's easiest to move. And that's not households."
     },
     {
+      "speaker": "Leyla",
+      "text": "Which sounds like a small thing to build a whole talk around, until you actually think about how the numbers work."
+    },
+    {
       "speaker": "Dr Okafor",
       "text": "Go on."
     },
     {
       "speaker": "Tomas",
       "text": "Retail is only about two per cent of the total, which sounds trivial. But a supermarket makes a small number of decisions that determine what happens in millions of kitchens — how big the pack is, what the date label says, whether the offer is buy one get one free."
+    },
+    {
+      "speaker": "Leyla",
+      "text": "It's a nice example, actually — even something as small as changing where the reduced-price stickers go on the shelf changes what a family throws away, multiplied across every store in the country."
+    },
+    {
+      "speaker": "Tomas",
+      "text": "Exactly. Nobody notices one supermarket's decision. Everybody notices it once you add up every branch of every chain in the country."
+    },
+    {
+      "speaker": "Leyla",
+      "text": "Which is really the whole pitch in one sentence, isn't it — small decision, huge multiplier."
     },
     {
       "speaker": "Dr Okafor",
@@ -62,6 +94,10 @@
     {
       "speaker": "Leyla",
       "text": "A government-funded review from 2022. It pools about a dozen studies, so it's stronger than any single trial, but it does say the evidence quality is mostly moderate."
+    },
+    {
+      "speaker": "Tomas",
+      "text": "Should we even mention the moderate-quality point, though? It feels like it undermines our own argument before we've made it."
     },
     {
       "speaker": "Dr Okafor",
@@ -88,6 +124,10 @@
       "text": "Twelve? We'd lose the whole section on anaerobic digestion."
     },
     {
+      "speaker": "Tomas",
+      "text": "I was going to say the same thing. It's the section we've both put the most work into so far."
+    },
+    {
       "speaker": "Dr Okafor",
       "text": "Which is the section I'd cut first. It's interesting, but it's about what to do with waste once it exists, and your argument is about preventing it. It belongs in a different talk."
     },
@@ -108,12 +148,48 @@
       "text": "Then swap the order. Open with the retail decisions, because that's the counterintuitive part and it earns you attention, and put the evidence review after it so it answers the doubt the opening creates. And whoever isn't speaking should be watching the clock, not the slides."
     },
     {
+      "speaker": "Leyla",
+      "text": "That does make more sense — we were basically telling them the answer before asking the interesting question."
+    },
+    {
+      "speaker": "Tomas",
+      "text": "I'll admit I only suggested the original order because I wanted to go second."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "Which is a perfectly human reason, and not a good one. Audiences forgive a shaky start far more easily than a flat ending, so open with your best material, always."
+    },
+    {
       "speaker": "Tomas",
       "text": "Understood. When do you want the draft?"
     },
     {
       "speaker": "Dr Okafor",
       "text": "Rehearse it in front of each other first — properly, standing up, timed. Then send me the recording rather than the slides. I learn far more from three minutes of you talking than from twenty-two slides."
+    },
+    {
+      "speaker": "Tomas",
+      "text": "Will do. Thanks for going through all of this with us."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "One more thing before you go. However this lands with the audience, the retail argument is the one worth defending hardest in questions, because it's the one people will instinctively push back on — everybody has a household habit they're proud of, and rather less of an opinion about supermarket policy."
+    },
+    {
+      "speaker": "Tomas",
+      "text": "Good to know. We'll make sure we can back that part up properly, then."
+    },
+    {
+      "speaker": "Leyla",
+      "text": "And I'll have the review's limitations ready in case anyone asks about the sample size."
+    },
+    {
+      "speaker": "Dr Okafor",
+      "text": "That's the spirit. Send me that recording, and we'll find some time before the slot itself to run through it once more."
+    },
+    {
+      "speaker": "Leyla",
+      "text": "Yes — genuinely useful, even the parts that stung a bit."
     }
   ],
   "questions": [
@@ -182,27 +258,18 @@
         },
         {
           "id": "q6",
-          "type": "mcq",
-          "question": "Why does he want the anaerobic digestion section cut?",
+          "type": "multi-select",
+          "question": "Which TWO changes does Dr Okafor make to how Tomas and Leyla will present their argument?",
           "options": [
-            "It is far too technical for an audience of that kind",
-            "It concerns dealing with waste rather than preventing it",
-            "The evidence for it is largely unreliable"
+            "Present the retail evidence before the review of the date-label trials",
+            "Whichever of them is not speaking should keep track of the time",
+            "Leyla should present the retail case and Tomas the evidence review",
+            "Rehearse sitting down, exactly as they will present to the audience",
+            "Send Dr Okafor the finished slide deck once it is ready"
           ],
-          "answer": 1,
-          "explanation": "“It's about what to do with waste once it exists, and your argument is about preventing it. It belongs in a different talk.”"
-        },
-        {
-          "id": "q7",
-          "type": "mcq",
-          "question": "What does he tell them to send him?",
-          "options": [
-            "The finished slides themselves",
-            "A recording of their rehearsal",
-            "A written script"
-          ],
-          "answer": 1,
-          "explanation": "“Then send me the recording rather than the slides. I learn far more from three minutes of you talking than from twenty-two slides.”"
+          "numAnswers": 2,
+          "answer": [0, 1],
+          "explanation": "Two changes are given directly. “Swap the order. Open with the retail decisions… and put the evidence review after it” supports the first option, and “whoever isn't speaking should be watching the clock, not the slides” supports the second. The division of labour itself does not change — Leyla keeps the evidence and Tomas keeps the retail case — so the third option reverses what actually changes. Dr Okafor asks them to rehearse “standing up”, not sitting down, so the fourth option contradicts the script. He also asks for “the recording rather than the slides”, so the fifth option is the opposite of what he requests."
         }
       ]
     },

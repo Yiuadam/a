@@ -140,6 +140,64 @@ function WritingTaskFilter({
   );
 }
 
+/*
+  Reading's own bar: which of the two IELTS Reading papers, Academic or
+  General Training, the library below is showing.
+
+  Built separately from `WritingTaskFilter` above rather than by generalising
+  it, even though the two look alike, because the two bars are not the same
+  shape underneath. Writing's stops narrow one already-unlocked library and
+  "All" is a real, useful third stop; Academic and General Training are not
+  two slices of one paper a candidate reads either way; they are two
+  different exams with different passages and a different question mix, and
+  showing both interleaved under an "All" would be exactly the "wade through
+  papers meant for the other exam" this bar exists to prevent. So there is no
+  "All" here, and the two stops are always both on screen rather than one
+  sliding pill among three — a candidate chooses which exam they are
+  practising, not how much of it to see.
+
+  `variant` earns this the same way `task` earned writing's bar: it is a
+  real, authored property on every reading paper, not an estimate like the
+  difficulty bar this file already removed — see `ReadingTest.variant` in
+  lib/types.ts.
+*/
+function ReadingVariantFilter({
+  options,
+  value,
+  onChange,
+}: {
+  options: ReadonlyArray<{ id: ReadingTest["variant"]; label: string; count: number }>;
+  value: ReadingTest["variant"];
+  onChange: (value: ReadingTest["variant"]) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Reading paper"
+      data-reading-variant-filter
+      className="inline-flex flex-wrap gap-1 rounded-full border border-slate-200 bg-surface p-1"
+    >
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          role="tab"
+          aria-selected={value === option.id}
+          onClick={() => onChange(option.id)}
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+            value === option.id
+              ? "bg-indigo-600 text-white"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <span>{option.label}</span>
+          <span className="text-[0.625rem] font-medium opacity-75">{option.count}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function TestChooser({
   kind,
   tests,
@@ -175,6 +233,19 @@ export default function TestChooser({
     was not taken here.
   */
   const [filter, setFilter] = useState("all");
+  /*
+    Reading's own choice, kept apart from `filter` above rather than folded
+    into it — the two answer different questions (writing narrows an already
+    unlocked library, reading decides which of two different exams is on
+    screen at all) and a shared variable would make one stop, "all" mean
+    "all writing tasks" while a filter of "academic" meant "only Academic
+    reading", which is not one vocabulary. Same reasoning as `filter` for why
+    it lives here and nowhere else: every arrival opens on Academic, which is
+    also the paper the exam start screen opens on by default, so a candidate
+    coming from `/practice` and one coming from `/exam` land on the same
+    library.
+  */
+  const [readingVariant, setReadingVariant] = useState<ReadingTest["variant"]>("academic");
 
   const generated = kind === "writing"
     ? []
@@ -205,9 +276,23 @@ export default function TestChooser({
         count: entries.filter(({ paper }) => (paper as WritingTask).task === taskNumber).length,
       }))
     : [];
+  /*
+    Reading's two stops, the same shape as writing's above but never
+    including "All" — see ReadingVariantFilter below for why there is
+    nothing to add one to.
+  */
+  const readingVariantOptions = kind === "reading"
+    ? (["academic", "general"] as const).map((v) => ({
+        id: v,
+        label: v === "academic" ? "Academic" : "General Training",
+        count: entries.filter(({ paper }) => (paper as ReadingTest).variant === v).length,
+      }))
+    : [];
   const shown = kind === "writing" && filter !== "all"
     ? entries.filter(({ paper }) => String((paper as WritingTask).task) === filter)
-    : entries;
+    : kind === "reading"
+      ? entries.filter(({ paper }) => (paper as ReadingTest).variant === readingVariant)
+      : entries;
   /* The cap the tier unlocks, not what is left of it — see app/practice/page.tsx. */
   const limit = allowanceFor(access.tier, kind).perWeek;
   const label = kind === "reading" ? "Reading" : kind === "listening" ? "Listening" : "Writing";
@@ -262,14 +347,21 @@ export default function TestChooser({
 
       {/* Its own row above the cards rather than beside the heading: at 390px
           three stops need the whole line, and a control that changes what
-          the list below it contains belongs directly above that list. Only
-          writing has one — reading and listening have nothing left to narrow
+          the list below it contains belongs directly above that list. Writing
+          and reading each have one now — listening has nothing left to narrow
           by. How wide it is allowed to grow past a phone is in globals.css. */}
       {kind === "writing" && (
         <WritingTaskFilter
           options={[{ id: "all", label: "All", count: all.length }, ...writingTaskOptions]}
           value={filter}
           onChange={setFilter}
+        />
+      )}
+      {kind === "reading" && (
+        <ReadingVariantFilter
+          options={readingVariantOptions}
+          value={readingVariant}
+          onChange={setReadingVariant}
         />
       )}
 
@@ -280,9 +372,9 @@ export default function TestChooser({
         than a sentence. Above the grid rather than inside it, because the grid
         gives every row a fixed ten rem and a sentence does not want one.
 
-        Writing-only, like the bar above it: reading and listening no longer
-        filter, so `shown` can only be empty for them if the library itself is
-        — a case with nothing to reset, so there is nothing useful to say here.
+        Listening-only exclusion now: it alone has nothing to filter, so
+        `shown` can only be empty for it if the library itself is — a case
+        with nothing to reset, so there is nothing useful to say here.
       */}
       {kind === "writing" && shown.length === 0 && (
         <p
@@ -291,6 +383,15 @@ export default function TestChooser({
         >
           {filter === "all" ? "There are no writing tasks yet." : `There are no Task ${filter} tasks yet.`}{" "}
           Choose All to see everything there is.
+        </p>
+      )}
+      {kind === "reading" && shown.length === 0 && (
+        <p
+          data-reading-variant-filter-empty
+          className="rounded-xl border border-slate-200 bg-surface px-3 py-2 text-sm leading-6 text-slate-600"
+        >
+          {`There are no ${readingVariant === "academic" ? "Academic" : "General Training"} reading papers yet.`}{" "}
+          Choose the other tab to see what is available.
         </p>
       )}
 

@@ -11,11 +11,16 @@ import TestQuestions, {
   type CheckedMap,
 } from "@/components/TestQuestions";
 import { testAdvice } from "@/lib/advice";
-import { isCorrect, rawToBand } from "@/lib/band";
+import { marksEarned, rawToBand } from "@/lib/band";
 import { rankedEnglishVoices } from "@/lib/speech";
 import { apiUrl } from "@/lib/api";
 import { playScript } from "@/lib/exam/playback";
 import { bundledListeningAudio, bundledListeningAudioUrl } from "@/lib/listening-audio";
+import {
+  bundledListeningFrameAudio,
+  bundledListeningFrameAudioUrl,
+} from "@/lib/listening-frame-audio";
+import { LISTENING_PART } from "@/lib/exam/mock";
 import { spokenForm } from "@/lib/speech-text";
 import {
   cancelNaturalExaminerVoice,
@@ -25,7 +30,7 @@ import {
   waitForNaturalExaminerVoice,
 } from "@/lib/neural-speech";
 import { useMounted, useProfile } from "@/lib/hooks";
-import { flatQuestions, questionCount } from "@/lib/questions";
+import { flatQuestions, questionCount, questionWidth } from "@/lib/questions";
 import { buildReview } from "@/lib/review";
 import { savedAnswers } from "@/lib/results";
 import { addResult } from "@/lib/store";
@@ -60,6 +65,10 @@ function ListeningTestPageRunner() {
   // checked question still counts exactly as it stood when it was checked.
   const [checked, setChecked] = useState<CheckedMap>({});
   const [submitted, setSubmitted] = useState(false);
+  // The paper the candidate was scrolled through mid-test — question 9, 10,
+  // wherever they happened to be sitting when they submitted — is not where
+  // the result belongs. See the effect below that resets it.
+  const paperScrollRef = useRef<HTMLDivElement>(null);
   const [band, setBand] = useState<number | null>(null);
   const [raw, setRaw] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -96,6 +105,35 @@ function ListeningTestPageRunner() {
   // already give against a superseded run, applied to "which of the two
   // elements gets to speak" instead of "which run gets to speak".
   const nativeAudioActiveRef = useRef<HTMLAudioElement | null>(null);
+
+  /*
+    The spoken frame, or the two lines of it that mean anything here.
+
+    A learner opening a listening paper from practice used to hear the dialogue
+    with no introduction at all — straight into the middle of a conversation
+    with no idea which part it is or who is speaking. The real test never does
+    that, and the mock sitting already does not: lib/listening-frame-audio.ts
+    builds the whole frame and MockListening speaks it.
+
+    Only `intro` and `end` are spoken here, and that is a limit of the
+    catalogue rather than a judgement about what a learner deserves. The middle
+    of the frame is reading time — "you now have thirty seconds to look at
+    questions twenty-one to thirty" — and those lines are built around
+    sitting-relative question numbers. Practice renders every paper numbered
+    from 1, so the narrator would read numbers that are not on the screen.
+    `isReachableStart` refuses to resolve them for exactly that reason, and it
+    is right to: a wrong number spoken with total confidence is worse than
+    silence. `intro` and `end` carry no number, and resolve for all 32 papers.
+
+    It plays on its own element rather than through the dialogue's pair. The
+    part recording is a buffer-swapped playlist that also drives the progress
+    bar, the time readout, the speed control and — in timed mode — the
+    one-shot lock that stops a candidate replaying a part. Threading two
+    narration lines through that machinery would put all of it at risk to add
+    a sentence at each end. On its own element, none of it can be affected.
+  */
+  const frameAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const nativeAudioPartRef = useRef(0);
   const nativeAudioPartCountRef = useRef(1);
   const nativeAudioFromRef = useRef(0);
@@ -118,6 +156,80 @@ function ListeningTestPageRunner() {
     );
   }, [params, profile.genTests]);
 
+  const frameLine = useCallback(
+    (kind: "intro" | "end"): string | null => {
+      const part = test ? LISTENING_PART[test.id] : undefined;
+      if (!test || !part) return null;
+      const line = bundledListeningFrameAudio(`${test.id}-p${part}-${kind}`);
+      return line ? apiUrl(bundledListeningFrameAudioUrl(line.id)) : null;
+    },
+    [test],
+  );
+
+  /*
+    Speak one frame line, then carry on regardless.
+
+    `then` runs on `ended`, on `error`, and when there is no line to play — a
+    paper outside the bundled set, a narration file that 404s, a phone that
+    refuses to autoplay. The frame is an improvement to the recording, never a
+    precondition for hearing it: every failure here has to fall through to the
+    dialogue rather than leave a learner staring at a Play button that did
+    nothing. The run token is re-checked at the moment of continuing, so Stop
+    pressed during the introduction stops there instead of being followed by
+    the recording it was introducing.
+  */
+  const playFrameLine = useCallback(
+    (run: number, kind: "intro" | "end", then: () => void) => {
+      const media = frameAudioRef.current;
+      const url = frameLine(kind);
+      const carryOn = () => {
+        if (playbackRunRef.current !== run) return;
+        then();
+      };
+      if (!media || !url) {
+        carryOn();
+        return;
+      }
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        media.onended = null;
+        media.onerror = null;
+        carryOn();
+      };
+      media.onended = finish;
+      media.onerror = finish;
+      try {
+        media.pause();
+        media.src = url;
+        media.load();
+        /* The narrator is read at the paper's own pace, not the learner's: the
+           speed control is for the dialogue, which is the thing being
+           practised. A slowed-down introduction just delays the recording. */
+        media.playbackRate = 1;
+        void media.play().catch(finish);
+      } catch {
+        finish();
+      }
+    },
+    [frameLine],
+  );
+
+  /*
+    "That is the end of part three." Spoken every way a recording can finish —
+    the bundled MP3 playlist on either element, the browser-speech reading, and
+    the built-in fallback — because a learner should not be able to tell which
+    of those they got. Nothing waits on it: the paper is already marked as
+    heard and the questions are already answerable by the time it speaks.
+  */
+  const speakClosingLine = useCallback(
+    (run: number) => {
+      playFrameLine(run, "end", () => {});
+    },
+    [playFrameLine],
+  );
+
   const flat = useMemo(() => (test ? flatQuestions(test.questions) : []), [test]);
   // Only the reviewed, canonical papers get the local neural recovery path.
   // Generated papers continue to use browser speech so an unexpectedly long
@@ -129,7 +241,12 @@ function ListeningTestPageRunner() {
   );
   const nav = useExamNavigation(
     useMemo(
-      () => flat.map((q) => ({ id: q.id, answered: answers[q.id] !== undefined })),
+      () =>
+        flat.map((q) => ({
+          id: q.id,
+          answered: answers[q.id] !== undefined,
+          width: questionWidth(q),
+        })),
       [flat, answers],
     ),
   );
@@ -173,6 +290,20 @@ function ListeningTestPageRunner() {
       disposeNaturalExaminerVoice();
     };
   }, []);
+
+  /*
+    Marking does not move the candidate — it reveals answers under whichever
+    question they were last looking at, which for anyone who finishes on
+    question 9 or 10 is nowhere near the band at the top. An instant jump
+    rather than scrollBehaviour()'s smooth one: the content above is also
+    changing shape right now (the palette gone, the band card and every
+    explanation newly mounted), and animating toward a target that is itself
+    still settling is the kind of scroll that looks broken rather than smooth.
+  */
+  useEffect(() => {
+    if (!submitted) return;
+    paperScrollRef.current?.scrollTo({ top: 0 });
+  }, [submitted]);
 
   useEffect(() => {
     // The player does not exist on the chooser screen, so capture the actual
@@ -246,6 +377,7 @@ function ListeningTestPageRunner() {
         setFinishedAudio(true);
         setTurnIndex(-1);
         setPlaybackTurn(test.script.length);
+        speakClosingLine(run);
         return;
       }
       if (result === "cancelled") return;
@@ -259,7 +391,7 @@ function ListeningTestPageRunner() {
         "The built-in British audio stopped before it finished. Check your connection and try again, or use the transcript.",
       );
     },
-    [builtInAudioSupported, isBundledTest, test],
+    [builtInAudioSupported, isBundledTest, speakClosingLine, test],
   );
 
   const startBrowserAudio = useCallback(
@@ -322,10 +454,11 @@ function ListeningTestPageRunner() {
           setFinishedAudio(true);
           setTurnIndex(-1);
           setPlaybackTurn(test.script.length);
+          speakClosingLine(run);
         },
       });
     },
-    [builtInAudioSupported, startBuiltInAudio, test, ttsSupported],
+    [builtInAudioSupported, speakClosingLine, startBuiltInAudio, test, ttsSupported],
   );
 
   const fallbackFromNativeAudio = useCallback(
@@ -555,13 +688,18 @@ function ListeningTestPageRunner() {
       setAudioDuration(0);
       setAudioPartIndex(0);
 
-      if (isBundledTest) {
-        startNativeAudio(run, from);
-        return;
-      }
-      startBrowserAudio(run, from);
+      /* The introduction first, then whichever recording this paper has.
+         playFrameLine calls straight through when there is no line, so a
+         paper without one starts exactly as it did before. */
+      playFrameLine(run, "intro", () => {
+        if (isBundledTest) {
+          startNativeAudio(run, from);
+          return;
+        }
+        startBrowserAudio(run, from);
+      });
     },
-    [audioSupported, isBundledTest, startBrowserAudio, startNativeAudio, test],
+    [audioSupported, isBundledTest, playFrameLine, startBrowserAudio, startNativeAudio, test],
   );
 
   const stopAudio = useCallback(() => {
@@ -578,6 +716,16 @@ function ListeningTestPageRunner() {
       media.pause();
       media.removeAttribute("src");
       media.load();
+    }
+    /* Including mid-introduction. The run token above already stops the
+       recording from following it, but the line itself is playing now and Stop
+       has to mean stop. */
+    if (frameAudioRef.current) {
+      frameAudioRef.current.onended = null;
+      frameAudioRef.current.onerror = null;
+      frameAudioRef.current.pause();
+      frameAudioRef.current.removeAttribute("src");
+      frameAudioRef.current.load();
     }
     setPlaying(false);
     setPlaybackStarted(false);
@@ -603,11 +751,16 @@ function ListeningTestPageRunner() {
     if (!test || submitted) return;
     stopAudio();
     const asked = flatQuestions(test.questions);
+    /*
+      Summed as marks, not as questions answered right — see the identical
+      comment in app/practice/reading/page.tsx. A multi-select can earn one of
+      its two marks without earning both.
+    */
     let correct = 0;
     for (const q of asked) {
-      if (isCorrect(q, answers[q.id])) correct++;
+      correct += marksEarned(q, answers[q.id]);
     }
-    const b = rawToBand(correct, asked.length, "listening");
+    const b = rawToBand(correct, questionCount(test.questions), "listening");
     const reviewItems = buildReview(test.questions, answers);
     const advice = testAdvice(
       "listening",
@@ -754,7 +907,7 @@ function ListeningTestPageRunner() {
       onPrev={nav.prev}
       onNext={nav.next}
       onToggleReview={nav.toggleReview}
-      bottomLeft={submitted && band !== null ? `Band ${band} · ${raw}/${flat.length}` : "Practice complete"}
+      topSummary={submitted && band !== null ? `Band ${band} · ${raw}/${flat.length}` : undefined}
       topRight={
         <div className="flex items-center gap-1.5">
           <GlassSelect
@@ -817,6 +970,15 @@ function ListeningTestPageRunner() {
         a late event from the silently-buffering element can never resurrect
         playback or move the part index.
       */}
+      {/*
+        The narrator. One element, no buffer twin, and none of the handlers the
+        pair below carry: it plays one short line at a time and its only two
+        outcomes — finished, or failed — are wired up per play in playFrameLine
+        rather than declared here, because what happens next differs between
+        the introduction and the closing line.
+      */}
+      <audio ref={frameAudioRef} data-listening-frame-audio preload="none" aria-hidden="true" />
+
       <audio
         ref={nativeAudioRef}
         data-listening-native-audio
@@ -878,6 +1040,7 @@ function ListeningTestPageRunner() {
           setFinishedAudio(true);
           setTurnIndex(-1);
           setPlaybackTurn(test.script.length);
+          speakClosingLine(run);
           if (Number.isFinite(event.currentTarget.duration)) {
             setAudioDuration(event.currentTarget.duration);
             setAudioCurrentTime(event.currentTarget.duration);
@@ -958,6 +1121,7 @@ function ListeningTestPageRunner() {
           setFinishedAudio(true);
           setTurnIndex(-1);
           setPlaybackTurn(test.script.length);
+          speakClosingLine(run);
           if (Number.isFinite(event.currentTarget.duration)) {
             setAudioDuration(event.currentTarget.duration);
             setAudioCurrentTime(event.currentTarget.duration);
@@ -977,7 +1141,7 @@ function ListeningTestPageRunner() {
           fallbackFromNativeAudio(run, 0);
         }}
       />
-      <div className="min-h-0 flex-1 overflow-y-auto" data-listening-paper>
+      <div ref={paperScrollRef} className="min-h-0 flex-1 overflow-y-auto" data-listening-paper>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--exam-line)] pb-2 text-xs text-[color:var(--exam-muted)]">
           <span>
             {playing

@@ -1,0 +1,154 @@
+{
+  "id": "reading-35",
+  "title": "Earworms: Why Songs Get Stuck in Our Heads",
+  "topic": "Why certain songs repeat themselves in the mind, what triggers the effect, and how people try to stop it",
+  "variant": "general",
+  "difficulty": "medium",
+  "level": "B2",
+  "timeMinutes": 20,
+  "passage": "Almost everyone has had the experience of a song looping in their head long after the radio has been switched off. Psychologists call this an earworm, sometimes using the more technical term \"involuntary musical imagery\" to describe the same thing: a short fragment of music that repeats itself without being consciously summoned or controlled. Surveys suggest that the great majority of people report at least one earworm a week, and for many it is closer to a daily event. Far from being a rare quirk of a musical mind, it appears to be one of the most ordinary things the brain does with sound.\n\nCertain kinds of song are reported far more often than others. A fast tempo is one common feature, along with a melody that is simple enough to hold in the mind after only one or two hearings. Researchers who have compared frequently reported earworms with less catchy songs also point to an unexpected jump in pitch somewhere in the tune: a melody that does something slightly surprising, without becoming difficult to follow, seems to leave a stronger trace than one that moves entirely as expected. This combination, simple but not completely predictable, is also a fair description of what makes a tune easy to sing along to, which may be no coincidence.\n\nOne influential explanation treats an earworm as a kind of unfinished business for the brain's working memory. A melody that is cut off before it resolves, according to this account, is more likely to loop than one that is allowed to finish, in much the same way that an interrupted task can occupy the mind more persistently than a completed one. Played this way, the repetition is not a fault in the system but an attempt, not entirely successful, to reach a kind of closure the brain has been denied.\n\nWhat starts an earworm in the first place seems to matter as much as what keeps it going. Boredom or a lack of mental engagement increases the chance of one beginning, which is why earworms are so often reported during repetitive chores such as washing up or folding laundry. A fragment heard by chance, a jingle from an advertisement, a few bars hummed by a stranger on the street, can be enough to start the loop, even when the listener paid it no conscious attention at the time. Stress appears to have a similar effect: several studies link anxious or overloaded states with a higher rate of earworms, as though the mind reaches for a familiar tune when it has little spare capacity for anything more demanding.\n\nNot every listener is equally susceptible. People who play a musical instrument tend to report earworms more often than those who do not, possibly because a trained ear notices and retains melodic detail that a casual listener misses entirely. Mood plays a part too: a tune linked to a strong personal memory, a wedding, a childhood holiday, a difficult year, seems more likely to resurface than one heard only in passing, which suggests that an earworm is not purely a musical event but sometimes an emotional one wearing musical clothing.\n\nSeveral remedies are commonly reported, with mixed success. Chewing gum is one of the more consistent: it is thought to help because it keeps the muscles of the mouth occupied, interrupting the silent, internal rehearsal that seems to keep a tune alive. For many people, simply listening to a song's own ending resolves the loop, as though the brain finally receives the closure the earlier explanation describes. Others reach instead for a second song, sometimes called a \"cure song\", catchy enough to displace the first but different enough not to become a second earworm in its own right. A demanding task that occupies working memory fully, such as solving a puzzle or holding a complicated conversation, tends to work as well as any deliberate remedy, simply by leaving no spare capacity for a tune to occupy.\n\nFor almost everyone, an earworm is a minor and passing irritation rather than anything to worry about. A small number of people do describe it as genuinely distressing, particularly when a single tune persists for days rather than hours, and this small group sits close to the broader study of intrusive thoughts, ideas that arrive unbidden and are difficult to dismiss. For the rest of us, the earworm is perhaps best understood not as a malfunction but as a glimpse of how readily the mind holds onto pattern and repetition, whether we choose to notice it or not.",
+  "questions": [
+    {
+      "instruction": "Do the following statements agree with the information given in the passage? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "tfng",
+          "statement": "Most people experience an earworm at least once a week.",
+          "answer": "TRUE",
+          "explanation": "The passage says surveys suggest \"the great majority of people report at least one earworm a week\" — a direct match."
+        },
+        {
+          "id": "q2",
+          "type": "tfng",
+          "statement": "Songs with a completely predictable melody are the ones most often reported as earworms.",
+          "answer": "FALSE",
+          "explanation": "The passage says a melody with \"an unexpected jump in pitch... seems to leave a stronger trace than one that moves entirely as expected\" — the opposite of the statement."
+        },
+        {
+          "id": "q3",
+          "type": "tfng",
+          "statement": "A melody that reaches a natural ending is more likely to loop than one that is cut off.",
+          "answer": "FALSE",
+          "explanation": "The passage states the reverse: a melody \"cut off before it resolves... is more likely to loop than one that is allowed to finish.\""
+        },
+        {
+          "id": "q4",
+          "type": "tfng",
+          "statement": "Earworms are more common while a person is concentrating hard on a demanding task.",
+          "answer": "FALSE",
+          "explanation": "The passage links earworms to boredom and a \"lack of mental engagement\", and later says a demanding task tends to stop one — the opposite of the statement."
+        },
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Every reported earworm can be traced back to a specific advertisement.",
+          "answer": "NOT GIVEN",
+          "explanation": "An advertisement jingle is given only as one example of a possible trigger; the passage never claims every earworm has such a source."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B, C or D.",
+      "questions": [
+        {
+          "id": "q6",
+          "type": "mcq",
+          "question": "According to the explanation given in the passage, why might an unfinished melody be more likely to loop in the mind?",
+          "options": [
+            "Because the brain treats it much like a task that has been left incomplete",
+            "Because an incomplete melody is always simpler than a complete one",
+            "Because the ear finds it harder to process a tune with no clear ending",
+            "Because unfinished songs tend to be broadcast more often on the radio"
+          ],
+          "answer": 0,
+          "explanation": "The passage compares an unresolved melody to \"an interrupted task\" that \"can occupy the mind more persistently than a completed one\"."
+        },
+        {
+          "id": "q7",
+          "type": "mcq",
+          "question": "Which of the following, according to the passage, makes a person more likely to get a particular song stuck in their head?",
+          "options": [
+            "Hearing the song performed live for the very first time",
+            "Having a strong personal memory connected to the song",
+            "Listening to the song at a deliberately low volume",
+            "Reading the printed lyrics of the song beforehand"
+          ],
+          "answer": 1,
+          "explanation": "The passage says a tune \"linked to a strong personal memory... seems more likely to resurface than one heard only in passing.\""
+        },
+        {
+          "id": "q8",
+          "type": "mcq",
+          "question": "Which method for getting rid of an earworm is mentioned in the passage?",
+          "options": [
+            "Chewing gum, because it keeps the muscles of the mouth occupied",
+            "Standing up and walking briskly around the room for a few minutes",
+            "Drinking a large glass of cold water as soon as possible",
+            "Switching the radio over to a completely different station"
+          ],
+          "answer": 0,
+          "explanation": "The passage names chewing gum first among the remedies, explaining that it \"keeps the muscles of the mouth occupied, interrupting the silent, internal rehearsal\"."
+        },
+        {
+          "id": "q9",
+          "type": "mcq",
+          "question": "What does the passage suggest about earworms overall?",
+          "options": [
+            "They are usually a harmless irritation, though a small number of people find them distressing",
+            "They are generally regarded as an early warning sign of a serious long-term problem with memory",
+            "They have been almost entirely eliminated by the arrival of modern noise-cancelling headphones",
+            "They are only ever reported by people who have received some form of formal musical training"
+          ],
+          "answer": 0,
+          "explanation": "The final paragraph calls an earworm \"a minor and passing irritation\" for most people, while noting \"a small number of people do describe it as genuinely distressing\"."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN ONE WORD from the passage for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "A ___ tempo is one feature that makes a song more likely to become an earworm.",
+          "answer": "fast",
+          "maxWords": 1,
+          "explanation": "The passage states: \"A fast tempo is one common feature\" of songs that are frequently reported as earworms."
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "An unexpected ___ in pitch can also make a tune more memorable.",
+          "answer": "jump",
+          "maxWords": 1,
+          "explanation": "The passage points to \"an unexpected jump in pitch somewhere in the tune\" as a feature of memorable songs."
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "Chewing gum is thought to help because it keeps the muscles of the ___ occupied.",
+          "answer": "mouth",
+          "maxWords": 1,
+          "explanation": "The passage explains chewing gum works because \"it keeps the muscles of the mouth occupied, interrupting\" the internal rehearsal."
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "For many people, simply listening to a song's own ___ resolves the loop.",
+          "answer": "ending",
+          "maxWords": 1,
+          "explanation": "The passage says \"listening to a song's own ending resolves the loop\" for many people."
+        },
+        {
+          "id": "q14",
+          "type": "completion",
+          "sentence": "The passage links persistent earworms to the wider study of ___ thoughts.",
+          "answer": "intrusive",
+          "maxWords": 1,
+          "explanation": "The final paragraph places distressing, persistent earworms \"close to the broader study of intrusive thoughts\"."
+        }
+      ]
+    }
+  ]
+}

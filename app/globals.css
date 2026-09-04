@@ -566,11 +566,66 @@ body[data-viewport-locked] {
   See components/AppMain.tsx, which sets the attribute, for why it is not
   data-viewport-locked.
 */
+/*
+  Every other railed page, held to one screen from `lg` up — see AppMain.
+
+  The page does not scroll; the content column inside it does, and only when
+  there is more than fits. That is the honest reading of "nothing scrolls":
+  the furniture stays still, which is the thing a person actually notices, and
+  nothing is clipped, which no amount of trimming could guarantee for a page
+  like History.
+
+  `overscroll-contain` so reaching the end of the column does not hand the
+  gesture to the page behind it, which has nowhere to go and would rubber-band.
+*/
+@media (min-width: 64rem) {
+  body[data-page-locked] {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body[data-page-locked] main {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 @media (min-width: 64rem) {
   body[data-home-locked] {
     height: 100dvh;
     min-height: 0;
     overflow: hidden;
+  }
+
+  /*
+    And the content column scrolls, exactly as on a page-locked route.
+
+    Without this the lock only stopped the *body* from scrolling: the content
+    kept its full height, overflowed, and the footer — which comes after it in
+    the same column — was painted straight across the rail and the cards.
+    Locking a page without giving its content somewhere to go does not make
+    the page fit, it makes the page lie.
+
+    On a board that does fit, which is what the dashboard is for, this scrolls
+    nothing and is invisible.
+  */
+  body[data-home-locked] main {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /*
+    And the dashboard column takes exactly that height.
+
+    `main` is a block, so its child is as tall as its content unless told
+    otherwise — which meant the board divided a height it had invented rather
+    than the one on the screen, and the second row of modules sat below the
+    fold with `auto-rows-fr` cheerfully reporting that both rows were equal.
+    Equal to each other, and both too tall.
+  */
+  body[data-home-locked] main > .dashboard-screen {
+    height: 100%;
   }
 }
 
@@ -3297,29 +3352,20 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
   }
 }
 
-.bandup-mark {
-  perspective: 8rem;
-  transform-style: preserve-3d;
-}
+/*
+  No hover effect on the mark.
 
-.bandup-mark-rear,
-.bandup-mark-front {
-  transform-origin: 50% 54%;
-  transition:
-    transform 360ms cubic-bezier(0.18, 0.86, 0.22, 1),
-    filter 360ms ease;
-  will-change: transform;
-}
+  Its two layers used to lift apart in 3D on hover — a perspective on the
+  wrapper, a few pixels of translate on Z, and a drop shadow under each. It was
+  drawn for a raster mark with a real specular rim over it, where the parting
+  read as the material catching the light. On the drawn mark it reads as a
+  wobble: the whole thing is 36px, the movement is under two of them, and a
+  logo that moves when a pointer passes over it is a logo that looks unstable.
 
-.bandup-mark:hover .bandup-mark-rear {
-  transform: translate3d(-0.25px, -0.4px, 4px) scale(1.008);
-  filter: drop-shadow(0 0.75px 0.75px rgba(0, 0, 0, 0.12));
-}
-
-.bandup-mark:hover .bandup-mark-front {
-  transform: translate3d(0.3px, -1px, 10px) scale(1.018);
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.16));
-}
+  The wrapper keeps its class — the header positions the rim against it — and
+  the reduced-motion block that used to cancel this went with it, because there
+  is no longer any motion to cancel.
+*/
 
 /* The mock-exam briefing is a launch screen, not a document to scroll. */
 .exam-start {
@@ -4604,15 +4650,9 @@ html[data-theme] select:-webkit-autofill {
   }
   .liquid-glass,
   .card,
-  .bandup-mark-rear,
-  .bandup-mark-front,
   .liquid-glass::after,
   .card::after {
     transition: none;
-  }
-  .bandup-mark:hover .bandup-mark-rear,
-  .bandup-mark:hover .bandup-mark-front {
-    transform: none;
   }
 }
 
@@ -6626,4 +6666,262 @@ html[data-theme="dark"] .module-library-panel.module-library-panel {
 
 html[data-theme="dark"] .exam-highlight {
   background: rgba(250, 204, 21, 0.24);
+}
+
+/*
+  The numbered box a candidate types into, inside a table, a flow chart or a
+  page of notes.
+
+  Not `.input`. A gap sits in the middle of a line of text and has to behave
+  like a word in that line: baseline-aligned, no taller than the line it
+  interrupts, and narrow enough that a table cell still reads as a cell. The
+  form field the rest of the app uses is a block-sized control with generous
+  padding, and dropped into a sentence it broke the line in half.
+
+  The number is the placeholder rather than a badge beside the box, which is
+  how the computer-delivered paper draws it: the field shows what it is until
+  there is an answer in it, and then the answer is all there is. It is also why
+  the placeholder is centred and the typed text is not — an empty box reads as
+  a label, a filled one as writing.
+*/
+/*
+  Doubled class names, for the reason the overlay panels above are written the
+  same way: `[data-exam] input` is one attribute and one element, which outweighs
+  a single class, and it sets the radius and background every field on the paper
+  shares. A gap is the exception to that rule rather than a variation on it — it
+  is a word-shaped box in a line of prose, not a form control — so it has to be
+  able to say so.
+*/
+.exam-gap.exam-gap {
+  @apply min-w-0 border px-2 py-1 text-[16px] leading-6 transition-colors focus:outline-none;
+  border-radius: 0.375rem;
+  border-color: color-mix(in srgb, currentColor 32%, transparent);
+  background: var(--color-surface);
+  width: 8.5rem;
+  max-width: 100%;
+}
+
+.exam-gap.exam-gap::placeholder {
+  /* Centred, and quiet: it is the question's number, not a hint about what to
+     write. The same weight the paper gives it. */
+  @apply text-center;
+  color: color-mix(in srgb, currentColor 45%, transparent);
+  opacity: 1;
+}
+
+.exam-gap.exam-gap:focus {
+  border-color: var(--exam-accent, var(--color-indigo-500));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--exam-accent, var(--color-indigo-500)) 18%, transparent);
+}
+
+.exam-gap-right.exam-gap-right {
+  border-color: var(--color-emerald-500);
+}
+
+.exam-gap-wrong.exam-gap-wrong {
+  border-color: var(--color-rose-500);
+}
+
+/*
+  The question the candidate is on.
+
+  Set by ExamShell as the paper is scrolled, and drawn here rather than there
+  so it costs a class on one element instead of a prop threaded through both
+  mock modules. The tint is the paper's own accent at a strength that reads as
+  "here" and not as "wrong" — the marked states beside it are green and red, so
+  this had to be neither.
+
+  Behind the question's own line of text, not behind the whole card. Washing
+  the card and ruling its left edge marked the right question and looked like
+  damage: an accent bar appeared beside one card and nowhere else, and read as
+  a stray border rather than as a place. The exam tints the stem and leaves the
+  card alone, which says the same thing without introducing an edge that has no
+  meaning. The spread shadow is padding the tint cannot have — the stem is a
+  flex row whose spacing the layout owns.
+*/
+[data-exam] [data-current="true"] .exam-stem {
+  background: color-mix(in srgb, var(--exam-accent) 12%, transparent);
+  box-shadow: 0 0 0 0.4rem color-mix(in srgb, var(--exam-accent) 12%, transparent);
+}
+
+/*
+  The same "you are here" on a gap, which is a box in a line rather than a
+  block with room for a tint behind it.
+
+  A background wash and a bar down the left edge work on a question card and
+  read as a stray stripe beside an inline field, so a gap says it differently:
+  the box takes the accent on its own border. Same signal, drawn at the size of
+  the thing being marked.
+*/
+[data-exam] [data-current="true"]:has(.exam-gap) {
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-exam] [data-current="true"] .exam-gap.exam-gap {
+  border-color: var(--exam-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--exam-accent) 16%, transparent);
+}
+
+/*
+  The rail's own surface.
+
+  It had none: the links sat straight on the page, and the only thing marking
+  where navigation stopped and content began was the gap between them. On a
+  wide screen that gap is large enough to read as nothing at all — the rail
+  looked like a column of text that happened to be over there rather than a
+  part of the furniture.
+
+  A tint of the page's own ink rather than a new colour, so it darkens with
+  every theme instead of needing three. The hairline down the right edge is
+  what actually says "the page starts here"; the tint is there so the line has
+  something to be the edge of.
+*/
+.side-rail {
+  position: relative;
+}
+
+/*
+  Painted by a pseudo-element that runs off the left of the screen, rather than
+  as the element's own background.
+
+  The rail sits inside the page's centred, padded container, so its own
+  background stopped where that padding began and left a stripe of page down
+  the left edge — a panel floating a few centimetres from the wall. Bleeding it
+  is not something the container can do without giving every page a different
+  layout, and a negative margin would have to know each breakpoint's padding.
+  A box that starts a screen-width to the left and ends at the rail's right
+  edge reaches the edge at every width, and needs to know nothing.
+
+  Straight, with no rounded corners: the rail is a column of the page now
+  rather than a card on it, and a rounded corner halfway down the left edge is
+  what made it read as a floating panel.
+*/
+.side-rail::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 -100vw;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  border-right: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  pointer-events: none;
+}
+
+/* Above the wash, which is painted first because it is a pseudo-element. */
+.side-rail > * {
+  position: relative;
+}
+
+html[data-theme="dark"] .side-rail::before {
+  /* Dark's page is already close to the ink, so the same 4% disappears. */
+  background: color-mix(in srgb, white 5%, transparent);
+  border-right-color: color-mix(in srgb, white 12%, transparent);
+}
+
+/*
+  The mark's palette, one set per theme.
+
+  The mark is the Liquid Glass design drawn from its own shipping layers
+  (components/BandUpMark.tsx): a ground, a turned sheet and the page. It used
+  to be a PNG, which is one colourway — and the only way to move a raster's
+  colours is a filter, which turns a chosen palette into whatever hue-rotate
+  gives.
+
+  Warm is the layers' own values, unchanged. The other two are the same design
+  read in that theme's light.
+*/
+/*
+  Warm: a light brown ground, not the near-black one the layers shipped with.
+
+  The dark ground was drawn for a home screen, where an icon sits on whatever
+  wallpaper somebody chose and needs its own weight. In the header it sits on
+  BandUp's own cream page, and a near-black tile there is the heaviest thing on
+  the screen by a distance — it reads as a hole rather than as a mark.
+
+  The sheet is lighter than the ground rather than darker, which is the one
+  real choice here: both keep the two sheets separate, and this way round keeps
+  the mark warm and the page the brightest thing in it — the stack reads
+  light-on-dark from the top down, ground, sheet, page, instead of doubling back.
+*/
+:root {
+  --mark-ground-near: #a9784a;
+  --mark-ground-mid: #87582f;
+  --mark-ground-far: #603a1c;
+  --mark-sheet: #e09a5a;
+  --mark-paper: #fdf8f0;
+}
+
+/*
+  Light: the same treatment in indigo. Its accent is indigo, and a brown mark on
+  its blue-grey page was the one thing on screen belonging to a different set.
+  A very light blue ground, and no brown anywhere in it. Warm's stack runs
+  light sheet on dark ground; this one runs the other way — a pale ground with
+  the sheet darker than it — because a dark blue tile on Light's own pale page
+  was the heaviest thing on the screen, which is the complaint the warm mark
+  started with. The page stays near-white, because it is paper, and it is still
+  the brightest thing in the mark.
+*/
+html[data-theme="light"] {
+  --mark-ground-near: #dbe3f5;
+  --mark-ground-mid: #c2cdea;
+  --mark-ground-far: #a6b4dd;
+  --mark-sheet: #5866c2;
+  --mark-paper: #fbfcfe;
+}
+
+/*
+  Dark: the ground goes almost to black so the mark reads as a cut-out rather
+  than a lit tile, and the sheet comes up in brightness to survive against it —
+  the accent this theme already uses, not a new one.
+*/
+html[data-theme="dark"] {
+  --mark-ground-near: #2a2019;
+  --mark-ground-mid: #16110d;
+  --mark-ground-far: #090706;
+  --mark-sheet: #d9813f;
+  --mark-paper: #f3ebdd;
+}
+
+/*
+  The mark's layers, lifted apart on hover.
+
+  This existed before as a 3D parting of two stacked images — a raster tile and
+  an SVG rim over it — and it was removed with them, because the rim was drawn
+  to a different viewBox and what separated was not the artwork. The mark is
+  three real shapes now, so the effect can be what it was always meant to be:
+  the page rises off the sheet behind it, and the sheet rises off the ground.
+
+  Translated in the drawing's own units, not pixels — the viewBox is 1024 wide
+  and the mark renders at 36, so 20 units is about 0.7 of a pixel on screen. It
+  is a suggestion of depth rather than a movement, which at this size is all
+  there is room for.
+
+  `transform-box: fill-box` so the origin is the shape's own centre and not the
+  SVG's, which is what stops a scale sliding the sheet across the tile.
+*/
+.bandup-sheet-back,
+.bandup-sheet-front {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 360ms cubic-bezier(0.18, 0.86, 0.22, 1);
+  will-change: transform;
+}
+
+.bandup-mark:hover .bandup-sheet-back {
+  transform: translate(-18px, -22px) scale(1.015);
+}
+
+.bandup-mark:hover .bandup-sheet-front {
+  transform: translate(22px, -40px) scale(1.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bandup-sheet-back,
+  .bandup-sheet-front {
+    transition: none;
+  }
+
+  .bandup-mark:hover .bandup-sheet-back,
+  .bandup-mark:hover .bandup-sheet-front {
+    transform: none;
+  }
 }

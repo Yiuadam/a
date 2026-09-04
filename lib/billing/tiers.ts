@@ -125,6 +125,13 @@ export const FEATURES = [
   "grade-speaking",
   /** The conversational tutor — /api/chat. */
   "tutor-chat",
+  /**
+   * The live examiner reaction in Part 3 of speaking practice —
+   * /api/speaking/examiner-line. Distinct from grade-speaking: this is spent
+   * during the interview itself, on every tier that gets it, whether or not
+   * that interview is ever marked afterward.
+   */
+  "speaking-examiner",
   /** Carrying progress between devices. Free with any account, and stays free. */
   "progress-sync",
 ] as const;
@@ -146,6 +153,7 @@ export const FEATURE_ROUTES: Record<Exclude<Feature, "progress-sync">, CostedRou
   "grade-writing": "grade/writing",
   "grade-speaking": "grade/speaking",
   "tutor-chat": "chat",
+  "speaking-examiner": "examiner",
 };
 
 /**
@@ -172,7 +180,7 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     requests a day is up to six hundred a month, from an account that costs
     nothing to create, of which somebody can create as many as they like.
   */
-  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
   /*
     Also nothing, and that is what Standard is: the whole library, unlocked, with
     no AI. It exists because most of what BandUp does needs no model — a reading
@@ -180,7 +188,7 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     as the expensive kind. Somebody who wants unlimited practice and does not
     want an essay marked should not be made to pay for marking.
   */
-  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
   /*
     Enough AI for a normal month of preparation: an essay marked most weeks, a
     speaking test a fortnight, a couple of questions a day, and a fresh paper.
@@ -192,20 +200,48 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     was never what made the price — the AI was. Halving the allowance took Plus
     to $1.69 *and* left real money on it. Ten marked essays a month is still an
     essay every three days.
+
+    `examiner` is 0 — not because Plus cannot afford it (it can; see
+    lib/speaking/turn-control.ts and the route it feeds, both shipped and
+    tested), but because the feature is not confirmed working yet. A
+    generation-token bug that made the reaction impossible to ever hear was
+    found and fixed in the same branch that shipped it, and nobody has since
+    confirmed by ear that a live answer actually produces one. `generate`
+    stayed at its original figure rather than the number that would have paid
+    for the examiner, because there is nothing here yet to pay for. Both
+    numbers are a deliberate pair — see MONTHLY_AI_CAPS.pro's own note — and
+    changing one without the other is how a cap and its own justification
+    quietly stop agreeing with each other.
   */
-  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 2 },
+  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 2, examiner: 0 },
   /*
     Three times Plus on the routes that matter, for the weeks before the exam.
     It is the most expensive tier to serve and therefore the one with the
     thinnest margin, which is why its caps are the ones to check first when
     anything about the cost model changes.
+
+    `examiner: 0` here too, for the same reason as Plus's — not a cost
+    decision, an unconfirmed-feature one. Turning it on is one number in each
+    of these two tiers, not a redeploy: the route, the client-side trigger and
+    the fallback to the scripted line are already shipped and already tested,
+    and tests/ai-economics.test.mjs already proves a nonzero figure here is
+    affordable (checked at generate:2/1, the figures that paid for it while it
+    was briefly live) — turning it back on needs only somebody to have
+    actually heard it work.
   */
-  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 5 },
+  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 5, examiner: 0 },
   /*
     The owner's account. An admin flag that still enforced a limit would be a
     flag that did nothing.
   */
-  admin: { define: null, chat: null, "grade/writing": null, "grade/speaking": null, generate: null },
+  admin: {
+    define: null,
+    chat: null,
+    "grade/writing": null,
+    "grade/speaking": null,
+    generate: null,
+    examiner: null,
+  },
 };
 
 /**
@@ -229,11 +265,25 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
  * allowance.
  */
 export const WEEKLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> = {
-  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
-  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
-  plus: { define: 24, chat: 12, "grade/writing": 3, "grade/speaking": 2, generate: 1 },
-  pro: { define: 41, chat: 24, "grade/writing": 7, "grade/speaking": 5, generate: 2 },
-  admin: { define: null, chat: null, "grade/writing": null, "grade/speaking": null, generate: null },
+  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
+  standard: {
+    define: 0,
+    chat: 0,
+    "grade/writing": 0,
+    "grade/speaking": 0,
+    generate: 0,
+    examiner: 0,
+  },
+  plus: { define: 24, chat: 12, "grade/writing": 3, "grade/speaking": 2, generate: 1, examiner: 0 },
+  pro: { define: 41, chat: 24, "grade/writing": 7, "grade/speaking": 5, generate: 2, examiner: 0 },
+  admin: {
+    define: null,
+    chat: null,
+    "grade/writing": null,
+    "grade/speaking": null,
+    generate: null,
+    examiner: null,
+  },
 };
 
 export interface TierDefinition {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import PlanDrawing from "@/components/PlanFigure";
+import ProcessDrawing from "@/components/ProcessFigure";
 import Chart from "@/components/Chart";
 import ExamShell from "@/components/exam/ExamShell";
 import { useIsWide } from "@/components/exam/SplitPanes";
@@ -59,6 +61,24 @@ export default function MockWriting({
 
   const figure = task.chart ? (
     <Chart spec={task.chart} />
+  ) : task.process ? (
+    <ProcessDrawing process={task.process} />
+  ) : task.plans ? (
+    /*
+      Two plans of the same site, drawn side by side on a wide screen and
+      stacked on a narrow one. Side by side is how the paper prints them and
+      how the comparison is actually made — a candidate describing what changed
+      is looking from one to the other — but on a phone two plans in a row are
+      two illegible plans, so below the breakpoint they stack.
+    */
+    <div className="grid gap-4 sm:grid-cols-2">
+      {task.plans.map((plan) => (
+        <div key={plan.caption} className="min-w-0">
+          <p className="mb-1 text-center text-sm font-semibold text-slate-700">{plan.caption}</p>
+          <PlanDrawing figure={plan.figure} />
+        </div>
+      ))}
+    </div>
   ) : task.dataTable ? (
     /*
       `overscroll-x-contain` because this sideways scroller now lives inside
@@ -131,11 +151,12 @@ export default function MockWriting({
         <label htmlFor="mock-essay" className="font-medium">
           Your response
         </label>
-        <span
-          className={count >= task.minWords ? "text-emerald-600" : "text-[color:var(--exam-muted)]"}
-        >
-          {count} / {task.minWords} words
-        </span>
+        {/*
+          A count, not a ration — the same reason as the practice page. "0 / 250"
+          is how a limit is written, and IELTS has no upper limit: the number is
+          a floor, and the prompt beside this already says so in words.
+        */}
+        <span className="text-[color:var(--exam-muted)]">Word count: {count}</span>
       </div>
       <textarea
         id="mock-essay"

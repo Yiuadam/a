@@ -112,6 +112,21 @@ async function handlePOST(req: Request) {
     .join("\n")
     .slice(-MAX_TRANSCRIPT_CHARS);
 
+  /*
+    Practice can now be one part on its own — see SpeakingSession.tsx's
+    focused sessions. The four criteria are all assessable from a single
+    part's speech, so this needs no schema change, only an honest label: a
+    prompt that still said "full mock speaking test" over a transcript with
+    only Part 3 in it would be describing something that did not happen,
+    to a model already told to grade "strictly and realistically" against
+    what it is given.
+  */
+  const partsPresent = [...new Set(transcript.map((t) => t.part))].sort();
+  const transcriptLabel =
+    partsPresent.length === 3
+      ? "Full mock speaking test transcript (Part 1 = interview, Part 2 = long turn from a cue card, Part 3 = discussion)"
+      : `Speaking practice transcript, Part ${partsPresent.join(" and ")} only (not a full three-part test — grade the four criteria from this sample alone)`;
+
   const unentitled = await requireFeature(req, "grade-speaking");
   if (unentitled) return unentitled;
   const denied = await checkAiUsage(req, "grade/speaking");
@@ -122,7 +137,7 @@ async function handlePOST(req: Request) {
       system: `You grade mock IELTS Speaking tests against the publicly published band descriptors. You are not an official IELTS examiner and must never describe yourself as one, as certified, or as accredited — say "this practice estimate", never "your IELTS score". You are grading a mock speaking test from a transcript. The candidate's answers were transcribed by speech recognition, so ignore transcription artifacts (missing punctuation, occasional misheard words) unless a pattern clearly reflects the candidate's own language. Grade strictly and realistically — most learners score between band 4 and band 7. Bands are whole or half numbers. The overall band is the average of the four criterion bands rounded to the nearest half band.
 
 ${SPEAKING_CRITERIA}`,
-      user: `Full mock speaking test transcript (Part 1 = interview, Part 2 = long turn from a cue card, Part 3 = discussion):
+      user: `${transcriptLabel}:
 
 """
 ${rendered}

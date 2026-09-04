@@ -1,0 +1,359 @@
+{
+  "id": "listening-32",
+  "title": "Hollowbrook Country Park",
+  "context": "A ranger welcomes a group of visitors to a country park and shows them where everything is on the site plan.",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 12,
+  "speakers": [
+    "Ranger"
+  ],
+  "script": [
+    {
+      "speaker": "Ranger",
+      "text": "Good morning everyone, and welcome to Hollowbrook Country Park. My name is Ruth and I look after the site, so before you set off I'll tell you a little about the park and then show you where everything is on the plan."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "It's a beautiful spot whatever the weather, though I'll admit today's forecast is a little kinder than most of what we've had this month."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "The park covers a hundred and twenty hectares altogether, which sounds enormous, though a good third of that is the woodland at the top of the site and there are no paths through most of it. The part you'll actually walk is a good deal smaller than the figure suggests."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "Even so, there's more than enough for a good morning or afternoon out, and most people are pleasantly surprised by how much they get through."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "The visitor centre is open every day except Tuesdays. People often assume we close on a Monday, because most places round here do, but Tuesday is our quiet day and that's when the building is shut for cleaning. The grounds themselves are open every day of the year."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "The centre itself has toilets, a small exhibition about the park's history, and information boards if you'd rather explore at your own pace instead of joining the walk."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "We run a guided walk twice a day, and that costs four pounds. Children go free. You can pay at the desk in the visitor centre, or on the walk itself if you'd rather, though we do ask for the exact amount because we don't keep change out on the path."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "The guide today is one of our longest-serving volunteers, and he knows more about the wildlife here than anyone else on the team."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "Two small requests. Please don't feed the ducks — I know it's a hard habit to break, but bread does them real harm and we've had a lot of trouble with it this spring. And dogs are very welcome, but they must be on a lead anywhere near the meadow, because it's full of ground-nesting birds from April onwards."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "Right, that's the practical bits out of the way. Let's have a proper look at the plan now, so you all know where you're headed."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "Right, the plan. You've all come in through the main entrance at the bottom, and the path from there runs straight up towards the visitor centre in the middle of the site."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "About halfway along that path, right beside it, you'll find the café. People sometimes walk past it looking for a separate building, but it's a little wooden hut on the edge of the path itself, so keep your eyes open as you come up from the entrance."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "They do a lovely flapjack there, if you're tempted, and the coffee's better than you'd expect from somewhere so small."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "The bird hide is the one thing that takes a bit of finding. It's tucked into the corner where the lake and the meadow meet, so you want to head north-west from the visitor centre, and then look for the boardwalk on the corner between the two."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "If you've brought children with you, the play area is directly to the east of the visitor centre, no more than a minute's walk. It's not signposted from the entrance, which we're aware of, so it's worth knowing before you set off."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "It's got swings, a climbing frame and a sandpit, and there are benches all round for anyone who'd rather sit and watch."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "For anyone who's cycled here, the bike racks are right down in the south-west corner of the site, as far from the woodland as it's possible to get. There's a second set beside the meadow that you may see first, but those belong to the farm next door, so please don't use them."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "And finally, our wildflower nursery, which you're all very welcome to walk round. It sits just south of the woodland, on the open ground below the trees. Do make sure you're below the tree line rather than inside the woodland itself, because the fenced enclosure in among the trees is a deer pen and it's kept locked."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "That's everything from me. The walk leaves from the visitor centre steps in ten minutes, and I'll see some of you there."
+    },
+    {
+      "speaker": "Ranger",
+      "text": "Thank you all for your patience this morning, and do come and find me afterwards if anything wasn't clear."
+    }
+  ],
+  "questions": [
+    {
+      "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+      "layout": {
+        "kind": "notes",
+        "title": "Hollowbrook Country Park",
+        "sections": [
+          {
+            "heading": "The site",
+            "bullets": [
+              "Area of the park: {{q1}} hectares",
+              "The visitor centre is closed on {{q2}}."
+            ]
+          },
+          {
+            "heading": "Visiting",
+            "bullets": [
+              "Cost of the guided walk: £{{q3}}",
+              "Visitors are asked not to feed the {{q4}}.",
+              "Dogs must be kept on a lead near the {{q5}}."
+            ]
+          }
+        ]
+      },
+      "questions": [
+        {
+          "id": "q1",
+          "type": "completion",
+          "sentence": "Area of the park: ___ hectares",
+          "answer": "120",
+          "maxWords": 1,
+          "explanation": "“The park covers a hundred and twenty hectares altogether.” The sentence goes on to say a third of it is inaccessible woodland, which is a reason the figure feels large — not a different figure."
+        },
+        {
+          "id": "q2",
+          "type": "completion",
+          "sentence": "The visitor centre is closed on ___.",
+          "answer": "Tuesdays",
+          "accept": [
+            "Tuesday"
+          ],
+          "maxWords": 1,
+          "explanation": "Monday is named first and then ruled out: “people often assume we close on a Monday … but Tuesday is our quiet day”. The word before the contrast is the distractor."
+        },
+        {
+          "id": "q3",
+          "type": "completion",
+          "sentence": "Cost of the guided walk: £___",
+          "answer": "4",
+          "accept": [
+            "four"
+          ],
+          "maxWords": 1,
+          "explanation": "“We run a guided walk twice a day, and that costs four pounds.” Twice a day is how often, not how much — two numbers in one sentence, and only one answers the question."
+        },
+        {
+          "id": "q4",
+          "type": "completion",
+          "sentence": "Visitors are asked not to feed the ___.",
+          "answer": "ducks",
+          "maxWords": 1,
+          "explanation": "“Please don’t feed the ducks.” The reason given afterwards — that bread harms them — confirms it rather than replacing it."
+        },
+        {
+          "id": "q5",
+          "type": "completion",
+          "sentence": "Dogs must be kept on a lead near the ___.",
+          "answer": "meadow",
+          "maxWords": 1,
+          "explanation": "“They must be on a lead anywhere near the meadow, because it’s full of ground-nesting birds.” Dogs are welcome everywhere; the lead applies to one place."
+        }
+      ]
+    },
+    {
+      "instruction": "Label the plan below. Choose the correct letter, A–H, for each place.",
+      "sharedOptions": [
+        {
+          "key": "A",
+          "text": "beside the path from the main entrance"
+        },
+        {
+          "key": "B",
+          "text": "on the corner where the lake meets the meadow"
+        },
+        {
+          "key": "C",
+          "text": "east of the visitor centre"
+        },
+        {
+          "key": "D",
+          "text": "beside the meadow"
+        },
+        {
+          "key": "E",
+          "text": "on the open ground south of the woodland"
+        },
+        {
+          "key": "F",
+          "text": "between the lake and the woodland"
+        },
+        {
+          "key": "G",
+          "text": "in the south-west corner of the site"
+        },
+        {
+          "key": "H",
+          "text": "inside the woodland"
+        }
+      ],
+      "figure": {
+        "kind": "plan",
+        "title": "Hollowbrook Country Park",
+        "areas": [
+          {
+            "x": 10,
+            "y": 10,
+            "w": 34,
+            "h": 26,
+            "label": "Lake"
+          },
+          {
+            "x": 62,
+            "y": 8,
+            "w": 32,
+            "h": 28,
+            "label": "Woodland"
+          },
+          {
+            "x": 38,
+            "y": 44,
+            "w": 24,
+            "h": 12,
+            "label": "Visitor Centre"
+          },
+          {
+            "x": 8,
+            "y": 46,
+            "w": 22,
+            "h": 22,
+            "label": "Meadow"
+          },
+          {
+            "x": 66,
+            "y": 72,
+            "w": 26,
+            "h": 18,
+            "label": "Car park"
+          }
+        ],
+        "routes": [
+          {
+            "points": [
+              {
+                "x": 50,
+                "y": 92
+              },
+              {
+                "x": 50,
+                "y": 56
+              }
+            ]
+          },
+          {
+            "points": [
+              {
+                "x": 50,
+                "y": 44
+              },
+              {
+                "x": 50,
+                "y": 20
+              },
+              {
+                "x": 62,
+                "y": 20
+              }
+            ]
+          }
+        ],
+        "markers": [
+          {
+            "key": "A",
+            "x": 50,
+            "y": 82
+          },
+          {
+            "key": "B",
+            "x": 22,
+            "y": 41
+          },
+          {
+            "key": "C",
+            "x": 70,
+            "y": 56
+          },
+          {
+            "key": "D",
+            "x": 30,
+            "y": 64
+          },
+          {
+            "key": "E",
+            "x": 78,
+            "y": 44
+          },
+          {
+            "key": "F",
+            "x": 50,
+            "y": 30
+          },
+          {
+            "key": "G",
+            "x": 14,
+            "y": 78
+          },
+          {
+            "key": "H",
+            "x": 89,
+            "y": 14
+          }
+        ],
+        "entrance": {
+          "x": 50,
+          "y": 96,
+          "label": "Main entrance"
+        }
+      },
+      "questions": [
+        {
+          "id": "q6",
+          "type": "matching",
+          "prompt": "Café",
+          "answer": "A",
+          "explanation": "“About halfway along that path, right beside it, you’ll find the café … a little wooden hut on the edge of the path itself.” A is the only letter on the path between the entrance and the visitor centre."
+        },
+        {
+          "id": "q7",
+          "type": "matching",
+          "prompt": "Bird hide",
+          "answer": "B",
+          "explanation": "“Tucked into the corner where the lake and the meadow meet … look for the boardwalk on the corner between the two.” F is also north of the centre, but it lies between the lake and the woodland, not the lake and the meadow."
+        },
+        {
+          "id": "q8",
+          "type": "matching",
+          "prompt": "Play area",
+          "answer": "C",
+          "explanation": "“Directly to the east of the visitor centre, no more than a minute’s walk.” East is to the right of the centre on the plan, which is C; E is further out and south of the woodland."
+        },
+        {
+          "id": "q9",
+          "type": "matching",
+          "prompt": "Bike racks",
+          "answer": "G",
+          "explanation": "“Right down in the south-west corner of the site.” The second set beside the meadow — D — is named and then ruled out: they belong to the farm next door."
+        },
+        {
+          "id": "q10",
+          "type": "matching",
+          "prompt": "Wildflower nursery",
+          "answer": "E",
+          "explanation": "“It sits just south of the woodland, on the open ground below the trees.” The speaker then rules out H directly: the fenced enclosure inside the woodland is a locked deer pen."
+        }
+      ]
+    }
+  ]
+}

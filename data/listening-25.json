@@ -10,9 +10,12 @@
   ],
   "script": [
     { "speaker": "Coordinator", "text": "Hello everyone, and welcome. My name's Hannah and I'm the coordinator here, which means I don't repair anything at all — I just point people in the right direction. Give me two minutes and then we'll get started." },
+    { "speaker": "Coordinator", "text": "Quite a few of you are new faces today, so welcome especially to you, and don't be shy about asking anyone in an apron if you're not sure where to go." },
     { "speaker": "Coordinator", "text": "The Repair Café runs on the second Saturday of every month, here in the church hall, from ten in the morning until one. We used to carry on until four, but we found that almost nobody arrived after lunch, so we shortened it." },
     { "speaker": "Coordinator", "text": "The first thing to say is that it's free. There's no charge for the repair and no charge for the volunteers' time. What we do ask is that if we have to use a part — a fuse, a zip, a length of cable — you pay for the parts themselves, at exactly what they cost us. Most of the time that's under two pounds." },
+    { "speaker": "Coordinator", "text": "We keep a small box of common parts here on the table, so more often than not we won't even need to send you out to a shop." },
     { "speaker": "Coordinator", "text": "The other thing to say is that we don't take your item away and hand it back mended. You stay with it, and you help. That's really the whole point — you'll be shown what went wrong and how it was put right, so that next time you might manage it on your own. If you'd rather drop something off and collect it later, I'm afraid this isn't the right place." },
+    { "speaker": "Coordinator", "text": "I know that's not what everybody wants to hear, especially if you're in a hurry, but it really is the heart of what we're trying to do here." },
     { "speaker": "Coordinator", "text": "Now, who does what, because this is where people go wrong every single month." },
     { "speaker": "Coordinator", "text": "Gemma is on the electrical bench, by the window. Anything with a plug on the end of it — a lamp, a radio, a kettle, a phone charger — goes to Gemma." },
     { "speaker": "Coordinator", "text": "Ravi has the sewing machines at the back of the hall. Clothes, curtains, cushion covers, zips, hems. Ravi will also teach you to use the machine if you've never touched one before." },
@@ -21,10 +24,12 @@
     { "speaker": "Coordinator", "text": "Bea is in the corner with the woodwork. Chairs that wobble, drawers that stick, table legs, picture frames." },
     { "speaker": "Coordinator", "text": "And Callum — this is the one everybody gets wrong — Callum takes anything with a motor in it. A vacuum cleaner, a food mixer, a drill, an electric fan. Yes, they plug in, and yes, that makes you think of Gemma, but a motor is a completely different animal and Callum is the one who understands them. So: a plug but no motor, Gemma. A motor, Callum. Every time." },
     { "speaker": "Coordinator", "text": "A few rules. We can't work on anything that runs on gas, and we can't work on microwaves either. The safety side of both is beyond what volunteers should be doing, and I won't be talked round on it, so if you've brought a microwave in this morning, I'm sorry." },
+    { "speaker": "Coordinator", "text": "It's not that our volunteers couldn't work them out, it's purely an insurance matter, and the same rule applies at every repair café in the country." },
     { "speaker": "Coordinator", "text": "Please don't bring more than two items each. We had somebody last spring arrive with a car boot full, and nine other people ended up waiting two hours." },
     { "speaker": "Coordinator", "text": "If we can't finish your repair in the time we've got, we'll write down what's wrong and which part is needed, and you take that note away with you. That's often worth more than the repair itself, because you can then order the part yourself, or hand the note over the counter in a shop." },
     { "speaker": "Coordinator", "text": "Finally, the tea urn is on, the biscuits are on the table by the door, and the donations tin next to them pays for the hall. Nobody is counting what you put in it, and plenty of people put in nothing at all." },
-    { "speaker": "Coordinator", "text": "Right. Let's find out who's brought what." }
+    { "speaker": "Coordinator", "text": "Right. Let's find out who's brought what." },
+    { "speaker": "Coordinator", "text": "Thank you all again for coming, and let's see what we can fix together this morning." }
   ],
   "questions": [
     {

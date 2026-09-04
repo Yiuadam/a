@@ -1,9 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { accountIdentityComplete } from "@/lib/auth/account-identity";
+import {
+  getFreeProOffer,
+  getFreeProOfferServerSnapshot,
+  subscribeFreeProOffer,
+} from "@/lib/billing/free-pro-offer";
 import { fetchNotifications, previewNotificationReadStorageKey } from "@/lib/notifications/client";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/notifications/types";
 import type { OrganizationLivePreviewRole } from "@/lib/organizations/preview-client";
@@ -36,9 +41,22 @@ export default function NotificationBell({
     !signedOut &&
     (previewRole !== null || phase === "loading" || phase === "ready" || phase === "unavailable");
   const needsSetup = phase === "ready" && !accountIdentityComplete(profile);
+  /*
+    The free Pro offer, counted here as one more local unread — the same way
+    `needsSetup` is. A guest sees it too: the panel below used to be a dead end
+    for them, and the offer is aimed at exactly the person who has not signed up
+    yet. See lib/billing/free-pro-offer.ts for why the answer lives outside
+    whatever draws it.
+  */
+  const freeProOffer = useSyncExternalStore(
+    subscribeFreeProOffer,
+    getFreeProOffer,
+    getFreeProOfferServerSnapshot,
+  );
+  const freePro = freeProOffer.state === "offered";
   const accountKey = previewRole ?? profile?.email ?? phase;
   const displayedNotificationUnread = phase === "loading" && previewRole === null ? 0 : notificationUnread;
-  const unread = displayedNotificationUnread + (needsSetup ? 1 : 0);
+  const unread = displayedNotificationUnread + (needsSetup ? 1 : 0) + (freePro ? 1 : 0);
 
   useEffect(() => {
     if (!signedIn) return;
@@ -261,17 +279,49 @@ export default function NotificationBell({
         */
         signedOut ? (
           <div className="notification-popover liquid-glass fixed z-[130] w-72 rounded-2xl border p-4" role="dialog" aria-label="Notifications">
-            <p className="text-[0.875rem] font-semibold text-slate-900">No notifications</p>
-            <p className="mt-1 text-[0.8125rem] leading-5 text-slate-600">
-              Marked work, plan reminders and anything from your teacher arrive here once you have
-              an account.
-            </p>
-            <a href="/account" className="btn-secondary mt-3 w-full !min-h-9 text-[0.875rem]">
-              Sign in
-            </a>
+            {/*
+              The one thing a visitor without an account has waiting for them.
+
+              This panel used to say "No notifications" and offer a sign-in
+              link, which was true of the feed and false of the screen: the free
+              Pro trial is offered to exactly this reader, and it moved off the
+              dashboard into the bell. Saying "nothing here" to the person the
+              offer is for would have been the move quietly cancelling the offer
+              for everybody who has not signed up yet.
+
+              It says what is on offer and sends them to the page that puts it
+              in full. It does not carry the terms itself — those are four
+              sentences about money that the offer insists are not a footnote,
+              and this panel is 288px wide.
+            */}
+            {freePro ? (
+              <>
+                <p className="text-[0.875rem] font-semibold text-slate-900">
+                  Pro, free, if you want it
+                </p>
+                <p className="mt-1 text-[0.8125rem] leading-5 text-slate-600">
+                  Pro is free on every new account, with no card. Read the offer and start it when
+                  you sign up.
+                </p>
+                <a href="/account" className="btn-primary mt-3 w-full !min-h-9 text-[0.875rem]">
+                  Read the offer
+                </a>
+              </>
+            ) : (
+              <>
+                <p className="text-[0.875rem] font-semibold text-slate-900">No notifications</p>
+                <p className="mt-1 text-[0.8125rem] leading-5 text-slate-600">
+                  Marked work, plan reminders and anything from your teacher arrive here once you
+                  have an account.
+                </p>
+                <a href="/account" className="btn-secondary mt-3 w-full !min-h-9 text-[0.875rem]">
+                  Sign in
+                </a>
+              </>
+            )}
           </div>
         ) : (
-          <NotificationPopover previewRole={previewRole} needsSetup={needsSetup} onClose={() => setOpen(false)} onUnreadCount={setNotificationUnread} />
+          <NotificationPopover previewRole={previewRole} needsSetup={needsSetup} freePro={freePro} onClose={() => setOpen(false)} onUnreadCount={setNotificationUnread} />
         ),
         document.body,
       )}

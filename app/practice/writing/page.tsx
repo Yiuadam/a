@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import PlanDrawing from "@/components/PlanFigure";
+import ProcessDrawing from "@/components/ProcessFigure";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
@@ -212,6 +214,24 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
 
   const visual = task.chart ? (
     <Chart spec={task.chart} />
+  ) : task.process ? (
+    <ProcessDrawing process={task.process} />
+  ) : task.plans ? (
+    /*
+      Two plans of the same site, drawn side by side on a wide screen and
+      stacked on a narrow one. Side by side is how the paper prints them and
+      how the comparison is actually made — a candidate describing what changed
+      is looking from one to the other — but on a phone two plans in a row are
+      two illegible plans, so below the breakpoint they stack.
+    */
+    <div className="grid gap-4 sm:grid-cols-2">
+      {task.plans.map((plan) => (
+        <div key={plan.caption} className="min-w-0">
+          <p className="mb-1 text-center text-sm font-semibold text-slate-700">{plan.caption}</p>
+          <PlanDrawing figure={plan.figure} />
+        </div>
+      ))}
+    </div>
   ) : task.dataTable ? (
     <div className="min-w-0 max-w-full sm:overflow-x-auto">
       <p className="mb-2 text-sm font-semibold text-slate-700">{task.dataTable.title}</p>
@@ -256,9 +276,21 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
         <label htmlFor="writing-response" className="text-sm font-semibold text-slate-900">
           Your response
         </label>
-        <span className={wordCount >= task.minWords ? "text-xs text-emerald-600" : "text-xs text-slate-500"}>
-          {wordCount} / {task.minWords}
-        </span>
+        {/*
+          A count, not a ration.
+
+          It read "0 / 150", which is how a character limit is written, and it
+          was next to a box somebody was about to write an essay in — so it said
+          the essay had to fit in 150 words. IELTS has no upper limit at all:
+          150 is a floor, going under it costs marks, and going over it costs
+          nothing. The exam itself prints a plain "Word count", and the task
+          above already says "Write at least 150 words" twice.
+
+          The colour went with the ratio. Turning green at 150 makes it a line
+          to cross rather than a minimum to clear, and 149 against 151 is not
+          the difference that colour implies.
+        */}
+        <span className="text-xs text-slate-500">Word count: {wordCount}</span>
       </div>
       {/*
         The swipe track reaches into the editor, which it did not used to.
@@ -382,7 +414,7 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
       running={started && !grade}
       comfortableGutter
       edgeToEdgeOnPhone
-      bottomLeft={grade ? `Band ${grade.overallBand}` : `${wordCount} / ${task.minWords} words`}
+      bottomLeft={grade ? `Band ${grade.overallBand}` : `Word count: ${wordCount}`}
       bottomRight={
         grade ? (
           <div className="flex gap-2">

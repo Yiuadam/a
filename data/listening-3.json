@@ -28,6 +28,14 @@
     },
     {
       "speaker": "Officer",
+      "text": "Before we get into the details, can I ask what's drawn you to it? A lot of people seem to be growing their own these days."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Partly that, if I'm honest, but mostly I just fancy being outdoors more. I spend all week sitting at a desk."
+    },
+    {
+      "speaker": "Officer",
       "text": "Your full name?"
     },
     {
@@ -60,6 +68,14 @@
     },
     {
       "speaker": "Officer",
+      "text": "Before I tell you about the plots themselves, have you done any gardening before?"
+    },
+    {
+      "speaker": "Caller",
+      "text": "Only a little, in pots on my balcony. Nothing on this scale, so I'm a bit nervous about it, to be honest."
+    },
+    {
+      "speaker": "Officer",
       "text": "Now, the plots at Millgate come in two sizes. There's a full plot, which is about two hundred and fifty square metres, and a half plot at a hundred and twenty-five."
     },
     {
@@ -80,6 +96,14 @@
     },
     {
       "speaker": "Caller",
+      "text": "That sounds reasonable, actually."
+    },
+    {
+      "speaker": "Officer",
+      "text": "It is — some of the private sites nearby charge a good deal more for a plot half the size."
+    },
+    {
+      "speaker": "Caller",
       "text": "Is that payable monthly?"
     },
     {
@@ -96,11 +120,27 @@
     },
     {
       "speaker": "Caller",
+      "text": "Is the site locked at night, or can you get in whenever you like?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "The main gate's locked after dark, yes, but plot holders can still get in if they need to check on things."
+    },
+    {
+      "speaker": "Caller",
       "text": "Do I need to bring my own lock?"
     },
     {
       "speaker": "Officer",
       "text": "Yes, for the gate. Everyone uses the same type — it's a combination lock, and we'll give you the code when you sign."
+    },
+    {
+      "speaker": "Caller",
+      "text": "That sounds straightforward. If I ever wanted to move up to a full plot later on, is there a long wait?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "There can be a bit of a wait, but honestly most people find a half plot suits them fine and never bother moving up."
     },
     {
       "speaker": "Caller",
@@ -117,6 +157,14 @@
     {
       "speaker": "Officer",
       "text": "Sheds, greenhouses, anything permanent. A bean frame is fine."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Can I grow flowers as well, or is it meant to be vegetables only?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "Whatever you like, really. Quite a few people mix in a row of flowers to attract bees, which helps everything else along."
     },
     {
       "speaker": "Caller",
@@ -141,6 +189,14 @@
     {
       "speaker": "Officer",
       "text": "That's fine, as long as it's from the last three months."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Is there somewhere to park on the day of the induction?"
+    },
+    {
+      "speaker": "Officer",
+      "text": "Yes, there's a small car park right by the entrance, though it can get busy, so it's worth setting off in good time."
     },
     {
       "speaker": "Caller",

@@ -20,6 +20,14 @@
     },
     {
       "speaker": "Secretary",
+      "text": "Lovely to hear from you — we're always keen to welcome new voices. What sort of questions did you have in mind?"
+    },
+    {
+      "speaker": "Caller",
+      "text": "Just the practical things, really, and whether I'd fit in."
+    },
+    {
+      "speaker": "Secretary",
       "text": "Of course. Have you sung in a choir before?"
     },
     {
@@ -32,11 +40,27 @@
     },
     {
       "speaker": "Caller",
+      "text": "That's a relief. I always assumed you'd need to be quite good already."
+    },
+    {
+      "speaker": "Secretary",
+      "text": "Not at all. We've got a very patient musical director, and each part is taught slowly, line by line, over several weeks."
+    },
+    {
+      "speaker": "Caller",
       "text": "That's reassuring. Do I need to read music?"
     },
     {
       "speaker": "Secretary",
       "text": "It helps, but it isn't required. We record each voice part separately and put the files online, so people can learn at home by listening. Quite a lot of our members work that way entirely."
+    },
+    {
+      "speaker": "Caller",
+      "text": "That's really helpful, actually. I do most of my listening on the train to work anyway."
+    },
+    {
+      "speaker": "Secretary",
+      "text": "Exactly the sort of thing people use them for. A lot of our members say they've learnt more that way than they ever did reading music at school."
     },
     {
       "speaker": "Caller",
@@ -56,11 +80,27 @@
     },
     {
       "speaker": "Caller",
+      "text": "That's good to know. Is the hall easy to find, or is it a bit tucked away?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "It's got its own sign on the gate now, actually, since so many newcomers used to walk straight past and end up at the church instead."
+    },
+    {
+      "speaker": "Caller",
       "text": "Fine. What about the cost?"
     },
     {
       "speaker": "Secretary",
       "text": "The term fee is forty-eight pounds, and that covers ten rehearsals and the sheet music. If you're a student or over sixty-five it's thirty-two. And your first rehearsal is free, so you can come along and see whether you like us before paying anything."
+    },
+    {
+      "speaker": "Caller",
+      "text": "And is there anything else to pay on top of that?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "No, that's everything. The room hire and the musical director's time all come out of the same fee, so there are no surprises later."
     },
     {
       "speaker": "Caller",
@@ -80,6 +120,14 @@
     },
     {
       "speaker": "Caller",
+      "text": "And is that just for concerts, or every week?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "Just concerts. For ordinary rehearsals, come as you are — plenty of people arrive straight from work or the school run."
+    },
+    {
+      "speaker": "Caller",
       "text": "Understood. One last thing — my daughter is twelve and she sings all the time. Could she come?"
     },
     {
@@ -96,11 +144,27 @@
     },
     {
       "speaker": "Caller",
+      "text": "Is he easy to get hold of? I'm often busy during the day."
+    },
+    {
+      "speaker": "Secretary",
+      "text": "He usually replies to emails in the evening, so that shouldn't be a problem at all."
+    },
+    {
+      "speaker": "Caller",
       "text": "Got it. And should I bring anything on Thursday?"
     },
     {
       "speaker": "Secretary",
       "text": "A bottle of water and a pencil. Everyone forgets the pencil, and you'll want to mark your part."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Should I bring my own music stand, or anything like that?"
+    },
+    {
+      "speaker": "Secretary",
+      "text": "No, we provide folders and stands for everyone. Just bring yourself, really, and maybe a jumper — the hall can be a bit chilly before the heating warms up."
     },
     {
       "speaker": "Caller",

@@ -199,16 +199,33 @@ test("the webhook's idempotency holds in the database that enforces it", async (
 
     /* ------------------------------------------------------------------ */
 
+    /*
+      Day offsets rather than calendar dates. This narrative used to run on
+      fixed 2026 timestamps, and the one assertion below that checks the
+      subscription is still current — not merely that it was recorded —
+      compares against Postgres's real `now()`. A calendar date is only ever
+      in the right place relative to "now" on the days its author was
+      thinking of; every day after that the whole premise (the period has
+      not ended yet) quietly becomes false, and the assertion fails with no
+      code change at all. Anchoring day 0 five days before the moment the
+      test actually runs keeps that premise true no matter when it runs,
+      the same reason the admin-tier-counts test below already writes
+      `now() + interval` instead of a date.
+    */
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const day0 = Date.now() - 5 * DAY_MS;
+    const day = (n, extraMs = 0) => new Date(day0 + n * DAY_MS + extraMs).toISOString();
+
     await t.test("the first delivery applies, and a redelivery does not", () => {
       assert.equal(
-        call({ id: "evt_1", at: "2026-08-01T10:00:00Z", userId: user, status: "active", end: "2026-09-01T10:00:00Z" }),
+        call({ id: "evt_1", at: day(0), userId: user, status: "active", end: day(31) }),
         "applied",
       );
       // The redelivery Stripe makes when it did not see a 200 quickly enough,
       // here carrying a payload that would revoke the subscription if it were
       // processed a second time.
       assert.equal(
-        call({ id: "evt_1", at: "2026-08-01T10:00:00Z", userId: user, status: "canceled", end: null }),
+        call({ id: "evt_1", at: day(0), userId: user, status: "canceled", end: null }),
         "duplicate",
       );
       assert.equal(pg.psql("select count(*) from public.subscriptions"), "1");
@@ -218,7 +235,7 @@ test("the webhook's idempotency holds in the database that enforces it", async (
 
     await t.test("a renewal with no metadata still finds the account", () => {
       assert.equal(
-        call({ id: "evt_2", at: "2026-09-01T10:00:01Z", status: "active", end: "2026-10-01T10:00:00Z" }),
+        call({ id: "evt_2", at: day(31, 1000), status: "active", end: day(61) }),
         "applied",
       );
       assert.equal(pg.psql("select count(*) from public.subscriptions"), "1");
@@ -226,7 +243,7 @@ test("the webhook's idempotency holds in the database that enforces it", async (
 
     await t.test("a cancellation drops the entitlement", () => {
       assert.equal(
-        call({ id: "evt_3", at: "2026-09-10T10:00:00Z", userId: user, status: "canceled", end: "2026-10-01T10:00:00Z", cancel: true }),
+        call({ id: "evt_3", at: day(40), userId: user, status: "canceled", end: day(61), cancel: true }),
         "applied",
       );
       assert.equal(pg.psql(`select tier from public.resolve_entitlement('${user}')`), "free");
@@ -236,7 +253,7 @@ test("the webhook's idempotency holds in the database that enforces it", async (
       // The bug idempotency alone does not prevent: every event is distinct, so
       // every event is applied, and the last one to *arrive* wins.
       assert.equal(
-        call({ id: "evt_4", at: "2026-08-15T10:00:00Z", userId: user, status: "active", end: "2026-10-01T10:00:00Z" }),
+        call({ id: "evt_4", at: day(14), userId: user, status: "active", end: day(61) }),
         "stale",
       );
       assert.equal(pg.psql(`select tier from public.resolve_entitlement('${user}')`), "free");
@@ -248,7 +265,7 @@ test("the webhook's idempotency holds in the database that enforces it", async (
       // No metadata and a subscription id this database has not seen, but a
       // customer it has: the second of the three ways an event is placed.
       assert.equal(
-        call({ id: "evt_5", at: "2026-09-21T10:00:00Z", status: "active", sub: "sub_2", end: "2026-11-01T10:00:00Z" }),
+        call({ id: "evt_5", at: day(51), status: "active", sub: "sub_2", end: day(92) }),
         "applied",
       );
       assert.equal(pg.psql("select count(*) from public.subscriptions"), "2");
@@ -258,7 +275,7 @@ test("the webhook's idempotency holds in the database that enforces it", async (
       assert.equal(
         call({
           id: "evt_6",
-          at: "2026-09-20T10:00:00Z",
+          at: day(50),
           status: "active",
           sub: "sub_unknown",
           cus: "cus_unknown",

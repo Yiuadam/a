@@ -39,6 +39,36 @@ export interface MCQQuestion {
   explanation?: string;
 }
 
+/**
+ * "Choose TWO letters, A-E" (sometimes THREE, from A-G) — real IELTS Listening
+ * and Reading, and asked from one list of options rather than the
+ * sentence-by-sentence prompts the other grouped types use.
+ *
+ * It looks like `MCQQuestion` with more than one answer and is not, in two
+ * ways that matter. First, one of these is worth `numAnswers` marks rather
+ * than one, and it claims that many consecutive numbers in the paper —
+ * "Questions 15 and 16" prints beside a single prompt — even though it is
+ * authored, asked and answered as one item; `numAnswers` carries both facts,
+ * and `questionWidth` in lib/questions.ts is the one other place that has to
+ * read it that way. Second, the real exam's rule for it cannot be reduced to
+ * a single right-or-wrong: each correct letter is a mark on its own, order is
+ * never significant (B,D and D,B are the same answer), and choosing more
+ * letters than asked for scores nothing at all for the group, not one mark
+ * short. See `isCorrect` and `marksEarned` in lib/band.ts, which is where
+ * that rule actually lives.
+ */
+export interface MultiSelectQuestion {
+  id: string;
+  type: "multi-select";
+  question: string;
+  options: string[];
+  /** How many letters are correct — 2 or 3 in the real exam — and how many question numbers the group claims. */
+  numAnswers: number;
+  /** Indices into `options`, exactly `numAnswers` of them. Order carries no meaning. */
+  answer: number[];
+  explanation?: string;
+}
+
 export interface CompletionQuestion {
   id: string;
   type: "completion";
@@ -120,6 +150,7 @@ export interface ShortAnswerQuestion {
 export type TestQuestion =
   | TFNGQuestion
   | MCQQuestion
+  | MultiSelectQuestion
   | CompletionQuestion
   | YNNGQuestion
   | MatchingQuestion
@@ -149,9 +180,147 @@ export interface SharedOption {
  * constraint they enforce ("each heading may be used only once") lives across
  * sibling questions rather than inside any one of them.
  */
+/**
+ * A table or a flow chart that a block's gaps are set into.
+ *
+ * Table completion and flow-chart completion are not new question types. The
+ * questions inside them are ordinary `completion` questions — one gap, one
+ * short answer, the same word limit and the same `accept` list — and they are
+ * marked by the same code as every other gap in the paper. What the real exam
+ * gives them, and what BandUp could not, is a *shape*: a timetable with a
+ * column of prices, a process with each stage in its own box. Rendered as a
+ * numbered list of sentence fragments, a table completion loses the very thing
+ * the candidate is being asked to read, because the answer to "£____ per week"
+ * is found by matching the row and the column, not by reading a sentence.
+ *
+ * So the shape belongs to the block and the marking stays where it was. A
+ * group carrying a layout renders as the figure; a group without one renders
+ * as the list it always did.
+ *
+ * Cells are plain strings with `{{id}}` where a gap belongs, naming the
+ * question that fills it. A string keeps the content readable as JSON and
+ * keeps a cell's text and its gap in the order they are read — "Cost:
+ * £{{q5}} per week" is one cell, not three fields. The validator checks that
+ * every placeholder names a question in the block and that every question in
+ * the block is placed exactly once, so a gap can neither go missing from the
+ * figure nor be drawn twice.
+ */
+export type QuestionLayout = TableLayout | FlowChartLayout | NotesLayout;
+
+export interface TableLayout {
+  kind: "table";
+  /** Printed once across the top. Omitted by a table whose rows label themselves. */
+  columns?: string[];
+  /** Row by row, each row left to right. Rows need not be the same length. */
+  rows: string[][];
+}
+
+export interface FlowChartLayout {
+  kind: "flow-chart";
+  /** One box per stage, drawn top to bottom and joined by arrows. */
+  steps: string[];
+}
+
+/**
+ * Note completion — the commonest task on the paper, and the one BandUp was
+ * furthest from.
+ *
+ * The real thing is a page of somebody's notes: a title across the top, bold
+ * headings dividing it into sections, bullets under each, and the numbered
+ * boxes sitting inside the lines. Half the task is reading that structure —
+ * a heading tells the candidate which part of the recording they are in, and
+ * the indent of a sub-bullet says the line belongs to the one above it. Drawn
+ * as a numbered list of separate sentences, all of that is gone, and the
+ * candidate is left matching each fragment to the audio on its own.
+ */
+export interface NotesLayout {
+  kind: "notes";
+  /** Centred over the notes, as the paper prints it. */
+  title?: string;
+  sections: NotesSection[];
+}
+
+export interface NotesSection {
+  /** Bold, above its bullets. Omitted by notes that run straight on. */
+  heading?: string;
+  /** A plain line, or a line that has its own indented lines beneath it. */
+  bullets: Array<string | { text: string; sub: string[] }>;
+}
+
+/**
+ * A plan or map the block's questions are answered against.
+ *
+ * The exam's labelling tasks — a site plan, a floor plan, a map of a reserve —
+ * put lettered points on a drawing and ask which letter each place is at. The
+ * candidate chooses a letter; nothing is drawn or dragged. That means the
+ * marking needs nothing new at all: the questions are ordinary `matching`
+ * questions answered from the block's own bank of letters, and what was
+ * missing was only the picture.
+ *
+ * Drawn from data rather than shipped as an image, which is the same decision
+ * `lib/chart.ts` made for the Task 1 figures. A picture is a file to store, a
+ * request to fail, and something no theme, screen size or zoom setting can
+ * adapt; a drawing described as rectangles and points is text, renders at any
+ * size, takes the paper's own colours, and can say in words what it shows.
+ *
+ * A `figure` sits above the block's questions rather than replacing them,
+ * which is the difference between it and `layout`: a table completion *is* its
+ * questions, a plan is the thing they are about.
+ */
+export type QuestionFigure = PlanFigure;
+
+export interface PlanFigure {
+  kind: "plan";
+  /** Printed above the drawing, as the paper prints it. */
+  title?: string;
+  /**
+   * Everything is positioned in a 0–100 square and scaled to whatever room the
+   * drawing gets, so a plan never has to know how wide the screen is.
+   */
+  areas: PlanArea[];
+  /** A road, path or river: points joined in the order given. */
+  routes?: PlanRoute[];
+  /**
+   * The lettered points the candidate chooses between.
+   *
+   * Absent on a plan that is being *described* rather than labelled — a
+   * Writing Task 1 map has named blocks and no letters, because nothing is
+   * being chosen from it. A listening labelling block must have them, and the
+   * validator requires them there rather than here.
+   */
+  markers?: PlanMarker[];
+  /** Where a visitor comes in, which most plans print and some questions need. */
+  entrance?: { x: number; y: number; label: string };
+}
+
+export interface PlanArea {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Named on the drawing. An unnamed block is scenery — a lake, a field. */
+  label?: string;
+}
+
+export interface PlanRoute {
+  points: Array<{ x: number; y: number }>;
+  label?: string;
+}
+
+export interface PlanMarker {
+  /** "A", "B", … — and the same key the block's bank offers. */
+  key: string;
+  x: number;
+  y: number;
+}
+
 export interface QuestionGroup {
   instruction: string;
   sharedOptions?: SharedOption[];
+  /** Draw this block as a table or a flow chart rather than as a numbered list. */
+  layout?: QuestionLayout;
+  /** A plan or map printed above the block's questions. */
+  figure?: QuestionFigure;
   questions: TestQuestion[];
 }
 
@@ -177,6 +346,26 @@ export interface ReadingTest {
   id: string;
   title: string;
   topic: string;
+  /**
+   * Academic or General Training — the two IELTS Reading papers, sitting
+   * behind the same forty numbers and the same clock but not one thing else
+   * in common. Academic passages are the kind an undergraduate is set: dense,
+   * sourced from books and journals, arguing a position. General Training
+   * swaps that for the reading an adult migrant or trainee actually meets —
+   * a staff handbook, a tenancy leaflet, a shift rota — because the
+   * candidates sitting it are proving they can live and work somewhere, not
+   * study there. `WritingTask.variant` drew this same line for Writing
+   * first; this is that precedent applied to the module named in
+   * `composeMock` (lib/exam/mock.ts) as still owing it.
+   *
+   * Not optional. `composeMock` has to draw one variant's papers and none of
+   * the other's, and a paper with no variant would not fail that draw — it
+   * would silently join whichever branch happened to read it first, an
+   * Academic sitting handed a job advertisement or a General Training
+   * candidate handed a discourse on cognitive offloading, with nothing in
+   * the type system or the build to say so.
+   */
+  variant: "academic" | "general";
   /**
    * An estimate, authored alongside the paper rather than measured from a
    * candidate sitting it — which is exactly why no learner ever sees this
@@ -225,7 +414,7 @@ export interface ListeningTest {
   is a Task 2, a letter is a General Training Task 1, and a chart or a table
   is the one the task actually carries. It just no longer has a bar to feed.
 */
-export const WRITING_TASK_TYPES = ["chart", "table", "letter", "essay"] as const;
+export const WRITING_TASK_TYPES = ["chart", "table", "plan", "process", "letter", "essay"] as const;
 export type WritingTaskType = (typeof WRITING_TASK_TYPES)[number];
 
 export interface WritingTask {
@@ -264,6 +453,36 @@ export interface WritingTask {
     rows: string[][];
   };
   chart?: ChartSpec;
+  /*
+    The third thing Academic Task 1 asks for, after a chart and a table: a map
+    or a plan, almost always two of them — the same site before and after, with
+    the candidate describing what changed. It is a different piece of writing
+    from a chart description, because the language is position and change
+    rather than trend and comparison ("the orchard to the north was cleared
+    and replaced by"), and a candidate who has only ever practised on charts
+    meets it for the first time in the exam.
+
+    Two entries, not one, because a single plan gives nothing to compare and
+    the real task is nearly always a pair. Drawn by the same renderer as the
+    listening labelling plans; the difference is that these carry no letters.
+  */
+  plans?: Array<{ caption: string; figure: PlanFigure }>;
+  /*
+    The fourth Academic Task 1 figure: a process — how something is made, how
+    water moves through a system, how a material is recycled. It asks for
+    writing the other three do not, because a process has no numbers in it at
+    all: the whole answer is sequence and passive voice ("the pulp is then
+    pressed into sheets"), and a candidate who has only described charts has
+    never had to write a word of it.
+
+    Stages in order, each with an optional note for what happens at it. Drawn as
+    boxes joined by arrows rather than as a numbered list, because reading the
+    order off a diagram is part of the task.
+  */
+  process?: {
+    title?: string;
+    stages: Array<{ label: string; note?: string }>;
+  };
   minWords: number;
   timeMinutes: number;
 }
@@ -479,6 +698,22 @@ export interface Profile {
     one of the lengths this build offers.
   */
   planDays?: number;
+  /*
+    The dashboard board, in the order the learner arranged it.
+
+    On the profile rather than in localStorage alone, because it is a choice
+    about the app rather than about this browser: somebody who puts the tutor
+    beside their band on a laptop and then opens BandUp on a phone should find
+    the same board, and did not. Ids only, validated on the way out — see
+    lib/dashboard/layout.ts, which forgets an id this build does not recognise
+    and leaves a new module off until it is chosen.
+
+    Absent means "never arranged", which is different from "arranged to be
+    empty" and is why this is optional: absent falls back to the default board,
+    and the merge must not let a device that has never touched it overwrite one
+    that has.
+  */
+  dashboardModules?: string[];
   results: ModuleResult[];
   /** Full-mock score reports, newest first. */
   mockReports?: MockExamReport[];

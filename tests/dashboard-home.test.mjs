@@ -91,11 +91,17 @@ test("the homepage uses organisation, score-trend, then placement priority", () 
   */
   assert.match(source, /\) : isValidPlacement\(placement\) \? \([\s\S]*?<ScoreTrendOverview/);
   assert.match(source, /import \{ isValidPlacement \} from "@\/lib\/placement";/);
-  // The free Pro trial poster took over the placement-test card's own slot
-  // (was <PlacementHero />) so every first-time visitor and fresh account —
-  // exactly who neither organisation nor score-trend applies to — sees the
-  // offer, signed in or not. See components/billing/FreeProPoster.tsx.
-  assert.match(source, /<FreeProPoster \/>/);
+  /*
+    The free Pro poster used to stand in that slot and no longer does — it is
+    on /account, announced by a notification. It moved because an announcement
+    has to lead somewhere that exists everywhere it is made, and the iOS app
+    has no bell; see tests/free-pro-trial.test.mjs, which guards the offer's
+    reachability now.
+
+    Asserted as an absence rather than deleted, so putting it back here is a
+    deliberate act rather than a quiet one.
+  */
+  assert.doesNotMatch(source, /<FreeProPoster \/>/);
   assert.doesNotMatch(source, /<PlacementHero/);
   assert.match(source, /TREND_MODULES\.map/);
   assert.match(source, /href=\{`\/history\?module=\$\{module\}`\}/);

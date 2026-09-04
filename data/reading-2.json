@@ -2,6 +2,7 @@
   "id": "reading-2",
   "title": "The Outsourced Mind: Cognitive Offloading and Its Discontents",
   "topic": "Cognitive science",
+  "variant": "academic",
   "difficulty": "hard",
   "level": "C1",
   "timeMinutes": 20,
@@ -110,21 +111,29 @@
         {
           "id": "q10",
           "type": "completion",
-          "sentence": "Externalising information is useful because ___ can hold only a handful of items at once.",
-          "answer": "working memory",
-          "maxWords": 2,
-          "explanation": "\"Because working memory can hold only a handful of items at once\" — two words, exactly as the limit allows."
-        },
-        {
-          "id": "q11",
-          "type": "completion",
           "sentence": "Wegner's concept of ___ was originally developed to describe how couples divide remembering between them.",
           "answer": "transactive memory",
           "maxWords": 2,
           "explanation": "\"Daniel Wegner's earlier concept of transactive memory, originally developed to describe how couples divide remembering between them.\""
         },
         {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "The fear that outsourcing memory hollows it out entirely was captured by the phrase ___.",
+          "answer": "digital amnesia",
+          "maxWords": 2,
+          "explanation": "\"The phrase 'digital amnesia' ... captured the fear that outsourcing memory hollows it out entirely.\""
+        },
+        {
           "id": "q12",
+          "type": "completion",
+          "sentence": "Externalising information is useful because ___ can hold only a handful of items at once.",
+          "answer": "working memory",
+          "maxWords": 2,
+          "explanation": "\"Because working memory can hold only a handful of items at once\" — two words, exactly as the limit allows."
+        },
+        {
+          "id": "q13",
           "type": "completion",
           "sentence": "Experiments on ___ show that people allowed to set reminders fulfil far more of their intentions.",
           "answer": "prospective memory",
@@ -132,12 +141,12 @@
           "explanation": "\"Experiments on prospective memory — remembering to carry out intentions in the future.\""
         },
         {
-          "id": "q13",
+          "id": "q14",
           "type": "completion",
-          "sentence": "The fear that outsourcing memory hollows it out entirely was captured by the phrase ___.",
-          "answer": "digital amnesia",
+          "sentence": "Judging the plausibility of a claim depends on a well-furnished internal ___ to test it against.",
+          "answer": "knowledge base",
           "maxWords": 2,
-          "explanation": "\"The phrase 'digital amnesia' ... captured the fear that outsourcing memory hollows it out entirely.\""
+          "explanation": "The passage says \"judging the plausibility of a claim depends on a well-furnished internal knowledge base against which to test it.\" The two-word phrase fills the gap exactly."
         }
       ]
     }

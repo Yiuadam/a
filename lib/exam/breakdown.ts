@@ -82,6 +82,7 @@ export const QUESTION_TYPE_NAMES: Record<TestQuestion["type"], string> = {
   tfng: "True / False / Not Given",
   ynng: "Yes / No / Not Given",
   mcq: "Multiple choice",
+  "multi-select": "Multiple choice (more than one answer)",
   matching: "Matching",
   completion: "Sentence completion",
   "short-answer": "Short answer",
@@ -101,6 +102,8 @@ const TYPE_FIX: Record<TestQuestion["type"], string> = {
     "These ask what the writer thinks, not what is true. Look for the words that carry an opinion — believes, argues, unfortunately — and answer from those.",
   mcq:
     "Find the line in the text that answers the question before you read the options. Wrong options are written to sound like the text, so an option that feels familiar is not evidence.",
+  "multi-select":
+    "Choose exactly the number of letters asked for. Ticking one extra loses every mark in the group, so if you are unsure, drop your least confident letter rather than add another.",
   completion:
     "Copy the word from the text exactly as it is written, and count the words the instruction allows. A right answer one word too long is marked wrong.",
   matching:

@@ -77,12 +77,56 @@ export default function SideRail() {
     */
     <nav
       aria-label="Sections"
-      className="side-rail sticky top-[var(--header-h)] hidden h-fit w-64 shrink-0 self-start overflow-hidden lg:block xl:w-72"
+      /*
+        The column stretches; the links inside it stick.
+
+        It used to be the other way round — the whole rail was `sticky h-fit
+        self-start`, so its box was only as tall as twelve links and its
+        background stopped there, a panel floating in the middle of the left
+        edge. Stretching the column and moving `sticky` to the child gives the
+        base something to cover from the top of the page to the bottom, and the
+        links still follow the scroll.
+
+        No `overflow-hidden`, because the base is painted by a pseudo-element
+        that starts a screen-width to the left so it reaches the edge of the
+        page (app/globals.css), and clipping the rail to its own box clipped
+        that off.
+
+        `w-52` rather than `w-64`. The longest label is "Organisation" and it
+        needs about 165px with its icon and padding; the rest was empty column,
+        and on this screen empty column is width the dashboard's own modules
+        could have been using.
+      */
+      className="side-rail hidden w-52 shrink-0 self-stretch lg:block xl:w-56"
     >
-      <div className="space-y-5 pb-6 pl-1 pr-2 pt-3">
+      {/*
+        `top-0`, not `top-[var(--header-h)]`. The column itself now begins at
+        the header's lower edge, so an offset of the header's height on top of
+        that is the header counted twice — sixty-seven pixels of empty rail
+        above the first group, at rest, before anything has been scrolled.
+      */}
+      {/*
+        The first group starts level with the first module.
+
+        `pt-9` is the board's own offset — its section padding plus the strip
+        the Edit board control sits in — so "Practise" and "Your band" begin on
+        the same line. Two columns side by side that start at different heights
+        read as one of them having slipped, and it was the rail that looked
+        wrong even though the board was the one with the extra padding.
+
+        `max-h-full overflow-hidden` is a guard, not a scroller.
+
+        The rail is a column of the page now, and the footer sits below the row
+        it lives in — so a rail taller than its column painted its last two
+        links straight over the legal text. The rows below are sized so twelve
+        of them fit the shortest window this appears in, and this is what
+        guarantees the failure is a clipped link rather than two pieces of text
+        on top of each other if a future group makes that untrue.
+      */}
+      <div className="max-h-full space-y-3 overflow-hidden pb-3 pl-1 pr-2 pt-9">
         {groups.map((group) => (
           <div key={group.title}>
-            <h2 className="mb-1.5 px-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500">
+            <h2 className="mb-1 px-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500">
               {group.title}
             </h2>
             <ul className="space-y-0.5">
@@ -103,16 +147,30 @@ export default function SideRail() {
                         which also means it still answers it for somebody who
                         cannot separate the two colours.
                       */
-                      className={`side-rail-item flex min-h-10 items-center gap-3 rounded-full px-3 py-1.5 text-[0.9375rem] font-medium transition-colors ${
+                      className={`side-rail-item flex min-h-8 items-center gap-3 rounded-full px-3 py-1 text-[0.9375rem] font-medium transition-colors ${
                         active
                           ? "side-rail-item-active text-slate-900"
                           : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
+                      {/*
+                        Heavier than the 1.3 these glyphs were drawn with,
+                        because the rail draws them at 17px and not at the 24
+                        they were chosen at. A stroke is a fraction of the
+                        viewBox, so it shrinks with the mark: at this size 1.3
+                        lands under a physical pixel and the icon goes fainter
+                        than the word beside it, which does not get lighter as
+                        it gets smaller. 1.75 is 1.3 scaled back up by the same
+                        ratio, near enough.
+                      */}
                       {skill ? (
-                        <Icon name={skill} className="h-[1.0625rem] w-[1.0625rem] shrink-0 text-indigo-600" />
+                        <Icon
+                          name={skill}
+                          strokeWidth={1.75}
+                          className="h-[1.0625rem] w-[1.0625rem] shrink-0 text-indigo-600"
+                        />
                       ) : icon ? (
-                        <CardIcon name={icon} size={17} />
+                        <CardIcon name={icon} size={17} strokeWidth={1.75} />
                       ) : null}
                       <span className="min-w-0 truncate">{item.label}</span>
                     </Link>

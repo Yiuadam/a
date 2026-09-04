@@ -1,6 +1,6 @@
 /*
-  Writing's filter bar, against the content bank it filters — and a guard
-  that difficulty's is actually gone.
+  Writing's and reading's filter bars, against the content bank each filters —
+  and a guard that difficulty's is actually gone.
 
   This file used to be tests/paper-filters.test.mjs and covered three bars:
   difficulty on reading and listening, task type on writing. The owner's
@@ -9,15 +9,29 @@
   product — so two of those three bars are deleted rather than adjusted, and
   the tests that pinned them go with them rather than being weakened to pass.
 
-  What is left is writing's bar, now keyed on `task` (1 or 2) instead of
-  `type` (chart, table, letter, essay). `task` is a real, authored property —
-  it is how IELTS itself divides its own writing paper — so the failure mode
-  the old file worried about barely applies: there is no vocabulary a task
-  could misspell its way out of, because scripts/validate-content.mjs already
-  rejects a task number that is not 1 or 2 before this file ever runs. What
-  the join tests below still earn their keep on is the same thing they always
-  did — a stop with nothing behind it is dead interface, and only the bank
-  knows if that has happened.
+  What was left, for a while, was writing's bar alone, keyed on `task` (1 or
+  2) instead of `type` (chart, table, letter, essay). `task` is a real,
+  authored property — it is how IELTS itself divides its own writing paper —
+  so the failure mode the old file worried about barely applies: there is no
+  vocabulary a task could misspell its way out of, because
+  scripts/validate-content.mjs already rejects a task number that is not 1 or
+  2 before this file ever runs.
+
+  Reading has since grown a bar of its own, on the strength of the same
+  argument: `ReadingTest.variant` is a real, authored property too — it is how
+  IELTS itself divides its own reading paper — checked by
+  scripts/validate-content.mjs simply by being unable to compile without it
+  (lib/types.ts makes it required, not optional). It is deliberately not the
+  same bar writing uses, and not merely restyled: Task 1 and Task 2 are two
+  slices of one paper a candidate reads either way, so "All" is a real third
+  stop; Academic and General Training are two different exams, so a bar with
+  an "All" that interleaved them would recreate exactly the "wade through
+  papers meant for the other exam" the owner's brief for this feature ruled
+  out. See ReadingVariantFilter in components/TestChooser.tsx.
+
+  What the join tests below still earn their keep on is the same thing they
+  always did — a stop with nothing behind it is dead interface, and only the
+  bank knows if that has happened.
 */
 import assert from "node:assert/strict";
 import {
@@ -62,19 +76,85 @@ test("the difficulty filter model has been deleted, not merely stopped", () => {
   }
 });
 
-test("reading and listening render no filter bar at all", () => {
+test("listening renders no filter bar at all", () => {
   const source = read("components", "TestChooser.tsx");
-  // The bar is written once, guarded on kind === "writing" — there is no
-  // second bar, disabled or hidden, standing by for reading or listening.
+  // Writing's bar is written once, guarded on kind === "writing"; reading's
+  // once, guarded on kind === "reading" — and neither is written a second
+  // time, disabled or hidden, standing by for listening, which alone still
+  // has nothing left to narrow by.
   assert.match(
     source,
     /\{kind === "writing" && \(\s*<WritingTaskFilter/,
-    "the bar must be reachable only when kind is writing",
+    "the writing bar must be reachable only when kind is writing",
   );
   assert.equal(
     (source.match(/<WritingTaskFilter/g) ?? []).length,
     1,
-    "there must be exactly one filter bar in the component",
+    "there must be exactly one writing filter bar in the component",
+  );
+  assert.match(
+    source,
+    /\{kind === "reading" && \(\s*<ReadingVariantFilter/,
+    "the reading bar must be reachable only when kind is reading",
+  );
+  assert.equal(
+    (source.match(/<ReadingVariantFilter/g) ?? []).length,
+    1,
+    "there must be exactly one reading filter bar in the component",
+  );
+});
+
+// ---- Reading: the join, on the authored variant ----
+
+test("every reading paper carries a real variant", () => {
+  const files = readdirSync(DATA).filter((f) => /^reading-\d+\.json$/.test(f));
+  for (const file of files) {
+    const paper = load(file);
+    assert.ok(
+      paper.variant === "academic" || paper.variant === "general",
+      `${file} has variant ${JSON.stringify(paper.variant)}, which is neither "academic" nor "general"`,
+    );
+  }
+});
+
+/*
+  And the other way round: a stop nobody can reach is dead interface. Unlike
+  writing's two stops, these are not merely worth noticing if the bank drains
+  — an empty General Training stop would leave the whole point of this
+  feature unreachable from the one screen a learner is told to look for it.
+*/
+test("both reading variants have papers behind them", () => {
+  const files = readdirSync(DATA).filter((f) => /^reading-\d+\.json$/.test(f));
+  const found = new Set(files.map((f) => load(f).variant));
+  for (const variant of ["academic", "general"]) {
+    assert.ok(found.has(variant), `no reading paper has variant "${variant}"`);
+  }
+});
+
+test("the chooser renders the reading filter bar above the paper grid", () => {
+  const source = read("components", "TestChooser.tsx");
+  const barAt = source.indexOf("<ReadingVariantFilter");
+  assert.notEqual(barAt, -1, "TestChooser must render the reading filter bar");
+  const gridAt = source.indexOf("practice-paper-grid");
+  assert.notEqual(gridAt, -1);
+  assert.ok(barAt < gridAt, "the bar belongs above the list it narrows");
+});
+
+test("the reading filter starts on Academic, and has no All stop to fall back to", () => {
+  const source = read("components", "TestChooser.tsx");
+  assert.match(
+    source,
+    /useState<ReadingTest\["variant"\]>\("academic"\)/,
+    'the chooser must open on Academic — a General Training learner opting in is the point, not a surprise',
+  );
+  // Unlike writing's bar, whose options are `[{ id: "all", ... }, ...writingTaskOptions]`,
+  // the reading bar is handed its options with nothing prepended — see the
+  // header comment on this file for why there is deliberately no All stop to
+  // interleave the two exams under.
+  assert.match(
+    source,
+    /<ReadingVariantFilter\s+options=\{readingVariantOptions\}/,
+    "the reading bar must be handed its options with no All stop added in front",
   );
 });
 
@@ -134,9 +214,15 @@ test("every writing task's type matches the content it actually carries", () => 
         ? "table"
         : task.chart
           ? "chart"
-          : task.variant === "general"
-            ? "letter"
-            : null;
+          /* A pair of plans of the same site: the third thing Academic Task 1
+             asks for, after a chart and a table. */
+          : task.plans
+            ? "plan"
+            : task.process
+              ? "process"
+              : task.variant === "general"
+                ? "letter"
+                : null;
     assert.notEqual(expected, null, `${task.id} carries nothing to type it by`);
     assert.equal(task.type, expected, `${task.id} is typed ${task.type} but reads as a ${expected}`);
   }

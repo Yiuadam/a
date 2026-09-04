@@ -275,7 +275,12 @@ export default function AdminPage() {
 
       {/* Narrow: the rest of the console as a menu. */}
       <div className="mt-3 lg:hidden">
-        <HubMenu items={menu} />
+        {/*
+          Compact, because this page carries four stat cards above these five
+          rows on the one screen a phone has for all of it — see HubMenu for
+          why that stays this page's own choice rather than the shared default.
+        */}
+        <HubMenu items={menu} compact />
       </div>
 
       {/* Wide: the rest of the console, in place. */}

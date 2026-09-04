@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import CardIcon, { type CardIconName } from "@/components/CardIcon";
@@ -32,6 +33,7 @@ function Tile({
   href,
   action,
   muted = false,
+  detail,
 }: {
   title: string;
   icon: CardIconName;
@@ -41,9 +43,19 @@ function Tile({
   action: string;
   /* True when the figure is a placeholder rather than a measurement. */
   muted?: boolean;
+  /*
+    What fills the space between the note and the button.
+
+    Every tile is the same height, because the board's rows are, and a tile
+    whose whole content is one number and one short line spent that height on
+    nothing — a big figure, a caption, and then a hand's width of empty card
+    above the button. The figure is the headline; this is the rest of the
+    story, and a module that has one should tell it.
+  */
+  detail?: ReactNode;
 }) {
   return (
-    <section className="card flex h-full min-w-0 flex-col !p-4">
+    <section className="card flex h-full min-w-0 flex-col overflow-hidden !p-4">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <h2 className="text-[0.9375rem] font-semibold text-slate-900">{title}</h2>
         <CardIcon name={icon} size={20} />
@@ -55,7 +67,8 @@ function Tile({
       >
         {figure}
       </p>
-      <p className="mt-1.5 min-w-0 flex-1 text-[0.8125rem] leading-5 text-slate-500">{note}</p>
+      <p className="mt-1.5 min-w-0 text-[0.8125rem] leading-5 text-slate-500">{note}</p>
+      <div className="mt-2 min-w-0 flex-1">{detail}</div>
       <IntentPrefetchLink href={href} className="btn-secondary mt-3 w-full !min-h-9 text-[0.875rem]">
         {action}
       </IntentPrefetchLink>
@@ -137,8 +150,55 @@ export function StreakCard({ profile }: { profile: Profile }) {
 export function ThisWeekCard({ profile }: { profile: Profile }) {
   const now = useNow();
   const since = (now ?? 0) - 7 * DAY;
-  const count =
-    now === null ? 0 : profile.results.filter((r) => new Date(r.date).getTime() >= since).length;
+  const week = now === null ? [] : profile.results.filter((r) => new Date(r.date).getTime() >= since);
+  const count = week.length;
+
+  /*
+    A bar a day, oldest on the left — how many, not merely whether.
+
+    "3 sittings this week" and "one on each of three days" are very different
+    weeks, and the number alone cannot tell them apart. A row of on/off marks
+    fixed that much and no more: it still drew a day with four sittings exactly
+    as it drew a day with one. Heights say which, and the shape of the week —
+    building up, tailing off, one heroic Sunday — is the thing somebody is
+    actually looking for on a practice dashboard.
+  */
+  const days =
+    now === null
+      ? []
+      : Array.from({ length: 7 }, (_, i) => {
+          const end = now - (6 - i) * DAY;
+          const start = end - DAY;
+          return {
+            key: end,
+            label: new Date(end).toLocaleDateString(undefined, { weekday: "narrow" }),
+            n: week.filter((r) => {
+              const at = new Date(r.date).getTime();
+              return at > start && at <= end;
+            }).length,
+          };
+        });
+  /* The busiest day sets the top of the chart, so a quiet week is still
+     legible rather than a flat line pinned to the floor. */
+  const peak = Math.max(1, ...days.map((day) => day.n));
+  /*
+    History's sparkline geometry, copied deliberately: a 100 x 36 box with 4
+    of horizontal padding and 5/6 of vertical, so the two charts sit on the
+    same grid and a line at the same height means the same thing on both.
+  */
+  const weekPoints = days.map((day, i) => ({
+    x: days.length <= 1 ? 50 : 4 + (92 * i) / (days.length - 1),
+    y: 30 - (day.n / peak) * 25,
+  }));
+  const weekLine = weekPoints
+    .map((point, i) => `${i === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+
+  const byModule = MODULE_ORDER.map((module) => ({
+    module,
+    n: week.filter((r) => r.module === module).length,
+  })).filter((entry) => entry.n > 0);
+
   return (
     <Tile
       title="This week"
@@ -148,9 +208,83 @@ export function ThisWeekCard({ profile }: { profile: Profile }) {
       note={count === 0 ? "No sittings in the last seven days." : "Sittings in the last seven days."}
       href="/history"
       action="See your history"
+      detail={
+        days.length === 0 ? null : (
+          <div className="space-y-2">
+            {/*
+              The same line the History page draws, with the same geometry.
+
+              It was bars, then a line of its own invention with its own box and
+              its own dots. Two charts in one app that mean the same thing and
+              look different is how a product stops feeling like one product —
+              so this is History's sparkline: the same 100 x 36 box, the same
+              padding, the same 2px non-scaling stroke, the same tenth-opacity
+              wash under it, and one dot on the latest point rather than seven.
+
+              What stays is the axis of weekday letters underneath, because this
+              chart is about days and History's is about sittings.
+            */}
+            <div>
+              <div className="relative h-11">
+                <svg
+                  viewBox="0 0 100 36"
+                  preserveAspectRatio="none"
+                  className="h-full w-full"
+                  role="img"
+                  aria-label={days
+                    .map((day) => `${day.label}: ${day.n} ${day.n === 1 ? "sitting" : "sittings"}`)
+                    .join(", ")}
+                >
+                  <path
+                    d={`${weekLine} L${weekPoints[weekPoints.length - 1].x.toFixed(2)} 36 L${weekPoints[0].x.toFixed(2)} 36 Z`}
+                    fill="var(--color-indigo-500)"
+                    fillOpacity="0.1"
+                  />
+                  <path
+                    d={weekLine}
+                    fill="none"
+                    stroke="var(--color-indigo-500)"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+                <span
+                  aria-hidden
+                  className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500 ring-2 ring-surface"
+                  style={{
+                    left: `${weekPoints[weekPoints.length - 1].x}%`,
+                    top: `${(weekPoints[weekPoints.length - 1].y / 36) * 100}%`,
+                  }}
+                />
+              </div>
+              <ol className="mt-1 flex">
+                {days.map((day) => (
+                  <li
+                    key={day.key}
+                    aria-hidden
+                    className="min-w-0 flex-1 text-center text-[0.625rem] uppercase text-slate-400"
+                  >
+                    {day.label}
+                  </li>
+                ))}
+              </ol>
+            </div>
+            {byModule.length > 0 && (
+              <p className="text-[0.8125rem] leading-5 text-slate-600">
+                {byModule.map((entry) => `${MODULE_LABEL[entry.module]} ${entry.n}`).join(" · ")}
+              </p>
+            )}
+          </div>
+        )
+      }
     />
   );
 }
+
+/* Exam order, so a week's breakdown reads the way the paper is sat. */
+const MODULE_ORDER: ModuleName[] = ["listening", "reading", "writing", "speaking"];
 
 const MODULE_LABEL: Record<ModuleName, string> = {
   listening: "Listening",
@@ -261,7 +395,18 @@ export function SittingsCard({ profile }: { profile: Profile }) {
 }
 
 export function LastSittingCard({ profile }: { profile: Profile }) {
-  const last = newestFirst(profile.results)[0];
+  const ordered = newestFirst(profile.results);
+  const last = ordered[0];
+  /*
+    The one before it in the same skill, which is what "better or worse" can
+    honestly be measured against. Comparing a reading band with the writing
+    band that happened to come before it would be arithmetic on two different
+    scales, and it would read as progress or a slump depending on the order
+    somebody happened to practise in.
+  */
+  const previous = last ? ordered.slice(1).find((r) => r.module === last.module) : undefined;
+  const change = last && previous ? Math.round((last.band - previous.band) * 10) / 10 : null;
+
   return (
     <Tile
       title="Last sitting"
@@ -275,6 +420,46 @@ export function LastSittingCard({ profile }: { profile: Profile }) {
       }
       href="/history"
       action="Open it again"
+      detail={
+        last ? (
+          <dl className="space-y-1 text-[0.8125rem] leading-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-slate-500">Skill</dt>
+              <dd className="font-medium text-slate-800">{MODULE_LABEL[last.module]}</dd>
+            </div>
+            {last.raw !== undefined && last.total !== undefined && (
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-slate-500">Marks</dt>
+                <dd className="font-medium tabular-nums text-slate-800">
+                  {last.raw} of {last.total}
+                </dd>
+              </div>
+            )}
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-slate-500">
+                {previous ? `On your last ${MODULE_LABEL[last.module].toLowerCase()}` : "First one"}
+              </dt>
+              <dd
+                className={`font-medium tabular-nums ${
+                  change === null
+                    ? "text-slate-400"
+                    : change > 0
+                      ? "text-emerald-600"
+                      : change < 0
+                        ? "text-rose-600"
+                        : "text-slate-500"
+                }`}
+              >
+                {change === null
+                  ? "—"
+                  : change === 0
+                    ? "no change"
+                    : `${change > 0 ? "+" : ""}${change}`}
+              </dd>
+            </div>
+          </dl>
+        ) : null
+      }
     />
   );
 }

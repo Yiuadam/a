@@ -11,12 +11,44 @@
   "script": [
     {
       "speaker": "Lecturer",
-      "text": "Good afternoon. Last week we looked at what damages a coral reef. Today I want to look at the other half of the question, which is much less often asked: what does a reef actually need in order to come back?\n\nLet me start with the event itself. When water stays warmer than a coral can tolerate for a sustained period, the coral expels the algae that live inside its tissue and give it both its colour and most of its food. That is bleaching. It is important to understand that a bleached coral is not a dead coral. It is a starving one. If temperatures fall within a few weeks, the algae can be taken back up and the animal survives, though it will usually not reproduce that year. If the heat persists, the coral dies, and what is left is a skeleton.\n\nRecovery from that point depends on three things, and they are not equally likely to be present.\n\nThe first is larvae. Corals reproduce by releasing eggs and sperm into the water, often in a single synchronised mass spawning, and the larvae that result drift before settling. A damaged reef can be restocked by larvae from its own surviving colonies or from a healthy reef upstream in the prevailing current. This is why the position of a reef within a network matters more than its own condition. An isolated reef that loses its corals has no source of new larvae and may not recover in any human timescale, while a reef of identical damage sitting downstream of a healthy one can be repopulated within a decade.\n\nThe second is a surface the larvae can attach to. A coral larva will not settle on loose rubble that shifts with every storm, and a dead reef often becomes exactly that. It settles preferentially on hard, stable substrate coated with a particular family of pink encrusting algae, which appear to release a chemical cue the larvae detect. Where storm damage has reduced a reef structure to mobile fragments, the biological problem is not the absence of larvae at all. They arrive, and they have nowhere to hold on.\n\nThe third is grazing, and it is the one most often overlooked. When corals die, fast-growing seaweed colonises the space within months. If nothing eats that seaweed, it holds the space indefinitely and coral larvae cannot compete. What eats it is a specific set of herbivorous fish — parrotfish above all — and sea urchins. A reef whose herbivores have been fished out can be given perfect water temperature and abundant larvae and still fail to recover, because the space is already occupied. This is the clearest case in reef ecology of a system that has two stable states: coral-dominated and seaweed-dominated, with the difference maintained by who is eating.\n\nThere is evidence for this from an accident rather than an experiment. In the Caribbean in the early 1980s a disease killed the great majority of one urchin species across the whole region within about a year. Reefs that had already lost most of their large herbivorous fish to fishing shifted to seaweed and, in many places, have not shifted back in forty years. Reefs where fish populations were intact fared considerably better with the same urchin losses.\n\nThat points to the practical conclusion, which is uncomfortable for anyone hoping for a technical fix. Coral gardening — growing fragments in nurseries and transplanting them — works at the scale of hectares and costs a great deal per hectare. The world's reefs cover something over a quarter of a million square kilometres. Transplanting cannot be the answer at that scale, and the projects that have succeeded are almost all ones where the underlying conditions were already suitable and the intervention simply accelerated a recovery that would have happened anyway.\n\nWhat does scale is protecting the herbivores and the connectivity. A network of reserves placed so that healthy reefs sit upstream of damaged ones, with fishing controls that keep parrotfish populations intact, costs a fraction of transplanting and works on the mechanism rather than the symptom. It is less satisfying to photograph, which I suspect is part of why it is harder to fund.\n\nNext week we will look at the thermal tolerance question — whether corals can adapt fast enough — and I will ask you to have read the Hughes review before then."
+      "text": "Good afternoon. Last week we looked at what damages a coral reef. Today I want to look at the other half of the question, which is much less often asked: what does a reef actually need in order to come back?\n\nI'll take the recovery mechanisms one at a time, because although they interact, each can fail on its own, and a manager who only fixes one of the three will often see no improvement at all.\n\nLet me start with the event itself. When water stays warmer than a coral can tolerate for a sustained period, the coral expels the algae that live inside its tissue and give it both its colour and most of its food. That is bleaching. It is important to understand that a bleached coral is not a dead coral. It is a starving one. If temperatures fall within a few weeks, the algae can be taken back up and the animal survives, though it will usually not reproduce that year. If the heat persists, the coral dies, and what is left is a skeleton.\n\nRecovery from that point depends on three things, and they are not equally likely to be present.\n\nThe first is larvae. Corals reproduce by releasing eggs and sperm into the water, often in a single synchronised mass spawning, and the larvae that result drift before settling. A damaged reef can be restocked by larvae from its own surviving colonies or from a healthy reef upstream in the prevailing current. This is why the position of a reef within a network matters more than its own condition. An isolated reef that loses its corals has no source of new larvae and may not recover in any human timescale, while a reef of identical damage sitting downstream of a healthy one can be repopulated within a decade.\n\nThe second is a surface the larvae can attach to. A coral larva will not settle on loose rubble that shifts with every storm, and a dead reef often becomes exactly that. It settles preferentially on hard, stable substrate coated with a particular family of pink encrusting algae, which appear to release a chemical cue the larvae detect. Where storm damage has reduced a reef structure to mobile fragments, the biological problem is not the absence of larvae at all. They arrive, and they have nowhere to hold on.\n\nThe third is grazing, and it is the one most often overlooked. When corals die, fast-growing seaweed colonises the space within months. If nothing eats that seaweed, it holds the space indefinitely and coral larvae cannot compete. What eats it is a specific set of herbivorous fish — parrotfish above all — and sea urchins. A reef whose herbivores have been fished out can be given perfect water temperature and abundant larvae and still fail to recover, because the space is already occupied. This is the clearest case in reef ecology of a system that has two stable states: coral-dominated and seaweed-dominated, with the difference maintained by who is eating.\n\nThere is evidence for this from an accident rather than an experiment. In the Caribbean in the early 1980s a disease killed the great majority of one urchin species across the whole region within about a year. Reefs that had already lost most of their large herbivorous fish to fishing shifted to seaweed and, in many places, have not shifted back in forty years. Reefs where fish populations were intact fared considerably better with the same urchin losses.\n\nIt is worth pausing on how slow that shift can be to reverse. A reef can flip from coral to seaweed in a single bad year, once the herbivores are gone, but flipping back afterwards, even once fish numbers recover, can take a decade or more, because the seaweed itself now resists new coral settlement in exactly the way rubble does.\n\nThat points to the practical conclusion, which is uncomfortable for anyone hoping for a technical fix. Coral gardening — growing fragments in nurseries and transplanting them — works at the scale of hectares and costs a great deal per hectare. The world's reefs cover something over a quarter of a million square kilometres. Transplanting cannot be the answer at that scale, and the projects that have succeeded are almost all ones where the underlying conditions were already suitable and the intervention simply accelerated a recovery that would have happened anyway.\n\nTo put that scale problem in concrete terms: suppose a gardening programme costs on the order of a hundred thousand pounds for every hectare it restores. Scaling that across even one per cent of the world's reef area would run into the billions, year after year, for a single intervention that does nothing to fix why the coral died in the first place.\n\nWhat does scale is protecting the herbivores and the connectivity. A network of reserves placed so that healthy reefs sit upstream of damaged ones, with fishing controls that keep parrotfish populations intact, costs a fraction of transplanting and works on the mechanism rather than the symptom. It is less satisfying to photograph, which I suspect is part of why it is harder to fund.\n\nNext week we will look at the thermal tolerance question — whether corals can adapt fast enough — and I will ask you to have read the Hughes review before then."
     }
   ],
   "questions": [
     {
       "instruction": "Complete the notes below. Write NO MORE THAN TWO WORDS for each answer.",
+      "layout": {
+        "kind": "notes",
+        "title": "Coral bleaching and reef recovery",
+        "sections": [
+          {
+            "heading": "Bleaching",
+            "bullets": [
+              "During bleaching a coral expels the {{q1}} that live in its tissue.",
+              "The lecturer says a bleached coral is not dead but {{q2}}."
+            ]
+          },
+          {
+            "heading": "Where larvae will settle",
+            "bullets": [
+              {
+                "text": "Larvae are choosy about the surface:",
+                "sub": [
+                  "they will not settle on loose {{q3}} that moves in storms",
+                  "they prefer hard substrate coated with pink encrusting {{q4}}"
+                ]
+              }
+            ]
+          },
+          {
+            "heading": "Grazing and stable states",
+            "bullets": [
+              "Among herbivorous fish, {{q5}} are named as the most important grazers.",
+              "Reef ecology describes coral and seaweed dominance as two stable {{q6}}."
+            ]
+          }
+        ]
+      },
       "questions": [
         {
           "id": "q1",
@@ -69,44 +101,34 @@
       ]
     },
     {
-      "instruction": "Choose the correct letter, A, B or C.",
+      "instruction": "Choose THREE letters, A-G.",
       "questions": [
         {
           "id": "q7",
-          "type": "mcq",
-          "question": "What does the lecturer say determines whether a damaged reef receives new larvae?",
+          "type": "multi-select",
+          "question": "According to the lecturer, which THREE factors does a dead reef's recovery depend on?",
           "options": [
-            "Its own condition before the damage",
-            "Its position within a network of reefs",
-            "The depth of water above it"
+            "Enough coral larvae reaching the reef",
+            "A stable surface for larvae to attach to",
+            "Sufficient grazing by herbivorous fish and sea urchins",
+            "Sea temperature returning to its normal range",
+            "Large-scale coral gardening programmes",
+            "Government funding for nursery projects",
+            "The genetic diversity of the surviving coral"
           ],
-          "answer": 1,
-          "explanation": "“This is why the position of a reef within a network matters more than its own condition.” An isolated reef has no upstream source."
-        },
-        {
-          "id": "q8",
-          "type": "mcq",
-          "question": "Why can a reef with plenty of larvae still fail to recover?",
-          "options": [
-            "The larvae arrive at the wrong time of year",
-            "Seaweed already occupies the available space",
-            "The water is too cold for settlement"
+          "numAnswers": 3,
+          "answer": [
+            0,
+            1,
+            2
           ],
-          "answer": 1,
-          "explanation": "Without grazers, seaweed “holds the space indefinitely and coral larvae cannot compete” — the reef can have perfect temperature and abundant larvae and still fail."
-        },
-        {
-          "id": "q9",
-          "type": "mcq",
-          "question": "What does the Caribbean urchin disease illustrate?",
-          "options": [
-            "That disease is now the main threat to reefs",
-            "That reefs with intact fish populations coped better",
-            "That urchins are more important than any fish"
-          ],
-          "answer": 1,
-          "explanation": "Reefs that had lost their large herbivorous fish shifted to seaweed and did not shift back, while “reefs where fish populations were intact fared considerably better with the same urchin losses”."
-        },
+          "explanation": "The lecturer lists the three directly: “The first is larvae”, “The second is a surface the larvae can attach to”, and “The third is grazing” — supporting the first, second and third options. Temperature is discussed earlier, but only as the trigger that reverses bleaching in a coral that is still alive; it is not one of the three things a dead reef needs in order to recover, so the fourth option does not belong on this list. Coral gardening is described as unable to work “at the scale of the world's reefs”, which rules out the fifth option, and neither funding nor genetic diversity is mentioned anywhere in the lecture, so the sixth and seventh options are both unsupported."
+        }
+      ]
+    },
+    {
+      "instruction": "Choose the correct letter, A, B or C.",
+      "questions": [
         {
           "id": "q10",
           "type": "mcq",

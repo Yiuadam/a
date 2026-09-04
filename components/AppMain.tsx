@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { startFreeProOffer } from "@/lib/billing/free-pro-offer";
 import SideRail from "@/components/SideRail";
+import SiteFooter from "@/components/SiteFooter";
 import { hasSideRail } from "@/lib/nav";
 import { useRoutePath } from "@/lib/hooks";
 
@@ -30,6 +32,51 @@ export default function AppMain({ children }: { children: ReactNode }) {
      every comparison here was false and the exam scrolled. See routePath in
      lib/platform.ts. */
   const pathname = useRoutePath();
+
+  /*
+    Ask about the free Pro trial from the shell, not from whatever draws it.
+
+    The answer is one request per session, and the same call clears the guest's
+    auto-accept intent — the thing that grants the trial to somebody who tapped
+    "Sign up free" and then went through a sign-up flow. That has to run
+    wherever they land afterwards, so it is started by the one component that is
+    mounted on every route and on every platform. See lib/billing/free-pro-offer.ts.
+  */
+  useEffect(() => startFreeProOffer(), []);
+
+  /*
+    Every page opens at the top.
+
+    A browser does this for you when the page itself is what scrolls. Here it
+    mostly is not: `data-viewport-locked` holds the body still on almost every
+    route, so the thing that actually scrolls is a container inside the page —
+    the practice library's card column, for one. Nothing resets those. React
+    reuses the DOM node when two routes render the same component (Reading and
+    Listening both draw TestChooser), so leaving one library half way down and
+    opening the other one showed it half way down too, with the heading above
+    the top of the screen and no obvious way back to it. On iOS that is worse
+    than it sounds: tapping the clock scrolls the *window*, and the window has
+    nothing to scroll, so the one gesture everybody reaches for does nothing.
+
+    So: on every route change, put the window back to the top and reset every
+    container inside the page that has been scrolled. Checking `scrollTop`
+    rather than hunting for particular class names means a container that
+    scrolls for any reason is covered, including ones added later.
+
+    Deliberately unconditional, including on Back. Restoring where somebody
+    was is the friendlier behaviour in the abstract, but it is exactly what
+    produced the report — and a page that always starts at the top is never
+    the page you cannot climb.
+  */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const main = document.querySelector("main");
+    if (!main) return;
+    if (main.scrollTop !== 0) main.scrollTop = 0;
+    for (const element of main.querySelectorAll<HTMLElement>("*")) {
+      if (element.scrollTop !== 0) element.scrollTop = 0;
+    }
+  }, [pathname]);
   const console_ = pathname.startsWith("/admin");
   const workspace = pathname.startsWith("/organization");
   const viewportLocked =
@@ -76,6 +123,35 @@ export default function AppMain({ children }: { children: ReactNode }) {
   }, [home]);
 
   /*
+    Every other railed page is one screen too, from `lg` up.
+
+    The owner's rule is that nothing scrolls except the library of practice
+    papers. Taken literally that is impossible — History is every sitting ever
+    recorded and the guides are a reference — so this is the honest version of
+    it: the *page* never scrolls. The header, the rail and the footer stay
+    where they are, and a page with more in it than fits scrolls inside its own
+    column instead of moving the furniture. On the pages that do fit, which is
+    most of them, nothing scrolls at all and the difference is invisible.
+
+    `/practice` is the exception the rule names, and it keeps the ordinary page
+    scroll: it is a list of sixty papers, its whole shape is "keep going", and
+    an inner scroller inside a page that does not move is a worse way to read a
+    long list than simply reading down it.
+
+    Below `lg` none of this applies, for the reason `data-home-locked` gives:
+    without the rail these pages are a stack, and locking a stack takes the
+    footer's height out of the content and hides the end of it.
+  */
+  const pageLocked = hasSideRail(pathname) && !viewportLocked && pathname !== "/practice" && pathname !== "/";
+  useEffect(() => {
+    if (!pageLocked) return;
+    document.body.setAttribute("data-page-locked", "");
+    return () => {
+      document.body.removeAttribute("data-page-locked");
+    };
+  }, [pageLocked]);
+
+  /*
     The rail stands beside the page, not inside it, so a full-bleed route keeps
     its full bleed and the exam keeps its own chrome. It draws nothing below
     `lg` and nothing on the routes that own the whole window.
@@ -114,7 +190,27 @@ export default function AppMain({ children }: { children: ReactNode }) {
     </main>
   );
 
-  if (!railed) return page;
+  /*
+    The footer belongs to the page column, not to the window.
+
+    It used to be a sibling of this whole row, which put a full-width band of
+    legal text under the rail — so the rail's column stopped short of the
+    bottom of the screen with a hard edge across it, and the navigation looked
+    like it had been cut off rather than ended. Inside the column, the rail
+    runs the full height and the footer sits under the content it belongs to.
+
+    The privacy policy lives here rather than in the menu: it is a page a
+    learner visits once, if ever, while Apple needs it publicly reachable to
+    accept a submission at all. A footer is where people look for it.
+  */
+  if (!railed) {
+    return (
+      <>
+        {page}
+        <SiteFooter />
+      </>
+    );
+  }
 
   return (
     /*
@@ -123,9 +219,22 @@ export default function AppMain({ children }: { children: ReactNode }) {
       width tiers move onto this wrapper instead. Below `lg` the rail renders
       nothing and this collapses back to exactly what it was.
     */
-    <div className="mx-auto flex w-full max-w-5xl flex-1 gap-6 px-0 lg:max-w-6xl lg:gap-7 lg:px-5 xl:max-w-7xl 2xl:max-w-[96rem] min-[1920px]:max-w-[116rem]">
+    /*
+      `min-h-0` so this row can be shorter than its contents. A flex item
+      defaults to `min-height: auto` — "never shrink below what is inside me" —
+      so on a locked page the body was the height of the window, this row was
+      the height of the page, and the overflow came straight back out through
+      it. The column inside can only scroll once something above it is allowed
+      to be smaller than its own content.
+    */
+    <div className="mx-auto flex w-full min-h-0 max-w-5xl flex-1 gap-6 px-0 lg:max-w-6xl lg:gap-7 lg:px-5 xl:max-w-7xl 2xl:max-w-[96rem] min-[1920px]:max-w-[116rem]">
       <SideRail />
-      {page}
+      {/* `min-w-0` so a wide table inside the page cannot push the column past
+          the row and squeeze the rail. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {page}
+        <SiteFooter />
+      </div>
     </div>
   );
 }
