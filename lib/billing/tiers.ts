@@ -201,34 +201,35 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
     to $1.69 *and* left real money on it. Ten marked essays a month is still an
     essay every three days.
 
-    `examiner` is 30 — five reactions for each of the six speaking tests this
-    tier can afford to have marked, even though examiner reactions are not
-    metered by whether marking happens. Five is a ceiling this route never
-    actually reaches (SpeakingSession.tsx fires at most three per interview,
-    once per Part 3 transition), so a subscriber who takes more interviews than
-    they mark still has real headroom rather than none.
+    `examiner` is 0 — not because Plus cannot afford it (it can; see
+    lib/speaking/turn-control.ts and the route it feeds, both shipped and
+    tested), but because the feature is not confirmed working yet. A
+    generation-token bug that made the reaction impossible to ever hear was
+    found and fixed in the same branch that shipped it, and nobody has since
+    confirmed by ear that a live answer actually produces one. `generate`
+    stayed at its original figure rather than the number that would have paid
+    for the examiner, because there is nothing here yet to pay for. Both
+    numbers are a deliberate pair — see MONTHLY_AI_CAPS.pro's own note — and
+    changing one without the other is how a cap and its own justification
+    quietly stop agreeing with each other.
   */
-  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 1, examiner: 30 },
+  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 2, examiner: 0 },
   /*
     Three times Plus on the routes that matter, for the weeks before the exam.
     It is the most expensive tier to serve and therefore the one with the
     thinnest margin, which is why its caps are the ones to check first when
     anything about the cost model changes.
 
-    `generate` came down from five to two, and Plus's from two to one, to pay
-    for the live examiner. It is the only route on Sonnet and it costs HK$0.73
-    a call — five of them cost Pro more than all thirty marked essays, and one
-    of them costs what seventy-seven examiner lines cost. Measured across all
-    six plans in all ten currencies, that single change takes the worst case
-    from HK$0.19 (failing, with the examiner) to HK$1.43, which is better than
-    the HK$1.01 this app shipped with before the examiner existed.
-
-    Plus is what sets that floor, not Pro: once Plus is at one, cutting Pro
-    further moves no worst case at all, it only widens Pro's own margin. So
-    Pro is at two rather than one because there was no reason to take a third
-    away from the tier that is paying the most.
+    `examiner: 0` here too, for the same reason as Plus's — not a cost
+    decision, an unconfirmed-feature one. Turning it on is one number in each
+    of these two tiers, not a redeploy: the route, the client-side trigger and
+    the fallback to the scripted line are already shipped and already tested,
+    and tests/ai-economics.test.mjs already proves a nonzero figure here is
+    affordable (checked at generate:2/1, the figures that paid for it while it
+    was briefly live) — turning it back on needs only somebody to have
+    actually heard it work.
   */
-  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 2, examiner: 100 },
+  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 5, examiner: 0 },
   /*
     The owner's account. An admin flag that still enforced a limit would be a
     flag that did nothing.
@@ -273,8 +274,8 @@ export const WEEKLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> = 
     generate: 0,
     examiner: 0,
   },
-  plus: { define: 24, chat: 12, "grade/writing": 3, "grade/speaking": 2, generate: 1, examiner: 7 },
-  pro: { define: 41, chat: 24, "grade/writing": 7, "grade/speaking": 5, generate: 2, examiner: 24 },
+  plus: { define: 24, chat: 12, "grade/writing": 3, "grade/speaking": 2, generate: 1, examiner: 0 },
+  pro: { define: 41, chat: 24, "grade/writing": 7, "grade/speaking": 5, generate: 2, examiner: 0 },
   admin: {
     define: null,
     chat: null,
@@ -332,8 +333,7 @@ export const TIERS: Record<Tier, TierDefinition> = {
       "Everything in Standard",
       "10 essays and 6 speaking tests marked a month",
       "50 tutor questions and 100 word lookups a month",
-      "1 fresh AI-written paper a month",
-      "A live examiner reacts to you in Part 3 of speaking practice",
+      "2 fresh AI-written papers a month",
       "Cancel any time, one button",
     ],
   },
@@ -345,8 +345,7 @@ export const TIERS: Record<Tier, TierDefinition> = {
       "Everything in Plus, two to three times over",
       "30 essays and 20 speaking tests marked a month",
       "100 tutor questions and 175 word lookups a month",
-      "2 fresh AI-written papers a month",
-      "A live examiner reacts to you in Part 3 of speaking practice",
+      "5 fresh AI-written papers a month",
       "Cancel any time, one button",
     ],
   },
