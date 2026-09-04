@@ -889,7 +889,7 @@ function ListeningTestPageRunner() {
       onPrev={nav.prev}
       onNext={nav.next}
       onToggleReview={nav.toggleReview}
-      bottomLeft={submitted && band !== null ? `Band ${band} · ${raw}/${flat.length}` : "Practice complete"}
+      topSummary={submitted && band !== null ? `Band ${band} · ${raw}/${flat.length}` : undefined}
       topRight={
         <div className="flex items-center gap-1.5">
           <GlassSelect

@@ -75,6 +75,7 @@ export default function ExamShell({
   onNext,
   onToggleReview,
   topRight,
+  topSummary,
   bottomLeft,
   bottomRight,
   comfortableGutter = false,
@@ -113,6 +114,15 @@ export default function ExamShell({
   bottomRight?: ReactNode;
   /** Anything the section adds beside Settings — Listening puts volume here. */
   topRight?: ReactNode;
+  /**
+   * The band and raw score, shown under the paper title once a paper is
+   * marked. Reading already puts this on the page itself, above the frame
+   * entirely; Listening's equivalent card lives inside the scrolling paper,
+   * below however far the candidate had scrolled when they submitted, which
+   * is not "the top of the result page" from where they were sitting. This
+   * is the one copy of it that is not at the mercy of scroll position.
+   */
+  topSummary?: ReactNode;
   /**
    * Give a page a calmer outer margin without changing the shared exam chrome.
    * Writing opts in because its larger text-entry surfaces otherwise read as
@@ -297,6 +307,11 @@ export default function ExamShell({
           <div className="exam-paper-title whitespace-nowrap text-[color:var(--exam-muted)]">
             {paper}
           </div>
+          {topSummary && (
+            <div className="whitespace-nowrap font-semibold text-[color:var(--exam-accent)]">
+              {topSummary}
+            </div>
+          )}
         </div>
 
         <ExamTimer minutes={minutes} running={running} onExpire={onExpire} endsAt={endsAt} />
@@ -338,7 +353,7 @@ export default function ExamShell({
           onNext={onNext ?? (() => {})}
           onToggleReview={onToggleReview ?? (() => {})}
         />
-      ) : (
+      ) : bottomLeft || bottomRight ? (
         /*
           The bottom inset is the page's to pay now. Capacitor used to have
           WKWebView inset the content for the safe area itself, and it was taken
@@ -357,7 +372,7 @@ export default function ExamShell({
           <div className="min-w-0">{bottomLeft}</div>
           <div className="shrink-0">{bottomRight}</div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
