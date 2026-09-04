@@ -308,7 +308,7 @@ export default function ExamShell({
             {paper}
           </div>
           {topSummary && (
-            <div className="whitespace-nowrap font-semibold text-[color:var(--exam-accent)]">
+            <div className="mt-1 whitespace-nowrap font-semibold text-[color:var(--exam-accent)]">
               {topSummary}
             </div>
           )}
