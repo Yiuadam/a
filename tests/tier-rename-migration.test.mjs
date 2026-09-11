@@ -229,7 +229,13 @@ test("0032 renames the three live 'pro'-family rows instead of finding none", as
 
     await t.test("0032 is idempotent: applying it a second time changes nothing further", () => {
       applyMigration(pg, MIGRATION_0032);
-      assert.equal(pg.psql(`select tier from public.subscriptions where user_id = '${standardUser}'`), "tracking");
+      // By subscription id, not user: the default-tier subtest above gave
+      // standardUser a second row, and this is about the seeded ones.
+      const seeded = (externalId) =>
+        pg.psql(`select tier from public.subscriptions where external_subscription_id = '${externalId}'`);
+      assert.equal(seeded("sub_standard"), "tracking");
+      assert.equal(seeded("sub_plus"), "ai");
+      assert.equal(seeded("sub_pro"), "ai");
       assert.equal(pg.psql(`select tier from public.subscriptions where user_id = '${plusUser}'`), "ai");
       assert.equal(pg.psql(`select tier from public.subscriptions where user_id = '${proUser}'`), "ai");
       assert.equal(
