@@ -1,5 +1,5 @@
 import { isAdminEmail } from "@/lib/auth/env";
-import { TIER_NAMES } from "./tiers";
+import { TIER_NAMES, canonicalTier } from "./tiers";
 import { assertServerOnly } from "@/lib/auth/server-only";
 import { rpc } from "@/lib/auth/supabase";
 import { domainReadsFromCloudflare } from "@/lib/cloudflare/cutover-domains";
@@ -67,10 +67,18 @@ function normalise(raw: RawEntitlement | null): Entitlement {
     because the chain was where the last tier was forgotten — adding "plus" to
     the catalogue and not here would have silently served every Plus subscriber
     the free tier, and nothing would have failed.
+
+    Passed through canonicalTier first, because a row written before a tier was
+    retired still holds the retired name — 'standard', 'plus' or 'pro' — and
+    that name is not in TIER_NAMES on purpose: it is not sold any more. Without
+    this, an account still holding one of those names would fail the TIER_NAMES
+    check and be silently demoted to free, which is exactly the outcome a
+    subscriber who has not stopped paying must never see.
   */
+  const canonical = typeof raw.tier === "string" ? canonicalTier(raw.tier) : null;
   const tier: Tier =
-    typeof raw.tier === "string" && (TIER_NAMES as readonly string[]).includes(raw.tier)
-      ? (raw.tier as Tier)
+    canonical !== null && (TIER_NAMES as readonly string[]).includes(canonical)
+      ? (canonical as Tier)
       : "free";
   const source =
     raw.source === "role" ||

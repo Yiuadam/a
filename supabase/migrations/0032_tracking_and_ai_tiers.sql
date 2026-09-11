@@ -5,9 +5,25 @@
 -- — and Plus and Pro collapse into one AI tier, since there is no longer a
 -- reason to sell two different sizes of the same allowance. `standard`,
 -- `plus` and `pro` are retired; `tracking` (a saved, synced history) and `ai`
--- (marking, tutor, word lookup, paper generation) replace them. No account
--- holds one of the retired names today — confirmed before this was written —
--- so this is a rename, not a migration of live rows.
+-- (marking, tutor, word lookup, paper generation) replace them.
+--
+-- Production billing is D1-native (wrangler.jsonc sets CLOUDFLARE_DATA_MODE
+-- to "cloudflare" and CLOUDFLARE_NATIVE_STRIPE_BILLING to "1"): Stripe
+-- webhooks and the free trial write Cloudflare D1's own `subscriptions`
+-- table, and entitlements are read from there, not from here. This table is
+-- off that live path; it is kept in step for parity checks and as a rollback
+-- target, which is exactly why it still has to account for real rows rather
+-- than assume there are none.
+--
+-- There are three of them, today, all tier 'pro', all status 'active': two
+-- provider='promo' free trials (accepted 2026-08-17 and 2026-08-24) and one
+-- provider='stripe' subscription paid yearly (external_price_id
+-- price_1U2wIuIQuaS8SvAv6TzamEh6, current_period_end 2027-08-11). No
+-- 'standard' or 'plus' row exists anywhere. Postgres validates every existing
+-- row the instant a CHECK constraint is added, so the rename below — turning
+-- those three rows into 'tracking' and 'ai' — is what makes tightening the
+-- constraint to just the two new names safe, rather than a guaranteed 23514
+-- against this migration's own ALTER.
 --
 -- Every function below that ordered subscription rows by a paid hierarchy
 -- (`pro` > `plus` > `standard`) is recreated with the shorter one (`ai` >
@@ -17,6 +33,24 @@
 
 alter table public.subscriptions
   drop constraint if exists subscriptions_tier_check;
+
+-- Renaming has to happen before the constraint is tightened, not after:
+-- Postgres validates every row already in the table the moment a CHECK is
+-- added, and this table holds three rows still named 'pro' (see above). Add
+-- the strict constraint first and the migration aborts with 23514 on its own
+-- data, on the very statement meant to retire that name.
+update public.subscriptions
+  set tier = case tier when 'standard' then 'tracking' else 'ai' end
+  where tier in ('standard', 'plus', 'pro');
+
+-- 0001 defaulted this column to 'pro' because it was the only paid tier worth
+-- defaulting a stray insert into. Left alone, that default would keep handing
+-- out a name the constraint below no longer accepts — every insert that omits
+-- tier would fail, not just the ones that used to mean something. Moving the
+-- default here — same migration as the rename, before the constraint is
+-- added — means no window opens where the column defaults to a name that is
+-- already invalid.
+alter table public.subscriptions alter column tier set default 'free';
 
 alter table public.subscriptions
   add constraint subscriptions_tier_check check (

@@ -462,6 +462,155 @@ to be built, and all of them need the Mac that everything else in APPSTORE.md
 is waiting on. Until then, `/pricing` says so, and subscribing is a web
 feature.
 
+## Cutting over to Tracking and AI
+
+The three retired tier names — `standard`, `plus`, `pro` — are being replaced by
+two: `tracking` (the old Standard price; history and sync) and `ai` (marking,
+tutor, lookup, and everything Tracking has). The mapping is fixed:
+`standard` → `tracking`, `plus` and `pro` → `ai`. This section is the order to
+do it in on the real Cloudflare account and the real Stripe account — nothing
+here is previewable, because a preview runs against the same D1 database and
+the same Stripe keys as production (see the note at the top of this file). Do
+not skip a step or reorder one; each explains why below it.
+
+**1. Pre-flight, read-only. [anyone with wrangler]**
+
+```bash
+npx wrangler d1 execute BANDUP_DB --remote --command "SELECT tier, provider, status, COUNT(*) FROM subscriptions GROUP BY 1,2,3"
+```
+
+As of today this returns three rows, all `tier='pro'`, `status='active'`: two
+`provider='promo'` (free trials) and one `provider='stripe'` — a real Pro
+**yearly** subscription, `price_1U2wIuIQuaS8SvAv6TzamEh6`, renewing
+2027-08-11. Seeing `pro`, `plus`, or `standard` rows here is expected, not a
+problem — step 6 renames them, and until then the running code (old or new)
+already knows how to treat them, so nothing breaks in between.
+
+Also check the Stripe dashboard: **Products → BandUp Standard / BandUp Plus /
+BandUp Pro → each Price → active subscriptions**. The one to expect is that
+same Pro yearly subscription. The new code will map it to AI on its very next
+webhook event (a renewal, a card update, anything that fires
+`customer.subscription.updated`) — decide now whether to leave it, cancel it,
+or refund it if it turns out to be your own test subscription, because once
+the new code is live that decision is effectively made for you.
+
+**2. Mint the Tracking and AI prices. [owner — needs the Stripe live key]**
+
+From the repo root, **with this branch checked out** — the script builds
+whatever `lib/billing/tiers.ts` defines on the branch you're standing on, and
+on `main` today that is still the old Standard/Plus/Pro catalogue:
+
+```bash
+STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs --out stripe-prices.env
+```
+
+The key is typed into your own shell and goes nowhere else — the script only
+ever sends it to `api.stripe.com`. `stripe-prices.env` is not committed
+(`.gitignore` in this repo does not currently list it by name, so double-check
+`git status` shows it untracked, and delete it once step 3 is done regardless).
+
+Re-running this command is safe — a Price already correct in every currency is
+left alone — with one timing caveat: Stripe's product search lags a few
+seconds after a product is first created, so if you run it twice, wait at
+least a minute between runs or the second run may not find what the first one
+just made and try to create it again.
+
+**3. Upload the four secrets. [anyone with wrangler]**
+
+```bash
+npx wrangler versions secret bulk stripe-prices.env
+rm stripe-prices.env
+```
+
+Plain `wrangler secret bulk` (and `secret put`) is refused with Cloudflare
+error 10215 whenever the newest uploaded version is undeployed — which is the
+normal state here, since every PR preview leaves exactly such a version behind.
+`versions secret bulk` sidesteps that: it creates a new, still-undeployed
+version carrying the four new `STRIPE_PRICE_TRACKING_*` / `STRIPE_PRICE_AI_*`
+secrets. **Do not deploy that version on its own** — see the warning earlier in
+this file about what "the latest version" actually contains with a preview
+open. The next real deploy (step 4) picks the secrets up as part of shipping
+the new code, which is the only reason this ordering is safe.
+
+Leave the old `STRIPE_PRICE_STANDARD_*` / `STRIPE_PRICE_PLUS_*` /
+`STRIPE_PRICE_PRO_*` secrets in place for now — the code still running in
+production is the *old* code until step 4, and it still reads them. Removing
+them before then would take checkout down early for no benefit.
+
+**4. Merge and deploy. [owner — deploy button]**
+
+Merge the PR(s) that carry the new tier catalogue and this runbook, then run
+**Actions → Deploy to Cloudflare → Run workflow**. Until this deploy actually
+ships, the secrets uploaded in step 3 are inert — nothing reads them yet.
+
+**5. Verify.**
+
+```bash
+curl -s https://bandup.life/api/billing/health
+curl -s https://bandup.life/api/billing/config
+```
+
+`health` should say `"ok":true`. `config` should say `"checkout":true` and
+list all four plan ids (`tracking-monthly`, `tracking-yearly`, `ai-monthly`,
+`ai-yearly`) under `"plans"`. Load `/pricing` and confirm both plans show a
+working Subscribe button rather than "subscriptions are not open yet".
+
+**6. Rename the legacy D1 and Postgres rows. [owner — Supabase dashboard for
+the Postgres half; anyone with wrangler for the D1 half]**
+
+**Only after step 4 is live — never before.** The *old* code's entitlement
+resolver maps any tier it doesn't recognise to `free`, so renaming a row to
+`ai` while the old code is still deployed would silently demote that account
+to Free until the new deploy landed. Do D1 first, then Postgres:
+
+```bash
+npx wrangler d1 execute BANDUP_DB --remote --file=scripts/hand-run-tracking-and-ai-tiers-on-d1.sql
+```
+
+That file ends with its own verification `SELECT`, so read its output before
+moving on. Then, for Postgres — which is not on the live billing path today
+but is kept in step for parity and as a rollback path — paste
+`supabase/migrations/0032_tracking_and_ai_tiers.sql` into the Supabase SQL
+editor (or run `supabase db push` against a linked project). **Say plainly to
+yourself before running it: this changes production the instant it runs,**
+the same as any other statement typed directly into that editor. The migration
+renames the legacy `standard`/`plus`/`pro` rows to `tracking`/`ai` before it
+adds its `CHECK` constraint, which is what lets it run at all against the real
+data — a version of it that added the constraint first would abort against the
+Pro rows described in step 1.
+
+Little depends on this step happening promptly: the running code aliases the
+legacy names to the right tier for entitlements, AI allowances, history and
+organisation eligibility, so no learner loses anything between step 4 and step
+6. What does still read the stored name until then is display: the owner
+console labels the account "Pro plan", and the billing page prints the renewal
+date without saying whether it renews. Run step 6 straight after step 5 and
+neither is seen.
+
+**7. Clean up. [anyone with wrangler for the secrets; owner for the Stripe
+dashboard]**
+
+```bash
+npx wrangler versions secret delete STRIPE_PRICE_STANDARD_MONTHLY
+npx wrangler versions secret delete STRIPE_PRICE_STANDARD_YEARLY
+npx wrangler versions secret delete STRIPE_PRICE_PLUS_MONTHLY
+npx wrangler versions secret delete STRIPE_PRICE_PLUS_YEARLY
+npx wrangler versions secret delete STRIPE_PRICE_PRO_MONTHLY
+npx wrangler versions secret delete STRIPE_PRICE_PRO_YEARLY
+```
+
+(`versions secret delete` exists alongside `put`, `bulk`, and `list` — checked
+locally with `npx wrangler versions secret --help`. It stages a new undeployed
+version without those six secrets, exactly as `versions secret bulk` staged
+one with the four new ones in step 3, and takes effect on the next real
+deploy — which is fine, because nothing on the new code reads them.)
+
+Finally, in the Stripe dashboard, archive the old **BandUp Standard**,
+**BandUp Plus**, and **BandUp Pro** Products (Products → each one → Archive).
+`scripts/stripe-setup.mjs` only ever creates and amends the Tracking/AI
+catalogue — it does not touch these, so archiving the old ones is a manual,
+one-time step.
+
 ## Deploying by hand
 
 Note the order. `preview` and `deploy` both act on an *already built* app and

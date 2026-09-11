@@ -572,6 +572,58 @@ export function isPlanId(value: unknown): value is PlanId {
   return typeof value === "string" && (PLAN_IDS as readonly string[]).includes(value);
 }
 
+/*
+  Retired names, and the one place they are allowed to appear.
+
+  'standard', 'plus' and 'pro' stopped being sold the day this catalogue
+  shipped, but a name does not un-happen everywhere at once. It is stamped
+  into Stripe subscription metadata at checkout and never rewritten after —
+  Stripe has no reason to touch metadata on renewal — so a Pro subscriber who
+  checked out months before this file existed carries "pro" on every renewal
+  event for as long as the subscription lives. It is also sitting in database
+  rows written before the cutover, which do not rewrite themselves the moment
+  new code deploys.
+
+  Everywhere else in this codebase, a tier or plan id is one of the current
+  names and nothing else — that is what makes TIER_NAMES and PLAN_IDS worth
+  having. The two functions below are the seam: whatever arrives from Stripe
+  metadata or a stored row is translated back into a current name here, once,
+  so nothing downstream has to know a retired name was ever sold.
+*/
+export const LEGACY_TIER_ALIASES = {
+  standard: "tracking",
+  plus: "ai",
+  pro: "ai",
+} as const satisfies Record<string, Tier>;
+
+/** A tier name as Stripe or a stored row spelled it, understood as it is sold today. */
+export function canonicalTier(raw: string): string {
+  return Object.prototype.hasOwnProperty.call(LEGACY_TIER_ALIASES, raw)
+    ? LEGACY_TIER_ALIASES[raw as keyof typeof LEGACY_TIER_ALIASES]
+    : raw;
+}
+
+/** The six retired plan ids, mapped onto the current id sold in their place. */
+export const LEGACY_PLAN_ALIASES: Record<string, PlanId> = {
+  "standard-monthly": "tracking-monthly",
+  "standard-yearly": "tracking-yearly",
+  "plus-monthly": "ai-monthly",
+  "pro-monthly": "ai-monthly",
+  "plus-yearly": "ai-yearly",
+  "pro-yearly": "ai-yearly",
+};
+
+/**
+ * A plan id as Stripe metadata spelled it, understood as the id sold today —
+ * or null when it names nothing this catalogue has ever sold.
+ */
+export function canonicalPlanId(raw: string): PlanId | null {
+  if (isPlanId(raw)) return raw;
+  return Object.prototype.hasOwnProperty.call(LEGACY_PLAN_ALIASES, raw)
+    ? LEGACY_PLAN_ALIASES[raw]
+    : null;
+}
+
 /** Every plan that buys a given tier. */
 export function plansForTier(tier: Tier): Plan[] {
   return PLAN_IDS.map((id) => PLANS[id]).filter((plan) => plan.tier === tier);

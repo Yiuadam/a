@@ -48,6 +48,17 @@ interface SubscriptionRow {
   against a value in that same format is a precise chronological comparison —
   including at sub-second boundaries, which is where a looser format would
   first go wrong.
+
+  'pro' and 'plus' rank alongside 'ai', and 'standard' alongside 'tracking' —
+  a row written before the cutover still carries the retired name, and the
+  data fix that renames it in this table runs only after this code deploys
+  (see lib/billing/tiers.ts's LEGACY_TIER_ALIASES). Ranking a legacy name as
+  -1 until that fix lands would let a 'free' row outrank a real, paid-for
+  'pro' row here — the ORDER BY choosing a worse row than a WHERE clause that
+  had already found the right one. The value returned is left as the raw
+  stored name; canonicalising it is `normalise`'s job (lib/billing/entitlements
+  .ts), the one place downstream of every caller of this function, so it is
+  done exactly once.
 */
 const QUERY = `
   SELECT tier, provider, current_period_end
@@ -58,7 +69,10 @@ const QUERY = `
    ORDER BY
      CASE tier
        WHEN 'ai' THEN 2
+       WHEN 'pro' THEN 2
+       WHEN 'plus' THEN 2
        WHEN 'tracking' THEN 1
+       WHEN 'standard' THEN 1
        WHEN 'free' THEN 0
        ELSE -1
      END DESC,

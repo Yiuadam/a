@@ -6,8 +6,9 @@ import {
   PLAN_IDS,
   TIERS,
   amountIn,
+  canonicalPlanId,
+  canonicalTier,
   isPaidTier,
-  isPlanId,
   walletCurrency,
   walletMethodName,
 } from "./tiers";
@@ -421,11 +422,22 @@ export function subscriptionFromStripeEvent(
     through the server's own configuration. If neither answers, the row is
     written as `free` — a subscription whose tier cannot be established grants
     nothing, which is the direction to fail in.
+
+    Metadata is canonicalised before the isPaidTier check, not after. Stripe
+    never rewrites a subscription's metadata on its own, so an account that
+    checked out before a tier was retired still carries the retired name —
+    'pro' or 'plus' — on every renewal event for as long as it lives, and
+    'pro'/'plus' are not in PAID_TIERS any more because they are not sold any
+    more. Checking the raw value first would fail every one of those events
+    and fall through to `tierForPrice`, which does not recognise the Price
+    either (see lib/billing/env.ts) — the net effect being a paying
+    subscriber's own renewal quietly rewriting them to `free`.
   */
   const metadataTier = readString(metadata, TIER_METADATA_KEY);
+  const canonicalMetadataTier = metadataTier !== null ? canonicalTier(metadataTier) : null;
   const tier: Tier =
-    metadataTier !== null && isPaidTier(metadataTier as Tier)
-      ? (metadataTier as Tier)
+    canonicalMetadataTier !== null && isPaidTier(canonicalMetadataTier as Tier)
+      ? (canonicalMetadataTier as Tier)
       : (priceId && tierForPrice?.(priceId)) || "free";
 
   return {
@@ -475,9 +487,24 @@ export function prepaidPurchaseFromStripeEvent(
 
   const metadata = (object.metadata ?? {}) as Record<string, unknown>;
   const userId = readString(metadata, USER_METADATA_KEY);
-  const planId = readString(metadata, PLAN_METADATA_KEY);
+  const rawPlanId = readString(metadata, PLAN_METADATA_KEY);
+  /*
+    Canonicalised before it is checked, and the canonical id is what the rest
+    of this function — and both writers downstream, Postgres's RPC and the D1
+    native path — see from here on. A wallet Checkout Session created by code
+    that predates a plan's retirement still stamps the retired id on its
+    metadata (checkout metadata is fixed at creation; nothing rewrites a
+    Session already handed to a buyer), and that Session can be paid after the
+    new code has deployed. Checking the raw id against `isPlanId` would refuse
+    it, the route would answer Stripe 200 `{handled:false}` — "not ours" —
+    Stripe would never retry, and the buyer would be charged for nothing.
+    `canonicalPlanId` folds the validity check and the alias lookup into one:
+    a current id passes through, a retired one becomes its successor, and
+    anything else is null.
+  */
+  const planId = rawPlanId !== null ? canonicalPlanId(rawPlanId) : null;
   const paymentIntentId = readString(object, "payment_intent");
-  if (!userId || !isPlanId(planId) || !paymentIntentId) return null;
+  if (!userId || !planId || !paymentIntentId) return null;
 
   const plan = PLANS[planId];
   return {
