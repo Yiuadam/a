@@ -1,7 +1,7 @@
 "use client";
 
 /*
-  Whether this device has already had the free Pro trial poster.
+  Whether this device has already had the free AI trial poster.
 
   It lived in components/billing/FreeProPoster.tsx, which was the right place
   while the poster was the only thing that touched it. Giving the trial up makes

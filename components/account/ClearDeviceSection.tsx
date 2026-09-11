@@ -10,6 +10,7 @@ import {
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { clearSyncedProgress } from "@/lib/progress/sync";
 import { useHistoryClearPolicy } from "@/lib/organizations/useHistoryClearPolicy";
+import { tierShows, useTier } from "@/lib/billing/useTier";
 
 /*
   Delete everything this browser is keeping.
@@ -64,6 +65,19 @@ export default function ClearDeviceSection() {
     accountSnapshot,
     accountServerSnapshot,
   );
+  /*
+    Whether there is a synced copy worth reconciling at all. Free no longer
+    carries one — progress-sync is Tracking's and AI's — so calling
+    clearSyncedProgress for a Free account would only ask the server to
+    refuse a clear of something it was never keeping, and report that refusal
+    as though it were an outage. Generous while the answer is unknown, same
+    reasoning as every other client-side gate here: a subscriber should not
+    see the wrong branch for the second it takes /api/account/status to
+    answer.
+  */
+  const tier = useTier();
+  const hasSync =
+    tier.phase !== "ready" || !tier.accountsEnabled || tierShows(tier, "progress-sync");
   const [armed, setArmed] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +86,7 @@ export default function ClearDeviceSection() {
     setDone(true);
     setError(null);
 
-    if (session) {
+    if (session && hasSync) {
       /*
         Do not call clearHistory() here. It mutates sessionStorage before the
         network request, so the old failure message ("Nothing else was
@@ -94,6 +108,14 @@ export default function ClearDeviceSection() {
           setError(
             "Your sign-in has expired. Nothing was cleared; sign in again and retry.",
           );
+        } else if (sync.status === "not-entitled") {
+          /*
+            Reached only if the tier answer above was stale or still loading
+            when the tap landed — Tracking/AI is what grants progress-sync,
+            and this screen already skips the network call once it knows
+            there is nothing synced to clear.
+          */
+          setError("Nothing was cleared.");
         } else {
           setError(
             "BandUp couldn't confirm the synced clear. This browser has kept its copy for now. Check your connection and retry.",
@@ -162,12 +184,17 @@ export default function ClearDeviceSection() {
             than left empty — so the sentence can finally say the whole
             thing instead of the one part that happened to be true.
           */}
-          {session ? (
+          {session && hasSync ? (
             <p className="text-[0.8125rem] leading-5 text-rose-800/80">
               This is not your account. BandUp clears the synced copy first — sittings, placement,
               drill scores and saved words — and deletes the drill and saved-word records from
               your account rather than emptying them, so none of it returns on another device.
               Your sign-in and account profile remain.
+            </p>
+          ) : session ? (
+            <p className="text-[0.8125rem] leading-5 text-rose-800/80">
+              Only this browser is affected. Your account has no saved history to clear — that
+              starts with Tracking — so nothing returns from anywhere else.
             </p>
           ) : (
             <p className="text-[0.8125rem] leading-5 text-rose-800/80">

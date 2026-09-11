@@ -13,7 +13,7 @@ import {
 } from "@/lib/billing/free-pro-dismissal";
 
 /*
-  Whether the free Pro trial is on offer, held apart from anything that draws it.
+  Whether the free AI trial is on offer, held apart from anything that draws it.
 
   ---------------------------------------------------------------------------
   Why this is not inside the poster any more
@@ -123,7 +123,7 @@ export async function acceptFreePro(): Promise<void> {
       message:
         typeof body?.error === "string" && body.error.length > 0
           ? body.error
-          : "We couldn't start your free Pro trial just now. Please try again in a minute.",
+          : "We couldn't start your free AI trial just now. Please try again in a minute.",
     });
   } catch {
     publish({

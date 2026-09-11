@@ -55,7 +55,7 @@ async function walletSession(args = {}, env = {}) {
   };
   try {
     const url = await stripe.createWalletCheckoutSession({
-      plan: "plus-monthly",
+      plan: "tracking-monthly",
       userId: "11111111-1111-4111-8111-111111111111",
       email: "learner@example.test",
       customerId: null,
@@ -140,11 +140,11 @@ test("an unknown wallet name is ignored rather than sent to Stripe", async () =>
 */
 test("a wallet payment is always in the base currency", async () => {
   const body = await walletSession();
-  const plan = tiers.PLANS["plus-monthly"];
+  const plan = tiers.PLANS["tracking-monthly"];
 
   assert.equal(body.get("line_items[0][price_data][currency]"), plan.currency);
   assert.equal(body.get("line_items[0][price_data][unit_amount]"), String(plan.amountMinor));
-  assert.equal(body.get("metadata[bandup_plan_id]"), "plus-monthly");
+  assert.equal(body.get("metadata[bandup_plan_id]"), "tracking-monthly");
   assert.equal(body.get("customer_creation"), "always");
 });
 
@@ -219,7 +219,7 @@ test("a Stripe refusal carries its message into the error", async () => {
   try {
     await assert.rejects(
       stripe.createWalletCheckoutSession({
-        plan: "plus-monthly",
+        plan: "tracking-monthly",
         currency: "hkd",
         userId: "11111111-1111-4111-8111-111111111111",
         email: null,

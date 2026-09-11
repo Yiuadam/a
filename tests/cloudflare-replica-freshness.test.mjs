@@ -105,7 +105,7 @@ test("a cancellation and duplicate retry attempt the organization replica withou
     eventAt: "2026-08-13T00:00:00.000Z",
     userId: USER.id,
     status: "canceled",
-    tier: "pro",
+    tier: "ai",
     customerId: "cus_1",
     subscriptionId: "sub_1",
     priceId: "price_month",

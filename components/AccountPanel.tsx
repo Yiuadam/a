@@ -62,7 +62,7 @@ type Phase = "loading" | "ready" | "unavailable";
 const LOCAL_MENU_PREVIEW: AccountStatus = {
   enabled: true,
   signedIn: true,
-  tier: "plus",
+  tier: "ai",
   usage: { windowSeconds: 0, oldestAt: null, routes: [] },
 };
 
@@ -136,7 +136,7 @@ export default function AccountPanel({ localMenuPreview = false }: { localMenuPr
         */}
         <p className="text-[0.875rem] leading-6 text-slate-600">
           {signingIn
-            ? "Optional — everything works without one. Signing in carries your progress between devices."
+            ? "Optional for a taste of it — signing in is what removes the weekly limit and unlocks writing and speaking."
             : "Everything about you, and the account itself. Pick one."}
         </p>
       </div>

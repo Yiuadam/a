@@ -4,6 +4,7 @@ import {
   organizationHistoryClearPolicy,
 } from "@/lib/auth/supabase";
 import { accountRuntimeEnabled } from "@/lib/auth/runtime";
+import { requireFeature } from "@/lib/billing/gate";
 import { organizationDataMode } from "@/lib/cloudflare/bindings";
 import { cloudflareHistoryClearAllowed } from "@/lib/cloudflare/organizations";
 import {
@@ -34,7 +35,7 @@ type ClearTombstones = ReturnType<typeof progressClearTombstones>;
 /*
   Reading and writing a signed-in learner's synced progress.
 
-  Two rules shape this route, both from ACCOUNTS.md threat 5.
+  Three rules shape this route, two from ACCOUNTS.md threat 5 and one newer.
 
   It is signed-in only, with no anonymous fallback. Everywhere else in this
   system anonymous is an ordinary state to handle gracefully; here there is
@@ -46,6 +47,15 @@ type ClearTombstones = ReturnType<typeof progressClearTombstones>;
   account rows and uses compare-and-swap. That second merge closes the window
   where two devices both read the same old account and then overwrite each
   other in arrival order.
+
+  And now, gated by tier: `progress-sync` is Tracking's and AI's feature, not
+  every account's. A Free account still keeps whatever it wrote locally on
+  this device — that never goes through here — but the read that would carry
+  it to another device, and the write that would keep it past this session,
+  both refuse with `requireFeature` the same way every metered AI route does.
+  The client's own copy of the answer (lib/billing/useTier.ts) is what decides
+  whether `/history` even tries; this is what makes the refusal real rather
+  than decorative.
 */
 
 export const dynamic = "force-dynamic";
@@ -133,6 +143,8 @@ async function handleGET(req: Request) {
   const auth = await requireUser(req);
   if (auth.error === "off") return NextResponse.json({ error: "Not found." }, { status: 404 });
   if (auth.error === "anon") return safeJsonError(MESSAGES.signInRequired, 401);
+  const denied = await requireFeature(req, "progress-sync");
+  if (denied) return denied;
 
   const rows = await getLearnerProgressSnapshots(auth.user);
   if (rows === null) {
@@ -178,6 +190,8 @@ async function handlePUT(req: Request) {
   const auth = await requireUser(req);
   if (auth.error === "off") return NextResponse.json({ error: "Not found." }, { status: 404 });
   if (auth.error === "anon") return safeJsonError(MESSAGES.signInRequired, 401);
+  const denied = await requireFeature(req, "progress-sync");
+  if (denied) return denied;
 
   const raw = await req.text();
   /*

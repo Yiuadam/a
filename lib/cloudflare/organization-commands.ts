@@ -224,7 +224,7 @@ async function studentEligible(db: Db, userId: string): Promise<boolean> {
   const paid = await db.prepare(`
     SELECT 1 AS ok FROM subscriptions
      WHERE user_id = ? AND status IN ('active', 'trialing')
-       AND tier IN ('standard', 'plus', 'pro', 'admin')
+       AND tier IN ('tracking', 'ai', 'admin')
        AND (current_period_end IS NULL OR current_period_end > ?) LIMIT 1
   `).bind(userId, now).first<{ ok: number }>();
   if (paid) return true;

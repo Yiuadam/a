@@ -74,7 +74,7 @@ function subscriptionEvent(overrides = {}) {
         customer: "cus_1",
         status: "active",
         cancel_at_period_end: false,
-        metadata: { bandup_user_id: "11111111-1111-4111-8111-111111111111", bandup_tier: "pro" },
+        metadata: { bandup_user_id: "11111111-1111-4111-8111-111111111111", bandup_tier: "ai" },
         items: {
           data: [{ id: "si_1", current_period_end: NOW + 2_592_000, price: { id: "price_month" } }],
         },
@@ -194,7 +194,7 @@ test("a subscription event is read into the row the database stores", () => {
   assert.equal(sub.eventId, "evt_1");
   assert.equal(sub.userId, "11111111-1111-4111-8111-111111111111");
   assert.equal(sub.status, "active");
-  assert.equal(sub.tier, "pro");
+  assert.equal(sub.tier, "ai");
   assert.equal(sub.customerId, "cus_1");
   assert.equal(sub.subscriptionId, "sub_1");
   assert.equal(sub.priceId, "price_month");
@@ -276,8 +276,8 @@ test("a subscription whose tier cannot be established grants nothing", () => {
   assert.equal(subscriptionFromStripeEvent(parseStripeEvent(raw)).tier, "free");
   // The same event, with the Price recognised.
   assert.equal(
-    subscriptionFromStripeEvent(parseStripeEvent(raw), (id) => (id === "price_x" ? "pro" : null)).tier,
-    "pro",
+    subscriptionFromStripeEvent(parseStripeEvent(raw), (id) => (id === "price_x" ? "ai" : null)).tier,
+    "ai",
   );
 });
 
@@ -312,7 +312,7 @@ test("a paid wallet checkout grants the catalogue plan and duration", () => {
             payment_intent: "pi_wallet",
             metadata: {
               bandup_user_id: "11111111-1111-4111-8111-111111111111",
-              bandup_plan_id: "plus-monthly",
+              bandup_plan_id: "tracking-monthly",
               // This is deliberately wrong: the parser must derive the tier
               // from the server catalogue rather than trusting metadata.
               bandup_tier: "admin",
@@ -323,8 +323,8 @@ test("a paid wallet checkout grants the catalogue plan and duration", () => {
     );
     const purchase = prepaidPurchaseFromStripeEvent(event);
     assert.equal(purchase.userId, "11111111-1111-4111-8111-111111111111");
-    assert.equal(purchase.planId, "plus-monthly");
-    assert.equal(purchase.tier, "plus");
+    assert.equal(purchase.planId, "tracking-monthly");
+    assert.equal(purchase.tier, "tracking");
     assert.equal(purchase.interval, "month");
     assert.equal(purchase.paymentIntentId, "pi_wallet");
   }
@@ -332,7 +332,7 @@ test("a paid wallet checkout grants the catalogue plan and duration", () => {
 
 test("an unpaid or invented wallet plan grants nothing", () => {
   for (const [paymentStatus, planId] of [
-    ["unpaid", "plus-monthly"],
+    ["unpaid", "tracking-monthly"],
     ["paid", "admin-monthly"],
   ]) {
     const event = parseStripeEvent(
@@ -506,7 +506,7 @@ test("every field the database needs is sent, and the payload is kept whole", as
       assert.equal(sent.p_subscription_id, "sub_1");
       assert.equal(sent.p_customer_id, "cus_1");
       assert.equal(sent.p_status, "active");
-      assert.equal(sent.p_tier, "pro");
+      assert.equal(sent.p_tier, "ai");
       assert.equal(sent.p_price_id, "price_month");
       assert.equal(sent.p_cancel_at_period_end, false);
       assert.equal(sent.p_event_at, new Date(NOW * 1000).toISOString());

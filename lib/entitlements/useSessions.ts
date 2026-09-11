@@ -135,11 +135,12 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & {
   /*
     The account's tier, as a session tier.
 
-    Every paid tier maps to itself; anything unrecognised falls to "free",
-    which is the restrictive end. With accounts switched off there is no tier at
-    all and the whole app is open, so that a deployment without Supabase is a
-    working app rather than a locked one — see the note above about being
-    optimistic in the client and strict on the server.
+    Every real tier maps to itself, and since Free unlocks the whole library
+    now the same as Tracking and AI do, that mapping barely matters any more
+    for what gets drawn — it is kept explicit anyway, rather than collapsed
+    into "signed in or not", because a future change to this table might once
+    again want to tell the tiers apart and a table that already names them is
+    one that change does not have to rebuild.
   */
   /*
     "unavailable" is the lookup having failed, and it is not the same answer as
@@ -149,7 +150,9 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & {
     anonymous visitor the whole library. Nothing metered leaked — the server
     refuses on its own account — but the shelf was wrong, and a shelf that says
     a paper is available and then refuses it is worse than one that says it is
-    locked.
+    locked. It falls back to "free" now, which — since Free is unlocked the
+    same as every other signed-in tier — draws exactly the same shelf a
+    genuine Free account would see, honestly rather than by accident.
 
     Loading stays optimistic, for the reason above it: a subscriber should not
     watch their own paid features appear locked for a moment on a slow
@@ -161,13 +164,10 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & {
     account.phase === "unavailable" && account.accountsEnabled
       ? "anonymous"
       : account.phase !== "ready" || !account.accountsEnabled
-      ? "pro"
+      ? "free"
       : !account.signedIn
         ? "anonymous"
-        : account.tier === "admin" ||
-            account.tier === "pro" ||
-            account.tier === "plus" ||
-            account.tier === "standard"
+        : account.tier === "admin" || account.tier === "ai" || account.tier === "tracking"
           ? account.tier
           : "free";
 

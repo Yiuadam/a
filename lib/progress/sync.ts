@@ -70,7 +70,15 @@ export type SyncOutcome =
       rowsDeleted?: boolean;
     }
   | { status: "signed-out" }
-  | { status: "unavailable" };
+  | { status: "unavailable" }
+  /*
+    The account is real and reachable; the tier just does not include
+    progress-sync. Distinct from "unavailable" for the same reason
+    "signed-out" is: retrying changes nothing about a 402, and a device that
+    keeps trying anyway is spending requests to relearn a fact it already
+    has. See app/api/account/progress/route.ts.
+  */
+  | { status: "not-entitled" };
 
 export type ClearSyncedProgressOutcome = SyncOutcome | { status: "restricted" };
 
@@ -209,6 +217,7 @@ async function syncProgressWithOptions(
   try {
     const res = await authedFetch(apiUrl("/api/account/progress"));
     if (res.status === 401) return { status: "signed-out" };
+    if (res.status === 402) return { status: "not-entitled" };
     if (!res.ok) return { status: "unavailable" };
     const body = (await res.json()) as { snapshots?: Snapshot[] };
     remote = Array.isArray(body.snapshots) ? body.snapshots : [];
@@ -394,6 +403,7 @@ async function syncProgressWithOptions(
       }),
     });
     if (res.status === 401) return { status: "signed-out" };
+    if (res.status === 402) return { status: "not-entitled" };
     if (!res.ok) {
       /*
         This used to return { status: "unavailable" } here, which discarded
@@ -650,13 +660,20 @@ export async function clearSyncedProgress(
   whether the failing attempt was an ordinary autosync pass or a history
   clear. `restricted` counts as reaching the account — the server gave a real
   answer, it just declined the clear on policy grounds, which is not an
-  outage. `signed-out` touches neither flag: an expired token is neither new
-  evidence the write pipeline is broken nor evidence that a previous failure
-  is now fixed, so whatever was last recorded is left standing until an
-  attempt actually resolves it one way or the other.
+  outage. `signed-out` and `not-entitled` touch neither flag: an expired
+  token or a tier without progress-sync is neither new evidence the write
+  pipeline is broken nor evidence that a previous failure is now fixed, so
+  whatever was last recorded is left standing until an attempt actually
+  resolves it one way or the other.
 */
 function rememberSyncHealth(outcome: ClearSyncedProgressOutcome): void {
-  if (typeof window === "undefined" || outcome.status === "signed-out") return;
+  if (
+    typeof window === "undefined" ||
+    outcome.status === "signed-out" ||
+    outcome.status === "not-entitled"
+  ) {
+    return;
+  }
   try {
     if (outcome.status === "unavailable") window.localStorage.setItem(SYNC_FAILED, "1");
     else window.localStorage.removeItem(SYNC_FAILED);

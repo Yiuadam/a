@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import SavedResultView from "@/components/history/SavedResultView";
+import HistoryGate from "@/components/history/HistoryGate";
 import { useProfile } from "@/lib/hooks";
 
 function ResultContent() {
@@ -31,8 +32,10 @@ function ResultContent() {
 
 export default function HistoryResultPage() {
   return (
-    <Suspense fallback={null}>
-      <ResultContent />
-    </Suspense>
+    <HistoryGate>
+      <Suspense fallback={null}>
+        <ResultContent />
+      </Suspense>
+    </HistoryGate>
   );
 }

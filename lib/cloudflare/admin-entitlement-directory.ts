@@ -74,9 +74,8 @@ export async function cloudflareAdminDirectoryEntitlements(
           PARTITION BY s.user_id
           ORDER BY
             CASE s.tier
-              WHEN 'pro' THEN 3
-              WHEN 'plus' THEN 2
-              WHEN 'standard' THEN 1
+              WHEN 'ai' THEN 2
+              WHEN 'tracking' THEN 1
               WHEN 'free' THEN 0
               ELSE -1
             END DESC,

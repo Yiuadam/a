@@ -174,7 +174,7 @@ test("the webhook's idempotency holds in the database that enforces it", async (
       at,
       userId = null,
       status,
-      tier = "pro",
+      tier = "ai",
       sub = "sub_1",
       cus = "cus_1",
       end = null,
@@ -230,7 +230,7 @@ test("the webhook's idempotency holds in the database that enforces it", async (
       );
       assert.equal(pg.psql("select count(*) from public.subscriptions"), "1");
       assert.equal(pg.psql("select status from public.subscriptions"), "active");
-      assert.equal(pg.psql(`select tier from public.resolve_entitlement('${user}')`), "pro");
+      assert.equal(pg.psql(`select tier from public.resolve_entitlement('${user}')`), "ai");
     });
 
     await t.test("a renewal with no metadata still finds the account", () => {
@@ -298,12 +298,12 @@ test("the webhook's idempotency holds in the database that enforces it", async (
           set local role authenticated;
           begin
             perform public.apply_provider_subscription_event(
-              'stripe','evt_hack', now(), '{}'::jsonb, u, 'active','pro','c','s',null,null,false);
+              'stripe','evt_hack', now(), '{}'::jsonb, u, 'active','ai','c','s',null,null,false);
             raise exception 'a signed-in user granted themselves a subscription';
           exception when insufficient_privilege then null;
           end;
           begin
-            insert into public.subscriptions (user_id, provider, status, tier) values (u,'stripe','active','pro');
+            insert into public.subscriptions (user_id, provider, status, tier) values (u,'stripe','active','ai');
             raise exception 'a signed-in user inserted their own subscription';
           exception when insufficient_privilege then null;
           end;
@@ -325,10 +325,10 @@ test("the webhook's idempotency holds in the database that enforces it", async (
         insert into public.subscriptions
           (user_id, provider, status, tier, external_subscription_id, current_period_end)
         values
-          ('${overlap}', 'stripe', 'active', 'standard', 'sub_overlap_standard', now() + interval '30 days'),
-          ('${overlap}', 'apple', 'active', 'pro', 'sub_overlap_pro', now() + interval '10 days'),
-          ('${expired}', 'stripe', 'active', 'pro', 'sub_expired', now() - interval '1 day'),
-          ('${refunded}', 'stripe', 'refunded', 'pro', 'sub_refunded', now() + interval '30 days')
+          ('${overlap}', 'stripe', 'active', 'tracking', 'sub_overlap_tracking', now() + interval '30 days'),
+          ('${overlap}', 'apple', 'active', 'ai', 'sub_overlap_ai', now() + interval '10 days'),
+          ('${expired}', 'stripe', 'active', 'ai', 'sub_expired', now() - interval '1 day'),
+          ('${refunded}', 'stripe', 'refunded', 'ai', 'sub_refunded', now() + interval '30 days')
       `);
 
       const counted = JSON.parse(
@@ -336,9 +336,9 @@ test("the webhook's idempotency holds in the database that enforces it", async (
                    from public.admin_tier_counts('${envAdmin}')`),
       );
       const value = (record, tier) => Number(record[tier] ?? 0);
-      assert.equal(value(counted, "pro"), value(baseline, "pro") + 1,
-        "overlapping Standard and Pro rows must count one effective Pro account");
-      assert.equal(value(counted, "standard"), value(baseline, "standard"),
+      assert.equal(value(counted, "ai"), value(baseline, "ai") + 1,
+        "overlapping Tracking and AI rows must count one effective AI account");
+      assert.equal(value(counted, "tracking"), value(baseline, "tracking"),
         "the weaker overlapping row must not be counted separately");
       assert.equal(value(counted, "free"), value(baseline, "free") + 2,
         "expired and refunded rows must resolve to free");

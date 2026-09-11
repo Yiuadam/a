@@ -19,7 +19,7 @@ import {
 import { TIERS } from "@/lib/billing/tiers";
 
 /*
-  The poster for the free Pro trial.
+  The poster for the free AI trial.
 
   ---------------------------------------------------------------------------
   Shown to a guest too, not only a signed-in account
@@ -35,7 +35,7 @@ import { TIERS } from "@/lib/billing/tiers";
   ---------------------------------------------------------------------------
   What it says, and why it says the awkward part
 
-  It offers Pro for nothing, lists what Pro includes, and then — in the body,
+  It offers AI for nothing, lists what AI includes, and then — in the body,
   in the same size as everything else, not in small grey type under the button
   — says that the trial may be cancelled at any time in the future and that
   nobody is ever charged without choosing to subscribe.
@@ -99,7 +99,7 @@ export default function FreeProPoster() {
   if (!session) {
     return (
       <section className="card">
-        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Pro, free, if you want it</h2>
+        <h2 className="text-[1.0625rem] font-semibold text-slate-900">AI, free, if you want it</h2>
         {/*
           Kept to two lines and two points on purpose. This sits above the
           practice list on the home page, and at four points and two body
@@ -112,12 +112,12 @@ export default function FreeProPoster() {
           away on the plans page.
         */}
         <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
-          Pro is the plan for the weeks before your exam, and it is free on every new account —
+          AI is the plan for the weeks before your exam, and it is free on every new account —
           no card.
         </p>
 
         <ul className="mt-2.5 space-y-1">
-          {TIERS.pro.includes.slice(0, 2).map((line) => (
+          {TIERS.ai.includes.slice(0, 2).map((line) => (
             <li key={line} className="flex gap-2.5 text-[0.875rem] leading-5 text-slate-700">
               <span
                 aria-hidden="true"
@@ -142,7 +142,7 @@ export default function FreeProPoster() {
             The intent survives the trip: consumeAutoAcceptIntent() above
             picks it back up the moment a session exists, so the person who
             tapped this never has to find this poster and press a second
-            button — the account they land in already has Pro.
+            button — the account they land in already has AI.
           */}
           <SignInLink
             className="btn-primary"
@@ -166,9 +166,9 @@ export default function FreeProPoster() {
   if (phase === "accepted") {
     return (
       <section className="card" aria-live="polite">
-        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Your free Pro trial has started</h2>
+        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Your free AI trial has started</h2>
         <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
-          Your account is on Pro now. Nothing has been charged and no card has been asked for.
+          Your account is on AI now. Nothing has been charged and no card has been asked for.
           You can see what you have used on your account page, and give the trial up there
           whenever you like.
         </p>
@@ -185,17 +185,17 @@ export default function FreeProPoster() {
 
   return (
     <section className="card">
-      <h2 className="text-[1.0625rem] font-semibold text-slate-900">Pro, free, if you want it</h2>
+      <h2 className="text-[1.0625rem] font-semibold text-slate-900">AI, free, if you want it</h2>
       {/* Trimmed alongside the signed-out poster above, and for the same
           reason. The paragraph below it is not trimmed with them: that one is
           a promise about money, and shortening it would be shortening the
           part a reader is entitled to have in full. */}
       <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
-        Pro is the plan for the weeks before your exam, and it is free on your account — no card.
+        AI is the plan for the weeks before your exam, and it is free on your account — no card.
       </p>
 
       <ul className="mt-2.5 space-y-1">
-        {TIERS.pro.includes.slice(0, 2).map((line) => (
+        {TIERS.ai.includes.slice(0, 2).map((line) => (
           <li key={line} className="flex gap-2.5 text-[0.875rem] leading-5 text-slate-700">
             <span
               aria-hidden="true"
@@ -211,7 +211,7 @@ export default function FreeProPoster() {
         the button rather than under it.
       */}
       <p className="mt-3 text-[0.875rem] leading-6 text-slate-700">
-        This is a free trial of Pro. It may be cancelled at any time in the future, and you can
+        This is a free trial of AI. It may be cancelled at any time in the future, and you can
         give it up yourself whenever you like, from your account page. If it ends, your account
         goes back to the free plan and everything you have written or practised stays where it is.
         You will never be charged without choosing to subscribe yourself.
@@ -225,7 +225,7 @@ export default function FreeProPoster() {
 
       <div className="mt-3.5 flex flex-wrap items-center gap-2">
         <button type="button" className="btn-primary" onClick={accept} disabled={busy}>
-          {busy ? "Starting…" : "Start my free Pro trial"}
+          {busy ? "Starting…" : "Start my free AI trial"}
         </button>
         <button type="button" className="btn-secondary" onClick={dismiss} disabled={busy}>
           No thanks

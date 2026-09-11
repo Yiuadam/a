@@ -95,7 +95,7 @@ test("the homepage uses organisation, score-trend, then placement priority", () 
     The free Pro poster used to stand in that slot and no longer does — it is
     on /account, announced by a notification. It moved because an announcement
     has to lead somewhere that exists everywhere it is made, and the iOS app
-    has no bell; see tests/free-pro-trial.test.mjs, which guards the offer's
+    has no bell; see tests/free-ai-trial.test.mjs, which guards the offer's
     reachability now.
 
     Asserted as an absence rather than deleted, so putting it back here is a

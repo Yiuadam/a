@@ -235,12 +235,10 @@ because Secrets are encrypted at rest and hidden from the dashboard once saved.
 | `APPLE_SIGNIN_PRIVATE_KEY` | Sign in with Apple. The whole `AuthKey_XXXXXXXXXX.p8` file including its BEGIN and END lines; it downloads once and Apple will not reissue it. **These four are not the `APPLE_IAP_*` key above** — that one is an App Store Connect key for in-app purchase, and crossing them produces a client secret Apple rejects without saying why. All four need a paid Apple Developer Program membership; until then no Apple button is offered anywhere and `/api/auth/apple/*` answers 404, which is a working state rather than a broken one. D1 migration `0022_apple_identity.sql` must also be applied — read its header first, it rebuilds a live identity table. Confirm with `curl -s https://bandup.life/api/auth/apple/config`, which should say `"enabled":true`, and with the "Sign in with Apple" row on the owner diagnostics panel |
 | `STRIPE_SECRET_KEY` | subscriptions: creating a Checkout Session and a billing portal session |
 | `STRIPE_WEBHOOK_SECRET` | subscriptions: verifying that a webhook delivery really came from Stripe |
-| `STRIPE_PRICE_STANDARD_MONTHLY` | the Stripe Price id behind Standard, monthly |
-| `STRIPE_PRICE_STANDARD_YEARLY` | the Stripe Price id behind Standard, yearly |
-| `STRIPE_PRICE_PLUS_MONTHLY` | the Stripe Price id behind Plus, monthly |
-| `STRIPE_PRICE_PLUS_YEARLY` | the Stripe Price id behind Plus, yearly |
-| `STRIPE_PRICE_PRO_MONTHLY` | the Stripe Price id behind Pro, monthly |
-| `STRIPE_PRICE_PRO_YEARLY` | the Stripe Price id behind Pro, yearly |
+| `STRIPE_PRICE_TRACKING_MONTHLY` | the Stripe Price id behind Tracking, monthly |
+| `STRIPE_PRICE_TRACKING_YEARLY` | the Stripe Price id behind Tracking, yearly |
+| `STRIPE_PRICE_AI_MONTHLY` | the Stripe Price id behind AI, monthly |
+| `STRIPE_PRICE_AI_YEARLY` | the Stripe Price id behind AI, yearly |
 | `ADMIN_EMAILS` | your own address, so signing in with it makes you the owner. Comma-separate for more than one |
 | `ADMIN_USERNAME` | a name you can type instead of that address at sign-in. Optional |
 
@@ -249,7 +247,7 @@ loads and every page works, and only the AI features answer with an error.
 Missing Stripe variables are similar and deliberately quiet: `/pricing` still
 renders every plan and its price and says subscriptions are not open yet,
 rather than showing a button that fails. A plan whose Price id is missing is
-simply not offered, so it is fine to set Standard up first and add the others
+simply not offered, so it is fine to set Tracking up first and add AI
 later.
 
 Changing any of them takes effect on the next deploy, so click **Deploy** after
@@ -317,7 +315,7 @@ sees.
 
 **1. Create the products and prices — with the script, not by hand.**
 
-There are six prices and each carries nine other currencies, which is sixty
+There are four prices and each carries nine other currencies, which is forty
 amounts to type correctly into a dashboard. Don't. `scripts/stripe-setup.mjs`
 creates all of it from `lib/billing/tiers.ts`, which is the same catalogue the
 pricing page prints and the checkout guard checks against, so the three cannot
@@ -329,10 +327,10 @@ STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs             # then d
 ```
 
 It is idempotent — a Price that is already correct in every currency is left
-alone — and it prints the six `price_…` ids.
+alone — and it prints the four `price_…` ids.
 
 Add `--out stripe-prices.env` and it writes them in the shape Wrangler reads,
-so the six never have to be retyped:
+so the four never have to be retyped:
 
 ```
 STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs --out stripe-prices.env
@@ -340,18 +338,20 @@ npx wrangler secret bulk stripe-prices.env
 rm stripe-prices.env
 ```
 
-Six ids pasted into six dashboard fields is six chances to put Pro's id in
-Standard's slot, which sells the expensive plan at the cheap price. The
+Four ids pasted into four dashboard fields is four chances to put AI's id in
+Tracking's slot, which sells the expensive plan at the cheap price. The
 checkout guard refuses that sale rather than charging wrongly, so it is
 survivable — but not making the mistake is better than catching it.
 
-The base prices, for reference:
+The base prices, for reference. Neither plan sells the practice library
+itself — every reading, listening, writing and speaking paper is free the
+moment somebody signs in. Tracking sells a saved, synced history; AI adds
+marking, a tutor and word lookup on top of Tracking:
 
 | Product | Monthly | Yearly | Variables |
 |---|---|---|---|
-| BandUp Standard | `HK$4.90` | `HK$39` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
-| BandUp Plus | `HK$12.90` | `HK$129` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
-| BandUp Pro | `HK$25.90` | `HK$279` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
+| BandUp Tracking | `HK$4.90` | `HK$39` | `STRIPE_PRICE_TRACKING_MONTHLY`, `STRIPE_PRICE_TRACKING_YEARLY` |
+| BandUp AI | `HK$8.90` | `HK$89` | `STRIPE_PRICE_AI_MONTHLY`, `STRIPE_PRICE_AI_YEARLY` |
 
 Each Price also carries USD, EUR, GBP, AUD, CAD, SGD, JPY, INR and CNY as
 `currency_options`, so one Price id charges a Londoner in pounds and a Tokyo
@@ -384,19 +384,20 @@ that subscriber costs to serve. There is no purchasing-power discount on the AI
 tiers — the model bill is the same wherever somebody lives, and it is already
 80-95% of the price.
 
-These are not arbitrary numbers, and they have very little room in them. Each
-one is what the tier can be made to cost at full usage — every AI request at its
-ceiling — plus Stripe's 2.9% + 30c, plus a margin of about HK$3 a month, rounded
-up to a price that looks like a price. `tests/ai-economics.test.mjs` fails the
-build if any plan drops below that floor.
+These are not arbitrary numbers, and they have very little room in them. AI is
+cost-plus: what the tier can be made to cost at full usage — every AI request
+at its ceiling — plus Stripe's 2.9% + 30c, plus a margin of at least HK$1 a
+month, rounded up to a price that looks like a price. Tracking costs nothing
+to serve, so its price only has to clear Stripe's own minimum charge.
+`tests/ai-economics.test.mjs` fails the build if AI drops below that floor.
 
-Two consequences worth knowing before you set them. On Standard, Stripe's fixed
-30c is about a third of the charge, so most of what a Standard subscriber pays
-goes to the card network. And HK$3 a month per subscriber does not cover
-Supabase, Cloudflare or the Apple developer programme — what makes the plans
-work is that nobody uses their whole allowance, so a real month costs a fraction
-of the ceiling. The floor guarantees there is never a loss; it is not the
-business case.
+Two consequences worth knowing before you set them. On Tracking, Stripe's
+fixed 30c is a meaningful share of the charge, so a real portion of what a
+Tracking subscriber pays goes to the card network. And HK$1 a month per AI
+subscriber does not cover Supabase, Cloudflare or the Apple developer
+programme — what makes the plan work is that nobody uses their whole
+allowance, so a real month costs a fraction of the ceiling. The floor
+guarantees there is never a loss; it is not the business case.
 
 **2. Add the webhook endpoint.** Developers → Webhooks → Add endpoint, pointing
 at:

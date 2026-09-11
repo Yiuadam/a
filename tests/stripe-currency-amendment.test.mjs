@@ -5,7 +5,7 @@
   script's output and only one of them is safe. A Stripe Price is immutable in
   its `unit_amount`, so the reflex when anything about a price changes is to
   create a new one and move the lookup key across. Do that for a currency and
-  six new price ids fall out — which means six STRIPE_PRICE_* values to upload
+  four new price ids fall out — which means four STRIPE_PRICE_* values to upload
   to Cloudflare, and a live site whose checkout guard refuses every sale in the
   minutes between Stripe having the new ids and the Worker having them.
 
@@ -33,7 +33,7 @@ const tiers = await import(
 const { PLANS, PLAN_IDS } = tiers;
 
 /**
- * Six Prices as Stripe would return them, priced in everything the catalogue
+ * Four Prices as Stripe would return them, priced in everything the catalogue
  * names except `missing` — which is the state the account is in between a
  * currency being added to the catalogue and this script being run.
  */
@@ -97,18 +97,18 @@ test("a currency the Prices lack is added to them in place", () => {
   assert.equal(
     requests.filter((r) => r === "POST /prices").length,
     0,
-    "a new Price was created — the six ids have moved and the deployment does not know",
+    "a new Price was created — the four ids have moved and the deployment does not know",
   );
 
   for (const id of PLAN_IDS) {
     assert.match(stdout, new RegExp(`${id}[^\\n]*price_${id}[^\\n]*added cny`));
   }
-  assert.match(stdout, /same six ids as before/);
+  assert.match(stdout, /same four ids as before/);
 });
 
 test("a base amount that has actually changed still makes a new Price", () => {
   const { stdout, requests } = run(
-    account("cny", { "pro-yearly": { unit_amount: PLANS["pro-yearly"].amountMinor - 100 } }),
+    account("cny", { "ai-yearly": { unit_amount: PLANS["ai-yearly"].amountMinor - 100 } }),
   );
 
   assert.equal(
@@ -116,10 +116,10 @@ test("a base amount that has actually changed still makes a new Price", () => {
     1,
     "re-pricing has to create a Price, because unit_amount is the one field Stripe will not edit",
   );
-  assert.match(stdout, /pro-yearly[^\n]*price_new_pro-yearly[^\n]*re-priced/);
+  assert.match(stdout, /ai-yearly[^\n]*price_new_ai-yearly[^\n]*re-priced/);
   /* And the other five are still amended rather than dragged along with it. */
   assert.equal(requests.filter((r) => /^POST \/prices\/price_/.test(r)).length, PLAN_IDS.length - 1);
-  assert.doesNotMatch(stdout, /same six ids as before/);
+  assert.doesNotMatch(stdout, /same four ids as before/);
 });
 
 /*

@@ -363,7 +363,7 @@ export default function PricingPlans({
     end of the chain for the static iOS export, which has no request to read
     and so genuinely does not know until it asks.
   */
-  const currency = config?.currency ?? initialCurrency ?? PLANS["plus-monthly"].currency;
+  const currency = config?.currency ?? initialCurrency ?? PLANS["ai-monthly"].currency;
 
   return (
     <div className="pricing-plans space-y-2 sm:space-y-4">
@@ -386,10 +386,10 @@ export default function PricingPlans({
       )}
 
       <p className="pricing-swipe-hint text-xs font-medium text-slate-500 sm:hidden">
-        Swipe to compare all four plans →
+        Swipe to compare all three plans →
       </p>
 
-      {/* One snap-scrolling deck on phones; two or four columns once the
+      {/* One snap-scrolling deck on phones; two or three columns once the
           screen is wide enough to compare plans without squeezing them. */}
       <div className="pricing-plan-track" aria-label="Subscription plans">
         {SELLABLE_TIERS.map((id) => {
@@ -400,13 +400,13 @@ export default function PricingPlans({
           const walletOffered = planId !== null && config?.walletCheckout === true;
           const walletMethods = config?.walletMethods?.length ? config.walletMethods : (["alipay"] as WalletPaymentMethod[]);
           /*
-            An admin is marked as being on Pro rather than on a fifth plan
+            An admin is marked as being on AI rather than on a fourth plan
             nobody can buy. The account screen is where "no limits" is
             explained; here the only useful thing to say is that everything on
             this page is already included.
           */
           const isCurrent =
-            currentTier !== null && (currentTier === id || (currentTier === "admin" && id === "pro"));
+            currentTier !== null && (currentTier === id || (currentTier === "admin" && id === "ai"));
 
           return (
             <section
@@ -640,8 +640,8 @@ function PaidAction({
   if (!planOffered && !walletOffered) {
     return (
       <p className="text-sm leading-6 text-slate-500">
-        Payments aren&rsquo;t open yet. The placement test, your study plan and every drill are free
-        either way, and a free account syncs your progress between devices.
+        Payments aren&rsquo;t open yet. Every paper and every skill are free either way, the moment
+        you sign in.
       </p>
     );
   }

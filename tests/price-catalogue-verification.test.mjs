@@ -1,7 +1,7 @@
 /*
   The health check used to pass with prices nobody could buy.
 
-  `stripe_price_ids_present` asked whether six environment variables held a
+  `stripe_price_ids_present` asked whether four environment variables held a
   string. That is true of an id pointing at a Price on another Stripe account,
   an id left behind when a Price was replaced, and an id for a Price charging
   an amount /pricing never printed. All three are a learner pressing Subscribe
@@ -57,22 +57,22 @@ test("an archived Price is caught, even though every other field is right", () =
     and every amount still perfectly correct. Checkout fails at the Session —
     after the learner has pressed the button.
   */
-  const price = { ...goodPrice("pro-yearly"), active: false };
-  const fault = priceCatalogueFault("pro-yearly", "price_old", price);
+  const price = { ...goodPrice("ai-yearly"), active: false };
+  const fault = priceCatalogueFault("ai-yearly", "price_old", price);
   assert.match(fault, /archived/);
-  assert.match(fault, /pro-yearly/);
+  assert.match(fault, /ai-yearly/);
 });
 
 test("a wrong base amount is caught and both numbers are named", () => {
-  const price = { ...goodPrice("plus-monthly"), unit_amount: 999 };
-  const fault = priceCatalogueFault("plus-monthly", "price_x", price);
+  const price = { ...goodPrice("tracking-monthly"), unit_amount: 999 };
+  const fault = priceCatalogueFault("tracking-monthly", "price_x", price);
   assert.match(fault, /999/);
-  assert.match(fault, new RegExp(String(PLANS["plus-monthly"].amountMinor)));
+  assert.match(fault, new RegExp(String(PLANS["tracking-monthly"].amountMinor)));
 });
 
 test("a wrong currency and a wrong interval are each caught", () => {
   assert.match(
-    priceCatalogueFault("pro-monthly", "price_x", { ...goodPrice("pro-monthly"), currency: "usd" }),
+    priceCatalogueFault("ai-monthly", "price_x", { ...goodPrice("ai-monthly"), currency: "usd" }),
     /usd/,
   );
   /*
@@ -80,8 +80,8 @@ test("a wrong currency and a wrong interval are each caught", () => {
     times as often, which is worse than charging the wrong number once.
   */
   assert.match(
-    priceCatalogueFault("pro-yearly", "price_x", {
-      ...goodPrice("pro-yearly"),
+    priceCatalogueFault("ai-yearly", "price_x", {
+      ...goodPrice("ai-yearly"),
       recurring: { interval: "month" },
     }),
     /monthly|monthly/,
@@ -89,19 +89,19 @@ test("a wrong currency and a wrong interval are each caught", () => {
 });
 
 test("a regional price that disagrees is caught, and so is one that is absent", () => {
-  const wrong = goodPrice("standard-monthly");
+  const wrong = goodPrice("tracking-monthly");
   wrong.currency_options = { ...wrong.currency_options, gbp: { unit_amount: 1 } };
-  assert.match(priceCatalogueFault("standard-monthly", "price_x", wrong), /gbp/);
+  assert.match(priceCatalogueFault("tracking-monthly", "price_x", wrong), /gbp/);
 
   // A Price created before regional pricing existed carries no currency_options
   // at all, and a reader quoted £1.29 would be charged the base amount converted.
-  const bare = { ...goodPrice("standard-monthly"), currency_options: undefined };
-  assert.notEqual(priceCatalogueFault("standard-monthly", "price_x", bare), null);
+  const bare = { ...goodPrice("tracking-monthly"), currency_options: undefined };
+  assert.notEqual(priceCatalogueFault("tracking-monthly", "price_x", bare), null);
 });
 
 test("the currency comparison is case-insensitive, as Stripe's own casing is not guaranteed", () => {
-  const price = { ...goodPrice("plus-yearly"), currency: PLANS["plus-yearly"].currency.toUpperCase() };
-  assert.equal(priceCatalogueFault("plus-yearly", "price_x", price), null);
+  const price = { ...goodPrice("tracking-yearly"), currency: PLANS["tracking-yearly"].currency.toUpperCase() };
+  assert.equal(priceCatalogueFault("tracking-yearly", "price_x", price), null);
 });
 
 /* -------------------------------------------------------------------------- */
@@ -109,15 +109,13 @@ test("the currency comparison is case-insensitive, as Stripe's own casing is not
 /* -------------------------------------------------------------------------- */
 
 const PRICE_VARS = {
-  "standard-monthly": "STRIPE_PRICE_STANDARD_MONTHLY",
-  "standard-yearly": "STRIPE_PRICE_STANDARD_YEARLY",
-  "plus-monthly": "STRIPE_PRICE_PLUS_MONTHLY",
-  "plus-yearly": "STRIPE_PRICE_PLUS_YEARLY",
-  "pro-monthly": "STRIPE_PRICE_PRO_MONTHLY",
-  "pro-yearly": "STRIPE_PRICE_PRO_YEARLY",
+  "tracking-monthly": "STRIPE_PRICE_TRACKING_MONTHLY",
+  "tracking-yearly": "STRIPE_PRICE_TRACKING_YEARLY",
+  "ai-monthly": "STRIPE_PRICE_AI_MONTHLY",
+  "ai-yearly": "STRIPE_PRICE_AI_YEARLY",
 };
 
-/** Runs `fn` with six Price ids set and a Stripe that serves `priceFor(planId)`. */
+/** Runs `fn` with four Price ids set and a Stripe that serves `priceFor(planId)`. */
 async function withStripe(priceFor, fn) {
   const savedFetch = globalThis.fetch;
   const saved = { key: process.env.STRIPE_SECRET_KEY };
@@ -165,23 +163,23 @@ test("every plan verifies when Stripe holds the catalogue's own prices", () =>
 
 test("one archived Price fails only its own plan, and names it", () =>
   withStripe(
-    (plan) => (plan === "pro-yearly" ? { ...goodPrice(plan), active: false } : goodPrice(plan)),
+    (plan) => (plan === "ai-yearly" ? { ...goodPrice(plan), active: false } : goodPrice(plan)),
     async () => {
       const results = await verifyCataloguePrices();
       const failed = results.filter((r) => !r.ok);
       assert.equal(failed.length, 1);
-      assert.equal(failed[0].plan, "pro-yearly");
+      assert.equal(failed[0].plan, "ai-yearly");
       assert.match(failed[0].detail, /archived/);
     },
   ));
 
 test("an id pointing at nothing reports Stripe's own reason rather than a bare false", () =>
   withStripe(
-    (plan) => (plan === "plus-monthly" ? null : goodPrice(plan)),
+    (plan) => (plan === "tracking-monthly" ? null : goodPrice(plan)),
     async () => {
       const results = await verifyCataloguePrices();
       const failed = results.find((r) => !r.ok);
-      assert.equal(failed.plan, "plus-monthly");
+      assert.equal(failed.plan, "tracking-monthly");
       // `resource_missing` for an id from another account reads very
       // differently from `api_key_expired`, and that difference is the value.
       assert.match(failed.detail, /resource_missing|No such price/);
@@ -190,15 +188,15 @@ test("an id pointing at nothing reports Stripe's own reason rather than a bare f
 
 test("a missing Price id is reported as a failure, not skipped", () =>
   withStripe(goodPrice, async () => {
-    const saved = process.env.STRIPE_PRICE_PRO_MONTHLY;
-    delete process.env.STRIPE_PRICE_PRO_MONTHLY;
+    const saved = process.env.STRIPE_PRICE_AI_MONTHLY;
+    delete process.env.STRIPE_PRICE_AI_MONTHLY;
     try {
       const results = await verifyCataloguePrices();
-      const failed = results.find((r) => r.plan === "pro-monthly");
+      const failed = results.find((r) => r.plan === "ai-monthly");
       assert.equal(failed.ok, false);
       assert.match(failed.detail, /no Price id/);
     } finally {
-      process.env.STRIPE_PRICE_PRO_MONTHLY = saved;
+      process.env.STRIPE_PRICE_AI_MONTHLY = saved;
     }
   }));
 

@@ -3940,7 +3940,7 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
 
   The phone rules above drop the blurb and later bullets when the screen is
   short, which is the right trade at 375px wide where a card is the whole
-  screen. It is the wrong trade here: on a laptop all four cards are side by
+  screen. It is the wrong trade here: on a laptop all three cards are side by
   side and being able to compare them is the entire purpose of the page, so
   hiding a bullet from one column would make the comparison lie.
 
@@ -4054,7 +4054,7 @@ html[data-glass-lens-split] .theme-toggle-base[data-pressed] .theme-toggle-selec
 
 @media (min-width: 1280px) {
   .pricing-plan-track {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

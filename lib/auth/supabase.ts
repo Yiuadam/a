@@ -583,7 +583,7 @@ export async function promoProviderAllowed(): Promise<boolean> {
         user_id: NO_SUCH_USER,
         provider: PROMO_PROVIDER,
         status: "active",
-        tier: "pro",
+        tier: "ai",
       }),
       asServiceRole: true,
     });
@@ -768,7 +768,7 @@ export function resumePromoSubscription(userId: string): Promise<PromoUpdateOutc
         rather than left describing a trial that was handed back. The status is
         the record of whose decision the row is in; this is the record of when.
       */
-      raw: { kind: "free-pro-trial", acceptedAt: new Date().toISOString(), restarted: true },
+      raw: { kind: "free-ai-trial", acceptedAt: new Date().toISOString(), restarted: true },
     },
   );
 }
@@ -798,13 +798,13 @@ export async function insertPromoSubscription(userId: string): Promise<PromoInse
         user_id: userId,
         provider: PROMO_PROVIDER,
         status: "active",
-        tier: "pro",
+        tier: "ai",
         current_period_end: null,
         /*
           Why the row exists, kept with the row. Every other subscription can be
           explained by a provider payload; this one can only be explained by us.
         */
-        raw: { kind: "free-pro-trial", acceptedAt: new Date().toISOString() },
+        raw: { kind: "free-ai-trial", acceptedAt: new Date().toISOString() },
       }),
       asServiceRole: true,
     });

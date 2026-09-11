@@ -36,19 +36,19 @@ import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 export default function UpgradePanel({
   feature,
   signedIn,
-  tier = "plus",
+  tier = "ai",
   className = "",
 }: {
   /** What they were trying to do, in the second person: "ask the tutor". */
   feature: string;
   signedIn: boolean;
   /**
-   * The cheapest plan that includes what they were stopped from doing.
+   * The tier that includes what they were stopped from doing.
    *
-   * Defaults to Plus, which is where every AI feature starts. Naming the
-   * cheapest one matters: sending somebody to Pro for something Plus covers is
-   * an upsell dressed as an explanation, and it is the kind of thing people
-   * notice afterwards.
+   * Defaults to AI, which is where every AI feature lives — there is only the
+   * one AI tier now, so unlike the old Plus/Pro split there is no cheaper
+   * plan to prefer over it. Tracking, the other paid tier, is passed
+   * explicitly by whatever stopped somebody from seeing their own history.
    */
   tier?: Exclude<Tier, "free" | "admin">;
   className?: string;
@@ -61,8 +61,9 @@ export default function UpgradePanel({
       <div className={`card ${className}`}>
         <h2 className="text-[1.0625rem] font-semibold text-slate-900">Sign in to {feature}</h2>
         <p className="mt-2 text-[0.9375rem] leading-7 text-slate-600">
-          An account is free, and it also carries your progress between your phone and your
-          laptop. Everything you have done so far stays where it is.
+          An account is free, and it unlocks every reading, listening, writing and speaking
+          paper — unlimited, with nothing to buy. Everything you have done so far in this
+          browser stays where it is.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <SignInLink className="btn-primary">

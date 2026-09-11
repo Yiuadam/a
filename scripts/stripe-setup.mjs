@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /*
   Creates the Stripe products and prices this app sells, from this app's own
-  catalogue, and prints the eight variables to paste into Cloudflare.
+  catalogue, and prints the four variables to paste into Cloudflare.
 
   ---------------------------------------------------------------------------
   Why this exists rather than a page of dashboard instructions
 
-  Six prices have to be typed by hand into six forms, and every one of them is
+  Four prices have to be typed by hand into four forms, and every one of them is
   an amount that must match lib/billing/tiers.ts exactly. If they do not match,
   Stripe wins — Stripe is what actually charges the card — so a mistyped digit
   charges a subscriber an amount the pricing page never showed them. That is the
@@ -69,10 +69,10 @@ const { PLANS, PLAN_IDS, TIERS, formatPrice } = tiers;
 const DRY = process.argv.includes("--dry-run");
 
 /*
-  Where to write the six ids so they can be uploaded rather than retyped.
+  Where to write the four ids so they can be uploaded rather than retyped.
 
-  Six ids pasted into six dashboard fields is six chances to put Pro's id in
-  Standard's slot, which sells the expensive plan at the cheap price. The
+  Four ids pasted into four dashboard fields is four chances to put AI's id in
+  Tracking's slot, which sells the expensive plan at the cheap price. The
   checkout guard refuses that sale rather than charging wrongly, so it is
   survivable — but not making the mistake is better than catching it, and the
   file below is in exactly the KEY=VALUE shape `wrangler secret bulk` reads.
@@ -206,8 +206,8 @@ async function priceFor(planId, productId) {
     A Stripe Price is immutable in its `unit_amount`, which is why the branch
     below creates a new one — but `currency_options` is not: it can be patched
     onto a Price that already exists, keeping the same id. That distinction is
-    worth the extra branch, because minting six new ids to add one currency
-    would mean six new STRIPE_PRICE_* values to upload to Cloudflare, and a live
+    worth the extra branch, because minting four new ids to add one currency
+    would mean four new STRIPE_PRICE_* values to upload to Cloudflare, and a live
     site whose checkout is broken for the minutes between the two. Patching in
     place changes nothing the deployment knows about.
 
@@ -243,12 +243,10 @@ async function priceFor(planId, productId) {
 }
 
 const VAR = {
-  "standard-monthly": "STRIPE_PRICE_STANDARD_MONTHLY",
-  "standard-yearly": "STRIPE_PRICE_STANDARD_YEARLY",
-  "plus-monthly": "STRIPE_PRICE_PLUS_MONTHLY",
-  "plus-yearly": "STRIPE_PRICE_PLUS_YEARLY",
-  "pro-monthly": "STRIPE_PRICE_PRO_MONTHLY",
-  "pro-yearly": "STRIPE_PRICE_PRO_YEARLY",
+  "tracking-monthly": "STRIPE_PRICE_TRACKING_MONTHLY",
+  "tracking-yearly": "STRIPE_PRICE_TRACKING_YEARLY",
+  "ai-monthly": "STRIPE_PRICE_AI_MONTHLY",
+  "ai-yearly": "STRIPE_PRICE_AI_YEARLY",
 };
 
 console.log(
@@ -293,12 +291,12 @@ for (const planId of PLAN_IDS) {
   process.exit(1);
 }
 
-console.log(`\n${DRY ? "Nothing was created." : "Done."} The six ids:\n`);
+console.log(`\n${DRY ? "Nothing was created." : "Done."} The four ids:\n`);
 for (const line of lines) console.log(`  ${line}`);
 
 /*
   Whether anything downstream has to change, said plainly rather than left to be
-  worked out by comparing six ids against what is already in Cloudflare. Adding
+  worked out by comparing four ids against what is already in Cloudflare. Adding
   a currency amends the Prices in place, so the usual answer is "nothing".
 */
 const idsMoved = states.some((state) => state === "created" || state === "re-priced");
@@ -319,8 +317,8 @@ const idsMoved = states.some((state) => state === "created" || state === "re-pri
 */
 if (!idsMoved && !DRY && !OUT) {
   console.log(
-    "\nThe same six ids as before — every change was made on the existing Prices.\n" +
-      "If Cloudflare already holds these six ids there is nothing to upload; if you\n" +
+    "\nThe same four ids as before — every change was made on the existing Prices.\n" +
+      "If Cloudflare already holds these four ids there is nothing to upload; if you\n" +
       "are not sure, re-run with `--out stripe-prices.env` and upload them anyway,\n" +
       "which is harmless when they already match.\n",
   );
@@ -328,7 +326,7 @@ if (!idsMoved && !DRY && !OUT) {
   const { writeFileSync } = await import("node:fs");
   writeFileSync(OUT, lines.join("\n") + "\n", "utf8");
   console.log(
-    `\nWritten to ${OUT}. Upload all six in one go, without retyping any of them:\n\n` +
+    `\nWritten to ${OUT}. Upload all four in one go, without retyping any of them:\n\n` +
       `  npx wrangler secret bulk ${OUT}\n\n` +
       "Then delete the file — it is not secret, but it is clutter that looks like\n" +
       "configuration and will be out of date the next time a price moves.\n",

@@ -1,8 +1,8 @@
 /*
-  The free Pro trial.
+  The free AI trial.
 
   Three things are worth pinning, and they are the three that would fail
-  silently. Who is offered it: a Pro subscriber or the owner must never be shown
+  silently. Who is offered it: an AI subscriber or the owner must never be shown
   an offer of what they already have. What the poster says: the sentence about
   the trial being able to end is the reason ending it later is fair, so its
   absence is a defect rather than a copy change. And that nothing in this
@@ -25,10 +25,10 @@ const poster = readFileSync(join(root, "components", "billing", "FreeProPoster.t
 const route = readFileSync(join(root, "app", "api", "billing", "promo", "route.ts"), "utf8");
 const supabase = readFileSync(join(root, "lib", "auth", "supabase.ts"), "utf8");
 
-test("only tiers below Pro are offered the trial", () => {
+test("only tiers below AI are offered the trial", () => {
   for (const tier of Object.keys(tiers.TIERS)) {
     const covered = promo.alreadyCovered(tier);
-    assert.equal(covered, tier === "pro" || tier === "admin", `wrong answer for ${tier}`);
+    assert.equal(covered, tier === "ai" || tier === "admin", `wrong answer for ${tier}`);
   }
 });
 
@@ -136,9 +136,9 @@ test("the offer is reachable wherever it is announced", () => {
   assert.match(bell, /Read the offer/);
 });
 
-test("the grant is a Pro subscription row, written only by the server", () => {
+test("the grant is an AI subscription row, written only by the server", () => {
   assert.match(supabase, /provider: PROMO_PROVIDER/);
-  assert.match(supabase, /tier: "pro"/);
+  assert.match(supabase, /tier: "ai"/);
   assert.match(supabase, /status: "active"/);
   // The tier is fixed in server code. Nothing the client sends chooses it.
   assert.doesNotMatch(route, /req\.json\(\)/);
@@ -163,7 +163,7 @@ test("the trial ships no migration of its own", () => {
   The owner chose to tell them and let them decide, rather than cancelling or
   refunding on their behalf. That choice only means anything if the sentence
   actually reaches them, so what is pinned here is that it draws for a payer,
-  that it does not draw for anyone holding Pro without paying, and that it says
+  that it does not draw for anyone holding AI without paying, and that it says
   the awkward part — that they may cancel and take the trial instead.
 
   Every assertion below runs against the source with comments stripped. An
@@ -192,7 +192,7 @@ test("a signed-out reader is never told they are paying", async () => {
 test("only a paying provider triggers the notice, not a role or a grant", () => {
   const source = code(readFileSync(join(root, "lib", "billing", "promo.ts"), "utf8"));
   /*
-    An admin holds Pro by role and a trialist by promo grant. Neither is being
+    An admin holds AI by role and a trialist by promo grant. Neither is being
     charged, so neither is owed an apology for being charged.
   */
   assert.match(source, /entitlement\.source !== "stripe" && entitlement\.source !== "apple"/);

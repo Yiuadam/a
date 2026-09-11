@@ -123,7 +123,7 @@ async function seedSubscription(context, id, userId, payload, { asObject = false
   if (none) {
     context.database.prepare(`
       INSERT INTO subscriptions (id,user_id,provider,status,tier,verified_at,created_at,updated_at)
-      VALUES (?, ?, 'stripe', 'active', 'pro', ?, ?, ?)
+      VALUES (?, ?, 'stripe', 'active', 'ai', ?, ?, ?)
     `).run(id, userId, UPDATED, CREATED, UPDATED);
     return;
   }
@@ -134,12 +134,12 @@ async function seedSubscription(context, id, userId, payload, { asObject = false
     await context.files.put(key, bytes);
     context.database.prepare(`
       INSERT INTO subscriptions (id,user_id,provider,status,tier,verified_at,raw_object_key,raw_sha256,created_at,updated_at)
-      VALUES (?, ?, 'stripe', 'active', 'pro', ?, ?, ?, ?, ?)
+      VALUES (?, ?, 'stripe', 'active', 'ai', ?, ?, ?, ?, ?)
     `).run(id, userId, UPDATED, key, sha, CREATED, UPDATED);
   } else {
     context.database.prepare(`
       INSERT INTO subscriptions (id,user_id,provider,status,tier,verified_at,raw_inline,raw_sha256,created_at,updated_at)
-      VALUES (?, ?, 'stripe', 'active', 'pro', ?, ?, ?, ?, ?)
+      VALUES (?, ?, 'stripe', 'active', 'ai', ?, ?, ?, ?, ?)
     `).run(id, userId, UPDATED, new TextDecoder().decode(bytes), sha, CREATED, UPDATED);
   }
 }

@@ -39,7 +39,7 @@ export interface BillingHealth {
   checks: BillingHealthCheck[];
 }
 
-/** The six Price ids checkout can charge — see lib/billing/env.ts's PRICE_VARS. */
+/** The four Price ids checkout can charge — see lib/billing/env.ts's PRICE_VARS. */
 export async function billingHealth(): Promise<BillingHealth> {
   const checks: BillingHealthCheck[] = [];
   const add = (name: string, ok: boolean) => checks.push({ name, ok });
@@ -66,7 +66,7 @@ export async function billingHealth(): Promise<BillingHealth> {
   add("stripe_webhook_secret_present", Boolean(stripeWebhookSecret()));
 
   // Every plan's Price id, not merely one — a health check that passed with
-  // five of six missing would still call itself healthy while five plans sold
+  // three of four missing would still call itself healthy while three plans sold
   // nothing.
   const idsPresent = PLAN_IDS.every((plan) => stripePriceId(plan) !== undefined);
   add("stripe_price_ids_present", idsPresent);
@@ -95,8 +95,8 @@ export async function billingHealth(): Promise<BillingHealth> {
     It runs the same `priceCatalogueFault` the checkout path runs before every
     sale, so the deploy cannot pass on a rule checkout would refuse.
 
-    Asked last, and only when there is a key, six ids and a reachable Stripe:
-    six reads answering "which of your six prices is wrong" are wasted on an
+    Asked last, and only when there is a key, four ids and a reachable Stripe:
+    four reads answering "which of your four prices is wrong" are wasted on an
     account that has already failed to answer one. A skipped check reports
     false rather than true — this never claims prices are verified when they
     were not looked at.

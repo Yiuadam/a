@@ -19,21 +19,20 @@ import PricingPlans from "./PricingPlans";
 export const metadata: Metadata = {
   title: "Plans — BandUp",
   description:
-    "The placement test, your study plan and every drill are free and unlimited. Standard unlocks every practice paper, Plus adds AI marking and the tutor, and Pro raises every allowance.",
+    "Sign in and every paper, every skill, is free and unlimited — writing and speaking handed back to you unscored. Tracking saves your history; AI adds marking, a tutor and more.",
 };
 
 const ALWAYS_FREE = [
   "The placement test, and re-sitting it whenever you like",
   "Your study plan, and everything it schedules",
   /*
-    "Free", not "unlimited". How many papers you may sit in a week is what the
-    tiers differ on; that every paper is included, with its answers and its
-    explanations behind no paywall, is what is true of all of them. Saying
-    "unlimited" here would contradict the Free card two inches above it.
+    "Free", not "unlimited-for-a-price". Every tier — paid or not — gets every
+    paper unlimited now; what the paid tiers add is AI marking and a saved,
+    synced history, neither of which this list is about. Saying so here once
+    is what stops the Free card two inches above needing to repeat it.
   */
-  "Every bundled reading and listening paper, with full answers and explanations",
+  "Every reading, listening, writing and speaking paper, unlimited",
   "The grammar drills and the vocabulary drills",
-  "Your progress, synced between devices with a free account",
 ];
 
 export default async function PricingPage() {
@@ -63,8 +62,9 @@ export default async function PricingPage() {
       </PricingPlans>
 
       <p className="pricing-page-description max-w-2xl text-[0.9375rem] leading-6 text-slate-600">
-        Most of BandUp is free. Standard unlocks every practice paper; Plus and Pro add the
-        part that costs money to run — the AI examiner, the tutor and word lookup.
+        Most of BandUp is free the moment you sign in — every paper, every skill, unlimited.
+        Tracking saves your results over time; AI adds the part that costs money to run — the
+        examiner, the tutor and word lookup.
       </p>
 
       <details className="card [&[open]_.chev]:rotate-90">

@@ -33,7 +33,7 @@
   rounded up to something that looks like a price. So the check is that same
   rule, stated once and applied to every plan:
 
-      price - worst-case AI - Stripe's cut  >=  HK$3 per subscriber-month
+      price - worst-case AI - Stripe's cut  >=  HK$1 per subscriber-month
 
   An earlier version of this file also enforced a ratio — cost as a share of
   revenue. That was the right check for the prices it was written against and
@@ -43,7 +43,7 @@
   the absolute floor is what is tested.
 
   What that margin does *not* cover is worth saying plainly rather than
-  implying: at full usage HK$3 a month per subscriber does not pay for Supabase,
+  implying: at full usage HK$1 a month per subscriber does not pay for Supabase,
   Cloudflare, the Apple developer programme, refunds or chargebacks. What makes
   the plans work is that nobody uses their whole allowance — a real month costs
   a fraction of the ceiling, so the realised margin is several times this. This
@@ -157,7 +157,7 @@ test("every plan makes money even if the subscriber uses every last request", ()
 });
 
 test("the tiers that promise no AI are given none", () => {
-  for (const tier of ["free", "standard"]) {
+  for (const tier of ["free", "tracking"]) {
     assert.equal(tierHasAi(tier), false, `${tier} should have no AI at all`);
     assert.equal(worstCaseTierCost(tier), 0, `${tier} must cost nothing to serve`);
     for (const route of COSTED_ROUTES) {

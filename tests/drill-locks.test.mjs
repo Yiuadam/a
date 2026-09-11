@@ -3,14 +3,16 @@
 
   Two separate claims, and they fail in different ways:
 
-  1. The count. A visitor gets one topic per list, a free account two, a
-     subscriber all of them. Getting this wrong is visible immediately.
+  1. The count. A visitor gets one topic per list; everyone with an account —
+     free or paid — gets all of them. Getting this wrong is visible
+     immediately.
 
-  2. Which one. The free topic must be a *medium* one — the owner asked for
-     that specifically, and it is the right ask: a visitor handed the A2 topic
-     concludes the app is beneath them, and one handed the C1 topic concludes
-     it is beyond them. This is the half that can rot silently, because
-     reordering a data file changes the answer and nothing else complains.
+  2. Which one, for the visitor who still has a count at all. The free topic
+     must be a *medium* one — the owner asked for that specifically, and it
+     is the right ask: a visitor handed the A2 topic concludes the app is
+     beneath them, and one handed the C1 topic concludes it is beyond them.
+     This is the half that can rot silently, because reordering a data file
+     changes the answer and nothing else complains.
 */
 import assert from "node:assert/strict";
 import { register } from "node:module";
@@ -51,19 +53,8 @@ test("the one a visitor gets is a medium topic", () => {
   }
 });
 
-test("a free account gets two, and both are the middle of the range", () => {
-  assert.equal(drillLimit("free"), 2);
-  for (const [name, topics] of LISTS) {
-    const open = orderTopics(topics, "free").slice(0, 2);
-    assert.equal(open.length, 2, name);
-    for (const t of open) {
-      assert.ok(["B1", "B2"].includes(t.level), `${name}: ${t.id} is ${t.level}`);
-    }
-  }
-});
-
-test("a subscriber has no limit and sees the authored order untouched", () => {
-  for (const tier of ["pro", "admin"]) {
+test("every signed-in tier has no limit and sees the authored order untouched", () => {
+  for (const tier of ["free", "tracking", "ai", "admin"]) {
     assert.equal(drillLimit(tier), null, tier);
     for (const [name, topics] of LISTS) {
       assert.deepEqual(
@@ -85,9 +76,11 @@ test("nothing is dropped or duplicated by the reordering", () => {
   }
 });
 
-test("a lock sends a visitor to sign in and everyone else to the plans", () => {
+test("a lock sends a visitor to sign in", () => {
   assert.equal(drillLockReason("anonymous"), "sign-in");
-  assert.equal(drillLockReason("free"), "subscribe");
+  // Every signed-in tier has an unlimited drillLimit now, so a locked drill
+  // card never actually reaches a signed-in learner — drillLockReason("free")
+  // still answers "subscribe" if asked directly, but nothing in the app asks.
 });
 
 /*

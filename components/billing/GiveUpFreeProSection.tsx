@@ -12,7 +12,7 @@ import { forgetDecision } from "@/lib/billing/free-pro-dismissal";
 import { TIERS, type Tier } from "@/lib/billing/tiers";
 
 /*
-  The way out of the free Pro trial.
+  The way out of the free AI trial.
 
   ---------------------------------------------------------------------------
   Why there is a button at all
@@ -44,7 +44,7 @@ import { TIERS, type Tier } from "@/lib/billing/tiers";
 
   Whether this draws at all comes from /api/billing/promo, which resolves the
   account's entitlement server-side and answers `grantHeld` only when the trial
-  itself is what is granting Pro — not a Stripe or Apple subscription, and not
+  itself is what is granting AI — not a Stripe or Apple subscription, and not
   the owner's role. DELETE re-establishes the same condition from the session
   before it writes, and only ever touches rows whose provider is 'promo', so no
   paid subscription can be cancelled through it. Editing this file in dev tools
@@ -148,7 +148,7 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
           text:
             typeof body?.error === "string" && body.error.length > 0
               ? body.error
-              : "We couldn't change your free Pro trial just now. Nothing has changed — please try again in a minute.",
+              : "We couldn't change your free AI trial just now. Nothing has changed — please try again in a minute.",
         });
       }
     } catch {
@@ -178,7 +178,7 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
           text:
             typeof body?.error === "string" && body.error.length > 0
               ? body.error
-              : "We couldn't start your free Pro trial just now. Nothing has changed — please try again in a minute.",
+              : "We couldn't start your free AI trial just now. Nothing has changed — please try again in a minute.",
         });
       }
     } catch {
@@ -205,7 +205,7 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
     return (
       <section className="card" aria-live="polite">
         <h2 className="text-[1.0625rem] font-semibold text-slate-900">
-          Your free Pro trial has been given up
+          Your free AI trial has been given up
         </h2>
         <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
           Your account is on {planName(tier)} now. Everything you have written or practised is
@@ -223,7 +223,7 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
         )}
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" className="btn-secondary" onClick={startAgain} disabled={busy}>
-            {busy ? "Starting…" : "Start the free Pro trial again"}
+            {busy ? "Starting…" : "Start the free AI trial again"}
           </button>
         </div>
       </section>
@@ -232,14 +232,14 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
 
   return (
     <section className="card">
-      <h2 className="text-[1.0625rem] font-semibold text-slate-900">Your free Pro trial</h2>
+      <h2 className="text-[1.0625rem] font-semibold text-slate-900">Your free AI trial</h2>
       {notice?.kind === "restarted" && (
         <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600" aria-live="polite">
-          Your free Pro trial is on again, and your account is back on Pro.
+          Your free AI trial is on again, and your account is back on AI.
         </p>
       )}
       <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
-        Pro is on your account as a free trial. Nothing is being charged for it and no card is
+        AI is on your account as a free trial. Nothing is being charged for it and no card is
         held.
       </p>
       <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
@@ -255,7 +255,7 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
       )}
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" className="btn-secondary" onClick={giveUp} disabled={busy}>
-          {busy ? "Giving it up…" : "Give up my free Pro trial"}
+          {busy ? "Giving it up…" : "Give up my free AI trial"}
         </button>
       </div>
     </section>

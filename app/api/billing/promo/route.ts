@@ -6,7 +6,7 @@ import { acceptPromo, payingWhileFree, promoOfferFor, releasePromo } from "@/lib
 import { withCors } from "@/lib/http/cors";
 
 /*
-  The free Pro trial: whether to offer it, taking it up, and giving it back.
+  The free AI trial: whether to offer it, taking it up, and giving it back.
 
   GET answers booleans about the caller's own account. It deliberately does not
   say why the offer is no — "you already decided" and "the owner has not opened
@@ -21,7 +21,7 @@ import { withCors } from "@/lib/http/cors";
   ---------------------------------------------------------------------------
   Why giving it up is DELETE here rather than a route of its own
 
-  It is the same resource: this account's free Pro trial. POST starts it, DELETE
+  It is the same resource: this account's free AI trial. POST starts it, DELETE
   ends it, GET says where it stands. A second route would have to re-establish
   the same session, re-derive the same account, repeat the same degrade-when-the-
   constraint-is-narrow rule and be added to the same CORS preflight — four
@@ -36,16 +36,16 @@ export const dynamic = "force-dynamic";
 /** What a learner is told, in each case that is not a plain success. */
 const PROMO_MESSAGES = {
   notOpen:
-    "The free Pro trial isn't open yet. Nothing is wrong with your account — please try again later.",
-  signInFirst: "Please sign in first, so the free Pro trial is attached to your account.",
+    "The free AI trial isn't open yet. Nothing is wrong with your account — please try again later.",
+  signInFirst: "Please sign in first, so the free AI trial is attached to your account.",
   ended:
-    "The free Pro trial has ended, so it can't be started now. Your account is on the free plan, and everything on the free plan still works.",
+    "The free AI trial has ended, so it can't be started now. Your account is on the free plan, and everything on the free plan still works.",
   failed:
-    "We couldn't start your free Pro trial just now. Nothing has been charged and nothing has changed. Please try again in a minute.",
+    "We couldn't start your free AI trial just now. Nothing has been charged and nothing has changed. Please try again in a minute.",
   notHeld:
-    "Your account isn't on the free Pro trial, so there is nothing to give up. Nothing has changed.",
+    "Your account isn't on the free AI trial, so there is nothing to give up. Nothing has changed.",
   releaseUnavailable:
-    "We couldn't change your free Pro trial just now. Nothing has changed on your account — please try again in a minute.",
+    "We couldn't change your free AI trial just now. Nothing has changed on your account — please try again in a minute.",
 } as const;
 
 async function handleGET(req: Request) {
@@ -58,7 +58,7 @@ async function handleGET(req: Request) {
     /*
       Only asked when there is nothing to offer and nothing being held by grant.
       All three are mutually exclusive by construction — a subscriber is
-      `already-pro`, and a trialist's Pro comes from the grant rather than from a
+      `already-ai`, and a trialist's AI comes from the grant rather than from a
       payment — and skipping the query on those paths keeps every one of the three
       readers of this route to a single round trip.
 
@@ -110,8 +110,8 @@ async function handlePOST(req: Request) {
     const outcome = await acceptPromo(user.id, user.email ?? null);
     switch (outcome) {
       case "granted":
-      case "already-pro":
-        // Both mean the same thing to the reader: Pro is on the account, and
+      case "already-ai":
+        // Both mean the same thing to the reader: AI is on the account, and
         // there is nothing left for them to do.
         return NextResponse.json({ granted: true });
       case "ended":

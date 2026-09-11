@@ -50,7 +50,7 @@ test("the component prefers the server's answer to the base currency", () => {
     knows the right answer.
   */
   const initial = line.indexOf("initialCurrency");
-  const base = line.indexOf('PLANS["plus-monthly"].currency');
+  const base = line.indexOf('PLANS["ai-monthly"].currency');
   assert.ok(initial > -1, "initialCurrency is not used at all");
   assert.ok(base > -1, "the base-currency fallback is gone — the iOS export needs it");
   assert.ok(initial < base, "the base currency is preferred over what the server resolved");

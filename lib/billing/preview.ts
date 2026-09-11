@@ -48,10 +48,9 @@ export type PreviewTier = SessionTier;
 
 export const PREVIEW_TIERS: { id: PreviewTier; label: string; note: string }[] = [
   { id: "admin", label: "Adam", note: "No limits on anything" },
-  { id: "pro", label: "Pro", note: "Every paper, the largest AI allowance" },
-  { id: "plus", label: "Plus", note: "Every paper, a smaller AI allowance" },
-  { id: "standard", label: "Standard", note: "Every paper, no AI at all" },
-  { id: "free", label: "Free", note: "Weekly limits and the paywall" },
+  { id: "ai", label: "AI", note: "Every paper, plus AI marking, tutor and lookup" },
+  { id: "tracking", label: "Tracking", note: "Every paper, saved and synced, no AI" },
+  { id: "free", label: "Free", note: "Every paper, unscored writing and speaking" },
   { id: "anonymous", label: "Signed out", note: "Locks on writing and speaking" },
 ];
 

@@ -1584,7 +1584,7 @@ export default function SpeakingSession({
             <p className="mt-1.5 text-sm leading-6 text-slate-600">
               {marked
                 ? "An AI examiner asks you questions out loud. You answer out loud. At the end you get a band and feedback on the four things the real exam marks you on."
-                : "An examiner asks you questions out loud and you answer out loud, in exam order and against the exam clock. At the end you get your full transcript. AI marking is on Plus."}
+                : "An examiner asks you questions out loud and you answer out loud, in exam order and against the exam clock. At the end you get your full transcript. AI marking is part of the AI plan."}
             </p>
 
             {/*
@@ -1707,8 +1707,11 @@ export default function SpeakingSession({
               BandUp plays reviewed examiner audio for this interview. If a recording cannot be
               reached, it falls back to your device voice when one is available. {" "}
               {usingLocal
-                ? "Your voice is transcribed on this device and never uploaded. Only the text transcript is sent for marking."
-                : "Your voice is transcribed by your device's own recogniser, which may send the audio to its maker. Only the text transcript is sent for marking."}{" "}
+                ? "Your voice is transcribed on this device and never uploaded."
+                : "Your voice is transcribed by your device's own recogniser, which may send the audio to its maker."}{" "}
+              {marked
+                ? "Only the text transcript is sent for marking."
+                : "Nothing is sent for marking on this plan."}{" "}
               <Link href="/privacy" className="underline hover:text-slate-600">
                 What that means
               </Link>
@@ -1827,7 +1830,7 @@ export default function SpeakingSession({
           <p className="mt-1 text-sm leading-6 text-slate-600">
             {marked
               ? "You answered every question, in exam order and against the clock. Here is everything you said. Marking could not be completed just now, but you can retry without repeating the interview."
-              : "You answered every question, in exam order and against the clock. Here is everything you said. AI marking — a band for each criterion, and what to fix first — is part of Plus."}
+              : "You answered every question, in exam order and against the clock. Here is everything you said. AI marking — a band for each criterion, and what to fix first — is part of the AI plan."}
           </p>
         </div>
 
@@ -1851,7 +1854,7 @@ export default function SpeakingSession({
           </div>
         </div>
 
-        {!marked && <UpgradePanel feature="have this marked" signedIn={account.signedIn} tier="plus" />}
+        {!marked && <UpgradePanel feature="have this marked" signedIn={account.signedIn} tier="ai" />}
 
         <div className="flex flex-wrap gap-2">
           {marked && (

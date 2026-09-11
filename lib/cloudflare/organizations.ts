@@ -178,8 +178,8 @@ function summary(row: OrganizationRow | MembershipRow): OrganizationSummary {
   };
 }
 
-function paidTier(tier: string): tier is "standard" | "plus" | "pro" | "admin" {
-  return tier === "standard" || tier === "plus" || tier === "pro" || tier === "admin";
+function paidTier(tier: string): tier is "tracking" | "ai" | "admin" {
+  return tier === "tracking" || tier === "ai" || tier === "admin";
 }
 
 async function actorTier(db: Db, user: SessionUser, platformAdmin: boolean) {
@@ -191,7 +191,7 @@ async function actorTier(db: Db, user: SessionUser, platformAdmin: boolean) {
      WHERE user_id = ?
        AND status IN ('active', 'trialing')
        AND (current_period_end IS NULL OR current_period_end > ?)
-     ORDER BY CASE tier WHEN 'pro' THEN 3 WHEN 'plus' THEN 2 WHEN 'standard' THEN 1 ELSE 0 END DESC,
+     ORDER BY CASE tier WHEN 'ai' THEN 2 WHEN 'tracking' THEN 1 ELSE 0 END DESC,
               verified_at DESC
      LIMIT 1
   `).bind(user.id, stamp).first<{ tier: string }>();
@@ -656,7 +656,7 @@ export async function cloudflareOrganizationPortal(
     },
     eligibility: {
       canJoin: eligible,
-      reason: eligible ? null : "A Standard, Plus or Pro plan, or an organisation seat, is required to join as a student.",
+      reason: eligible ? null : "A Tracking or AI plan, or an organisation seat, is required to join as a student.",
     },
     canClearOwnHistory: !memberships.some((membership) =>
       membership.role === "student"

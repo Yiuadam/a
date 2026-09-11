@@ -76,7 +76,7 @@ test("Cloudflare account status reads the same D1 allowance and subscription fac
     ],
     grants: [{
       provider: "stripe",
-      tier: "pro",
+      tier: "ai",
       external_price_id: "price_pro",
       current_period_end: "2026-09-28T00:00:00.000Z",
       cancel_at_period_end: 0,
@@ -94,7 +94,7 @@ test("Cloudflare account status reads the same D1 allowance and subscription fac
   );
   assert.deepEqual(await status.currentCloudflareAccessGrants(userId, bindings), [{
     provider: "stripe",
-    tier: "pro",
+    tier: "ai",
     priceId: "price_pro",
     currentPeriodEnd: "2026-09-28T00:00:00.000Z",
     cancelAtPeriodEnd: false,

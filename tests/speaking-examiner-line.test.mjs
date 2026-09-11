@@ -76,11 +76,11 @@ test("the route only ever asks Haiku for a short, cheap reaction", () => {
   assert.ok(Number(inputMatch[1]) <= 900, "the examiner route must stay the leanest budget");
 });
 
-test("free and standard get none of it, exactly like every other AI route", () => {
+test("free and tracking get none of it, exactly like every other AI route", () => {
   const free = tiers.slice(tiers.indexOf("free: {"));
-  assert.match(free.slice(0, free.indexOf("standard:")), /examiner: 0/);
-  const standard = tiers.slice(tiers.indexOf("standard: {"));
-  assert.match(standard.slice(0, standard.indexOf("plus:")), /examiner: 0/);
+  assert.match(free.slice(0, free.indexOf("tracking:")), /examiner: 0/);
+  const tracking = tiers.slice(tiers.indexOf("tracking: {"));
+  assert.match(tracking.slice(0, tracking.indexOf("ai:")), /examiner: 0/);
   assert.match(tiers, /"speaking-examiner": "examiner"/);
   assert.match(tiers, /"speaking-examiner"/);
 });

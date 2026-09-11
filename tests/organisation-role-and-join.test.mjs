@@ -111,7 +111,7 @@ function fixture() {
   const insertSubscription = database.prepare(`
     INSERT INTO subscriptions (
       id, user_id, provider, status, tier, verified_at, created_at, updated_at
-    ) VALUES (?, ?, 'stripe', 'active', 'standard', ?, ?, ?)
+    ) VALUES (?, ?, 'stripe', 'active', 'tracking', ?, ?, ?)
   `);
   // Every account that might end up as (or become) a student needs an
   // eligible plan, since studentEligible() gates that regardless of role —

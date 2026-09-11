@@ -46,7 +46,7 @@ const rows = {
   profiles,
   app_settings: [{ key: "maintenance", value: { closed: false, at: epoch }, updated_at: epoch, updated_by: ids.admin }],
   progress_snapshots: [{ user_id: ids.student, store_key: "ielts-prep-v1", payload: { results: [result] }, client_updated_at: epoch, created_at: epoch, updated_at: epoch }],
-  subscriptions: [{ id: "90000000-0000-4000-8000-000000000001", user_id: ids.student, provider: "stripe", status: "active", tier: "plus", external_customer_id: "cus_rehearsal", external_subscription_id: "sub_rehearsal", original_transaction_id: null, external_price_id: "price_rehearsal", current_period_end: "2027-08-12T00:00:00.000Z", cancel_at_period_end: false, provider_event_at: epoch, verified_at: epoch, raw: { rehearsal: true }, created_at: epoch, updated_at: epoch }],
+  subscriptions: [{ id: "90000000-0000-4000-8000-000000000001", user_id: ids.student, provider: "stripe", status: "active", tier: "ai", external_customer_id: "cus_rehearsal", external_subscription_id: "sub_rehearsal", original_transaction_id: null, external_price_id: "price_rehearsal", current_period_end: "2027-08-12T00:00:00.000Z", cancel_at_period_end: false, provider_event_at: epoch, verified_at: epoch, raw: { rehearsal: true }, created_at: epoch, updated_at: epoch }],
   usernames: [{ username: "rehearsal", user_id: ids.student, created_at: epoch }],
   provider_events: [{ provider: "stripe", event_id: "evt_rehearsal", received_at: epoch, processed_at: epoch, payload: { rehearsal: true } }],
   usage_events: [{ id: 1, user_id: ids.student, route: "grade/writing", ip_hash: "fixture", outcome: "admitted", created_at: epoch }],

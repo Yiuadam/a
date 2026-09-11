@@ -54,26 +54,28 @@ test("every tier and feature pair has a definite answer", () => {
   }
 });
 
-test("AI starts at Plus, and the tiers below it get none of it", () => {
+test("AI starts at AI, and the tiers below it get none of it", () => {
   for (const feature of ["define", "generate", "grade-writing", "grade-speaking", "tutor-chat"]) {
     assert.equal(tierAllows("free", feature), false, `free should not have ${feature}`);
-    assert.equal(tierAllows("standard", feature), false, `standard should not have ${feature}`);
-    assert.equal(tierAllows("plus", feature), true, `plus is missing ${feature}`);
-    assert.equal(tierAllows("pro", feature), true, `pro is missing ${feature}`);
+    assert.equal(tierAllows("tracking", feature), false, `tracking should not have ${feature}`);
+    assert.equal(tierAllows("ai", feature), true, `ai is missing ${feature}`);
     // The owner's own account is not a plan, but it must not be locked out of
     // the app it exists to exercise.
     assert.equal(tierAllows("admin", feature), true, `admin is missing ${feature}`);
   }
   assert.equal(tierHasAi("free"), false);
-  assert.equal(tierHasAi("standard"), false);
-  assert.equal(tierHasAi("plus"), true);
-  assert.equal(tierHasAi("pro"), true);
+  assert.equal(tierHasAi("tracking"), false);
+  assert.equal(tierHasAi("ai"), true);
 });
 
-test("syncing progress costs nothing, so every tier has it", () => {
-  for (const tier of Object.keys(TIERS)) {
-    assert.equal(tierAllows(tier, "progress-sync"), true, `${tier} lost progress-sync`);
-  }
+test("progress-sync is a paid feature now, even though it costs nothing to serve", () => {
+  // Costing nothing is why it *could* be free with any account; it no longer
+  // is, because Tracking and AI are the only things left to sell once every
+  // paper stopped being one of them. See PROGRESS_SYNC_TIERS.
+  assert.equal(tierAllows("free", "progress-sync"), false, "free should not have progress-sync");
+  assert.equal(tierAllows("tracking", "progress-sync"), true, "tracking lost progress-sync");
+  assert.equal(tierAllows("ai", "progress-sync"), true, "ai lost progress-sync");
+  assert.equal(tierAllows("admin", "progress-sync"), true, "admin lost progress-sync");
 });
 
 test("a paid tier is never worse off than the one below it", () => {
@@ -148,21 +150,20 @@ test("the database is handed every bucket the meter knows how to read", () => {
   const forDatabase = limits.limitsForDatabase();
   assert.deepEqual(Object.keys(forDatabase).sort(), [
     "admin",
+    "ai",
     "anonymous",
     "daily",
     "free",
     "ip",
     "monthly",
     "month_seconds",
-    "plus",
-    "pro",
     "schema",
-    "standard",
+    "tracking",
   ].sort());
   // A copy, not the live object: the meter must not be able to edit policy.
-  forDatabase.monthly.plus.chat = 9999;
-  assert.equal(MONTHLY_AI_CAPS.plus.chat, monthlyCap("plus", "chat"));
-  assert.notEqual(monthlyCap("plus", "chat"), 9999);
+  forDatabase.monthly.ai.chat = 9999;
+  assert.equal(MONTHLY_AI_CAPS.ai.chat, monthlyCap("ai", "chat"));
+  assert.notEqual(monthlyCap("ai", "chat"), 9999);
 });
 
 test("every tier shown on the pricing page has something to say for itself", () => {
@@ -229,7 +230,7 @@ test("the yearly plan costs less per month than the monthly one", () => {
     assert.equal(perMonthEquivalent(monthly), monthly.amountMinor);
     assert.equal(perMonthEquivalent(yearly), Math.round(yearly.amountMinor / 12));
   }
-  assert.ok(PLANS["pro-monthly"].amountMinor > 0);
+  assert.ok(PLANS["ai-monthly"].amountMinor > 0);
 });
 
 test("prices are formatted with two decimal places", () => {
@@ -263,7 +264,7 @@ test("the plan features promise no more than the meter allows", () => {
     "AI-written papers": "generate",
   };
 
-  for (const tier of ["plus", "pro"]) {
+  for (const tier of ["ai"]) {
     const caps = MONTHLY_AI_CAPS[tier];
     const copy = TIERS[tier].includes.join(" ");
 

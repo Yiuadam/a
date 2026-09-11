@@ -10,7 +10,7 @@ import AccountPanel from "@/components/AccountPanel";
 export const metadata: Metadata = {
   title: "Your account — BandUp",
   description:
-    "Sign in with Google or Apple to carry your study plan between devices. An account is optional — practice tests, drills and your plan work without one.",
+    "Sign in with Google or Apple for every paper and every skill, free and unlimited. An account is optional — practice tests, drills and your plan work without one.",
 };
 
 export default async function AccountPage({

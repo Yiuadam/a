@@ -302,7 +302,7 @@ test("a missing subscription is backfilled with its real provider, and invents n
     fetchers: {
       subscription: async (id) => (id === "sub-400"
         ? {
-          id, userId: U1, provider: "apple", status: "active", tier: "pro",
+          id, userId: U1, provider: "apple", status: "active", tier: "ai",
           customerId: null, subscriptionId: null, priceId: null, currentPeriodEnd: null,
           cancelAtPeriodEnd: false, providerEventAt: null, verifiedAt: CREATED,
           raw: { original_transaction_id: "apple-txn-1" }, createdAt: CREATED, updatedAt: CREATED,
@@ -313,7 +313,7 @@ test("a missing subscription is backfilled with its real provider, and invents n
 
   assert.equal(report.rows[0].status, "inserted");
   const row = database.prepare("SELECT provider, status, tier FROM subscriptions WHERE id = 'sub-400'").get();
-  assert.deepEqual({ ...row }, { provider: "apple", status: "active", tier: "pro" });
+  assert.deepEqual({ ...row }, { provider: "apple", status: "active", tier: "ai" });
   const events = database.prepare("SELECT count(*) AS n FROM provider_events").get();
   assert.equal(events.n, 0, "a backfill must never fabricate a webhook delivery Supabase never recorded");
 });

@@ -21,7 +21,7 @@ export function managerOrganizationPreview(): OrganizationPortal {
       userId: "22222222-2222-4222-8222-222222222222",
       displayName: "Adam",
       email: "manager@example.com",
-      tier: "pro",
+      tier: "ai",
       platformAdmin: false,
     },
     eligibility: { canJoin: true, reason: null },
@@ -208,7 +208,7 @@ export function organizationRolePreview(role: OrganizationPreviewRole): Organiza
   if (role === "individual") {
     return {
       ...source,
-      actor: { ...source.actor, displayName: "Independent learner", email: "learner@example.com", tier: "plus" },
+      actor: { ...source.actor, displayName: "Independent learner", email: "learner@example.com", tier: "ai" },
       activeOrganizationId: null,
       memberships: [],
       organizations: null,

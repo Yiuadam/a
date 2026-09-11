@@ -26,23 +26,21 @@ const { PLANS } = await import(
 );
 
 /**
- * `STRIPE_PRICE_PRO_YEARLY` -> `pro-yearly`, so the stub can tell from the id
+ * `STRIPE_PRICE_AI_YEARLY` -> `ai-yearly`, so the stub can tell from the id
  * in the URL which plan is being asked about. withFullConfig sets each id to
  * `price_${variable.toLowerCase()}`.
  */
 const PLAN_ID_BY_VAR = Object.fromEntries(
-  ["STANDARD_MONTHLY", "STANDARD_YEARLY", "PLUS_MONTHLY", "PLUS_YEARLY", "PRO_MONTHLY", "PRO_YEARLY"].map(
+  ["TRACKING_MONTHLY", "TRACKING_YEARLY", "AI_MONTHLY", "AI_YEARLY"].map(
     (suffix) => [`STRIPE_PRICE_${suffix}`, suffix.toLowerCase().replace("_", "-")],
   ),
 );
 
 const PRICE_VARS = [
-  "STRIPE_PRICE_STANDARD_MONTHLY",
-  "STRIPE_PRICE_STANDARD_YEARLY",
-  "STRIPE_PRICE_PLUS_MONTHLY",
-  "STRIPE_PRICE_PLUS_YEARLY",
-  "STRIPE_PRICE_PRO_MONTHLY",
-  "STRIPE_PRICE_PRO_YEARLY",
+  "STRIPE_PRICE_TRACKING_MONTHLY",
+  "STRIPE_PRICE_TRACKING_YEARLY",
+  "STRIPE_PRICE_AI_MONTHLY",
+  "STRIPE_PRICE_AI_YEARLY",
 ];
 const CONFIG_VARS = [
   "ACCOUNTS_ENABLED",
@@ -77,7 +75,7 @@ function withFullConfig(fn) {
 
 /*
   A Stripe that answers both questions billingHealth asks: the subscriptions
-  read behind `stripe_reachable`, and the six Price reads behind
+  read behind `stripe_reachable`, and the four Price reads behind
   `stripe_prices_match_catalogue`.
 
   `priceFor` lets a test make one Price disagree with the catalogue. Its default
@@ -137,7 +135,7 @@ test("ok is true when every piece of billing configuration is present and Stripe
 test("ok is false, and names the check, when a single Price id goes missing", () =>
   withFullConfig(async () => {
     const restore = mockReachableStripe();
-    delete process.env.STRIPE_PRICE_PRO_YEARLY;
+    delete process.env.STRIPE_PRICE_AI_YEARLY;
     try {
       const health = await billingHealth();
       assert.equal(health.ok, false);
@@ -233,11 +231,11 @@ test("ok is false when a Price is archived, though every id is still set", () =>
   withFullConfig(async () => {
     /*
       The whole point of the check. Before it existed this deployment reported
-      itself healthy: six ids set, key present, Stripe answering — and a plan
+      itself healthy: four ids set, key present, Stripe answering — and a plan
       nobody could buy, discovered by the first learner to press Subscribe.
     */
     const restore = mockReachableStripe((plan) =>
-      plan === "pro-yearly" ? { ...cataloguePrice(plan), active: false } : cataloguePrice(plan),
+      plan === "ai-yearly" ? { ...cataloguePrice(plan), active: false } : cataloguePrice(plan),
     );
     try {
       const health = await billingHealth();
@@ -253,7 +251,7 @@ test("ok is false when a Price is archived, though every id is still set", () =>
 test("ok is false when a Price charges an amount the catalogue never advertised", () =>
   withFullConfig(async () => {
     const restore = mockReachableStripe((plan) =>
-      plan === "plus-monthly"
+      plan === "tracking-monthly"
         ? { ...cataloguePrice(plan), unit_amount: cataloguePrice(plan).unit_amount + 100 }
         : cataloguePrice(plan),
     );
@@ -290,7 +288,7 @@ test("the price check reports false when it could not be run, never true", () =>
 test("a failing price check still leaks nothing but a boolean and a fixed name", () =>
   withFullConfig(async () => {
     const restore = mockReachableStripe((plan) =>
-      plan === "pro-yearly" ? { ...cataloguePrice(plan), active: false } : cataloguePrice(plan),
+      plan === "ai-yearly" ? { ...cataloguePrice(plan), active: false } : cataloguePrice(plan),
     );
     try {
       const health = await billingHealth();
