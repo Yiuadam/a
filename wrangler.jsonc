@@ -42,11 +42,13 @@
   "triggers": {
     "crons": ["*/5 * * * *"]
   },
-  "limits": {
-    // Paid Workers allow this explicit 30-second ceiling. It replaces the
-    // Free plan's 10 ms ceiling that terminated ordinary Next.js renders.
-    "cpu_ms": 30000
-  },
+  /*
+    No "limits" block. The account is on the Workers Free plan, which refuses
+    an explicit CPU ceiling (error 100328) and enforces its own 10 ms one. The
+    30-second ceiling that used to sit here — and the note that Free's 10 ms
+    once terminated ordinary Next.js renders — is what this preview exists to
+    re-measure.
+  */
   "d1_databases": [
     {
       "binding": "BANDUP_DB",
