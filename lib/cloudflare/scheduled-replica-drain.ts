@@ -30,23 +30,62 @@ import { executeCloudflareReplicaTask } from "./replica-replay";
   time, which is exactly what a queue that is about to be drained looks like.
 
   ---------------------------------------------------------------------------
-  The numbers, and why these ones
+  The numbers, and why these ones — sized for the Workers Free plan
 
-  Twenty-five outbox rows and fifty cleanup keys per run, every five minutes.
+  This account runs on Workers Free and is staying there. Free caps every
+  invocation — a cron tick exactly like an HTTP request — at 50 subrequests
+  (developers.cloudflare.com/d1/platform/limits/ and /workers/platform/limits/
+  both give "Queries per Worker invocation: 1000 (Workers Paid) / 50 (Free)";
+  a D1 query and an R2 operation each cost one) and about 10ms of CPU,
+  leniently enforced. The 25-row, 50-key batch this file used to run was sized
+  for a Paid invocation's 1000-subrequest, 30-second-CPU ceiling; unchanged, it
+  would ask Free for several times its entire per-tick budget before a single
+  row's target write even ran.
 
-  * Per run: each outbox row is a lease UPDATE, a payload read (inline for
-    almost all of them, one R2 GET for the few that are not), the target write
-    itself and a DELETE. Call it five or six subrequests, so twenty-five rows
-    is roughly 150 against a Worker limit of 1000, on an invocation with a
-    30-second CPU ceiling and no user waiting behind it.
-  * Per hour: 300 outbox rows and 600 cleanup keys. The backlog measured on 16
-    August was 34 rows; this clears that on the first run. A thousand-row
-    backlog — far larger than anything this app has produced — clears inside
-    four hours.
-  * Against the sources: none of this touches Supabase. The drain replays an
-    already-captured payload into D1 and R2, so the load lands on the two
-    stores that are behind, and 300 small D1 writes an hour is noise next to
-    ordinary request traffic.
+  One outbox row, worst case: a lease UPDATE (1) + a payload R2 GET, when the
+  payload did not fit inline (1) + the target write itself — not always the
+  single statement the old "five or six subrequests" estimate assumed. Two of
+  the ten operations fan out much further: `learner_profile`'s target write is
+  `putCloudflareLearnerProfile` (5 — `ensureCloudflareUser` alone checks the
+  account-deletion guard twice around one INSERT) followed, whenever the
+  profile carries a username, by `claimCloudflareUsername` (its own
+  `ensureCloudflareLearnerProfile` plus a two-statement batch) and, on a
+  username collision, one more read — 13 subrequests at the worst, counting
+  that batch call as costly as its two statements rather than the one round
+  trip Cloudflare's docs describe `batch()` as making. `avatar_put` reaches 12
+  by a different path (an R2 put, a D1 pointer swap through the same
+  `ensureCloudflareLearnerProfile`, and an R2 delete of whichever object loses
+  the race), with no batch() involved at all. Add the closing DELETE or
+  UPDATE (1): 15 to 16 subrequests for one row, not five or six. One cleanup
+  row, worst case (the object turns out unreferenced and is actually
+  deleted): an `objectIsReferenced` check (1) + an R2 delete (1) + a closing
+  DELETE or UPDATE (1) = 3.
+
+  Fixed cost every tick pays, empty backlog or not: the write-barrier check
+  (1), this drain's own outbox SELECT (1), `drainCloudflareReplicaOutbox`'s
+  own small opportunistic cleanup pass and that pass's SELECT (1 — see
+  `OUTBOX_DRAIN_CLEANUP_LIMIT` in replica-outbox.ts), the explicit cleanup
+  pass below and its SELECT (1), `cloudflareReplicaOutboxStatus`'s five
+  queries, and the R2 marker put (1) — 10 subrequests before any row is
+  touched, which is exactly why an empty queue (today's actual state) still
+  writes a marker on Free.
+
+  So: 10 + 16 * SCHEDULED_REPLICA_OUTBOX_BATCH + 3 * OUTBOX_DRAIN_CLEANUP_LIMIT
+  + 3 * SCHEDULED_REPLICA_CLEANUP_BATCH has to clear 50 with real margin. At 1,
+  1 and 3 that is 10 + 16 + 3 + 9 = 38 subrequests: twelve spare against the
+  hard ceiling, two spare against the 40 this file targets, so a slightly
+  optimistic reading of `batch()` still does not tip it over.
+  tests/replica-drain-free-budget.test.mjs runs this same arithmetic against
+  the live exported constants, so a future change to any one of them that
+  breaks the total fails a test rather than a cron.
+
+  Per hour, at one tick every five minutes: 12 outbox rows, and at least 48
+  cleanup keys (36 from this file's own batch, 12 more opportunistically from
+  the pass folded into the outbox drain). The 34-row backlog measured on 16
+  August clears in under three hours. A thousand-row backlog — larger than
+  anything this app has produced — would take days rather than hours; that is
+  Free's trade, not a bug in this file, and it belongs here so the owner reads
+  it before an incident rather than during one.
 
   Five minutes rather than one: the recovery this exists for is measured in
   hours, the mirror is not on any read path while `CLOUDFLARE_DATA_MODE` is
@@ -62,8 +101,8 @@ import { executeCloudflareReplicaTask } from "./replica-replay";
   dead until the owner asks for it back through the admin route.
 */
 
-export const SCHEDULED_REPLICA_OUTBOX_BATCH = 25;
-export const SCHEDULED_REPLICA_CLEANUP_BATCH = 50;
+export const SCHEDULED_REPLICA_OUTBOX_BATCH = 1;
+export const SCHEDULED_REPLICA_CLEANUP_BATCH = 3;
 
 /**
  * Where the last run leaves its receipt.

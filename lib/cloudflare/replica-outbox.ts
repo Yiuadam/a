@@ -9,16 +9,35 @@ export const CLOUDFLARE_REPLICA_MAX_ATTEMPTS = 12;
 
   These were 8 and 16 while the only thing that ever called a drain was a
   learner's own request, where a big page would have made somebody's save
-  slower to pay off somebody else's backlog. The scheduled drain in
-  lib/cloudflare/scheduled-replica-drain.ts has no user waiting on it, and a
-  ceiling of 8 there would have meant a backlog draining at the speed of the
-  cron rather than at the speed of the queue. The bounds still exist — an
-  unbounded page is how one poisoned row turns into a 30-second CPU timeout
-  that starves every row behind it — they are simply set for the caller that
-  has time rather than for the caller that does not. Request paths ask for 2.
+  slower to pay off somebody else's backlog. They became 25 and 50 once the
+  scheduled drain in lib/cloudflare/scheduled-replica-drain.ts existed, sized
+  for a Paid Worker's 1000-subrequest, 30-second-CPU invocation. This account
+  runs on Workers Free instead — 50 subrequests, ~10ms CPU, per invocation —
+  which has room for neither number; see that file for the arithmetic that
+  keeps the scheduled drain itself asking for far fewer rows than either
+  ceiling allows (SCHEDULED_REPLICA_OUTBOX_BATCH,
+  SCHEDULED_REPLICA_CLEANUP_BATCH). 25 and 50 stay as they are regardless: a
+  sanity bound against one caller asking for an unreasonable page, not a
+  target for any caller to reach. The admin's manual drain
+  (app/api/admin/cloudflare/replica-outbox/route.ts) already clamps its own
+  requests to 8 or fewer, well under both ceilings, so leaving them unchanged
+  does not loosen anything it relies on. Request paths still ask for 2.
 */
 const MAX_DRAIN = 25;
 const MAX_CLEANUP_DRAIN = 50;
+/*
+  The page `drainCloudflareReplicaOutbox` sweeps from the object-cleanup queue
+  on its own, after every outbox page it drains — cron-scheduled, admin- or
+  request-triggered alike. It was an unnamed `8` with no cap in this file's
+  own subrequest budget: on Workers Free (50 subrequests per invocation; see
+  lib/cloudflare/scheduled-replica-drain.ts) an `8` here costs up to 25
+  subrequests (a SELECT plus up to three each: a reference check, an R2
+  delete, a closing write) before either drain has done anything a caller
+  actually asked for. Named and kept small so that cost is visible and
+  checkable rather than hiding behind a magic number three call sites away
+  from the constant that has to budget for it.
+*/
+export const OUTBOX_DRAIN_CLEANUP_LIMIT = 1;
 const LEASE_MS = 2 * 60 * 1000;
 const INLINE_PAYLOAD_LIMIT = 512 * 1024;
 const MAX_PAYLOAD_BYTES = 1_900_000;
@@ -570,7 +589,7 @@ export async function drainCloudflareReplicaOutbox(
       ).run().catch(() => undefined);
     }
   }
-  await drainCloudflareReplicaObjectCleanup(bindings, { limit: 8, nowMs })
+  await drainCloudflareReplicaObjectCleanup(bindings, { limit: OUTBOX_DRAIN_CLEANUP_LIMIT, nowMs })
     .catch(() => undefined);
   return { selected: due.results.length, succeeded, failed, dead };
 }

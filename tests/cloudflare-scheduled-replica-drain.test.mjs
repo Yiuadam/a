@@ -106,9 +106,20 @@ function tombstone(database, userId) {
   );
 }
 
-test("one scheduled run clears a backlog the two-row request path never would", async () => {
+test("one scheduled run drains exactly its own page, leaving the rest of a bigger backlog pending", async () => {
+  /*
+    Until the Workers Free plan's 50-subrequest ceiling forced
+    SCHEDULED_REPLICA_OUTBOX_BATCH down (see scheduled-replica-drain.ts), this
+    test enqueued 20 rows and watched one run clear all of them — the batch
+    was comfortably bigger than any backlog this test cared to simulate. It no
+    longer is, on purpose, so the interesting behavior now is the other half
+    of the same fact: a backlog bigger than one page is not silently dropped,
+    it is left pending for the next tick. tests/replica-drain-free-budget.test.mjs
+    covers the arithmetic that sizes the page itself.
+  */
   const context = fixture();
-  for (let index = 0; index < 20; index += 1) {
+  const seeded = scheduled.SCHEDULED_REPLICA_OUTBOX_BATCH + 2;
+  for (let index = 0; index < seeded; index += 1) {
     await outbox.enqueueCloudflareReplicaTask(task(index), context.bindings, 1_000);
   }
   const seen = [];
@@ -117,16 +128,18 @@ test("one scheduled run clears a backlog the two-row request path never would", 
     execute: async (item) => { seen.push(item.taskId); return true; },
   });
 
-  // The whole point: 20 in a single pass, where the request-path drain takes
-  // two and only for the learner who happens to be writing at the time.
-  assert.equal(seen.length, 20);
-  assert.equal(run.outbox.succeeded, 20);
-  assert.equal(run.status.pending, 0);
-  assert.ok(scheduled.SCHEDULED_REPLICA_OUTBOX_BATCH >= 20);
+  // A scheduled run's page size is its own knob (SCHEDULED_REPLICA_OUTBOX_BATCH),
+  // sized for what a Worker invocation can afford — not the fixed two rows a
+  // request-path drain takes for whichever learner happens to be writing.
+  const expectedDrained = scheduled.SCHEDULED_REPLICA_OUTBOX_BATCH;
+  assert.equal(seen.length, expectedDrained);
+  assert.equal(run.outbox.succeeded, expectedDrained);
+  const remaining = seeded - expectedDrained;
+  assert.equal(run.status.pending, remaining);
   const left = context.database.prepare(
     "SELECT count(*) AS rows FROM cloudflare_replica_outbox",
   ).get();
-  assert.equal(left.rows, 0);
+  assert.equal(left.rows, remaining);
 });
 
 test("every run leaves a receipt, so a schedule that stopped firing is visible", async () => {
