@@ -20,6 +20,15 @@ export const BILLING_MESSAGES = {
   checkoutUnavailable:
     "Subscriptions aren't open yet. Everything on BandUp works in the meantime — every paper, every skill, unlimited, the moment you sign in.",
 
+  /**
+   * Checkout is closed — not because it was never set up, but because the
+   * owner has deliberately paused it (BILLING_CLOSED, see lib/billing/env.ts).
+   * A different sentence from checkoutUnavailable on purpose: "aren't open
+   * yet" reads as though nobody had got round to it, which is not this fact.
+   */
+  billingClosed:
+    "Subscriptions are paused for now. Everything on BandUp is free in the meantime — every paper, every skill, unlimited, the moment you sign in.",
+
   /** Signed out, on a route that needs to know whose subscription it is. */
   signInFirst: "Please sign in first, so your subscription is attached to your account.",
 

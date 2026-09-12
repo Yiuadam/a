@@ -13,6 +13,7 @@ import SignInLink from "@/components/account/SignInLink";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { useSegmentedDrag } from "@/lib/segmented-drag";
+import { BILLING_MESSAGES } from "@/lib/billing/messages";
 import { useTier } from "@/lib/billing/useTier";
 import {
   PLANS,
@@ -111,6 +112,12 @@ interface BillingConfig {
    * to the base currency.
    */
   currency?: string;
+  /**
+   * Set when the owner has deliberately paused sales — see billingClosed() in
+   * lib/billing/env.ts. Optional so an older cached response, which never had
+   * anything to be closed, is read the same way as one that answers `false`.
+   */
+  closed?: boolean;
 }
 
 type ConfigPhase = "loading" | "ready" | "unavailable";
@@ -452,6 +459,7 @@ export default function PricingPlans({
                     walletOffered={walletOffered}
                     walletMethods={walletMethods}
                     configPhase={configPhase}
+                    closed={config?.closed === true}
                     account={account}
                     busy={busy}
                     currency={currency}
@@ -519,6 +527,7 @@ function PaidAction({
   walletOffered,
   walletMethods,
   configPhase,
+  closed,
   account,
   busy,
   currency,
@@ -531,6 +540,8 @@ function PaidAction({
   /** The wallets Stripe will actually accept, so the button names only those. */
   walletMethods: readonly WalletPaymentMethod[];
   configPhase: ConfigPhase;
+  /** Whether the owner has paused sales, rather than never having set them up. */
+  closed: boolean;
   account: ReturnType<typeof useTier>;
   busy: boolean;
   /** The reader's own currency, so the small print agrees with the big price. */
@@ -636,8 +647,19 @@ function PaidAction({
     The honest empty state, and the one this app deploys in until somebody
     creates the Stripe prices. A button that looked live and failed on the
     first click would be worse than a sentence.
+
+    Sales paused on purpose get their own sentence rather than this one: "not
+    open yet" reads as though nobody had got round to Stripe, and here
+    somebody deliberately turned it off. See BILLING_MESSAGES.billingClosed.
   */
   if (!planOffered && !walletOffered) {
+    if (closed) {
+      return (
+        <p className="text-sm leading-6 text-slate-500">
+          {BILLING_MESSAGES.billingClosed}
+        </p>
+      );
+    }
     return (
       <p className="text-sm leading-6 text-slate-500">
         Payments aren&rsquo;t open yet. Every paper and every skill are free either way, the moment

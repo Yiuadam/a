@@ -47,6 +47,35 @@ import {
 const MODULE = "lib/billing/env.ts";
 
 /**
+ * Whether the owner has deliberately closed subscription sales.
+ *
+ * The alternative — deleting the STRIPE_PRICE_* secrets and
+ * STRIPE_WALLET_PAYMENTS_ENABLED, which is what actually stops a sale — reads
+ * everywhere else in this app as *missing* configuration rather than as a
+ * decision: the pricing page would say checkout "aren't open yet" as though
+ * nobody had ever set Stripe up, and the health check would fail exactly the
+ * way an expired key fails. The second one is worse than merely wrong — a
+ * health check that goes red on purpose, every hour, retrains whoever watches
+ * it to expect red, which is how the next *real* outage gets ignored.
+ *
+ * This switch is what lets the difference be told apart, everywhere it
+ * matters: the pricing page (a distinct sentence, not "not configured"), the
+ * checkout and wallet-checkout routes (a 503 with that same sentence, before
+ * either does any Stripe work), and the health check (the Stripe Price checks
+ * are reported not-applicable rather than failed). It changes nothing about
+ * what can actually be sold — that is still, and only, whether a Price id
+ * exists — it only changes how the absence is *described*.
+ *
+ * A plain var, like ACCOUNTS_ENABLED, rather than a Secret: flipping it is a
+ * deliberate deploy the owner reviews on its own preview first, not a value
+ * that should be editable by hand in a dashboard between deploys.
+ */
+export function billingClosed(): boolean {
+  assertServerOnly(MODULE);
+  return process.env["BILLING_CLOSED"] === "1";
+}
+
+/**
  * The Stripe secret key. Holding this is holding the ability to move money, so
  * it never leaves the server and never appears in a log line.
  */
