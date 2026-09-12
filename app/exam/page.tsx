@@ -134,6 +134,80 @@ function ExamRunner() {
   }, []);
 
   /*
+    The unmount cleanup above only catches a navigation that actually
+    unmounts this component — it cannot stop the reload, close or in-app tap
+    that starts one. Two more guards while a sitting is genuinely in
+    progress, both gone the moment the stage reaches "results" because a
+    marked sitting has nothing left to protect:
+
+    - `beforeunload` covers a reload or closed tab. Setting `returnValue` is
+      the old-fashioned way to ask a browser for its native "leave site?"
+      prompt; the prompt's own wording cannot be customised, so the string
+      assigned is never shown.
+    - A capture-phase click listener on the document covers the header —
+      the logo, the menu, the bell, the account button — all of which are
+      real `<a href>` elements this page cannot hide without also hiding
+      the rest of the app's navigation. Capture, rather than bubble, is
+      what lets `stopPropagation` reach the link before Next's own `<Link>`
+      handler does, so declining the confirmation genuinely cancels the
+      navigation rather than merely asking after the fact.
+  */
+
+  /*
+    Read outside the effect, and the only thing the effect depends on. The
+    listeners below must not be torn down and rebuilt on every answer typed
+    or option chosen — only when a sitting starts, ends, or was never begun —
+    and `session` itself is a new object on each of those keystrokes, where
+    this boolean is not.
+  */
+  const sittingInProgress = session ? session.stage !== "results" : false;
+
+  useEffect(() => {
+    if (!sittingInProgress) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (anchor.target && anchor.target !== "_self") return;
+      if (anchor.hasAttribute("download")) return;
+
+      let destination: URL;
+      try {
+        destination = new URL(anchor.href, window.location.href);
+      } catch {
+        return;
+      }
+      // A different origin already leaves the app, but only a different
+      // path on bandup.life itself unmounts this page — a query or hash
+      // change on /exam does not.
+      if (destination.origin !== window.location.origin) return;
+      if (destination.pathname === window.location.pathname) return;
+
+      if (!window.confirm("Leave the exam? This sitting will be lost.")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleDocumentClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleDocumentClick, true);
+    };
+  }, [sittingInProgress]);
+
+  /*
     Every paper this learner has already sat, so a fresh sitting prefers ones
     they have not — a mock is meant to measure, and a paper you have answered
     before measures how well you remember it. Preference, not guarantee: see

@@ -58,6 +58,15 @@ export class ApiError extends Error {
   }
 }
 
+/*
+  How long postJSON waits for a route to answer before giving up from the
+  client side — so a hung connection ends in a message rather than a spinner
+  nobody can stop watching. lib/anthropic.ts bounds its own worst case to
+  well inside this, so most of it is headroom: the network hop each way, and
+  the requireFeature/checkAiUsage checks either side of the model call.
+*/
+const TIMEOUT_MS = 60_000;
+
 export async function postJSON<T>(path: string, body: unknown): Promise<T> {
   let res: Response;
   try {
@@ -65,9 +74,30 @@ export async function postJSON<T>(path: string, body: unknown): Promise<T> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      /*
+        Without this, a connection that hangs — the model stalling, a
+        response that never arrives with nothing telling the socket so —
+        holds this promise open for as long as the platform allows, which is
+        long enough that "usually under a minute" (the marking screens' own
+        copy) becomes a wait measured in tens of minutes. See the catch
+        below for what a learner is told when it fires.
+      */
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-  } catch {
-    throw new ApiError("Couldn't reach the server. Check your connection and try again.", 0);
+  } catch (err) {
+    /*
+      A timeout is not "never reached the server" — it reached it and the
+      answer never came back — and it earns its own sentence rather than the
+      network-failure one below: "check your connection" is the wrong advice
+      for a learner whose connection was never the problem.
+    */
+    const timedOut = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+    throw new ApiError(
+      timedOut
+        ? "Marking took too long. Your work is still here — try again."
+        : "Couldn't reach the server. Check your connection and try again.",
+      0,
+    );
   }
 
   let payload: unknown;

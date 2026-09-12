@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import SignInLink from "@/components/account/SignInLink";
+import { apiUrl } from "@/lib/api";
+import { BILLING_MESSAGES } from "@/lib/billing/messages";
 import { TIERS, formatPrice, plansForTier, type Tier } from "@/lib/billing/tiers";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 
@@ -31,6 +34,17 @@ import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
   A visitor is not being sold anything — they are one free account away from
   a working feature. Sending them to a pricing page would be answering a
   question they did not ask, so they get "sign in" and nothing about money.
+
+  ---------------------------------------------------------------------------
+  Why this also asks /api/billing/config
+
+  Selling is the second job, and it can fail on its own: the owner can close
+  sales (BILLING_CLOSED, see lib/billing/env.ts) without this panel knowing
+  anything changed, because nothing about *this* feature was touched. Without
+  the check the price button still linked to /pricing, which would show the
+  same closed state — a dead end reached one click later rather than avoided
+  here. So the panel asks the same question the pricing page already asks,
+  and swaps the button for the plain fact when the answer is closed.
 */
 
 export default function UpgradePanel({
@@ -55,6 +69,32 @@ export default function UpgradePanel({
 }) {
   const definition = TIERS[tier];
   const monthly = plansForTier(tier).find((p) => p.interval === "month");
+
+  /*
+    Defaults to open. An unreachable config is treated the same as an open
+    shop rather than a closed one — the worse failure here is a subscriber
+    mid-task told there is nothing to buy when there might well be; a closed
+    shop that briefly still shows a price button just goes on to say so
+    itself, on /pricing, the way it always did before this check existed.
+  */
+  const [closed, setClosed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch(apiUrl("/api/billing/config"))
+      .then(async (res) => {
+        if (!res.ok) throw new Error("billing config unavailable");
+        return (await res.json()) as { closed?: boolean; checkout: boolean };
+      })
+      .then((body) => {
+        if (alive) setClosed(body.closed === true);
+      })
+      .catch(() => {
+        /* Unreachable is not the same as closed — see above. */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   if (!signedIn) {
     return (
@@ -132,6 +172,21 @@ export default function UpgradePanel({
           {definition.name} is managed on {WEB_HOME} rather than in the app. Sign in here with the
           same account and it works straight away.
         </p>
+      ) : closed ? (
+        /*
+          The same dead end HistoryGate's panel used to send somebody to: a
+          price button that opened /pricing, which had nothing to sell. Said
+          here instead, plainly, with somewhere useful to go rather than a
+          link to go find that out for themselves.
+        */
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <p className="w-full text-[0.9375rem] leading-6 text-slate-600">
+            {BILLING_MESSAGES.subscriptionsPaused}
+          </p>
+          <Link href="/practice" className="btn-secondary">
+            Keep practising
+          </Link>
+        </div>
       ) : (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Link href="/pricing" className="btn-primary">
@@ -149,8 +204,11 @@ export default function UpgradePanel({
         with the other half of the truth. This described the card subscription
         only, so a reader who went on to pay with Alipay had been told their
         purchase renews and can be cancelled, and neither is so of a pass.
+
+        Silent while closed as well as on the app build: it explains a button
+        that, while paused, is not on the screen above it.
       */}
-      {!IS_MOBILE_BUILD && (
+      {!IS_MOBILE_BUILD && !closed && (
         <p className="mt-2 text-xs leading-5 text-slate-500">
           A card subscription renews automatically until you cancel, in one button. Alipay and
           WeChat Pay are a single payment for the month or the year instead: no renewal, nothing to

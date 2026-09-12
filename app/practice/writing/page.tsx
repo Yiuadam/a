@@ -112,6 +112,8 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   */
   const [finished, setFinished] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Briefly true after "Copy essay" succeeds, so the label can say so. */
+  const [essayCopied, setEssayCopied] = useState(false);
 
   const task = useMemo(() => tasks.find((t) => t.id === initialTaskId)!, [initialTaskId]);
   const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0;
@@ -221,6 +223,23 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   function finishWithoutMarking() {
     discardWritingDraft(task.id);
     setFinished(true);
+  }
+
+  /*
+    The only copy this essay has once it is finished unmarked: nothing sends
+    it anywhere on Free, and "Try again" below throws the box away. Missing
+    on a browser without the Clipboard API (an insecure origin, an older or
+    in-app browser) rather than offered and failing silently on the tap.
+  */
+  async function copyEssay() {
+    try {
+      await navigator.clipboard.writeText(essay);
+      setEssayCopied(true);
+      window.setTimeout(() => setEssayCopied(false), 2000);
+    } catch {
+      // A refused permission is the browser's decision, not an error to
+      // report — the essay is still right there on screen to select by hand.
+    }
   }
 
   const prompt = (
@@ -443,7 +462,19 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
         grade || finished ? (
           <div className="flex gap-2">
             <Link href="/practice" className="btn-secondary !min-h-8 !px-3 !py-1 text-xs">More practice</Link>
-            <button className="btn-primary !min-h-8 !px-3 !py-1 text-xs" onClick={() => resetTask()}>
+            <button
+              className="btn-primary !min-h-8 !px-3 !py-1 text-xs"
+              onClick={() => {
+                /*
+                  Only the unmarked (Free) finish is confirmed. A graded essay
+                  is already sitting in history (see addResult in submit()
+                  above) — the essay this asks about is otherwise nowhere at
+                  all once this box is cleared.
+                */
+                if (finished && !window.confirm("Start again? Your essay will be cleared.")) return;
+                resetTask();
+              }}
+            >
               Try again
             </button>
           </div>
@@ -485,7 +516,18 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
             </p>
           </div>
           <div className="card !p-4">
-            <h2 className="text-sm font-semibold text-slate-900">Your essay</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-slate-900">Your essay</h2>
+              {typeof navigator !== "undefined" && navigator.clipboard && (
+                <button
+                  type="button"
+                  className="btn-secondary !min-h-8 shrink-0 !px-3 !py-1 text-xs"
+                  onClick={() => void copyEssay()}
+                >
+                  {essayCopied ? "Copied" : "Copy essay"}
+                </button>
+              )}
+            </div>
             <p className="mt-3 whitespace-pre-line text-[0.9375rem] leading-7 text-slate-700">
               {essay}
             </p>

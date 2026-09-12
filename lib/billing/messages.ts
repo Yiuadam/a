@@ -29,6 +29,19 @@ export const BILLING_MESSAGES = {
   billingClosed:
     "Subscriptions are paused for now. Everything on BandUp is free in the meantime — every paper, every skill, unlimited, the moment you sign in.",
 
+  /**
+   * Also the closed-shop fact, but for the moment somebody has just been
+   * stopped by a paid feature rather than the moment they are comparing
+   * plans — the upgrade panel under a lock, and the 402 a gated route
+   * returns for the same reason (see upgradeMessage() in
+   * lib/billing/gate.ts). Shorter than `billingClosed` above on purpose:
+   * that sentence's job is to say what is still free while somebody reads
+   * the pricing page, and this reader has already been told that. The one
+   * new fact worth adding here is that the button they would have pressed
+   * does not exist yet, not why, so the sentence stops there.
+   */
+  subscriptionsPaused: "Subscriptions are paused for now — this will open when they resume.",
+
   /** Signed out, on a route that needs to know whose subscription it is. */
   signInFirst: "Please sign in first, so your subscription is attached to your account.",
 

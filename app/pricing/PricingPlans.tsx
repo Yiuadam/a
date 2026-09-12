@@ -627,10 +627,15 @@ function PaidAction({
   */
   if (account.phase === "unavailable") {
     return (
-      <p className="text-sm leading-6 text-slate-500">
-        We couldn&rsquo;t check your account just now, so this can&rsquo;t be started. Please
-        reload in a moment — nothing else on BandUp is affected.
-      </p>
+      <div className="flex flex-col items-start gap-2">
+        <p className="text-sm leading-6 text-slate-500">
+          We couldn&rsquo;t check your account just now, so this can&rsquo;t be started. Nothing
+          else on BandUp is affected.
+        </p>
+        <button type="button" className="btn-secondary" onClick={account.retry}>
+          Try again
+        </button>
+      </div>
     );
   }
 

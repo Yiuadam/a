@@ -118,7 +118,7 @@ async function handlePOST(req: Request) {
   }
 
   const key = clientIp(req) ?? "unknown";
-  if (tooManyAttempts(key)) return safeJsonError(MESSAGES.rateLimited, 429);
+  if (tooManyAttempts(key)) return safeJsonError(MESSAGES.tooManySignInAttempts, 429);
 
   /*
     Resolved on the server, so a username never reaches Supabase and there is

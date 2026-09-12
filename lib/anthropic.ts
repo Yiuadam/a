@@ -133,6 +133,38 @@ function recordCost(
   }
 }
 
+/*
+  How long one attempt gets, and how many attempts there are.
+
+  Left at the SDK's own defaults — a ten-minute timeout, retried twice more
+  on the way the SDK's own types document ("request timeouts are retried by
+  default, so... you may wait much longer than this timeout") — a single
+  call here can hold a Worker invocation open for up to half an hour, against
+  a screen that tells the learner to expect "usually under a minute"
+  (components/exam/MockResults.tsx). Nothing below makes a slow model fast;
+  it makes sure a request that was never coming back says so within a budget
+  the routes calling this file actually have.
+
+  The budget is each route's own. A word lookup answers in a few hundred
+  tokens inside a 30-second route; marking an essay or an interview may run to
+  3,000 tokens and a generated paper to 6,000, inside 60-second routes, and a
+  ceiling sized for the lookup would cut off nearly every real marking call.
+  So the timeout follows the route: its declared maxDuration less five
+  seconds for the entitlement and usage checks either side of the call and
+  the hop to and from the Worker. There is no retry — a second attempt after
+  a timeout can never fit inside the same route, so it would only turn one
+  controlled failure into an uncontrolled one.
+*/
+const ROUTE_TIMEOUT_MS: Record<CostedRoute, number> = {
+  define: 25_000,
+  examiner: 40_000,
+  chat: 55_000,
+  generate: 55_000,
+  "grade/writing": 55_000,
+  "grade/speaking": 55_000,
+};
+const MAX_RETRIES = 0;
+
 /**
  * One call to Claude that returns schema-validated JSON.
  *
@@ -142,7 +174,7 @@ function recordCost(
  * caller's key we fall back to a plain request rather than failing.
  */
 export async function callClaudeJSON<T>(opts: CallOptions): Promise<T> {
-  const client = new Anthropic();
+  const client = new Anthropic({ timeout: ROUTE_TIMEOUT_MS[opts.route], maxRetries: MAX_RETRIES });
   const params = baseParams(opts);
 
   let text: string;

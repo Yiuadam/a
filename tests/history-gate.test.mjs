@@ -81,10 +81,11 @@ test("a sync a Free account cannot make is a named outcome, not a bare failure",
   assert.match(sync, /outcome\.status === "signed-out" \|\|\s*\n\s*outcome\.status === "not-entitled"/);
 
   const autosync = read("lib", "progress", "autosync.ts");
-  assert.match(
-    autosync,
-    /outcome\.status === "signed-out" \|\| outcome\.status === "not-entitled"\) cancelScheduledSync\(\);/,
+  const finalStates = autosync.slice(
+    autosync.indexOf('outcome.status === "signed-out"'),
+    autosync.indexOf("cancelScheduledSync();", autosync.indexOf('outcome.status === "signed-out"')),
   );
+  assert.match(finalStates, /"not-entitled"/);
 });
 
 test("clearing a device does not ask the server to clear a copy Free never had", () => {

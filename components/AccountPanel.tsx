@@ -20,7 +20,7 @@ import { useExternalPlansUrl } from "@/lib/billing/storefront";
 import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { AccountStatus } from "@/components/account/types";
 import LoadingIndicator from "@/components/LoadingIndicator";
-import { lastSyncedAt, lastSyncFailed, subscribeSyncStatus } from "@/lib/progress/sync";
+import { lastSyncedAt, lastSyncFailed, lastSyncTooLarge, subscribeSyncStatus } from "@/lib/progress/sync";
 
 /*
   The account screen, and the only place in the app where signing in happens.
@@ -154,8 +154,13 @@ export default function AccountPanel({ localMenuPreview = false }: { localMenuPr
           </h2>
           <p className="mt-2 text-[0.9375rem] leading-7 text-slate-600">
             Everything else on BandUp still works — nothing about your practice depends on this
-            page. Please try again in a minute.
+            page.
           </p>
+          <div className="mt-4">
+            <button type="button" className="btn-secondary" onClick={reload}>
+              Try again
+            </button>
+          </div>
         </section>
       )}
 
@@ -365,15 +370,25 @@ function SignedIn({
 function SyncStatusLine() {
   const at = useSyncExternalStore(subscribeSyncStatus, lastSyncedAt, () => null);
   const failed = useSyncExternalStore(subscribeSyncStatus, lastSyncFailed, () => false);
+  /*
+    A device over the account's 2MB sync cap (lib/progress/sync.ts's
+    "too-large" outcome) is not merely lagging — it will fail the exact same
+    way on every retry until a learner clears some history, so it gets a
+    sentence that says what would actually fix it rather than the ordinary
+    one below, which promises a retry that cannot ever succeed on its own.
+  */
+  const tooLarge = useSyncExternalStore(subscribeSyncStatus, lastSyncTooLarge, () => false);
 
-  if (at === null && !failed) return null;
+  if (at === null && !failed && !tooLarge) return null;
 
   return (
     <p className="mt-3 text-[0.8125rem] leading-5 text-slate-500">
       {at ? `This device last synced ${friendlyWhen(at)}.` : "This device has not synced yet."}
-      {failed
-        ? " It could not sync just now — nothing here is lost, and it will try again automatically."
-        : ""}
+      {tooLarge
+        ? " Your saved practice is too large to sync — clear some history and it will resume."
+        : failed
+          ? " It could not sync just now — nothing here is lost, and it will try again automatically."
+          : ""}
     </p>
   );
 }

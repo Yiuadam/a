@@ -71,3 +71,56 @@ test("nothing here is enforcement — the server still refuses an unpaid essay",
     /account\.phase !== "ready" \|\| !account\.accountsEnabled \|\| tierShows\(account, "grade-writing"\)/,
   );
 });
+
+/*
+  The finished screen used to be a one-way door: the essay lived only in this
+  component's state, "Try again" cleared it with no confirmation, and there
+  was no way to keep a copy of work a Free account cannot have marked or
+  saved. These tests are the two ways out of that: a button that copies the
+  essay, and a confirmation before the box that holds it is emptied.
+*/
+
+test("the finished screen offers to copy the essay, but only where the Clipboard API exists", () => {
+  const view = source.slice(source.indexOf(") : finished ? ("), source.indexOf(") : (\n        /*"));
+  // Guarded rather than always rendered — an insecure origin or an older or
+  // in-app browser has no navigator.clipboard, and a button that fails
+  // silently on every tap is worse than no button.
+  assert.match(view, /typeof navigator !== "undefined" && navigator\.clipboard/);
+  assert.match(view, /onClick=\{\(\) => void copyEssay\(\)\}/);
+  assert.match(view, /essayCopied \? "Copied" : "Copy essay"/);
+});
+
+test("copyEssay writes the essay to the clipboard and says so briefly, without throwing on a refusal", () => {
+  const fn = source.slice(source.indexOf("async function copyEssay"));
+  const body = fn.slice(0, fn.indexOf("\n  }"));
+  assert.match(body, /await navigator\.clipboard\.writeText\(essay\);/);
+  assert.match(body, /setEssayCopied\(true\);/);
+  // "Briefly" — the confirmation reverts rather than sticking forever.
+  assert.match(body, /window\.setTimeout\(\(\) => setEssayCopied\(false\), 2000\);/);
+  // A denied permission is the browser's decision, not a bug to report — the
+  // essay is still on screen to select by hand, so nothing here alarms.
+  assert.match(body, /\} catch \{/);
+});
+
+test("Try again on the finished (unmarked) screen confirms before clearing the essay", () => {
+  const bar = source.slice(source.indexOf("bottomLeft={"), source.indexOf("}\n    >"));
+  assert.match(
+    bar,
+    /if \(finished && !window\.confirm\("Start again\? Your essay will be cleared\."\)\) return;/,
+  );
+  const confirmAt = bar.indexOf("window.confirm(");
+  const resetAt = bar.indexOf("resetTask();");
+  assert.ok(confirmAt >= 0 && resetAt > confirmAt, "the confirm must guard the reset, not follow it");
+});
+
+test("a graded Try again does not ask for confirmation — that essay is already in history", () => {
+  // The same button serves both endings (grade || finished ?), and the guard
+  // above is deliberately scoped to `finished` alone: a graded essay is
+  // already in the history entry submit() records (see addResult there), so
+  // there is nothing left for a confirm to protect.
+  const bar = source.slice(source.indexOf("bottomLeft={"), source.indexOf("}\n    >"));
+  const onClickAt = bar.indexOf("onClick={() => {");
+  const tryAgainAt = bar.indexOf("Try again");
+  const onClickBody = bar.slice(onClickAt, tryAgainAt);
+  assert.match(onClickBody, /if \(finished &&/, "the confirm must be conditioned on `finished`, not on `grade`");
+});
