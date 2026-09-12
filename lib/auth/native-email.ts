@@ -11,6 +11,7 @@ import {
   requireBandUpCloudflareBindings,
   type BandUpCloudflareBindings,
 } from "@/lib/cloudflare/bindings";
+import { emailSender } from "@/lib/email/sender";
 
 /*
   Email confirmation and recovery for Cloudflare-native accounts.
@@ -112,15 +113,15 @@ async function sendActionEmail(
   bindings: BandUpCloudflareBindings,
 ): Promise<void> {
   const origin = appOrigin();
-  const sender = bindings.email;
-  if (!origin || !sender) throw new Error("Cloudflare email is unavailable");
+  const sender = emailSender(bindings);
+  if (!origin || !sender) throw new Error("Email sending is unavailable");
 
   const href = nativeEmailCallbackUrl(origin, callbackAction(action), token);
   const title = actionTitle(action);
   const copy = actionCopy(action);
   await sender.send({
     to: email,
-    from: FROM,
+    from: `${FROM.name} <${FROM.email}>`,
     subject: title,
     text: `${copy}\n\n${href}\n\nThis link expires in one hour and can be used once. If you did not ask for it, you can ignore this email.`,
     html: `<p>${copy}</p><p><a href="${href}">${title}</a></p><p>This link expires in one hour and can be used once. If you did not ask for it, you can ignore this email.</p>`,
