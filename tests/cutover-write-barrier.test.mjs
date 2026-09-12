@@ -530,6 +530,10 @@ test("lib/ai/cost-tracking.ts: recordAnthropicMessageCost and setAiCostCoverage 
 
       await armLearnerBarrier(bindings);
 
+      const errors = [];
+      const savedError = console.error;
+      console.error = (...parts) => errors.push(parts.join(" "));
+
       calls.length = 0;
       assert.equal(await costTracking.recordAnthropicMessageCost({
         providerRequestId: "req-2",
@@ -538,7 +542,12 @@ test("lib/ai/cost-tracking.ts: recordAnthropicMessageCost and setAiCostCoverage 
         usage: { input_tokens: 10, output_tokens: 5 },
       }), false);
       assert.equal(calls.length, 0);
+      assert.ok(
+        errors.some((line) => line.includes("cutover write barrier is armed for learner writes")),
+        "recordAnthropicMessageCost must say why it refused, not merely that it did",
+      );
 
+      errors.length = 0;
       calls.length = 0;
       assert.equal(await costTracking.setAiCostCoverage({
         source: "provider_console",
@@ -546,7 +555,111 @@ test("lib/ai/cost-tracking.ts: recordAnthropicMessageCost and setAiCostCoverage 
         historicalComplete: true,
       }), false);
       assert.equal(calls.length, 0);
+      assert.ok(
+        errors.some((line) => line.includes("cutover write barrier is armed for learner writes")),
+        "setAiCostCoverage must say why it refused, not merely that it did",
+      );
+
+      console.error = savedError;
     } finally {
+      delete globalThis.__CUTOVER_FAKE_CF_ENV__;
+    }
+  });
+});
+
+test("lib/ai/cost-tracking.ts: a successful Cloudflare mirror leaves no replica-failure log behind", async () => {
+  /*
+    Every other cost-tracking test in this file (and in
+    tests/dual-usage-cost-write.test.mjs) exercises the D1 mirror with no
+    binding at all, so replicateAiCostEventDurably/replicateAiCostCoverageDurably
+    always fail closed — which cannot tell "the replica attempt reported
+    failure" from "the replica attempt was skipped": both look like a logged
+    failure. Only a *real*, working D1 (as here) can prove the attempt
+    actually succeeds when it should.
+  */
+  await withEnv({ ...SUPABASE_CONFIG, CLOUDFLARE_DATA_MODE: "dual" }, async () => {
+    const { bindings } = fixture();
+    globalThis.__CUTOVER_FAKE_CF_ENV__ = { BANDUP_DB: bindings.db, BANDUP_FILES: bindings.files };
+    const errors = [];
+    const savedError = console.error;
+    console.error = (...parts) => errors.push(parts.join(" "));
+    const savedFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (input) => {
+        const url = String(input);
+        if (url.endsWith("/rpc/set_ai_cost_coverage_with_identity")) {
+          return Response.json({
+            source: "local_tracking",
+            startsAt: "2026-02-01T00:00:00.000Z",
+            historicalComplete: false,
+            recordedAt: "2026-08-16T00:00:02.000Z",
+          });
+        }
+        if (url.endsWith("/rpc/record_ai_cost_event_with_identity")) {
+          return Response.json({
+            inserted: true,
+            event: {
+              id: "950",
+              source: "calculated_tokens",
+              providerRequestId: "msg_mirror_950",
+              route: "chat",
+              model: "claude-haiku-4-5",
+              inputTokens: 10,
+              outputTokens: 5,
+              cacheCreationInputTokens: 0,
+              cacheCreation5mInputTokens: 0,
+              cacheCreation1hInputTokens: 0,
+              cacheReadInputTokens: 0,
+              costUsd: "0.000035",
+              occurredAt: "2026-08-16T00:00:00.000Z",
+              recordedAt: "2026-08-16T00:00:01.000Z",
+            },
+            coverage: {
+              source: "provider_console",
+              startsAt: "2026-01-01T00:00:00.000Z",
+              historicalComplete: true,
+              recordedAt: "2026-08-16T00:00:00.000Z",
+            },
+          });
+        }
+        throw new Error(`unexpected request ${url}`);
+      };
+
+      const recorded = await costTracking.recordAnthropicMessageCost({
+        providerRequestId: "msg_mirror_950",
+        route: "chat",
+        model: "claude-haiku-4-5",
+        usage: { input_tokens: 10, output_tokens: 5 },
+        occurredAt: new Date("2026-08-16T00:00:00.000Z"),
+      });
+      assert.equal(recorded, true);
+      assert.ok(
+        !errors.some((line) => line.includes("replica")),
+        `a real D1 mirror must not be reported as failed: ${JSON.stringify(errors)}`,
+      );
+      assert.equal(
+        (await bindings.db.prepare("SELECT provider_request_id FROM ai_cost_events WHERE id = '950'").first("provider_request_id")),
+        "msg_mirror_950",
+      );
+      assert.equal(
+        (await bindings.db.prepare("SELECT source FROM ai_cost_coverage WHERE singleton = 1").first("source")),
+        "provider_console",
+      );
+
+      errors.length = 0;
+      const covered = await costTracking.setAiCostCoverage({
+        source: "local_tracking",
+        startsAt: new Date("2026-02-01T00:00:00.000Z"),
+        historicalComplete: false,
+      });
+      assert.equal(covered, true);
+      assert.ok(
+        !errors.some((line) => line.includes("replica")),
+        `a real D1 coverage mirror must not be reported as failed: ${JSON.stringify(errors)}`,
+      );
+    } finally {
+      console.error = savedError;
+      globalThis.fetch = savedFetch;
       delete globalThis.__CUTOVER_FAKE_CF_ENV__;
     }
   });
@@ -561,26 +674,32 @@ test("lib/billing/subscriptions.ts: every Stripe applier throws (caught by the w
       globalThis.__CUTOVER_FAKE_CF_ENV__ = { BANDUP_DB: bindings.db, BANDUP_FILES: bindings.files };
       await armLearnerBarrier(bindings);
 
+      /*
+        The message is asserted, not just "it threw": the webhook route's 503
+        depends on nothing else having thrown first, and a barrier that fires
+        for the wrong reason (a bad payload, say) would still make this
+        `rejects` call pass without the text check below.
+      */
       calls.length = 0;
       await assert.rejects(() => subscriptions.applyStripeSubscription({
         eventId: "evt-1", eventAt: "2026-08-15T00:00:00.000Z", userId: USER_ID,
         status: "active", tier: "ai", customerId: "cus_1", subscriptionId: "sub_1",
         priceId: "price_1", currentPeriodEnd: "2027-08-15T00:00:00.000Z", cancelAtPeriodEnd: false,
-      }, {}));
+      }, {}), /cutover write barrier is armed for learner writes/);
       assert.equal(calls.length, 0);
 
       calls.length = 0;
       await assert.rejects(() => subscriptions.applyStripePrepaidPurchase({
         eventId: "evt-2", eventAt: "2026-08-15T00:00:00.000Z", userId: USER_ID,
         tier: "ai", planId: "plan_1", customerId: "cus_1", paymentIntentId: "pi_1", interval: "month",
-      }, {}));
+      }, {}), /cutover write barrier is armed for learner writes/);
       assert.equal(calls.length, 0);
 
       calls.length = 0;
       await assert.rejects(() => subscriptions.applyStripePrepaidRefund({
         eventId: "evt-3", eventAt: "2026-08-15T00:00:00.000Z",
         paymentIntentId: "pi_1", amountMinor: 100, fullRefundConfirmed: true,
-      }, {}));
+      }, {}), /cutover write barrier is armed for learner writes/);
       assert.equal(calls.length, 0);
     } finally {
       delete globalThis.__CUTOVER_FAKE_CF_ENV__;

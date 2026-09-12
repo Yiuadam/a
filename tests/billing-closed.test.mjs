@@ -27,6 +27,35 @@ const messages = await import(
 
 const read = (...parts) => readFileSync(join(process.cwd(), ...parts), "utf8");
 
+/*
+  Sets each named env var (undefined deletes it), runs fn, then restores every
+  one of them to exactly what it was before — even the ones fn itself did not
+  touch, so a test can never leak a Stripe var into the next one.
+*/
+async function withEnv(overrides, fn) {
+  const saved = {};
+  for (const key of Object.keys(overrides)) saved[key] = process.env[key];
+  try {
+    for (const [key, value] of Object.entries(overrides)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    return await fn();
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+const ALL_PRICE_VARS = {
+  STRIPE_PRICE_TRACKING_MONTHLY: undefined,
+  STRIPE_PRICE_TRACKING_YEARLY: undefined,
+  STRIPE_PRICE_AI_MONTHLY: undefined,
+  STRIPE_PRICE_AI_YEARLY: undefined,
+};
+
 /* ------------------------------------------------------------ the switch -- */
 
 test("billingClosed() is true only when BILLING_CLOSED is exactly \"1\", like ACCOUNTS_ENABLED", () => {
@@ -251,4 +280,242 @@ test("the portal needs the secret key, not a Price id — a paused shop still le
   const portal = read("app", "api", "billing", "portal", "route.ts");
   assert.match(portal, /!stripeSecretKey\(\)/);
   assert.doesNotMatch(portal, /stripeConfigured\(\)/);
+});
+
+/* ------------------------------------------------------------- the readers */
+
+/*
+  Every reader in this file calls assertServerOnly(MODULE) first, so that a
+  refactor which pulled one of them into a client component fails loudly in
+  development rather than quietly handing back undefined. Proving it means
+  actually tripping the guard: define `window`, the one thing assertServerOnly
+  checks for, and confirm each reader throws with its own module name in the
+  message — not merely that *a* throw happens, but that the specific dropped
+  call and the specific module string are both still there.
+*/
+test("every reader refuses to run were it ever imported into a client component", () => {
+  const saved = globalThis.window;
+  globalThis.window = {};
+  try {
+    const readers = [
+      () => env.billingClosed(),
+      () => env.stripeSecretKey(),
+      () => env.stripeWebhookSecret(),
+      () => env.stripePriceId("tracking-monthly"),
+      () => env.stripeWalletConfigured(),
+      () => env.stripeWalletMethods(),
+    ];
+    for (const read of readers) {
+      assert.throws(read, /lib\/billing\/env\.ts is server-only/);
+    }
+  } finally {
+    if (saved === undefined) delete globalThis.window;
+    else globalThis.window = saved;
+  }
+});
+
+/*
+  stripeSecretKey, stripeWebhookSecret and stripePriceId share one pattern:
+  undefined and the empty string both mean "not set", and a value that has any
+  length at all — including one that is only whitespace, which this deliberately
+  does not trim — is handed back unchanged. The empty-string case is the one
+  that actually distinguishes this from a bare `if (!value)`: `"" && ...` is
+  already falsy without ever reading `.length`, so a mutant that forced the
+  whole expression true is the only one an empty string can catch.
+*/
+test("stripeSecretKey treats unset and empty the same, and passes through whatever is set", async () => {
+  await withEnv({ STRIPE_SECRET_KEY: undefined }, () => {
+    assert.equal(env.stripeSecretKey(), undefined);
+  });
+  await withEnv({ STRIPE_SECRET_KEY: "" }, () => {
+    assert.equal(env.stripeSecretKey(), undefined);
+  });
+  await withEnv({ STRIPE_SECRET_KEY: " " }, () => {
+    assert.equal(env.stripeSecretKey(), " ", "a whitespace value is not trimmed, only emptiness is special-cased");
+  });
+  await withEnv({ STRIPE_SECRET_KEY: "sk_test_123" }, () => {
+    assert.equal(env.stripeSecretKey(), "sk_test_123");
+  });
+});
+
+test("stripeWebhookSecret treats unset and empty the same, and passes through whatever is set", async () => {
+  await withEnv({ STRIPE_WEBHOOK_SECRET: undefined }, () => {
+    assert.equal(env.stripeWebhookSecret(), undefined);
+  });
+  await withEnv({ STRIPE_WEBHOOK_SECRET: "" }, () => {
+    assert.equal(env.stripeWebhookSecret(), undefined);
+  });
+  await withEnv({ STRIPE_WEBHOOK_SECRET: "whsec_test_123" }, () => {
+    assert.equal(env.stripeWebhookSecret(), "whsec_test_123");
+  });
+});
+
+test("stripePriceId treats unset and empty the same, and passes through whatever is set, per plan", async () => {
+  await withEnv({ STRIPE_PRICE_AI_MONTHLY: undefined }, () => {
+    assert.equal(env.stripePriceId("ai-monthly"), undefined);
+  });
+  await withEnv({ STRIPE_PRICE_AI_MONTHLY: "" }, () => {
+    assert.equal(env.stripePriceId("ai-monthly"), undefined);
+  });
+  await withEnv({ STRIPE_PRICE_AI_MONTHLY: "price_ai_monthly_123" }, () => {
+    assert.equal(env.stripePriceId("ai-monthly"), "price_ai_monthly_123");
+    // And it reads the variable named for *that* plan, not a neighbour's.
+    assert.notEqual(env.stripePriceId("ai-yearly"), "price_ai_monthly_123");
+  });
+});
+
+/*
+  stripeConfigured: a key, and at least one plan with a Price id behind it.
+  Four scenarios are needed to pin both halves of the "and" and the
+  some()-not-every() shape of the second half: no key alone is enough to
+  refuse regardless of prices, and one price is enough to allow once a key
+  exists — it does not take all four.
+*/
+test("stripeConfigured needs both a key and at least one priced plan — neither alone is enough", async () => {
+  await withEnv({ STRIPE_SECRET_KEY: undefined, ...ALL_PRICE_VARS }, () => {
+    assert.equal(env.stripeConfigured(), false, "no key and no prices");
+  });
+  await withEnv({ STRIPE_SECRET_KEY: undefined, ...ALL_PRICE_VARS, STRIPE_PRICE_TRACKING_MONTHLY: "price_x" }, () => {
+    assert.equal(env.stripeConfigured(), false, "a price with no key must still refuse");
+  });
+  await withEnv({ STRIPE_SECRET_KEY: "sk_test", ...ALL_PRICE_VARS }, () => {
+    assert.equal(env.stripeConfigured(), false, "a key with no prices at all must still refuse");
+  });
+  await withEnv({ STRIPE_SECRET_KEY: "sk_test", ...ALL_PRICE_VARS, STRIPE_PRICE_TRACKING_MONTHLY: "price_x" }, () => {
+    assert.equal(env.stripeConfigured(), true, "one priced plan is enough — it need not be all four");
+  });
+  await withEnv(
+    {
+      STRIPE_SECRET_KEY: "sk_test",
+      STRIPE_PRICE_TRACKING_MONTHLY: "price_1",
+      STRIPE_PRICE_TRACKING_YEARLY: "price_2",
+      STRIPE_PRICE_AI_MONTHLY: "price_3",
+      STRIPE_PRICE_AI_YEARLY: "price_4",
+    },
+    () => {
+      assert.equal(env.stripeConfigured(), true, "and of course true when every plan is priced");
+    },
+  );
+});
+
+/*
+  stripeWalletConfigured: a key, the launch switch set to exactly "1", and at
+  least one wallet method that actually parses. Wallet methods that are all
+  unrecognised parse to an empty list — the one way to make
+  stripeWalletMethods().length actually 0, which is what separates ">0" from
+  the always-true ">=0" a mutant could substitute for it.
+*/
+test("stripeWalletConfigured needs a key, the launch switch, and at least one real wallet method", async () => {
+  await withEnv(
+    { STRIPE_SECRET_KEY: undefined, STRIPE_WALLET_PAYMENTS_ENABLED: "1", STRIPE_WALLET_METHODS: "alipay" },
+    () => {
+      assert.equal(env.stripeWalletConfigured(), false, "no key must refuse regardless of the rest");
+    },
+  );
+  await withEnv(
+    { STRIPE_SECRET_KEY: "sk_test", STRIPE_WALLET_PAYMENTS_ENABLED: undefined, STRIPE_WALLET_METHODS: "alipay" },
+    () => {
+      assert.equal(env.stripeWalletConfigured(), false, "the launch switch must be exactly \"1\", not merely present");
+    },
+  );
+  await withEnv(
+    { STRIPE_SECRET_KEY: "sk_test", STRIPE_WALLET_PAYMENTS_ENABLED: "true", STRIPE_WALLET_METHODS: "alipay" },
+    () => {
+      assert.equal(env.stripeWalletConfigured(), false, "\"true\" is not \"1\"");
+    },
+  );
+  await withEnv(
+    { STRIPE_SECRET_KEY: "sk_test", STRIPE_WALLET_PAYMENTS_ENABLED: "1", STRIPE_WALLET_METHODS: "bogus,invalid" },
+    () => {
+      assert.equal(env.stripeWalletConfigured(), false, "methods that all fail to parse leave nothing to offer");
+    },
+  );
+  await withEnv(
+    { STRIPE_SECRET_KEY: "sk_test", STRIPE_WALLET_PAYMENTS_ENABLED: "1", STRIPE_WALLET_METHODS: "alipay" },
+    () => {
+      assert.equal(env.stripeWalletConfigured(), true);
+    },
+  );
+});
+
+/*
+  stripeWalletMethods: the default, and the parsing rules the header comment
+  promises — a comma list, spaces trimmed, case folded, unknown entries
+  dropped, and the result in catalogue order regardless of the order written.
+*/
+test("stripeWalletMethods defaults to Alipay alone when the variable is unset", async () => {
+  await withEnv({ STRIPE_WALLET_METHODS: undefined }, () => {
+    assert.deepEqual(env.stripeWalletMethods(), ["alipay"]);
+  });
+});
+
+test("stripeWalletMethods trims spaces, folds case, drops unknown entries, and keeps catalogue order", async () => {
+  await withEnv({ STRIPE_WALLET_METHODS: "alipay,wechat_pay" }, () => {
+    assert.deepEqual(env.stripeWalletMethods(), ["alipay", "wechat_pay"]);
+  });
+  await withEnv({ STRIPE_WALLET_METHODS: "alipay, wechat_pay" }, () => {
+    assert.deepEqual(
+      env.stripeWalletMethods(),
+      ["alipay", "wechat_pay"],
+      "a space after the comma must not stop wechat_pay being recognised",
+    );
+  });
+  await withEnv({ STRIPE_WALLET_METHODS: " ALIPAY , WECHAT_PAY " }, () => {
+    assert.deepEqual(env.stripeWalletMethods(), ["alipay", "wechat_pay"]);
+  });
+  await withEnv({ STRIPE_WALLET_METHODS: "wechat_pay,alipay" }, () => {
+    assert.deepEqual(
+      env.stripeWalletMethods(),
+      ["alipay", "wechat_pay"],
+      "the Session must list them in catalogue order regardless of how the variable spells them",
+    );
+  });
+  await withEnv({ STRIPE_WALLET_METHODS: "alipay,bogus,wechat_pay" }, () => {
+    assert.deepEqual(env.stripeWalletMethods(), ["alipay", "wechat_pay"]);
+  });
+  await withEnv({ STRIPE_WALLET_METHODS: "bogus,invalid" }, () => {
+    assert.deepEqual(env.stripeWalletMethods(), []);
+  });
+});
+
+/*
+  purchasablePlans: the same "a key, and this plan is priced" test as
+  stripeConfigured, but per plan rather than collapsed to one boolean — the
+  filter, not some(), is what has to run correctly here.
+*/
+test("purchasablePlans lists exactly the plans with a configured Price id, and nothing without a key", async () => {
+  await withEnv({ STRIPE_SECRET_KEY: undefined, ...ALL_PRICE_VARS, STRIPE_PRICE_TRACKING_MONTHLY: "price_x" }, () => {
+    assert.deepEqual(env.purchasablePlans(), [], "a price with no key must still list nothing");
+  });
+  await withEnv({ STRIPE_SECRET_KEY: "sk_test", ...ALL_PRICE_VARS }, () => {
+    assert.deepEqual(env.purchasablePlans(), [], "a key with no prices at all must still list nothing");
+  });
+  await withEnv({ STRIPE_SECRET_KEY: "sk_test", ...ALL_PRICE_VARS, STRIPE_PRICE_TRACKING_MONTHLY: "price_x" }, () => {
+    assert.deepEqual(env.purchasablePlans(), ["tracking-monthly"], "exactly the one priced plan, not all four");
+  });
+  await withEnv(
+    {
+      STRIPE_SECRET_KEY: "sk_test",
+      STRIPE_PRICE_TRACKING_MONTHLY: "price_1",
+      STRIPE_PRICE_TRACKING_YEARLY: "price_2",
+      STRIPE_PRICE_AI_MONTHLY: "price_3",
+      STRIPE_PRICE_AI_YEARLY: "price_4",
+    },
+    () => {
+      assert.deepEqual(env.purchasablePlans(), ["tracking-monthly", "tracking-yearly", "ai-monthly", "ai-yearly"]);
+    },
+  );
+});
+
+/*
+  tierForStripePrice: reading the configuration backwards, from a Price id to
+  the tier it buys. Both a real match and a clean miss are needed — a mutant
+  that always matches the first plan it checks would still pass a test that
+  only ever asked about a Price the first plan actually owns.
+*/
+test("tierForStripePrice reads back the tier a configured Price id buys, and null for anything else", async () => {
+  await withEnv({ ...ALL_PRICE_VARS, STRIPE_PRICE_AI_MONTHLY: "price_ai_monthly_here" }, () => {
+    assert.equal(env.tierForStripePrice("price_ai_monthly_here"), "ai");
+    assert.equal(env.tierForStripePrice("price_never_configured"), null);
+  });
 });

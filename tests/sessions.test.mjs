@@ -92,6 +92,28 @@ test("a lock sends a visitor to sign in — signing in is the whole answer now",
   }
 });
 
+/*
+  lockReason's "subscribe" branch is not reachable through SESSION_LIMITS as
+  it stands today — every locked row belongs to anonymous, so the ternary
+  only ever sees tier === "anonymous" in practice, per the comment above the
+  function itself. The branch is kept on purpose rather than deleted (a
+  locked skill still has to name a reason if one is ever added back for a
+  paid tier), so it is worth pinning down against the table directly instead
+  of only through data that cannot exercise it. This substitutes a locked
+  row for "free" only, and restores the table immediately after — the other
+  signed-in tiers still point at the shared EVERYTHING object and are never
+  touched.
+*/
+test("a locked skill for a signed-in tier would say subscribe, not sign-in", () => {
+  const originalFree = SESSION_LIMITS.free;
+  SESSION_LIMITS.free = { ...originalFree, writing: { perWeek: 0 } };
+  try {
+    assert.equal(lockReason("free", "writing"), "subscribe");
+  } finally {
+    SESSION_LIMITS.free = originalFree;
+  }
+});
+
 test("sessionsLeft has nothing to count down once an account exists", () => {
   assert.equal(sessionsLeft("free", "reading", 0), null, "no limit means no number");
   assert.equal(sessionsLeft("free", "reading", 500), null, "no limit means no number");
@@ -109,6 +131,25 @@ test("the label says what a learner gets", () => {
   assert.equal(allowanceLabel("anonymous", "listening"), "1 session a week");
   assert.equal(allowanceLabel("anonymous", "writing"), "Sign in to use this");
   assert.equal(allowanceLabel("ai", "speaking"), "Unlimited");
+});
+
+/*
+  Every non-zero, non-null perWeek in SESSION_LIMITS today is exactly 1, so
+  the plural half of this label — the template rather than the "1 session a
+  week" literal — never actually runs. It is written for any count, not just
+  one, which is exactly the kind of thing this file exists to pin down
+  before a new tier's row makes it real (see the file header). This
+  substitutes a perWeek of 2 for "free" only, and restores the table right
+  after.
+*/
+test("the label pluralises once a week is more than one session", () => {
+  const originalFree = SESSION_LIMITS.free;
+  SESSION_LIMITS.free = { ...originalFree, reading: { perWeek: 2 } };
+  try {
+    assert.equal(allowanceLabel("free", "reading"), "2 sessions a week");
+  } finally {
+    SESSION_LIMITS.free = originalFree;
+  }
 });
 
 test("every tier has a row for every skill", () => {

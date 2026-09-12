@@ -143,3 +143,22 @@ test("native-email.ts sources its sender from the chooser, never the raw binding
   assert.doesNotMatch(implementation, /bindings\.email/);
   assert.match(implementation, /emailSender\(bindings\)/);
 });
+
+test("emailSender refuses to run outside the server, naming its own module", () => {
+  // assertServerOnly only throws once something has defined `window`; Node
+  // itself never does, so this is the one test here that has to fake it.
+  const previousWindow = globalThis.window;
+  globalThis.window = {};
+  try {
+    assert.throws(
+      () => sender.emailSender({}),
+      (err) => {
+        assert.match(err.message, /^lib\/email\/sender\.ts is server-only/);
+        return true;
+      },
+    );
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
+});

@@ -16,6 +16,8 @@ const financeFormat = await load("lib", "admin", "finance-format.ts");
 const financeView = await load("lib", "admin", "finance-view.ts");
 const anthropic = await load("lib", "admin", "anthropic-cost.ts");
 const stripeFinance = await load("lib", "billing", "finance.ts");
+const stripe = await load("lib", "billing", "stripe.ts");
+const tiers = await load("lib", "billing", "tiers.ts");
 
 const NOW = new Date("2026-08-12T12:34:56.000Z");
 const PERIOD = periodModule.financePeriod(NOW);
@@ -387,6 +389,144 @@ test("AI cost remains visible as a loss before the first Stripe receipt", () => 
   assert.equal(estimate.period.afterAi.minorUnits, "-9.8025");
 });
 
+test("stripeCategoryClass recognises every operating and money-movement category, not just the common ones", () => {
+  const operating = [
+    "charge", "charge_failure", "dispute", "dispute_reversal", "fee",
+    "network_cost", "partial_capture_reversal", "platform_earning",
+    "platform_earning_refund", "refund", "refund_failure", "revenue_share", "tax",
+  ];
+  for (const category of operating) {
+    assert.equal(stripeFinance.stripeCategoryClass(category), "operating", category);
+  }
+  const moneyMovement = ["payout", "payout_reversal", "transfer", "transfer_reversal"];
+  for (const category of moneyMovement) {
+    assert.equal(stripeFinance.stripeCategoryClass(category), "money_movement", category);
+  }
+  assert.equal(stripeFinance.stripeCategoryClass("something_new"), "unknown");
+});
+
+test("a transaction with no reporting category is filed as \"unreported\", not blank", () => {
+  const snapshot = stripeFinance.summariseStripeFinance(
+    [{ created: utc("2026-08-06T00:00:00Z"), currency: "usd", reportingCategory: "", amountMinor: 5, feeMinor: 0, netMinor: 5 }],
+    [],
+    PERIOD,
+  );
+  assert.deepEqual(snapshot.currencies[0].categories.map((c) => c.category), ["unreported"]);
+});
+
+test("the finance period is inclusive of its first instant and exclusive of its last", () => {
+  const period = {
+    days: 2,
+    startingAt: "2026-01-10T00:00:00.000Z",
+    endingAt: "2026-01-12T00:00:00.000Z",
+    timezone: "UTC",
+  };
+  const startBoundary = Math.floor(Date.parse(period.startingAt) / 1000);
+  const endBoundary = Math.floor(Date.parse(period.endingAt) / 1000);
+  const snapshot = stripeFinance.summariseStripeFinance(
+    [
+      // Exactly at the start: must count (inclusive).
+      { created: startBoundary, currency: "usd", reportingCategory: "charge", amountMinor: 111, feeMinor: 0, netMinor: 111 },
+      // Exactly at the end: must NOT count (exclusive) — this is the instant
+      // the *next* period owns.
+      { created: endBoundary, currency: "usd", reportingCategory: "charge", amountMinor: 222, feeMinor: 0, netMinor: 222 },
+      // Comfortably past the end: must not count either.
+      { created: endBoundary + 3600, currency: "usd", reportingCategory: "charge", amountMinor: 444, feeMinor: 0, netMinor: 444 },
+    ],
+    [],
+    period,
+  );
+  const usd = snapshot.currencies[0];
+  assert.equal(usd.period.net.minorUnits, "111", "only the start-boundary transaction is inside the period");
+  assert.equal(usd.lifetime.net.minorUnits, "777", "lifetime must still see all three regardless of the window");
+});
+
+test("currency and category totals accumulate every transaction, sorted by name rather than by arrival order", () => {
+  const snapshot = stripeFinance.summariseStripeFinance(
+    [
+      // usd arrives before aud, but AUD must sort first.
+      { created: utc("2026-08-01T00:00:00Z"), currency: "usd", reportingCategory: "charge", amountMinor: 100, feeMinor: 9, netMinor: 91 },
+      // Within AUD: "refund" is encountered before "charge" ever is, but
+      // "charge" must still sort first — proving the categories are actually
+      // sorted rather than merely listed in the order they were first seen.
+      { created: utc("2026-08-02T00:00:00Z"), currency: "aud", reportingCategory: "refund", amountMinor: -10, feeMinor: 0, netMinor: -10 },
+      { created: utc("2026-08-03T00:00:00Z"), currency: "aud", reportingCategory: "charge", amountMinor: 50, feeMinor: 2, netMinor: 48 },
+      { created: utc("2026-08-04T00:00:00Z"), currency: "aud", reportingCategory: "charge", amountMinor: 20, feeMinor: 1, netMinor: 19 },
+    ],
+    [],
+    PERIOD,
+  );
+
+  assert.deepEqual(snapshot.currencies.map((c) => c.currency), ["AUD", "USD"], "currencies must sort alphabetically, not by first appearance");
+  const aud = snapshot.currencies[0];
+  assert.equal(aud.lifetime.amount.minorUnits, "60", "the currency-level amount must accumulate (-10 + 50 + 20), not overwrite");
+  assert.deepEqual(
+    aud.categories.map((c) => c.category),
+    ["charge", "refund"],
+    "categories must sort alphabetically, not by the order they were first seen",
+  );
+  const chargeCategory = aud.categories.find((c) => c.category === "charge");
+  // Two "charge" transactions in the same currency: count, fees and net must
+  // each accumulate across both rather than the second silently resetting
+  // the first.
+  assert.equal(chargeCategory.lifetime.count, 2);
+  assert.equal(chargeCategory.lifetime.fees.minorUnits, "3");
+  assert.equal(chargeCategory.lifetime.net.minorUnits, "67");
+});
+
+test("a transaction inside the period updates its category's period total and its own calendar day", () => {
+  const period = {
+    days: 3,
+    startingAt: "2026-03-01T00:00:00.000Z",
+    endingAt: "2026-03-04T00:00:00.000Z",
+    timezone: "UTC",
+  };
+  const snapshot = stripeFinance.summariseStripeFinance(
+    [
+      { created: utc("2026-03-02T15:00:00Z"), currency: "usd", reportingCategory: "charge", amountMinor: 300, feeMinor: 10, netMinor: 290 },
+      { created: utc("2026-03-02T18:00:00Z"), currency: "usd", reportingCategory: "charge", amountMinor: 100, feeMinor: 5, netMinor: 95 },
+    ],
+    [],
+    period,
+  );
+  const usd = snapshot.currencies[0];
+  const charge = usd.categories.find((c) => c.category === "charge");
+  assert.equal(charge.period.count, 2, "both in-period transactions must reach the category's period bucket");
+  assert.equal(charge.period.amount.minorUnits, "400");
+
+  const day = usd.daily.find((d) => d.day === "2026-03-02");
+  assert.ok(day, "2026-03-02 must be one of the period's named days");
+  assert.equal(day.operatingAmount.minorUnits, "400", "both transactions on the day must reach the daily bucket");
+  assert.equal(day.operatingNet.minorUnits, "385");
+  // Every other named day stays untouched.
+  const otherDay = usd.daily.find((d) => d.day === "2026-03-01");
+  assert.equal(otherDay.operatingAmount.minorUnits, "0");
+});
+
+test("paid payouts accumulate their count as well as their amount, split by whether they fall in the period", () => {
+  const period = {
+    days: 2,
+    startingAt: "2026-05-01T00:00:00.000Z",
+    endingAt: "2026-05-03T00:00:00.000Z",
+    timezone: "UTC",
+  };
+  const snapshot = stripeFinance.summariseStripeFinance(
+    [],
+    [
+      { arrivalDate: utc("2026-05-01T12:00:00Z"), currency: "usd", amountMinor: 1000 },
+      { arrivalDate: utc("2026-05-02T12:00:00Z"), currency: "usd", amountMinor: 2000 },
+      // Outside the period, but still lifetime.
+      { arrivalDate: utc("2026-01-01T00:00:00Z"), currency: "usd", amountMinor: 500 },
+    ],
+    period,
+  );
+  const usd = snapshot.currencies[0];
+  assert.equal(usd.lifetimePaidPayouts.count, 3);
+  assert.equal(usd.lifetimePaidPayouts.amount.minorUnits, "3500");
+  assert.equal(usd.periodPaidPayouts.count, 2, "only the two payouts inside the period must be counted here");
+  assert.equal(usd.periodPaidPayouts.amount.minorUnits, "3000");
+});
+
 test("Stripe finance pagination uses created activity and paid arrival dates", async () => {
   const stripe = await load("lib", "billing", "stripe.ts");
   const previousKey = process.env.STRIPE_SECRET_KEY;
@@ -431,4 +571,413 @@ test("Stripe finance pagination uses created activity and paid arrival dates", a
     if (previousKey === undefined) delete process.env.STRIPE_SECRET_KEY;
     else process.env.STRIPE_SECRET_KEY = previousKey;
   }
+});
+
+/* -------------------------------------------------------------------------- */
+/* billingSnapshot — what is currently being paid, straight from Stripe        */
+/* -------------------------------------------------------------------------- */
+
+async function withStripeKey(key, fn) {
+  const savedFetch = globalThis.fetch;
+  const savedKey = process.env.STRIPE_SECRET_KEY;
+  process.env.STRIPE_SECRET_KEY = key;
+  try {
+    return await fn();
+  } finally {
+    globalThis.fetch = savedFetch;
+    if (savedKey === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = savedKey;
+  }
+}
+
+test("billingSnapshot paginates past a full page, tallies active subscriptions by plan, and spreads yearly revenue over its months", () =>
+  withStripeKey("sk_test_billing_snapshot", async () => {
+    // A full first page (exactly 100) so the "was this page full" check must
+    // say "keep going" rather than "that's everyone" — a filler item that
+    // charges nothing so it cannot perturb the MRR arithmetic below, and one
+    // recognised subscriber on each of two different plans to prove `byPlan`
+    // is not just counting the first plan it happens to see.
+    const page1 = Array.from({ length: 100 }, (_, i) => ({ id: `sub_page1_${i}`, items: { data: [] } }));
+    page1[0] = {
+      id: "sub_page1_0",
+      items: { data: [{ price: { id: "price_tracking_monthly", unit_amount: tiers.PLANS["tracking-monthly"].amountMinor, recurring: { interval: "month" } } }] },
+    };
+    page1[1] = {
+      id: "sub_page1_1",
+      items: { data: [{ price: { id: "price_ai_yearly", unit_amount: tiers.PLANS["ai-yearly"].amountMinor, recurring: { interval: "year" } } }] },
+    };
+    // The remaining 98 filler items still count toward `active`, at 0 revenue.
+    for (let i = 2; i < 100; i += 1) {
+      page1[i] = { id: `sub_page1_${i}`, items: { data: [{ price: { id: "price_unrecognised", unit_amount: 0, recurring: { interval: "month" } } }] } };
+    }
+    // A second, short page — proves pagination actually continued rather than
+    // stopping after the first (full) page, and adds a second yearly plan
+    // subscriber so byPlan's count can be more than one.
+    const page2 = [
+      {
+        id: "sub_page2_0",
+        items: { data: [{ price: { id: "price_ai_yearly", unit_amount: tiers.PLANS["ai-yearly"].amountMinor, recurring: { interval: "year" } } }] },
+      },
+    ];
+
+    const savedVars = {};
+    for (const [name, value] of [
+      ["STRIPE_PRICE_TRACKING_MONTHLY", "price_tracking_monthly"],
+      ["STRIPE_PRICE_AI_YEARLY", "price_ai_yearly"],
+    ]) {
+      savedVars[name] = process.env[name];
+      process.env[name] = value;
+    }
+    globalThis.fetch = async (url) => {
+      const parsed = new URL(String(url));
+      assert.equal(parsed.searchParams.get("status"), "active");
+      assert.equal(parsed.searchParams.get("limit"), "100");
+      if (parsed.searchParams.get("starting_after") === "sub_page1_99") {
+        return Response.json({ data: page2 });
+      }
+      assert.equal(parsed.searchParams.has("starting_after"), false, "a starting_after was sent before any page was read");
+      return Response.json({ data: page1 });
+    };
+    try {
+      const snapshot = await stripe.billingSnapshot();
+      assert.equal(snapshot.active, 101, "pagination did not reach the second page");
+      assert.deepEqual(snapshot.byPlan, { "tracking-monthly": 1, "ai-yearly": 2 });
+      // 490 (monthly, in full) + 8900/12 twice (yearly, spread over its months).
+      const expectedMrrMinor = 490 + 2 * (8900 / 12);
+      assert.equal(snapshot.mrrHkd, Math.round(expectedMrrMinor) / 100);
+    } finally {
+      for (const [name, value] of Object.entries(savedVars)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
+  }));
+
+test("billingSnapshot does not invent a cursor when a full page's last row has no id", () =>
+  withStripeKey("sk_test_billing_snapshot_no_cursor", async () => {
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls += 1;
+      // A full (100-row) page, so the length check alone says "keep going" —
+      // but the last row carries no id, so there is nothing safe to page from.
+      const data = Array.from({ length: 100 }, (_, i) => ({ id: `sub_${i}`, items: { data: [] } }));
+      data[99] = { items: { data: [] } };
+      return Response.json({ data });
+    };
+    const snapshot = await stripe.billingSnapshot();
+    assert.equal(calls, 1, "a second page was fetched with no real cursor to page from");
+    assert.equal(snapshot.active, 100);
+  }));
+
+test("billingSnapshot never reads more than 20 pages, even from an account that would keep paginating forever", () =>
+  withStripeKey("sk_test_billing_snapshot_cap", async () => {
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls += 1;
+      // Always a full page with fresh ids, so nothing here ever triggers the
+      // ordinary "short page" or "no next cursor" endings — only the 20-page
+      // safety cap can stop this.
+      const data = Array.from({ length: 100 }, (_, i) => ({ id: `sub_${calls}_${i}`, items: { data: [] } }));
+      return Response.json({ data });
+    };
+    const snapshot = await stripe.billingSnapshot();
+    assert.equal(calls, 20, `expected exactly 20 requests (the pagination cap), saw ${calls}`);
+    assert.equal(snapshot.active, 2000);
+  }));
+
+/* -------------------------------------------------------------------------- */
+/* stripeDiagnostic                                                            */
+/* -------------------------------------------------------------------------- */
+
+test("stripeDiagnostic reports the Worker's own missing key before ever asking Stripe", async () => {
+  const savedKey = process.env.STRIPE_SECRET_KEY;
+  delete process.env.STRIPE_SECRET_KEY;
+  try {
+    assert.deepEqual(await stripe.stripeDiagnostic(), {
+      ok: false,
+      detail: "STRIPE_SECRET_KEY is not set on this Worker",
+    });
+  } finally {
+    if (savedKey === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = savedKey;
+  }
+});
+
+test("stripeDiagnostic asks exactly one cheap question, and says which mode answered and whether anything is live", () =>
+  withStripeKey("sk_test_diagnostic", async () => {
+    const urls = [];
+    globalThis.fetch = async (url) => {
+      urls.push(String(url));
+      return Response.json({ livemode: true, data: [] });
+    };
+    assert.deepEqual(await stripe.stripeDiagnostic(), {
+      ok: true,
+      detail: "answers — live mode, no active subscriptions yet",
+    });
+    assert.equal(urls.at(-1), "https://api.stripe.com/v1/subscriptions?limit=1");
+
+    globalThis.fetch = async () => Response.json({ livemode: false, data: [{ id: "sub_1" }] });
+    assert.deepEqual(await stripe.stripeDiagnostic(), {
+      ok: true,
+      detail: "answers — test mode, subscriptions readable",
+    });
+  }));
+
+/* -------------------------------------------------------------------------- */
+/* financialSnapshot's own readers — validation, pagination, the two safety   */
+/* caps                                                                        */
+/* -------------------------------------------------------------------------- */
+
+async function runFinancialSnapshot({ balanceHandler, payoutHandler }) {
+  return withStripeKey("sk_test_finance_validation", async () => {
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/balance_transactions")) return balanceHandler(url);
+      if (url.pathname.endsWith("/payouts")) return payoutHandler(url);
+      throw new Error(`unexpected request ${url}`);
+    };
+    return stripe.financialSnapshot(PERIOD, periodModule.FINANCE_LIFETIME_START);
+  });
+}
+
+const emptyBalancePage = () => Response.json({ data: [], has_more: false });
+const emptyPayoutPage = () => Response.json({ data: [], has_more: false });
+
+test("every numeric field a balance transaction or a payout answers with must be a safe integer, named when it is not", async () => {
+  const goodTxn = { id: "txn_1", created: 1_700_000_000, currency: "usd", reporting_category: "charge", amount: 100, fee: 5, net: 95 };
+  const txnCases = [
+    ["created", "balance transaction timestamp"],
+    ["amount", "balance transaction amount"],
+    ["fee", "balance transaction fee"],
+    ["net", "balance transaction net"],
+  ];
+  for (const [field, label] of txnCases) {
+    await assert.rejects(
+      runFinancialSnapshot({
+        balanceHandler: () => Response.json({ data: [{ ...goodTxn, [field]: 1.5 }], has_more: false }),
+        payoutHandler: emptyPayoutPage,
+      }),
+      new RegExp(`Stripe returned an invalid ${label}`),
+      `corrupting ${field} on a balance transaction was not caught`,
+    );
+  }
+
+  const goodPayout = { id: "po_1", currency: "usd", arrival_date: 1_700_000_000, amount: 100 };
+  for (const [field, label] of [["arrival_date", "payout arrival date"], ["amount", "payout amount"]]) {
+    await assert.rejects(
+      runFinancialSnapshot({
+        balanceHandler: emptyBalancePage,
+        payoutHandler: () => Response.json({ data: [{ ...goodPayout, [field]: 1.5 }], has_more: false }),
+      }),
+      new RegExp(`Stripe returned an invalid ${label}`),
+      `corrupting ${field} on a payout was not caught`,
+    );
+  }
+});
+
+test("body.data that is not an array is refused before anything is read from it", async () => {
+  await assert.rejects(
+    runFinancialSnapshot({ balanceHandler: () => Response.json({ data: {}, has_more: false }), payoutHandler: emptyPayoutPage }),
+    /Stripe returned invalid balance transactions/,
+  );
+  await assert.rejects(
+    runFinancialSnapshot({ balanceHandler: emptyBalancePage, payoutHandler: () => Response.json({ data: null, has_more: false }) }),
+    /Stripe returned invalid payouts/,
+  );
+});
+
+test("a balance transaction without an id or a currency is refused, and its id is named when it has one", async () => {
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: () =>
+        Response.json({ data: [{ created: 1, currency: "usd", reporting_category: "charge", amount: 1, fee: 0, net: 1 }], has_more: false }),
+      payoutHandler: emptyPayoutPage,
+    }),
+    /Stripe returned a balance transaction without an id/,
+  );
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: () =>
+        Response.json({ data: [{ id: "", created: 1, currency: "usd", reporting_category: "charge", amount: 1, fee: 0, net: 1 }], has_more: false }),
+      payoutHandler: emptyPayoutPage,
+    }),
+    /Stripe returned a balance transaction without an id/,
+  );
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: () =>
+        Response.json({ data: [{ id: "txn_missing_currency", created: 1, reporting_category: "charge", amount: 1, fee: 0, net: 1 }], has_more: false }),
+      payoutHandler: emptyPayoutPage,
+    }),
+    /Stripe returned balance transaction txn_missing_currency without a currency/,
+  );
+  // Present, but empty — typeof "" === "string" would pass a check that only
+  // asked whether currency was a string at all.
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: () =>
+        Response.json({ data: [{ id: "txn_empty_currency", created: 1, currency: "", reporting_category: "charge", amount: 1, fee: 0, net: 1 }], has_more: false }),
+      payoutHandler: emptyPayoutPage,
+    }),
+    /Stripe returned balance transaction txn_empty_currency without a currency/,
+  );
+});
+
+test("a payout without an id or a currency is refused, and its id is named when it has one", async () => {
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: emptyBalancePage,
+      payoutHandler: () => Response.json({ data: [{ arrival_date: 1, currency: "usd", amount: 1 }], has_more: false }),
+    }),
+    /Stripe returned a payout without an id/,
+  );
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: emptyBalancePage,
+      payoutHandler: () => Response.json({ data: [{ id: "", arrival_date: 1, currency: "usd", amount: 1 }], has_more: false }),
+    }),
+    /Stripe returned a payout without an id/,
+  );
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: emptyBalancePage,
+      payoutHandler: () => Response.json({ data: [{ id: "po_missing_currency", arrival_date: 1, amount: 1 }], has_more: false }),
+    }),
+    /Stripe returned payout po_missing_currency without a currency/,
+  );
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: emptyBalancePage,
+      payoutHandler: () => Response.json({ data: [{ id: "po_empty_currency", arrival_date: 1, currency: "", amount: 1 }], has_more: false }),
+    }),
+    /Stripe returned payout po_empty_currency without a currency/,
+  );
+});
+
+test("balance-transaction pagination continues exactly while has_more is true, and the second page's rows are not dropped", async () => {
+  const snapshot = await runFinancialSnapshot({
+    balanceHandler: (url) => {
+      if (!url.searchParams.has("starting_after")) {
+        return Response.json({
+          data: [{ id: "txn_a", created: 1, currency: "usd", reporting_category: "charge", amount: 100, fee: 0, net: 100 }],
+          has_more: true,
+        });
+      }
+      assert.equal(url.searchParams.get("starting_after"), "txn_a", "the cursor was not the previous page's last id");
+      return Response.json({
+        data: [{ id: "txn_b", created: 2, currency: "usd", reporting_category: "charge", amount: 50, fee: 0, net: 50 }],
+        has_more: false,
+      });
+    },
+    payoutHandler: emptyPayoutPage,
+  });
+  assert.equal(snapshot.currencies[0].lifetime.net.minorUnits, "150", "the second has_more:true page was never fetched");
+});
+
+test("payout pagination continues while has_more is true, and the next cursor is the last row, not the second one", async () => {
+  // Three rows on the first page so "the last one" and "the second one" name
+  // different ids — a two-row page would make them the same id by accident.
+  const snapshot = await runFinancialSnapshot({
+    balanceHandler: emptyBalancePage,
+    payoutHandler: (url) => {
+      if (!url.searchParams.has("starting_after")) {
+        return Response.json({
+          data: [
+            { id: "po_a", currency: "usd", arrival_date: 1, amount: 10 },
+            { id: "po_b", currency: "usd", arrival_date: 2, amount: 20 },
+            { id: "po_c", currency: "usd", arrival_date: 3, amount: 30 },
+          ],
+          has_more: true,
+        });
+      }
+      assert.equal(url.searchParams.get("starting_after"), "po_c", "the cursor was not the last row of the previous page");
+      return Response.json({ data: [{ id: "po_d", currency: "usd", arrival_date: 4, amount: 40 }], has_more: false });
+    },
+  });
+  assert.equal(snapshot.currencies[0].lifetimePaidPayouts.amount.minorUnits, "100", "the second has_more:true page was never fetched");
+});
+
+test("a balance-transaction or payout cursor that fails to advance is refused rather than looped on", async () => {
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: () =>
+        Response.json({
+          data: [{ id: "txn_stall", created: 1, currency: "usd", reporting_category: "charge", amount: 1, fee: 0, net: 1 }],
+          has_more: true,
+        }),
+      payoutHandler: emptyPayoutPage,
+    }),
+    /Stripe balance transaction pagination did not advance/,
+  );
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: emptyBalancePage,
+      payoutHandler: () =>
+        Response.json({ data: [{ id: "po_stall", currency: "usd", arrival_date: 1, amount: 1 }], has_more: true }),
+    }),
+    /Stripe payout pagination did not advance/,
+  );
+});
+
+test("both readers page in hundreds, and encode the report period as whole Unix seconds", async () => {
+  const seen = { balance: null, payout: null };
+  await runFinancialSnapshot({
+    balanceHandler: (url) => {
+      seen.balance = url.searchParams;
+      return Response.json({ data: [], has_more: false });
+    },
+    payoutHandler: (url) => {
+      seen.payout = url.searchParams;
+      return Response.json({ data: [], has_more: false });
+    },
+  });
+  const startSeconds = String(Math.floor(Date.parse(periodModule.FINANCE_LIFETIME_START) / 1000));
+  const endSeconds = String(Math.ceil(Date.parse(PERIOD.endingAt) / 1000));
+
+  assert.equal(seen.balance.get("limit"), "100");
+  assert.equal(seen.balance.get("created[gte]"), startSeconds);
+  assert.equal(seen.balance.get("created[lt]"), endSeconds);
+
+  assert.equal(seen.payout.get("limit"), "100");
+  assert.equal(seen.payout.get("status"), "paid");
+  assert.equal(seen.payout.get("arrival_date[gte]"), startSeconds);
+  assert.equal(seen.payout.get("arrival_date[lt]"), endSeconds);
+});
+
+test("balance-transaction pagination is capped at 10,000 pages, so a runaway has_more cannot loop forever", async () => {
+  let calls = 0;
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: () => {
+        calls += 1;
+        // A safety net for the test itself: if the cap ever failed to fire,
+        // this stops the loop quickly with a message that will not match the
+        // pattern below, rather than hanging or exhausting memory.
+        if (calls > 10_050) throw new Error("test safety net: the 10,000-page cap did not stop pagination");
+        return Response.json({
+          data: [{ id: `txn_${calls}`, created: calls, currency: "usd", reporting_category: "charge", amount: 1, fee: 0, net: 1 }],
+          has_more: true,
+        });
+      },
+      payoutHandler: emptyPayoutPage,
+    }),
+    /Stripe balance transaction report exceeded 10,000 pages/,
+  );
+  assert.equal(calls, 10_000, `expected exactly 10,000 requests, saw ${calls}`);
+});
+
+test("payout pagination is capped at 10,000 pages, so a runaway has_more cannot loop forever", async () => {
+  let calls = 0;
+  await assert.rejects(
+    runFinancialSnapshot({
+      balanceHandler: emptyBalancePage,
+      payoutHandler: () => {
+        calls += 1;
+        if (calls > 10_050) throw new Error("test safety net: the 10,000-page cap did not stop pagination");
+        return Response.json({ data: [{ id: `po_${calls}`, currency: "usd", arrival_date: calls, amount: 1 }], has_more: true });
+      },
+    }),
+    /Stripe payout report exceeded 10,000 pages/,
+  );
+  assert.equal(calls, 10_000, `expected exactly 10,000 requests, saw ${calls}`);
 });

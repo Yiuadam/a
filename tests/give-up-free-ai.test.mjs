@@ -24,13 +24,15 @@
   was meant to be checking.
 */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import { join } from "node:path";
 import { register } from "node:module";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 
 register("./alias-resolve.mjs", import.meta.url);
+register("./cloudflare-context-stub.mjs", import.meta.url);
 
 const root = process.cwd();
 const promo = await import(pathToFileURL(join(root, "lib", "billing", "promo.ts")).href);
@@ -169,6 +171,99 @@ function against(fixture, fn) {
   });
 }
 
+/*
+  ---------------------------------------------------------------------------
+  A real (in-memory) D1, for the one decision this file's fake PostgREST
+  cannot stand in for: whether a write goes to Supabase at all, or to D1
+  directly through the native promo writer. That choice
+  (`nativePromoAuthority()` in lib/billing/promo.ts) is proved by actually
+  routing a call into a migrated D1 and showing no Supabase request was made,
+  the same D1-over-SQLite adapter tests/native-promo-write.test.mjs uses.
+*/
+function runtimeD1(database) {
+  const execute = (statement) => {
+    const result = database.prepare(statement.sql).run(...statement.values);
+    return { success: true, results: [], meta: { changes: Number(result.changes ?? 0) } };
+  };
+  const bound = (sql, values) => ({
+    sql,
+    values,
+    async run() { return execute({ sql, values }); },
+    async first(column) {
+      const row = database.prepare(sql).get(...values) ?? null;
+      return column && row ? row[column] ?? null : row;
+    },
+    async all() {
+      return { success: true, results: database.prepare(sql).all(...values), meta: {} };
+    },
+  });
+  return {
+    prepare(sql) {
+      return { bind: (...values) => bound(sql, values), ...bound(sql, []) };
+    },
+    async batch(statements) {
+      database.exec("BEGIN IMMEDIATE");
+      try {
+        const results = statements.map(execute);
+        database.exec("COMMIT");
+        return results;
+      } catch (error) {
+        database.exec("ROLLBACK");
+        throw error;
+      }
+    },
+  };
+}
+
+function fakeR2() {
+  const objects = new Map();
+  return {
+    async put(key, value) {
+      objects.set(key, value instanceof Uint8Array ? value : new Uint8Array(value));
+    },
+    async get(key) {
+      const value = objects.get(key);
+      return value ? { async arrayBuffer() { return value.buffer; } } : null;
+    },
+    async delete(key) { objects.delete(key); },
+  };
+}
+
+function freshD1() {
+  const database = new DatabaseSync(":memory:");
+  for (const file of readdirSync(join(root, "cloudflare", "migrations"))
+    .filter((name) => name.endsWith(".sql"))
+    .sort()) {
+    database.exec(readFileSync(join(root, "cloudflare", "migrations", file), "utf8"));
+  }
+  return database;
+}
+
+/** Runs `fn` with a live (empty, migrated) Cloudflare context; always tears it down. */
+async function withCloudflareContext(fn) {
+  const database = freshD1();
+  const bindings = { db: runtimeD1(database), files: fakeR2() };
+  globalThis.__FAKE_CLOUDFLARE_CONTEXT__ = { env: { BANDUP_DB: bindings.db, BANDUP_FILES: bindings.files } };
+  try {
+    return await fn(database);
+  } finally {
+    delete globalThis.__FAKE_CLOUDFLARE_CONTEXT__;
+  }
+}
+
+/** Captures console.error calls made during `fn`, restoring it afterward. */
+async function captureConsoleError(fn) {
+  const messages = [];
+  const saved = console.error;
+  console.error = (...args) => messages.push(args.join(" "));
+  try {
+    await fn();
+  } finally {
+    console.error = saved;
+  }
+  return messages;
+}
+
 /* ------------------------------------------------------------------------- */
 /* What the release writes                                                    */
 
@@ -288,6 +383,8 @@ test("a trial the owner ended is never offered again", async () => {
   const offer = await against(fixture, () => promo.promoOfferFor(USER, EMAIL));
   assert.equal(offer.offered, false);
   assert.equal(offer.reason, "already-decided");
+  // Nothing is granting AI here either — the row is dead, not standing.
+  assert.equal(offer.grantHeld, false);
 });
 
 test("the owner's sweep still ends it for an account that had given it up", async () => {
@@ -390,6 +487,10 @@ test("the trial itself granting AI is what the give-up control is drawn from", a
     });
     const offer = await against(paid, () => promo.promoOfferFor(USER, EMAIL));
     assert.equal(offer.grantHeld, false, `${source} must not be offered a way to give up a trial`);
+    // Already having it by a paid subscription or by role reads the same way
+    // to the poster as an AI subscriber does: nothing to offer, and said so.
+    assert.equal(offer.offered, false);
+    assert.equal(offer.reason, "already-ai");
   }
 });
 
@@ -478,3 +579,535 @@ test("the release forgets the dismissal, or the offer could never be taken again
   // One definition of the key, read by both files.
   assert.doesNotMatch(code(read("components", "billing", "FreeProPoster.tsx")), /bandup\.promo/);
 });
+
+/* ------------------------------------------------------------------------- */
+/* assertServerOnly(MODULE): every entry point refuses a browser context.     */
+
+/*
+  assertServerOnly only throws once `window` exists, which node:test's global
+  scope never does — so every call above to promoOfferFor, acceptPromo and
+  releasePromo has run past that guard without ever exercising it, and a
+  dropped `assertServerOnly(MODULE)` call would be invisible to all of them.
+  Forcing `window` to exist here proves both that the call still runs and
+  that MODULE still names this file, since the thrown message is
+  `${MODULE} is server-only...`.
+*/
+test("every export refuses to run once a window exists, naming this exact module", async () => {
+  const saved = globalThis.window;
+  globalThis.window = {};
+  try {
+    const refusesInBrowser = /lib\/billing\/promo\.ts is server-only and must not be imported from a client component\./;
+    assert.throws(() => promo.promoOffersOpen(), refusesInBrowser);
+    await assert.rejects(() => promo.promoWriteSupported(), refusesInBrowser);
+    await assert.rejects(() => promo.promoOfferFor(USER, EMAIL), refusesInBrowser);
+    await assert.rejects(() => promo.payingWhileFree(USER, EMAIL), refusesInBrowser);
+    await assert.rejects(() => promo.acceptPromo(USER, EMAIL), refusesInBrowser);
+    await assert.rejects(() => promo.releasePromo(USER, EMAIL), refusesInBrowser);
+  } finally {
+    if (saved === undefined) delete globalThis.window;
+    else globalThis.window = saved;
+  }
+});
+
+/* ------------------------------------------------------------------------- */
+/* nativePromoAuthority(): the domain override alone is not enough.          */
+
+/*
+  promoWriteSupported is used rather than promoOfferFor/acceptPromo here on
+  purpose: it is the one exported function whose own logic never calls
+  resolveEntitlement, so setting the billing_entitlement_runtime domain to
+  'cloudflare' for this test cannot also silently move entitlement reads onto
+  D1 and confuse what is actually being proved.
+*/
+test("nativePromoAuthority needs both the domain override and the explicit native switch, not either alone", async () => {
+  // The domain is ready but the native Stripe-billing switch is not: the
+  // probe must still go to Supabase.
+  await withEnv(
+    { CLOUDFLARE_DATA_MODE_BILLING_ENTITLEMENT_RUNTIME: "cloudflare", CLOUDFLARE_NATIVE_STRIPE_BILLING: undefined },
+    async () => {
+      const fixture = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: true });
+      const result = await against(fixture, () => promo.promoWriteSupported());
+      assert.equal(result, true);
+      assert.ok(fixture.calls.length > 0, "the capability probe must still ask Supabase");
+    },
+  );
+
+  // Both switches set: the probe must reach D1 instead, and Supabase must
+  // never be asked anything at all.
+  await withEnv(
+    { CLOUDFLARE_DATA_MODE_BILLING_ENTITLEMENT_RUNTIME: "cloudflare", CLOUDFLARE_NATIVE_STRIPE_BILLING: "1" },
+    () => withCloudflareContext(async () => {
+      const saved = globalThis.fetch;
+      globalThis.fetch = async (url) => { throw new Error(`must not call Supabase natively: ${url}`); };
+      promo.forgetPromoCapability();
+      try {
+        assert.equal(await promo.promoWriteSupported(), true, "an empty D1 must still answer the probe without throwing");
+      } finally {
+        globalThis.fetch = saved;
+        promo.forgetPromoCapability();
+      }
+    }),
+  );
+});
+
+test("promoWriteSupported's native probe reports the D1 answer honestly, success and failure alike", async () => {
+  await withEnv(
+    { CLOUDFLARE_DATA_MODE_BILLING_ENTITLEMENT_RUNTIME: "cloudflare", CLOUDFLARE_NATIVE_STRIPE_BILLING: "1" },
+    async () => {
+      // No Cloudflare context at all: the probe itself throws, and that must
+      // report "no" — not the throw itself, and not a stray "yes".
+      promo.forgetPromoCapability();
+      delete globalThis.__FAKE_CLOUDFLARE_CONTEXT__;
+      assert.equal(await promo.promoWriteSupported(0), false);
+
+      // A live (empty) D1: the probe resolves cleanly, and that must report
+      // "yes" — the capability describes the schema, not this one account.
+      promo.forgetPromoCapability();
+      await withCloudflareContext(async () => {
+        assert.equal(await promo.promoWriteSupported(100_000), true);
+      });
+    },
+  );
+});
+
+/* ------------------------------------------------------------------------- */
+/* Whether the trial is offered at all, and to whom.                         */
+
+test("promoOffersOpen reads FREE_PRO_TRIAL_OPEN, closed only when it is exactly \"0\"", async () => {
+  await withEnv({ FREE_PRO_TRIAL_OPEN: undefined }, () => {
+    assert.equal(promo.promoOffersOpen(), true, "unset must default to open");
+  });
+  await withEnv({ FREE_PRO_TRIAL_OPEN: "0" }, () => {
+    assert.equal(promo.promoOffersOpen(), false);
+  });
+  await withEnv({ FREE_PRO_TRIAL_OPEN: "1" }, () => {
+    assert.equal(promo.promoOffersOpen(), true, "any value other than the literal \"0\" leaves it open");
+  });
+  await withEnv({ FREE_PRO_TRIAL_OPEN: "" }, () => {
+    assert.equal(promo.promoOffersOpen(), true, "an empty string is not the literal \"0\" either");
+  });
+});
+
+test("promoWriteSupported is false immediately once the trial is switched off, with no probe attempted", async () => {
+  await withEnv({ FREE_PRO_TRIAL_OPEN: "0" }, async () => {
+    const fixture = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: true });
+    const result = await against(fixture, () => promo.promoWriteSupported());
+    assert.equal(result, false);
+    assert.deepEqual(fixture.calls, [], "no probe when the trial is switched off");
+  });
+});
+
+test("the capability probe caches a refusal for exactly NEGATIVE_TTL_MS and a yes forever", async () => {
+  const notAllowed = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: false });
+  const allowed = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: true });
+  await withEnv(CONFIG, async () => {
+    const saved = globalThis.fetch;
+    promo.forgetPromoCapability();
+    try {
+      globalThis.fetch = notAllowed.fetch;
+      assert.equal(await promo.promoWriteSupported(1_000_000), false);
+      const afterFirstProbe = notAllowed.calls.length;
+      assert.ok(afterFirstProbe >= 1, "the first call must actually probe");
+
+      // Still inside the negative TTL: the cached refusal is reused.
+      assert.equal(await promo.promoWriteSupported(1_000_000 + 59_999), false);
+      assert.equal(notAllowed.calls.length, afterFirstProbe, "cached refusal reused, no new probe");
+
+      // Swap the backend before crossing the boundary: only a genuine
+      // re-probe, not a stale cache, would ever see this answer change.
+      globalThis.fetch = allowed.fetch;
+      assert.equal(
+        await promo.promoWriteSupported(1_000_000 + 60_000),
+        true,
+        "the TTL elapsed at exactly NEGATIVE_TTL_MS: the comparison must be strict",
+      );
+      assert.equal(allowed.calls.length, 1, "the re-probe reached the (now allowing) backend");
+
+      // From here on a yes is cached forever — even a backend that would now
+      // refuse must not be asked again.
+      globalThis.fetch = notAllowed.fetch;
+      const beforeFinal = notAllowed.calls.length;
+      assert.equal(await promo.promoWriteSupported(999_999_999_999), true);
+      assert.equal(notAllowed.calls.length, beforeFinal, "a cached yes never re-probes");
+    } finally {
+      globalThis.fetch = saved;
+      promo.forgetPromoCapability();
+    }
+  });
+});
+
+test("a signed-out reader gets a fixed, fully-false offer, without reaching the database", async () => {
+  const fixture = fakeSupabase({ entitlement: entitlementOf("free", "default") });
+  const offer = await against(fixture, () => promo.promoOfferFor(null, null));
+  assert.deepEqual(offer, { offered: false, reason: "signed-out", grantHeld: false });
+  assert.deepEqual(fixture.calls, [], "a signed-out caller must never reach the database");
+});
+
+test("an account that has never touched the trial is offered it", async () => {
+  const fixture = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default") });
+  const offer = await against(fixture, () => promo.promoOfferFor(USER, EMAIL));
+  assert.deepEqual(offer, { offered: true, reason: "offered", grantHeld: false });
+});
+
+/* ------------------------------------------------------------------------- */
+/* payingWhileFree: fires for a real payer, never for a role, a grant, or a   */
+/* signed-out caller.                                                        */
+
+test("payingWhileFree only ever short-circuits for a signed-out caller, never for a real account", async () => {
+  const fixture = fakeSupabase({ entitlement: entitlementOf("ai", "stripe") });
+  const result = await against(fixture, () => promo.payingWhileFree(USER, EMAIL));
+  assert.equal(result, true, "a real paying account must reach the actual check, not a hard-coded false");
+});
+
+test("payingWhileFree fires only for an actual paying provider, not a role or a grant", async () => {
+  for (const [tier, source, expected] of [
+    ["admin", "role", false],
+    ["ai", "promo", false],
+    ["free", "default", false],
+    ["ai", "stripe", true],
+    ["tracking", "apple", true],
+  ]) {
+    const fixture = fakeSupabase({ entitlement: entitlementOf(tier, source) });
+    const result = await against(fixture, () => promo.payingWhileFree(USER, EMAIL));
+    assert.equal(result, expected, `source=${source} tier=${tier}`);
+  }
+});
+
+/* ------------------------------------------------------------------------- */
+/* acceptPromo: every branch of the state machine, not only the happy path.  */
+
+test("acceptPromo short-circuits to 'already-ai' for a tier that already has it, asking nothing further", async () => {
+  for (const [tier, source] of [["ai", "stripe"], ["admin", "role"]]) {
+    const fixture = fakeSupabase({ statuses: [], entitlement: entitlementOf(tier, source) });
+    const outcome = await against(fixture, () => promo.acceptPromo(USER, EMAIL));
+    assert.equal(outcome, "already-ai");
+    const beyondEntitlement = fixture.calls.filter((c) => !c.path.startsWith("/rest/v1/rpc/resolve_entitlement"));
+    assert.deepEqual(beyondEntitlement, [], "nothing beyond the entitlement check should be asked");
+  }
+});
+
+test("acceptPromo refuses immediately as 'not-open' when the trial cannot be written at all, without reading any promo row", async () => {
+  const fixture = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: false });
+  const outcome = await against(fixture, () => promo.acceptPromo(USER, EMAIL));
+  assert.equal(outcome, "not-open");
+  const stateReads = fixture.calls.filter((c) => c.method === "GET" && c.path.startsWith("/rest/v1/subscriptions"));
+  assert.deepEqual(stateReads, [], "must not read the promo row when writing is not possible at all");
+});
+
+test("acceptPromo answers 'already-ai' for a still-holding grant, even reached by an inconsistent read", async () => {
+  /*
+    entitlement and statuses are set independently on purpose (see
+    fakeSupabase above). This is the one combination promo.ts's own comment on
+    the "holding" branch calls unreachable "while the entitlement above is
+    authoritative" — worth proving anyway, since a defensive branch nobody
+    can reach is also a branch nobody would notice breaking.
+  */
+  const fixture = fakeSupabase({ statuses: ["active"], entitlement: entitlementOf("tracking", "stripe") });
+  const outcome = await against(fixture, () => promo.acceptPromo(USER, EMAIL));
+  assert.equal(outcome, "already-ai");
+});
+
+test("acceptPromo reports 'ended' when the owner's sweep wins the race with a resume", async () => {
+  const calls = [];
+  const fetchStub = async (url, init = {}) => {
+    const method = init.method ?? "GET";
+    const path = String(url).replace(CONFIG.SUPABASE_URL, "");
+    const body = typeof init.body === "string" ? JSON.parse(init.body) : null;
+    calls.push({ method, path, body });
+    if (path.startsWith("/rest/v1/rpc/resolve_entitlement")) {
+      return jsonResponse(entitlementOf("free", "default"));
+    }
+    // The capability probe: the impossible all-zero uuid, answered "allowed"
+    // so the test is about the resume race, not about this probe.
+    if (method === "POST" && body?.user_id === "00000000-0000-0000-0000-000000000000") {
+      return refusal("23503", 'violates foreign key constraint "subscriptions_user_id_fkey"');
+    }
+    if (path.startsWith("/rest/v1/subscriptions") && method === "GET") {
+      // promoState() sees a released row: as far as the read goes, the
+      // account may take the trial again.
+      return jsonResponse([{ status: "paused" }]);
+    }
+    if (path.startsWith("/rest/v1/subscriptions") && method === "PATCH") {
+      // The owner's sweep already flipped it to 'canceled' by the time this
+      // conditional UPDATE runs, so nothing matches its WHERE clause.
+      return jsonResponse([]);
+    }
+    throw new Error(`unexpected ${method} ${path}`);
+  };
+  const outcome = await against({ fetch: fetchStub, calls }, () => promo.acceptPromo(USER, EMAIL));
+  assert.equal(outcome, "ended");
+});
+
+test("resuming forgets a stale capability cache when its own write hits the provider check", async () => {
+  const primer = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: true });
+  const resumeUnsupported = async (url, init = {}) => {
+    const method = init.method ?? "GET";
+    const path = String(url).replace(CONFIG.SUPABASE_URL, "");
+    if (path.startsWith("/rest/v1/rpc/resolve_entitlement")) return jsonResponse(entitlementOf("free", "default"));
+    if (path.startsWith("/rest/v1/subscriptions") && method === "GET") return jsonResponse([{ status: "paused" }]);
+    if (path.startsWith("/rest/v1/subscriptions") && method === "PATCH") {
+      return refusal("23514", 'violates check constraint "subscriptions_provider_check"');
+    }
+    throw new Error(`unexpected ${method} ${path}`);
+  };
+  const stale = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: false });
+
+  await withEnv(CONFIG, async () => {
+    const saved = globalThis.fetch;
+    promo.forgetPromoCapability();
+    try {
+      globalThis.fetch = primer.fetch;
+      assert.equal(await promo.promoWriteSupported(), true, "primed: cached yes");
+
+      globalThis.fetch = resumeUnsupported;
+      assert.equal(await promo.acceptPromo(USER, EMAIL), "not-open");
+
+      globalThis.fetch = stale.fetch;
+      assert.equal(
+        await promo.promoWriteSupported(),
+        false,
+        "a resume's own provider-check failure must drop the stale cached yes",
+      );
+    } finally {
+      globalThis.fetch = saved;
+      promo.forgetPromoCapability();
+    }
+  });
+});
+
+/*
+  acceptPromo checks resumed against "changed", then "no-match", then
+  "unsupported", each an early return of its own — so a released row whose
+  resume attempt fails for neither of the first two reasons is the only way
+  to prove the third check actually gates on "unsupported" rather than
+  answering the same way regardless of what resumed holds.
+*/
+test("a resume that fails plainly (neither a race nor an unsupported write) reports 'failed', not 'not-open'", async () => {
+  const fixture = fakeSupabase({ statuses: ["paused"], entitlement: entitlementOf("free", "default") });
+  const baseFetch = fixture.fetch;
+  fixture.fetch = async (url, init = {}) => {
+    const method = init.method ?? "GET";
+    const path = String(url).replace(CONFIG.SUPABASE_URL, "");
+    if (method === "PATCH" && path.startsWith("/rest/v1/subscriptions")) {
+      throw new Error("network blip");
+    }
+    return baseFetch(url, init);
+  };
+  const outcome = await against(fixture, () => promo.acceptPromo(USER, EMAIL));
+  assert.equal(outcome, "failed");
+});
+
+test("a fresh accept reports every insert outcome honestly, and forgets a stale cache when unsupported", async () => {
+  for (const [failure, expectedOutcome] of [
+    [refusal("23505", "duplicate key value violates unique constraint"), "already-ai"],
+    [refusal("22003", "numeric field overflow"), "failed"],
+  ]) {
+    const calls = [];
+    const fetchStub = async (url, init = {}) => {
+      const method = init.method ?? "GET";
+      const path = String(url).replace(CONFIG.SUPABASE_URL, "");
+      const body = typeof init.body === "string" ? JSON.parse(init.body) : null;
+      calls.push({ method, path, body });
+      if (path.startsWith("/rest/v1/rpc/resolve_entitlement")) return jsonResponse(entitlementOf("free", "default"));
+      // The capability probe: the impossible all-zero uuid, answered
+      // "allowed" so the loop below is only ever about the real insert.
+      if (method === "POST" && body?.user_id === "00000000-0000-0000-0000-000000000000") {
+        return refusal("23503", 'violates foreign key constraint "subscriptions_user_id_fkey"');
+      }
+      if (path.startsWith("/rest/v1/subscriptions") && method === "GET") return jsonResponse([]);
+      if (path.startsWith("/rest/v1/subscriptions") && method === "POST") return failure;
+      throw new Error(`unexpected ${method} ${path}`);
+    };
+    const outcome = await against({ fetch: fetchStub, calls }, () => promo.acceptPromo(USER, EMAIL));
+    assert.equal(outcome, expectedOutcome);
+  }
+
+  // The unsupported case specifically must also drop a stale cached "yes" —
+  // a schema that narrowed again between the probe and this very insert.
+  const primer = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: true });
+  const insertUnsupported = async (url, init = {}) => {
+    const method = init.method ?? "GET";
+    const path = String(url).replace(CONFIG.SUPABASE_URL, "");
+    if (path.startsWith("/rest/v1/rpc/resolve_entitlement")) return jsonResponse(entitlementOf("free", "default"));
+    if (path.startsWith("/rest/v1/subscriptions") && method === "GET") return jsonResponse([]);
+    if (path.startsWith("/rest/v1/subscriptions") && method === "POST") {
+      return refusal("23514", 'violates check constraint "subscriptions_provider_check"');
+    }
+    throw new Error(`unexpected ${method} ${path}`);
+  };
+  const stale = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: false });
+
+  await withEnv(CONFIG, async () => {
+    const saved = globalThis.fetch;
+    promo.forgetPromoCapability();
+    try {
+      globalThis.fetch = primer.fetch;
+      assert.equal(await promo.promoWriteSupported(), true, "primed: cached yes");
+
+      globalThis.fetch = insertUnsupported;
+      assert.equal(await promo.acceptPromo(USER, EMAIL), "not-open");
+
+      globalThis.fetch = stale.fetch;
+      assert.equal(
+        await promo.promoWriteSupported(),
+        false,
+        "a fresh insert's own provider-check failure must drop the stale cached yes",
+      );
+    } finally {
+      globalThis.fetch = saved;
+      promo.forgetPromoCapability();
+    }
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+/* releasePromo: the failure exit, and the same stale-cache rule as accept.  */
+
+test("releasePromo reports 'failed' plainly rather than continuing past a write failure", async () => {
+  const fixture = fakeSupabase({ statuses: ["active"], entitlement: entitlementOf("ai", "promo") });
+  const baseFetch = fixture.fetch;
+  fixture.fetch = async (url, init = {}) => {
+    const method = init.method ?? "GET";
+    const path = String(url).replace(CONFIG.SUPABASE_URL, "");
+    if (method === "PATCH" && path.startsWith("/rest/v1/subscriptions")) {
+      throw new Error("network blip");
+    }
+    return baseFetch(url, init);
+  };
+  const result = await against(fixture, () => promo.releasePromo(USER, EMAIL));
+  assert.deepEqual(result, { outcome: "failed", tier: null });
+});
+
+test("releasing forgets a stale capability cache when its own write hits the provider check", async () => {
+  const primer = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: true });
+  const releaseUnsupported = fakeSupabase({
+    statuses: ["active"], entitlement: entitlementOf("ai", "promo"), providerAllowed: false,
+  });
+  const stale = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default"), providerAllowed: false });
+
+  await withEnv(CONFIG, async () => {
+    const saved = globalThis.fetch;
+    promo.forgetPromoCapability();
+    try {
+      globalThis.fetch = primer.fetch;
+      assert.equal(await promo.promoWriteSupported(), true, "primed: cached yes");
+
+      globalThis.fetch = releaseUnsupported.fetch;
+      const result = await promo.releasePromo(USER, EMAIL);
+      assert.deepEqual(result, { outcome: "not-open", tier: null });
+
+      globalThis.fetch = stale.fetch;
+      assert.equal(
+        await promo.promoWriteSupported(),
+        false,
+        "a release's own provider-check failure must drop the stale cached yes",
+      );
+    } finally {
+      globalThis.fetch = saved;
+      promo.forgetPromoCapability();
+    }
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+/* mirrorPromoBestEffort: the Cloudflare side of a grant.                     */
+
+test("mirroring to Cloudflare is skipped entirely when this deployment is not mirroring writes (the default)", async () => {
+  await withEnv({ CLOUDFLARE_DATA_MODE: undefined }, async () => {
+    const fixture = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default") });
+    const outcome = await against(fixture, () => promo.acceptPromo(USER, EMAIL));
+    assert.equal(outcome, "granted");
+    const replicaReads = fixture.calls.filter((c) => c.method === "GET" && /order=created_at\.desc/.test(c.path));
+    assert.deepEqual(replicaReads, [], "no D1 mirror read should be attempted when mirrorsWritesToCloudflare() is false");
+  });
+});
+
+test("mirrorPromoBestEffort logs plainly when there is no row yet to mirror", async () => {
+  await withEnv({ CLOUDFLARE_DATA_MODE: "dual" }, async () => {
+    const fixture = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default") });
+    const baseFetch = fixture.fetch;
+    fixture.fetch = async (url, init = {}) => {
+      const method = init.method ?? "GET";
+      const path = String(url).replace(CONFIG.SUPABASE_URL, "");
+      if (method === "GET" && path.startsWith("/rest/v1/subscriptions") && path.includes("order=created_at.desc")) {
+        return jsonResponse([]);
+      }
+      return baseFetch(url, init);
+    };
+    const messages = await captureConsoleError(async () => {
+      const outcome = await against(fixture, () => promo.acceptPromo(USER, EMAIL));
+      assert.equal(outcome, "granted");
+    });
+    assert.ok(
+      messages.includes("[accounts] billing/promo Cloudflare replica: no row to mirror after insert"),
+      `expected the "no row to mirror" log, saw: ${JSON.stringify(messages)}`,
+    );
+  });
+});
+
+test("mirrorPromoBestEffort logs plainly when the replica write itself fails", async () => {
+  await withEnv({ CLOUDFLARE_DATA_MODE: "dual" }, async () => {
+    const now = "2026-08-17T00:00:00.000Z";
+    const fixture = fakeSupabase({ statuses: [], entitlement: entitlementOf("free", "default") });
+    const baseFetch = fixture.fetch;
+    fixture.fetch = async (url, init = {}) => {
+      const method = init.method ?? "GET";
+      const path = String(url).replace(CONFIG.SUPABASE_URL, "");
+      if (method === "GET" && path.startsWith("/rest/v1/subscriptions") && path.includes("order=created_at.desc")) {
+        return jsonResponse([{
+          id: "row-1",
+          user_id: USER,
+          status: "active",
+          tier: "ai",
+          current_period_end: null,
+          raw: { kind: "free-ai-trial", acceptedAt: now },
+          verified_at: now,
+          created_at: now,
+          updated_at: now,
+        }]);
+      }
+      return baseFetch(url, init);
+    };
+    // No Cloudflare context: replicatePromoSubscriptionDurably resolves false
+    // (bindings unavailable) without throwing, which is exactly the "found a
+    // row but the D1 write itself failed" case this proves.
+    delete globalThis.__FAKE_CLOUDFLARE_CONTEXT__;
+    const messages = await captureConsoleError(async () => {
+      const outcome = await against(fixture, () => promo.acceptPromo(USER, EMAIL));
+      assert.equal(outcome, "granted");
+    });
+    assert.ok(
+      messages.includes("[accounts] billing/promo Cloudflare replica: replica write returned false"),
+      `expected the replica-write-failed log, saw: ${JSON.stringify(messages)}`,
+    );
+  });
+});
+
+/*
+  ---------------------------------------------------------------------------
+  Left alone, deliberately.
+
+  A few surviving mutants over lib/billing/promo.ts are not exercised above
+  because no input the exported functions can receive reaches them:
+
+    - NATIVE_PROBE_USER's exact string (the all-zero uuid) only reaches
+      nativePromoSubscriptionState() inside `.then(() => true).catch(() =>
+      false)`, which maps *any* non-throwing resolution to `true` regardless
+      of what the query answered. A SELECT against a non-existent id resolves
+      rather than throws for both the real id and an empty string, so
+      promoWriteSupported()'s result cannot depend on which one was used.
+    - the `if (state === "holding")` branch's own reachability is proved
+      above; forgetPromoCapability() not being called on that path has no
+      mutant of its own to kill.
+    - mirrorPromoBestEffort's `catch (error)` block (and both of its template
+      strings): promoSubscriptionReplica and replicatePromoSubscriptionDurably
+      both swallow every internal error and resolve to null/false rather than
+      reject (the same shape lib/billing/subscriptions.ts's
+      replicateBillingBestEffort uses), so nothing this function calls can
+      make it throw.
+    - promoWriteSupported's own `assertServerOnly(MODULE)` call: the very next
+      line unconditionally calls promoOffersOpen(), which starts with the
+      identical guard against the identical module name. Dropping the first
+      call cannot be observed from outside — the second one throws exactly
+      the same error either way.
+*/

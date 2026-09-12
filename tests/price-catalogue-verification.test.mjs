@@ -88,6 +88,33 @@ test("a wrong currency and a wrong interval are each caught", () => {
   );
 });
 
+test("a Price matches even when currency_options omits the base currency, which is how Stripe actually sends it", () => {
+  /*
+    goodPrice() above lists every currency in `expected.prices`, including the
+    base one, inside currency_options — which is generous to the comparison,
+    not realistic: Stripe's own currency_options never repeats the base
+    currency, because the base amount is unit_amount, not a regional override.
+    The comparison loop must skip the base currency itself rather than looking
+    it up in currency_options and finding nothing there.
+  */
+  for (const plan of PLAN_IDS) {
+    const expected = PLANS[plan];
+    const currency_options = {};
+    for (const [code, unit_amount] of Object.entries(expected.prices)) {
+      if (code === expected.currency) continue;
+      currency_options[code] = { unit_amount };
+    }
+    const price = {
+      active: true,
+      unit_amount: expected.amountMinor,
+      currency: expected.currency,
+      recurring: { interval: expected.interval },
+      currency_options,
+    };
+    assert.equal(priceCatalogueFault(plan, "price_x", price), null, plan);
+  }
+});
+
 test("a regional price that disagrees is caught, and so is one that is absent", () => {
   const wrong = goodPrice("tracking-monthly");
   wrong.currency_options = { ...wrong.currency_options, gbp: { unit_amount: 1 } };
@@ -158,7 +185,11 @@ test("every plan verifies when Stripe holds the catalogue's own prices", () =>
   withStripe(goodPrice, async () => {
     const results = await verifyCataloguePrices();
     assert.equal(results.length, PLAN_IDS.length);
-    for (const result of results) assert.equal(result.ok, true, `${result.plan}: ${result.detail}`);
+    for (const result of results) {
+      assert.equal(result.ok, true, `${result.plan}: ${result.detail}`);
+      // The exact sentence the owner's console prints for a healthy plan.
+      assert.equal(result.detail, "matches the catalogue", result.plan);
+    }
   }));
 
 test("one archived Price fails only its own plan, and names it", () =>

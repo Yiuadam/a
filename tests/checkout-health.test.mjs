@@ -75,6 +75,42 @@ test("a bank saying no is not a fault at all", () => {
   assert.equal(classifyStripeRefusal(400, "checkout_session_expired", null), "learner");
 });
 
+/*
+  Every shape Stripe reports a bank's own refusal in — not only the two the
+  test above already names. LEARNER_CODES is an explicit list rather than a
+  pattern (see the file's header), so each code is its own membership test:
+  a code quietly dropped from the set would fall through to the platform
+  default and start an owner an alarm for every declined card of that kind.
+*/
+test("every card-decline shape Stripe reports is the learner's, not the platform's", () => {
+  const bankSaidNo = [
+    "expired_card",
+    "incorrect_cvc",
+    "incorrect_number",
+    "invalid_cvc",
+    "invalid_expiry_month",
+    "invalid_expiry_year",
+    "invalid_number",
+    "card_decline_rate_limit_exceeded",
+    "payment_intent_authentication_failure",
+    "processing_error",
+  ];
+  for (const code of bankSaidNo) {
+    assert.equal(classifyStripeRefusal(402, code, null), "learner", `${code} should be a learner fault`);
+  }
+});
+
+test("bad address or tax-id details the buyer typed are the learner's fault", () => {
+  assert.equal(classifyStripeRefusal(400, "invalid_tax_id", null), "learner");
+  assert.equal(classifyStripeRefusal(400, "postal_code_invalid", null), "learner");
+});
+
+test("pressing the button twice, or returning to a used or expired session, is the learner's", () => {
+  assert.equal(classifyStripeRefusal(400, "payment_intent_unexpected_state", null), "learner");
+  assert.equal(classifyStripeRefusal(400, "checkout_session_completed", null), "learner");
+  assert.equal(classifyStripeRefusal(400, "checkout_session_expired", null), "learner");
+});
+
 test("an unrecognised refusal is loud, because api_key_expired was unrecognised once too", () => {
   assert.equal(classifyStripeRefusal(400, "some_code_stripe_adds_next_year", null), "platform");
   assert.equal(classifyStripeRefusal(400, null, null), "platform");
@@ -87,6 +123,18 @@ test("only the owner's failures carry the marker a log search can find", () => {
   const quiet = billingLogLine("learner", "billing/checkout", "card_declined");
   assert.match(loud, /PAYMENTS-BROKEN/);
   assert.doesNotMatch(quiet, /PAYMENTS-BROKEN/);
+});
+
+/*
+  The quiet line still has to say what happened — "does not contain the
+  marker" is satisfied just as well by an empty string as by a real sentence,
+  so the content itself is pinned exactly here.
+*/
+test("the quiet line still names the place and the reason, just without the marker", () => {
+  assert.equal(
+    billingLogLine("learner", "billing/checkout", "card_declined"),
+    "[billing] billing/checkout refused: card_declined",
+  );
 });
 
 test("anything thrown that is not classified is treated as ours", () => {
