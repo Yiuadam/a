@@ -15,7 +15,7 @@
     "build:miniprogram": "node scripts/build-miniprogram.mjs",
     "ios:sync": "npm run build:mobile && npx cap sync ios",
     "ios:open": "npx cap open ios",
-    "cf:build": "npm run types && opennextjs-cloudflare build",
+    "cf:build": "npm run types && opennextjs-cloudflare build && opennextjs-cloudflare populateCache local",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare deploy",
     "migration:production": "bash scripts/run-production-cloudflare-migration.sh",

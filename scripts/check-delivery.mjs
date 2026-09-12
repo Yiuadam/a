@@ -39,6 +39,26 @@
      a careless site-wide header rule is exactly the kind of change that would
      quietly drop them.
 
+  5. (Warning, not a failure.) "/" carries OpenNext's own `x-opennext-cache`
+     marker, meaning it was actually answered from the incremental cache
+     rather than rendered. This is what open-next.config.ts turning on
+     `enableCacheInterception` is for: prerendered pages served by Workers
+     Static Assets instead of by re-running Next on every request, which is
+     the difference that matters under the Workers Free plan's 10 ms CPU
+     budget. It is a warning rather than rule 1 or 2 because it is an
+     OpenNext-internal header rather than a documented contract — an upgrade
+     could rename it without anything actually breaking.
+
+  Rule 1 deserves a specific note now that interception is on: OpenNext's own
+  default for a cached hit is `s-maxage=31536000, stale-while-revalidate=...`,
+  which is exactly the shape rule 1 exists to catch. It is not what ships,
+  because OpenNext's routing layer applies next.config.ts's headers() rule
+  *after* the cache lookup and it wins (last one to call `.set()` on the
+  response headers does) — confirmed by running the built Worker and
+  diffing `/`'s headers against the same route with interception turned back
+  off. If rule 1 ever starts failing on a route that also carries
+  `x-opennext-cache`, look there first, not here.
+
   Run after `npm run cf:build`:
 
       npm run cf:build && node scripts/check-delivery.mjs
@@ -59,6 +79,18 @@ const PAGES = [
 const problems = [];
 function fail(message) {
   problems.push(message);
+}
+
+/*
+  Things worth a human's attention that are not, on their own, proof of a
+  broken deploy. `x-opennext-cache` is OpenNext's own internal marker, not a
+  documented contract — it is exactly the kind of header an upgrade could
+  rename or drop while everything this file actually promises (rule 1 above)
+  keeps holding. So its absence warns rather than fails.
+*/
+const warnings = [];
+function warn(message) {
+  warnings.push(message);
 }
 
 if (!existsSync(".open-next/worker.js")) {
@@ -167,6 +199,18 @@ for (const path of PAGES) {
     );
   }
 
+  /*
+    "/" is prerendered and listed in the prerender manifest, so with the
+    static-assets incremental cache and cache interception both on
+    (open-next.config.ts) it should never reach the Next server at all — it
+    should come back out of `ASSETS` with this marker set. A missing marker
+    here would mean the build silently fell back to rendering every request,
+    which is the exact cost this app moved to Workers Static Assets to avoid.
+  */
+  if (path === "/" && !res.headers.get("x-opennext-cache")) {
+    warn(`/: no "x-opennext-cache" header — is this page still served from the incremental cache?`);
+  }
+
   const html = await res.text();
   for (const a of referencedAssets(html)) assets.add(a);
 }
@@ -211,6 +255,10 @@ stop();
 if (problems.length > 0) {
   console.error(`Delivery check failed:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
   process.exit(1);
+}
+
+if (warnings.length > 0) {
+  console.warn(`Delivery warnings (not fatal):\n${warnings.map((w) => `  - ${w}`).join("\n")}`);
 }
 
 console.log(
