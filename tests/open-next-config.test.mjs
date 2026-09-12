@@ -63,3 +63,14 @@ test("no route under app/ declares `export const revalidate`", () => {
       "the incremental cache here is populated once at build time and is read-only.",
   );
 });
+
+test("cf:build populates the static assets cache without opening a wrangler session", () => {
+  // The CLI's populateCache needs a platform proxy, and therefore a Cloudflare
+  // token, which the CI build step does not have. The copy is all we need.
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  assert.match(pkg.scripts["cf:build"], /node scripts\/populate-static-cache\.mjs$/);
+  assert.doesNotMatch(pkg.scripts["cf:build"], /populateCache/);
+  const script = readFileSync(join(root, "scripts", "populate-static-cache.mjs"), "utf8");
+  assert.match(script, /cpSync\(SOURCE, DESTINATION, \{ recursive: true \}\)/);
+  assert.match(script, /"cdn-cgi", "_next_cache"/);
+});
