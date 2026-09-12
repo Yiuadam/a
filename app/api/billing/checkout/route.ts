@@ -4,7 +4,7 @@ import { supabaseConfigured } from "@/lib/auth/supabase";
 import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
-import { stripeConfigured } from "@/lib/billing/env";
+import { billingClosed, stripeConfigured } from "@/lib/billing/env";
 import { logBillingFailure } from "@/lib/billing/faults";
 import { createCheckoutSession } from "@/lib/billing/stripe";
 import { BILLING_MESSAGES } from "@/lib/billing/messages";
@@ -39,6 +39,18 @@ import { withCors } from "@/lib/http/cors";
 export const dynamic = "force-dynamic";
 
 async function handlePOST(req: Request) {
+  /*
+    Checked first, and before any Stripe work at all — including the
+    configuration checks below, which answer a different question. The owner
+    closing sales on purpose is not the same fact as Stripe never having been
+    set up, and this is the one place a subscriber's own press of "Subscribe"
+    finds that out, so it gets its own sentence. The page already hides the
+    button; this is what stops the request if somebody sends it anyway.
+  */
+  if (billingClosed()) {
+    return safeJsonError(BILLING_MESSAGES.billingClosed, 503);
+  }
+
   if (
     !accountRuntimeEnabled()
     || !stripeConfigured()

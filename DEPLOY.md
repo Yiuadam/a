@@ -462,6 +462,39 @@ to be built, and all of them need the Mac that everything else in APPSTORE.md
 is waiting on. Until then, `/pricing` says so, and subscribing is a web
 feature.
 
+### Pausing subscriptions
+
+Selling can be paused without anything about the setup above being undone.
+Set `BILLING_CLOSED` to `"1"` in `wrangler.jsonc`'s `vars` block and deploy.
+While it reads `"1"`:
+
+- `/pricing` shows a distinct sentence for every paid plan —
+  `BILLING_MESSAGES.billingClosed` — rather than the one it shows when Stripe
+  was simply never configured. The two are not the same fact, and telling
+  them apart is the entire point of the switch.
+- `/api/billing/checkout` and `/api/billing/wallet-checkout` refuse with a 503
+  and that same sentence before either does any Stripe work, so the page
+  hiding the button is backed by the server actually refusing the request.
+- `/api/billing/health` reports `billing_closed_by_owner: true` in place of
+  the two Price-id checks, and stays `ok: true` — a shop that is closed on
+  purpose is not a shop that is broken, and the hourly watch and the
+  post-deploy check should not go red for a decision the owner made.
+- `/api/billing/portal` and the Stripe webhook are untouched by this switch:
+  neither route asks whether new sales are open, so BILLING_CLOSED changes
+  nothing about what either does.
+
+  The portal asks only for the Stripe secret key, never for a Price id, so
+  removing every `STRIPE_PRICE_*` secret closes new sales without taking
+  "Manage billing" away from the people who already pay.
+
+This is a plain `vars` entry rather than a Secret, like `ACCOUNTS_ENABLED` —
+flipping it is a deliberate deploy the owner reviews on its own preview, not a
+value that should be editable by hand in the dashboard between deploys. See
+`billingClosed()` in `lib/billing/env.ts`.
+
+**To reopen:** set `BILLING_CLOSED` to `"0"` (or remove it), re-add the four
+`STRIPE_PRICE_*` secrets and `STRIPE_WALLET_PAYMENTS_ENABLED`, and deploy.
+
 ## Running on the Workers Free plan
 
 The account is staying on the Workers Free plan. This section is what that

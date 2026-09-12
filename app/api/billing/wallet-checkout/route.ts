@@ -4,7 +4,7 @@ import { logInternal, safeJsonError } from "@/lib/auth/errors";
 import { getSessionUser } from "@/lib/auth/session";
 import { supabaseConfigured } from "@/lib/auth/supabase";
 import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
-import { stripeWalletConfigured } from "@/lib/billing/env";
+import { billingClosed, stripeWalletConfigured } from "@/lib/billing/env";
 import { BILLING_MESSAGES } from "@/lib/billing/messages";
 import { logBillingFailure } from "@/lib/billing/faults";
 import { createWalletCheckoutSession } from "@/lib/billing/stripe";
@@ -15,6 +15,14 @@ import { withCors } from "@/lib/http/cors";
 export const dynamic = "force-dynamic";
 
 async function handlePOST(req: Request) {
+  /*
+    Checked first, and before any Stripe work — see the same check, and why,
+    in app/api/billing/checkout/route.ts.
+  */
+  if (billingClosed()) {
+    return safeJsonError(BILLING_MESSAGES.billingClosed, 503);
+  }
+
   if (
     !accountRuntimeEnabled()
     || !stripeWalletConfigured()

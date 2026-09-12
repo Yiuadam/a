@@ -185,6 +185,19 @@
       the working one down with it, which is exactly how #122 broke Alipay.
     */
     "STRIPE_WALLET_METHODS": "alipay,wechat_pay",
+    /*
+      Subscriptions are closed by the owner's decision, 2026-09-12. While this
+      reads "1": nothing can be bought — the pricing page says so in its own
+      sentence rather than showing a dead button; the checkout and
+      wallet-checkout routes refuse with that same sentence before either ever
+      does any Stripe work; and the health check treats the Stripe Price
+      checks as not applicable rather than failing on Price ids that are
+      missing on purpose. See billingClosed() in lib/billing/env.ts.
+
+      To reopen: set this to "0" (or remove it), re-add the four
+      STRIPE_PRICE_* secrets and STRIPE_WALLET_PAYMENTS_ENABLED, and deploy.
+    */
+    "BILLING_CLOSED": "1",
     // Flipped to "cloudflare" — the one-way write-authority step — only once
     // all nine of the ten cutover-domain registry entries that can be proven
     // statically were (lib/cloudflare/cutover-domains.ts), and only as the

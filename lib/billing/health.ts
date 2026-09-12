@@ -1,7 +1,7 @@
 import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { supabaseConfigured } from "@/lib/auth/supabase";
 import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
-import { stripeSecretKey, stripePriceId, stripeWebhookSecret } from "./env";
+import { billingClosed, stripeSecretKey, stripePriceId, stripeWebhookSecret } from "./env";
 import { stripeDiagnostic, verifyCataloguePrices } from "./stripe";
 import { PLAN_IDS } from "./tiers";
 
@@ -27,6 +27,28 @@ import { PLAN_IDS } from "./tiers";
   who looks, so a boolean here tells a prober nothing they could not already
   see; the reason a check failed is exactly the part that would help someone
   looking for a way in, and that stays behind the admin route.
+
+  ---------------------------------------------------------------------------
+  Why a closed shop is still a healthy one
+
+  BILLING_CLOSED exists so the owner can pause sales without that reading as
+  breakage — see billingClosed() in lib/billing/env.ts. Closing sales is done
+  by removing the STRIPE_PRICE_* secrets, so `stripe_price_ids_present` and
+  `stripe_prices_match_catalogue` would otherwise fail here every hour, for a
+  reason that is not a fault: there is nothing wrong to fix, because nothing
+  is supposed to be for sale. Reporting that as unhealthy would be the 16
+  August failure in miniature — a red check nobody needs to act on teaches
+  whoever is watching to stop trusting red checks at all.
+
+  So while billingClosed() is true, those two checks are skipped rather than
+  forced to `ok: true`: nothing was verified, so nothing claims to have been.
+  In their place is one check, `billing_closed_by_owner`, which is `ok: true`
+  for as long as the switch reads that way — closed is the state this
+  deployment is deliberately in, not a check that can fail. `stripe_key_present`,
+  `stripe_webhook_secret_present` and `stripe_reachable` stay real regardless:
+  both a renewal landing through the webhook and a subscriber reaching the
+  billing portal need the key and the webhook secret, whether or not anything
+  new can be bought.
 */
 
 export interface BillingHealthCheck {
@@ -65,45 +87,52 @@ export async function billingHealth(): Promise<BillingHealth> {
   */
   add("stripe_webhook_secret_present", Boolean(stripeWebhookSecret()));
 
-  // Every plan's Price id, not merely one — a health check that passed with
-  // three of four missing would still call itself healthy while three plans sold
-  // nothing.
-  const idsPresent = PLAN_IDS.every((plan) => stripePriceId(plan) !== undefined);
-  add("stripe_price_ids_present", idsPresent);
-
   /*
     Reachability is only worth asking with a key in hand — stripeDiagnostic
     already says so itself, but asking anyway would spend the one real network
-    call this route makes on an answer already known.
+    call this route makes on an answer already known. It does not depend on a
+    single Price id, so it stays a real check whether or not sales are open:
+    the portal and the webhook both still need this key to work.
   */
   const reachable = key ? (await stripeDiagnostic()).ok : false;
   add("stripe_reachable", reachable);
 
-  /*
-    And then whether those ids point at Prices that can actually be sold, at the
-    amounts /pricing prints.
+  if (billingClosed()) {
+    // See "Why a closed shop is still a healthy one" above.
+    add("billing_closed_by_owner", true);
+  } else {
+    // Every plan's Price id, not merely one — a health check that passed with
+    // three of four missing would still call itself healthy while three plans sold
+    // nothing.
+    const idsPresent = PLAN_IDS.every((plan) => stripePriceId(plan) !== undefined);
+    add("stripe_price_ids_present", idsPresent);
 
-    This is the check the one above only looked like. An id is a string in a
-    variable: it survives the Price being archived, being replaced, being on
-    another Stripe account, and the catalogue here being edited without Stripe
-    being updated to match. Every one of those reads as healthy to
-    `stripe_price_ids_present`, and every one of them is a learner pressing
-    Subscribe and getting nothing — or worse, being charged an amount the page
-    never showed them, which is a misleading price indication under the consumer
-    law this app sets out on /terms.
+    /*
+      And then whether those ids point at Prices that can actually be sold, at
+      the amounts /pricing prints.
 
-    It runs the same `priceCatalogueFault` the checkout path runs before every
-    sale, so the deploy cannot pass on a rule checkout would refuse.
+      This is the check the one above only looked like. An id is a string in a
+      variable: it survives the Price being archived, being replaced, being on
+      another Stripe account, and the catalogue here being edited without
+      Stripe being updated to match. Every one of those reads as healthy to
+      `stripe_price_ids_present`, and every one of them is a learner pressing
+      Subscribe and getting nothing — or worse, being charged an amount the
+      page never showed them, which is a misleading price indication under the
+      consumer law this app sets out on /terms.
 
-    Asked last, and only when there is a key, four ids and a reachable Stripe:
-    four reads answering "which of your four prices is wrong" are wasted on an
-    account that has already failed to answer one. A skipped check reports
-    false rather than true — this never claims prices are verified when they
-    were not looked at.
-  */
-  const pricesVerifiable = key && idsPresent && reachable;
-  const priceResults = pricesVerifiable ? await verifyCataloguePrices() : [];
-  add("stripe_prices_match_catalogue", pricesVerifiable && priceResults.every((r) => r.ok));
+      It runs the same `priceCatalogueFault` the checkout path runs before
+      every sale, so the deploy cannot pass on a rule checkout would refuse.
+
+      Asked last, and only when there is a key, four ids and a reachable
+      Stripe: four reads answering "which of your four prices is wrong" are
+      wasted on an account that has already failed to answer one. A skipped
+      check reports false rather than true — this never claims prices are
+      verified when they were not looked at.
+    */
+    const pricesVerifiable = key && idsPresent && reachable;
+    const priceResults = pricesVerifiable ? await verifyCataloguePrices() : [];
+    add("stripe_prices_match_catalogue", pricesVerifiable && priceResults.every((r) => r.ok));
+  }
 
   return { ok: checks.every((c) => c.ok), checks };
 }

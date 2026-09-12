@@ -4,7 +4,7 @@ import { supabaseConfigured } from "@/lib/auth/supabase";
 import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError } from "@/lib/auth/errors";
-import { stripeConfigured } from "@/lib/billing/env";
+import { stripeSecretKey } from "@/lib/billing/env";
 import { createPortalSession } from "@/lib/billing/stripe";
 import { stripeCustomerFor } from "@/lib/billing/subscriptions";
 import { BILLING_MESSAGES } from "@/lib/billing/messages";
@@ -34,9 +34,14 @@ import { withCors } from "@/lib/http/cors";
 export const dynamic = "force-dynamic";
 
 async function handlePOST(req: Request) {
+  /*
+    The key alone. The checkout gate also demands a Price id, and a shop paused
+    by removing its Prices must still let the people who already pay cancel or
+    change a card. Managing a subscription sells nothing.
+  */
   if (
     !accountRuntimeEnabled()
-    || !stripeConfigured()
+    || !stripeSecretKey()
     || (!supabaseConfigured() && !nativeStripeBillingActive())
   ) {
     return safeJsonError(BILLING_MESSAGES.checkoutUnavailable, 503);

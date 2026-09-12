@@ -3,7 +3,7 @@ import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { supabaseConfigured } from "@/lib/auth/supabase";
 import { nativeStripeBillingActive } from "@/lib/cloudflare/native-billing-readiness";
 import { countryFromRequest, currencyForCountry } from "@/lib/billing/currency";
-import { purchasablePlans, stripeWalletConfigured, stripeWalletMethods } from "@/lib/billing/env";
+import { billingClosed, purchasablePlans, stripeWalletConfigured, stripeWalletMethods } from "@/lib/billing/env";
 import { withCors } from "@/lib/http/cors";
 
 /*
@@ -37,6 +37,25 @@ import { withCors } from "@/lib/http/cors";
 export const dynamic = "force-dynamic";
 
 async function handleGET(req: Request) {
+  const currency = currencyForCountry(countryFromRequest(req));
+
+  /*
+    Closed by the owner's own decision, checked before anything else here is
+    even asked. Otherwise this would answer exactly as it does when Stripe was
+    simply never configured, and the two are not the same fact — see
+    billingClosed() in lib/billing/env.ts.
+  */
+  if (billingClosed()) {
+    return NextResponse.json({
+      checkout: false,
+      plans: [],
+      walletCheckout: false,
+      walletMethods: [],
+      closed: true,
+      currency,
+    });
+  }
+
   /*
     Checkout needs somewhere to write the subscription just as much as it needs
     a payment provider, so both halves are checked. With accounts off there is
@@ -45,7 +64,6 @@ async function handleGET(req: Request) {
   */
   const billingStorageReady = supabaseConfigured() || nativeStripeBillingActive();
   const plans = accountRuntimeEnabled() && billingStorageReady ? purchasablePlans() : [];
-  const currency = currencyForCountry(countryFromRequest(req));
 
   return NextResponse.json({
     checkout: plans.length > 0,
