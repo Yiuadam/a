@@ -32,6 +32,26 @@ async function stripeGet(path) {
   return body;
 }
 
+/*
+  Which account this key opens. Stripe keeps one login over several accounts,
+  and a Price created in one is `resource_missing` in another — which is what
+  a Worker holding the other account's key sees, and reports only as "does not
+  match". The old Pro yearly Price is known to live in the Worker's account, so
+  whether this key can see it says whether the two keys agree.
+*/
+const account = await stripeGet("/account");
+console.log(`account: ${account.id}  ${account.settings?.dashboard?.display_name ?? account.business_profile?.name ?? ""}  livemode=${account.charges_enabled !== undefined ? "n/a" : ""}`.trim());
+const OLD_PRO_YEARLY = "price_1U2wIuIQuaS8SvAv6TzamEh6";
+try {
+  const old = await stripeGet(`/prices/${OLD_PRO_YEARLY}`);
+  console.log(`old Pro yearly price: visible to this key (${old.currency} ${old.unit_amount}, active=${old.active}) — same account as the Worker`);
+} catch (err) {
+  console.log(`old Pro yearly price: NOT visible to this key (${err instanceof Error ? err.message.split(": ").slice(-1)[0] : err}) — this key is for a DIFFERENT account than the Worker's`);
+}
+const products = await stripeGet("/products?active=true&limit=100");
+const bandup = (products.data ?? []).filter((p) => p.metadata?.bandup_tier);
+console.log(`BandUp products in this account: ${bandup.map((p) => `${p.name} [${p.metadata.bandup_tier}]`).join("; ") || "none"}`);
+
 let faults = 0;
 for (const plan of PLAN_IDS) {
   const list = await stripeGet(
