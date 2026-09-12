@@ -212,16 +212,22 @@ test("rpc() throws with the function name and status when Postgres refuses, and 
     },
   ));
 
-test("rpcDiagnostic reports a network failure as ok:false/status:0 rather than throwing", () =>
+test("rpcDiagnostic reports a network failure as ok:false/status:0 rather than throwing, and calls the same way rpc() does", () =>
   withFetch(
     () => {
       throw new TypeError("fetch failed");
     },
-    async () => {
-      const result = await supabase.rpcDiagnostic("set_app_setting", {});
+    async (calls) => {
+      const result = await supabase.rpcDiagnostic("set_app_setting", { p_on: true });
       assert.equal(result.ok, false);
       assert.equal(result.status, 0);
       assert.match(result.detail, /fetch failed/);
+      // The attempt itself is still observable even though it went nowhere:
+      // withFetch records a call's shape before handing it to the handler.
+      assert.equal(calls[0].url, "https://project.supabase.test/rest/v1/rpc/set_app_setting");
+      assert.equal(calls[0].method, "POST");
+      assert.deepEqual(body(calls[0]), { p_on: true });
+      assert.equal(calls[0].headers.apikey, "service-role-key");
     },
   ));
 
