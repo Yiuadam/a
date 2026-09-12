@@ -27,6 +27,7 @@ const route = read("app", "api", "speaking", "examiner-line", "route.ts");
 const session = read("components", "speaking", "SpeakingSession.tsx");
 const models = read("lib", "ai", "models.ts");
 const tiers = read("lib", "billing", "tiers.ts");
+const examinerAudioLib = read("lib", "examiner-audio.ts");
 
 const control = await import(
   pathToFileURL(join(root, "lib", "speaking", "turn-control.ts")).href
@@ -131,15 +132,58 @@ test("the system prompt keeps the line short, neutral, and never a new question"
   assert.match(prompt, /Never mention being an AI/);
 });
 
-test("the reaction is spoken in the exact voice every other examiner line uses", () => {
-  assert.match(route, /import \{ EXAMINER_AUDIO_MODEL, BUNDLED_EXAMINER_AUDIO_VOICE \} from "@\/lib\/examiner-audio";/);
-  assert.match(route, /EXAMINER_AUDIO_MODEL,\s*\n\s*\{ text: line, speaker: BUNDLED_EXAMINER_AUDIO_VOICE, encoding: "mp3" \}/);
+test("the reaction is spoken in the exact voice every other examiner line uses, via the shared synthesiser", () => {
+  assert.match(route, /import \{ synthesizeExaminerLineAudio \} from "@\/lib\/examiner-audio";/);
+  assert.match(route, /synthesizeExaminerLineAudio\(\{ files: env\.BANDUP_FILES, ai: env\.AI \}, line\)/);
+
+  // The voice/model pairing itself is pinned where it is now enforced.
+  const fn = examinerAudioLib.slice(examinerAudioLib.indexOf("export async function synthesizeExaminerLineAudio"));
+  assert.match(
+    fn,
+    /EXAMINER_AUDIO_MODEL,\s*\n\s*\{ text: source\.text, speaker: source\.voice, encoding: "mp3" \}/,
+  );
 });
 
-test("an improvised line is never cached, unlike every scripted one", () => {
-  const success = route.slice(route.lastIndexOf("return new Response(audio,"));
-  assert.match(success, /"Cache-Control": "no-store"/);
-  assert.doesNotMatch(route, /BANDUP_FILES\.put/);
+test("a live reaction is now cached in R2, keyed on the model, the voice and the words rather than a catalogue id", () => {
+  /*
+    This used to be "never cached, unlike every scripted one" — the right call
+    while Workers AI billed by usage. On the Free plan's fixed daily Neuron
+    ceiling, refusing to cache the one examiner line that regenerates on every
+    single request is what wastes the quota fastest, not what protects anyone.
+  */
+  const success = route.slice(route.lastIndexOf("return new Response(outcome.audio,"));
+  assert.match(success, /"Cache-Control": "public, max-age=31536000, immutable"/);
+
+  assert.match(examinerAudioLib, /public\/audio\/examiner-line\//);
+  assert.match(examinerAudioLib, /files\.put\(/);
+  assert.match(examinerAudioLib, /files\.get\(/);
+
+  // The key is a hash of words, not of a caller-suppliable field, and there is
+  // still no `text=`-shaped door into this route — it only ever speaks the
+  // model's own reply.
+  assert.doesNotMatch(route, /searchParams\.get\("(?:text|prompt)"\)/);
+});
+
+test("an AI quota failure gets a cheap, logged status rather than a stack-bearing 500", () => {
+  const handler = route.slice(route.indexOf("async function handlePOST"));
+  assert.match(handler, /outcome\.kind === "quota"/);
+  assert.match(handler, /safeJsonError\(MESSAGES\.unavailable, 503\)/);
+
+  // One structured line an owner can grep Workers Logs for, naming the route
+  // and the provider's own reason — never the candidate's answer or the line
+  // the model wrote for them.
+  const logCall = handler.slice(handler.indexOf("console.error(JSON.stringify({"));
+  const logBlock = logCall.slice(0, logCall.indexOf("}));"));
+  assert.match(logBlock, /message: "examiner tts unavailable"/);
+  assert.match(logBlock, /route: "speaking\/examiner-line"/);
+  assert.match(logBlock, /reason: outcome\.reason/);
+  // Excludes "examiner-line", the route name: that is expected, and is not
+  // the candidate's words or the model's own line.
+  assert.doesNotMatch(
+    logBlock,
+    /(?<![\w-])line(?![\w-])/,
+    "must never log the model's own words or the candidate's answer",
+  );
 });
 
 test("the audio-generation limiter still guards this route, keyed per caller rather than per content", () => {

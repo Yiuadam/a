@@ -311,3 +311,133 @@ export function bundledExaminerAudioUrl(id: string): string {
   }
   return `/api/examiner-audio?${query.toString()}`;
 }
+
+/*
+  A second cache, parallel to the one above and for the opposite reason.
+
+  Every prompt above is fixed and known ahead of time, so its ID can be
+  registered once, at import time. The live Part 3 reaction
+  (app/api/speaking/examiner-line/route.ts) is neither: it is written by a
+  model, for whatever a candidate just said, and nothing about it is known
+  until the request is already in flight, so it cannot join the catalogue
+  above. But "written fresh" does not mean "spoken once" — the system prompt
+  leaves the model almost no room to vary a transition ("One sentence. Never
+  more than 20 words... Neutral and professional throughout"), so the same
+  short, ordinary sentence comes back for many different candidates and
+  different answers. Workers AI's Free-plan Neuron ceiling has no overage —
+  a call past it throws rather than queues — so paying to generate the same
+  sentence a second, a hundredth, a thousandth time is exactly the waste this
+  file already avoids for the fixed bank above, just for text nobody could
+  know ahead of the request.
+
+  So this keys on the words themselves rather than on an id. The model and
+  the voice are folded into the hash, not left to a manually-bumped version
+  string the way the catalogue above is — there is no reviewed id here for a
+  person to re-version by hand on a voice change, so correctness cannot
+  depend on remembering to. If either constant above ever changes, every key
+  below changes with it, for free.
+*/
+const EXAMINER_LINE_CACHE_VERSION = "v1";
+
+function normaliseExaminerLine(text: string): string {
+  // Collapses incidental whitespace differences between two calls that asked
+  // the model the same thing — never case or punctuation, which are part of
+  // how Aura reads the sentence rather than noise around it.
+  return text.trim().replace(/\s+/gu, " ");
+}
+
+export interface ExaminerLineAudioSource {
+  text: string;
+  voice: typeof BUNDLED_EXAMINER_AUDIO_VOICE;
+  contentHash: string;
+  cacheKey: string;
+}
+
+/** The R2 key one live Part 3 reaction would be cached under, or null for text that normalises to nothing. */
+export function examinerLineAudioSource(rawText: string): ExaminerLineAudioSource | null {
+  const text = normaliseExaminerLine(rawText);
+  if (!text) return null;
+  const contentHash = stableContentHash(
+    `${EXAMINER_AUDIO_MODEL} ${BUNDLED_EXAMINER_AUDIO_VOICE} ${text}`,
+  );
+  return {
+    text,
+    voice: BUNDLED_EXAMINER_AUDIO_VOICE,
+    contentHash,
+    cacheKey: `public/audio/examiner-line/${EXAMINER_LINE_CACHE_VERSION}/${BUNDLED_EXAMINER_AUDIO_VOICE}-${contentHash}.mp3`,
+  };
+}
+
+export interface ExaminerLineAudioBindings {
+  files: R2Bucket;
+  ai: Ai;
+}
+
+export type ExaminerLineAudioOutcome =
+  | { ok: true; audio: ArrayBuffer; cached: boolean }
+  /** The AI call itself threw — on the Free plan, almost always the daily Neuron ceiling. */
+  | { ok: false; kind: "quota"; reason: string }
+  /** Aura answered, but not usably: a non-OK response, no body, or an implausibly small clip. */
+  | { ok: false; kind: "upstream" };
+
+/**
+ * Read one live Part 3 reaction's cached MP3 from R2, or ask Aura for one and
+ * bank it under the same key so the next candidate who is told this exact
+ * sentence never spends a Neuron on it.
+ *
+ * Deliberately its own function rather than a shared one with the three
+ * routes above: each of those already earns its own shape from what it
+ * caches (a byte range here, a per-segment voice there), and none of that
+ * applies to a line fetched once by script and never scrubbed or replayed —
+ * no Range request is ever made against a POST endpoint, and there is
+ * exactly one voice to choose between.
+ */
+export async function synthesizeExaminerLineAudio(
+  { files, ai }: ExaminerLineAudioBindings,
+  rawText: string,
+): Promise<ExaminerLineAudioOutcome> {
+  const source = examinerLineAudioSource(rawText);
+  if (!source) return { ok: false, kind: "upstream" };
+
+  let cached: R2ObjectBody | null = null;
+  try {
+    cached = await files.get(source.cacheKey);
+  } catch {
+    cached = null;
+  }
+  if (cached) {
+    return { ok: true, audio: await cached.arrayBuffer(), cached: true };
+  }
+
+  let generated: Response;
+  try {
+    generated = await ai.run(
+      EXAMINER_AUDIO_MODEL,
+      { text: source.text, speaker: source.voice, encoding: "mp3" },
+      { returnRawResponse: true },
+    );
+  } catch (error) {
+    return { ok: false, kind: "quota", reason: error instanceof Error ? error.message : String(error) };
+  }
+  if (!generated.ok || !generated.body) return { ok: false, kind: "upstream" };
+
+  let audio: ArrayBuffer;
+  try {
+    audio = await generated.arrayBuffer();
+  } catch {
+    return { ok: false, kind: "upstream" };
+  }
+  if (audio.byteLength < 8) return { ok: false, kind: "upstream" };
+
+  try {
+    await files.put(source.cacheKey, audio, {
+      httpMetadata: { contentType: "audio/mpeg", cacheControl: "public, max-age=31536000, immutable" },
+      customMetadata: { kind: "examiner-line-audio", voice: source.voice, contentHash: source.contentHash },
+    });
+  } catch {
+    // Same as every cached route beside this one: a write failure must not
+    // make the one valid generation this candidate is owed disappear.
+  }
+
+  return { ok: true, audio, cached: false };
+}

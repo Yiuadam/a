@@ -3,8 +3,8 @@ import { callClaudeJSON } from "@/lib/anthropic";
 import { requireFeature } from "@/lib/billing/gate";
 import { checkAiUsage } from "@/lib/usage/guard";
 import { withCors } from "@/lib/http/cors";
-import { logInternal } from "@/lib/auth/errors";
-import { EXAMINER_AUDIO_MODEL, BUNDLED_EXAMINER_AUDIO_VOICE } from "@/lib/examiner-audio";
+import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
+import { synthesizeExaminerLineAudio } from "@/lib/examiner-audio";
 import speakingData from "@/data/speaking-topics.json";
 import type { SpeakingTopicsData } from "@/lib/types";
 
@@ -60,12 +60,19 @@ const data = speakingData as SpeakingTopicsData;
   wording because it never sees it.
 
   ---------------------------------------------------------------------------
-  Voice
+  Voice, and now caching too
 
-  EXAMINER_AUDIO_MODEL and BUNDLED_EXAMINER_AUDIO_VOICE, imported rather than
-  restated — the same Aura model and the same British voice, athena, that
-  speaks every scripted examiner line. A candidate must never be able to tell,
-  by ear, which sentence was scripted and which was written for them just now.
+  synthesizeExaminerLineAudio (lib/examiner-audio.ts) speaks this line in the
+  same Aura model and the same British voice, athena, that speaks every
+  scripted examiner line — enforced there rather than restated here, so a
+  candidate can never tell by ear which sentence was scripted and which was
+  written for them just now. It also now banks the MP3 in R2 under a key
+  built from that model, that voice and the line's own words: an ad-libbed
+  reaction has no catalogue id to cache against, but the same short, neutral
+  handful of sentences comes back across many candidates, and Workers AI's
+  Free-plan Neuron ceiling has no overage. See that function's own comment
+  for why the key does not lean on a manually-bumped version the way the
+  fixed catalogue does.
 */
 
 const VALID_PART3_QUESTIONS = new Set(data.part3.flatMap((topic) => topic.questions));
@@ -146,15 +153,14 @@ async function handlePOST(request: Request): Promise<Response> {
   } catch {
     return unavailable(503);
   }
-  if (!env.AI || !env.AUDIO_GENERATION_RATE_LIMITER) return unavailable(503);
+  if (!env.AI || !env.AUDIO_GENERATION_RATE_LIMITER || !env.BANDUP_FILES) return unavailable(503);
 
   /*
-    Keyed by IP rather than by content: this text is written fresh for one
-    candidate and will not be asked for again, so a content key would buy no
-    protection a fresh one does not already have. What this catches instead
-    is a client stuck in a retry loop synthesising audio nobody will hear —
-    the monthly quota above already bounds how many *lines* a tier can write,
-    this bounds how fast one caller can burn through them.
+    Keyed by IP rather than by content: a candidate cannot be trusted to stop
+    asking just because R2 now remembers the words underneath. What this
+    catches is a client stuck in a retry loop synthesising audio nobody will
+    hear — the monthly quota above already bounds how many *lines* a tier can
+    write, this bounds how fast one caller can burn through them.
   */
   const client = request.headers.get("CF-Connecting-IP")?.trim() || "anonymous";
   try {
@@ -171,39 +177,44 @@ async function handlePOST(request: Request): Promise<Response> {
     return unavailable(503);
   }
 
-  let generated: Response;
-  try {
-    generated = await env.AI.run(
-      EXAMINER_AUDIO_MODEL,
-      { text: line, speaker: BUNDLED_EXAMINER_AUDIO_VOICE, encoding: "mp3" },
-      { returnRawResponse: true },
-    );
-  } catch (error) {
-    logInternal("speaking/examiner-line", error);
+  const outcome = await synthesizeExaminerLineAudio({ files: env.BANDUP_FILES, ai: env.AI }, line);
+  if (!outcome.ok) {
+    if (outcome.kind === "quota") {
+      /*
+        Workers AI on the Free plan has no overage: past 10,000 Neurons a day
+        every @cf/deepgram/aura call throws rather than queues, and Aura is
+        the only thing this app spends Neurons on. A stack trace would tell
+        the owner nothing actionable; this line names the route and the
+        provider's own reason, with none of the candidate's words in it, so
+        Workers Logs shows quota exhaustion for what it is instead of an
+        unlabelled 500. The response mirrors it: a small JSON body a client
+        can fail on cheaply, the same shape lib/billing/gate.ts and
+        lib/usage/guard.ts already answer every other AI outage with.
+      */
+      console.error(JSON.stringify({
+        message: "examiner tts unavailable",
+        route: "speaking/examiner-line",
+        reason: outcome.reason,
+      }));
+      return safeJsonError(MESSAGES.unavailable, 503);
+    }
     return unavailable(502);
   }
-  if (!generated.ok || !generated.body) return unavailable(502);
 
-  let audio: ArrayBuffer;
-  try {
-    audio = await generated.arrayBuffer();
-  } catch {
-    return unavailable(502);
-  }
-  if (audio.byteLength < 8) return unavailable(502);
-
-  return new Response(audio, {
+  return new Response(outcome.audio, {
     headers: {
       "Content-Type": "audio/mpeg",
       "X-Content-Type-Options": "nosniff",
       /*
-        Never cached, unlike every other examiner clip in this app. Those are
-        the same finite, reviewed sentence every candidate hears; this one was
-        written for a single answer and will not be asked for again — caching
-        it would only hold a stranger's transcript in a shared store for no
-        reason.
+        Cached now, exactly like every other examiner clip in this app. The
+        words are free text, but the system prompt leaves the model almost no
+        room to vary a transition, so the same short, neutral sentence comes
+        back across many candidates — see synthesizeExaminerLineAudio, which
+        keys this MP3 on the model, the voice and the words rather than on a
+        catalogue id. A candidate who draws a sentence someone else already
+        drew costs one R2 read instead of one more Neuron-metered generation.
       */
-      "Cache-Control": "no-store",
+      "Cache-Control": "public, max-age=31536000, immutable",
       "X-Examiner-Line": encodeURIComponent(line),
     },
   });
