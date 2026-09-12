@@ -462,6 +462,143 @@ to be built, and all of them need the Mac that everything else in APPSTORE.md
 is waiting on. Until then, `/pricing` says so, and subscribing is a web
 feature.
 
+## Running on the Workers Free plan
+
+The account is staying on the Workers Free plan. This section is what that
+costs, what the code already does about it, the one step still outstanding,
+and what to watch once a change goes live.
+
+### What Free gives, and what it does not
+
+**CPU.** 10 ms per invocation, and no way to raise it — Free refuses an
+explicit `limits.cpu_ms` outright (error 100328). Cloudflare's own
+documentation describes some built-in flexibility for a request that goes
+over occasionally rather than as a matter of course, and Error 1102 for one
+that keeps doing it. Measured on this branch's preview: 200-plus page
+requests and 22 password sign-ins, each carrying roughly 50 ms of bcrypt CPU,
+were all served, and none were killed.
+
+**Subrequests.** 50 external `fetch` calls plus 1,000 calls to Cloudflare's
+own services (D1, R2) per invocation, per the Workers limits page and its
+2026-02-11 changelog entry — though D1's own limits page still quotes 50, so
+the replica drain below was budgeted against the stricter number rather than
+argue with the discrepancy.
+
+**Requests.** 100,000 a day. Static assets do not count against it, and the
+site serves around 1,900 requests a day, so this is not close to binding.
+
+**Email Sending.** A Workers Paid feature outright. On Free, the
+`send_email` binding can only reach addresses the owner has verified in
+their own Cloudflare account — no use for a learner's inbox.
+
+**Workers AI.** 10,000 Neurons a day, with no overage: a call past it throws
+rather than queues. That is roughly 7,300 characters of `aura-1` speech.
+
+**Cron Triggers and the Rate Limiting binding both work on Free.** The
+five-minute drain has been running throughout and writing its R2 marker, and
+the audio-generation limiter answered `/api/speech-model` with 206, not 503,
+on the preview.
+
+**Script size** is not a limit worth worrying about here: the built Worker is
+2.27 MiB gzipped.
+
+### What the code does about it
+
+`wrangler.jsonc` reflects the CPU point above by no longer setting
+`limits.cpu_ms` at all — see the comment in that file for the fuller
+explanation. Four other changes actually adapt the app's behaviour to the
+plan:
+
+`lib/email/sender.ts` gives the two native-account emails (registration and
+recovery) a second way to send: a Resend transactional call over `fetch`,
+chosen whenever `RESEND_API_KEY` is set. The Cloudflare `send_email` binding
+remains the other provider, so a Paid account keeps working unchanged with
+the key unset.
+
+`open-next.config.ts` turns on the static-assets incremental cache and cache
+interception, so a prerendered page is answered from `ASSETS` before the Next
+server is even loaded — 52 routes, none of which used to be served that way.
+`cf:build` now runs `populateCache` immediately after the build, because the
+cache files never reached `.open-next/assets` on their own; with both in
+place, those pages come back with an `x-opennext-cache: HIT` header proving
+it.
+
+`lib/cloudflare/scheduled-replica-drain.ts`, together with
+`lib/cloudflare/replica-outbox.ts`, sizes the five-minute drain tick to fit
+inside 50 subrequests rather than the 1,000 it used to assume: one outbox
+row, three cleanup keys and one nested cleanup key per tick, a worst case of
+38. See that file's own comment for the arithmetic behind each number.
+
+`lib/examiner-audio.ts` caches the live examiner's Part 3 reaction line in R2
+the same way the three scripted audio routes already cache theirs, keyed on
+the model, the voice and the words. `app/api/speaking/examiner-line/route.ts`
+answers 503 with one structured log line reading `examiner tts unavailable`
+when the Workers AI call itself fails — the daily Neuron ceiling, most
+likely — and the client already treats any non-2xx from that route as
+"unavailable" and drops to the device voice.
+
+### Setting up Resend
+
+The one step still outstanding, and the owner's to do. Until it is done,
+password sign-up answers 503 and a recovery request silently sends nothing;
+Google sign-in is unaffected either way.
+
+1. Create a Resend account.
+2. Add `bandup.life` as a sending domain, and add the DKIM, SPF and DMARC
+   records Resend gives you for it — the zone is on Cloudflare DNS.
+3. Create an API key with sending permission.
+4. Store it on the Worker: `npx wrangler versions secret put RESEND_API_KEY`.
+   This is the `versions secret` form rather than plain `secret put` —
+   see **What makes it deploy** above for why a preview being the newest
+   version makes plain `secret put` refuse with error 10215, and for what it
+   takes to actually activate a secret staged this way.
+5. Verify it: sign up with a password on the preview and confirm the
+   confirmation email arrives, then ask for a password recovery and confirm
+   that arrives too.
+
+### What to watch
+
+- **Workers Logs**, filtered to `examiner tts unavailable` — the day's
+  Neuron ceiling is spent, and learners hear the device voice instead of the
+  live examiner until it resets at midnight UTC.
+- **Observability**, filtered to outcome `exceededCpu` — this is what a 1102
+  looks like from the dashboard rather than from a learner's report.
+- **`/api/replica/health`** — already green, and worth an occasional glance
+  rather than trusting only the hourly check that already watches it.
+- **The daily request count**, against the 100,000 ceiling. Static assets are
+  free, so this is really a count of API and dynamic-page traffic.
+
+### Known limits on Free
+
+- A handful of admin tools can, under a strict reading that counts D1 and R2
+  operations as subrequests, exceed 50 in one call. Run them accordingly:
+  `/api/admin/cloudflare/backfill` with `applyLimit` kept at 10 or below;
+  `/api/admin/cloudflare/entitlement-parity` paged with a smaller `limit`
+  (it costs about two subrequests per account examined, which is roughly 72
+  for today's ~35 users at the default page size); `/api/admin/cloudflare/readiness`
+  called with `payloadParity=all` or `avatarObjectParity` only alongside a
+  small `payloadParityRows`/`avatarParityRows`/`avatarParityBytes`; and the
+  manual drain, `POST /api/admin/cloudflare/replica-outbox`, with `limit` at
+  2 or below.
+- Ordinary learner traffic stays well inside 50 on the same strict reading,
+  with one near-miss: `PUT /api/account/progress` for a Tracking or AI
+  subscriber with several reviewed sittings can reach about 51. The overflow
+  sits inside `after()`, so the learner still gets their 200 and the
+  organisation-ledger chores it triggers simply retry on the next call.
+- A latent bug, unrelated to the plan but worth listing here because it is
+  also a D1 limit: `feedbackForAttempts` and `studentsFor` in
+  `lib/cloudflare/organizations.ts` (around lines 498–506 and 572–581) each
+  bind one id per stored attempt or per student into a single query, and D1
+  caps bound parameters at 100. A student with 99 or more stored attempts, or
+  a class of 99 or more students, would 500. Not yet fixed.
+- A backlog much larger than anything seen so far drains slowly by design:
+  12 outbox rows an hour. See `lib/cloudflare/scheduled-replica-drain.ts` for
+  why that trade was made deliberately rather than sized for a bigger one.
+- Moving back to Workers Paid is two edits: restore `"limits": { "cpu_ms":
+  30000 }` in `wrangler.jsonc` and its test in `tests/deploy-config.test.mjs`,
+  and — optionally, since the Cloudflare binding still works once Paid lifts
+  the address restriction — remove `RESEND_API_KEY`.
+
 ## Cutting over to Tracking and AI
 
 The three retired tier names — `standard`, `plus`, `pro` — are being replaced by
