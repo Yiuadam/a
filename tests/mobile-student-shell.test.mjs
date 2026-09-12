@@ -17,14 +17,17 @@
       form to build, so every link (and the one server-built notification
       link that has to be rewritten after the fact) goes through it.
 
-  This runs the website side for real, and reads source for the mobile side —
-  IS_MOBILE_BUILD is read from NEXT_PUBLIC_MOBILE_BUILD at module load, so a
-  plain `node --test` run cannot flip it after the fact without re-importing
-  under a different process environment. Reading the source for the exact
-  query-form strings is deliberate, not a shortcut: a source assertion still
-  fails if the mobile branch is deleted, renamed, or never wired up.
+  This runs the website side for real, and — for the mobile side — spawns a
+  fresh process with NEXT_PUBLIC_MOBILE_BUILD=1 (tests/mobile-build-probe.mjs)
+  rather than reading source. IS_MOBILE_BUILD is read from that env var once,
+  at module load (see lib/platform.ts), so a plain `node --test` run cannot
+  flip it after the fact by re-importing: this was checked by hand — three
+  imports of the same file under three different `?query` suffixes, with the
+  env var changed before each, all still answered with the first import's
+  value. A separate process is what actually observes the second branch.
 */
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { register } from "node:module";
 import { join, relative } from "node:path";
@@ -38,6 +41,16 @@ const load = (...parts) => import(pathToFileURL(join(ROOT, ...parts)).href);
 
 const links = await load("lib", "organizations", "student-links.ts");
 const linksSource = readFileSync(join(ROOT, "lib", "organizations", "student-links.ts"), "utf8");
+
+/** Runs tests/mobile-build-probe.mjs in a fresh process and parses its JSON. */
+function mobileBuildOutputs() {
+  const stdout = execFileSync(
+    process.execPath,
+    [join(ROOT, "tests", "mobile-build-probe.mjs")],
+    { cwd: ROOT, env: { ...process.env, NEXT_PUBLIC_MOBILE_BUILD: "1" }, encoding: "utf8" },
+  );
+  return JSON.parse(stdout);
+}
 
 test("studentHistoryHref builds the website path form, with its optional params", () => {
   assert.equal(links.studentHistoryHref("stu-1"), "/organization/students/stu-1");
@@ -87,6 +100,40 @@ test("the mobile branch builds the query-shell form", () => {
   // IS_MOBILE_BUILD is set, are the very same two route strings.
   assert.match(linksSource, /"\/organization\/student\/sitting"/);
   assert.match(linksSource, /"\/organization\/student"/);
+});
+
+test("studentHistoryHref and sittingReviewHref build the query-shell form for real on the mobile build", () => {
+  const out = mobileBuildOutputs();
+  assert.equal(out.studentHistoryHrefPlain, "/organization/student?student=stu-1");
+  assert.equal(
+    out.studentHistoryHrefWithOpts,
+    "/organization/student?student=stu-1&organization=org-1&preview=manager",
+  );
+  assert.equal(out.sittingReviewHrefPlain, "/organization/student/sitting?student=stu-1&attempt=att-1");
+  assert.equal(
+    out.sittingReviewHrefWithOpts,
+    "/organization/student/sitting?student=stu-1&attempt=att-1"
+      + "&organization=org-1&from=assignment-directory&focus=assignment-completed&preview=teacher",
+  );
+});
+
+test("normaliseStudentHref rewrites a website path into the query-shell form for real on the mobile build", () => {
+  const out = mobileBuildOutputs();
+  assert.equal(out.normalisePlainStudent, "/organization/student?student=stu-1");
+  assert.equal(
+    out.normaliseSittingWithQuery,
+    "/organization/student/sitting?student=stu-1&attempt=att-1&organization=org-1&focus=assignment-completed",
+  );
+  // The regex is anchored at both ends: content before the known shape (not
+  // matched by the leading `^`) or after it (not matched by the trailing `$`)
+  // must leave the href untouched rather than transforming a false positive
+  // or silently dropping a suffix it does not understand.
+  assert.equal(out.normaliseLeadingGarbage, "xxx/organization/students/stu-1");
+  assert.equal(out.normaliseTrailingGarbage, "/organization/students/stu-1/extra-junk");
+  // And a path that isn't one of the two known shapes at all is untouched,
+  // on the mobile build exactly as on the website (see the identity test
+  // above) — this is the one case both builds must agree on.
+  assert.equal(out.normaliseUnrelated, "/organization?section=assignments");
 });
 
 test("scripts/build-mobile.mjs excludes the dynamic student tree from the iOS bundle", () => {
