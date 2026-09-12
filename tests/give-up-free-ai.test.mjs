@@ -1,5 +1,5 @@
 /*
-  Giving the free Pro trial up.
+  Giving the free AI trial up.
 
   The feature is one paragraph to describe and three ways to get wrong, and all
   three fail silently — nobody would see a stack trace, they would just find the
@@ -175,7 +175,7 @@ function against(fixture, fn) {
 test("giving it up pauses the grant — it does not write the owner's 'canceled'", async () => {
   const fixture = fakeSupabase({
     statuses: ["active"],
-    entitlement: entitlementOf("pro", "promo"),
+    entitlement: entitlementOf("ai", "promo"),
     resolveAfter: entitlementOf("free", "default"),
   });
   const result = await against(fixture, () => promo.releasePromo(USER, EMAIL));
@@ -195,7 +195,7 @@ test("giving it up pauses the grant — it does not write the owner's 'canceled'
 test("the release can only ever touch this account's promo rows", async () => {
   const fixture = fakeSupabase({
     statuses: ["active"],
-    entitlement: entitlementOf("pro", "promo"),
+    entitlement: entitlementOf("ai", "promo"),
     resolveAfter: entitlementOf("free", "default"),
   });
   await against(fixture, () => promo.releasePromo(USER, EMAIL));
@@ -211,7 +211,7 @@ test("the release can only ever touch this account's promo rows", async () => {
 test("the status a release writes is one the existing CHECK already allows", async () => {
   const fixture = fakeSupabase({
     statuses: ["active"],
-    entitlement: entitlementOf("pro", "promo"),
+    entitlement: entitlementOf("ai", "promo"),
     resolveAfter: entitlementOf("free", "default"),
   });
   await against(fixture, () => promo.releasePromo(USER, EMAIL));
@@ -237,8 +237,8 @@ test("the status a release writes is one the existing CHECK already allows", asy
 /* Who may release anything                                                   */
 
 for (const [tier, source, who] of [
-  ["pro", "stripe", "a Stripe subscriber"],
-  ["pro", "apple", "an App Store subscriber"],
+  ["ai", "stripe", "a Stripe subscriber"],
+  ["ai", "apple", "an App Store subscriber"],
   ["admin", "role", "the owner"],
   ["free", "default", "an account with no trial"],
 ]) {
@@ -260,17 +260,17 @@ test("a signed-out caller releases nothing without reaching the database", async
 test("an account still paying underneath the grant is told what it is actually on", async () => {
   /*
     Rare, and the reason the route sends a tier at all: a promo grant is the more
-    generous row, so it is the one answering while a paid Plus subscription sits
-    underneath it. "You are on the free plan now" would be false for the one
+    generous row, so it is the one answering while a paid Tracking subscription
+    sits underneath it. "You are on the free plan now" would be false for the one
     person in the exchange who is paying us.
   */
   const fixture = fakeSupabase({
     statuses: ["active"],
-    entitlement: entitlementOf("pro", "promo"),
-    resolveAfter: entitlementOf("plus", "stripe"),
+    entitlement: entitlementOf("ai", "promo"),
+    resolveAfter: entitlementOf("tracking", "stripe"),
   });
   const result = await against(fixture, () => promo.releasePromo(USER, EMAIL));
-  assert.deepEqual(result, { outcome: "released", tier: "plus" });
+  assert.deepEqual(result, { outcome: "released", tier: "tracking" });
 });
 
 /* ------------------------------------------------------------------------- */
@@ -348,7 +348,7 @@ test("a first-time accept still inserts, and still says paused rows are differen
   const inserts = fixture.writes().filter((c) => c.method === "POST" && c.body?.user_id === USER);
   assert.equal(inserts.length, 1);
   assert.equal(inserts[0].body.status, "active");
-  assert.equal(inserts[0].body.tier, "pro");
+  assert.equal(inserts[0].body.tier, "ai");
 });
 
 /* ------------------------------------------------------------------------- */
@@ -372,21 +372,21 @@ test("with the provider check still narrow, nothing is offered and no release is
   */
   const releaseFixture = fakeSupabase({
     statuses: ["active"],
-    entitlement: entitlementOf("pro", "promo"),
+    entitlement: entitlementOf("ai", "promo"),
     providerAllowed: false,
   });
   const result = await against(releaseFixture, () => promo.releasePromo(USER, EMAIL));
   assert.deepEqual(result, { outcome: "not-open", tier: null });
 });
 
-test("the trial itself granting Pro is what the give-up control is drawn from", async () => {
-  const held = fakeSupabase({ statuses: ["active"], entitlement: entitlementOf("pro", "promo") });
+test("the trial itself granting AI is what the give-up control is drawn from", async () => {
+  const held = fakeSupabase({ statuses: ["active"], entitlement: entitlementOf("ai", "promo") });
   assert.equal((await against(held, () => promo.promoOfferFor(USER, EMAIL))).grantHeld, true);
 
   for (const source of ["stripe", "apple", "role"]) {
     const paid = fakeSupabase({
       statuses: [],
-      entitlement: entitlementOf(source === "role" ? "admin" : "pro", source),
+      entitlement: entitlementOf(source === "role" ? "admin" : "ai", source),
     });
     const offer = await against(paid, () => promo.promoOfferFor(USER, EMAIL));
     assert.equal(offer.grantHeld, false, `${source} must not be offered a way to give up a trial`);
@@ -450,7 +450,7 @@ test("the card says what happens, and does not argue with the reader", () => {
   assert.match(words, /give the trial up here/);
   assert.match(words, /Everything you have written or practised stays exactly where it is/);
   assert.match(words, /start the trial again/i);
-  assert.match(words, /Give up my free Pro trial/, "the owner's phrasing");
+  assert.match(words, /Give up my free AI trial/, "the owner's phrasing");
 
   for (const pattern of [
     /are you sure/i,

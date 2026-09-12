@@ -20,6 +20,14 @@
     },
     {
       "speaker": "Staff Member",
+      "text": "Oh, sorry to hear that. Is it for work, or just a change of scenery?"
+    },
+    {
+      "speaker": "Member",
+      "text": "Work, mostly. My partner's been offered a new job, so we're relocating as a family."
+    },
+    {
+      "speaker": "Staff Member",
       "text": "Oh, sorry to hear you're leaving us. Let's sort that out. Can I take your name and membership number?"
     },
     {
@@ -29,6 +37,14 @@
     {
       "speaker": "Staff Member",
       "text": "Let me just check that. 22581, Jake Turner. Yes, I've found your account here."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "I can see you joined us a couple of years ago. It's a shame to lose you, you've barely missed a week."
+    },
+    {
+      "speaker": "Member",
+      "text": "I know, I'll really miss the classes here."
     },
     {
       "speaker": "Member",
@@ -52,6 +68,14 @@
     },
     {
       "speaker": "Staff Member",
+      "text": "Great, I'll get that printed for you in just a moment. While I do, let's sort out the payment side of things."
+    },
+    {
+      "speaker": "Member",
+      "text": "Sure, go ahead."
+    },
+    {
+      "speaker": "Staff Member",
       "text": "Of course. Now, your last payment was on the fifth of this month, so your final payment will actually be next month, on the fifth, and your membership will end thirty days after that."
     },
     {
@@ -65,6 +89,14 @@
     {
       "speaker": "Member",
       "text": "38 pounds, okay, that's fair enough given the notice period."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "It is, and honestly a lot of people are surprised the notice period is as generous as it is, compared with some other gyms."
+    },
+    {
+      "speaker": "Member",
+      "text": "That's true. My previous gym gave hardly any notice at all."
     },
     {
       "speaker": "Staff Member",
@@ -92,6 +124,14 @@
     },
     {
       "speaker": "Staff Member",
+      "text": "No problem. I'll make a note of that on your file for the future."
+    },
+    {
+      "speaker": "Member",
+      "text": "Thanks, that's reassuring, in case we ever come back this way."
+    },
+    {
+      "speaker": "Staff Member",
       "text": "One last thing — would you like to keep receiving our email newsletter, or shall I remove you from that too?"
     },
     {
@@ -100,11 +140,27 @@
     },
     {
       "speaker": "Staff Member",
+      "text": "Consider it done. You won't hear from us again unless you want to."
+    },
+    {
+      "speaker": "Member",
+      "text": "Perfect, thank you."
+    },
+    {
+      "speaker": "Staff Member",
       "text": "No problem, that's all done. Before you go, can I ask what made you choose us in the first place, just for our records?"
     },
     {
       "speaker": "Member",
       "text": "Honestly, it was the location, really — I could walk here from my flat in about five minutes, which made it easy to come regularly."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "That's the biggest reason most people join, actually. Being able to just walk here makes such a difference to how often people come."
+    },
+    {
+      "speaker": "Member",
+      "text": "Definitely. If I'd had to drive, I don't think I'd have bothered most days."
     },
     {
       "speaker": "Staff Member",
@@ -121,6 +177,14 @@
     {
       "speaker": "Member",
       "text": "Good to hear. Well, I've really enjoyed my time here overall."
+    },
+    {
+      "speaker": "Staff Member",
+      "text": "That means a lot to hear, honestly. It's always nice when someone says that on their way out, rather than just disappearing quietly."
+    },
+    {
+      "speaker": "Member",
+      "text": "Well, it's true. You've all been really helpful whenever I've had questions."
     },
     {
       "speaker": "Staff Member",

@@ -104,7 +104,19 @@ export default function QuestionPalette({
           }`}
           aria-pressed={current?.flagged ?? false}
         >
-          {current?.flagged ? `Q${current.number} marked hard` : `Mark Q${current?.number ?? ""} hard`}
+          {/*
+            A word on a phone, a sentence from `sm` up.
+
+            The full label is 105px of a 358px bar, and with the two arrows
+            that left the numbers 144px to hold fourteen of them — a strip so
+            short that every flick overshoots and springs back, which is what
+            reads as bounce. The button still says what it does, and what it
+            does is already obvious from the state of the number beside it.
+          */}
+          <span className="sm:hidden">{current?.flagged ? "Hard" : "Mark"}</span>
+          <span className="hidden sm:inline">
+            {current?.flagged ? `Q${current.number} marked hard` : `Mark Q${current?.number ?? ""} hard`}
+          </span>
         </button>
       </div>
 
@@ -123,10 +135,45 @@ export default function QuestionPalette({
            the app's own bottom edge rather than part of a document. */
         className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overscroll-x-none py-0.5"
       >
-        {items.map((item) => {
+        {items.map((item, index) => {
           const isCurrent = item.id === currentId;
+          /*
+            The label that starts a part, as the exam's own strip prints it:
+            "Part 1: 1 2 3 …". A sitting renames every question after the paper
+            it came from — `listening-12:q1` — so the paper changes exactly
+            where the prefix does, and the parts fall out of the ids without
+            anything having to be threaded down here. A practice paper has no
+            prefix and so gets one unnamed group, which is right: there is only
+            one part, and printing "Part 1:" over the whole strip would be
+            naming a division that does not exist.
+          */
+          const paper = item.id.includes(":") ? item.id.slice(0, item.id.lastIndexOf(":")) : null;
+          const previous = index > 0 ? items[index - 1].id : null;
+          const previousPaper =
+            previous && previous.includes(":") ? previous.slice(0, previous.lastIndexOf(":")) : null;
+          const startsPart = paper !== null && paper !== previousPaper;
+          const partNumber = startsPart
+            ? new Set(
+                items
+                  .slice(0, index + 1)
+                  .map((i) => (i.id.includes(":") ? i.id.slice(0, i.id.lastIndexOf(":")) : ""))
+                  .filter(Boolean),
+              ).size
+            : 0;
           return (
-            <li key={item.id} className="shrink-0">
+            <li key={item.id} className="flex shrink-0 items-center gap-1">
+              {startsPart && (
+                <span className="ml-1 shrink-0 text-xs font-semibold text-[color:var(--exam-fg)] first:ml-0">
+                  {/*
+                    The paper's own word for its divisions. Reading is three
+                    passages and the paper says "Passage 2" at the top of the
+                    second one; listening is four parts and says "Part 2". A
+                    strip that said "Part" over both would be disagreeing with
+                    the page above it in one of the two modules.
+                  */}
+                  {paper.startsWith("reading-") ? "Passage" : "Part"} {partNumber}:
+                </span>
+              )}
               <button
                 type="button"
                 ref={isCurrent ? lit : null}

@@ -74,6 +74,7 @@ export function placementAdvice(result: PlacementResult): AdviceReport {
 const TYPE_NAME: Record<TestQuestion["type"], string> = {
   tfng: "True/False",
   mcq: "Multiple choice",
+  "multi-select": "Multi-select",
   completion: "Completion",
   ynng: "Yes/No",
   matching: "Matching",
@@ -83,6 +84,7 @@ const TYPE_NAME: Record<TestQuestion["type"], string> = {
 const TYPE_FIX: Record<TestQuestion["type"], string> = {
   tfng: "Not Given means unsaid",
   mcq: "Find the line first",
+  "multi-select": "Choose exactly the number asked for",
   completion: "Copy the word exactly",
   // Each of these is the single habit that fixes most of the losses on that
   // task, written short enough to sit on a results card.

@@ -31,13 +31,20 @@ import type { LockReason, SessionTier } from "./sessions";
 
 export type DrillKind = "grammar" | "vocabulary";
 
-/** Topics openable per kind. Null is no limit. */
+/**
+ * Topics openable per kind. Null is no limit.
+ *
+ * Free used to cap this at two, back when Free was the tier being sold short
+ * of the library on purpose. It is not any more — every signed-in tier gets
+ * every topic, the same as every reading paper and every writing task — so
+ * only signing in is worth anything here now, same as lib/entitlements/
+ * sessions.ts's EVERYTHING table.
+ */
 export const DRILL_LIMITS: Record<SessionTier, number | null> = {
   anonymous: 1,
-  free: 2,
-  standard: null,
-  plus: null,
-  pro: null,
+  free: null,
+  tracking: null,
+  ai: null,
   admin: null,
 };
 

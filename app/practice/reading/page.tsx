@@ -16,9 +16,9 @@ import SplitPanes, { useIsWide } from "@/components/exam/SplitPanes";
 import SwipePanels from "@/components/exam/SwipePanels";
 import { useExamNavigation } from "@/lib/exam/navigation";
 import { testAdvice } from "@/lib/advice";
-import { isCorrect, rawToBand } from "@/lib/band";
+import { marksEarned, rawToBand } from "@/lib/band";
 import { useMounted, useProfile } from "@/lib/hooks";
-import { flatQuestions, questionCount } from "@/lib/questions";
+import { flatQuestions, questionCount, questionWidth } from "@/lib/questions";
 import { buildReview, joinWithAnd, questionTypeNames } from "@/lib/review";
 import { savedAnswers } from "@/lib/results";
 import { addResult } from "@/lib/store";
@@ -69,7 +69,12 @@ function ReadingTestPageRunner() {
   const flat = useMemo(() => (test ? flatQuestions(test.questions) : []), [test]);
   const nav = useExamNavigation(
     useMemo(
-      () => flat.map((q) => ({ id: q.id, answered: answers[q.id] !== undefined })),
+      () =>
+        flat.map((q) => ({
+          id: q.id,
+          answered: answers[q.id] !== undefined,
+          width: questionWidth(q),
+        })),
       [flat, answers],
     ),
   );
@@ -78,11 +83,18 @@ function ReadingTestPageRunner() {
   const submit = useCallback(() => {
     if (!test || submitted) return;
     const asked = flatQuestions(test.questions);
+    /*
+      Summed as marks, not as questions answered right, because a multi-select
+      question can earn one of its two marks without earning both — a boolean
+      per-question count would either drop that mark or invent it, and
+      `questionCount` below is the matching width-aware total it is scored out
+      of.
+    */
     let correct = 0;
     for (const q of asked) {
-      if (isCorrect(q, answers[q.id])) correct++;
+      correct += marksEarned(q, answers[q.id]);
     }
-    const b = rawToBand(correct, asked.length, "reading");
+    const b = rawToBand(correct, questionCount(test.questions), "reading");
     const reviewItems = buildReview(test.questions, answers);
     const advice = testAdvice(
       "reading",

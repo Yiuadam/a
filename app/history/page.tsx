@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import BandBadge from "@/components/BandBadge";
 import ClearHistoryButton from "@/components/history/ClearHistoryButton";
+import HistoryGate from "@/components/history/HistoryGate";
 import LookupHistoryCard from "@/components/history/LookupHistoryCard";
 import { retakesOf, standingRecord, type StandingModule, type StandingRecord } from "@/lib/exam/report";
 import { useProfile } from "@/lib/hooks";
@@ -350,7 +351,7 @@ function StandingRow({ entry, reportId }: { entry: StandingModule; reportId: str
   );
 }
 
-export default function HistoryPage() {
+function HistoryPageContent() {
   const profile = useProfile();
   const results = useMemo(() => newestFirst(profile.results), [profile.results]);
 
@@ -572,5 +573,13 @@ export default function HistoryPage() {
 
       <LookupHistoryCard compact />
     </div>
+  );
+}
+
+export default function HistoryPage() {
+  return (
+    <HistoryGate>
+      <HistoryPageContent />
+    </HistoryGate>
   );
 }

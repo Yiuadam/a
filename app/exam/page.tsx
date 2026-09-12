@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import SpeakingSession from "@/components/speaking/SpeakingSession";
@@ -34,7 +34,7 @@ import {
   type MockSession,
 } from "@/lib/exam/mock";
 import { questionCount } from "@/lib/questions";
-import type { SpeakingGrade, SpeakingTranscriptTurn } from "@/lib/types";
+import type { ReadingTest, SpeakingGrade, SpeakingTranscriptTurn } from "@/lib/types";
 
 /*
   A full IELTS sitting: Listening, Reading, Writing, Speaking, in that order,
@@ -95,6 +95,17 @@ function ExamRunner() {
   }, []);
 
   /*
+    Which Reading paper a fresh sitting draws — the one choice the start
+    screen needs, since Listening, Writing and Speaking are the same either
+    way. Held here rather than in `StartScreen` because both `start` and
+    `startSingleSkill` below read it, and in the component and nowhere else
+    for the same reason `TestChooser`'s writing-task filter is: every arrival
+    at this screen starts on Academic, so a candidate is never shown a variant
+    they did not choose this time.
+  */
+  const [variant, setVariant] = useState<ReadingTest["variant"]>("academic");
+
+  /*
     Leaving this page ends the sitting.
 
     The cleanup runs when this component unmounts, and the only thing that
@@ -122,11 +133,22 @@ function ExamRunner() {
     };
   }, []);
 
+  /*
+    Every paper this learner has already sat, so a fresh sitting prefers ones
+    they have not — a mock is meant to measure, and a paper you have answered
+    before measures how well you remember it. Preference, not guarantee: see
+    `unsat` in lib/exam/mock.ts for what happens once the bank runs out.
+  */
+  const sat = useMemo(
+    () => new Set(profile.results.map((result) => result.testId)),
+    [profile.results],
+  );
+
   const start = useCallback(() => {
-    const fresh = newSession();
+    const fresh = newSession(variant, sat);
     fresh.deadline = Date.now() + MODULE_MINUTES.listening * 60_000;
     update(fresh);
-  }, [update]);
+  }, [update, variant, sat]);
 
   /**
    * Start a standalone single-skill exam: one module, sat on its own, with no
@@ -144,14 +166,14 @@ function ExamRunner() {
    */
   const startSingleSkill = useCallback(
     (module: MockModule) => {
-      const fresh = newSingleSkillSession(module);
+      const fresh = newSingleSkillSession(module, variant);
       fresh.deadline =
         fresh.stage === "speaking" || fresh.stage === "results"
           ? null
           : Date.now() + MODULE_MINUTES[fresh.stage] * 60_000;
       update(fresh);
     },
-    [update],
+    [update, variant],
   );
 
   /**
@@ -282,7 +304,16 @@ function ExamRunner() {
   /* Nothing is drawn until storage has been read, or the clock flashes wrong. */
   if (!mounted) return null;
 
-  if (!session) return <StartScreen onStart={start} onStartSkill={startSingleSkill} />;
+  if (!session) {
+    return (
+      <StartScreen
+        variant={variant}
+        onVariantChange={setVariant}
+        onStart={start}
+        onStartSkill={startSingleSkill}
+      />
+    );
+  }
 
   switch (session.stage) {
     case "listening":
@@ -359,9 +390,14 @@ function ExamRunner() {
 }
 
 function StartScreen({
+  variant,
+  onVariantChange,
   onStart,
   onStartSkill,
 }: {
+  /** Which Reading paper a fresh sitting draws — see the toggle above both cards below. */
+  variant: ReadingTest["variant"];
+  onVariantChange: (variant: ReadingTest["variant"]) => void;
   onStart: () => void;
   /** Starts a standalone single-skill exam — see the "One skill" card below. */
   onStartSkill: (module: MockModule) => void;
@@ -392,9 +428,13 @@ function StartScreen({
 
   /*
     Counted from the papers rather than written down, so the screen cannot
-    promise forty questions and hand over thirty-nine.
+    promise forty questions and hand over thirty-nine. Composed for the
+    variant currently selected below — Reading is 13 + 13 + 14 either way
+    (tests/mock-exam.test.mjs pins both), so the number never actually
+    changes, but the papers it is counted from should still be the ones a tap
+    on "Start exam" would draw.
   */
-  const sample = newSession().paper;
+  const sample = newSession(variant).paper;
   const listeningQs = sample.listening.reduce(
     (n, id) => n + questionCount(listeningPaper(id)?.questions ?? []),
     0,
@@ -406,13 +446,33 @@ function StartScreen({
 
   const rows: { module: MockModule; detail: string }[] = [
     { module: "listening", detail: `${listeningQs} questions · 4 recordings` },
-    { module: "reading", detail: `${readingQs} questions · 3 passages` },
+    {
+      module: "reading",
+      /* "Sections" for General Training, "passages" for Academic — the real
+         exam's own words for the same three-way split. */
+      detail: `${readingQs} questions · 3 ${variant === "general" ? "sections" : "passages"}`,
+    },
     { module: "writing", detail: "2 tasks" },
     { module: "speaking", detail: "3 interview parts" },
   ];
 
   return (
-    <section className="exam-start mx-auto flex h-[calc(100dvh-var(--header-h))] w-full max-w-6xl items-center overflow-y-auto px-3 sm:px-5">
+    /*
+      `items-center` and `overflow-y-auto` on the same box is the bug that made
+      this screen unscrollable upwards on a phone.
+
+      A flex item centred with `align-items` and taller than its container
+      overflows in both directions, and the overflow above the container's top
+      edge is not reachable: scrolling only ever exposes what is below the
+      start of the scroll box, so the heading and the first card sat above zero
+      with nothing that could bring them back. It reads as a page that scrolls
+      down and refuses to come up.
+
+      Auto margins do the same centring and do not do that. A flex item with
+      `margin: auto` is centred while it fits and pinned to the start once it
+      does not, which is what a scroll box needs.
+    */
+    <section className="exam-start mx-auto flex h-[calc(100dvh-var(--header-h))] w-full max-w-6xl overflow-y-auto px-3 sm:px-5">
       {/*
         The clear choice the owner asked for: a full sitting or one skill,
         both visible together rather than a step a learner has to find. Two
@@ -420,7 +480,41 @@ function StartScreen({
         I choosing" reads faster from two labelled boxes than from a single
         page where a heading changes meaning halfway down.
       */}
-      <div className="mx-auto flex w-full flex-col gap-3">
+      <div className="m-auto flex w-full flex-col gap-3">
+      {/*
+        The one choice this screen asks for, and it settles two papers, not
+        one: Reading and the Writing Task 1 figure both read `variant` off
+        `composeMock` (lib/exam/mock.ts). Shared by both cards below rather
+        than repeated in each, because it is one decision, not two — the
+        "One skill" card's Reading and Writing tiles both start the same
+        paper `onStart` would have opened as part of a full sitting.
+        Listening and Task 2 have nothing here to choose: they are the same
+        paper either way, which is also true of the real exam. A One Skill
+        Retake is the one place this choice still cannot reach — see the note
+        on `newRetakeSession` in lib/exam/mock.ts for why.
+      */}
+      <div
+        role="tablist"
+        aria-label="Reading paper"
+        className="mx-auto inline-flex items-center gap-1 self-center rounded-full border border-slate-200 bg-surface p-1 text-xs"
+      >
+        {(["academic", "general"] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            role="tab"
+            aria-selected={variant === option}
+            onClick={() => onVariantChange(option)}
+            className={`rounded-full px-3 py-1.5 font-semibold transition-colors ${
+              variant === option
+                ? "bg-indigo-600 text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {option === "academic" ? "Academic" : "General Training"}
+          </button>
+        ))}
+      </div>
       <div className="exam-start-window card premade-glass relative mx-auto w-full overflow-hidden !p-[clamp(1rem,3vw,2rem)]">
         <div className="exam-start-content premade-glass-content mx-auto w-full space-y-[clamp(0.75rem,2.4vh,1.5rem)]">
         <header className="max-w-2xl">
@@ -431,8 +525,15 @@ function StartScreen({
             Full mock exam
           </h1>
           <p className="exam-start-summary mt-2 text-[clamp(0.82rem,1.8vw,1rem)] leading-snug text-slate-600">
-            All four IELTS skills, real timings, results only at the end. Academic — the
-            reading passages and the Task 1 chart are the Academic paper&rsquo;s.
+            All four IELTS skills, real timings, results only at the end.{" "}
+            {variant === "academic" ? (
+              <>Academic — the reading passages and the Task 1 figure are the Academic paper&rsquo;s.</>
+            ) : (
+              <>
+                General Training — the reading sections and the Task 1 letter are the General
+                Training paper&rsquo;s. Listening and Task 2 are the same on both.
+              </>
+            )}
           </p>
         </header>
 

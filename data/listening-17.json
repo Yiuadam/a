@@ -15,7 +15,15 @@
     },
     {
       "speaker": "Guide",
+      "text": "It should only take an hour or so to see everything properly, though of course you're welcome to take as long as you like."
+    },
+    {
+      "speaker": "Guide",
       "text": "The museum has three floors. The ground floor covers the town's early history, from its beginnings as a small fishing village right up to the arrival of the railway. The first floor, upstairs, is dedicated to the industrial period, when the town's population grew rapidly because of the new textile mills. And the second floor, right at the top, is our temporary exhibition space, which changes every few months."
+    },
+    {
+      "speaker": "Guide",
+      "text": "The ground floor in particular has grown quite a lot over the years, as local families keep donating items that turn out to have been sitting in an attic for generations, forgotten about until someone finally cleared the house out."
     },
     {
       "speaker": "Guide",
@@ -23,7 +31,15 @@
     },
     {
       "speaker": "Guide",
+      "text": "It's proved to be one of our most popular exhibitions yet, with photographs and letters kindly lent by families who still live locally."
+    },
+    {
+      "speaker": "Guide",
       "text": "As you move around, look out for the small blue numbers on the wall beside certain objects. These correspond to numbered stops on this audio guide — just press the matching number on your handset to hear more."
+    },
+    {
+      "speaker": "Guide",
+      "text": "If you'd rather not carry the handset the whole time, there's also a small rack of printed guides at the entrance desk covering the same stops."
     },
     {
       "speaker": "Guide",
@@ -31,7 +47,15 @@
     },
     {
       "speaker": "Guide",
+      "text": "Conservators worked on it for several years before it went on display, and you can still see a few of the original iron fittings along the hull."
+    },
+    {
+      "speaker": "Guide",
       "text": "If you get hungry, the café is on the ground floor, near the main entrance, and serves light lunches until three p.m. After that, only drinks and cakes are available, so do plan your lunch break accordingly."
+    },
+    {
+      "speaker": "Guide",
+      "text": "The soup is made fresh on site every morning, and it's usually the first thing to sell out, so I'd get there in good time if that's what you fancy. There's also a small terrace outside for anyone who'd rather sit in the fresh air."
     },
     {
       "speaker": "Guide",
@@ -39,7 +63,15 @@
     },
     {
       "speaker": "Guide",
+      "text": "There's also a baby-changing table in there, and a small lockers area if you'd rather not carry bags and coats round with you."
+    },
+    {
+      "speaker": "Guide",
       "text": "Photography is welcome throughout the museum, but please don't use flash near the textile exhibits on the first floor, as the strong light can damage the fabric over time."
+    },
+    {
+      "speaker": "Guide",
+      "text": "Tripods aren't permitted anywhere in the building, I'm afraid, simply because the galleries get too busy for them to be practical."
     },
     {
       "speaker": "Guide",
@@ -47,11 +79,23 @@
     },
     {
       "speaker": "Guide",
+      "text": "A good number of the postcards are actually reproductions of photographs from our own archive, so you won't find them anywhere else in the town."
+    },
+    {
+      "speaker": "Guide",
       "text": "We close at five p.m. on weekdays, but stay open later, until seven p.m., on Thursdays, to give people who work during the day a chance to visit after their working hours."
     },
     {
       "speaker": "Guide",
+      "text": "Do keep an eye on the clock towards the end of your visit, as we do need everyone to have left the galleries a little before the doors actually lock. Staff will start gently reminding people shortly beforehand, so don't be alarmed if someone taps you on the shoulder."
+    },
+    {
+      "speaker": "Guide",
       "text": "That's everything you need to get started. Enjoy your visit, and remember, if you have any questions at all, our staff in green jackets are happy to help throughout the museum."
+    },
+    {
+      "speaker": "Guide",
+      "text": "Once again, welcome to Harborne Museum, and I hope you enjoy exploring everything we have to offer today."
     }
   ],
   "questions": [

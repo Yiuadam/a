@@ -3,7 +3,7 @@ import {
   worstCaseMonthlyCost,
   type CostedRoute,
 } from "@/lib/ai/models";
-import { hkdPerUnit, minorPerUnit, toMajor, walletTakes } from "./currency";
+import { hkdPerUnit, minorPerUnit, toMajor } from "./currency";
 
 /*
   What the tiers are: what each one costs, what it unlocks, and exactly how much
@@ -14,6 +14,31 @@ import { hkdPerUnit, minorPerUnit, toMajor, walletTakes } from "./currency";
   copy nowhere at all — and a paywall whose page promises one figure while the
   meter enforces another is a paywall that generates support mail. So the page,
   the meter and the gate all read from here.
+
+  ---------------------------------------------------------------------------
+  The shape of the business, and why it changed
+
+  BandUp used to sell access to content: Free got a taste, Standard unlocked
+  the whole library, and Plus/Pro layered AI on top of Standard. The owner's
+  decision was to stop selling the library at all — every paper, every skill,
+  the full mock exam, unlimited, free the moment somebody signs in — and sell
+  exactly two things instead: whether your results are tracked over time, and
+  whether AI marks and tutors you.
+
+  That leaves two paid tiers rather than three, and they are not independent
+  add-ons a learner mixes and matches — a single database column still holds
+  one tier per account, and `ai` is priced and built as a superset of
+  `tracking` (whoever pays for AI marking gets their results tracked too;
+  nobody would want a band with nowhere to see it afterward). So the ladder is
+  free < tracking < ai < admin, same shape as the old one, one rung shorter.
+
+  Writing and speaking without AI marking are not locked out any more either.
+  They used to be, on the reasoning that a writing session nobody marks is a
+  blank box, forty minutes and nothing at the end — true of the box, not true
+  of what is in it by the time somebody stops. Free now gets the paper, the
+  timer, and its own essay or transcript handed back afterward, unscored. What
+  it does not get is a place that remembers it happened, which is what
+  Tracking is for.
 
   ---------------------------------------------------------------------------
   The rule this file exists to keep
@@ -88,15 +113,15 @@ import { hkdPerUnit, minorPerUnit, toMajor, walletTakes } from "./currency";
  * a database column, and it appears here only so that a tier→feature question
  * has an answer for every value `resolve_entitlement` can return.
  */
-export const TIER_NAMES = ["free", "standard", "plus", "pro", "admin"] as const;
+export const TIER_NAMES = ["free", "tracking", "ai", "admin"] as const;
 
 export type Tier = (typeof TIER_NAMES)[number];
 
 /** The tiers the pricing page shows, in the order it shows them. */
-export const SELLABLE_TIERS = ["free", "standard", "plus", "pro"] as const satisfies readonly Tier[];
+export const SELLABLE_TIERS = ["free", "tracking", "ai"] as const satisfies readonly Tier[];
 
 /** The tiers somebody actually pays for. */
-export const PAID_TIERS = ["standard", "plus", "pro"] as const satisfies readonly Tier[];
+export const PAID_TIERS = ["tracking", "ai"] as const satisfies readonly Tier[];
 export type PaidTier = (typeof PAID_TIERS)[number];
 
 export function isPaidTier(tier: Tier): tier is PaidTier {
@@ -107,12 +132,12 @@ export function isPaidTier(tier: Tier): tier is PaidTier {
   The things a tier can unlock.
 
   Note how few of these there are, and why: almost nothing in BandUp is behind
-  a tier at all. The placement test, the study plan, the bundled reading and
-  listening tests, the grammar drills and the vocabulary drills are static
-  content shipped in the app bundle, cost nothing per use, and are free forever
-  for everyone signed in or not. What is listed here is only what costs money
-  each time somebody presses the button — plus one thing that costs nothing and
-  is named so it can be promised.
+  a tier at all. The placement test, the study plan, every reading, listening,
+  writing and speaking paper, the full mock exam, the grammar drills and the
+  vocabulary drills are free the moment somebody signs in — unlimited, whether
+  or not they ever pay. What is listed here is only what costs money each time
+  somebody presses the button, plus one thing that costs nothing to serve but
+  is still worth charging for: a place that remembers what you did.
 */
 export const FEATURES = [
   /** Word lookup — /api/define. */
@@ -125,7 +150,24 @@ export const FEATURES = [
   "grade-speaking",
   /** The conversational tutor — /api/chat. */
   "tutor-chat",
-  /** Carrying progress between devices. Free with any account, and stays free. */
+  /**
+   * The live examiner reaction in Part 3 of speaking practice —
+   * /api/speaking/examiner-line. Distinct from grade-speaking: this is spent
+   * during the interview itself, on every tier that gets it, whether or not
+   * that interview is ever marked afterward.
+   */
+  "speaking-examiner",
+  /**
+   * Saving results between sessions and syncing them between devices — the
+   * data `/history` reads.
+   *
+   * This is the one feature here that costs nothing to serve and is gated
+   * anyway. It used to be free with any account and stay free; the owner's
+   * decision was to sell it instead, as its own tier, once the whole practice
+   * library stopped being what Free was missing. Free still keeps every
+   * result it makes on the device that made it — see lib/store.ts — it is the
+   * durable, synced, reviewable history that Tracking and AI pay for.
+   */
   "progress-sync",
 ] as const;
 
@@ -135,10 +177,11 @@ export type Feature = (typeof FEATURES)[number];
  * Which metered route a feature spends from.
  *
  * `progress-sync` is absent because it spends nothing: it is a database write,
- * and a tier is allowed it simply for being an account. Everything else maps to
- * exactly one route, and that mapping is what makes the caps below the single
- * definition of who may use what — there is no second list of features per tier
- * that could disagree with the allowances.
+ * not a model call, so no route in lib/ai/models.ts prices it. What a tier
+ * gets from it is answered by `PROGRESS_SYNC_TIERS` below rather than by an
+ * allowance of zero, because zero already means something else here — "you
+ * may call this route, up to none of the time" — and progress-sync has no
+ * route to call at all.
  */
 export const FEATURE_ROUTES: Record<Exclude<Feature, "progress-sync">, CostedRoute> = {
   define: "define",
@@ -146,7 +189,11 @@ export const FEATURE_ROUTES: Record<Exclude<Feature, "progress-sync">, CostedRou
   "grade-writing": "grade/writing",
   "grade-speaking": "grade/speaking",
   "tutor-chat": "chat",
+  "speaking-examiner": "examiner",
 };
+
+/** The sellable tiers that include progress-sync, lowest first. */
+export const PROGRESS_SYNC_TIERS = ["tracking", "ai"] as const satisfies readonly Tier[];
 
 /**
  * How many calls a tier gets per route, per rolling 30 days.
@@ -163,49 +210,51 @@ export const FEATURE_ROUTES: Record<Exclude<Feature, "progress-sync">, CostedRou
  */
 export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> = {
   /*
-    Nothing. A free account is a real account with progress sync, the placement
-    test, the study plan, every drill and two reading and two listening papers a
-    week — all of which are marked from an answer key that ships in the bundle
-    and cost nothing to serve. What it is not is a free sample of the API.
+    Nothing. A free account is a real account, with the placement test, the
+    study plan, every drill, and every reading, listening, writing and
+    speaking paper unlimited — all of it either marked from an answer key that
+    ships in the bundle, or handed back unscored, and none of it costing a
+    cent to serve. What it is not is a free sample of the API.
 
     Free AI was tried and it does not survive contact with arithmetic: twenty
     requests a day is up to six hundred a month, from an account that costs
     nothing to create, of which somebody can create as many as they like.
   */
-  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
   /*
-    Also nothing, and that is what Standard is: the whole library, unlocked, with
-    no AI. It exists because most of what BandUp does needs no model — a reading
-    paper is marked against its answer key, and the mark is exactly as accurate
-    as the expensive kind. Somebody who wants unlimited practice and does not
-    want an essay marked should not be made to pay for marking.
+    Also nothing. Tracking buys a memory, not a model — the whole library was
+    already free the moment Free stopped rationing it, so the only thing left
+    to sell here is whether a result outlives the tab it was made in.
   */
-  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
+  tracking: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
   /*
     Enough AI for a normal month of preparation: an essay marked most weeks, a
-    speaking test a fortnight, a couple of questions a day, and a fresh paper.
+    speaking test most months, tutor questions most days, and a fresh paper
+    now and then — priced to be affordable on a student's own money rather
+    than a parent's, which was the owner's instruction for this tier
+    specifically.
 
-    Halved from the original allowance, and that was the price cut. The owner
-    wanted plans cheap enough to bring people in, and the arithmetic said the
-    only lever that could do it was this one: at the old caps, giving up every
-    cent of profit still could not price Plus below $2.71, because the profit
-    was never what made the price — the AI was. Halving the allowance took Plus
-    to $1.69 *and* left real money on it. Ten marked essays a month is still an
-    essay every three days.
+    `examiner` is 0 — not because it is unaffordable (tests/ai-economics.test.mjs
+    already proves a nonzero figure is affordable, checked at the caps that
+    briefly shipped it), but because the feature is not confirmed working yet.
+    See lib/speaking/turn-control.ts and the route it feeds, both shipped and
+    tested; nobody has since confirmed by ear that a live reaction actually
+    plays. Turning it on is one number here, not a redeploy — but there is
+    nothing here yet to turn on for.
   */
-  plus: { define: 100, chat: 50, "grade/writing": 10, "grade/speaking": 6, generate: 2 },
-  /*
-    Three times Plus on the routes that matter, for the weeks before the exam.
-    It is the most expensive tier to serve and therefore the one with the
-    thinnest margin, which is why its caps are the ones to check first when
-    anything about the cost model changes.
-  */
-  pro: { define: 175, chat: 100, "grade/writing": 30, "grade/speaking": 20, generate: 5 },
+  ai: { define: 40, chat: 20, "grade/writing": 5, "grade/speaking": 3, generate: 1, examiner: 0 },
   /*
     The owner's account. An admin flag that still enforced a limit would be a
     flag that did nothing.
   */
-  admin: { define: null, chat: null, "grade/writing": null, "grade/speaking": null, generate: null },
+  admin: {
+    define: null,
+    chat: null,
+    "grade/writing": null,
+    "grade/speaking": null,
+    generate: null,
+    examiner: null,
+  },
 };
 
 /**
@@ -229,11 +278,17 @@ export const MONTHLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> =
  * allowance.
  */
 export const WEEKLY_AI_CAPS: Record<Tier, Record<CostedRoute, number | null>> = {
-  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
-  standard: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0 },
-  plus: { define: 24, chat: 12, "grade/writing": 3, "grade/speaking": 2, generate: 1 },
-  pro: { define: 41, chat: 24, "grade/writing": 7, "grade/speaking": 5, generate: 2 },
-  admin: { define: null, chat: null, "grade/writing": null, "grade/speaking": null, generate: null },
+  free: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
+  tracking: { define: 0, chat: 0, "grade/writing": 0, "grade/speaking": 0, generate: 0, examiner: 0 },
+  ai: { define: 10, chat: 5, "grade/writing": 2, "grade/speaking": 1, generate: 1, examiner: 0 },
+  admin: {
+    define: null,
+    chat: null,
+    "grade/writing": null,
+    "grade/speaking": null,
+    generate: null,
+    examiner: null,
+  },
 };
 
 export interface TierDefinition {
@@ -250,7 +305,7 @@ export const TIERS: Record<Tier, TierDefinition> = {
   free: {
     id: "free",
     name: "Free",
-    blurb: "A real account, with the placement test, your plan and every drill.",
+    blurb: "Sign in. Every paper, every skill, unlimited — nothing to buy first.",
     /*
       Short lines, deliberately. A bullet that wraps to three lines is a
       paragraph wearing a dot, and five of those turned this card into most of
@@ -258,44 +313,31 @@ export const TIERS: Record<Tier, TierDefinition> = {
     */
     includes: [
       "Placement test, study plan and all drills — unlimited",
-      "2 listening and 2 reading papers a week",
-      "Progress synced across your devices",
-      "No AI marking or tutor — those start on Plus",
+      "Every reading, listening, writing and speaking paper, no weekly limit",
+      "The full mock exam, all four skills, timed",
+      "Writing and speaking handed back to you after you submit — no AI score",
     ],
   },
-  standard: {
-    id: "standard",
-    name: "Standard",
-    blurb: "The whole library, unlocked. Every paper, as often as you like.",
+  tracking: {
+    id: "tracking",
+    name: "Tracking",
+    blurb: "Everything in Free, remembered — your band history, saved and synced.",
     includes: [
-      "Every reading and listening paper, no weekly limit",
-      "Writing and speaking practice with the exam timer",
-      "The full mock exam — all four skills, timed",
-      "Marked from the answer key, not by AI",
+      "Everything in Free",
+      "Every sitting saved, synced across your devices",
+      "Your band trend and standing, any time",
       "Cancel any time, one button",
     ],
   },
-  plus: {
-    id: "plus",
-    name: "Plus",
-    blurb: "Everything in Standard, plus an examiner for your writing and speaking.",
+  ai: {
+    id: "ai",
+    name: "AI",
+    blurb: "Everything in Tracking, plus an examiner and a tutor.",
     includes: [
-      "Everything in Standard",
-      "10 essays and 6 speaking tests marked a month",
-      "50 tutor questions and 100 word lookups a month",
-      "2 fresh AI-written papers a month",
-      "Cancel any time, one button",
-    ],
-  },
-  pro: {
-    id: "pro",
-    name: "Pro",
-    blurb: "For the weeks before the exam, when you are practising every day.",
-    includes: [
-      "Everything in Plus, two to three times over",
-      "30 essays and 20 speaking tests marked a month",
-      "100 tutor questions and 175 word lookups a month",
-      "5 fresh AI-written papers a month",
+      "Everything in Tracking",
+      "5 essays and 3 speaking tests marked a month",
+      "20 tutor questions and 40 word lookups a month",
+      "1 fresh AI-written paper a month",
       "Cancel any time, one button",
     ],
   },
@@ -339,18 +381,23 @@ export function weeklyCap(tier: string, route: CostedRoute): number | null {
  * The whole of the gate, and deliberately a pure function of two values so it
  * can be unit-tested exhaustively and read in one sitting. What makes it a
  * *server-side* gate is where the tier comes from — the database, through
- * `resolveEntitlement` — never from anything the caller said about itself. See
+ * `resolveEntitlement`, never from anything the caller said about itself. See
  * lib/billing/gate.ts, and ACCOUNTS.md threats 1 and 3.
  *
- * There is no separate list of which features a tier has. The answer is read
- * off the allowance: an allowance of zero *is* the refusal, so the gate and
- * the meter can never disagree about whether somebody may press a button.
+ * There is no separate list of which AI features a tier has: the answer is
+ * read off the allowance, since an allowance of zero *is* the refusal.
+ * `progress-sync` has no allowance to read — it costs nothing to meter — so it
+ * is answered from `PROGRESS_SYNC_TIERS` instead, which is the same kind of
+ * fact in the same file rather than a second gate somewhere else.
  */
 export function tierAllows(tier: string, feature: Feature): boolean {
   if (!Object.prototype.hasOwnProperty.call(TIERS, tier)) return false;
-  // Costs nothing to serve, so every account has it.
-  if (feature === "progress-sync") return true;
-  const cap = monthlyCap(tier, FEATURE_ROUTES[feature]);
+  if (feature === "progress-sync") {
+    return tier === "admin" || (PROGRESS_SYNC_TIERS as readonly string[]).includes(tier);
+  }
+  const route = FEATURE_ROUTES[feature];
+  if (!route) return false;
+  const cap = monthlyCap(tier, route);
   return cap === null || cap > 0;
 }
 
@@ -396,12 +443,10 @@ export function worstCaseTierCost(tier: Tier): number {
 export type BillingInterval = "month" | "year";
 
 export const PLAN_IDS = [
-  "standard-monthly",
-  "standard-yearly",
-  "plus-monthly",
-  "plus-yearly",
-  "pro-monthly",
-  "pro-yearly",
+  "tracking-monthly",
+  "tracking-yearly",
+  "ai-monthly",
+  "ai-yearly",
 ] as const;
 export type PlanId = (typeof PLAN_IDS)[number];
 
@@ -451,27 +496,24 @@ export interface Plan {
 }
 
 /*
-  The ladder: $0.49, $1.69, $3.29.
+  The ladder: HK$4.90 for Tracking, HK$8.90 for AI.
 
-  These are cost-plus prices, and that is the owner's decision rather than an
-  accident of rounding. Each one is the worst a subscriber on that tier can
-  cost — every AI request taken at its ceiling, plus Stripe's cut — with a
-  margin of at least HK$1 a month on top, then rounded up to a price that looks
-  like a price. tests/ai-economics.test.mjs is what holds that floor.
+  Tracking costs nothing to serve — a database row, not a model call — so its
+  price is simply what the owner decided a saved, synced history is worth,
+  checked only against Stripe's own minimum charge. It is unchanged from what
+  this catalogue has always charged for a no-AI tier.
 
-  They were about twice this, and the halving came from the allowances rather
-  than from the margin. That is worth recording because the intuition runs the
-  other way: at the old caps, giving up every cent of profit still could not
-  price Pro below $5.94, because $5.39 of its $6.99 was AI. What a plan costs
-  to serve is what sets its price here, so the way to make a plan cheaper is to
-  put less in it.
+  AI is cost-plus, same as every AI tier before it: the worst a subscriber on
+  it can cost — every request taken at its ceiling, plus Stripe's cut — with a
+  margin of at least HK$1 a month on top, then rounded up to a price that
+  looks like a price. tests/ai-economics.test.mjs is what holds that floor,
+  in every currency this catalogue sells in, not only Hong Kong dollars.
 
-  The margin is deliberately thin and it is worth being clear-eyed about what
-  that means: at full usage these plans cover the AI and the card fee and very
-  little else. What makes them work is that nobody uses their whole allowance —
-  a typical month costs a fraction of the ceiling, so the real margin is several
-  times the floor. The floor is what guarantees there is never a loss; it is not
-  what the business runs on.
+  It is priced low on purpose. The owner's instruction was a plan a student
+  pays for on their own money, not a parent's — closer to a dollar a month
+  than to two — and the allowance above was sized to that price rather than
+  the other way around: enough AI for a real week of preparation, at a price
+  that clears the floor with room to spare rather than sitting on it.
 
   The yearly prices are ten months' money for twelve months' access, rounded to
   the nearest of the prices people expect to see.
@@ -480,71 +522,106 @@ export interface Plan {
   The renminbi, and why it is not simply the Hong Kong price converted
 
   CNY is the currency WeChat Pay and Alipay settle in, so a mainland candidate
-  paying with either was until now quoted in a currency they do not hold. The
-  figures below are chosen the same way every other local price was — a price
-  that looks like a price where it is read (¥12, ¥120, ¥268), then checked back
-  against the cost in tests/currency.test.mjs — rather than HK$ divided by 1.08.
+  paying with either is quoted in a currency they hold rather than one they do
+  not. The figures below are chosen the same way every other local price was —
+  a price that looks like a price where it is read, then checked back against
+  the cost in tests/currency.test.mjs — rather than HK$ divided by a rate.
 
   One thing about adding a currency here that is not obvious and costs money to
   learn: `assertPriceMatchesCatalogue` in lib/billing/stripe.ts refuses a
   checkout whenever this catalogue names a currency the Stripe Price does not
   carry. So Stripe has to be given the new amounts *before* this file ships, not
-  after — `node scripts/stripe-setup.mjs` is what does it, and it now patches
-  currency_options onto the existing Prices rather than minting new ids.
+  after — `node scripts/stripe-setup.mjs` is what does it.
 */
 export const PLANS: Record<PlanId, Plan> = {
-  "standard-monthly": {
-    id: "standard-monthly",
-    tier: "standard",
+  "tracking-monthly": {
+    id: "tracking-monthly",
+    tier: "tracking",
     interval: "month",
     amountMinor: 490,
     currency: "hkd",
     prices: { hkd: 490, usd: 69, eur: 69, gbp: 49, aud: 99, cad: 99, sgd: 99, jpy: 100, inr: 5900, cny: 490 },
   },
-  "standard-yearly": {
-    id: "standard-yearly",
-    tier: "standard",
+  "tracking-yearly": {
+    id: "tracking-yearly",
+    tier: "tracking",
     interval: "year",
     amountMinor: 3900,
     currency: "hkd",
     prices: { hkd: 3900, usd: 499, eur: 499, gbp: 399, aud: 799, cad: 699, sgd: 699, jpy: 790, inr: 44900, cny: 3900 },
   },
-  "plus-monthly": {
-    id: "plus-monthly",
-    tier: "plus",
+  "ai-monthly": {
+    id: "ai-monthly",
+    tier: "ai",
     interval: "month",
-    amountMinor: 1290,
+    amountMinor: 890,
     currency: "hkd",
-    prices: { hkd: 1290, usd: 169, eur: 149, gbp: 129, aud: 259, cad: 229, sgd: 219, jpy: 250, inr: 15900, cny: 1200 },
+    prices: { hkd: 890, usd: 109, eur: 99, gbp: 89, aud: 169, cad: 149, sgd: 139, jpy: 160, inr: 9900, cny: 800 },
   },
-  "plus-yearly": {
-    id: "plus-yearly",
-    tier: "plus",
+  "ai-yearly": {
+    id: "ai-yearly",
+    tier: "ai",
     interval: "year",
-    amountMinor: 12900,
+    amountMinor: 8900,
     currency: "hkd",
-    prices: { hkd: 12900, usd: 1699, eur: 1499, gbp: 1299, aud: 2599, cad: 2299, sgd: 2199, jpy: 2500, inr: 159900, cny: 12000 },
-  },
-  "pro-monthly": {
-    id: "pro-monthly",
-    tier: "pro",
-    interval: "month",
-    amountMinor: 2590,
-    currency: "hkd",
-    prices: { hkd: 2590, usd: 329, eur: 299, gbp: 249, aud: 529, cad: 459, sgd: 429, jpy: 520, inr: 31900, cny: 2500 },
-  },
-  "pro-yearly": {
-    id: "pro-yearly",
-    tier: "pro",
-    interval: "year",
-    amountMinor: 27900,
-    currency: "hkd",
-    prices: { hkd: 27900, usd: 3599, eur: 3199, gbp: 2699, aud: 5699, cad: 4999, sgd: 4699, jpy: 5600, inr: 349900, cny: 26800 },
+    prices: { hkd: 8900, usd: 1090, eur: 990, gbp: 890, aud: 1690, cad: 1490, sgd: 1390, jpy: 1600, inr: 99000, cny: 8000 },
   },
 };
 
 export function isPlanId(value: unknown): value is PlanId {
   return typeof value === "string" && (PLAN_IDS as readonly string[]).includes(value);
+}
+
+/*
+  Retired names, and the one place they are allowed to appear.
+
+  'standard', 'plus' and 'pro' stopped being sold the day this catalogue
+  shipped, but a name does not un-happen everywhere at once. It is stamped
+  into Stripe subscription metadata at checkout and never rewritten after —
+  Stripe has no reason to touch metadata on renewal — so a Pro subscriber who
+  checked out months before this file existed carries "pro" on every renewal
+  event for as long as the subscription lives. It is also sitting in database
+  rows written before the cutover, which do not rewrite themselves the moment
+  new code deploys.
+
+  Everywhere else in this codebase, a tier or plan id is one of the current
+  names and nothing else — that is what makes TIER_NAMES and PLAN_IDS worth
+  having. The two functions below are the seam: whatever arrives from Stripe
+  metadata or a stored row is translated back into a current name here, once,
+  so nothing downstream has to know a retired name was ever sold.
+*/
+export const LEGACY_TIER_ALIASES = {
+  standard: "tracking",
+  plus: "ai",
+  pro: "ai",
+} as const satisfies Record<string, Tier>;
+
+/** A tier name as Stripe or a stored row spelled it, understood as it is sold today. */
+export function canonicalTier(raw: string): string {
+  return Object.prototype.hasOwnProperty.call(LEGACY_TIER_ALIASES, raw)
+    ? LEGACY_TIER_ALIASES[raw as keyof typeof LEGACY_TIER_ALIASES]
+    : raw;
+}
+
+/** The six retired plan ids, mapped onto the current id sold in their place. */
+export const LEGACY_PLAN_ALIASES: Record<string, PlanId> = {
+  "standard-monthly": "tracking-monthly",
+  "standard-yearly": "tracking-yearly",
+  "plus-monthly": "ai-monthly",
+  "pro-monthly": "ai-monthly",
+  "plus-yearly": "ai-yearly",
+  "pro-yearly": "ai-yearly",
+};
+
+/**
+ * A plan id as Stripe metadata spelled it, understood as the id sold today —
+ * or null when it names nothing this catalogue has ever sold.
+ */
+export function canonicalPlanId(raw: string): PlanId | null {
+  if (isPlanId(raw)) return raw;
+  return Object.prototype.hasOwnProperty.call(LEGACY_PLAN_ALIASES, raw)
+    ? LEGACY_PLAN_ALIASES[raw]
+    : null;
 }
 
 /** Every plan that buys a given tier. */
@@ -582,8 +659,8 @@ export const STRIPE_PERCENT_FEE = 0.039;
  * — no conversion, and none of the rounding a converted constant carried.
  * Selling in the currency the account settles in is also what removed Stripe's
  * ~2% conversion charge from every sale, which was worth more than it sounds:
- * it was taking about a fifth of the margin on Plus and pushing Pro below the
- * floor entirely.
+ * it was taking about a fifth of the margin on the cheapest AI tier and would
+ * have pushed a costlier one below the floor entirely.
  */
 export const STRIPE_FIXED_FEE_MINOR = 235;
 
@@ -674,13 +751,13 @@ export function amountIn(plan: Plan, currency: string): number {
 /** Whether this currency has a price somebody chose, rather than a fallback. */
 export function pricesIn(currency: string): boolean {
   return Object.prototype.hasOwnProperty.call(
-    PLANS["plus-monthly"].prices,
+    PLANS["ai-monthly"].prices,
     currency.toLowerCase(),
   );
 }
 
 /** Every currency the catalogue prices in, base first. */
-export const PRICED_CURRENCIES: string[] = Object.keys(PLANS["plus-monthly"].prices);
+export const PRICED_CURRENCIES: string[] = Object.keys(PLANS["ai-monthly"].prices);
 
 /**
  * The currency a wallet payment is presented in: always the base one.

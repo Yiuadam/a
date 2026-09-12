@@ -44,6 +44,12 @@ const FORBIDDEN_NAMES = [
     name it would be a deploy button for anyone who opened dev tools.
   */
   "GITHUB_DEPLOY_TOKEN",
+  /*
+    Resend's API key. A leak here is not a read of BandUp's own data — it is
+    the ability to send arbitrary mail as bandup.life until the key is
+    rotated, from an address nobody would think to distrust.
+  */
+  "RESEND_API_KEY",
 ];
 
 /**

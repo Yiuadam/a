@@ -9,6 +9,16 @@ import type { SpeakingTopicsData } from "@/lib/types";
 const data = speakingData as SpeakingTopicsData;
 
 /*
+  Every Part 3 discussion follows a Part 2 topic already — buildInterview's
+  focused Part 3 session (components/speaking/SpeakingSession.tsx) resolves
+  its own topic the same way, `data.part3.find(topic => topic.topic ===
+  card.topic)`. So a Part 3 topic can be linked to the same card id a Part 2
+  card carries, and the interview it starts is that topic and nothing else —
+  the discussion asked, without the card ever being spoken.
+*/
+const PART2_CARD_ID_BY_TOPIC = new Map(data.part2.map((card) => [card.topic, card.id]));
+
+/*
   Every question the examiner can ask, readable before anybody has to answer one.
 
   The interview picks its own topics, which is right for a mock and wrong as the
@@ -45,8 +55,8 @@ export default function SpeakingQuestionsPage() {
           Speaking questions
         </h1>
         <p className="text-[0.9375rem] leading-7 text-slate-600">
-          Every question the examiner can ask, to read before you answer one. Tap a Part 2 card to
-          start an interview built around it.
+          Every question the examiner can ask, to read before you answer one. Tap a card or a
+          discussion to practise it on its own, or start a full interview built around one.
         </p>
       </div>
 
@@ -73,25 +83,51 @@ export default function SpeakingQuestionsPage() {
       </div>
 
       {part === "part1" && (
-        <ul className="space-y-2.5">
-          {data.part1.map((topic) => (
-            <li key={topic.topic} className="card !p-4">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-[0.9375rem] font-semibold text-slate-900">{topic.topic}</h2>
-                <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400">
-                  {topic.level}
-                </span>
-              </div>
-              <ul className="mt-1.5 space-y-1">
-                {topic.questions.map((question) => (
-                  <li key={question} className="text-[0.875rem] leading-6 text-slate-600">
-                    {question}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/*
+            Practising Part 1, not a Part 1 topic. The topics below stay
+            unchosen for the same reason they always have — nobody prepares
+            for "Do you live in a house or an apartment?" specifically — but
+            drilling the small-talk section on its own, against its own
+            timing, is a different and useful thing to offer, and a random
+            pair of topics is exactly what the full interview already picks.
+          */}
+          <Link
+            href="/speaking?part=1"
+            className="card hub-menu-card flex items-center justify-between gap-3 !p-4 text-left active:translate-y-px"
+          >
+            <span>
+              <span className="block text-[0.9375rem] font-semibold text-slate-900">
+                Practise Part 1 on its own
+              </span>
+              <span className="mt-0.5 block text-[0.8125rem] leading-5 text-slate-500">
+                More questions than the full interview asks, since nothing else is sharing the time.
+              </span>
+            </span>
+            <span aria-hidden="true" className="shrink-0 text-lg text-indigo-700">
+              →
+            </span>
+          </Link>
+          <ul className="space-y-2.5">
+            {data.part1.map((topic) => (
+              <li key={topic.topic} className="card !p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-[0.9375rem] font-semibold text-slate-900">{topic.topic}</h2>
+                  <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400">
+                    {topic.level}
+                  </span>
+                </div>
+                <ul className="mt-1.5 space-y-1">
+                  {topic.questions.map((question) => (
+                    <li key={question} className="text-[0.875rem] leading-6 text-slate-600">
+                      {question}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       {part === "part2" && (
@@ -131,24 +167,37 @@ export default function SpeakingQuestionsPage() {
 
       {part === "part3" && (
         <ul className="space-y-2.5">
-          {data.part3.map((topic) => (
-            <li key={topic.topic} className="card !p-4">
-              <h2 className="text-[0.9375rem] font-semibold text-slate-900">{topic.topic}</h2>
-              <ul className="mt-1.5 space-y-1">
-                {topic.questions.map((question) => (
-                  <li key={question} className="text-[0.875rem] leading-6 text-slate-600">
-                    {question}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
+          {data.part3.map((topic) => {
+            const cardId = PART2_CARD_ID_BY_TOPIC.get(topic.topic);
+            return (
+              <li key={topic.topic} className="card !p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-[0.9375rem] font-semibold text-slate-900">{topic.topic}</h2>
+                  {cardId && (
+                    <IntentPrefetchLink
+                      href={`/speaking?part=3&card=${encodeURIComponent(cardId)}`}
+                      className="text-[0.8125rem] font-medium text-indigo-700 underline underline-offset-2"
+                    >
+                      Practise this discussion →
+                    </IntentPrefetchLink>
+                  )}
+                </div>
+                <ul className="mt-1.5 space-y-1">
+                  {topic.questions.map((question) => (
+                    <li key={question} className="text-[0.875rem] leading-6 text-slate-600">
+                      {question}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            );
+          })}
         </ul>
       )}
 
       <p className="text-[0.8125rem] leading-6 text-slate-500">
-        Part 3 follows whichever Part 2 card you sit, so choosing a card chooses the discussion
-        too. <Link href="/speaking" className="underline underline-offset-2">Start a random interview</Link> instead.
+        In a full interview, Part 3 follows whichever Part 2 card you sit — the card decides the
+        discussion too. <Link href="/speaking" className="underline underline-offset-2">Start a random interview</Link> instead.
       </p>
     </div>
   );

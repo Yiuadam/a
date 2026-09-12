@@ -64,6 +64,26 @@ export function countSpokenWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/u).length : 0;
 }
 
+/*
+  When to ask a live examiner for its reaction, rather than wait for it.
+
+  Only Part 3 ever asks — see components/speaking/SpeakingSession.tsx — and it
+  asks the moment there is enough answer to react to, not when the turn is
+  about to end. That is the whole trick: a model call takes real time, and a
+  Part 3 answer runs well past this point before decideTurnEnd can fire at
+  all, so firing here spends that time hiding a network round trip inside
+  dead air rather than adding a pause the exam clock never asked for.
+
+  Below POLICIES[3].minimumWords (45) on purpose. Firing at the same
+  threshold decideTurnEnd uses would mean the two can trip in the same tick —
+  a candidate who reaches 45 words is also standing right at the
+  earliestNaturalEnd/enoughLanguage line, and a turn that ends before this
+  fetch has even started would leave nothing to hide the latency inside. This
+  number only has to be "enough of an answer to react to sensibly", which is
+  a lower bar than "enough of an answer to end the turn on".
+*/
+export const EXAMINER_LINE_TRIGGER_WORDS = 24;
+
 /** Decide whether the examiner should keep listening or move on. */
 export function decideTurnEnd(evidence: TurnEvidence): TurnEndReason | null {
   const policy = POLICIES[evidence.part];

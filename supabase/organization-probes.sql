@@ -41,8 +41,8 @@ begin
   insert into public.subscriptions
     (user_id, provider, status, tier, external_subscription_id, current_period_end)
   values
-    (v_student, 'stripe', 'active', 'pro', 'org-probe-subscription', now() + interval '30 days'),
-    (v_student_two, 'stripe', 'active', 'standard', 'org-probe-subscription-two', now() + interval '30 days');
+    (v_student, 'stripe', 'active', 'ai', 'org-probe-subscription', now() + interval '30 days'),
+    (v_student_two, 'stripe', 'active', 'tracking', 'org-probe-subscription-two', now() + interval '30 days');
 
   perform public.organization_command(
     v_owner, false, 'submit_application',

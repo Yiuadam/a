@@ -15,5 +15,5 @@ test("the public homepage shows the exact OAuth app name", () => {
 // practice app with a placement test and personal study plan.") is gone —
 // the free Pro trial poster took over its slot in the dashboard, always,
 // so there is no longer a homepage state where that sentence would even
-// render. tests/dashboard-home.test.mjs and tests/free-pro-trial.test.mjs
+// render. tests/dashboard-home.test.mjs and tests/free-ai-trial.test.mjs
 // cover what is in that slot now.

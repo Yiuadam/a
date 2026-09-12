@@ -221,16 +221,28 @@ export async function cloudflareAdminTierCounts(
   assertServerOnly(MODULE);
   const { db } = providedBindings ?? await requireBandUpCloudflareBindings();
   const now = currentCloudflareSourceClock();
+  /*
+    `ranked`'s own column is named `sub_tier` rather than `tier`, and that is
+    load-bearing rather than a style choice. It was `tier`, the same name the
+    outer SELECT gives its computed `CASE ... END AS tier` — and `GROUP BY
+    tier` turned out to resolve to *that* real column instead of the alias
+    whenever a name collision let it, which SQLite allows silently. An admin
+    whose own subscription happened to share its raw tier with another
+    account's effective one got both grouped — and displayed — under
+    whichever row's alias SQLite kept, not under 'admin' the way every other
+    admin's row is. Renaming the CTE's column is what removes the ambiguity;
+    the outer alias can stay `tier` because nothing else in its scope is
+    named that any more.
+  */
   const query = await db.prepare(`
     WITH ranked AS (
-      SELECT user_id, tier,
+      SELECT user_id, tier AS sub_tier,
         ROW_NUMBER() OVER (
           PARTITION BY user_id
           ORDER BY
             CASE tier
-              WHEN 'pro' THEN 3
-              WHEN 'plus' THEN 2
-              WHEN 'standard' THEN 1
+              WHEN 'ai' THEN 2
+              WHEN 'tracking' THEN 1
               WHEN 'free' THEN 0
               ELSE -1
             END DESC,
@@ -244,7 +256,7 @@ export async function cloudflareAdminTierCounts(
          AND (current_period_end IS NULL OR current_period_end > ?)
     )
     SELECT
-      CASE WHEN u.id = ? THEN 'admin' ELSE COALESCE(r.tier, 'free') END AS tier,
+      CASE WHEN u.id = ? THEN 'admin' ELSE COALESCE(r.sub_tier, 'free') END AS tier,
       COUNT(*) AS count
       FROM app_users u
       LEFT JOIN ranked r ON r.user_id = u.id AND r.rn = 1

@@ -1,5 +1,6 @@
 import type {
   CEFRLevel,
+  MultiSelectQuestion,
   PlacementQuestion,
   PlacementResult,
   PlacementSkill,
@@ -170,6 +171,61 @@ function normalise(s: string): string {
 }
 
 /**
+ * The option indices a candidate has ticked for a multi-select question,
+ * decoded from the comma-joined string `TestQuestions` stores against its id.
+ *
+ * A single reading of a candidate's tick-marks, used by both `isCorrect` and
+ * `marksEarned` below, because a second implementation is how the two would
+ * quietly come to disagree about what was actually chosen.
+ */
+function selectedIndices(given: string | number | undefined): number[] {
+  if (given === undefined || given === null || given === "") return [];
+  return String(given)
+    .split(",")
+    .map(Number)
+    .filter((n) => Number.isInteger(n));
+}
+
+/**
+ * Marks earned on one multi-select group, out of `q.numAnswers`.
+ *
+ * Real IELTS marking gives one mark per correct letter from a single list,
+ * order irrelevant, and — the rule a per-letter score cannot express on its
+ * own — zero for the *whole* group the instant the candidate ticks more
+ * letters than the instruction allows. Choosing three when it asked for two
+ * loses both marks, not one; choosing one correct letter of two scores what
+ * was right. That over-selection floor is checked before anything else,
+ * because a candidate who ticks every option would otherwise be credited for
+ * containing the right answer by accident.
+ */
+function multiSelectMarks(q: MultiSelectQuestion, given: string | number | undefined): number {
+  const chosen = selectedIndices(given);
+  if (chosen.length === 0 || chosen.length > q.numAnswers) return 0;
+  const correct = new Set(q.answer);
+  return chosen.filter((i) => correct.has(i)).length;
+}
+
+/**
+ * How many marks one question earned — 0 or 1 for every type but
+ * multi-select, which can earn up to `numAnswers`.
+ *
+ * `isCorrect` alone cannot report this: a multi-select question is worth two
+ * or three marks under a group-level rule, and a function that can only say
+ * yes or no has nowhere to put the difference between half right and all
+ * wrong. Every other type still has exactly one mark to give, so this is a
+ * strict generalisation of `isCorrect` rather than a second scoring rule
+ * living beside it — which is also why it is written in terms of `isCorrect`
+ * for everything it does not special-case, rather than repeating its switch.
+ */
+export function marksEarned(
+  q: TestQuestion,
+  given: string | number | undefined,
+): number {
+  if (q.type === "multi-select") return multiSelectMarks(q, given);
+  return isCorrect(q, given) ? 1 : 0;
+}
+
+/**
  * Mark one answer.
  *
  * A `switch` with a `never` default rather than a chain of `if`s ending in a
@@ -186,6 +242,9 @@ export function isCorrect(
   switch (q.type) {
     case "mcq":
       return Number(given) === q.answer;
+    case "multi-select":
+      // Fully right only: every mark earned, none forfeited to over-selection.
+      return multiSelectMarks(q, given) === q.numAnswers;
     case "tfng":
       return String(given) === q.answer;
     case "completion": {

@@ -20,6 +20,14 @@
     },
     {
       "speaker": "Receptionist",
+      "text": "That's exciting news. When's the big day, if you don't mind me asking?"
+    },
+    {
+      "speaker": "Guest",
+      "text": "Next month, actually, so things are getting rather busy on our end. There's a lot to organise, and my sister's asked me to sort the accommodation, since she's got enough on her plate already."
+    },
+    {
+      "speaker": "Receptionist",
       "text": "Of course, congratulations to your sister. Let's get some details. Can I take your name first?"
     },
     {
@@ -64,6 +72,14 @@
     },
     {
       "speaker": "Guest",
+      "text": "Would it be possible to have the rooms near each other? It would make it easier for everyone to find each other, especially the ones who don't know the hotel at all."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "I'll certainly try. I can't promise they'll all be right next door to one another, but I'll keep them on the same floor where possible and make a note on the booking."
+    },
+    {
+      "speaker": "Guest",
       "text": "That sounds reasonable. Is breakfast included?"
     },
     {
@@ -84,6 +100,14 @@
     },
     {
       "speaker": "Receptionist",
+      "text": "Not at all. It's one of the nicer things about wedding bookings, if I'm honest — most people are in such a good mood about the whole thing."
+    },
+    {
+      "speaker": "Guest",
+      "text": "I can imagine. Everyone's certainly looking forward to it."
+    },
+    {
+      "speaker": "Receptionist",
       "text": "The deposit needs to be paid within seven days to confirm the booking, otherwise the rooms go back on general sale."
     },
     {
@@ -100,11 +124,27 @@
     },
     {
       "speaker": "Receptionist",
+      "text": "We also have a small function room if any of the family fancy a quiet drink together in the evening, away from the main reception."
+    },
+    {
+      "speaker": "Guest",
+      "text": "Oh, that's a nice idea. I'll mention it to a few of them, I think they'd appreciate somewhere quieter."
+    },
+    {
+      "speaker": "Receptionist",
       "text": "And finally, check-in on the Friday is from three p.m., though if any guests are travelling a long way, we can usually store luggage earlier and let them explore the grounds while they wait."
     },
     {
       "speaker": "Guest",
       "text": "That's really helpful, some of them have a long drive."
+    },
+    {
+      "speaker": "Guest",
+      "text": "One last thing — is there anywhere nearby for the children to play? My aunt's little ones get restless indoors, and she'll want to keep an eye on them during the meal."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "There's a garden at the back with plenty of space, and it's fully enclosed, so they can run around safely while the adults relax and enjoy the reception."
     },
     {
       "speaker": "Receptionist",
@@ -113,6 +153,14 @@
     {
       "speaker": "Guest",
       "text": "Perfect, thank you so much for your help, Grace."
+    },
+    {
+      "speaker": "Guest",
+      "text": "I will, thank you. Speak soon."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "Take care now, bye for now."
     },
     {
       "speaker": "Receptionist",

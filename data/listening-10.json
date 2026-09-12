@@ -20,6 +20,14 @@
     },
     {
       "speaker": "Clerk",
+      "text": "Oh dear, that's always a nuisance. Don't worry, it happens more often than you'd imagine, and we get quite a lot of it back — let's see if we can track yours down."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "Thank you, I was hoping you'd say that. I only noticed when I reached for my badge at the office door, and by then the train was long gone."
+    },
+    {
+      "speaker": "Clerk",
       "text": "We'll see what we can do. Which service were you on?"
     },
     {
@@ -52,6 +60,14 @@
     },
     {
       "speaker": "Clerk",
+      "text": "That's a good, clear description. The combination of the laptop and the umbrella should make it easy to spot among the other bags."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "I hope so. The laptop's the main worry, if I'm honest."
+    },
+    {
+      "speaker": "Clerk",
       "text": "Good, the umbrella is the sort of detail that identifies it. Now, your name and a contact number?"
     },
     {
@@ -68,6 +84,14 @@
     },
     {
       "speaker": "Clerk",
+      "text": "Perfect, that's everything I need from you for now."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "Thanks. Do you know roughly how long all this usually takes?"
+    },
+    {
+      "speaker": "Clerk",
       "text": "Thank you. Now, what happens next. Anything found on a terminating train is collected by the cleaning team and brought to the depot, not to this office, and the depot sends items across the following morning. So if it was handed in today, we'd see it tomorrow."
     },
     {
@@ -80,11 +104,27 @@
     },
     {
       "speaker": "Passenger",
+      "text": "That's useful. Do I need some sort of reference number to search it, or can anyone look?"
+    },
+    {
+      "speaker": "Clerk",
+      "text": "Anyone can look. You just search by the station and roughly when you travelled, and any matching items come up with a photo."
+    },
+    {
+      "speaker": "Passenger",
       "text": "How long do you keep things?"
     },
     {
       "speaker": "Clerk",
       "text": "Three months for most items. Electronic items we keep for six months, because people so often come back for them late. After that they go to auction, and the proceeds go to a railway charity."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "That makes sense. I suppose laptops and phones go missing more often than most things, then?"
+    },
+    {
+      "speaker": "Clerk",
+      "text": "They're certainly the ones people chase hardest, yes. With a phone or a laptop, people will ring us nearly every day until it turns up, whereas a hat or a scarf, people often just let go."
     },
     {
       "speaker": "Passenger",
@@ -104,11 +144,27 @@
     },
     {
       "speaker": "Passenger",
+      "text": "That's reassuring, actually. I'd assumed that once it was gone, it was gone."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "Not at all. We really do reunite most bags with their owners eventually — it's usually just a case of being patient."
+    },
+    {
+      "speaker": "Passenger",
       "text": "Thank you, that's very helpful."
     },
     {
       "speaker": "Clerk",
       "text": "Give it until midday tomorrow and then check the register. If nothing shows by Friday, call us back and we'll widen the search."
+    },
+    {
+      "speaker": "Passenger",
+      "text": "Will do. Thanks again for your help, I really do appreciate it."
+    },
+    {
+      "speaker": "Clerk",
+      "text": "You're very welcome. I hope it turns up quickly, and try not to worry too much in the meantime."
     }
   ],
   "questions": [

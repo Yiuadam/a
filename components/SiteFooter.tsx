@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRoutePath } from "@/lib/hooks";
+import { hasSideRail } from "@/lib/nav";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 
 /*
@@ -73,6 +74,59 @@ export default function SiteFooter() {
   if (immersive) return null;
   const introduce = INTRODUCES_ITSELF.includes(pathname);
   const disclaim = !SAYS_IT_ITSELF.includes(pathname);
+
+  /*
+    Compact wherever the rail stands.
+
+    Same words — Google's OAuth review asked for the description twice and
+    dropping it would be answering them in a viewport nobody checks — but on
+    those screens the page is held to one window, and two full paragraphs at
+    the foot of it were taking about a hundred and eighty pixels straight out
+    of the modules above. That showed as a band card clipping its fourth skill
+    and the tutor card clipping its own link: the legal text was the reason the
+    content did not fit.
+
+    At this size it is still legible and still there; it simply stops being the
+    tallest thing on the screen after the board.
+  */
+  const compact = hasSideRail(pathname);
+
+  if (compact) {
+    return (
+      <footer className="border-t border-slate-200">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-baseline gap-x-2 gap-y-0.5 px-5 py-2 text-[0.625rem] leading-4 text-slate-400 lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
+          {introduce && (
+            <span>
+              <span className="font-medium text-slate-500">BandUp</span> is free IELTS
+              preparation: a placement test, a study plan, and practice in all four skills with an
+              AI examiner.
+            </span>
+          )}
+          {disclaim && (
+            <span>
+              Bands are practice estimates; BandUp is independent and not affiliated with IELTS,
+              the British Council, IDP or Cambridge English.
+            </span>
+          )}
+          <Link
+            href="/privacy"
+            prefetch={false}
+            className="rounded text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-900"
+          >
+            Privacy
+          </Link>
+          <span aria-hidden>·</span>
+          <Link
+            href="/terms"
+            prefetch={false}
+            className="rounded text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-900"
+          >
+            Terms
+          </Link>
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <footer className="mt-2 border-t border-slate-200 sm:mt-4">

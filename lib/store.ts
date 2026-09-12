@@ -37,6 +37,7 @@ function read(): Profile {
       placement: parsed.placement,
       targetBand: parsed.targetBand,
       planDays: parsed.planDays,
+      dashboardModules: parsed.dashboardModules,
       placementHistory: parsed.placementHistory ?? [],
       /*
         Must be listed here as well as written by its setter. This function
@@ -142,6 +143,19 @@ export function setTargetBand(band: number): Profile {
  */
 export function setPlanDays(days: number): Profile {
   return commit({ ...getSnapshot(), planDays: days });
+}
+
+/*
+  The board's arrangement, saved to the profile so it follows the account.
+
+  Called by lib/dashboard/layout.ts, which owns the validation and the
+  in-memory cache; this only stores what it was given. Kept as ids and not as
+  the modules themselves for the reason that file gives: an id a later build
+  does not recognise is forgotten, which is what makes renaming or retiring a
+  module a change with no migration.
+*/
+export function setDashboardModules(ids: readonly string[]): Profile {
+  return commit({ ...getSnapshot(), dashboardModules: [...ids] });
 }
 
 export function addResult(result: ModuleResult): Profile {

@@ -24,6 +24,7 @@ const {
   isGrouped,
   numberedGroups,
   questionCount,
+  questionWidth,
   toGroups,
 } = await import(pathToFileURL(join(process.cwd(), "lib", "questions.ts")).href);
 
@@ -121,4 +122,61 @@ test("a paper of only bare questions after a group still numbers continuously", 
     numberedGroups(trailing).flatMap((b) => b.questions.map((x) => x.number)),
     [1, 2],
   );
+});
+
+/* ---------------------------------------------------------------------------
+   A multi-select question claims more than one paper number for a single
+   JSON entry — "Questions 15 and 16" is one item, not two — so every helper
+   that counts or numbers a paper has to count numbers claimed, not entries
+   held. This is the one property added for it.
+   --------------------------------------------------------------------------- */
+
+/** A multi-select asking for `numAnswers` letters, otherwise unremarkable. */
+const ms = (id, numAnswers) => ({
+  id,
+  type: "multi-select",
+  question: id,
+  options: ["a", "b", "c", "d", "e", "f", "g"].slice(0, numAnswers + 2),
+  numAnswers,
+  answer: Array.from({ length: numAnswers }, (_, i) => i),
+});
+
+test("questionWidth is 1 for an ordinary question and numAnswers for multi-select", () => {
+  assert.equal(questionWidth(q("a")), 1);
+  assert.equal(questionWidth(ms("m", 2)), 2);
+  assert.equal(questionWidth(ms("m", 3)), 3);
+});
+
+test("questionCount sums the numbers a paper claims, not the entries it holds", () => {
+  const set = [q("q1"), ms("q2", 2), q("q4")];
+  // Three JSON entries; four numbers, because the multi-select claims two.
+  assert.equal(questionCount(set), 4);
+});
+
+test("numberedGroups gives a multi-select the range it claims, and the question after it the number that follows", () => {
+  const set = [q("q1"), ms("q2", 2), q("q4")];
+  const [block] = numberedGroups(set);
+  const [first, second, third] = block.questions;
+  assert.deepEqual([first.number, first.to], [1, 1]);
+  assert.deepEqual([second.number, second.to], [2, 3], "a two-letter group claims two consecutive numbers");
+  assert.deepEqual(
+    [third.number, third.to],
+    [4, 4],
+    "numbering resumes after the group's last number, not its first",
+  );
+  // The block's own heading range has to read the same way, or "Questions
+  // 1-3" would print above a block that actually runs to 4.
+  assert.deepEqual([block.from, block.to], [1, 4]);
+});
+
+test("a three-letter group claims three consecutive numbers", () => {
+  const set = [ms("q1", 3), q("q2")];
+  const [block] = numberedGroups(set);
+  assert.deepEqual([block.questions[0].number, block.questions[0].to], [1, 3]);
+  assert.equal(block.questions[1].number, 4);
+});
+
+test("an ordinary question's number and its own claimed range are the same number", () => {
+  const [block] = numberedGroups(FLAT);
+  for (const nq of block.questions) assert.equal(nq.number, nq.to);
 });

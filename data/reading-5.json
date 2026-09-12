@@ -2,6 +2,7 @@
   "id": "reading-5",
   "title": "Bringing buried rivers back to the surface",
   "topic": "Urban planning and the environment",
+  "variant": "academic",
   "difficulty": "medium",
   "level": "B2",
   "timeMinutes": 20,
@@ -94,16 +95,16 @@
         {
           "id": "q7",
           "type": "ynng",
-          "statement": "Comparing the cost of daylighting with the cost of culvert repair is usually misleading.",
-          "answer": "YES",
-          "explanation": "The writer says the comparison “is usually unfair, since the culvert will need repairing again and the open channel will not” — a direct statement that it misleads."
+          "statement": "Daylighting should be given priority over other flood defences in every city.",
+          "answer": "NO",
+          "explanation": "Paragraph F says daylighting “is not a universal answer, and its advocates are careful to say so”, then lists where it does not fit. The writer argues against “every city”."
         },
         {
           "id": "q8",
           "type": "ynng",
-          "statement": "Daylighting should be given priority over other flood defences in every city.",
-          "answer": "NO",
-          "explanation": "Paragraph F says daylighting “is not a universal answer, and its advocates are careful to say so”, then lists where it does not fit. The writer argues against “every city”."
+          "statement": "Comparing the cost of daylighting with the cost of culvert repair is usually misleading.",
+          "answer": "YES",
+          "explanation": "The writer says the comparison “is usually unfair, since the culvert will need repairing again and the open channel will not” — a direct statement that it misleads."
         },
         {
           "id": "q9",
@@ -135,25 +136,42 @@
           "answer": "daylighting",
           "maxWords": 3,
           "explanation": "Paragraph D defines the term directly: “a practice now known as daylighting — removing the roof from a buried river”."
-        },
+        }
+      ]
+    },
+    {
+      "instruction": "Choose TWO letters, A-E.",
+      "questions": [
         {
           "id": "q12",
-          "type": "short-answer",
-          "question": "According to the passage, what now kills more city dwellers than floods?",
-          "answer": "heatwaves",
-          "maxWords": 3,
-          "explanation": "Paragraph E: “cities where heatwaves now kill more people than floods do”. Copy the word exactly as the passage spells it."
-        },
+          "type": "multi-select",
+          "question": "Which TWO of the following benefits of daylighting does the writer mention in the passage?",
+          "options": [
+            "Nearby residents paid less for household insurance",
+            "Summer air temperatures on nearby streets fell",
+            "The number of community meetings about local rivers fell",
+            "House prices near the new channels increased",
+            "Local councils reduced how much they spent on flood defences generally"
+          ],
+          "numAnswers": 2,
+          "answer": [
+            1,
+            3
+          ],
+          "explanation": "Paragraph E gives both directly: “Streets beside daylighted rivers recorded summer air temperatures noticeably lower than comparable streets nearby” supports the second option, and “Property values rose, which pleased councils” supports the fourth. Insurance appears only in paragraph C, where claims were rising rather than falling, so the first option reverses what is written. The same paragraph says community groups formed, which points to more meetings rather than fewer, so the third option is also the opposite of the passage. General council spending on flood defences is never mentioned at all, so the fifth option is not supported either."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentence below. Write NO MORE THAN ONE WORD from the passage for the answer.",
+      "questions": [
         {
           "id": "q13",
-          "type": "short-answer",
-          "question": "What must planners accept will occasionally be under water on purpose?",
-          "answer": "some land",
-          "accept": [
-            "land"
-          ],
-          "maxWords": 3,
-          "explanation": "Paragraph G asks planners “to accept that some land will occasionally be under water on purpose”."
+          "type": "completion",
+          "sentence": "The daylighting schemes of the last thirty years rest on the view that the water was never the ___.",
+          "answer": "problem",
+          "maxWords": 1,
+          "explanation": "The final paragraph says the schemes \"rest on the opposite view: that the water was never the problem, and that a city which makes room for its rivers is dealing with the cause rather than the symptom.\""
         }
       ]
     }

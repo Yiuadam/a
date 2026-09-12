@@ -17,7 +17,7 @@ const row = {
   display_name: "Learner One",
   account_kind: "student",
   registered_at: "2026-08-28T00:00:00.000Z",
-  plan: "pro",
+  plan: "ai",
   access_source: "stripe",
   organization_seat_count: 2,
   usage_30d: 7,

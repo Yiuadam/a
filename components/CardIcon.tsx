@@ -147,10 +147,19 @@ export default function CardIcon({
   name,
   size = 32,
   className = "",
+  strokeWidth,
 }: {
   name: CardIconName;
   size?: number;
   className?: string;
+  /**
+   * Override the 1.3 these were drawn with.
+   *
+   * A stroke is a fraction of the viewBox, so it shrinks with the glyph. Below
+   * the size a mark was chosen at, the weight has to be put back by hand or the
+   * icon ends up lighter than the words beside it.
+   */
+  strokeWidth?: number;
 }) {
   return (
     <svg
@@ -159,7 +168,7 @@ export default function CardIcon({
       height={size}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.3"
+      strokeWidth={strokeWidth ?? 1.3}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

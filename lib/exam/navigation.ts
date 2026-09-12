@@ -25,22 +25,40 @@ export interface NavQuestion {
   id: string;
   /** Whether the learner has put anything against it. */
   answered: boolean;
+  /**
+   * How many consecutive paper numbers this one claims. Defaults to 1; only a
+   * multi-select group claims more than one for a single answered item — see
+   * `questionWidth` in lib/questions.ts, which every caller should derive
+   * this from rather than assume it.
+   */
+  width?: number;
 }
 
 export function useExamNavigation(questions: NavQuestion[]) {
   const [currentId, setCurrentId] = useState<string | null>(questions[0]?.id ?? null);
   const [flagged, setFlagged] = useState<Record<string, true>>({});
 
-  const items: PaletteItem[] = useMemo(
-    () =>
-      questions.map((q, index) => ({
+  const items: PaletteItem[] = useMemo(() => {
+    /*
+      A running counter rather than `index + 1`. Every question claimed
+      exactly one number until a multi-select could claim two or three for a
+      single answered item — indexing by array position would then hand the
+      question straight after one the wrong number, disagreeing with the
+      badge `numberedGroups` prints beside it on the paper itself.
+    */
+    let next = 1;
+    const out: PaletteItem[] = [];
+    for (const q of questions) {
+      out.push({
         id: q.id,
-        number: index + 1,
+        number: next,
         answered: q.answered,
         flagged: flagged[q.id] === true,
-      })),
-    [questions, flagged],
-  );
+      });
+      next += q.width ?? 1;
+    }
+    return out;
+  }, [questions, flagged]);
 
   /*
     Falls back to the first question rather than to null when the current id is

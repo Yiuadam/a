@@ -93,9 +93,9 @@ test("native promo writer has one reversible D1 grant and never revives a delete
   `).get(USER);
   assert.deepEqual(
     { id: active.id, status: active.status, tier: active.tier, provider: active.provider },
-    { id: `promo:${USER}`, status: "active", tier: "pro", provider: "promo" },
+    { id: `promo:${USER}`, status: "active", tier: "ai", provider: "promo" },
   );
-  assert.equal(JSON.parse(active.raw_inline).kind, "free-pro-trial");
+  assert.equal(JSON.parse(active.raw_inline).kind, "free-ai-trial");
 
   assert.equal(await promo.nativeReleasePromoSubscription(USER, context.bindings), "changed");
   assert.equal(await promo.nativePromoSubscriptionState(USER, context.bindings), "released");

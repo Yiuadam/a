@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     "What BandUp stores, what leaves your device, and what happens to your microphone. Accounts are optional, there are no cookies or trackers, and card details never reach our servers.",
 };
 
-const LAST_UPDATED = "4 September 2026";
+const LAST_UPDATED = "11 September 2026";
 
 /*
   The learner keys plus the owner's one local dashboard preference.
@@ -114,10 +114,10 @@ export default function PrivacyPage() {
       <div className="max-w-xl space-y-2">
         <h1 className="text-[1.625rem] font-semibold text-slate-900">Privacy</h1>
         <p className="text-[0.9375rem] leading-7 text-slate-600">
-          Without an account, your practice stays on your device and is gone when you close the
-          browser. With one, it is synced so a second device can pick it up. An account is
-          optional and changes only what is named below. This page says exactly what that means,
-          and where the exceptions are.
+          Your practice stays in the tab you have open and is gone when you close it. On the
+          Tracking or AI plan it is also kept on your account, so a second device can pick it
+          up. An account is optional and changes only what is named below. This page says
+          exactly what that means, and where the exceptions are.
         </p>
         <p className="text-xs text-slate-500">Last updated {LAST_UPDATED}</p>
       </div>
@@ -127,9 +127,9 @@ export default function PrivacyPage() {
         <ul className="mt-4 space-y-3">
           {[
             "An account is optional. Signed out — which is the default, and how the app ships today — nothing identifies you and nothing is held about you.",
-            "Signed out, your progress lives only in the tab you have open and is gone when you close it. Signed in, it is kept on your account so it follows you between devices.",
+            "Your progress lives only in the tab you have open and is gone when you close it. On the Tracking or AI plan it is also kept on your account, so it follows you between devices.",
             "No cookies, no analytics, no advertising and no third-party trackers.",
-            "Your writing and speaking transcript are sent for marking when you ask. Signed out, they disappear with the tab; signed in, completed feedback can be stored in your private history so you can revisit it.",
+            "On the AI plan, your essay and speaking transcript are sent for marking when you ask, and the completed feedback can be stored in your private history so you can revisit it. On every other plan they are shown back to you at the end and never sent anywhere.",
             "BandUp keeps technical AI-cost records — the feature, model, token counts, calculated cost, request ID and time — but never the words sent or received, your name, email or account ID.",
             "The tutor reads your saved speaking practice. Ask it anything and extracts from your own mock interviews go with the question, so its advice is about how you actually speak rather than about the exam in general. This is not something you switch on \u2014 and if you have never finished a marked speaking interview, nothing about your speaking is sent.",
             "BandUp never uploads audio from your microphone and never saves it as a file.",
@@ -151,9 +151,10 @@ export default function PrivacyPage() {
           Signed out, everything BandUp remembers about you lives in the browser you are using
           and nowhere else. Your practice is held in the tab: close it and that work is gone, and
           you start fresh. Your theme and speech choices are settings rather than work, so they
-          stay in that browser until you clear it. Signed in, three of the entries below — your
-          progress, your drills and your saved words — are kept on your account as well, so they
-          follow you between devices; the rest never leave this browser, including an exam you
+          stay in that browser until you clear it. On the Tracking or AI plan, three of the
+          entries below — your progress, your drills and your saved words — are kept on your
+          account as well, so they follow you between devices; on Free they stay in the tab like
+          everything else. The rest never leave this browser whatever the plan, including an exam you
           have started and not finished and an essay you are part-way through. The last
           entry is only an admin dashboard layout and
           always stays in that administrator&rsquo;s browser. This is the whole of it:
@@ -178,9 +179,9 @@ export default function PrivacyPage() {
           files every learner downloads.
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Because this lives on the device and nowhere else, your progress does not follow you
-          to a new phone or a different browser, and we cannot recover it for you if it is
-          lost.
+          Without the Tracking or AI plan, this lives on the device and nowhere else, so your
+          progress does not follow you to a new phone or a different browser, and we cannot
+          recover it for you if it is lost.
         </p>
       </section>
 
@@ -192,9 +193,9 @@ export default function PrivacyPage() {
           Five features need a model to think about your English, and those are the only times
           anything you write is sent anywhere. Each one goes to BandUp&rsquo;s server, which
           passes it to Anthropic&rsquo;s API for the answer and sends that answer back to you.
-          The marking request itself is not written to a server log. If you are signed in and
-          save your completed practice, its feedback record can include the essay or speaking
-          transcript so your history can be reopened later.
+          The marking request itself is not written to a server log. On the AI plan, the
+          feedback record saved to your history can include the essay or speaking transcript so
+          the sitting can be reopened later.
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           One of those five sends more than what you have just typed. When you ask the tutor a
@@ -332,8 +333,9 @@ export default function PrivacyPage() {
 
         <p className="mt-6 text-[0.9375rem] leading-7 text-slate-700">
           Both ways share the rest: BandUp never uploads your audio and never saves it as a
-          file. Only the finished transcript — text — is sent for marking, and only when you ask
-          for feedback. The microphone is used during the speaking test and at no other time.
+          file. Only the finished transcript — text — is sent for marking, only on the AI plan,
+          and only when you ask for feedback. The microphone is used during the speaking test
+          and at no other time.
           You can also skip the microphone entirely and type your answers.
         </p>
         <p className="mt-4 text-sm leading-6 text-slate-600">

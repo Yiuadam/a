@@ -17,6 +17,14 @@
       "text": "Right, thanks for coming in. So today we need to plan the recycling awareness project for the student union. Who wants to start?"
     },
     {
+      "speaker": "Sam",
+      "text": "Before we dive in — are we still okay to finish by half past, Priya? You said you had somewhere to be."
+    },
+    {
+      "speaker": "Tutor",
+      "text": "We won't need the full hour, I shouldn't think. Right — Priya, go on."
+    },
+    {
       "speaker": "Priya",
       "text": "I can start. I think the main aim should be getting more students to use the recycling bins properly, because at the moment loads of recycling ends up in general waste."
     },
@@ -33,6 +41,14 @@
       "text": "Good point, Malik. Let's keep it focused, then — the project's main aim will be improving recycling behaviour, not tackling all waste."
     },
     {
+      "speaker": "Sam",
+      "text": "Fair enough — reducing all waste would be a nice project for a group with a bit more time behind them."
+    },
+    {
+      "speaker": "Malik",
+      "text": "Maybe next year's lot can have a go at that one."
+    },
+    {
       "speaker": "Priya",
       "text": "Great, that's clearer for planning."
     },
@@ -43,6 +59,14 @@
     {
       "speaker": "Sam",
       "text": "I was going to suggest posters around the library, but that's already been done twice this year and people just walk past them now."
+    },
+    {
+      "speaker": "Priya",
+      "text": "Yes, I walked past one of the old ones just last week and didn't even register it was there."
+    },
+    {
+      "speaker": "Sam",
+      "text": "Exactly. So whatever we do has to actually stop people, not just exist somewhere on a wall."
     },
     {
       "speaker": "Malik",
@@ -57,6 +81,14 @@
       "text": "I like that. One strong day rather than a weak week. So the plan is a single information stall in the main hall."
     },
     {
+      "speaker": "Priya",
+      "text": "That's a relief, honestly — I wasn't looking forward to finding volunteers to cover five days running."
+    },
+    {
+      "speaker": "Malik",
+      "text": "One good day beats five thin ones. Same principle as revision, really."
+    },
+    {
       "speaker": "Sam",
       "text": "Fine by me. Should we still do something online as well, though, to reach students who don't walk through the main hall?"
     },
@@ -67,6 +99,14 @@
     {
       "speaker": "Tutor",
       "text": "Yes, let's add a short video, posted on the student union page, alongside the stall."
+    },
+    {
+      "speaker": "Sam",
+      "text": "I can probably get decent enough footage of the bins in an afternoon, so that shouldn't hold anything up."
+    },
+    {
+      "speaker": "Tutor",
+      "text": "Good. Don't worry about it looking polished — clear and short beats slick and long for something like this."
     },
     {
       "speaker": "Priya",
@@ -89,12 +129,24 @@
       "text": "Okay, first week of next term it is."
     },
     {
+      "speaker": "Malik",
+      "text": "Should we check that's definitely still the case before we commit, though? These things sometimes move."
+    },
+    {
+      "speaker": "Priya",
+      "text": "I'll double check mine tonight and let you both know tomorrow."
+    },
+    {
       "speaker": "Tutor",
       "text": "Now, budget. The student union can offer us seventy pounds for materials."
     },
     {
       "speaker": "Sam",
       "text": "That should cover the printing and some small prizes for the quiz."
+    },
+    {
+      "speaker": "Priya",
+      "text": "As long as we're not trying to compete with the students' union's own freebies table, that should easily cover what we need."
     },
     {
       "speaker": "Malik",
@@ -109,6 +161,10 @@
       "text": "Agreed, let's keep the budget as it is."
     },
     {
+      "speaker": "Sam",
+      "text": "Water bottles it is, then. At least none of us will end up buying anything embarrassing to hand out."
+    },
+    {
       "speaker": "Tutor",
       "text": "Good. Now, who's going to be responsible for what? Priya, could you design the quiz questions?"
     },
@@ -117,12 +173,20 @@
       "text": "Sure, I can do that."
     },
     {
+      "speaker": "Malik",
+      "text": "Make sure a couple of them are genuinely tricky, though — free bottles for correct answers to something everyone already knows feels a bit pointless."
+    },
+    {
       "speaker": "Tutor",
       "text": "Sam, would you take charge of filming the video?"
     },
     {
       "speaker": "Sam",
       "text": "Happy to, yes."
+    },
+    {
+      "speaker": "Priya",
+      "text": "Keep it short if you can — nobody's sitting through a long video about bins."
     },
     {
       "speaker": "Tutor",
@@ -135,6 +199,34 @@
     {
       "speaker": "Tutor",
       "text": "Perfect. Let's meet again in two weeks to check progress. Thanks, everyone."
+    },
+    {
+      "speaker": "Priya",
+      "text": "Should we set up a group chat as well, just for quick updates?"
+    },
+    {
+      "speaker": "Tutor",
+      "text": "Good idea — do that yourselves, I don't need to be on it unless something goes wrong."
+    },
+    {
+      "speaker": "Malik",
+      "text": "Let's hope it stays that way, then."
+    },
+    {
+      "speaker": "Sam",
+      "text": "Thanks — this is a lot clearer than it was an hour ago."
+    },
+    {
+      "speaker": "Tutor",
+      "text": "That's rather the point of these meetings. See you all in a fortnight."
+    },
+    {
+      "speaker": "Malik",
+      "text": "Sounds good. I'll message the group once the events office gets back to me."
+    },
+    {
+      "speaker": "Priya",
+      "text": "And I'll bring a draft of the quiz questions to look over."
     }
   ],
   "questions": [

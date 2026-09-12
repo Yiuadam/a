@@ -64,7 +64,7 @@ async function run(): Promise<void> {
     return;
   }
   if (outcome.status === "done") retryAttempt = 0;
-  else if (outcome.status === "signed-out") cancelScheduledSync();
+  else if (outcome.status === "signed-out" || outcome.status === "not-entitled") cancelScheduledSync();
   else scheduleRetry();
 }
 

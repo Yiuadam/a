@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import PlanDrawing from "@/components/PlanFigure";
+import ProcessDrawing from "@/components/ProcessFigure";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import BandBadge from "@/components/BandBadge";
@@ -22,6 +24,7 @@ import {
 } from "@/lib/writing-draft";
 import Chart from "@/components/Chart";
 import SkillGate from "@/components/SkillGate";
+import UpgradePanel from "@/components/billing/UpgradePanel";
 import { tierShows, useTier } from "@/lib/billing/useTier";
 import AssignedPracticeNotice from "@/components/organization/AssignedPracticeNotice";
 import TestChooser from "@/components/TestChooser";
@@ -65,13 +68,14 @@ function TableHeading({ heading }: { heading: string }) {
 function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   /*
     Whether marking is included, which is not the same as whether the page is
-    open. Standard unlocks writing practice — the task, the timer, the word
-    count — and does not include the AI examiner; Plus is where marking starts.
+    open. The task, the timer and the word count are free the moment somebody
+    signs in; AI is where marking starts.
 
     That distinction has to be visible *before* somebody writes, not after. The
-    failure it prevents is the worst one this page has: forty minutes of work,
-    then a paywall. So the standfirst changes and the submit button is replaced,
-    rather than the button being left in place to fail on the click.
+    worst failure this page could have is forty minutes of work followed by a
+    surprise — so the standfirst changes and the button reads "Finish" rather
+    than "Submit for marking" from the first keystroke, never the other way
+    round after the fact.
 
     Generous while the answer is unknown, like every other client-side gate
     here: during `loading`, and with accounts switched off, marking is offered.
@@ -99,6 +103,14 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   const [started, setStarted] = useState(false);
   const [grading, setGrading] = useState(false);
   const [grade, setGrade] = useState<WritingGrade | null>(null);
+  /*
+    Finished, but never sent anywhere to be marked — the AI plan's essay back
+    without an AI plan. Distinct from `grade`, which means a mark came back;
+    this means the candidate stopped writing and asked to see what they wrote,
+    which a Free account can do and nothing more. Mirrors the "unmarked" stage
+    components/speaking/SpeakingSession.tsx already had for exactly this case.
+  */
+  const [finished, setFinished] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const task = useMemo(() => tasks.find((t) => t.id === initialTaskId)!, [initialTaskId]);
@@ -194,9 +206,22 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
   const resetTask = () => {
     setEssay("");
     setGrade(null);
+    setFinished(false);
     setError(null);
     setStarted(false);
   };
+
+  /*
+    No model is asked anything here — there is nothing to send an essay to on
+    a plan with no AI marking. This just stops the clock and shows the essay
+    back, the same honest ending speaking already gives its own no-AI case.
+    Nothing is recorded to history either: an unmarked sitting has no band to
+    plot, and a saved history is Tracking's job, not Free's.
+  */
+  function finishWithoutMarking() {
+    discardWritingDraft(task.id);
+    setFinished(true);
+  }
 
   const prompt = (
     <div className="min-w-0 space-y-3">
@@ -212,6 +237,24 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
 
   const visual = task.chart ? (
     <Chart spec={task.chart} />
+  ) : task.process ? (
+    <ProcessDrawing process={task.process} />
+  ) : task.plans ? (
+    /*
+      Two plans of the same site, drawn side by side on a wide screen and
+      stacked on a narrow one. Side by side is how the paper prints them and
+      how the comparison is actually made — a candidate describing what changed
+      is looking from one to the other — but on a phone two plans in a row are
+      two illegible plans, so below the breakpoint they stack.
+    */
+    <div className="grid gap-4 sm:grid-cols-2">
+      {task.plans.map((plan) => (
+        <div key={plan.caption} className="min-w-0">
+          <p className="mb-1 text-center text-sm font-semibold text-slate-700">{plan.caption}</p>
+          <PlanDrawing figure={plan.figure} />
+        </div>
+      ))}
+    </div>
   ) : task.dataTable ? (
     <div className="min-w-0 max-w-full sm:overflow-x-auto">
       <p className="mb-2 text-sm font-semibold text-slate-700">{task.dataTable.title}</p>
@@ -256,9 +299,21 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
         <label htmlFor="writing-response" className="text-sm font-semibold text-slate-900">
           Your response
         </label>
-        <span className={wordCount >= task.minWords ? "text-xs text-emerald-600" : "text-xs text-slate-500"}>
-          {wordCount} / {task.minWords}
-        </span>
+        {/*
+          A count, not a ration.
+
+          It read "0 / 150", which is how a character limit is written, and it
+          was next to a box somebody was about to write an essay in — so it said
+          the essay had to fit in 150 words. IELTS has no upper limit at all:
+          150 is a floor, going under it costs marks, and going over it costs
+          nothing. The exam itself prints a plain "Word count", and the task
+          above already says "Write at least 150 words" twice.
+
+          The colour went with the ratio. Turning green at 150 makes it a line
+          to cross rather than a minimum to clear, and 149 against 151 is not
+          the difference that colour implies.
+        */}
+        <span className="text-xs text-slate-500">Word count: {wordCount}</span>
       </div>
       {/*
         The swipe track reaches into the editor, which it did not used to.
@@ -296,9 +351,10 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
         work is saved invites them to close the tab and come back tomorrow,
         which is the one thing this does not survive.
       */}
-      {!marked && (
+      {!marked && !finished && (
         <p className="mt-2 text-xs leading-5 text-slate-500">
-          Kept if you reload, but not after you leave this page. AI marking requires Plus.{" "}
+          Kept if you reload, but not after you leave this page or finish. AI marking is part of
+          the AI plan.{" "}
           {account.signedIn ? "" : "Sign in first, then upgrade if needed."}
         </p>
       )}
@@ -379,12 +435,12 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
       section="Writing"
       paper={task.title}
       minutes={task.timeMinutes}
-      running={started && !grade}
+      running={started && !grade && !finished}
       comfortableGutter
       edgeToEdgeOnPhone
-      bottomLeft={grade ? `Band ${grade.overallBand}` : `${wordCount} / ${task.minWords} words`}
+      bottomLeft={grade ? `Band ${grade.overallBand}` : finished ? "Essay complete" : `Word count: ${wordCount}`}
       bottomRight={
-        grade ? (
+        grade || finished ? (
           <div className="flex gap-2">
             <Link href="/practice" className="btn-secondary !min-h-8 !px-3 !py-1 text-xs">More practice</Link>
             <button className="btn-primary !min-h-8 !px-3 !py-1 text-xs" onClick={() => resetTask()}>
@@ -400,16 +456,42 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
             {grading ? <LoadingIndicator label="Marking…" announce={false} /> : "Submit for marking"}
           </button>
         ) : (
-          /* The same wording the response pane settled on, and for the same
-             reason: this draft survives a reload and nothing else. Both strings
-             render under the identical condition, so a learner was being told
-             two different things about their essay on one screen. */
-          <span className="text-[0.6875rem] text-slate-500">Kept if you reload</span>
+          <button
+            className="btn-primary !min-h-8 !px-3 !py-1 text-xs"
+            onClick={finishWithoutMarking}
+            disabled={wordCount < 40}
+          >
+            Finish
+          </button>
         )
       }
     >
       {grade ? (
         <SwipePanels panels={feedbackPanels} />
+      ) : finished ? (
+        /*
+          The same shape speaking's own "unmarked" stage settled on: the essay
+          first, presented as the thing a learner can actually work from
+          without a model, and the upgrade once underneath it rather than in
+          place of the essay.
+        */
+        <div className="space-y-3 overflow-y-auto">
+          <div className="card !p-4">
+            <h1 className="text-xl font-semibold text-slate-900">Essay complete</h1>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              You wrote {wordCount} words on Task {task.task}, against the clock. Here is what you
+              wrote. AI marking — a band for each criterion, and what to fix first — is part of
+              the AI plan.
+            </p>
+          </div>
+          <div className="card !p-4">
+            <h2 className="text-sm font-semibold text-slate-900">Your essay</h2>
+            <p className="mt-3 whitespace-pre-line text-[0.9375rem] leading-7 text-slate-700">
+              {essay}
+            </p>
+          </div>
+          <UpgradePanel feature="have this marked" signedIn={account.signedIn} tier="ai" />
+        </div>
       ) : (
         /*
           The assignment banner stays above the track rather than riding in the
@@ -448,8 +530,10 @@ function WritingSession({ initialTaskId }: { initialTaskId: string }) {
 }
 
 /*
-  Writing is model-marked, so a visitor with no model gets a lock rather than a
-  blank box and forty minutes. See lib/entitlements/sessions.ts.
+  Signing in is what stands between a visitor and this page now, not a plan —
+  every signed-in tier writes and finishes unlimited, marked by AI or handed
+  back unscored. SkillGate below still locks it for whoever has not signed in
+  at all. See lib/entitlements/sessions.ts.
 */
 export default function WritingPage() {
   /*

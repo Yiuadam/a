@@ -15,6 +15,10 @@
     },
     {
       "speaker": "Station Manager",
+      "text": "I'll try to keep this brief, because I know you'd rather be on your way, but it should save you a lot of confusion later if you stick with me for a minute."
+    },
+    {
+      "speaker": "Station Manager",
       "text": "From Friday evening until Monday morning, there will be no trains at all between Marchford and Kelby. Engineers are replacing a bridge just outside Kelby, and that work simply cannot be done with trains running over the top of it."
     },
     {
@@ -31,6 +35,10 @@
     },
     {
       "speaker": "Station Manager",
+      "text": "We have asked for new posters to be printed, but with the weekend so close, the staff on the ground are honestly your best source of information right now."
+    },
+    {
+      "speaker": "Station Manager",
       "text": "The buses run every twenty minutes, and the journey takes about thirty-five minutes, compared with fourteen minutes by train. So please allow yourself an extra half an hour, and if you're catching a flight or a coach at the other end, allow a full hour."
     },
     {
@@ -40,6 +48,10 @@
     {
       "speaker": "Station Manager",
       "text": "Second, refunds. If the delay to your whole journey ends up being more than fifteen minutes, you can claim under the delay repay scheme, and you do that on the website rather than here. We genuinely can't process those at the ticket office, and I'm sorry, because I know that's what everybody would prefer."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "It's a bit of a faff, I know, but it's the same process the rail company uses for any delay, not just this weekend's engineering work."
     },
     {
       "speaker": "Station Manager",
@@ -59,6 +71,10 @@
     },
     {
       "speaker": "Station Manager",
+      "text": "It genuinely catches people out every time there's a closure like this, so do check rather than assume it'll be the same as usual."
+    },
+    {
+      "speaker": "Station Manager",
       "text": "There's also a free hot drink for anyone travelling on the replacement buses this weekend. The café by platform two is doing them — just say you're on the bus service and they'll sort you out."
     },
     {
@@ -68,6 +84,10 @@
     {
       "speaker": "Station Manager",
       "text": "That's everything from me. If you're at all unsure, ask me or anyone in an orange jacket. We would far rather answer the same question forty times than have somebody miss a connection."
+    },
+    {
+      "speaker": "Station Manager",
+      "text": "Thanks again for bearing with us this weekend, and safe travels, whichever way you're heading today."
     }
   ],
   "questions": [

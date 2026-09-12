@@ -128,8 +128,8 @@ test("yen is written in whole yen", () => {
   assert.equal(minorPerUnit("hkd"), 100);
   assert.ok(ZERO_DECIMAL_CURRENCIES.has("jpy"));
 
-  const yen = toMajor(amountIn(PLANS["plus-monthly"], "jpy"), "jpy");
-  assert.ok(yen > 50 && yen < 5000, `plus-monthly is ¥${yen}, which is not a monthly price`);
+  const yen = toMajor(amountIn(PLANS["ai-monthly"], "jpy"), "jpy");
+  assert.ok(yen > 50 && yen < 5000, `ai-monthly is ¥${yen}, which is not a monthly price`);
 });
 
 test("a visitor is shown a currency somebody chose, or dollars", () => {

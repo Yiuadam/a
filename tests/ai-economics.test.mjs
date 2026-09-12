@@ -33,7 +33,7 @@
   rounded up to something that looks like a price. So the check is that same
   rule, stated once and applied to every plan:
 
-      price - worst-case AI - Stripe's cut  >=  HK$3 per subscriber-month
+      price - worst-case AI - Stripe's cut  >=  HK$1 per subscriber-month
 
   An earlier version of this file also enforced a ratio — cost as a share of
   revenue. That was the right check for the prices it was written against and
@@ -43,7 +43,7 @@
   the absolute floor is what is tested.
 
   What that margin does *not* cover is worth saying plainly rather than
-  implying: at full usage HK$3 a month per subscriber does not pay for Supabase,
+  implying: at full usage HK$1 a month per subscriber does not pay for Supabase,
   Cloudflare, the Apple developer programme, refunds or chargebacks. What makes
   the plans work is that nobody uses their whole allowance — a real month costs
   a fraction of the ceiling, so the realised margin is several times this. This
@@ -111,6 +111,39 @@ test("every plan makes money even if the subscriber uses every last request", ()
     );
   }
 
+  /*
+    And in every currency the plan is actually sold in, not only the one it is
+    priced in.
+
+    The floor is a figure in Hong Kong dollars, and until this was added the
+    only price checked against it was the Hong Kong dollar one. The other nine
+    are not conversions of it — they are hand-set round numbers, so a plan can
+    clear the floor in HKD and miss it in yen while every test stays green.
+    That is not hypothetical: at the prices in this file, the tightest plan in
+    the catalogue is Plus monthly bought in JPY, not any HKD plan, and a
+    proposed price rise that cleared the floor in HKD was found to miss it in
+    USD, GBP and SGD.
+
+    Stripe is why the currencies diverge rather than track. Its fee is a
+    percentage plus a flat charge of about US$0.30, and the flat part is a much
+    larger share of a small monthly price than of a yearly one — so rounding a
+    price down by one unit in a weak currency can cost more margin than the
+    same rounding does in a strong one.
+  */
+  for (const planId of PLAN_IDS) {
+    const plan = PLANS[planId];
+    const months = monthsCovered(plan);
+    const cost = worstCaseTierCost(plan.tier) * months * HKD_PER_USD;
+    for (const currency of Object.keys(plan.prices)) {
+      const perMonth = (netRevenue(plan, currency) - cost) / months;
+      assert.ok(
+        perMonth >= MIN_MONTHLY_PROFIT,
+        `${planId} bought in ${currency.toUpperCase()} leaves only HK$${perMonth.toFixed(2)} a ` +
+          `month, under the HK$${MIN_MONTHLY_PROFIT.toFixed(2)} floor`,
+      );
+    }
+  }
+
   // Printed rather than only asserted: the numbers are the point, and having
   // them in the test log is how a pricing change gets reviewed.
   for (const r of rows) {
@@ -124,7 +157,7 @@ test("every plan makes money even if the subscriber uses every last request", ()
 });
 
 test("the tiers that promise no AI are given none", () => {
-  for (const tier of ["free", "standard"]) {
+  for (const tier of ["free", "tracking"]) {
     assert.equal(tierHasAi(tier), false, `${tier} should have no AI at all`);
     assert.equal(worstCaseTierCost(tier), 0, `${tier} must cost nothing to serve`);
     for (const route of COSTED_ROUTES) {

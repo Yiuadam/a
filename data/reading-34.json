@@ -1,0 +1,129 @@
+{
+  "id": "reading-34",
+  "title": "Meadowcross Hotel",
+  "topic": "A hotel's induction training note on food hygiene and fire safety, and a job advertisement for a front desk assistant",
+  "variant": "general",
+  "difficulty": "medium",
+  "level": "B1",
+  "timeMinutes": 20,
+  "passage": "TEXT A — MEADOWCROSS HOTEL: INDUCTION TRAINING NOTE (FOOD HYGIENE AND FIRE SAFETY)\n\nAll new employees, whatever their department, attend this half-day session on their first working day before starting any duties. The morning covers food hygiene and applies to every role that may come into contact with the hotel's kitchens or restaurant, including housekeeping and maintenance staff who might be called to those areas. Trainees learn the four steps of safe food handling used throughout the hotel: cleaning surfaces and hands, keeping raw and cooked food separate, cooking food to the correct temperature, and chilling perishable items promptly rather than leaving them at room temperature. A short written quiz follows this section, and anyone who does not pass is offered a second attempt the following week rather than being marked as having failed the induction outright. Kitchen and restaurant staff additionally complete a short online allergen course within their first month, covering the fourteen allergens that must be declared on any dish containing them. Staff who work solely at the front desk or in the offices still attend the full morning, since guests sometimes ask reception staff about allergens listed on the restaurant menu and every employee should know where to direct such a question. After a break, the afternoon session covers fire safety, led by the hotel's appointed fire officer. Staff are shown the location of the nearest fire exit from their usual work area and are told never to use a lift during an evacuation, since lifts can fail or become trapped between floors during a fire. The assembly point for the whole hotel is the car park opposite the main entrance, and staff are asked to remain there until a manager has confirmed that everyone on duty has been accounted for. Fire drills are held every six months without warning, so that the response they test is the one staff would actually give in a real emergency rather than one they had prepared for in advance. A laminated summary of both sessions is given to every new starter to keep in their locker, and staff are encouraged to re-read it after any change to their usual work area.\n\nTEXT B — JOB ADVERTISEMENT: FRONT DESK ASSISTANT, MEADOWCROSS HOTEL\n\nMeadowcross Hotel is looking for a Front Desk Assistant to join its reception team, working a mixture of early and late shifts across a seven-day rota, including some weekends. A three-month probationary period applies to the role, during which either side may end the arrangement with one week's notice; performance is reviewed informally at six weeks and formally at the end of the three months. Duties include checking guests in and out, taking phone and email bookings, handling cash and card payments, and dealing politely with guest requests and occasional complaints. Previous hotel experience is welcomed but not required, as the successful candidate will shadow a senior member of the team for their first two weeks before working independently. A good telephone manner and a calm approach under pressure matter more to us than formal qualifications, though a basic level of spoken and written English sufficient for guest-facing work is essential. The role pays £10.90 an hour, plus a share of the hotel's monthly service charge, which typically adds £40 to £70 to a full-time employee's pay depending on how busy the hotel has been. Uniforms are provided and laundered by the hotel free of charge. Meals are available at a reduced staff rate during any shift longer than six hours, and staff parking is available on a first-come, first-served basis in a small yard behind the building rather than in the main guest car park. Interested applicants should bring a CV to reception and ask for the duty manager, who conducts a short informal interview on the spot whenever possible rather than asking candidates to return on a separate day. References covering the previous two years of employment are requested once an informal offer has been made, and the role is expected to start within a fortnight of an offer being accepted.",
+  "questions": [
+    {
+      "instruction": "Look at the following descriptions and the list below. Match each description with the correct topic from the induction note, A-E.",
+      "sharedOptions": [
+        { "key": "A", "text": "Cleaning" },
+        { "key": "B", "text": "Separating raw and cooked food" },
+        { "key": "C", "text": "Cooking" },
+        { "key": "D", "text": "Chilling" },
+        { "key": "E", "text": "Fire safety" }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "Keeping food that has not yet been cooked away from food that has",
+          "answer": "B",
+          "explanation": "Text A lists \"keeping raw and cooked food separate\" as the second of the four steps of safe food handling."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "Heating food to a high enough temperature",
+          "answer": "C",
+          "explanation": "Text A lists \"cooking food to the correct temperature\" among the four steps."
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "Not leaving food that spoils easily out at room temperature",
+          "answer": "D",
+          "explanation": "Text A: the fourth step is \"chilling perishable items promptly rather than leaving them at room temperature.\""
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "Covered in the session held after the break",
+          "answer": "E",
+          "explanation": "Text A says \"after a break, the afternoon session covers fire safety, led by the hotel's appointed fire officer.\""
+        }
+      ]
+    },
+    {
+      "instruction": "Do the following statements agree with the information given in the texts? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "The induction session takes place before new staff begin any of their duties.",
+          "answer": "TRUE",
+          "explanation": "Text A: new employees attend the session \"on their first working day before starting any duties.\""
+        },
+        {
+          "id": "q6",
+          "type": "tfng",
+          "statement": "Staff who fail the food hygiene quiz are recorded as having failed the whole induction.",
+          "answer": "FALSE",
+          "explanation": "Text A says a candidate who fails is \"offered a second attempt the following week rather than being marked as having failed the induction outright.\""
+        },
+        {
+          "id": "q7",
+          "type": "tfng",
+          "statement": "Staff are told to use the nearest lift if it is available during an evacuation.",
+          "answer": "FALSE",
+          "explanation": "Text A states staff are told \"never to use a lift during an evacuation\", the opposite of the statement."
+        },
+        {
+          "id": "q8",
+          "type": "tfng",
+          "statement": "Fire drills always happen at the same time of day.",
+          "answer": "NOT GIVEN",
+          "explanation": "Text A says drills happen \"every six months without warning\" but never states what time of day they occur."
+        },
+        {
+          "id": "q9",
+          "type": "tfng",
+          "statement": "The Front Desk Assistant role involves working every weekend.",
+          "answer": "FALSE",
+          "explanation": "Text B says the role includes \"some weekends\", not every weekend, so the statement overstates what is asked."
+        }
+      ]
+    },
+    {
+      "instruction": "Complete the sentences below. Write NO MORE THAN TWO WORDS OR A NUMBER from Text B for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "completion",
+          "sentence": "New front desk staff shadow a senior colleague for their first ___.",
+          "answer": "two weeks",
+          "maxWords": 2,
+          "explanation": "Text B: the successful candidate will \"shadow a senior member of the team for their first two weeks before working independently.\""
+        },
+        {
+          "id": "q11",
+          "type": "completion",
+          "sentence": "The monthly service charge typically adds between £40 and ___ to a full-time employee's pay.",
+          "answer": "£70",
+          "maxWords": 1,
+          "explanation": "Text B: the service charge \"typically adds £40 to £70 to a full-time employee's pay depending on how busy the hotel has been.\""
+        },
+        {
+          "id": "q12",
+          "type": "completion",
+          "sentence": "___ are provided and laundered by the hotel free of charge.",
+          "answer": "Uniforms",
+          "maxWords": 1,
+          "explanation": "Text B states directly: \"Uniforms are provided and laundered by the hotel free of charge.\""
+        },
+        {
+          "id": "q13",
+          "type": "completion",
+          "sentence": "Staff can buy meals at a reduced rate during any shift longer than ___ hours.",
+          "answer": "six",
+          "maxWords": 1,
+          "explanation": "Text B: meals are available at a reduced rate \"during any shift longer than six hours.\""
+        }
+      ]
+    }
+  ]
+}

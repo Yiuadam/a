@@ -95,7 +95,7 @@ function seed(database, { usageEvents = 3 } = {}) {
   }
   database.prepare(`
     INSERT INTO subscriptions (id,user_id,provider,status,tier,verified_at,created_at,updated_at)
-    VALUES ('subscription-1', ?, 'stripe', 'active', 'pro', ?, ?, ?)
+    VALUES ('subscription-1', ?, 'stripe', 'active', 'ai', ?, ?, ?)
   `).run(USERS[0], UPDATED, CREATED, UPDATED);
   database.prepare(`
     INSERT INTO provider_events (provider,event_id,received_at,processed_at)

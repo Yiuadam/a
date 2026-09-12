@@ -101,19 +101,25 @@ export default function LockedCard({
 }) {
   /*
     On iOS a locked card leads to the account rather than to a price list —
-    /pricing is not in that bundle, and a card that says "On Standard" over a
+    /pricing is not in that bundle, and a card that says "On Tracking" over a
     tappable route to a checkout is the shape review looks for. It still says
     it is locked, which is the honest half. See lib/platform.ts.
+
+    "subscribe" is not reachable through any skill or drill any more — every
+    signed-in tier unlocks everything in lib/entitlements/sessions.ts and
+    lib/entitlements/drills.ts — but the type still allows it, so the copy
+    stays truthful rather than stale in case something else locks behind a
+    paid tier again.
   */
   const href = reason === "sign-in" || IS_MOBILE_BUILD ? "/account" : "/pricing";
   const line =
-    reason === "sign-in" ? "Sign in to unlock" : IS_MOBILE_BUILD ? "Not on your plan" : "On Standard";
+    reason === "sign-in" ? "Sign in to unlock" : IS_MOBILE_BUILD ? "Not on your plan" : "On Tracking";
   /** The corner chip's word. A card has room for one, not for a sentence. */
-  const short = reason === "sign-in" ? "Sign in" : IS_MOBILE_BUILD ? "Locked" : "Standard";
+  const short = reason === "sign-in" ? "Sign in" : IS_MOBILE_BUILD ? "Locked" : "Tracking";
   const said =
     reason === "sign-in"
       ? `${label}. Locked — sign in with a free account to unlock.`
-      : `${label}. Locked — included with Standard.`;
+      : `${label}. Locked — included with Tracking.`;
 
   /*
     The dimmed content, the tint, and the plate — the three layers, written

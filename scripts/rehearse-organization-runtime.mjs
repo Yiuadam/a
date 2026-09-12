@@ -104,7 +104,7 @@ try {
     INSERT INTO subscriptions (
       id, user_id, provider, status, tier, current_period_end,
       verified_at, created_at, updated_at
-    ) VALUES (?, ?, 'stripe', 'active', 'plus', ?, ?, ?, ?)
+    ) VALUES (?, ?, 'stripe', 'active', 'ai', ?, ?, ?, ?)
   `).bind(
     crypto.randomUUID(), student.id, "2027-08-12T00:00:00.000Z",
     "2026-08-12T00:00:00.000Z", "2026-08-12T00:00:00.000Z",

@@ -145,9 +145,8 @@ export function limitsForDatabase(): Record<string, unknown> {
 
     // Fail-closed fallback for a database still on the pre-0012 function.
     free: 0,
-    standard: 0,
-    plus: 0,
-    pro: 0,
+    tracking: 0,
+    ai: 0,
     admin: null,
 
     anonymous: ANONYMOUS_DAILY_AI_CALLS,

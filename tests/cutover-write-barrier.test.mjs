@@ -564,7 +564,7 @@ test("lib/billing/subscriptions.ts: every Stripe applier throws (caught by the w
       calls.length = 0;
       await assert.rejects(() => subscriptions.applyStripeSubscription({
         eventId: "evt-1", eventAt: "2026-08-15T00:00:00.000Z", userId: USER_ID,
-        status: "active", tier: "plus", customerId: "cus_1", subscriptionId: "sub_1",
+        status: "active", tier: "ai", customerId: "cus_1", subscriptionId: "sub_1",
         priceId: "price_1", currentPeriodEnd: "2027-08-15T00:00:00.000Z", cancelAtPeriodEnd: false,
       }, {}));
       assert.equal(calls.length, 0);
@@ -572,7 +572,7 @@ test("lib/billing/subscriptions.ts: every Stripe applier throws (caught by the w
       calls.length = 0;
       await assert.rejects(() => subscriptions.applyStripePrepaidPurchase({
         eventId: "evt-2", eventAt: "2026-08-15T00:00:00.000Z", userId: USER_ID,
-        tier: "plus", planId: "plan_1", customerId: "cus_1", paymentIntentId: "pi_1", interval: "month",
+        tier: "ai", planId: "plan_1", customerId: "cus_1", paymentIntentId: "pi_1", interval: "month",
       }, {}));
       assert.equal(calls.length, 0);
 

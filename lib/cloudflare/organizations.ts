@@ -1,4 +1,5 @@
 import type { SessionUser } from "@/lib/auth/session";
+import { canonicalTier } from "@/lib/billing/tiers";
 import type { ModuleResult } from "@/lib/types";
 import type { HomeOrganizationShortcut } from "@/lib/dashboard-home";
 import {
@@ -178,8 +179,8 @@ function summary(row: OrganizationRow | MembershipRow): OrganizationSummary {
   };
 }
 
-function paidTier(tier: string): tier is "standard" | "plus" | "pro" | "admin" {
-  return tier === "standard" || tier === "plus" || tier === "pro" || tier === "admin";
+function paidTier(tier: string): tier is "tracking" | "ai" | "admin" {
+  return tier === "tracking" || tier === "ai" || tier === "admin";
 }
 
 async function actorTier(db: Db, user: SessionUser, platformAdmin: boolean) {
@@ -191,11 +192,21 @@ async function actorTier(db: Db, user: SessionUser, platformAdmin: boolean) {
      WHERE user_id = ?
        AND status IN ('active', 'trialing')
        AND (current_period_end IS NULL OR current_period_end > ?)
-     ORDER BY CASE tier WHEN 'pro' THEN 3 WHEN 'plus' THEN 2 WHEN 'standard' THEN 1 ELSE 0 END DESC,
+     ORDER BY CASE tier
+                WHEN 'ai' THEN 2 WHEN 'pro' THEN 2 WHEN 'plus' THEN 2
+                WHEN 'tracking' THEN 1 WHEN 'standard' THEN 1
+                ELSE 0 END DESC,
               verified_at DESC
      LIMIT 1
   `).bind(user.id, stamp).first<{ tier: string }>();
-  return active && paidTier(active.tier) ? active.tier : "free";
+  /*
+    Rows written before the rename still spell the retired names — see
+    LEGACY_TIER_ALIASES in lib/billing/tiers.ts — and must rank and count as
+    what they now mean, or a paid-up learner is turned away from their own
+    organisation until the stored value catches up.
+  */
+  const tier = active ? canonicalTier(active.tier) : "free";
+  return paidTier(tier) ? tier : "free";
 }
 
 function membershipFrom(row: MembershipRow, latestRequests: Map<string, OrganizationRequest["status"]>) {
@@ -656,7 +667,7 @@ export async function cloudflareOrganizationPortal(
     },
     eligibility: {
       canJoin: eligible,
-      reason: eligible ? null : "A Standard, Plus or Pro plan, or an organisation seat, is required to join as a student.",
+      reason: eligible ? null : "A Tracking or AI plan, or an organisation seat, is required to join as a student.",
     },
     canClearOwnHistory: !memberships.some((membership) =>
       membership.role === "student"

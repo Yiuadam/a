@@ -40,8 +40,8 @@ const END = "2026-09-17T04:00:00+00:00";
 function grant(over = {}) {
   return {
     provider: "stripe",
-    tier: "plus",
-    priceId: "price_live_plus_monthly",
+    tier: "tracking",
+    priceId: "price_live_tracking_monthly",
     currentPeriodEnd: END,
     cancelAtPeriodEnd: false,
     ...over,
@@ -62,7 +62,7 @@ test("a wallet pass is told from a subscription by the marker the database write
   assert.match(sql, /'wallet:' \|\| p_plan_id/);
   assert.match(sql, /external_price_id like 'wallet:%'/);
 
-  assert.equal(isPassGrant(grant({ priceId: "wallet:plus-monthly" })), true);
+  assert.equal(isPassGrant(grant({ priceId: "wallet:tracking-monthly" })), true);
   assert.equal(isPassGrant(grant()), false);
   assert.equal(isPassGrant(grant({ priceId: null })), false);
 });
@@ -70,10 +70,10 @@ test("a wallet pass is told from a subscription by the marker the database write
 test("only a live subscription renews", () => {
   assert.equal(grantRenews(grant()), true);
   // A pass: paid once, nothing scheduled.
-  assert.equal(grantRenews(grant({ priceId: "wallet:plus-yearly" })), false);
+  assert.equal(grantRenews(grant({ priceId: "wallet:tracking-yearly" })), false);
   // Cancelled, still inside the period it paid for.
   assert.equal(grantRenews(grant({ cancelAtPeriodEnd: true })), false);
-  // The free Pro trial is a grant rather than a purchase.
+  // The free AI trial is a grant rather than a purchase.
   assert.equal(grantRenews(grant({ provider: "promo" })), false);
   // An App Store subscription renews in Apple rather than in Stripe, and it does
   // renew — nothing here may read it as a pass.
@@ -84,10 +84,10 @@ test("only a live subscription renews", () => {
 
 test("the row is found by matching the entitlement, not by re-sorting the rows", () => {
   const subscription = grant();
-  const pass = grant({ priceId: "wallet:pro-monthly", tier: "pro", currentPeriodEnd: END });
+  const pass = grant({ priceId: "wallet:ai-monthly", tier: "ai", currentPeriodEnd: END });
 
-  assert.equal(entitlementRenews({ tier: "plus", expiresAt: END }, [subscription, pass]), true);
-  assert.equal(entitlementRenews({ tier: "pro", expiresAt: END }, [subscription, pass]), false);
+  assert.equal(entitlementRenews({ tier: "tracking", expiresAt: END }, [subscription, pass]), true);
+  assert.equal(entitlementRenews({ tier: "ai", expiresAt: END }, [subscription, pass]), false);
 });
 
 test("the two timestamps are compared as instants, not as strings", () => {
@@ -97,31 +97,31 @@ test("the two timestamps are compared as instants, not as strings", () => {
     obliged to spell the offset the way the other does.
   */
   assert.equal(
-    entitlementRenews({ tier: "plus", expiresAt: "2026-09-17T04:00:00Z" }, [grant()]),
+    entitlementRenews({ tier: "tracking", expiresAt: "2026-09-17T04:00:00Z" }, [grant()]),
     true,
   );
 });
 
 test("an unexplainable date claims nothing rather than guessing", () => {
   // No rows at all: the read failed, or the row moved on since.
-  assert.equal(entitlementRenews({ tier: "plus", expiresAt: END }, []), null);
+  assert.equal(entitlementRenews({ tier: "tracking", expiresAt: END }, []), null);
   // A row for another tier, or another date, is not this entitlement's row.
-  assert.equal(entitlementRenews({ tier: "plus", expiresAt: END }, [grant({ tier: "pro" })]), null);
+  assert.equal(entitlementRenews({ tier: "tracking", expiresAt: END }, [grant({ tier: "ai" })]), null);
   assert.equal(
-    entitlementRenews({ tier: "plus", expiresAt: END }, [
+    entitlementRenews({ tier: "tracking", expiresAt: END }, [
       grant({ currentPeriodEnd: "2027-01-01T00:00:00+00:00" }),
     ]),
     null,
   );
   // Nothing to explain.
   assert.equal(entitlementRenews({ tier: "free", expiresAt: null }, [grant()]), null);
-  assert.equal(entitlementRenews({ tier: "plus", expiresAt: "not a date" }, [grant()]), null);
+  assert.equal(entitlementRenews({ tier: "tracking", expiresAt: "not a date" }, [grant()]), null);
 });
 
 test("a pass bought on top of a running subscription still means money leaves on that date", () => {
   const subscription = grant();
-  const pass = grant({ priceId: "wallet:plus-monthly" });
-  assert.equal(entitlementRenews({ tier: "plus", expiresAt: END }, [pass, subscription]), true);
+  const pass = grant({ priceId: "wallet:tracking-monthly" });
+  assert.equal(entitlementRenews({ tier: "tracking", expiresAt: END }, [pass, subscription]), true);
 });
 
 /* ------------------------------------------------------- where it is read -- */

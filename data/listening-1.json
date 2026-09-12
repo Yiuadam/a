@@ -20,6 +20,14 @@
     },
     {
       "speaker": "Receptionist",
+      "text": "Lovely, we're always glad to hear from new members. Have you been to the centre before, or would this be your first visit?"
+    },
+    {
+      "speaker": "Caller",
+      "text": "I popped in once last year for a swim, but I've never done one of the classes. A friend of mine comes every week and says it's great fun, so I thought I'd give it a go."
+    },
+    {
+      "speaker": "Receptionist",
       "text": "Of course, no problem at all. I can do that for you over the phone right now. First, could I take a few details? What's your name, please?"
     },
     {
@@ -61,6 +69,14 @@
     {
       "speaker": "Receptionist",
       "text": "The beginners' badminton class. Good choice. It's one of our most popular classes, and there are still a couple of places left this term, so you're just in time."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Is it suitable for a complete beginner? I haven't played badminton since I was at school."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "Absolutely, it's designed with beginners in mind, so nobody will be surprised if you're a bit rusty at first. The coach spends the early weeks just going over the basics before anyone plays a proper match."
     },
     {
       "speaker": "Caller",
@@ -129,6 +145,14 @@
     {
       "speaker": "Caller",
       "text": "Behind the sports hall. Fine, I'll remember that."
+    },
+    {
+      "speaker": "Receptionist",
+      "text": "It's well lit back there in the evenings, so you shouldn't have any trouble finding a space or feeling unsafe walking back to your car afterwards."
+    },
+    {
+      "speaker": "Caller",
+      "text": "Good, that's put my mind at rest. I do sometimes worry about that in winter, when it gets dark so early."
     },
     {
       "speaker": "Receptionist",

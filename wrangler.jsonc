@@ -42,11 +42,26 @@
   "triggers": {
     "crons": ["*/5 * * * *"]
   },
-  "limits": {
-    // Paid Workers allow this explicit 30-second ceiling. It replaces the
-    // Free plan's 10 ms ceiling that terminated ordinary Next.js renders.
-    "cpu_ms": 30000
-  },
+  /*
+    No "limits" block, and staying that way. The account is on the Workers
+    Free plan, which refuses an explicit CPU ceiling outright (error 100328);
+    Free applies its own 10 ms limit instead, with — per Cloudflare's own
+    documentation — some built-in flexibility for a request that runs over
+    occasionally rather than as a matter of course. Measured on this app's
+    preview: 200-plus page requests and 22 password sign-ins, each carrying
+    roughly 50 ms of bcrypt CPU, all served, none killed.
+
+    Most of what would have spent that budget no longer reaches the Next
+    server at all: every prerendered page answers straight from static assets
+    (open-next.config.ts's cache interception), so the Worker mostly runs the
+    API routes underneath — the AI calls, the account and billing endpoints,
+    the replica drain — rather than rendering React on every request.
+
+    If the account ever moves to Workers Paid, restore this block —
+    "limits": { "cpu_ms": 30000 } — and its test in
+    tests/deploy-config.test.mjs, deliberately, the same way both were
+    removed.
+  */
   "d1_databases": [
     {
       "binding": "BANDUP_DB",

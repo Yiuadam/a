@@ -235,12 +235,10 @@ because Secrets are encrypted at rest and hidden from the dashboard once saved.
 | `APPLE_SIGNIN_PRIVATE_KEY` | Sign in with Apple. The whole `AuthKey_XXXXXXXXXX.p8` file including its BEGIN and END lines; it downloads once and Apple will not reissue it. **These four are not the `APPLE_IAP_*` key above** — that one is an App Store Connect key for in-app purchase, and crossing them produces a client secret Apple rejects without saying why. All four need a paid Apple Developer Program membership; until then no Apple button is offered anywhere and `/api/auth/apple/*` answers 404, which is a working state rather than a broken one. D1 migration `0022_apple_identity.sql` must also be applied — read its header first, it rebuilds a live identity table. Confirm with `curl -s https://bandup.life/api/auth/apple/config`, which should say `"enabled":true`, and with the "Sign in with Apple" row on the owner diagnostics panel |
 | `STRIPE_SECRET_KEY` | subscriptions: creating a Checkout Session and a billing portal session |
 | `STRIPE_WEBHOOK_SECRET` | subscriptions: verifying that a webhook delivery really came from Stripe |
-| `STRIPE_PRICE_STANDARD_MONTHLY` | the Stripe Price id behind Standard, monthly |
-| `STRIPE_PRICE_STANDARD_YEARLY` | the Stripe Price id behind Standard, yearly |
-| `STRIPE_PRICE_PLUS_MONTHLY` | the Stripe Price id behind Plus, monthly |
-| `STRIPE_PRICE_PLUS_YEARLY` | the Stripe Price id behind Plus, yearly |
-| `STRIPE_PRICE_PRO_MONTHLY` | the Stripe Price id behind Pro, monthly |
-| `STRIPE_PRICE_PRO_YEARLY` | the Stripe Price id behind Pro, yearly |
+| `STRIPE_PRICE_TRACKING_MONTHLY` | the Stripe Price id behind Tracking, monthly |
+| `STRIPE_PRICE_TRACKING_YEARLY` | the Stripe Price id behind Tracking, yearly |
+| `STRIPE_PRICE_AI_MONTHLY` | the Stripe Price id behind AI, monthly |
+| `STRIPE_PRICE_AI_YEARLY` | the Stripe Price id behind AI, yearly |
 | `ADMIN_EMAILS` | your own address, so signing in with it makes you the owner. Comma-separate for more than one |
 | `ADMIN_USERNAME` | a name you can type instead of that address at sign-in. Optional |
 
@@ -249,7 +247,7 @@ loads and every page works, and only the AI features answer with an error.
 Missing Stripe variables are similar and deliberately quiet: `/pricing` still
 renders every plan and its price and says subscriptions are not open yet,
 rather than showing a button that fails. A plan whose Price id is missing is
-simply not offered, so it is fine to set Standard up first and add the others
+simply not offered, so it is fine to set Tracking up first and add AI
 later.
 
 Changing any of them takes effect on the next deploy, so click **Deploy** after
@@ -317,7 +315,7 @@ sees.
 
 **1. Create the products and prices — with the script, not by hand.**
 
-There are six prices and each carries nine other currencies, which is sixty
+There are four prices and each carries nine other currencies, which is forty
 amounts to type correctly into a dashboard. Don't. `scripts/stripe-setup.mjs`
 creates all of it from `lib/billing/tiers.ts`, which is the same catalogue the
 pricing page prints and the checkout guard checks against, so the three cannot
@@ -329,10 +327,10 @@ STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs             # then d
 ```
 
 It is idempotent — a Price that is already correct in every currency is left
-alone — and it prints the six `price_…` ids.
+alone — and it prints the four `price_…` ids.
 
 Add `--out stripe-prices.env` and it writes them in the shape Wrangler reads,
-so the six never have to be retyped:
+so the four never have to be retyped:
 
 ```
 STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs --out stripe-prices.env
@@ -340,18 +338,20 @@ npx wrangler secret bulk stripe-prices.env
 rm stripe-prices.env
 ```
 
-Six ids pasted into six dashboard fields is six chances to put Pro's id in
-Standard's slot, which sells the expensive plan at the cheap price. The
+Four ids pasted into four dashboard fields is four chances to put AI's id in
+Tracking's slot, which sells the expensive plan at the cheap price. The
 checkout guard refuses that sale rather than charging wrongly, so it is
 survivable — but not making the mistake is better than catching it.
 
-The base prices, for reference:
+The base prices, for reference. Neither plan sells the practice library
+itself — every reading, listening, writing and speaking paper is free the
+moment somebody signs in. Tracking sells a saved, synced history; AI adds
+marking, a tutor and word lookup on top of Tracking:
 
 | Product | Monthly | Yearly | Variables |
 |---|---|---|---|
-| BandUp Standard | `HK$4.90` | `HK$39` | `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY` |
-| BandUp Plus | `HK$12.90` | `HK$129` | `STRIPE_PRICE_PLUS_MONTHLY`, `STRIPE_PRICE_PLUS_YEARLY` |
-| BandUp Pro | `HK$25.90` | `HK$279` | `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` |
+| BandUp Tracking | `HK$4.90` | `HK$39` | `STRIPE_PRICE_TRACKING_MONTHLY`, `STRIPE_PRICE_TRACKING_YEARLY` |
+| BandUp AI | `HK$8.90` | `HK$89` | `STRIPE_PRICE_AI_MONTHLY`, `STRIPE_PRICE_AI_YEARLY` |
 
 Each Price also carries USD, EUR, GBP, AUD, CAD, SGD, JPY, INR and CNY as
 `currency_options`, so one Price id charges a Londoner in pounds and a Tokyo
@@ -384,19 +384,20 @@ that subscriber costs to serve. There is no purchasing-power discount on the AI
 tiers — the model bill is the same wherever somebody lives, and it is already
 80-95% of the price.
 
-These are not arbitrary numbers, and they have very little room in them. Each
-one is what the tier can be made to cost at full usage — every AI request at its
-ceiling — plus Stripe's 2.9% + 30c, plus a margin of about HK$3 a month, rounded
-up to a price that looks like a price. `tests/ai-economics.test.mjs` fails the
-build if any plan drops below that floor.
+These are not arbitrary numbers, and they have very little room in them. AI is
+cost-plus: what the tier can be made to cost at full usage — every AI request
+at its ceiling — plus Stripe's 2.9% + 30c, plus a margin of at least HK$1 a
+month, rounded up to a price that looks like a price. Tracking costs nothing
+to serve, so its price only has to clear Stripe's own minimum charge.
+`tests/ai-economics.test.mjs` fails the build if AI drops below that floor.
 
-Two consequences worth knowing before you set them. On Standard, Stripe's fixed
-30c is about a third of the charge, so most of what a Standard subscriber pays
-goes to the card network. And HK$3 a month per subscriber does not cover
-Supabase, Cloudflare or the Apple developer programme — what makes the plans
-work is that nobody uses their whole allowance, so a real month costs a fraction
-of the ceiling. The floor guarantees there is never a loss; it is not the
-business case.
+Two consequences worth knowing before you set them. On Tracking, Stripe's
+fixed 30c is a meaningful share of the charge, so a real portion of what a
+Tracking subscriber pays goes to the card network. And HK$1 a month per AI
+subscriber does not cover Supabase, Cloudflare or the Apple developer
+programme — what makes the plan work is that nobody uses their whole
+allowance, so a real month costs a fraction of the ceiling. The floor
+guarantees there is never a loss; it is not the business case.
 
 **2. Add the webhook endpoint.** Developers → Webhooks → Add endpoint, pointing
 at:
@@ -460,6 +461,292 @@ the receipt verification and App Store Server Notifications v2 all still have
 to be built, and all of them need the Mac that everything else in APPSTORE.md
 is waiting on. Until then, `/pricing` says so, and subscribing is a web
 feature.
+
+## Running on the Workers Free plan
+
+The account is staying on the Workers Free plan. This section is what that
+costs, what the code already does about it, the one step still outstanding,
+and what to watch once a change goes live.
+
+### What Free gives, and what it does not
+
+**CPU.** 10 ms per invocation, and no way to raise it — Free refuses an
+explicit `limits.cpu_ms` outright (error 100328). Cloudflare's own
+documentation describes some built-in flexibility for a request that goes
+over occasionally rather than as a matter of course, and Error 1102 for one
+that keeps doing it. Measured on this branch's preview: 200-plus page
+requests and 22 password sign-ins, each carrying roughly 50 ms of bcrypt CPU,
+were all served, and none were killed.
+
+**Subrequests.** 50 external `fetch` calls plus 1,000 calls to Cloudflare's
+own services (D1, R2) per invocation, per the Workers limits page and its
+2026-02-11 changelog entry — though D1's own limits page still quotes 50, so
+the replica drain below was budgeted against the stricter number rather than
+argue with the discrepancy.
+
+**Requests.** 100,000 a day. Static assets do not count against it, and the
+site serves around 1,900 requests a day, so this is not close to binding.
+
+**Email Sending.** A Workers Paid feature outright. On Free, the
+`send_email` binding can only reach addresses the owner has verified in
+their own Cloudflare account — no use for a learner's inbox.
+
+**Workers AI.** 10,000 Neurons a day, with no overage: a call past it throws
+rather than queues. That is roughly 7,300 characters of `aura-1` speech.
+
+**Cron Triggers and the Rate Limiting binding both work on Free.** The
+five-minute drain has been running throughout and writing its R2 marker, and
+the audio-generation limiter answered `/api/speech-model` with 206, not 503,
+on the preview.
+
+**Script size** is not a limit worth worrying about here: the built Worker is
+2.27 MiB gzipped.
+
+### What the code does about it
+
+`wrangler.jsonc` reflects the CPU point above by no longer setting
+`limits.cpu_ms` at all — see the comment in that file for the fuller
+explanation. Four other changes actually adapt the app's behaviour to the
+plan:
+
+`lib/email/sender.ts` gives the two native-account emails (registration and
+recovery) a second way to send: a Resend transactional call over `fetch`,
+chosen whenever `RESEND_API_KEY` is set. The Cloudflare `send_email` binding
+remains the other provider, so a Paid account keeps working unchanged with
+the key unset.
+
+`open-next.config.ts` turns on the static-assets incremental cache and cache
+interception, so a prerendered page is answered from `ASSETS` before the Next
+server is even loaded — 52 routes, none of which used to be served that way.
+`cf:build` now runs `populateCache` immediately after the build, because the
+cache files never reached `.open-next/assets` on their own; with both in
+place, those pages come back with an `x-opennext-cache: HIT` header proving
+it.
+
+`lib/cloudflare/scheduled-replica-drain.ts`, together with
+`lib/cloudflare/replica-outbox.ts`, sizes the five-minute drain tick to fit
+inside 50 subrequests rather than the 1,000 it used to assume: one outbox
+row, three cleanup keys and one nested cleanup key per tick, a worst case of
+38. See that file's own comment for the arithmetic behind each number.
+
+`lib/examiner-audio.ts` caches the live examiner's Part 3 reaction line in R2
+the same way the three scripted audio routes already cache theirs, keyed on
+the model, the voice and the words. `app/api/speaking/examiner-line/route.ts`
+answers 503 with one structured log line reading `examiner tts unavailable`
+when the Workers AI call itself fails — the daily Neuron ceiling, most
+likely — and the client already treats any non-2xx from that route as
+"unavailable" and drops to the device voice.
+
+### Setting up Resend
+
+The one step still outstanding, and the owner's to do. Until it is done,
+password sign-up answers 503 and a recovery request silently sends nothing;
+Google sign-in is unaffected either way.
+
+1. Create a Resend account.
+2. Add `bandup.life` as a sending domain, and add the DKIM, SPF and DMARC
+   records Resend gives you for it — the zone is on Cloudflare DNS.
+3. Create an API key with sending permission.
+4. Store it on the Worker: `npx wrangler versions secret put RESEND_API_KEY`.
+   This is the `versions secret` form rather than plain `secret put` —
+   see **What makes it deploy** above for why a preview being the newest
+   version makes plain `secret put` refuse with error 10215, and for what it
+   takes to actually activate a secret staged this way.
+5. Verify it: sign up with a password on the preview and confirm the
+   confirmation email arrives, then ask for a password recovery and confirm
+   that arrives too.
+
+### What to watch
+
+- **Workers Logs**, filtered to `examiner tts unavailable` — the day's
+  Neuron ceiling is spent, and learners hear the device voice instead of the
+  live examiner until it resets at midnight UTC.
+- **Observability**, filtered to outcome `exceededCpu` — this is what a 1102
+  looks like from the dashboard rather than from a learner's report.
+- **`/api/replica/health`** — already green, and worth an occasional glance
+  rather than trusting only the hourly check that already watches it.
+- **The daily request count**, against the 100,000 ceiling. Static assets are
+  free, so this is really a count of API and dynamic-page traffic.
+
+### Known limits on Free
+
+- A handful of admin tools can, under a strict reading that counts D1 and R2
+  operations as subrequests, exceed 50 in one call. Run them accordingly:
+  `/api/admin/cloudflare/backfill` with `applyLimit` kept at 10 or below;
+  `/api/admin/cloudflare/entitlement-parity` paged with a smaller `limit`
+  (it costs about two subrequests per account examined, which is roughly 72
+  for today's ~35 users at the default page size); `/api/admin/cloudflare/readiness`
+  called with `payloadParity=all` or `avatarObjectParity` only alongside a
+  small `payloadParityRows`/`avatarParityRows`/`avatarParityBytes`; and the
+  manual drain, `POST /api/admin/cloudflare/replica-outbox`, with `limit` at
+  2 or below.
+- Ordinary learner traffic stays well inside 50 on the same strict reading,
+  with one near-miss: `PUT /api/account/progress` for a Tracking or AI
+  subscriber with several reviewed sittings can reach about 51. The overflow
+  sits inside `after()`, so the learner still gets their 200 and the
+  organisation-ledger chores it triggers simply retry on the next call.
+- A latent bug, unrelated to the plan but worth listing here because it is
+  also a D1 limit: `feedbackForAttempts` and `studentsFor` in
+  `lib/cloudflare/organizations.ts` (around lines 498–506 and 572–581) each
+  bind one id per stored attempt or per student into a single query, and D1
+  caps bound parameters at 100. A student with 99 or more stored attempts, or
+  a class of 99 or more students, would 500. Not yet fixed.
+- A backlog much larger than anything seen so far drains slowly by design:
+  12 outbox rows an hour. See `lib/cloudflare/scheduled-replica-drain.ts` for
+  why that trade was made deliberately rather than sized for a bigger one.
+- Moving back to Workers Paid is two edits: restore `"limits": { "cpu_ms":
+  30000 }` in `wrangler.jsonc` and its test in `tests/deploy-config.test.mjs`,
+  and — optionally, since the Cloudflare binding still works once Paid lifts
+  the address restriction — remove `RESEND_API_KEY`.
+
+## Cutting over to Tracking and AI
+
+The three retired tier names — `standard`, `plus`, `pro` — are being replaced by
+two: `tracking` (the old Standard price; history and sync) and `ai` (marking,
+tutor, lookup, and everything Tracking has). The mapping is fixed:
+`standard` → `tracking`, `plus` and `pro` → `ai`. This section is the order to
+do it in on the real Cloudflare account and the real Stripe account — nothing
+here is previewable, because a preview runs against the same D1 database and
+the same Stripe keys as production (see the note at the top of this file). Do
+not skip a step or reorder one; each explains why below it.
+
+**1. Pre-flight, read-only. [anyone with wrangler]**
+
+```bash
+npx wrangler d1 execute BANDUP_DB --remote --command "SELECT tier, provider, status, COUNT(*) FROM subscriptions GROUP BY 1,2,3"
+```
+
+As of today this returns three rows, all `tier='pro'`, `status='active'`: two
+`provider='promo'` (free trials) and one `provider='stripe'` — a real Pro
+**yearly** subscription, `price_1U2wIuIQuaS8SvAv6TzamEh6`, renewing
+2027-08-11. Seeing `pro`, `plus`, or `standard` rows here is expected, not a
+problem — step 6 renames them, and until then the running code (old or new)
+already knows how to treat them, so nothing breaks in between.
+
+Also check the Stripe dashboard: **Products → BandUp Standard / BandUp Plus /
+BandUp Pro → each Price → active subscriptions**. The one to expect is that
+same Pro yearly subscription. The new code will map it to AI on its very next
+webhook event (a renewal, a card update, anything that fires
+`customer.subscription.updated`) — decide now whether to leave it, cancel it,
+or refund it if it turns out to be your own test subscription, because once
+the new code is live that decision is effectively made for you.
+
+**2. Mint the Tracking and AI prices. [owner — needs the Stripe live key]**
+
+From the repo root, **with this branch checked out** — the script builds
+whatever `lib/billing/tiers.ts` defines on the branch you're standing on, and
+on `main` today that is still the old Standard/Plus/Pro catalogue:
+
+```bash
+STRIPE_SECRET_KEY=sk_live_... node scripts/stripe-setup.mjs --out stripe-prices.env
+```
+
+The key is typed into your own shell and goes nowhere else — the script only
+ever sends it to `api.stripe.com`. `stripe-prices.env` is not committed
+(`.gitignore` in this repo does not currently list it by name, so double-check
+`git status` shows it untracked, and delete it once step 3 is done regardless).
+
+Re-running this command is safe — a Price already correct in every currency is
+left alone — with one timing caveat: Stripe's product search lags a few
+seconds after a product is first created, so if you run it twice, wait at
+least a minute between runs or the second run may not find what the first one
+just made and try to create it again.
+
+**3. Upload the four secrets. [anyone with wrangler]**
+
+```bash
+npx wrangler versions secret bulk stripe-prices.env
+rm stripe-prices.env
+```
+
+Plain `wrangler secret bulk` (and `secret put`) is refused with Cloudflare
+error 10215 whenever the newest uploaded version is undeployed — which is the
+normal state here, since every PR preview leaves exactly such a version behind.
+`versions secret bulk` sidesteps that: it creates a new, still-undeployed
+version carrying the four new `STRIPE_PRICE_TRACKING_*` / `STRIPE_PRICE_AI_*`
+secrets. **Do not deploy that version on its own** — see the warning earlier in
+this file about what "the latest version" actually contains with a preview
+open. The next real deploy (step 4) picks the secrets up as part of shipping
+the new code, which is the only reason this ordering is safe.
+
+Leave the old `STRIPE_PRICE_STANDARD_*` / `STRIPE_PRICE_PLUS_*` /
+`STRIPE_PRICE_PRO_*` secrets in place for now — the code still running in
+production is the *old* code until step 4, and it still reads them. Removing
+them before then would take checkout down early for no benefit.
+
+**4. Merge and deploy. [owner — deploy button]**
+
+Merge the PR(s) that carry the new tier catalogue and this runbook, then run
+**Actions → Deploy to Cloudflare → Run workflow**. Until this deploy actually
+ships, the secrets uploaded in step 3 are inert — nothing reads them yet.
+
+**5. Verify.**
+
+```bash
+curl -s https://bandup.life/api/billing/health
+curl -s https://bandup.life/api/billing/config
+```
+
+`health` should say `"ok":true`. `config` should say `"checkout":true` and
+list all four plan ids (`tracking-monthly`, `tracking-yearly`, `ai-monthly`,
+`ai-yearly`) under `"plans"`. Load `/pricing` and confirm both plans show a
+working Subscribe button rather than "subscriptions are not open yet".
+
+**6. Rename the legacy D1 and Postgres rows. [owner — Supabase dashboard for
+the Postgres half; anyone with wrangler for the D1 half]**
+
+**Only after step 4 is live — never before.** The *old* code's entitlement
+resolver maps any tier it doesn't recognise to `free`, so renaming a row to
+`ai` while the old code is still deployed would silently demote that account
+to Free until the new deploy landed. Do D1 first, then Postgres:
+
+```bash
+npx wrangler d1 execute BANDUP_DB --remote --file=scripts/hand-run-tracking-and-ai-tiers-on-d1.sql
+```
+
+That file ends with its own verification `SELECT`, so read its output before
+moving on. Then, for Postgres — which is not on the live billing path today
+but is kept in step for parity and as a rollback path — paste
+`supabase/migrations/0032_tracking_and_ai_tiers.sql` into the Supabase SQL
+editor (or run `supabase db push` against a linked project). **Say plainly to
+yourself before running it: this changes production the instant it runs,**
+the same as any other statement typed directly into that editor. The migration
+renames the legacy `standard`/`plus`/`pro` rows to `tracking`/`ai` before it
+adds its `CHECK` constraint, which is what lets it run at all against the real
+data — a version of it that added the constraint first would abort against the
+Pro rows described in step 1.
+
+Little depends on this step happening promptly: the running code aliases the
+legacy names to the right tier for entitlements, AI allowances, history and
+organisation eligibility, so no learner loses anything between step 4 and step
+6. What does still read the stored name until then is display: the owner
+console labels the account "Pro plan", and the billing page prints the renewal
+date without saying whether it renews. Run step 6 straight after step 5 and
+neither is seen.
+
+**7. Clean up. [anyone with wrangler for the secrets; owner for the Stripe
+dashboard]**
+
+```bash
+npx wrangler versions secret delete STRIPE_PRICE_STANDARD_MONTHLY
+npx wrangler versions secret delete STRIPE_PRICE_STANDARD_YEARLY
+npx wrangler versions secret delete STRIPE_PRICE_PLUS_MONTHLY
+npx wrangler versions secret delete STRIPE_PRICE_PLUS_YEARLY
+npx wrangler versions secret delete STRIPE_PRICE_PRO_MONTHLY
+npx wrangler versions secret delete STRIPE_PRICE_PRO_YEARLY
+```
+
+(`versions secret delete` exists alongside `put`, `bulk`, and `list` — checked
+locally with `npx wrangler versions secret --help`. It stages a new undeployed
+version without those six secrets, exactly as `versions secret bulk` staged
+one with the four new ones in step 3, and takes effect on the next real
+deploy — which is fine, because nothing on the new code reads them.)
+
+Finally, in the Stripe dashboard, archive the old **BandUp Standard**,
+**BandUp Plus**, and **BandUp Pro** Products (Products → each one → Archive).
+`scripts/stripe-setup.mjs` only ever creates and amends the Tracking/AI
+catalogue — it does not touch these, so archiving the old ones is a manual,
+one-time step.
 
 ## Deploying by hand
 

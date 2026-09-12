@@ -1092,6 +1092,421 @@
       "prompt": "Some people believe that advertising aimed at children should be banned altogether. Others argue that it is a normal part of business, and that parents rather than governments should decide what their children see.\n\nDiscuss both views and give your own opinion.\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
       "minWords": 250,
       "timeMinutes": 40
+    },
+    {
+      "id": "w41",
+      "task": 1,
+      "variant": "academic",
+      "type": "plan",
+      "title": "A fishing village seafront, 1980 and today",
+      "level": "B2",
+      "prompt": "The plans below show the seafront of a fishing village in 1980 and the same seafront today.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "plans": [
+        {
+          "caption": "1980",
+          "figure": {
+            "kind": "plan",
+            "areas": [
+              {
+                "x": 6,
+                "y": 8,
+                "w": 88,
+                "h": 16,
+                "label": "Sea"
+              },
+              {
+                "x": 6,
+                "y": 26,
+                "w": 30,
+                "h": 18,
+                "label": "Fishing sheds"
+              },
+              {
+                "x": 40,
+                "y": 26,
+                "w": 24,
+                "h": 18,
+                "label": "Harbour"
+              },
+              {
+                "x": 68,
+                "y": 26,
+                "w": 26,
+                "h": 18,
+                "label": "Boatyard"
+              },
+              {
+                "x": 6,
+                "y": 52,
+                "w": 40,
+                "h": 20,
+                "label": "Cottages"
+              },
+              {
+                "x": 52,
+                "y": 52,
+                "w": 42,
+                "h": 20,
+                "label": "Farmland"
+              },
+              {
+                "x": 6,
+                "y": 78,
+                "w": 88,
+                "h": 10,
+                "label": "Coast road"
+              }
+            ],
+            "routes": [
+              {
+                "points": [
+                  {
+                    "x": 50,
+                    "y": 78
+                  },
+                  {
+                    "x": 50,
+                    "y": 44
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "caption": "Today",
+          "figure": {
+            "kind": "plan",
+            "areas": [
+              {
+                "x": 6,
+                "y": 8,
+                "w": 88,
+                "h": 16,
+                "label": "Sea"
+              },
+              {
+                "x": 6,
+                "y": 26,
+                "w": 30,
+                "h": 18,
+                "label": "Marina"
+              },
+              {
+                "x": 40,
+                "y": 26,
+                "w": 24,
+                "h": 18,
+                "label": "Harbour"
+              },
+              {
+                "x": 68,
+                "y": 26,
+                "w": 26,
+                "h": 18,
+                "label": "Café and shops"
+              },
+              {
+                "x": 6,
+                "y": 52,
+                "w": 40,
+                "h": 20,
+                "label": "Cottages"
+              },
+              {
+                "x": 52,
+                "y": 52,
+                "w": 20,
+                "h": 20,
+                "label": "Car park"
+              },
+              {
+                "x": 76,
+                "y": 52,
+                "w": 18,
+                "h": 20,
+                "label": "Flats"
+              },
+              {
+                "x": 6,
+                "y": 78,
+                "w": 88,
+                "h": 10,
+                "label": "Coast road"
+              }
+            ],
+            "routes": [
+              {
+                "points": [
+                  {
+                    "x": 50,
+                    "y": 78
+                  },
+                  {
+                    "x": 50,
+                    "y": 44
+                  }
+                ]
+              },
+              {
+                "points": [
+                  {
+                    "x": 6,
+                    "y": 48
+                  },
+                  {
+                    "x": 94,
+                    "y": 48
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w42",
+      "task": 1,
+      "variant": "academic",
+      "type": "plan",
+      "title": "A primary school site, 2000 and today",
+      "level": "B1",
+      "prompt": "The plans below show a primary school site in 2000 and the same site today.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "plans": [
+        {
+          "caption": "2000",
+          "figure": {
+            "kind": "plan",
+            "areas": [
+              {
+                "x": 8,
+                "y": 10,
+                "w": 36,
+                "h": 24,
+                "label": "Main building"
+              },
+              {
+                "x": 52,
+                "y": 10,
+                "w": 40,
+                "h": 24,
+                "label": "Playing field"
+              },
+              {
+                "x": 8,
+                "y": 42,
+                "w": 36,
+                "h": 22,
+                "label": "Playground"
+              },
+              {
+                "x": 52,
+                "y": 42,
+                "w": 40,
+                "h": 22,
+                "label": "Orchard"
+              },
+              {
+                "x": 8,
+                "y": 72,
+                "w": 84,
+                "h": 10,
+                "label": "School Lane"
+              }
+            ],
+            "routes": [
+              {
+                "points": [
+                  {
+                    "x": 26,
+                    "y": 72
+                  },
+                  {
+                    "x": 26,
+                    "y": 34
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "caption": "Today",
+          "figure": {
+            "kind": "plan",
+            "areas": [
+              {
+                "x": 8,
+                "y": 10,
+                "w": 36,
+                "h": 24,
+                "label": "Main building"
+              },
+              {
+                "x": 52,
+                "y": 10,
+                "w": 40,
+                "h": 24,
+                "label": "Playing field"
+              },
+              {
+                "x": 8,
+                "y": 42,
+                "w": 20,
+                "h": 22,
+                "label": "Playground"
+              },
+              {
+                "x": 32,
+                "y": 42,
+                "w": 12,
+                "h": 22,
+                "label": "Bike store"
+              },
+              {
+                "x": 52,
+                "y": 42,
+                "w": 22,
+                "h": 22,
+                "label": "Science block"
+              },
+              {
+                "x": 78,
+                "y": 42,
+                "w": 14,
+                "h": 22,
+                "label": "Car park"
+              },
+              {
+                "x": 8,
+                "y": 72,
+                "w": 84,
+                "h": 10,
+                "label": "School Lane"
+              }
+            ],
+            "routes": [
+              {
+                "points": [
+                  {
+                    "x": 26,
+                    "y": 72
+                  },
+                  {
+                    "x": 26,
+                    "y": 34
+                  }
+                ]
+              },
+              {
+                "points": [
+                  {
+                    "x": 62,
+                    "y": 72
+                  },
+                  {
+                    "x": 62,
+                    "y": 42
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w43",
+      "task": 1,
+      "variant": "academic",
+      "type": "process",
+      "title": "How glass bottles are recycled",
+      "level": "B1",
+      "prompt": "The diagram below shows how glass bottles are recycled.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "process": {
+        "title": "Recycling glass bottles",
+        "stages": [
+          {
+            "label": "Collection",
+            "note": "bottles taken from household bins"
+          },
+          {
+            "label": "Sorting",
+            "note": "separated by colour"
+          },
+          {
+            "label": "Washing",
+            "note": "labels and lids removed"
+          },
+          {
+            "label": "Crushing",
+            "note": "broken into small pieces, called cullet"
+          },
+          {
+            "label": "Melting",
+            "note": "heated in a furnace at 1,500°C"
+          },
+          {
+            "label": "Moulding",
+            "note": "shaped into new bottles"
+          },
+          {
+            "label": "Filling",
+            "note": "returned to the drinks factory"
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
+    },
+    {
+      "id": "w44",
+      "task": 1,
+      "variant": "academic",
+      "type": "process",
+      "title": "How rainwater is made drinkable",
+      "level": "B2",
+      "prompt": "The diagram below shows how rainwater is collected and treated to make it drinkable.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "process": {
+        "title": "From rainfall to tap",
+        "stages": [
+          {
+            "label": "Rainfall",
+            "note": "collected in an upland reservoir"
+          },
+          {
+            "label": "Screening",
+            "note": "leaves and debris removed"
+          },
+          {
+            "label": "Settling",
+            "note": "heavy particles sink in a still tank"
+          },
+          {
+            "label": "Filtering",
+            "note": "passed through sand and gravel beds"
+          },
+          {
+            "label": "Disinfecting",
+            "note": "chlorine added to kill bacteria"
+          },
+          {
+            "label": "Storage",
+            "note": "held in a covered tank"
+          },
+          {
+            "label": "Distribution",
+            "note": "pumped to homes through mains pipes"
+          }
+        ]
+      },
+      "minWords": 150,
+      "timeMinutes": 20
     }
   ]
 }

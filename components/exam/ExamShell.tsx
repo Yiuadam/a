@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import ExamSettings, { useExamDisplay } from "./ExamSettings";
 import ExamTimer from "./ExamTimer";
@@ -74,6 +75,7 @@ export default function ExamShell({
   onNext,
   onToggleReview,
   topRight,
+  topSummary,
   bottomLeft,
   bottomRight,
   comfortableGutter = false,
@@ -112,6 +114,15 @@ export default function ExamShell({
   bottomRight?: ReactNode;
   /** Anything the section adds beside Settings — Listening puts volume here. */
   topRight?: ReactNode;
+  /**
+   * The band and raw score, shown under the paper title once a paper is
+   * marked. Reading already puts this on the page itself, above the frame
+   * entirely; Listening's equivalent card lives inside the scrolling paper,
+   * below however far the candidate had scrolled when they submitted, which
+   * is not "the top of the result page" from where they were sitting. This
+   * is the one copy of it that is not at the mercy of scroll position.
+   */
+  topSummary?: ReactNode;
   /**
    * Give a page a calmer outer margin without changing the shared exam chrome.
    * Writing opts in because its larger text-entry surfaces otherwise read as
@@ -191,6 +202,32 @@ export default function ExamShell({
   */
   const paperInset = edgeToEdgeOnPhone ? "px-2 py-1 sm:px-4 sm:py-2" : "px-3 py-2 sm:px-4";
 
+  /*
+    Mark where the candidate is on the paper itself, not only in the strip.
+
+    The real exam tints the question you are on, and it earns its keep on a
+    forty-question sitting: the strip tells you the number, the tint tells you
+    which of the six things on screen that number belongs to. Without it a
+    candidate who jumped to 23 lands somewhere in a page of similar-looking
+    blocks and has to count.
+
+    Written onto the DOM rather than passed down as a prop because "where you
+    are" is the shell's idea and nothing on the paper needs to hold it. The
+    paper renders questions; it already stamps each one with the id this looks
+    up (`data-question-id`), which the palette's jumping has depended on since
+    it was written. Passing it down instead would mean threading a prop through
+    both mock modules and into every question so that one of them could change
+    colour.
+  */
+  useEffect(() => {
+    if (!currentId) return;
+    const marked = document.querySelector(`[data-question-id="${CSS.escape(currentId)}"]`);
+    marked?.setAttribute("data-current", "true");
+    return () => {
+      marked?.removeAttribute("data-current");
+    };
+  }, [currentId]);
+
   return (
     <div
       /*
@@ -248,7 +285,16 @@ export default function ExamShell({
       */
       className={`${frameSize} ${frameSurface} flex min-h-0 flex-col overflow-hidden bg-[color:var(--exam-bg)] text-[color:var(--exam-fg)]`}
     >
-      <header className="exam-shell-header exam-glass z-50 m-2 mb-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-b-2 border-b-[color:var(--exam-accent)] px-3 py-1.5 sm:rounded-2xl">
+      {/*
+        Padded to clear its own corners.
+
+        The bar is an inset card with a 16px radius, and it was carrying 12px of
+        horizontal padding — so the first characters of "READING" sat inside the
+        curve rather than beside it, while the controls on the right looked fine
+        because a button brings its own padding. A rounded box needs more inset
+        than a square one before its content stops touching the shape.
+      */}
+      <header className="exam-shell-header exam-glass z-50 m-2 mb-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-b-2 border-b-[color:var(--exam-accent)] px-4 py-2 sm:rounded-2xl sm:px-5">
         {/*
           Where the exam prints the candidate's name and number. There is no
           candidate here, so it says which paper you are on — the same corner,
@@ -261,6 +307,11 @@ export default function ExamShell({
           <div className="exam-paper-title whitespace-nowrap text-[color:var(--exam-muted)]">
             {paper}
           </div>
+          {topSummary && (
+            <div className="mt-1 whitespace-nowrap font-semibold text-[color:var(--exam-accent)]">
+              {topSummary}
+            </div>
+          )}
         </div>
 
         <ExamTimer minutes={minutes} running={running} onExpire={onExpire} endsAt={endsAt} />
@@ -302,7 +353,7 @@ export default function ExamShell({
           onNext={onNext ?? (() => {})}
           onToggleReview={onToggleReview ?? (() => {})}
         />
-      ) : (
+      ) : bottomLeft || bottomRight ? (
         /*
           The bottom inset is the page's to pay now. Capacitor used to have
           WKWebView inset the content for the safe area itself, and it was taken
@@ -321,7 +372,7 @@ export default function ExamShell({
           <div className="min-w-0">{bottomLeft}</div>
           <div className="shrink-0">{bottomRight}</div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -102,7 +102,7 @@ export async function nativeInsertPromoSubscription(
 
   const now = currentCloudflareSourceClock();
   const stored = await promoPayload(userId, {
-    kind: "free-pro-trial",
+    kind: "free-ai-trial",
     acceptedAt: now,
   }, bindings);
 
@@ -113,7 +113,7 @@ export async function nativeInsertPromoSubscription(
         cancel_at_period_end, verified_at,
         raw_inline, raw_object_key, raw_sha256, created_at, updated_at
       )
-      SELECT ?, ?, ?, 'active', 'pro', NULL, 0, ?, ?, ?, ?, ?, ?
+      SELECT ?, ?, ?, 'active', 'ai', NULL, 0, ?, ?, ?, ?, ?, ?
        WHERE EXISTS (
          SELECT 1 FROM app_users
           WHERE id = ? AND deleted_at IS NULL
@@ -200,7 +200,7 @@ export function nativeReleasePromoSubscription(
 ): Promise<NativePromoUpdateOutcome> {
   const now = currentCloudflareSourceClock();
   return updateNativePromo(userId, ["active", "trialing"], RELEASED, {
-    kind: "free-pro-trial",
+    kind: "free-ai-trial",
     releasedAt: now,
   }, providedBindings);
 }
@@ -212,7 +212,7 @@ export function nativeResumePromoSubscription(
 ): Promise<NativePromoUpdateOutcome> {
   const now = currentCloudflareSourceClock();
   return updateNativePromo(userId, [RELEASED], "active", {
-    kind: "free-pro-trial",
+    kind: "free-ai-trial",
     acceptedAt: now,
     restarted: true,
   }, providedBindings);

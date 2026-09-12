@@ -3,24 +3,23 @@
 /*
   Which modules the dashboard shows, and in what order.
 
-  A per-device preference, not account data, and stored the way the theme is
-  stored (lib/theme.ts) for exactly that reason: it describes how this person
-  likes to look at the page on this screen, it is worthless on a server, and
-  losing it costs a learner nothing but a drag. localStorage rather than the
-  progress store keeps it out of sync, out of the export, and out of the
-  account-deletion path, where it would otherwise be one more thing that has to
-  be right.
+  An account preference, and it did not used to be. It was stored the way the
+  theme is stored — localStorage only, on the grounds that it describes how
+  this person likes to look at *this screen* and is worthless on a server. That
+  was wrong about what it is. Somebody who puts the tutor beside their band on
+  a laptop and then opens BandUp on their phone expects the board they
+  arranged, and got the default one.
 
-  The stored value is a list of ids. Order is position on the board and
-  membership is visibility, so "hidden" is simply absence — there is no second
-  flag that can disagree with the list it sits beside.
+  So it lives on the profile, which syncs, and in localStorage as well, which
+  is what makes it survive the moment before the profile has loaded and what
+  makes it work at all signed out. Ids only, and validated on the way in and
+  out — an id this build does not recognise is forgotten, and a module added in
+  a later version stays off the board until it is chosen, which is the polite
+  default for something the learner has already arranged.
 
-  Unknown ids are dropped on read and known-but-absent ids are never added
-  back. That combination is what lets a module be renamed, removed or added in
-  a later version without a migration: an id this build does not recognise is
-  forgotten, and a new module stays off the board until it is chosen, which is
-  the polite default for something the learner has already arranged.
 */
+
+import { PROFILE_STORAGE_KEY } from "@/lib/progress/storage";
 
 export const DASHBOARD_LAYOUT_KEY = "bandup.dashboard.modules";
 
@@ -59,20 +58,20 @@ export const MODULE_LIBRARY = [
     blurb: "Your last six sittings and the band each one earned.",
   },
   {
-    id: "practise",
+    id: "skills",
     /* One word under the preview in the library — see ModuleLibrary. */
     short: "Skills",
     group: "Study",
-    name: "Practise a skill",
-    blurb: "The four exam skills as tiles, for going straight to a paper.",
-  },
-  {
-    id: "study",
-    /* One word under the preview in the library — see ModuleLibrary. */
-    short: "Study",
-    group: "Study",
-    name: "Study the language",
-    blurb: "Grammar and vocabulary drills, with no clock and no band.",
+    name: "Practise or study",
+    /*
+      All six, deliberately in one entry rather than one each for "practise"
+      and "study" — this used to be exactly that pair, and neither was ever
+      wired to a component, so the library filtered both out before anyone
+      could pick them (ModuleLibrary only lists an id the page can actually
+      draw). One working module, matching what the phone's own home page
+      already shows in two sections, replaces two that drew nothing.
+    */
+    blurb: "The four exam skills and the two drills, as one grid of tiles.",
   },
   {
     id: "streak",
@@ -156,8 +155,15 @@ const KNOWN = new Set<string>(MODULE_LIBRARY.map((m) => m.id));
   thanks", and an answered notice that can be put back on a board is a notice
   that asks again. It sits above the board instead, where FreeProPoster's own
   rule about when to draw itself is the only thing deciding whether it appears.
+
+  "skills" in the top-left rather than "plan" or "recent" — the owner's own
+  choice, arranged on a real board first and asked for as the default second.
+  It is the one module that is a way *in* rather than a report on what has
+  already happened, which is the right thing to lead with for an account that
+  has not sat anything yet, where every other module in this default four
+  would otherwise be describing an empty history.
 */
-export const DEFAULT_LAYOUT: ModuleId[] = ["score", "plan", "tutor", "recent"];
+export const DEFAULT_LAYOUT: ModuleId[] = ["skills", "score", "tutor", "week"];
 
 /*
   How many modules the board holds, which is a consequence rather than a taste.
@@ -196,11 +202,46 @@ function parse(raw: string | null): ModuleId[] | null {
 let cache: ModuleId[] | null = null;
 const listeners = new Set<() => void>();
 
+/*
+  The board, read from the account first and from this browser second.
+
+  Both, and in that order, because they answer different questions. The profile
+  is where the arrangement lives — it is a choice about the app, not about this
+  browser, and somebody who arranges the board on a laptop should find it on
+  their phone. localStorage is what makes it survive the moment before the
+  profile has loaded, and what makes it work at all signed out.
+
+  Written to both on every change, so a device that is signed out today and
+  signed in tomorrow carries its arrangement with it rather than losing to an
+  empty account.
+*/
 export function getLayout(): ModuleId[] {
   if (cache) return cache;
   if (typeof window === "undefined") return DEFAULT_LAYOUT;
-  cache = parse(window.localStorage.getItem(DASHBOARD_LAYOUT_KEY)) ?? DEFAULT_LAYOUT;
+  const stored =
+    parse(profileModules()) ?? parse(window.localStorage.getItem(DASHBOARD_LAYOUT_KEY));
+  cache = stored ?? DEFAULT_LAYOUT;
   return cache;
+}
+
+/*
+  Read straight from the stored profile rather than through the store's React
+  hooks: this runs during a render and outside one, and pulling the store in
+  statically would load the whole progress layer to answer one question.
+
+  The key is the store's own, not a second copy of the string — a profile read
+  from the wrong key is silently empty, which looks exactly like a learner who
+  has never arranged the board.
+*/
+function profileModules(): string | null {
+  try {
+    const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!raw) return null;
+    const ids = (JSON.parse(raw) as { dashboardModules?: unknown }).dashboardModules;
+    return Array.isArray(ids) ? JSON.stringify(ids) : null;
+  } catch {
+    return null;
+  }
 }
 
 /* The server renders the default, always, so the markup is stable. */
@@ -226,6 +267,12 @@ export function setLayout(next: readonly ModuleId[]): void {
     /* A private window, or storage the browser has refused. The board still
        works for this visit; it simply will not remember. */
   }
+  /*
+    And onto the profile, which is what syncs. Dynamically imported so this
+    module stays importable from anywhere — the store imports types from here,
+    and a static import back would close the loop.
+  */
+  void import("@/lib/store").then(({ setDashboardModules }) => setDashboardModules(cache ?? []));
   for (const listener of listeners) listener();
 }
 

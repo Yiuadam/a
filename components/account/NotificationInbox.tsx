@@ -7,9 +7,15 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
 } from "react";
 import { accountIdentityComplete, accountUsernameReady } from "@/lib/auth/account-identity";
+import {
+  getFreeProOffer,
+  getFreeProOfferServerSnapshot,
+  subscribeFreeProOffer,
+} from "@/lib/billing/free-pro-offer";
 import {
   fetchNotifications,
   markAllNotificationsRead,
@@ -323,6 +329,42 @@ function ProfileReminder({ compact = false, onOpen }: { compact?: boolean; onOpe
   );
 }
 
+/*
+  The free Pro offer, announced.
+
+  A sibling of ProfileReminder above and deliberately the same shape: a local
+  row that is not a server notification, drawn ahead of the feed and counted as
+  one unread.
+
+  It announces and does not decide. The offer's own terms — that the trial may
+  be cancelled, and that nobody is charged without subscribing — are four
+  sentences that the file offering it insists are not a footnote, and a compact
+  row here is `line-clamp-2` at 12px in a 294px column, which would cut the
+  sentence about money off the end. So this says what is on offer and sends the
+  reader to the page that says it in full, which is also the page the trial is
+  given up on.
+*/
+function FreeProReminder({ compact = false, onOpen }: { compact?: boolean; onOpen?: () => void }) {
+  return (
+    <Link
+      href="/account"
+      onClick={onOpen}
+      className={`block rounded-[var(--radius-lg)] border border-indigo-200/70 bg-indigo-50/35 transition-colors hover:bg-indigo-50/60 ${compact ? "p-2.5" : "p-4"}`}
+    >
+      <span className="flex items-start justify-between gap-3">
+        <span>
+          <span className="block text-sm font-semibold text-slate-900">Pro, free, if you want it</span>
+          <span className={`mt-1 block text-slate-600 ${compact ? "text-xs leading-4" : "text-sm leading-5"}`}>
+            Pro is free on your account, with no card. Open your account to read the offer and
+            start it.
+          </span>
+        </span>
+        <span className="notification-unread-dot mt-1 h-2 w-2 shrink-0 rounded-full" aria-label="Unread" />
+      </span>
+    </Link>
+  );
+}
+
 type NotificationView = "all" | "unread";
 
 function NotificationFilter({
@@ -398,11 +440,14 @@ function NotificationFilter({
 export function NotificationPopover({
   previewRole = null,
   needsSetup,
+  freePro,
   onClose,
   onUnreadCount,
 }: {
   previewRole?: OrganizationLivePreviewRole | null;
   needsSetup: boolean;
+  /* The free Pro offer, announced here as one more local row — see FreeProReminder. */
+  freePro: boolean;
   onClose: () => void;
   onUnreadCount?: (count: number) => void;
 }) {
@@ -453,7 +498,7 @@ export function NotificationPopover({
     }
   }
 
-  const hasItems = needsSetup || feed.notifications.length > 0;
+  const hasItems = needsSetup || freePro || feed.notifications.length > 0;
   return (
     <div role="dialog" aria-label="Notifications" className="notification-popover liquid-glass absolute right-0 top-12 z-[1100] w-[min(24rem,calc(100vw-1rem))] rounded-[var(--radius-xl)] border p-3">
       <div className="flex items-center justify-between gap-3 px-1 pb-2">
@@ -462,11 +507,12 @@ export function NotificationPopover({
           {feed.unreadCount > 0 && !previewRole && (
             <button type="button" disabled={busy !== null} onClick={() => void markAll()} className="text-[0.6875rem] font-medium text-indigo-800 hover:underline disabled:opacity-50">{busy === "all" ? <LoadingIndicator label="Marking all read…" announce={false} /> : "Mark all read"}</button>
           )}
-          {(feed.unreadCount + (needsSetup ? 1 : 0)) > 0 && <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[0.625rem] font-semibold text-indigo-800">{feed.unreadCount + (needsSetup ? 1 : 0)} new</span>}
+          {(feed.unreadCount + (needsSetup ? 1 : 0) + (freePro ? 1 : 0)) > 0 && <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[0.625rem] font-semibold text-indigo-800">{feed.unreadCount + (needsSetup ? 1 : 0) + (freePro ? 1 : 0)} new</span>}
         </div>
       </div>
       <div className="max-h-[min(28rem,calc(100dvh-8rem))] space-y-2 overflow-y-auto overscroll-contain pr-0.5">
         {needsSetup && <ProfileReminder compact onOpen={onClose} />}
+        {freePro && <FreeProReminder compact onOpen={onClose} />}
         {feed.notifications.map((item) => <NotificationRow key={item.id} item={item} compact busy={busy === item.id} previewRole={previewRole} onOpen={openItem} />)}
         {feed.loading && feed.notifications.length === 0 && <p className="rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/30 p-3 text-sm text-slate-500"><LoadingIndicator label="Checking for notifications…" /></p>}
         {!feed.loading && !hasItems && !feed.error && <p className="rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/30 p-3 text-sm text-slate-600">You&rsquo;re all caught up.</p>}
@@ -486,6 +532,12 @@ export default function NotificationInbox({ previewRole = null }: { previewRole?
   const { phase, profile } = useAccountProfile();
   const enabled = phase !== "signed-out" || previewRole !== null;
   const needsSetup = phase === "ready" && !accountIdentityComplete(profile);
+  const offer = useSyncExternalStore(
+    subscribeFreeProOffer,
+    getFreeProOffer,
+    getFreeProOfferServerSnapshot,
+  );
+  const freePro = offer.state === "offered";
   const { feed, setFeed, reload, loadMore } = useNotificationFeed({ enabled, limit: 50, previewRole });
   const [view, setView] = useState<NotificationView>("all");
   const [busy, setBusy] = useState<string | null>(null);
@@ -538,7 +590,7 @@ export default function NotificationInbox({ previewRole = null }: { previewRole?
   }
 
   const shown = view === "unread" ? feed.notifications.filter((item) => !item.readAt) : feed.notifications;
-  const totalUnread = feed.unreadCount + (needsSetup ? 1 : 0);
+  const totalUnread = feed.unreadCount + (needsSetup ? 1 : 0) + (freePro ? 1 : 0);
   return (
     <section className="card mx-auto max-w-5xl p-2 sm:p-4">
       <div className="mb-2.5 flex items-center justify-between gap-2 sm:mb-3">
@@ -557,9 +609,10 @@ export default function NotificationInbox({ previewRole = null }: { previewRole?
 
       <div className="space-y-2.5">
         {needsSetup && <ProfileReminder />}
+        {freePro && <FreeProReminder />}
         {shown.map((item) => <NotificationRow key={item.id} item={item} busy={busy === item.id} previewRole={previewRole} onOpen={openItem} />)}
         {feed.loading && feed.notifications.length === 0 && <p className="rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/30 p-5 text-center text-sm text-slate-500"><LoadingIndicator label="Checking for notifications…" /></p>}
-        {!feed.loading && shown.length === 0 && !needsSetup && !feed.error && (
+        {!feed.loading && shown.length === 0 && !needsSetup && !freePro && !feed.error && (
           <div className="rounded-[var(--radius-lg)] border border-slate-200/60 bg-surface/30 p-5 text-center">
             <p className="font-semibold text-slate-900">{view === "unread" ? "Nothing unread" : "You’re all caught up"}</p>
           </div>

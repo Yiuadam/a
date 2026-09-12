@@ -12,6 +12,10 @@
   ],
   "script": [
     {
+      "speaker": "Baz",
+      "text": "Should we just talk through it in the order we tested things, or do you want the headline numbers first?"
+    },
+    {
       "speaker": "Dr Nowak",
       "text": "So — the prototype. You tested it with how many people?"
     },
@@ -58,6 +62,10 @@
     {
       "speaker": "Ines",
       "text": "Which is a word nobody outside the project uses."
+    },
+    {
+      "speaker": "Baz",
+      "text": "In hindsight, 'Submissions' was always going to mean something only to us."
     },
     {
       "speaker": "Dr Nowak",
@@ -112,6 +120,14 @@
       "text": "That is the best sentence in your whole report. Put it in. A quotation like that does more work than a paragraph of your own prose, because nobody can argue with it."
     },
     {
+      "speaker": "Baz",
+      "text": "I did wonder if it was a bit cheeky to quote him directly like that."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "It isn't cheeky, it's evidence. Use it."
+    },
+    {
       "speaker": "Ines",
       "text": "So we make the telephone number optional."
     },
@@ -132,8 +148,32 @@
       "text": "Doesn't load. It's a script error."
     },
     {
+      "speaker": "Ines",
+      "text": "That would explain why it worked fine on my laptop but not on my phone."
+    },
+    {
       "speaker": "Dr Nowak",
       "text": "Then that isn't a design finding, that's a bug, and it belongs in a different list. Don't mix them. A report that puts a crash next to \"the heading could be bigger\" makes both of them look equally serious, and neither gets taken seriously."
+    },
+    {
+      "speaker": "Baz",
+      "text": "Fair point — we did lump those together without really thinking about it."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Before we get to priorities, though — did anything work well? I don't want the whole report to read like a list of failures."
+    },
+    {
+      "speaker": "Ines",
+      "text": "The confirmation screen, actually. Every single person understood immediately that their report had gone through."
+    },
+    {
+      "speaker": "Baz",
+      "text": "Nobody asked 'did that actually work?', which is apparently rare."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "It's rarer than it should be. Put that in as well, briefly — a report with nothing positive in it is as misleading as one with nothing negative."
     },
     {
       "speaker": "Ines",
@@ -166,6 +206,22 @@
     {
       "speaker": "Dr Nowak",
       "text": "It is. Ask at the community centre on Foxhall Street — they have helped three groups before you and they have never once said no."
+    },
+    {
+      "speaker": "Baz",
+      "text": "That's genuinely reassuring — I was dreading the recruitment part most."
+    },
+    {
+      "speaker": "Ines",
+      "text": "Same. I'll draft the email to them today."
+    },
+    {
+      "speaker": "Dr Nowak",
+      "text": "Good. Bring both rounds of findings together in one document before we meet again — the first round shouldn't disappear just because the second one exists."
+    },
+    {
+      "speaker": "Baz",
+      "text": "Understood."
     }
   ],
   "questions": [

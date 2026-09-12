@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Route } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
 import { useRouter } from "next/navigation";
@@ -15,7 +14,7 @@ import { Icon } from "@/components/Icons";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import HeaderNotificationBell from "@/components/account/HeaderNotificationBell";
 import { useAccountProfile } from "@/components/account/AccountProfileProvider";
-import bandupMarkRear from "@/components/assets/steps-five-layer-rear-108.png";
+import BandUpMark from "@/components/BandUpMark";
 import {
   enableNativeChrome,
   setNativeAccount,
@@ -449,7 +448,25 @@ export default function SiteHeader({
     };
   }, [router]);
 
-  if (onConsole) return null;
+  /*
+    Not simply `if (onConsole) return null` — that was the bug.
+
+    The console draws its own header and wants nothing from this component on
+    an ordinary web tab, where returning null here is the whole story: nothing
+    else on the page is expecting header space to have been reserved for it.
+
+    Inside the app it is a different question. The glass bar above the WebView
+    is native and floats there on every screen this component ever mounts on,
+    /admin included — enableNativeChrome runs unconditionally above, before
+    either return, because it lives in an effect and the rules of hooks do not
+    let it wait for `onConsole` to be known. Returning null before the spacer
+    branch below skipped the one thing that keeps that bar from floating over
+    a page's own content: the invisible div that reserves its height in DOM
+    flow. Every other page gets that div. The console did not, and its own
+    title sat under the bar as a result — the report was "the top is being
+    cut", and it was, by exactly `nativeChromeHeight` pixels.
+  */
+  if (onConsole && nativeChromeHeight === null) return null;
 
   /*
     The navigation sheet — every destination, not just the five-word row
@@ -626,72 +643,33 @@ export default function SiteHeader({
             app icon has to be, so the corner has to be cut here rather than
             drawn into the file.
 
-            The selected 3D PNG is kept crisp in a header-sized, content-hashed
-            derivative, rather than sending the 1.6 MB artwork master through
-            an image optimiser on every uncached visit.
+            The mark itself is drawn rather than fetched — see
+            components/BandUpMark.tsx — so there is no artwork to optimise and
+            nothing to request.
           */}
-          <span
-            data-pointer-attract
-            data-pointer-attract-strength="icon"
-            className="bandup-mark relative h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm"
-          >
-            <Image
-              src={bandupMarkRear}
-              alt=""
-              fill
-              sizes="36px"
-              className="bandup-mark-rear object-cover"
-              unoptimized
-              priority
-            />
-            <svg
-              viewBox="0 0 1254 1254"
-              className="bandup-mark-front absolute inset-0 h-full w-full"
-              fill="none"
-              aria-hidden="true"
-            >
-              <defs>
-                <linearGradient id="bandup-glass-rim" x1="260" y1="250" x2="1010" y2="1080">
-                  <stop stopColor="white" stopOpacity="0.96" />
-                  <stop offset="0.45" stopColor="#dce5e7" stopOpacity="0.58" />
-                  <stop offset="1" stopColor="white" stopOpacity="0.88" />
-                </linearGradient>
-                <filter id="bandup-glass-depth" x="-20%" y="-20%" width="140%" height="150%">
-                  <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#090603" floodOpacity="0.24" />
-                </filter>
-              </defs>
-              <path
-                d="M252 1010V774H398V650H548V526H708V405H866V300H990V1038Z"
-                fill="white"
-                fillOpacity="0.035"
-                stroke="url(#bandup-glass-rim)"
-                strokeWidth="10"
-                strokeLinejoin="round"
-                filter="url(#bandup-glass-depth)"
-              />
-              <rect
-                x="438"
-                y="760"
-                width="410"
-                height="42"
-                rx="21"
-                fill="#29150d"
-                fillOpacity="0.55"
-                stroke="url(#bandup-glass-rim)"
-                strokeWidth="8"
-              />
-              <rect
-                x="355"
-                y="850"
-                width="330"
-                height="42"
-                rx="21"
-                fill="#29150d"
-                fillOpacity="0.55"
-                stroke="url(#bandup-glass-rim)"
-                strokeWidth="8"
-              />
-            </svg>
+          {/*
+            No pointer attraction and no hover lift. Both were drawn for the
+            raster mark, where the two layers parting read as the material
+            catching the light; on the drawn mark, at 36px, a logo that leans
+            toward the cursor reads as a logo that is not fixed to the page.
+            Every other icon in the header keeps its attraction — they are
+            controls, and a control that reaches for the pointer is inviting a
+            click. The wordmark is not inviting anything.
+          */}
+          <span className="bandup-mark relative h-9 w-9 shrink-0 overflow-hidden rounded-2xl shadow-sm">
+            <BandUpMark className="bandup-mark-rear h-full w-full" />
+            {/*
+              The glass rim that used to sit here is gone. It was a second SVG
+              laid over the mark — a specular edge and a stepped path drawn to
+              a 1254 viewBox — and it lined up with the raster tile it was
+              made for, not with the drawn mark that replaced it. On screen
+              that was a pale stepped shape sitting slightly off the logo,
+              which reads as a rendering fault rather than as a highlight.
+
+              Nothing replaces it. The mark is three layers and their colours
+              already say which is in front; a rim is what a device draws over
+              a Liquid Glass icon on a home screen, and the header is not one.
+            */}
           </span>
           <span className="hidden xs:inline">BandUp</span>
         </Link>
@@ -709,20 +687,25 @@ export default function SiteHeader({
         {!open && !onHome && (
           <PrimaryNavigation current={current} railed={hasSideRail(pathname)} />
         )}
-        {/* Takes the space the row would have, so the controls stay pinned
-            right whenever the row is not there. */}
         {/*
-          The spacer that pushes the controls to the right edge.
+          The spacer that pushes the controls to the right edge, on every route
+          and at every width.
 
-          It used to hide itself at `lg`, because from `lg` up the row of
-          primary links carried `flex-1` and did the pushing. That row is hidden
-          wherever the rail stands now, so on those pages nothing grew and the
-          menu, bell, account and theme toggle all collapsed against the
-          wordmark — every page but the homepage, and a header that sits
-          somewhere different depending on the route is the kind of thing a
-          person notices without being able to say why.
+          It was conditional twice over, and both conditions were left behind by
+          changes to what they described. It first hid itself at `lg` because
+          the row of primary links carried `flex-1` up there and did the
+          pushing; then the links were taken out of the flow and pinned to the
+          middle of the bar, at which point nothing was pushing anything and the
+          menu, bell, account and theme toggle collapsed against the wordmark on
+          every wide screen that was not the homepage or a railed page.
+
+          There is no case left where the spacer should not grow: the links are
+          absolutely positioned now, so they occupy no space to give. Unconditional
+          is not a simplification here, it is the correct rule — these four
+          controls are the same four in the same order on every page, and a
+          person navigating by muscle memory should never have to look for them.
         */}
-        <div className={open || onHome || hasSideRail(pathname) ? "flex-1" : "flex-1 lg:hidden"} />
+        <div className="flex-1" />
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <button

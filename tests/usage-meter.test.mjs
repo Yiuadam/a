@@ -194,10 +194,10 @@ test("the usage bar counts exactly what the gate enforces", async (t) => {
     const user = newUser("plus@example.test");
     pg.psql(
       `insert into public.subscriptions (user_id, provider, status, tier, current_period_end)
-         values ('${user}'::uuid, 'stripe', 'active', 'plus', now() + interval '30 days')`,
+         values ('${user}'::uuid, 'stripe', 'active', 'ai', now() + interval '30 days')`,
     );
     const entitlement = pg.psql(`select tier from public.resolve_entitlement('${user}'::uuid)`);
-    assert.equal(entitlement, "plus", "the subscription row did not resolve to the plus tier");
+    assert.equal(entitlement, "ai", "the subscription row did not resolve to the ai tier");
 
     const call = callFor(user);
     const bar = () => barFor(user);
@@ -216,8 +216,8 @@ test("the usage bar counts exactly what the gate enforces", async (t) => {
     }
 
     // ---- 3. The daily ceiling stops a month being spent in an afternoon ----
-    const WEEK = weeklyCap("plus", "grade/writing");
-    const MONTHLY = monthlyCap("plus", "grade/writing");
+    const WEEK = weeklyCap("ai", "grade/writing");
+    const MONTHLY = monthlyCap("ai", "grade/writing");
     assert.ok(WEEK > 0 && MONTHLY > WEEK, "this test needs a daily ceiling below the monthly cap");
 
     for (let i = bar().by_route["grade/writing"] ?? 0; i < WEEK; i += 1) {
@@ -284,7 +284,7 @@ test("the usage bar counts exactly what the gate enforces", async (t) => {
     const stranger = newUser("stranger@example.test");
     pg.psql(
       `insert into public.subscriptions (user_id, provider, status, tier, current_period_end)
-         values ('${stranger}'::uuid, 'stripe', 'active', 'plus', now() + interval '30 days')`,
+         values ('${stranger}'::uuid, 'stripe', 'active', 'ai', now() + interval '30 days')`,
     );
     /*
       A tier written by a newer deploy than the one running. The CHECK

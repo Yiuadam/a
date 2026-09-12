@@ -1,0 +1,129 @@
+{
+  "id": "reading-31",
+  "title": "Ridgeway Sports & Leisure Centre",
+  "topic": "Three everyday notices from a leisure centre: membership tiers, the class timetable, and locker and car-park rules",
+  "variant": "general",
+  "difficulty": "easy",
+  "level": "A2",
+  "timeMinutes": 20,
+  "passage": "TEXT A — MEMBERSHIP AT RIDGEWAY\n\nRidgeway Sports & Leisure Centre offers four ways to join, and a member can change tier at the reception desk at any time. Bronze membership costs £18 a month and gives access to the gym and the fitness classes listed on the noticeboard, but not to the swimming pool. Silver membership, at £27 a month, adds the pool and one guest pass a month, so a member can bring a friend along without the friend having to pay separately. Gold membership costs £39 a month and includes the pool, unlimited guest passes, and free use of the sauna, which is otherwise charged at £4 a visit. Family membership covers two adults and up to three children under sixteen for £58 a month, and includes everything Gold members receive except the guest passes, since a family membership is already shared. Members in full-time education can ask for a student card at reception; this does not change the price of any tier but allows classes to be booked one day earlier than the general public, which matters most for the popular Saturday morning sessions. Anyone joining for the first time pays no admission fee during March, normally £15, and every new member receives a free induction session with a member of the fitness team to plan a suitable programme.\n\nTEXT B — TERM-TIME CLASS TIMETABLE\n\nClasses run in ten-week blocks and restart in the first week of September, January and April. Beginner swimming lessons for adults take place on Tuesday evenings at 6.30, and places are limited to eight so that the instructor can watch every swimmer closely. Junior football coaching, for children aged seven to eleven, runs on Saturday mornings at 9.00 on the outdoor pitch and continues whatever the weather, so children should bring suitable boots rather than trainers. Yoga classes are held twice a week, on Monday lunchtimes and Thursday evenings, and both sessions cover the same material, so a member need only attend one. A new class, aqua aerobics, starts this term on Wednesday mornings at 10.15 and is aimed at members who want a gentler workout than the pool's regular lane swimming offers; it is proving popular with members returning to exercise after an injury. All classes must be booked online or at reception no later than two hours before they start, and a place that has not been claimed by then is offered to anyone on the waiting list.\n\nTEXT C — LOCKER ROOM AND CAR PARK: IMPORTANT INFORMATION\n\nLockers in the main changing rooms take a £1 coin, which is returned when the locker is opened again, so no locker can be left overnight. Members who want a locker of their own can hire one for £5 a month at reception; these are fitted with a key rather than a coin slot and are located in a separate room past the showers. Towels can be hired for £1 each at the front desk, and members are asked to return them to the labelled bin near the pool rather than leaving them on the benches, where they are frequently mistaken for lost property. The car park has 60 spaces and is free for the first two hours; after that, a charge of £1 an hour applies, shown on a ticket taken on arrival. Between 4.00 and 6.00 on weekdays, when the centre is busiest, staff sometimes direct members to the overflow car park on Beech Road, a short walk from the main entrance. Lost property is kept for four weeks at reception before being given to a local charity shop, and members are encouraged to write their name inside anything they bring, particularly swimming kit, which makes up most of what is handed in.",
+  "questions": [
+    {
+      "instruction": "Look at the following descriptions of Ridgeway's membership options and the list below. Match each description with the correct option, A-E.",
+      "sharedOptions": [
+        { "key": "A", "text": "Bronze membership" },
+        { "key": "B", "text": "Silver membership" },
+        { "key": "C", "text": "Gold membership" },
+        { "key": "D", "text": "Family membership" },
+        { "key": "E", "text": "A student card" }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "type": "matching",
+          "prompt": "Does not give access to the swimming pool",
+          "answer": "A",
+          "explanation": "Text A says Bronze membership \"gives access to the gym and the fitness classes... but not to the swimming pool\" — the only tier without pool access."
+        },
+        {
+          "id": "q2",
+          "type": "matching",
+          "prompt": "Lets a member bring a friend in free of charge once a month",
+          "answer": "B",
+          "explanation": "Silver membership \"adds the pool and one guest pass a month, so a member can bring a friend along without the friend having to pay separately.\""
+        },
+        {
+          "id": "q3",
+          "type": "matching",
+          "prompt": "Is the only individual membership with an unlimited number of guest passes",
+          "answer": "C",
+          "explanation": "Gold membership \"includes... unlimited guest passes\". Family membership gets everything Gold has except the guest passes, so Gold is the only one."
+        },
+        {
+          "id": "q4",
+          "type": "matching",
+          "prompt": "Is priced to cover more than one member of the same household",
+          "answer": "D",
+          "explanation": "Family membership \"covers two adults and up to three children under sixteen for £58 a month\" — the only option covering several household members."
+        }
+      ]
+    },
+    {
+      "instruction": "Do the following statements agree with the information given in the texts? Write TRUE if the statement agrees with the information, FALSE if it contradicts it, or NOT GIVEN if there is no information on this.",
+      "questions": [
+        {
+          "id": "q5",
+          "type": "tfng",
+          "statement": "Bronze members can use the swimming pool.",
+          "answer": "FALSE",
+          "explanation": "Text A states Bronze membership gives access to the gym and classes \"but not to the swimming pool\", which directly contradicts the statement."
+        },
+        {
+          "id": "q6",
+          "type": "tfng",
+          "statement": "New members pay no admission fee if they join in March.",
+          "answer": "TRUE",
+          "explanation": "Text A says \"anyone joining for the first time pays no admission fee during March, normally £15\" — a direct match."
+        },
+        {
+          "id": "q7",
+          "type": "tfng",
+          "statement": "Beginner swimming lessons are limited to eight people at a time.",
+          "answer": "TRUE",
+          "explanation": "Text B says beginner swimming lessons have \"places... limited to eight so that the instructor can watch every swimmer closely.\""
+        },
+        {
+          "id": "q8",
+          "type": "tfng",
+          "statement": "Junior football coaching is cancelled if the weather is bad.",
+          "answer": "FALSE",
+          "explanation": "Text B says junior football coaching \"continues whatever the weather\", which is the opposite of being cancelled."
+        },
+        {
+          "id": "q9",
+          "type": "tfng",
+          "statement": "Members must collect a hired towel before 4 pm.",
+          "answer": "NOT GIVEN",
+          "explanation": "Text C explains where towels are hired and returned but never mentions a collection deadline, so this cannot be judged from the texts."
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the questions below. Write NO MORE THAN TWO WORDS OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q10",
+          "type": "short-answer",
+          "question": "How much does it cost each month to hire a locker of your own?",
+          "answer": "£5",
+          "maxWords": 2,
+          "explanation": "Text C: a member \"can hire one for £5 a month at reception\" — a locker of one's own costs £5 a month."
+        },
+        {
+          "id": "q11",
+          "type": "short-answer",
+          "question": "How many spaces does the car park have?",
+          "answer": "60",
+          "maxWords": 2,
+          "explanation": "Text C states directly that \"the car park has 60 spaces\"."
+        },
+        {
+          "id": "q12",
+          "type": "short-answer",
+          "question": "Where might members be directed to park between 4 pm and 6 pm on weekdays?",
+          "answer": "Beech Road",
+          "maxWords": 2,
+          "explanation": "Text C: at the busiest time, \"staff sometimes direct members to the overflow car park on Beech Road\"."
+        },
+        {
+          "id": "q13",
+          "type": "short-answer",
+          "question": "How long does the centre keep lost property before giving it to a charity shop?",
+          "answer": "four weeks",
+          "maxWords": 2,
+          "explanation": "Text C: \"Lost property is kept for four weeks at reception before being given to a local charity shop.\""
+        }
+      ]
+    }
+  ]
+}

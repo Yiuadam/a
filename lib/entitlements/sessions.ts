@@ -9,7 +9,7 @@ import type { ModuleName } from "@/lib/types";
   They limit different things and they are not interchangeable. The AI
   allowance (lib/usage/limits.ts) is a cost control: every metered request
   spends real money, so it is counted and capped. This is a product decision:
-  how much of the app you get before you make an account, and before you pay.
+  how much of the app you get before you make an account.
 
   A learner can be well inside their AI allowance and still be out of reading
   papers for the week, and that is correct — reading papers are marked from an
@@ -17,47 +17,47 @@ import type { ModuleName } from "@/lib/types";
   sitting a hundred of them.
 
   ---------------------------------------------------------------------------
-  Why anonymous gets no writing and no speaking
+  Why every signed-in tier gets everything now
 
-  Because both are marked by the model, and anonymous callers get no model at
-  all (ANONYMOUS_DAILY_AI_CALLS is 0 — see lib/usage/limits.ts for why). A
-  writing session without marking hands somebody a blank box, forty minutes,
-  and nothing at the end. The owner's own words on this: "what's the point of
-  doing the writing practice?" — and the same argument retires speaking, which
-  is marked the same way.
+  This table used to ration Free the way an anonymous visitor is rationed —
+  two reading papers a week, two listening, and writing and speaking locked
+  outright, on the reasoning that a writing session nobody marks is a blank
+  box, forty minutes and nothing at the end.
 
-  Listening and reading are the two that genuinely work with no model behind
-  them, because they are marked against an answer key that ships in the bundle.
-  So they are exactly the right two to give away, and a visitor who has never
-  signed in gets a real paper with a real band at the end of it.
+  The owner's decision changed the premise the second half of that reasoning
+  stood on. Free now hands the essay or the transcript back afterward,
+  unscored — not nothing, and worth having even without a band attached to it.
+  So the whole library opens the moment somebody signs in: every reading and
+  listening paper, every writing task, every speaking interview, unlimited,
+  whether or not they ever pay for anything. What is not free is a place that
+  remembers a sitting happened — that is Tracking, and it is a separate gate
+  entirely (lib/billing/tiers.ts's `progress-sync` feature), not this one.
 
-  ---------------------------------------------------------------------------
-  Why `null` for a subscriber
-
-  No paid tier rations sessions. Standard, Plus and Pro all unlock the whole
-  library; what separates them is the AI, which is metered per route in
-  lib/billing/tiers.ts and is the thing that actually costs money to serve.
-  That is the honest shape of it, and the pricing page says both halves rather
-  than only the flattering one.
+  Anonymous is unchanged and is the one real limit left here. A visitor who
+  has not made an account gets a taste — one reading paper, one listening
+  paper a week — and nothing that a model would have to mark, because an
+  anonymous caller gets no model at all (ANONYMOUS_DAILY_AI_CALLS is 0 — see
+  lib/usage/limits.ts) and there is no unscored fallback to hand back on a
+  session with no account to remember it happened at all.
 */
 
-export type SessionTier = "anonymous" | "free" | "standard" | "plus" | "pro" | "admin";
+export type SessionTier = "anonymous" | "free" | "tracking" | "ai" | "admin";
 
 export interface SkillAllowance {
   /** Sessions per week, or null for no limit. */
   perWeek: number | null;
 }
 
-/*
-  There used to be a `maxQuestions` here, capping a free speaking session at one
-  question. It is gone with the tier that used it: free no longer sits speaking
-  at all, because free no longer has the model that marks it, and every tier
-  that does sit speaking sits the whole test. A field whose only remaining
-  values were "all of them" and "none, because this is locked" was saying
-  nothing that perWeek did not already say.
-*/
 const LOCKED: SkillAllowance = { perWeek: 0 };
 const UNLIMITED: SkillAllowance = { perWeek: null };
+
+/** Every skill, unlimited — what every signed-in tier gets. */
+const EVERYTHING: Record<ModuleName, SkillAllowance> = {
+  listening: UNLIMITED,
+  reading: UNLIMITED,
+  writing: UNLIMITED,
+  speaking: UNLIMITED,
+};
 
 export const SESSION_LIMITS: Record<SessionTier, Record<ModuleName, SkillAllowance>> = {
   anonymous: {
@@ -66,57 +66,10 @@ export const SESSION_LIMITS: Record<SessionTier, Record<ModuleName, SkillAllowan
     writing: LOCKED,
     speaking: LOCKED,
   },
-  /*
-    Two papers a week each of the two skills that cost nothing to serve, and
-    neither of the two that do.
-
-    Writing and speaking are locked here for exactly the reason they are locked
-    for a visitor: both are marked by the model, a free account gets no model at
-    all, and a writing session with no marking is a blank box, forty minutes and
-    nothing at the end. Unlocking them without marking would be worse than
-    locking them, because it would look like the feature and not be it.
-  */
-  free: {
-    listening: { perWeek: 2 },
-    reading: { perWeek: 2 },
-    writing: LOCKED,
-    speaking: LOCKED,
-  },
-  /*
-    Everything, unlimited — the whole library with no AI behind it.
-
-    Writing and speaking are open here even though Standard has no marking, and
-    that is the one place this table needs defending. The difference from Free
-    is that Standard is a plan somebody chose knowing what is in it: the pricing
-    card says "marked from the answer key, not by AI" in as many words, so the
-    exam timer, the cue cards, the word count and the recording are what was
-    bought, and they are worth buying. A free account has agreed to nothing, so
-    it gets the version that cannot disappoint.
-  */
-  standard: {
-    listening: UNLIMITED,
-    reading: UNLIMITED,
-    writing: UNLIMITED,
-    speaking: UNLIMITED,
-  },
-  plus: {
-    listening: UNLIMITED,
-    reading: UNLIMITED,
-    writing: UNLIMITED,
-    speaking: UNLIMITED,
-  },
-  pro: {
-    listening: UNLIMITED,
-    reading: UNLIMITED,
-    writing: UNLIMITED,
-    speaking: UNLIMITED,
-  },
-  admin: {
-    listening: UNLIMITED,
-    reading: UNLIMITED,
-    writing: UNLIMITED,
-    speaking: UNLIMITED,
-  },
+  free: EVERYTHING,
+  tracking: EVERYTHING,
+  ai: EVERYTHING,
+  admin: EVERYTHING,
 };
 
 export function allowanceFor(tier: SessionTier, module: ModuleName): SkillAllowance {
@@ -134,8 +87,11 @@ export type LockReason = "sign-in" | "subscribe" | null;
  * Why a skill is out of reach, which decides where its card sends you.
  *
  * "sign-in" for a visitor, because an account is free and is the only thing
- * standing between them and the feature. "subscribe" for a free account, where
- * an account is not the missing piece. Null when nothing is in the way.
+ * standing between them and the feature. Every signed-in tier unlocks every
+ * skill now, so "subscribe" is not reachable through this table any more —
+ * it is kept as an answer rather than removed, because `SkillAccess` still
+ * declares the type and a locked skill still has to name a reason if one is
+ * ever added back.
  */
 export function lockReason(tier: SessionTier, module: ModuleName): LockReason {
   if (!isLocked(tier, module)) return null;
@@ -168,6 +124,9 @@ export function sessionsLeft(
 export function allowanceLabel(tier: SessionTier, module: ModuleName): string {
   const { perWeek } = allowanceFor(tier, module);
   if (perWeek === null) return "Unlimited";
-  if (perWeek === 0) return tier === "anonymous" ? "Sign in to use this" : "On Standard and up";
+  /* Only "anonymous" ever reaches here now — every signed-in tier is
+     EVERYTHING above, so a locked skill on any of them is not a case this
+     table can produce today. */
+  if (perWeek === 0) return "Sign in to use this";
   return perWeek === 1 ? "1 session a week" : `${perWeek} sessions a week`;
 }

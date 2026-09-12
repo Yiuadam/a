@@ -27,7 +27,7 @@ test("the score-trend hero's own actions cannot be squeezed at narrow widths", (
   // The placement-test hero these three checked (dashboard-hero,
   // dashboard-hero-actions, dashboard-placement-button) no longer exists —
   // the free Pro trial poster took over its slot in the dashboard, always,
-  // per the free-pro-trial suite. What remains here is the returning
+  // per the free-ai-trial suite. What remains here is the returning
   // learner's score-trend row, which carries the same narrow-width
   // constraint on its own two buttons.
   assert.doesNotMatch(page, /dashboard-hero-actions|dashboard-placement-button/);

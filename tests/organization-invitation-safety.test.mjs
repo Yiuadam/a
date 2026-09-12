@@ -98,7 +98,7 @@ function fixture() {
   const insertSubscription = database.prepare(`
     INSERT INTO subscriptions (
       id, user_id, provider, status, tier, verified_at, created_at, updated_at
-    ) VALUES (?, ?, 'stripe', 'active', 'standard', ?, ?, ?)
+    ) VALUES (?, ?, 'stripe', 'active', 'tracking', ?, ?, ?)
   `);
   insertSubscription.run("71000000-0000-4000-8000-000000000001", ids.targeted, now, now, now);
   insertSubscription.run("71000000-0000-4000-8000-000000000002", ids.email, now, now, now);

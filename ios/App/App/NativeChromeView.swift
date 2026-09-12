@@ -541,6 +541,34 @@ final class NativeChromeView: UIView {
     themeColors[theme] ?? themeColors["warm"]!
   }
 
+  /*
+    The mark, at each theme's own colours.
+
+    It used to be one imageset, BandUpMark — a single raster baked from
+    Warm, the theme the layers were drawn against — asked for regardless of
+    `selectedTheme`. That was never wrong on the website: components/
+    BandUpMark.tsx draws the same three layers as real SVG elements reading
+    custom properties, so a theme switch there is a paint, not a re-render.
+    A raster has no custom properties to read, and the fix on that side was
+    explicit about not reaching for a filter instead — "the only way to move
+    a raster's colours is a filter, which turns a chosen palette into
+    whatever hue-rotate happens to give." Baking one imageset per theme,
+    from the same three colours that file already reads, is that fix's own
+    answer applied here rather than a different one.
+
+    Three named catalog entries rather than a single asset with light/dark
+    appearance variants: Xcode's built-in variants are exactly two states,
+    and this app has three themes with Warm as its own colourway, not a
+    light-mode default.
+  */
+  static func markImageName(for theme: String) -> String {
+    switch theme {
+    case "light": return "BandUpMarkLight"
+    case "dark": return "BandUpMarkDark"
+    default: return "BandUpMarkWarm"
+    }
+  }
+
   // MARK: - Build
 
   private func build() {
@@ -589,9 +617,14 @@ final class NativeChromeView: UIView {
     /* A dedicated image set rather than the app icon. An icon in an
        AppIcon.appiconset is not an ordinary named image — UIImage(named:)
        does not reliably resolve it, and the bar would have shown a blank
-       square. BandUpMark holds the same artwork at the three sizes a 32pt
-       view actually needs, instead of decoding a 1024px icon to draw it. */
-    logoView.image = UIImage(named: "BandUpMark")
+       square. Each BandUpMark* set holds the same artwork at the three
+       sizes a 32pt view actually needs, instead of decoding a 1024px icon
+       to draw it — one set per theme; see markImageName(for:). Read from
+       selectedTheme rather than hardcoded to Warm, so a launch that starts
+       on Light or Dark (the bridge's own enable() call applies the real
+       theme immediately after this) never shows a wrongly-coloured mark
+       even for the one frame before that call lands. */
+    logoView.image = UIImage(named: NativeChromeView.markImageName(for: selectedTheme))
     logoView.contentMode = .scaleAspectFill
     logoView.clipsToBounds = true
     logoView.layer.cornerRadius = 16
@@ -1517,6 +1550,12 @@ final class NativeChromeView: UIView {
     overrideUserInterfaceStyle = selectedTheme == "dark" ? .dark : .light
 
     let colors = NativeChromeView.colors(for: selectedTheme)
+    // See markImageName(for:) — a straight reassignment, not an animated
+    // crossfade: the mark is 32pt in a bar already crossfading its glass and
+    // its wordmark colour underneath it, and a third animation timed against
+    // the same 0.3s bought nothing a hard cut does not already read as part
+    // of the same change.
+    logoView.image = UIImage(named: NativeChromeView.markImageName(for: selectedTheme))
 
     /* Tint, not fill: each of these gets a freshly built UIGlassEffect with
        the theme's colour already on it, rather than a coloured layer painted

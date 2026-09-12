@@ -45,22 +45,50 @@ const BOX = {
   strokeLinejoin: "round",
 } as const;
 
-function Glyph({ children, className = "" }: { children: ReactNode; className?: string }) {
+/*
+  `strokeWidth` is overridable because these were drawn for 24px and are not
+  always shown at 24px.
+
+  A stroke is a fraction of the viewBox, so it shrinks with the glyph: at the
+  17px the side rail draws them at, 1.3 lands under a physical pixel and the
+  mark goes faint — thinner than the text beside it, which does not get lighter
+  as it gets smaller. Somewhere smaller than the size a glyph was chosen at, the
+  weight has to be put back by hand.
+*/
+function Glyph({
+  children,
+  className = "",
+  strokeWidth,
+}: {
+  children: ReactNode;
+  className?: string;
+  strokeWidth?: number;
+}) {
   return (
-    <svg {...BOX} className={`app-icon-color ${className}`} aria-hidden="true" focusable="false">
+    <svg
+      {...BOX}
+      strokeWidth={strokeWidth ?? BOX.strokeWidth}
+      className={`app-icon-color ${className}`}
+      aria-hidden="true"
+      focusable="false"
+    >
       {children}
     </svg>
   );
 }
 
-export type IconProps = { className?: string };
+export type IconProps = {
+  className?: string;
+  /** Override the 1.3 these were drawn with — see `Glyph`. */
+  strokeWidth?: number;
+};
 
 /* --- the four skills ----------------------------------------------------- */
 
 /** Listening. Solid cups, because outlined ones close up and vanish at 24px. */
-export function ListeningIcon({ className }: IconProps) {
+export function ListeningIcon({ className, strokeWidth }: IconProps) {
   return (
-    <Glyph className={className}>
+    <Glyph className={className} strokeWidth={strokeWidth}>
       <path d="M4.5 14v-2a7.5 7.5 0 0 1 15 0v2" />
       <rect x="2.5" y="13" width="4.5" height="7" rx="2.2" fill="currentColor" stroke="none" />
       <rect x="17" y="13" width="4.5" height="7" rx="2.2" fill="currentColor" stroke="none" />
@@ -69,9 +97,9 @@ export function ListeningIcon({ className }: IconProps) {
 }
 
 /** Reading. Lines of text under a magnifier — searching a passage for an answer. */
-export function ReadingIcon({ className }: IconProps) {
+export function ReadingIcon({ className, strokeWidth }: IconProps) {
   return (
-    <Glyph className={className}>
+    <Glyph className={className} strokeWidth={strokeWidth}>
       <path d="M4 5.5h11" />
       <path d="M4 9.5h11" />
       <path d="M4 13.5h5" />
@@ -82,9 +110,9 @@ export function ReadingIcon({ className }: IconProps) {
 }
 
 /** Writing. A page with a pencil working on it, rather than a pencil alone. */
-export function WritingIcon({ className }: IconProps) {
+export function WritingIcon({ className, strokeWidth }: IconProps) {
   return (
-    <Glyph className={className}>
+    <Glyph className={className} strokeWidth={strokeWidth}>
       <path d="M18 11V5.5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h5" />
       <path d="M7.5 8h7" />
       <path d="M7.5 11.5h4" />
@@ -94,9 +122,9 @@ export function WritingIcon({ className }: IconProps) {
 }
 
 /** Speaking. A person with sound leaving them — talking, not just a bubble. */
-export function SpeakingIcon({ className }: IconProps) {
+export function SpeakingIcon({ className, strokeWidth }: IconProps) {
   return (
-    <Glyph className={className}>
+    <Glyph className={className} strokeWidth={strokeWidth}>
       <circle cx="9" cy="8.5" r="4" />
       <path d="M2.5 20.5c0-3.6 2.9-6 6.5-6 1.4 0 2.7.4 3.7 1" />
       <path d="M16.5 8a5 5 0 0 1 0 7" />
@@ -115,9 +143,9 @@ export function SpeakingIcon({ className }: IconProps) {
 */
 
 /** Grammar. Lines of writing with the last one checked — the rule applied. */
-export function GrammarIcon({ className }: IconProps) {
+export function GrammarIcon({ className, strokeWidth }: IconProps) {
   return (
-    <Glyph className={className}>
+    <Glyph className={className} strokeWidth={strokeWidth}>
       <path d="M4 6.5h16" />
       <path d="M4 11.5h16" />
       <path d="M4 16.5h7" />
@@ -127,9 +155,9 @@ export function GrammarIcon({ className }: IconProps) {
 }
 
 /** Vocabulary. Cards in a stack, the way words are learned one at a time. */
-export function VocabularyIcon({ className }: IconProps) {
+export function VocabularyIcon({ className, strokeWidth }: IconProps) {
   return (
-    <Glyph className={className}>
+    <Glyph className={className} strokeWidth={strokeWidth}>
       <rect x="3" y="7.5" width="14" height="12" rx="2.2" />
       <path d="M7 4.5h12a2 2 0 0 1 2 2v10" />
       <path d="M6.5 11.5h7" />
@@ -148,9 +176,9 @@ export function VocabularyIcon({ className }: IconProps) {
 */
 
 /** Warm — a low sun over the horizon. */
-export function ThemeWarmIcon({ className }: IconProps) {
+export function ThemeWarmIcon({ className, strokeWidth }: IconProps) {
   return (
-    <Glyph className={className}>
+    <Glyph className={className} strokeWidth={strokeWidth}>
       <path d="M4 17h16" />
       <path d="M8 17a4 4 0 0 1 8 0" />
       <path d="M12 7v3" />
@@ -162,9 +190,9 @@ export function ThemeWarmIcon({ className }: IconProps) {
 }
 
 /** Light — the sun fully up. */
-export function ThemeLightIcon({ className }: IconProps) {
+export function ThemeLightIcon({ className, strokeWidth }: IconProps) {
   return (
-    <Glyph className={className}>
+    <Glyph className={className} strokeWidth={strokeWidth}>
       <circle cx="12" cy="12" r="4" />
       <path d="M12 3.5v2" />
       <path d="M12 18.5v2" />
@@ -179,9 +207,9 @@ export function ThemeLightIcon({ className }: IconProps) {
 }
 
 /** Dark — a crescent over the same horizon the warm sun sits on. */
-export function ThemeDarkIcon({ className }: IconProps) {
+export function ThemeDarkIcon({ className, strokeWidth }: IconProps) {
   return (
-    <Glyph className={className}>
+    <Glyph className={className} strokeWidth={strokeWidth}>
       <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" />
       <path d="M4 20.5h16" />
     </Glyph>
@@ -213,7 +241,15 @@ export type IconName = keyof typeof ICONS;
  * blemish; a page that will not render is an outage, and these are decoration
  * on cards whose text already says what they are.
  */
-export function Icon({ name, className }: { name: string; className?: string }) {
+export function Icon({
+  name,
+  className,
+  strokeWidth,
+}: {
+  name: string;
+  className?: string;
+  strokeWidth?: number;
+}) {
   const Component = ICONS[name as IconName];
-  return Component ? <Component className={className} /> : null;
+  return Component ? <Component className={className} strokeWidth={strokeWidth} /> : null;
 }

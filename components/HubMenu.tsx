@@ -66,7 +66,7 @@ export interface HubItem {
   badge?: string;
 }
 
-export function HubMenu({ items }: { items: HubItem[] }) {
+export function HubMenu({ items, compact = false }: { items: HubItem[]; compact?: boolean }) {
   return (
     /*
       One column on a phone, two from `sm`. A menu row is a target before it is
@@ -86,9 +86,23 @@ export function HubMenu({ items }: { items: HubItem[] }) {
           <Link
             href={item.href}
             prefetch={false}
-            className="card hub-menu-card flex h-full min-h-[6.25rem] items-center gap-3 !px-4 !py-3.5 active:translate-y-px sm:min-h-[7.25rem]"
+            /*
+              `compact` for the admin overview specifically, not a change to the
+              default. Five rows compete with four stat cards on the one screen
+              a phone has for all of it, on the one page in the app where a
+              row's job is to be found in a glance rather than read — /account
+              and /billing each get one decision at a time and can afford the
+              taller target. Shrinking every row everywhere would have fixed
+              admin by quietly narrowing what every other menu was measured
+              against.
+            */
+            className={`card hub-menu-card flex h-full items-center active:translate-y-px ${
+              compact
+                ? "min-h-[4.75rem] gap-2.5 !px-3.5 !py-2.5 sm:min-h-[5.25rem]"
+                : "min-h-[6.25rem] gap-3 !px-4 !py-3.5 sm:min-h-[7.25rem]"
+            }`}
           >
-            {item.icon && <CardIcon name={item.icon} size={27} />}
+            {item.icon && <CardIcon name={item.icon} size={compact ? 23 : 27} />}
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-[0.9375rem] font-semibold text-slate-900">{item.title}</span>

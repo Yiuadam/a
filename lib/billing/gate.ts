@@ -4,14 +4,7 @@ import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
 import { resolveEntitlement, ANONYMOUS_ENTITLEMENT } from "./entitlements";
-import {
-  tierAllows,
-  FEATURE_ROUTES,
-  MONTHLY_AI_CAPS,
-  SELLABLE_TIERS,
-  type Feature,
-  type Tier,
-} from "./tiers";
+import { tierAllows, SELLABLE_TIERS, type Feature, type Tier } from "./tiers";
 
 /*
   "May this caller use this feature?", answered on the server.
@@ -57,34 +50,30 @@ import {
 const MODULE = "lib/billing/gate.ts";
 
 /**
- * The lowest sellable tier whose allowance for a route is not zero.
+ * The lowest sellable tier that includes a feature.
  *
- * Naming a tier in this message was hardcoded to "Standard", and Standard's
- * allowance for every AI route is zero — so a learner refused a word lookup
- * was told to buy the one paid plan that would refuse them again. The comment
- * here used to claim the message named no tier at all, which had stopped
- * being true.
+ * Naming a tier in this message was once hardcoded to "Standard", and
+ * Standard's allowance for every AI route was zero — so a learner refused a
+ * word lookup was told to buy the one paid plan that would refuse them again.
+ * The comment here used to claim the message named no tier at all, which had
+ * stopped being true.
  *
- * Derived rather than written down, so it cannot drift from the caps a second
- * time: change what a tier includes and this follows. Reads the monthly table
- * because that is the one every sellable tier has an entry in.
+ * Derived from `tierAllows` rather than written down, so it cannot drift from
+ * what a tier includes a second time, and so the same one answer handles both
+ * an AI feature (read off its allowance) and progress-sync (which has none to
+ * read) without this function needing to know the difference.
  */
 function lowestTierWith(feature: Feature): Tier | null {
-  const route = FEATURE_ROUTES[feature as Exclude<Feature, "progress-sync">];
-  if (!route) return null;
   for (const tier of SELLABLE_TIERS) {
-    const cap = MONTHLY_AI_CAPS[tier]?.[route];
-    /* null is unmetered, which is a grant rather than an absence. */
-    if (cap === null || (typeof cap === "number" && cap > 0)) return tier;
+    if (tierAllows(tier, feature)) return tier;
   }
   return null;
 }
 
 const TIER_LABELS: Record<Tier, string> = {
   free: "Free",
-  standard: "Standard",
-  plus: "Plus",
-  pro: "Pro",
+  tracking: "Tracking",
+  ai: "AI",
   admin: "Admin",
 };
 

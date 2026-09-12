@@ -13,7 +13,7 @@ import { pathToFileURL } from "node:url";
 
 register("../scripts/ts-resolve.mjs", import.meta.url);
 
-const { isCorrect, roundToHalf } = await import(
+const { isCorrect, marksEarned, roundToHalf } = await import(
   pathToFileURL(join(process.cwd(), "lib", "band.ts")).href
 );
 
@@ -150,4 +150,93 @@ test("short answer with no alternatives still marks its own answer", () => {
   assert.equal(isCorrect(only, "daylighting"), true);
   assert.equal(isCorrect(only, "Daylighting."), true);
   assert.equal(isCorrect(only, "culverting"), false);
+});
+
+/* ---------------------------------------------------------------------------
+   Multi-select: "Choose TWO letters, A-E". The one type worth more than one
+   mark, and the one whose real rule — order-independence, and zero for the
+   whole group on over-selection — cannot be read off a plain boolean. `given`
+   is the comma-joined option indices `TestQuestions` stores, e.g. "1,3".
+   --------------------------------------------------------------------------- */
+
+/** B and D correct, out of five options A-E. */
+const multi = {
+  id: "ms",
+  type: "multi-select",
+  question: "?",
+  options: ["a", "b", "c", "d", "e"],
+  numAnswers: 2,
+  answer: [1, 3],
+};
+
+test("multi-select is correct with both right letters, in either order", () => {
+  assert.equal(isCorrect(multi, "1,3"), true);
+  assert.equal(isCorrect(multi, "3,1"), true, "B,D and D,B are the same answer");
+});
+
+test("multi-select is wrong with only one of the two letters", () => {
+  assert.equal(isCorrect(multi, "1"), false);
+  assert.equal(isCorrect(multi, "3"), false);
+});
+
+test("multi-select scores zero for the whole group on over-selection, even with both correct letters included", () => {
+  /*
+    The rule the whole type exists to get right: choosing three letters when
+    the instruction asked for two loses both marks, not one, however many of
+    the three happen to be right.
+  */
+  assert.equal(isCorrect(multi, "1,2,3"), false);
+  assert.equal(marksEarned(multi, "1,2,3"), 0);
+  assert.equal(marksEarned(multi, "0,1,2,3,4"), 0, "every option ticked still scores zero");
+});
+
+test("multi-select with nothing chosen scores nothing", () => {
+  assert.equal(isCorrect(multi, undefined), false);
+  assert.equal(isCorrect(multi, ""), false);
+  assert.equal(marksEarned(multi, undefined), 0);
+  assert.equal(marksEarned(multi, ""), 0);
+});
+
+test("marksEarned gives one mark per correct letter chosen, which is what under-selecting scores", () => {
+  assert.equal(marksEarned(multi, "1,3"), 2, "both letters right");
+  assert.equal(marksEarned(multi, "1"), 1, "one correct letter of two chosen");
+  assert.equal(marksEarned(multi, "3"), 1, "one correct letter of two chosen");
+  assert.equal(marksEarned(multi, "0"), 0, "the one letter chosen is wrong");
+  assert.equal(marksEarned(multi, "0,2"), 0, "two chosen, within the limit, neither right");
+  assert.equal(marksEarned(multi, "0,1"), 1, "one right and one wrong, still within the limit");
+});
+
+test("marksEarned agrees with isCorrect for every type but multi-select", () => {
+  // marksEarned generalises isCorrect rather than sitting beside it as a
+  // second rule — for anything with only one mark to give, the two must
+  // never disagree.
+  for (const [q, given] of [
+    [mcq, 1],
+    [mcq, 0],
+    [tfng, "NOT GIVEN"],
+    [tfng, "TRUE"],
+    [gap, "sixty-two"],
+    [gap, "sixty-three"],
+    [ynng, "NOT GIVEN"],
+    [matching, "vii"],
+    [shortAnswer, "land"],
+  ]) {
+    assert.equal(marksEarned(q, given), isCorrect(q, given) ? 1 : 0);
+  }
+});
+
+test("a three-letter group needs all three, and still scores zero for choosing a fourth", () => {
+  const three = {
+    id: "t3",
+    type: "multi-select",
+    question: "?",
+    options: ["a", "b", "c", "d", "e", "f", "g"],
+    numAnswers: 3,
+    answer: [0, 2, 4],
+  };
+  assert.equal(isCorrect(three, "0,2,4"), true);
+  assert.equal(marksEarned(three, "0,2,4"), 3);
+  assert.equal(marksEarned(three, "0,2"), 2, "two of three, both right, under the limit");
+  assert.equal(isCorrect(three, "0,1,2,4"), false);
+  assert.equal(marksEarned(three, "0,1,2,4"), 0, "four chosen when three were asked for");
 });

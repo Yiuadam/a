@@ -1,25 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
 import {
-  authedFetch,
   getServerSnapshot as getSessionServerSnapshot,
   getSnapshot as getSessionSnapshot,
   subscribe as subscribeSession,
 } from "@/lib/account";
-import { apiUrl } from "@/lib/api";
+import { rememberAutoAcceptIntent } from "@/lib/billing/free-pro-dismissal";
 import {
-  consumeAutoAcceptIntent,
-  dismissedAlready,
-  rememberAutoAcceptIntent,
-  rememberDecision,
-} from "@/lib/billing/free-pro-dismissal";
+  acceptFreePro,
+  dismissFreePro,
+  getFreeProOffer,
+  getFreeProOfferServerSnapshot,
+  subscribeFreeProOffer,
+} from "@/lib/billing/free-pro-offer";
 import { TIERS } from "@/lib/billing/tiers";
 
 /*
-  The poster for the free Pro trial.
+  The poster for the free AI trial.
 
   ---------------------------------------------------------------------------
   Shown to a guest too, not only a signed-in account
@@ -35,7 +35,7 @@ import { TIERS } from "@/lib/billing/tiers";
   ---------------------------------------------------------------------------
   What it says, and why it says the awkward part
 
-  It offers Pro for nothing, lists what Pro includes, and then — in the body,
+  It offers AI for nothing, lists what AI includes, and then — in the body,
   in the same size as everything else, not in small grey type under the button
   — says that the trial may be cancelled at any time in the future and that
   nobody is ever charged without choosing to subscribe.
@@ -70,116 +70,36 @@ import { TIERS } from "@/lib/billing/tiers";
   changes what is drawn and changes nothing about what is granted.
 */
 
-type Phase = "idle" | "offered" | "accepting" | "accepted" | "error";
-
-/*
-  Never fires — dismissal is read once per mount, not watched for changes
-  from elsewhere, so there is nothing to subscribe to. useSyncExternalStore
-  is used anyway rather than a plain useState + useEffect pair, because
-  that pair is exactly the shape react-hooks/set-state-in-effect exists to
-  reject: this value can only be answered from localStorage, which does not
-  exist during the server render, so the server snapshot has to say "not
-  dismissed" and the real answer can only land after hydration. See
-  components/billing/UsageMeter.tsx for the same trade made the same way.
-*/
-const neverChanges = () => () => {};
-
 export default function FreeProPoster() {
   const session = useSyncExternalStore(
     subscribeSession,
     getSessionSnapshot,
     getSessionServerSnapshot,
   );
-  const dismissed = useSyncExternalStore(neverChanges, dismissedAlready, () => false);
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [message, setMessage] = useState<string>("");
   /*
-    `accept` needs to be callable from the effect below (a guest who tapped
-    "Sign up free" is auto-continued the moment a session appears, without
-    a second click) but its own identity does not need to be an effect
-    dependency — it never changes what the effect is checking, only what
-    happens once. A ref sidesteps the ordering problem cleanly: no forward
-    reference to a function declared later in the same component.
+    Both the answer and the acting on it come from lib/billing/free-pro-offer.ts
+    now. This component used to own the eligibility request and, with it, the
+    read-and-clear of the guest's auto-accept intent — which made granting the
+    trial a side effect of rendering this file. It is a reader now, so the offer
+    can be drawn in more than one place without the grant following it around.
   */
-  const acceptRef = useRef<() => Promise<void>>(() => Promise.resolve());
-
-  const accept = useCallback(async () => {
-    setPhase("accepting");
-    try {
-      const res = await authedFetch(apiUrl("/api/billing/promo"), { method: "POST" });
-      const body = (await res.json().catch(() => null)) as
-        | { granted?: boolean; error?: string }
-        | null;
-      if (res.ok && body?.granted === true) {
-        rememberDecision();
-        setPhase("accepted");
-        return;
-      }
-      setMessage(
-        typeof body?.error === "string" && body.error.length > 0
-          ? body.error
-          : "We couldn't start your free Pro trial just now. Please try again in a minute.",
-      );
-      setPhase("error");
-    } catch {
-      setMessage(
-        "We couldn't reach the server. Please check your connection and try again in a minute.",
-      );
-      setPhase("error");
-    }
-  }, []);
-
-  useEffect(() => {
-    acceptRef.current = accept;
-  }, [accept]);
-
-  useEffect(() => {
-    // A sign-out or a sign-in re-runs this. `alive` keeps the older answer from
-    // landing last and drawing a poster for the previous account.
-    let alive = true;
-    /*
-      The reset happens in the cleanup rather than here, so an already-
-      decided reader costs no render at all and the previous account's
-      poster is cleared as the session changes.
-    */
-    const done = () => {
-      alive = false;
-      setPhase("idle");
-    };
-    // A guest is rendered straight from `session`/`dismissed`, not from
-    // `phase` — there is nothing to fetch until an account exists to ask
-    // about. See the render below.
-    if (dismissed || !session) return done;
-
-    authedFetch(apiUrl("/api/billing/promo"))
-      .then(async (res) => (res.ok ? ((await res.json()) as { offered?: boolean }) : null))
-      .then((body) => {
-        if (!alive) return;
-        // Read-and-clear regardless of the answer: a guest who signed up
-        // gets one auto-continue, not one per reload of the same tab.
-        const autoAccept = consumeAutoAcceptIntent();
-        if (body?.offered !== true) return;
-        if (autoAccept) void acceptRef.current();
-        else setPhase("offered");
-      })
-      .catch(() => {
-        /* No answer means no poster. Silence is the safe direction here. */
-      });
-
-    return done;
-  }, [session, dismissed]);
-
-  const dismiss = useCallback(() => {
-    rememberDecision();
-    setPhase("idle");
-  }, []);
+  const offer = useSyncExternalStore(
+    subscribeFreeProOffer,
+    getFreeProOffer,
+    getFreeProOfferServerSnapshot,
+  );
+  const phase = offer.state;
+  const message = offer.message;
+  const accept = acceptFreePro;
+  const dismiss = dismissFreePro;
+  const dismissed = phase === "none";
 
   if (dismissed) return null;
 
   if (!session) {
     return (
       <section className="card">
-        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Pro, free, if you want it</h2>
+        <h2 className="text-[1.0625rem] font-semibold text-slate-900">AI, free, if you want it</h2>
         {/*
           Kept to two lines and two points on purpose. This sits above the
           practice list on the home page, and at four points and two body
@@ -192,12 +112,12 @@ export default function FreeProPoster() {
           away on the plans page.
         */}
         <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
-          Pro is the plan for the weeks before your exam, and it is free on every new account —
+          AI is the plan for the weeks before your exam, and it is free on every new account —
           no card.
         </p>
 
         <ul className="mt-2.5 space-y-1">
-          {TIERS.pro.includes.slice(0, 2).map((line) => (
+          {TIERS.ai.includes.slice(0, 2).map((line) => (
             <li key={line} className="flex gap-2.5 text-[0.875rem] leading-5 text-slate-700">
               <span
                 aria-hidden="true"
@@ -222,7 +142,7 @@ export default function FreeProPoster() {
             The intent survives the trip: consumeAutoAcceptIntent() above
             picks it back up the moment a session exists, so the person who
             tapped this never has to find this poster and press a second
-            button — the account they land in already has Pro.
+            button — the account they land in already has AI.
           */}
           <SignInLink
             className="btn-primary"
@@ -238,17 +158,17 @@ export default function FreeProPoster() {
     );
   }
 
-  // Signed in, but the eligibility check is still in flight or came back
-  // false — neither is drawn, same as the original behaviour this restores:
-  // the usual case for a signed-in reader is an empty render.
-  if (phase === "idle") return null;
+  // Signed in, but the eligibility check is still in flight — nothing is drawn,
+  // which is the usual case for a signed-in reader. `none` is handled above as
+  // the dismissal it also stands for.
+  if (phase === "unknown") return null;
 
   if (phase === "accepted") {
     return (
       <section className="card" aria-live="polite">
-        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Your free Pro trial has started</h2>
+        <h2 className="text-[1.0625rem] font-semibold text-slate-900">Your free AI trial has started</h2>
         <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
-          Your account is on Pro now. Nothing has been charged and no card has been asked for.
+          Your account is on AI now. Nothing has been charged and no card has been asked for.
           You can see what you have used on your account page, and give the trial up there
           whenever you like.
         </p>
@@ -265,17 +185,17 @@ export default function FreeProPoster() {
 
   return (
     <section className="card">
-      <h2 className="text-[1.0625rem] font-semibold text-slate-900">Pro, free, if you want it</h2>
+      <h2 className="text-[1.0625rem] font-semibold text-slate-900">AI, free, if you want it</h2>
       {/* Trimmed alongside the signed-out poster above, and for the same
           reason. The paragraph below it is not trimmed with them: that one is
           a promise about money, and shortening it would be shortening the
           part a reader is entitled to have in full. */}
       <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
-        Pro is the plan for the weeks before your exam, and it is free on your account — no card.
+        AI is the plan for the weeks before your exam, and it is free on your account — no card.
       </p>
 
       <ul className="mt-2.5 space-y-1">
-        {TIERS.pro.includes.slice(0, 2).map((line) => (
+        {TIERS.ai.includes.slice(0, 2).map((line) => (
           <li key={line} className="flex gap-2.5 text-[0.875rem] leading-5 text-slate-700">
             <span
               aria-hidden="true"
@@ -291,7 +211,7 @@ export default function FreeProPoster() {
         the button rather than under it.
       */}
       <p className="mt-3 text-[0.875rem] leading-6 text-slate-700">
-        This is a free trial of Pro. It may be cancelled at any time in the future, and you can
+        This is a free trial of AI. It may be cancelled at any time in the future, and you can
         give it up yourself whenever you like, from your account page. If it ends, your account
         goes back to the free plan and everything you have written or practised stays where it is.
         You will never be charged without choosing to subscribe yourself.
@@ -305,7 +225,7 @@ export default function FreeProPoster() {
 
       <div className="mt-3.5 flex flex-wrap items-center gap-2">
         <button type="button" className="btn-primary" onClick={accept} disabled={busy}>
-          {busy ? "Starting…" : "Start my free Pro trial"}
+          {busy ? "Starting…" : "Start my free AI trial"}
         </button>
         <button type="button" className="btn-secondary" onClick={dismiss} disabled={busy}>
           No thanks

@@ -92,7 +92,22 @@ test("active informational states are indigo while true caution remains amber", 
   const listening = source("app", "practice", "listening", "page.tsx");
   const reading = source("app", "practice", "reading", "page.tsx");
 
-  assert.match(placement, /i < filled \? "bg-indigo-400"/);
+  /*
+    The difficulty meter is indigo, not amber — the assertion, not the exact
+    expression that produced it. It used to name one line of that component
+    verbatim (`i < filled ? "bg-indigo-400"`), so rewriting the meter to name
+    the level and grey out what is still ahead failed a test about colour for
+    reasons that had nothing to do with colour. What matters here is that the
+    reached and current segments are indigo and that nothing in the meter is
+    amber, since amber is reserved for real caution — the "no reliable score
+    yet" warning below.
+  */
+  const meter = placement.slice(
+    placement.indexOf("function DifficultyMeter"),
+    placement.indexOf("export default function PlacementPage"),
+  );
+  assert.match(meter, /bg-indigo-/);
+  assert.doesNotMatch(meter, /amber-/);
   assert.match(placement, /Accuracy mode/);
   assert.match(placement, /No reliable score yet/);
   assert.match(placement, /text-amber-700/);

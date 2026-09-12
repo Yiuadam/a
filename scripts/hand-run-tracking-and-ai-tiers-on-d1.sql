@@ -1,0 +1,71 @@
+-- HAND-RUN SQL — NOT a numbered migration in cloudflare/migrations/.
+--
+-- **This must run AFTER the Tracking/AI Worker is deployed, never before.**
+-- The deployed code's own tier resolver (lib/cloudflare/entitlement-runtime.ts
+-- via lib/billing/entitlements.ts normalise()) recognises 'free', 'standard',
+-- 'plus', 'pro' and 'admin' — not 'tracking' or 'ai' — until that deploy
+-- lands; handed a row already renamed to 'tracking'
+-- or 'ai', the OLD code treats the name as unknown and normalises it to
+-- 'free' — silently demoting a paying account before the code that would have
+-- honoured the new name ever runs. Running this after the deploy means the
+-- window between "renamed" and "understood" never opens.
+--
+-- Applying this is not previewable: it lands on the same D1 database
+-- production reads from the moment it runs, with no preview URL and no owner
+-- review of the result beforehand — per the working agreement in CLAUDE.md,
+-- that is not something this change applies on its own. Run it by hand with:
+--
+--   wrangler d1 execute BANDUP_DB --remote --file=scripts/hand-run-tracking-and-ai-tiers-on-d1.sql
+--
+-- What is being renamed, and why it is safe
+-- ------------------------------------------
+-- D1's subscriptions.tier is TEXT NOT NULL with no CHECK constraint (unlike
+-- Postgres's), so nothing here has to widen a constraint first — this is a
+-- plain UPDATE. Production holds exactly three rows today, all tier 'pro',
+-- all status 'active': two provider='promo' free trials (created 2026-08-17
+-- and 2026-08-24) and one provider='stripe' subscription paid yearly
+-- (external_price_id price_1U2wIuIQuaS8SvAv6TzamEh6, current_period_end
+-- 2027-08-11). No 'standard' or 'plus' row exists. The intended mapping is
+-- standard -> tracking, plus -> ai, pro -> ai, matching the Postgres rename in
+-- supabase/migrations/0032_tracking_and_ai_tiers.sql — this file is that same
+-- rename, run against the database that actually governs entitlements today.
+--
+-- What the existing triggers on subscriptions do to this UPDATE
+-- ---------------------------------------------------------------
+-- `subscriptions_deletion_update_guard` (cloudflare/migrations/0005, restated
+-- by 0018) is BEFORE UPDATE and aborts the whole statement with 'account
+-- deletion is in progress' if the row's user_id has a row in
+-- account_deletion_tombstones. A single UPDATE can touch several rows; if any
+-- one of the matched rows belongs to an account mid-deletion, SQLite's
+-- RAISE(ABORT) rolls back the entire statement, not just that row — so this
+-- rename either applies to every matching row or none of them. Re-running it
+-- once the deletion clears is the fix, not a partial rename.
+-- `subscription_replica_cleanup_update` (0013, restated by 0018) is AFTER
+-- UPDATE OF raw_object_key, and this statement never assigns that column, so
+-- it does not fire — no replica-object cleanup task is enqueued as a side
+-- effect of renaming a tier.
+-- Neither trigger — nor any index on subscriptions — is touched, rebuilt, or
+-- renamed by a plain UPDATE, so both are asserted still present by name in
+-- tests/tier-rename-d1-hand-run.test.mjs as a sanity check, not because this
+-- file does anything to them.
+--
+-- updated_at
+-- -----------
+-- D1 has no trigger that stamps updated_at on its own (unlike Postgres's
+-- touch_updated_at), so every writer sets it explicitly. This statement uses
+-- SQLite's own clock rather than a value threaded in from JavaScript, in the
+-- same '%Y-%m-%dT%H:%M:%f000000Z' shape lib/cloudflare/native-stripe-billing.ts
+-- already uses to stamp a canonical D1 timestamp in pure SQL: %f gives
+-- millisecond precision, and the six literal trailing zeros pad it out to the
+-- nine-digit fraction canonicalCloudflareSourceClock() (lib/cloudflare/
+-- source-clock.ts) expects everywhere else a timestamp is compared or stored.
+
+UPDATE subscriptions
+   SET tier = CASE tier WHEN 'standard' THEN 'tracking' ELSE 'ai' END,
+       updated_at = strftime('%Y-%m-%dT%H:%M:%f000000Z', 'now')
+ WHERE tier IN ('standard', 'plus', 'pro');
+
+-- Verification: every row should now read free, tracking or ai. Run this by
+-- hand afterwards (or read it from the file's own output) and confirm no
+-- 'standard', 'plus' or 'pro' group remains.
+SELECT tier, provider, status, COUNT(*) FROM subscriptions GROUP BY 1, 2, 3;

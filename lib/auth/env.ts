@@ -45,6 +45,7 @@ export const SERVER_ONLY_ENV_VARS = [
   "ANTHROPIC_WORKSPACE_ID",
   "ADMIN_EMAILS",
   "ADMIN_USERNAME",
+  "RESEND_API_KEY",
 ] as const;
 
 function secret(name: (typeof SERVER_ONLY_ENV_VARS)[number]): string | undefined {
@@ -403,4 +404,14 @@ export function emailForIdentifier(identifier: string): string | null {
   const username = adminUsername();
   if (username !== null && typed === username) return adminEmails()[0] ?? null;
   return null;
+}
+
+/**
+ * API key for Resend, the HTTP transactional-email provider used in place of
+ * Cloudflare Email Sending on the Workers Free plan. lib/email/sender.ts is
+ * the only reader, and prefers this over the `send_email` binding whenever
+ * it is set.
+ */
+export function resendApiKey(): string | undefined {
+  return secret("RESEND_API_KEY");
 }

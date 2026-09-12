@@ -2,6 +2,7 @@
   "id": "reading-4",
   "title": "The Value of Waiting",
   "topic": "Queues, rationing and what economists call the price of time",
+  "variant": "academic",
   "difficulty": "hard",
   "level": "C1",
   "timeMinutes": 20,
@@ -138,6 +139,14 @@
           "answer": "arrival",
           "maxWords": 1,
           "explanation": "\"Elections strictly by arrival\" — the last sentence of the list in the final paragraph."
+        },
+        {
+          "id": "q14",
+          "type": "completion",
+          "sentence": "Each rule about how a good is allocated expresses a ___ about what the good is for.",
+          "answer": "judgement",
+          "maxWords": 1,
+          "explanation": "The final paragraph says \"Each rule expresses a judgement about what the good is for\", right after the examples of medicine, tickets and elections. The gap needs that word."
         }
       ]
     }

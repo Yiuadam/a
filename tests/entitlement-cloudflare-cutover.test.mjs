@@ -382,7 +382,7 @@ test("the shipped subscriptions.provider widening preserves data, indexes and tr
   database.exec(`INSERT INTO app_users (id, email, role, created_at, updated_at)
     VALUES ('50000000-0000-4000-8000-000000000001', 'a@example.test', 'user', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`);
   database.exec(`INSERT INTO subscriptions (id, user_id, provider, status, tier, verified_at, created_at, updated_at)
-    VALUES ('sub-existing', '50000000-0000-4000-8000-000000000001', 'stripe', 'active', 'pro', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`);
+    VALUES ('sub-existing', '50000000-0000-4000-8000-000000000001', 'stripe', 'active', 'ai', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`);
 
   database.exec(WIDEN_SUBSCRIPTIONS_PROVIDER);
 
@@ -392,10 +392,10 @@ test("the shipped subscriptions.provider widening preserves data, indexes and tr
   );
 
   database.exec(`INSERT INTO subscriptions (id, user_id, provider, status, tier, verified_at, created_at, updated_at)
-    VALUES ('sub-promo', '50000000-0000-4000-8000-000000000001', 'promo', 'active', 'pro', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`);
+    VALUES ('sub-promo', '50000000-0000-4000-8000-000000000001', 'promo', 'active', 'ai', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`);
 
   assert.throws(() => database.exec(`INSERT INTO subscriptions (id, user_id, provider, status, tier, verified_at, created_at, updated_at)
-    VALUES ('sub-bogus', '50000000-0000-4000-8000-000000000001', 'bogus', 'active', 'pro', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`), /provider/);
+    VALUES ('sub-bogus', '50000000-0000-4000-8000-000000000001', 'bogus', 'active', 'ai', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`), /provider/);
 
   const indexes = database.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='subscriptions'").all().map((r) => r.name);
   for (const name of ["subscriptions_provider_external_unique", "subscriptions_apple_original_unique", "subscriptions_user_status_idx"]) {
@@ -409,7 +409,7 @@ test("the shipped subscriptions.provider widening preserves data, indexes and tr
   database.exec(`INSERT INTO account_deletion_tombstones (user_id, operation_id, state, prepared_at, lease_expires_at, updated_at)
     VALUES ('50000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000099', 'prepared', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:01:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`);
   assert.throws(() => database.exec(`INSERT INTO subscriptions (id, user_id, provider, status, tier, verified_at, created_at, updated_at)
-    VALUES ('sub-blocked', '50000000-0000-4000-8000-000000000001', 'promo', 'active', 'pro', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`), /account deletion is in progress/);
+    VALUES ('sub-blocked', '50000000-0000-4000-8000-000000000001', 'promo', 'active', 'ai', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z', '2026-01-01T00:00:00.000000000Z')`), /account deletion is in progress/);
 });
 
 test("the shipped outbox operation widening preserves the queue and its triggers", () => {
@@ -456,9 +456,9 @@ test("replicateAuthoritativePromoState writes a provider='promo' D1 row and the 
     id: "50000000-0000-4000-8000-0000000000aa",
     userId: "50000000-0000-4000-8000-000000000001",
     status: "active",
-    tier: "pro",
+    tier: "ai",
     currentPeriodEnd: null,
-    raw: { kind: "free-pro-trial", acceptedAt: "2026-08-17T00:00:00.000Z" },
+    raw: { kind: "free-ai-trial", acceptedAt: "2026-08-17T00:00:00.000Z" },
     verifiedAt: "2026-08-17T00:00:00.000Z",
     createdAt: "2026-08-17T00:00:00.000Z",
     updatedAt: "2026-08-17T00:00:00.000Z",
@@ -466,10 +466,10 @@ test("replicateAuthoritativePromoState writes a provider='promo' D1 row and the 
   assert.equal(await billingReplica.replicateAuthoritativePromoState(row, bindings), true);
 
   const stored = database.prepare("SELECT provider, status, tier, current_period_end FROM subscriptions WHERE id = ?").get(row.id);
-  assert.deepEqual({ ...stored }, { provider: "promo", status: "active", tier: "pro", current_period_end: null });
+  assert.deepEqual({ ...stored }, { provider: "promo", status: "active", tier: "ai", current_period_end: null });
 
   const resolved = await entitlementRuntime.resolveEntitlementFromCloudflare(row.userId, bindings);
-  assert.deepEqual(resolved, { tier: "pro", source: "promo", expires_at: null });
+  assert.deepEqual(resolved, { tier: "ai", source: "promo", expires_at: null });
 });
 
 test("a stale (older updated_at) promo replay does not clobber a newer status", async () => {
@@ -478,9 +478,9 @@ test("a stale (older updated_at) promo replay does not clobber a newer status", 
   const base = {
     id: "50000000-0000-4000-8000-0000000000bb",
     userId: "50000000-0000-4000-8000-000000000002",
-    tier: "pro",
+    tier: "ai",
     currentPeriodEnd: null,
-    raw: { kind: "free-pro-trial", acceptedAt: "2026-08-01T00:00:00.000Z" },
+    raw: { kind: "free-ai-trial", acceptedAt: "2026-08-01T00:00:00.000Z" },
     verifiedAt: "2026-08-01T00:00:00.000Z",
     createdAt: "2026-08-01T00:00:00.000Z",
   };
@@ -640,45 +640,45 @@ test("D1 resolveEntitlementFromCloudflare agrees with Postgres resolve_entitleme
       {
         name: "one active row",
         userId: "50000000-0000-4000-8000-000000000010",
-        subs: [{ id: "60000000-0000-4000-8000-000000000010", provider: "stripe", status: "active", tier: "plus", currentPeriodEnd: iso(30 * day), verifiedAt: iso(-16 * day) }],
+        subs: [{ id: "60000000-0000-4000-8000-000000000010", provider: "stripe", status: "active", tier: "tracking", currentPeriodEnd: iso(30 * day), verifiedAt: iso(-16 * day) }],
       },
       {
         name: "overlapping tiers, rank picks the higher one regardless of dates",
         userId: "50000000-0000-4000-8000-000000000011",
         subs: [
-          { id: "60000000-0000-4000-8000-000000000011", provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: iso(2 * day), verifiedAt: iso(-2 * day) },
-          { id: "60000000-0000-4000-8000-000000000012", provider: "apple", status: "trialing", tier: "plus", currentPeriodEnd: iso(730 * day), verifiedAt: iso(0) },
+          { id: "60000000-0000-4000-8000-000000000011", provider: "stripe", status: "active", tier: "ai", currentPeriodEnd: iso(2 * day), verifiedAt: iso(-2 * day) },
+          { id: "60000000-0000-4000-8000-000000000012", provider: "apple", status: "trialing", tier: "tracking", currentPeriodEnd: iso(730 * day), verifiedAt: iso(0) },
         ],
       },
       {
         name: "expired, refunded and canceled rows all grant nothing; only 'standard' status counts",
         userId: "50000000-0000-4000-8000-000000000012",
         subs: [
-          { id: "60000000-0000-4000-8000-000000000013", provider: "stripe", status: "expired", tier: "pro", currentPeriodEnd: iso(150 * day), verifiedAt: iso(-16 * day) },
-          { id: "60000000-0000-4000-8000-000000000014", provider: "apple", status: "refunded", tier: "pro", currentPeriodEnd: iso(150 * day), verifiedAt: iso(-16 * day) },
-          { id: "60000000-0000-4000-8000-000000000015", provider: "stripe", status: "canceled", tier: "pro", currentPeriodEnd: iso(150 * day), verifiedAt: iso(-16 * day) },
-          { id: "60000000-0000-4000-8000-000000000016", provider: "apple", status: "trialing", tier: "standard", currentPeriodEnd: iso(3 * day), verifiedAt: iso(-16 * day) },
+          { id: "60000000-0000-4000-8000-000000000013", provider: "stripe", status: "expired", tier: "ai", currentPeriodEnd: iso(150 * day), verifiedAt: iso(-16 * day) },
+          { id: "60000000-0000-4000-8000-000000000014", provider: "apple", status: "refunded", tier: "ai", currentPeriodEnd: iso(150 * day), verifiedAt: iso(-16 * day) },
+          { id: "60000000-0000-4000-8000-000000000015", provider: "stripe", status: "canceled", tier: "ai", currentPeriodEnd: iso(150 * day), verifiedAt: iso(-16 * day) },
+          { id: "60000000-0000-4000-8000-000000000016", provider: "apple", status: "trialing", tier: "tracking", currentPeriodEnd: iso(3 * day), verifiedAt: iso(-16 * day) },
         ],
       },
       {
         name: "expired long ago grants nothing",
         userId: "50000000-0000-4000-8000-000000000013",
-        subs: [{ id: "60000000-0000-4000-8000-000000000017", provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: iso(-30 * day), verifiedAt: iso(-60 * day) }],
+        subs: [{ id: "60000000-0000-4000-8000-000000000017", provider: "stripe", status: "active", tier: "ai", currentPeriodEnd: iso(-30 * day), verifiedAt: iso(-60 * day) }],
       },
       {
         name: "expires well into the future still grants",
         userId: "50000000-0000-4000-8000-000000000014",
-        subs: [{ id: "60000000-0000-4000-8000-000000000018", provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: iso(30 * day), verifiedAt: iso(-16 * day) }],
+        subs: [{ id: "60000000-0000-4000-8000-000000000018", provider: "stripe", status: "active", tier: "ai", currentPeriodEnd: iso(30 * day), verifiedAt: iso(-16 * day) }],
       },
       {
         name: "no period end never expires",
         userId: "50000000-0000-4000-8000-000000000015",
-        subs: [{ id: "60000000-0000-4000-8000-000000000019", provider: "promo", status: "active", tier: "pro", currentPeriodEnd: null, verifiedAt: iso(-16 * day) }],
+        subs: [{ id: "60000000-0000-4000-8000-000000000019", provider: "promo", status: "active", tier: "ai", currentPeriodEnd: null, verifiedAt: iso(-16 * day) }],
       },
       {
         name: "a paused promo grant is free, exactly like Postgres",
         userId: "50000000-0000-4000-8000-000000000016",
-        subs: [{ id: "60000000-0000-4000-8000-00000000001a", provider: "promo", status: "paused", tier: "pro", currentPeriodEnd: null, verifiedAt: iso(-16 * day) }],
+        subs: [{ id: "60000000-0000-4000-8000-00000000001a", provider: "promo", status: "paused", tier: "ai", currentPeriodEnd: null, verifiedAt: iso(-16 * day) }],
       },
       {
         name: "no subscription at all resolves to free/default",
@@ -689,8 +689,8 @@ test("D1 resolveEntitlementFromCloudflare agrees with Postgres resolve_entitleme
         name: "tie-break: same tier and period, the later-verified row wins",
         userId: "50000000-0000-4000-8000-000000000018",
         subs: [
-          { id: "60000000-0000-4000-8000-00000000001b", provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: iso(14 * day), verifiedAt: iso(-16 * day) },
-          { id: "60000000-0000-4000-8000-00000000001c", provider: "apple", status: "active", tier: "pro", currentPeriodEnd: iso(14 * day), verifiedAt: iso(-7 * day) },
+          { id: "60000000-0000-4000-8000-00000000001b", provider: "stripe", status: "active", tier: "ai", currentPeriodEnd: iso(14 * day), verifiedAt: iso(-16 * day) },
+          { id: "60000000-0000-4000-8000-00000000001c", provider: "apple", status: "active", tier: "ai", currentPeriodEnd: iso(14 * day), verifiedAt: iso(-7 * day) },
         ],
       },
       {
@@ -702,8 +702,8 @@ test("D1 resolveEntitlementFromCloudflare agrees with Postgres resolve_entitleme
         name: "nulls-first tie-break: a never-expiring row outranks a dated one at the same tier",
         userId: "50000000-0000-4000-8000-000000000019",
         subs: [
-          { id: "60000000-0000-4000-8000-00000000001d", provider: "promo", status: "active", tier: "pro", currentPeriodEnd: null, verifiedAt: iso(-16 * day) },
-          { id: "60000000-0000-4000-8000-00000000001e", provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: iso(14 * day), verifiedAt: iso(-16 * day) },
+          { id: "60000000-0000-4000-8000-00000000001d", provider: "promo", status: "active", tier: "ai", currentPeriodEnd: null, verifiedAt: iso(-16 * day) },
+          { id: "60000000-0000-4000-8000-00000000001e", provider: "stripe", status: "active", tier: "ai", currentPeriodEnd: iso(14 * day), verifiedAt: iso(-16 * day) },
         ],
       },
     ];
@@ -738,7 +738,7 @@ test("D1 resolveEntitlementFromCloudflare agrees with Postgres resolve_entitleme
     const boundarySub = "60000000-0000-4000-8000-00000000001f";
     mirrorScenario(pg, database, {
       userId: boundaryUser,
-      subs: [{ id: boundarySub, provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: pgNow, verifiedAt: pgNow }],
+      subs: [{ id: boundarySub, provider: "stripe", status: "active", tier: "ai", currentPeriodEnd: pgNow, verifiedAt: pgNow }],
     });
     const pgBoundary = JSON.parse(pg.psql(`select row_to_json(public.resolve_entitlement('${boundaryUser}'::uuid))`));
     assert.equal(pgBoundary.tier, "free", "Postgres: current_period_end equal to now() must not count as still current");
@@ -750,7 +750,7 @@ test("D1 resolveEntitlementFromCloudflare agrees with Postgres resolve_entitleme
     const d1JustBefore = await entitlementRuntime.resolveEntitlementFromCloudflare(
       boundaryUser, bindings, justBeforeNow,
     );
-    assert.equal(d1JustBefore.tier, "pro", "D1: current_period_end fractionally after 'now' must still grant");
+    assert.equal(d1JustBefore.tier, "ai", "D1: current_period_end fractionally after 'now' must still grant");
   } finally {
     teardown(pg);
   }
@@ -821,10 +821,10 @@ test("ADMIN_EMAILS short-circuits before either backend is asked anything", asyn
 test("resolveEntitlement asks Supabase when the domain's mode is not Cloudflare (the default)", async () => {
   await withDomainMode(undefined, async () => {
     await withStubbedSupabase(
-      () => ({ role: "user", tier: "plus", source: "stripe", expires_at: null }),
+      () => ({ role: "user", tier: "tracking", source: "stripe", expires_at: null }),
       async (calls) => {
         const result = await entitlements.resolveEntitlement("50000000-0000-4000-8000-000000000020", "learner@example.test");
-        assert.deepEqual(result, { role: "user", tier: "plus", source: "stripe", expiresAt: null });
+        assert.deepEqual(result, { role: "user", tier: "tracking", source: "stripe", expiresAt: null });
         assert.equal(calls.length, 1);
         assert.match(calls[0].url, /resolve_entitlement/);
       },
@@ -841,7 +841,7 @@ test("resolveEntitlement asks Cloudflare when the domain's override says read_cl
       database.prepare(`INSERT INTO app_users (id, email, role, created_at, updated_at)
         VALUES (?, ?, 'user', ?, ?)`).run(userId, "learner2@example.test", canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"), canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"));
       database.prepare(`INSERT INTO subscriptions (id, user_id, provider, status, tier, current_period_end, verified_at, created_at, updated_at)
-        VALUES (?, ?, 'stripe', 'active', 'plus', NULL, ?, ?, ?)`).run(
+        VALUES (?, ?, 'stripe', 'active', 'tracking', NULL, ?, ?, ?)`).run(
         "60000000-0000-4000-8000-000000000021", userId,
         canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"), canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"), canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"),
       );
@@ -849,7 +849,7 @@ test("resolveEntitlement asks Cloudflare when the domain's override says read_cl
         () => { throw new Error("must not call Supabase in this mode"); },
         async () => {
           const result = await entitlements.resolveEntitlement(userId, "learner2@example.test");
-          assert.deepEqual(result, { role: "user", tier: "plus", source: "stripe", expiresAt: null });
+          assert.deepEqual(result, { role: "user", tier: "tracking", source: "stripe", expiresAt: null });
         },
       );
     } finally {
@@ -931,9 +931,9 @@ test("accepting the trial mirrors a promo row to D1 only when mirrorsWritesToClo
           id: subscriptionId,
           user_id: userId,
           status: "active",
-          tier: "pro",
+          tier: "ai",
           current_period_end: null,
-          raw: { kind: "free-pro-trial", acceptedAt: now },
+          raw: { kind: "free-ai-trial", acceptedAt: now },
           verified_at: now,
           created_at: now,
           updated_at: now,
@@ -949,7 +949,7 @@ test("accepting the trial mirrors a promo row to D1 only when mirrorsWritesToClo
     assert.equal(outcome, "granted");
 
     const stored = database.prepare("SELECT provider, status, tier FROM subscriptions WHERE user_id = ?").get(userId);
-    assert.deepEqual({ ...stored }, { provider: "promo", status: "active", tier: "pro" });
+    assert.deepEqual({ ...stored }, { provider: "promo", status: "active", tier: "ai" });
   } finally {
     delete globalThis.__FAKE_CLOUDFLARE_CONTEXT__;
     delete globalThis.fetch;

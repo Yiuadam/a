@@ -114,18 +114,18 @@ test("admin entitlement SQL uses the gate's effective tier and keeps organisatio
     const overlap = newUser("overlap@example.test");
     pg.psql(`insert into public.subscriptions (user_id, provider, status, tier, current_period_end, verified_at)
       values
-      ('${overlap}', 'stripe', 'active', 'pro', now() + interval '2 days', now() - interval '2 days'),
-      ('${overlap}', 'apple', 'trialing', 'plus', now() + interval '2 years', now())`);
-    assertEverywhere(overlap, "pro");
+      ('${overlap}', 'stripe', 'active', 'ai', now() + interval '2 days', now() - interval '2 days'),
+      ('${overlap}', 'apple', 'trialing', 'tracking', now() + interval '2 years', now())`);
+    assertEverywhere(overlap, "ai");
 
     const statusUser = newUser("statuses@example.test");
     pg.psql(`insert into public.subscriptions (user_id, provider, status, tier, current_period_end, verified_at)
       values
-      ('${statusUser}', 'stripe', 'expired', 'pro', now() + interval '1 year', now()),
-      ('${statusUser}', 'apple', 'refunded', 'pro', now() + interval '1 year', now()),
-      ('${statusUser}', 'stripe', 'active', 'plus', now() - interval '1 minute', now()),
-      ('${statusUser}', 'apple', 'trialing', 'standard', now() + interval '1 day', now())`);
-    assertEverywhere(statusUser, "standard");
+      ('${statusUser}', 'stripe', 'expired', 'ai', now() + interval '1 year', now()),
+      ('${statusUser}', 'apple', 'refunded', 'ai', now() + interval '1 year', now()),
+      ('${statusUser}', 'stripe', 'active', 'tracking', now() - interval '1 minute', now()),
+      ('${statusUser}', 'apple', 'trialing', 'tracking', now() + interval '1 day', now())`);
+    assertEverywhere(statusUser, "tracking");
 
     const admin = newUser("database-admin@example.test");
     pg.psql(`select public.set_account_role('database-admin@example.test', 'admin')`);
@@ -180,14 +180,14 @@ test("ADMIN_EMAILS is batch-applied to list and detail responses without per-use
   try {
     const rows = effectiveAccess.applyOwnerEffectiveAccess([
       { email: "owner@example.test", plan: "free", access_source: "default" },
-      { email: "learner@example.test", plan: "plus", access_source: "stripe" },
+      { email: "learner@example.test", plan: "ai", access_source: "stripe" },
     ]);
     assert.deepEqual(rows[0], { email: "owner@example.test", plan: "admin", access_source: "role" });
-    assert.deepEqual(rows[1], { email: "learner@example.test", plan: "plus", access_source: "stripe" });
+    assert.deepEqual(rows[1], { email: "learner@example.test", plan: "ai", access_source: "stripe" });
     assert.deepEqual(
       effectiveAccess.applyOwnerEffectiveAccessToDetail({
         email: "OWNER@example.test",
-        plan: "standard",
+        plan: "tracking",
         accessSource: "stripe",
       }),
       { email: "OWNER@example.test", plan: "admin", accessSource: "role" },

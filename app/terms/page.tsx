@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "What BandUp promises, what it does not, and the one thing that matters most: a band estimate here is not an IELTS result.",
 };
 
-const LAST_UPDATED = "16 August 2026";
+const LAST_UPDATED = "11 September 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -91,8 +91,9 @@ export default function TermsPage() {
       <Section title="Accounts">
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           An account is optional — the placement test, your study plan and every drill work
-          without one, and so do practice papers, with a weekly limit until you pay. If you make
-          an account, please keep it to yourself and use an email address you control.
+          without one, and so do one reading and one listening paper a week. Signing in opens the
+          whole library, free. If you make an account, please keep it to yourself and use an
+          email address you control.
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp is intended for people aged 13 and over. If you are under 13, please do not
@@ -120,11 +121,11 @@ export default function TermsPage() {
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Drills and your study plan cost nothing to serve, do not count towards any allowance,
-          and are never limited. Practice papers do not count towards an AI allowance either, but
-          they do have a weekly limit until you pay: signed out you get one reading and one
-          listening paper a week, and a free account gets two of each. Writing and speaking
-          papers are locked in both cases, because neither a visitor nor a free account has the
-          AI that marks them.
+          and are never limited. Practice papers do not count towards an AI allowance either.
+          Signed out you get one reading and one listening paper a week, and writing and speaking
+          are closed; signed in, on any plan, every paper in all four skills is open with no
+          limit. On Free and Tracking a writing or speaking paper ends by showing you your essay
+          or transcript — the AI marking is what the AI plan adds.
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Please do not automate requests, share an account to multiply the allowance, or use
@@ -201,12 +202,13 @@ export default function TermsPage() {
       <Section title="Paid access, and how the money works">
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp is free to use, and most of it stays free whatever you do: the placement test,
-          your study plan, some of the practice papers each week, and every grammar and
-          vocabulary drill. What every paid plan buys is the whole library of practice papers
-          with no weekly limit. Plus and Pro add the parts that cost money to run each time you
-          press the button — the AI examiner, the tutor and word lookup. Standard has no AI at
-          all: its reading and listening papers are marked from the answer key, which is exactly
-          as accurate.
+          your study plan, every grammar and vocabulary drill, and — once you sign in — every
+          practice paper in all four skills, unlimited. Tracking buys memory: your sittings,
+          band trend and saved words kept on your account and synced between devices. AI adds
+          the parts that cost money to run each time you press the button — the examiner that
+          marks your writing and speaking, the tutor and word lookup. Neither Free nor Tracking
+          has AI: reading and listening papers are marked from the answer key, which is exactly
+          as accurate, and writing and speaking hand you back what you wrote or said.
         </p>
         <dl className="mt-3 space-y-2">
           {PAID_TIERS.map((id) => {
@@ -328,10 +330,10 @@ export default function TermsPage() {
           examiner is a language model: it can be wrong, and it can be confidently wrong.
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
-          Without an account, your practice is stored on the device you are using and is cleared
-          when you close the browser — nothing about it reaches us, so there is nothing for us to
-          restore. With an account it is synced and comes back on any device you sign in to. We
-          cannot recover progress that was never synced.
+          On the Free plan, and without an account, your practice is stored on the device you
+          are using and is cleared when you close the browser — nothing about it reaches us, so
+          there is nothing for us to restore. On the Tracking or AI plan it is synced and comes
+          back on any device you sign in to. We cannot recover progress that was never synced.
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           Where the law allows it, our liability to you is limited to what you have paid us in

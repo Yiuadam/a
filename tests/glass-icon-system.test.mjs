@@ -189,18 +189,69 @@ test("navigation keeps its fixed glass surface, and grows outward from the butto
   assert.doesNotMatch(header, /--nav-group-(?:delay|touch-delay|flow-x)/);
 });
 
-test("the header icon ships a right-sized immutable static asset without image optimisation", () => {
-  const header = read("components/SiteHeader.tsx");
-  const asset = readFileSync(
-    join(process.cwd(), "components", "assets", "steps-five-layer-rear-108.png"),
-  );
+/*
+  This used to assert that the header shipped a 108px PNG, unoptimised, at
+  under 20kB. That was the right test while the mark was a raster: the cost
+  worth pinning was the request and the optimiser it must not go through.
 
-  assert.match(header, /import bandupMarkRear from "@\/components\/assets\/steps-five-layer-rear-108\.png"/);
-  assert.match(header, /src=\{bandupMarkRear\}[\s\S]*sizes="36px"[\s\S]*unoptimized/);
-  assert.doesNotMatch(header, /src="\/icons\/final\/steps-five-layer-rear\.png"/);
-  assert.equal(asset.readUInt32BE(16), 108);
-  assert.equal(asset.readUInt32BE(20), 108);
-  assert.ok(asset.byteLength < 20_000, `header icon is ${asset.byteLength} bytes`);
+  The mark is drawn now, from the same vector master the icon family came from,
+  because a raster is one colourway and the app has three themes — and the only
+  way to move a PNG's colours is a filter, which turns a chosen palette into
+  whatever hue-rotate gives. So the cost is zero requests rather than one small
+  one, and what is worth pinning instead is the thing that made the change
+  necessary: every colour in the mark comes from a custom property, and each
+  theme sets its own.
+*/
+test("the header mark is drawn, not fetched, and takes its colours from the theme", () => {
+  const header = read("components/SiteHeader.tsx");
+  const mark = read("components/BandUpMark.tsx");
+  const css = read("app/globals.css");
+
+  assert.match(header, /import BandUpMark from "@\/components\/BandUpMark"/);
+  assert.match(header, /<BandUpMark className="bandup-mark-rear/);
+  // No raster for the mark, and nothing for the image optimiser to do.
+  assert.doesNotMatch(header, /steps-five-layer-rear/);
+  assert.doesNotMatch(header, /from "next\/image"/);
+
+  /*
+    Every colour a property, so a theme can set it. The mask is exempt and has
+    to be: black and white there are the channel, not a palette — they say
+    which parts of the paper are holes.
+  */
+  /*
+    The mask is exempt, and has to be: black and white inside it are the
+    channel, not a palette — they say which parts of the paper are holes.
+  */
+  const painted = mark.slice(0, mark.indexOf("<mask")) + mark.slice(mark.indexOf("</mask>"));
+  assert.doesNotMatch(painted, /(?:stopColor|fill)="#[0-9a-fA-F]{3,8}"/);
+
+  /*
+    And the rules are cut by a mask rather than by an `evenodd` sub-path. The
+    sheet is a staircase, so a hole that starts left of its upper steps is a
+    hole in mid-air; a mask only removes where the paper already is. This is
+    the one detail that has been got wrong twice.
+  */
+  assert.match(mark, /mask=\{`url\(#\$\{ruled\}\)`\}/);
+  /* A gradient, and one whose id is per-instance: `url(#…)` resolves against
+     the whole document, so a shared id makes a second mark borrow the first
+     one's colours. */
+  assert.match(mark, /linearGradient id=\{gradient\}/);
+  assert.match(mark, /useId\(\)/);
+  for (const token of [
+    "--mark-ground-near",
+    "--mark-ground-mid",
+    "--mark-ground-far",
+    "--mark-sheet",
+    "--mark-paper",
+  ]) {
+    assert.match(mark, new RegExp(`var\\(${token}\\)`), `${token} is not used by the mark`);
+    assert.match(css, new RegExp(`${token}:`), `${token} is never defined`);
+  }
+  // Three colourways: the root set, and an override for each named theme.
+  for (const theme of ["light", "dark"]) {
+    const block = css.slice(css.indexOf(`html[data-theme="${theme}"] {\n  --mark-ground-near`));
+    assert.ok(block.startsWith(`html[data-theme="${theme}"] {`), `${theme} has no mark palette`);
+  }
 });
 
 test("Google's owned iframe is hard-clipped at every wrapper boundary", () => {

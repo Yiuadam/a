@@ -187,17 +187,17 @@ test("cloudflareAdminTierCounts ranks by tier, treats the admin id as 'admin', a
 
   // The admin's own subscription row, if any, must not matter — it is
   // reported as 'admin' unconditionally, matching admin_tier_counts(uuid).
-  insertSubscription(database, { id: "s0", userId: admin, provider: "stripe", status: "active", tier: "standard", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
-  insertSubscription(database, { id: "s1", userId: pro, provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
-  insertSubscription(database, { id: "s2", userId: overlap, provider: "apple", status: "trialing", tier: "plus", currentPeriodEnd: "2099-01-01T00:00:00.000Z", verifiedAt: "2026-01-01T00:00:00.000Z" });
-  insertSubscription(database, { id: "s3", userId: overlap, provider: "stripe", status: "expired", tier: "pro", currentPeriodEnd: "2099-01-01T00:00:00.000Z", verifiedAt: "2026-01-01T00:00:00.000Z" });
-  insertSubscription(database, { id: "s4", userId: deleted, provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
+  insertSubscription(database, { id: "s0", userId: admin, provider: "stripe", status: "active", tier: "tracking", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
+  insertSubscription(database, { id: "s1", userId: pro, provider: "stripe", status: "active", tier: "ai", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
+  insertSubscription(database, { id: "s2", userId: overlap, provider: "apple", status: "trialing", tier: "tracking", currentPeriodEnd: "2099-01-01T00:00:00.000Z", verifiedAt: "2026-01-01T00:00:00.000Z" });
+  insertSubscription(database, { id: "s3", userId: overlap, provider: "stripe", status: "expired", tier: "ai", currentPeriodEnd: "2099-01-01T00:00:00.000Z", verifiedAt: "2026-01-01T00:00:00.000Z" });
+  insertSubscription(database, { id: "s4", userId: deleted, provider: "stripe", status: "active", tier: "ai", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
 
   const rows = await adminStats.cloudflareAdminTierCounts(admin, bindings);
   const byTier = Object.fromEntries(rows.map((row) => [row.tier, row.count]));
   assert.equal(byTier.admin, 1);
-  assert.equal(byTier.pro, 1);
-  assert.equal(byTier.plus, 1, "an expired row must lose to an active/trialing one, not merely the highest tier ever seen");
+  assert.equal(byTier.ai, 1);
+  assert.equal(byTier.tracking, 1, "an expired row must lose to an active/trialing one, not merely the highest tier ever seen");
   assert.equal(byTier.free, 1, "no active/trialing subscription resolves to free");
   assert.equal(rows.reduce((sum, row) => sum + row.count, 0), 4, "the soft-deleted account must not be counted at all");
 });
@@ -210,10 +210,10 @@ test("cloudflareAdminDirectoryEntitlements marks an id with no app_users row as 
   const mirrored = "50000000-0000-4000-8000-000000000010";
   const unmirrored = "50000000-0000-4000-8000-000000000011";
   insertUser(database, mirrored, "mirrored@example.test");
-  insertSubscription(database, { id: "d1", userId: mirrored, provider: "stripe", status: "active", tier: "plus", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
+  insertSubscription(database, { id: "d1", userId: mirrored, provider: "stripe", status: "active", tier: "tracking", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
 
   const result = await adminEntitlements.cloudflareAdminDirectoryEntitlements([mirrored, unmirrored], bindings);
-  assert.deepEqual(result.get(mirrored), { mirrored: true, tier: "plus", source: "stripe" });
+  assert.deepEqual(result.get(mirrored), { mirrored: true, tier: "tracking", source: "stripe" });
   assert.equal(result.get(unmirrored).mirrored, false, "Auth knows this id; D1 does not — it must say so, not resolve to free");
 });
 
@@ -252,13 +252,13 @@ test("cloudflareAdminDirectoryEntitlements resolves a roster past the old UNION-
   ids.forEach((id, index) => insertUser(database, id, `roster${index}@example.test`));
   insertSubscription(database, {
     id: "roster-sub", userId: ids[5], provider: "stripe", status: "active",
-    tier: "pro", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z",
+    tier: "ai", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z",
   });
 
   const result = await adminEntitlements.cloudflareAdminDirectoryEntitlements(ids, bindings);
   assert.equal(result.size, ids.length);
   for (const id of ids) assert.equal(result.get(id).mirrored, true);
-  assert.deepEqual(result.get(ids[5]), { mirrored: true, tier: "pro", source: "stripe" });
+  assert.deepEqual(result.get(ids[5]), { mirrored: true, tier: "ai", source: "stripe" });
 });
 
 test("Cloudflare-native directory uses its own roster, profile, username and D1 effective tier", async () => {
@@ -273,7 +273,7 @@ test("Cloudflare-native directory uses its own roster, profile, username and D1 
     .run(id, "Learner", canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"));
   database.prepare("INSERT INTO usernames (username, user_id, created_at) VALUES (?, ?, ?)")
     .run("learner", id, canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"));
-  insertSubscription(database, { id: "native-directory-sub", userId: id, provider: "stripe", status: "active", tier: "pro", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
+  insertSubscription(database, { id: "native-directory-sub", userId: id, provider: "stripe", status: "active", tier: "ai", currentPeriodEnd: null, verifiedAt: "2026-01-01T00:00:00.000Z" });
   insertUsageEvent(database, { id: "native-directory-usage", userId: id, route: "tutor", outcome: "admitted", createdAt: utcInstant(0, 9) });
 
   const page = await nativeDirectory.cloudflareAdminDirectoryPage({ query: "learner", limit: 50, offset: 0 }, bindings);
@@ -285,7 +285,7 @@ test("Cloudflare-native directory uses its own roster, profile, username and D1 
     displayName: "Learner",
     accountKind: "student",
     registeredAt: canonicalCloudflareSourceClock("2026-01-01T00:00:00.000Z"),
-    plan: "pro",
+    plan: "ai",
     accessSource: "stripe",
     organizationSeatCount: 0,
     usage30d: 1,

@@ -21,12 +21,12 @@ import { resolveEntitlement } from "./entitlements";
 import type { Tier } from "./tiers";
 
 /*
-  The free Pro trial.
+  The free AI trial.
 
   ---------------------------------------------------------------------------
   What it is
 
-  Every account is offered Pro for nothing, until the owner decides to stop.
+  Every account is offered AI for nothing, until the owner decides to stop.
   Accepting is a deliberate act — a poster explains the offer and the learner
   presses a button — because an entitlement that appears on its own is one
   nobody was told about, and one nobody was told about cannot be ended fairly.
@@ -35,12 +35,12 @@ import type { Tier } from "./tiers";
   Why there is no new table and no new resolver
 
   A grant is an ordinary row in `public.subscriptions`: provider 'promo',
-  status 'active', tier 'pro', `current_period_end` null. `resolve_entitlement`
+  status 'active', tier 'ai', `current_period_end` null. `resolve_entitlement`
   (supabase/migrations/0026) already takes the most generous row whose status is
   active or trialing and whose period has not ended, so such a row resolves to
-  Pro for as long as it stands, composes correctly with a real paid
+  AI for as long as it stands, composes correctly with a real paid
   subscription — the paid row wins nothing and loses nothing, because both say
-  Pro — and needs no second place where an entitlement can be decided.
+  AI — and needs no second place where an entitlement can be decided.
 
   Ending the trial is therefore one UPDATE the owner runs, setting every promo
   row's status to 'canceled'. It is written out in the pull request.
@@ -169,18 +169,18 @@ async function promoState(userId: string) {
 
 /**
  * Which tiers are already at least as good as the trial, and so are never
- * shown it: a Pro subscriber would be offered what they are paying for, and the
+ * shown it: an AI subscriber would be offered what they are paying for, and the
  * owner's own account is above every tier there is.
  */
 export function alreadyCovered(tier: string): boolean {
-  return tier === "pro" || tier === "admin";
+  return tier === "ai" || tier === "admin";
 }
 
 /** Whether this account should see the poster, and why not when it should not. */
 export type OfferReason =
   | "offered"
   | "signed-out"
-  | "already-pro"
+  | "already-ai"
   | "already-decided"
   | "not-open";
 
@@ -188,7 +188,7 @@ export interface PromoOffer {
   offered: boolean;
   reason: OfferReason;
   /**
-   * Whether the trial itself is what is granting Pro to this account right now.
+   * Whether the trial itself is what is granting AI to this account right now.
    *
    * It rides along with the offer because both answers come out of the same
    * `resolve_entitlement` call, and asking twice would cost a second round trip
@@ -218,7 +218,7 @@ export async function promoOfferFor(
   const entitlement = await resolveEntitlement(userId, email);
   const grantHeld = entitlement.source === "promo";
   if (alreadyCovered(entitlement.tier)) {
-    return { offered: false, reason: "already-pro", grantHeld };
+    return { offered: false, reason: "already-ai", grantHeld };
   }
 
   if (!(await promoWriteSupported())) {
@@ -235,7 +235,7 @@ export async function promoOfferFor(
  * Whether this account is paying for something that is, at this moment, free.
  *
  * The trial creates a fairness problem the trial itself cannot solve: somebody
- * who subscribed last month is paying for Pro while a new account is given it.
+ * who subscribed last month is paying for AI while a new account is given it.
  * They will find out. The only question is whether they find out from us or by
  * accident, and the second one is the one that reads as sharp practice.
  *
@@ -257,7 +257,7 @@ export async function payingWhileFree(
 
   const entitlement = await resolveEntitlement(userId, email);
   /*
-    Paid, rather than merely Pro. An admin holds their tier by role and a
+    Paid, rather than merely AI. An admin holds their tier by role and a
     trialist by promo grant; neither is paying, so neither is owed this. The
     source is the provider `resolve_entitlement` reports, so this is exactly
     "somebody is being charged for this account".
@@ -269,8 +269,8 @@ export async function payingWhileFree(
 
 export type AcceptOutcome =
   | "granted"
-  /** Pro already, by subscription, by role, or by a trial still standing. */
-  | "already-pro"
+  /** AI already, by subscription, by role, or by a trial still standing. */
+  | "already-ai"
   /** A promo row exists but no longer grants anything: the owner ended it. */
   | "ended"
   | "not-open"
@@ -289,7 +289,7 @@ export async function acceptPromo(
   assertServerOnly(MODULE);
 
   const entitlement = await resolveEntitlement(userId, email);
-  if (alreadyCovered(entitlement.tier)) return "already-pro";
+  if (alreadyCovered(entitlement.tier)) return "already-ai";
   if (!(await promoWriteSupported())) return "not-open";
 
   const state = await promoState(userId);
@@ -301,7 +301,7 @@ export async function acceptPromo(
   if (state === "ended") return "ended";
   // Unreachable while the entitlement above is authoritative, and answered
   // rather than assumed away: a standing grant needs nothing written.
-  if (state === "holding") return "already-pro";
+  if (state === "holding") return "already-ai";
 
   if (state === "released") {
     /*
@@ -339,7 +339,7 @@ export async function acceptPromo(
     await mirrorPromoBestEffort(userId);
     return "granted";
   }
-  if (outcome === "exists") return "already-pro";
+  if (outcome === "exists") return "already-ai";
   if (outcome === "unsupported") {
     // The constraint changed under us between the probe and the write. Drop the
     // cached yes so the next reader is told the truth.
@@ -384,7 +384,7 @@ export interface ReleaseResult {
  * answered here. There is no parameter through which a caller could name another
  * account, another tier or another status. See ACCOUNTS.md, threat 3.
  *
- * The gate is `source === "promo"` — the trial is what is granting Pro right
+ * The gate is `source === "promo"` — the trial is what is granting AI right
  * now. A paying subscriber's source is stripe or apple and the owner's is role,
  * so neither can release anything through this, even by calling it directly.
  * And the UPDATE only ever touches rows whose provider is 'promo', so a paid
@@ -418,7 +418,7 @@ export async function releasePromo(
   /*
     Same reasoning as the resume path: pausing is a status change on a row the
     mirror already holds, and a D1 read that still saw 'active' would keep
-    granting Pro to somebody who has just given it back.
+    granting AI to somebody who has just given it back.
   */
   await mirrorPromoBestEffort(userId);
   const after = await resolveEntitlement(userId, email);

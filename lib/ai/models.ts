@@ -89,6 +89,7 @@ export const COSTED_ROUTES = [
   "grade/writing",
   "grade/speaking",
   "generate",
+  "examiner",
 ] as const;
 
 export type CostedRoute = (typeof COSTED_ROUTES)[number];
@@ -183,6 +184,26 @@ export const ROUTE_BUDGETS: Record<CostedRoute, RouteBudget> = {
     maxInputTokens: 1000,
     maxOutputTokens: 6000,
     label: "Tests generated",
+  },
+  /*
+    One line from the speaking examiner, reacting to a Part 3 answer.
+
+    Deliberately the leanest budget in this file. The model never sees the
+    interview so far — only the question just asked, the candidate's answer to
+    it, and the next scripted question — because a full transcript costs more
+    without writing a better reaction, and because every extra input token is
+    an extra worst-case cent this route has to be priced against. 700 tokens is
+    generous for "one Part 3 question plus a candidate's answer" (the route
+    itself caps the answer at 2000 characters, ~500 tokens); 120 output tokens
+    is two short sentences, which is what an examiner's bridge actually is —
+    long enough to react, short enough that reading it back would embarrass a
+    real one.
+  */
+  examiner: {
+    model: "claude-haiku-4-5",
+    maxInputTokens: 700,
+    maxOutputTokens: 120,
+    label: "Examiner reactions",
   },
 };
 

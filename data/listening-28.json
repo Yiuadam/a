@@ -12,14 +12,18 @@
   ],
   "script": [
     { "speaker": "Dr Iyer", "text": "Right, I've read both of them. Marta, Joel — before anything else: neither of these is a bad essay. They are first essays, and they have first-essay problems, which is a different thing entirely." },
+        { "speaker": "Joel", "text": "Marta looks nervous. I promise mine wasn't exactly glowing either." },
     { "speaker": "Marta", "text": "That's a relief. Mine came back with an awful lot of red on it." },
     { "speaker": "Dr Iyer", "text": "A lot of red means I read it carefully. An essay with nothing written on it is usually one I gave up on." },
+        { "speaker": "Marta", "text": "That's a good way to think about it, actually — I hadn't considered a blank page being the worse outcome." },
     { "speaker": "Joel", "text": "Mine had a comment on the front — \"where is the argument?\" I'm honestly not sure what that means." },
     { "speaker": "Dr Iyer", "text": "Fair enough. Let me try. You told me what four historians think about the 1926 strike. That is a summary. What you didn't tell me is what you think, or why the disagreement between them matters." },
     { "speaker": "Joel", "text": "But we were told not to write \"I think\"." },
+        { "speaker": "Marta", "text": "I've had exactly that instruction too, and I've never been totally sure what I'm allowed to say instead." },
     { "speaker": "Dr Iyer", "text": "You were told not to write \"in my opinion, I personally feel\". That's different. An argument doesn't need the word \"I\" in it anywhere — it needs a claim in the first paragraph that somebody could disagree with. Yours opens with \"the strike was a significant event\", and nobody on earth disagrees with that." },
     { "speaker": "Marta", "text": "Mine opens almost the same way. I've only just realised." },
     { "speaker": "Dr Iyer", "text": "It does. So, both of you: write the first paragraph last. Write the essay, find out what you actually concluded, then go back and put it at the top." },
+        { "speaker": "Joel", "text": "That's good to know before I start the rewrite rather than after." },
     { "speaker": "Marta", "text": "What about the referencing? I lost marks on that and I don't know why." },
     { "speaker": "Dr Iyer", "text": "Your footnotes are fine in form. The problem is what's inside them. Fourteen footnotes, and eleven of them point to the same two chapters. That tells me you read two chapters." },
     { "speaker": "Marta", "text": "I read much more than that." },
@@ -27,6 +31,7 @@
     { "speaker": "Joel", "text": "Is there a word limit problem with mine? I think I went over." },
     { "speaker": "Dr Iyer", "text": "Yours was two thousand four hundred against a limit of two thousand. There is a ten per cent tolerance, so anything up to two thousand two hundred would have been fine. You were beyond that, and it costs five marks. Cut it, don't plead." },
     { "speaker": "Joel", "text": "Understood." },
+        { "speaker": "Marta", "text": "That actually explains why my own edit last time made everything worse rather than better — I trimmed a little from every paragraph instead of cutting one properly." },
     { "speaker": "Dr Iyer", "text": "Now, the reading for the next one, because this is where I can actually save you some time. There are five things on that list and they are not equal." },
     { "speaker": "Marta", "text": "I started with the Harkness textbook." },
     { "speaker": "Dr Iyer", "text": "Everybody does, and it is the wrong place to start for this question. Harkness is an excellent survey of the whole century, which means it is too general for what I'm asking you. Read it if you want the background, but it won't give you a single sentence you can use." },
@@ -39,7 +44,13 @@
     { "speaker": "Marta", "text": "And the Meredith essays?" },
     { "speaker": "Dr Iyer", "text": "Last. The Meredith collection is a set of replies to arguments you haven't met yet. Read it first and it is noise; read it after the other four and it is the most useful thing on the list." },
     { "speaker": "Joel", "text": "That is genuinely helpful. Nobody told us the list had an order." },
-    { "speaker": "Dr Iyer", "text": "Reading lists rarely say so, and I'm not sure why. Right — two thousand words, on my desk in a fortnight, and Joel: first paragraph last." }
+        { "speaker": "Marta", "text": "Is that order specific to this essay, or worth remembering generally?" },
+    { "speaker": "Dr Iyer", "text": "Reading lists rarely say so, and I'm not sure why. Right — two thousand words, on my desk in a fortnight, and Joel: first paragraph last." },
+        { "speaker": "Joel", "text": "Understood — both things." },
+    { "speaker": "Marta", "text": "Thanks for this. It's a lot clearer than just the comments written on the page." },
+    { "speaker": "Dr Iyer", "text": "That's rather the point of doing it face to face. Off you both go, and well done for asking about the order — most students never do." },
+        { "speaker": "Marta", "text": "See you in a fortnight, then." },
+    { "speaker": "Joel", "text": "Try not to read all of it in one sitting, Marta — I say that as someone who's about to ignore his own advice." }
   ],
   "questions": [
     {

@@ -15,6 +15,10 @@
     },
     {
       "speaker": "Lecturer",
+      "text": "I'll move roughly in chronological order, though it's worth flagging now that the jumps between periods are not smooth. Timekeeping technology can sit still for centuries and then change twice within fifty years, usually for reasons that have nothing to do with clockmaking itself."
+    },
+    {
+      "speaker": "Lecturer",
       "text": "Let's begin in ancient Egypt, around three and a half thousand years ago. The earliest instruments we have evidence for were remarkably simple. A vertical post or obelisk was placed in an open courtyard, and priests tracked the position of its shadow as the sun moved across the sky. In other words, the whole system depended on sunlight, which of course made it useless at night or in overcast weather."
     },
     {
@@ -51,11 +55,19 @@
     },
     {
       "speaker": "Lecturer",
+      "text": "Quartz technology, incidentally, never really left us. It's what sits inside the watch on most people's wrist today, humming away at a frequency tuned specifically so that dividing it down gives a clean one-second pulse."
+    },
+    {
+      "speaker": "Lecturer",
       "text": "And then, in the nineteen fifties, came the most precise instruments ever constructed. Modern atomic clocks work by counting the natural oscillations of caesium atoms, which vibrate over nine billion times a second. A clock of this kind would drift by less than one second over a hundred million years, and it is this standard that now defines the length of a second itself."
     },
     {
       "speaker": "Lecturer",
       "text": "You might reasonably ask why anyone needs such extraordinary precision. The answer is sitting in your pocket. Satellite navigation works by comparing time signals from orbiting satellites, and because those signals travel at the speed of light, an error of a millionth of a second would put your position out by hundreds of metres. Without atomic timekeeping, there is simply no GPS."
+    },
+    {
+      "speaker": "Lecturer",
+      "text": "None of this, incidentally, means the story stops with the caesium clocks I've just described. Optical clocks now in development promise to be roughly a hundred times more stable again, for reasons that have nothing to do with GPS and everything to do with detecting the tiny gravitational effects predicted by general relativity. But that's a lecture for another year."
     },
     {
       "speaker": "Lecturer",

@@ -58,11 +58,15 @@ test("no half-migrated vars block", () => {
   );
 });
 
-test("production has enough CPU for server-rendered Next.js routes", () => {
+test("the account has no CPU ceiling configured, because Workers Free refuses one", () => {
   assert.equal(
-    config.limits?.cpu_ms,
-    30_000,
-    "removing this restores the account default; on Workers Free that is 10 ms and causes Error 1102",
+    config.limits,
+    undefined,
+    "the account is on Workers Free, which refuses an explicit limits.cpu_ms (error 100328) " +
+      "and enforces its own 10 ms one instead. The CPU budget is protected another way: cache " +
+      "interception in open-next.config.ts answers prerendered pages from static assets before " +
+      "the Next server runs at all. Restore \"limits\": { \"cpu_ms\": 30000 } here, deliberately, " +
+      "only once the account has moved to Workers Paid.",
   );
 });
 

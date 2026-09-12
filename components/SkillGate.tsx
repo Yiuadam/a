@@ -1,14 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import LockedCard from "@/components/LockedCard";
 import SignInLink from "@/components/account/SignInLink";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
-import ExternalPlansLink from "@/components/billing/ExternalPlansLink";
-import { useExternalPlansUrl } from "@/lib/billing/storefront";
-import { IS_MOBILE_BUILD, WEB_HOME } from "@/lib/platform";
 import type { ModuleName } from "@/lib/types";
 
 /*
@@ -91,9 +87,6 @@ export default function SkillGate({
 }) {
   const access = useSessionAccess();
   const skill = access[module];
-  /* Above the early returns, because a hook has to run on every render of a
-     component or React loses track of which hook is which. */
-  const externalUrl = useExternalPlansUrl();
 
   if (skill.pending) {
     return (
@@ -104,7 +97,14 @@ export default function SkillGate({
   }
 
   if (skill.locked && skill.reason) {
-    const signedIn = access.tier !== "anonymous";
+    /*
+      Always "sign-in" in practice. Every signed-in tier unlocks every skill
+      now (lib/entitlements/sessions.ts's EVERYTHING table), so the only way
+      to reach this block at all is being signed out — there is no longer a
+      "you're in, but this needs a paid plan" message to show here. `reason`
+      keeps its wider type because LockedCard's does, not because this branch
+      still has two cases.
+    */
     return (
       <div className={`space-y-3 ${className}`}>
         {/*
@@ -115,41 +115,12 @@ export default function SkillGate({
         */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5">
           <p className="min-w-0 flex-1 text-sm leading-6 text-amber-900">
-            {signedIn ? (
-              <>
-                <span className="font-semibold">Standard unlocks this.</span>{" "}
-                {IS_MOBILE_BUILD && !externalUrl
-                  ? `Subscriptions are managed on ${WEB_HOME}, not in the app.`
-                  : "Everything else stays free — the placement test, your study plan and every drill."}
-              </>
-            ) : (
-              <>
-                <span className="font-semibold">Sign in to {FEATURE[module]}.</span> An account is
-                free, and everything you have done so far stays where it is.
-              </>
-            )}
+            <span className="font-semibold">Sign in to {FEATURE[module]}.</span> An account is
+            free, and everything you have done so far stays where it is.
           </p>
-          {/*
-            The iOS build has no /pricing in it, so a signed-in learner out of
-            reach of a skill gets a link to the website instead — on the
-            storefronts where an app may point at one. Where it may not, the
-            sentence above is the whole answer and there is no button at all:
-            an invitation to buy is exactly what must not be there. See
-            lib/billing/storefront.ts.
-          */}
-          {!signedIn ? (
-            <SignInLink className="btn-primary shrink-0">
-              Sign in
-            </SignInLink>
-          ) : !IS_MOBILE_BUILD ? (
-            <Link href="/pricing" className="btn-primary shrink-0">
-              See Standard
-            </Link>
-          ) : externalUrl ? (
-            <ExternalPlansLink url={externalUrl} className="btn-primary shrink-0">
-              See Standard
-            </ExternalPlansLink>
-          ) : null}
+          <SignInLink className="btn-primary shrink-0">
+            Sign in
+          </SignInLink>
         </div>
 
         <LockedCard reason={skill.reason} label={LABEL[module]} standoff>

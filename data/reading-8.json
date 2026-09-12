@@ -2,6 +2,7 @@
   "id": "reading-8",
   "title": "The Economics of Repair",
   "topic": "Why household goods became hard to mend, and whether legislation can change it",
+  "variant": "academic",
   "difficulty": "hard",
   "level": "C1",
   "timeMinutes": 20,
@@ -138,6 +139,19 @@
           ],
           "answer": 2,
           "explanation": "The last paragraph refuses both simple positions: manufacturers are “not, in the main, sabotaging their own products” but “nor are they innocent”, and disposability was “a by-product nobody had to intend”."
+        }
+      ]
+    },
+    {
+      "instruction": "Answer the question below. Write NO MORE THAN THREE WORDS OR A NUMBER from the passage for the answer.",
+      "questions": [
+        {
+          "id": "q14",
+          "type": "short-answer",
+          "question": "According to the passage, how many hours did the 1920s lamp cartel cap a light bulb's working life at?",
+          "answer": "a thousand hours",
+          "maxWords": 3,
+          "explanation": "The passage says the cartel \"agreed to cap the working life of a light bulb at a thousand hours, fining members whose products lasted longer.\" The figure is given directly in that sentence."
         }
       ]
     }
