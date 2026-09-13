@@ -7,6 +7,7 @@ import { clearSession, revokeSession, signOutSession } from "@/lib/account";
 import ClearDeviceSection from "@/components/account/ClearDeviceSection";
 import { DeleteAccountSection } from "@/components/account/DangerSection";
 import { HubScreen } from "@/components/HubMenu";
+import { tierShows, useTier } from "@/lib/billing/useTier";
 
 /*
   One subject: leaving — this session, this device, or BandUp altogether.
@@ -28,6 +29,21 @@ export default function CloseScreen() {
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutProblem, setSignOutProblem] = useState<string | null>(null);
+  /*
+    Whether there is a synced copy for signing back in to restore.
+
+    This page used to promise the placement result, plan and saved words all
+    "return" after signing back in, unconditionally — true of Tracking and AI,
+    where progress-sync keeps a copy on the account, and false of Free, which
+    keeps its copy in this tab's sessionStorage and loses it the moment
+    signOutSession() below runs clearProgressStore(). Generous while the
+    answer is unknown, the same guard ClearDeviceSection uses for this exact
+    feature a few lines further down this screen: a subscriber should not read
+    the Free sentence for the second it takes /api/account/status to answer.
+  */
+  const account = useTier();
+  const hasProgressSync =
+    account.phase !== "ready" || !account.accountsEnabled || tierShows(account, "progress-sync");
 
   function signOut() {
     if (signingOut) return;
@@ -80,8 +96,10 @@ export default function CloseScreen() {
           )}
           <p className="mt-2 text-[0.8125rem] leading-5 text-slate-500">
             Ends the session on this device and clears what is stored here, so the next person to
-            sign in on it cannot see your practice. Nothing is deleted from your account — sign
-            back in and your placement result, plan and saved words return.
+            sign in on it cannot see your practice.{" "}
+            {hasProgressSync
+              ? "Nothing is deleted from your account — sign back in and your placement result, plan and saved words return."
+              : "Signing out clears your practice on this device. On Free it is not kept on the account."}
           </p>
         </div>
 

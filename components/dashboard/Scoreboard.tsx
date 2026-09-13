@@ -2,6 +2,7 @@
 
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import { Icon } from "@/components/Icons";
+import { tierShows, useTier } from "@/lib/billing/useTier";
 import { overallBand } from "@/lib/exam/report";
 import { latestFor } from "@/lib/results";
 import type { ModuleName, ModuleResult } from "@/lib/types";
@@ -39,6 +40,26 @@ export default function Scoreboard({ results }: { results: readonly ModuleResult
   const overall = overallBand(Object.fromEntries(bands.map((b) => [b.key, b.band])));
   const missing = bands.filter((b) => b.band === null).length;
 
+  /*
+    Whether an empty board needs a second line explaining why it stays empty.
+    A signed-out visitor's board is a preview of what an account gets, and
+    the placement result they came from is right there in this same tab — so
+    the plain "sit any paper" line is enough. A signed-in Free account is
+    different: a result really does vanish the moment this tab closes, and
+    the empty board otherwise gives no reason to expect that.
+
+    `account.signedIn` alone is the right guard here, unlike the phase-guard
+    every other tierShows call site in this file's neighbours uses: those
+    default to the generous branch while the tier is unknown, because
+    showing a subscriber the paywalled view for a beat is the worse mistake.
+    Here the unknown-tier default is `signedIn: false` (see the INITIAL state
+    in lib/billing/useTier.ts), so this line simply stays hidden until the
+    account is confirmed both signed in and without progress-sync — never
+    shown to a Tracking or AI account by mistake while the answer loads.
+  */
+  const account = useTier();
+  const showsFreeTabOnlyHint = account.signedIn && !tierShows(account, "progress-sync");
+
   return (
     <section className="card flex h-full min-w-0 flex-col overflow-hidden !p-4" aria-labelledby="dashboard-band-heading">
       <h2 id="dashboard-band-heading" className="text-[0.9375rem] font-semibold text-slate-900">
@@ -74,6 +95,12 @@ export default function Scoreboard({ results }: { results: readonly ModuleResult
               : `${missing} more skill${missing === 1 ? "" : "s"} before there is an overall.`}
         </p>
       </div>
+
+      {overall === null && missing === MODULES.length && showsFreeTabOnlyHint && (
+        <p className="text-[0.8125rem] leading-5 text-slate-500">
+          On Free, results stay in this tab only. Tracking keeps them.
+        </p>
+      )}
 
       {/*
         The four skills are what gives way when the tile is short — `min-h-0`

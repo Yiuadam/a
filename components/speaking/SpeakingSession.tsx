@@ -245,6 +245,12 @@ export default function SpeakingSession({
   const [grade, setGrade] = useState<SpeakingGrade | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [micBlocked, setMicBlocked] = useState(false);
+  /**
+   * Briefly true after "Copy transcript" succeeds, on the unmarked-stage
+   * screen below — declared up here with its neighbours because a hook
+   * cannot live inside the branch that reads it.
+   */
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
   /*
     The microphone, held open for the whole interview.
 
@@ -1835,7 +1841,40 @@ export default function SpeakingSession({
         </div>
 
         <div className="card !p-4">
-          <h2 className="text-sm font-semibold text-slate-900">Your transcript</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-slate-900">Your transcript</h2>
+            {/*
+              Nothing sends this transcript anywhere once marking is skipped
+              or has failed, and "Take another interview" below throws it
+              away — so copying it is the one way to keep it. Missing rather
+              than offered-and-failing on a browser with no Clipboard API (an
+              insecure origin, an older or in-app browser).
+            */}
+            {typeof navigator !== "undefined" && navigator.clipboard && (
+              <button
+                type="button"
+                className="btn-secondary !min-h-8 shrink-0 !px-3 !py-1 text-xs"
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      const text = transcript
+                        .map((t) => `${t.role === "examiner" ? "Examiner" : "You"}: ${t.text}`)
+                        .join("\n\n");
+                      await navigator.clipboard.writeText(text);
+                      setTranscriptCopied(true);
+                      window.setTimeout(() => setTranscriptCopied(false), 2000);
+                    } catch {
+                      // A refused permission is the browser's decision, not
+                      // an error to report — the transcript is still right
+                      // there on screen to select by hand.
+                    }
+                  })();
+                }}
+              >
+                {transcriptCopied ? "Copied" : "Copy transcript"}
+              </button>
+            )}
+          </div>
           <div className="mt-3 max-h-[24rem] space-y-2 overflow-y-auto">
             {transcript.map((t, i) => (
               <p key={i} className="text-sm leading-6">

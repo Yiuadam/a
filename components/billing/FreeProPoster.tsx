@@ -60,6 +60,12 @@ import { TIERS } from "@/lib/billing/tiers";
   Why localStorage is the right place for a dismissal and the wrong place for an
   entitlement is written out in that file.
 
+  A "No thanks" that was never a "yes" is not left stuck the same way, even
+  though this component draws nothing for it once dismissed: /account offers a
+  one-line way back for exactly that reader, independently of this component
+  and of this dismissal flag. See the header of
+  components/billing/GiveUpFreeProSection.tsx.
+
   ---------------------------------------------------------------------------
   Nothing here decides anything
 

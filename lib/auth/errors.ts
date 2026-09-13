@@ -27,6 +27,14 @@ export const MESSAGES = {
   */
   rateLimited:
     "You've used this week's allowance for this. It refills a week after each request, so some of it comes back tomorrow — your billing page shows when.",
+  /*
+    A wrong password ten times in fifteen minutes is not a metered AI route,
+    and `rateLimited` above talks about an allowance and a billing page that
+    do not exist for signing in — it was borrowed from the AI tutor's message
+    for a failure that has nothing to do with either. This one names the wait
+    and the door that does not depend on remembering a password at all.
+  */
+  tooManySignInAttempts: "Too many attempts. Please wait 15 minutes, or email yourself a sign-in link.",
   unavailable: "The AI tutor is briefly unavailable. Please try again in a minute.",
   // The account endpoints are not the AI tutor, so they say something true of
   // themselves — and equally uninformative about why.

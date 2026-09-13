@@ -64,7 +64,14 @@ async function run(): Promise<void> {
     return;
   }
   if (outcome.status === "done") retryAttempt = 0;
-  else if (outcome.status === "signed-out" || outcome.status === "not-entitled") cancelScheduledSync();
+  /* A payload the server refuses as too large stays too large until the
+     learner clears something; retrying it every minute would only repeat the
+     refusal, so it waits for the next real write like the other final states. */
+  else if (
+    outcome.status === "signed-out"
+    || outcome.status === "not-entitled"
+    || outcome.status === "too-large"
+  ) cancelScheduledSync();
   else scheduleRetry();
 }
 

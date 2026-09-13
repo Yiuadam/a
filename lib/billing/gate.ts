@@ -3,6 +3,8 @@ import { accountsEnabled, usageFailOpen } from "@/lib/auth/env";
 import { accountRuntimeEnabled } from "@/lib/auth/runtime";
 import { getSessionUser } from "@/lib/auth/session";
 import { logInternal, safeJsonError, MESSAGES } from "@/lib/auth/errors";
+import { billingClosed } from "./env";
+import { BILLING_MESSAGES } from "./messages";
 import { resolveEntitlement, ANONYMOUS_ENTITLEMENT } from "./entitlements";
 import { tierAllows, SELLABLE_TIERS, type Feature, type Tier } from "./tiers";
 
@@ -82,10 +84,22 @@ const TIER_LABELS: Record<Tier, string> = {
  * includes the thing they were just refused, and that nothing else got taken
  * away. The pricing page is still where a plan is explained properly — this
  * only has to avoid sending someone to the wrong one.
+ *
+ * Except while the owner has paused sales (BILLING_CLOSED — see
+ * billingClosed() in lib/billing/env.ts): "see the plans on the pricing
+ * page" sends someone to look at a page with nothing to buy, which is the
+ * same dead end components/billing/UpgradePanel.tsx used to lead to before it
+ * started asking the same question. BILLING_MESSAGES.subscriptionsPaused is
+ * the one sentence both now give instead, so a learner refused here and a
+ * learner who clicks through to the panel are told the same fact rather than
+ * two that could drift apart.
  */
 export function upgradeMessage(feature: Feature): string {
   const tier = lowestTierWith(feature);
   const plan = tier ? `BandUp ${TIER_LABELS[tier]}` : "a paid plan";
+  if (billingClosed()) {
+    return `This is part of ${plan}. ${BILLING_MESSAGES.subscriptionsPaused} Everything else, including practice tests, drills and your study plan, stays free.`;
+  }
   return `This is part of ${plan}. See the plans on the pricing page — everything else, including practice tests, drills and your study plan, stays free.`;
 }
 

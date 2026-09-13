@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { authedFetch, getServerSnapshot, getSnapshot, subscribe } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { previewOnServer, readPreview, subscribePreview } from "./preview";
@@ -34,6 +34,29 @@ import { TIER_NAMES, tierAllows, type Feature, type Tier } from "./tiers";
   free without a reload, and — the case that actually bites — coming back from
   Stripe's checkout with a fresh session shows Pro rather than a stale Free
   until something else happens to remount the tree.
+
+  ---------------------------------------------------------------------------
+  Why a stall must not read as "loading" forever
+
+  Every screen that gates on phase === "loading" — the paper tiles on the
+  dashboard and on /practice among them (app/page.tsx, app/practice/page.tsx,
+  components/TestChooser.tsx, components/SkillGate.tsx) — draws dimmed and
+  unclickable for as long as this hook says "loading", and on a phone those
+  tiles are the only way into a paper. A fetch with nothing to bound it can
+  stay pending far longer than anyone will wait, so the request now carries
+  its own limit: eight seconds, after which a stall is treated exactly like
+  any other failure — "unavailable" rather than an indefinite "loading". See
+  lib/entitlements/useSessions.ts, which already turns "unavailable" into an
+  open shelf rather than a locked one.
+
+  "unavailable" does not then sit forever either. The moment the browser
+  reports it is back online, or this tab becomes visible again after being
+  backgrounded, the hook asks once more on its own — both are the ordinary
+  moments a stall actually clears, and neither should need a learner to go
+  looking for a button. The button exists anyway, for every other reason a
+  request can fail; `retry()` is what both it and the two automatic triggers
+  call, and it is the same request the effect runs on mount, just asked for
+  again.
 */
 
 export type Phase = "loading" | "ready" | "unavailable";
@@ -129,10 +152,35 @@ function readTier(value: unknown): Tier | null {
     : null;
 }
 
+/*
+  Eight seconds. Long enough that an ordinary slow connection still gets its
+  answer; short enough that nobody is left looking at a dimmed paper tile for
+  the length of a coffee break. There is nothing principled about the number
+  beyond that — it only has to be *some* bound, because the failure mode this
+  guards against is having none at all.
+*/
+const STATUS_TIMEOUT_MS = 8_000;
+
 /** The current account's tier and allowance, as the server reports them. */
-export function useTier(): TierState {
+export function useTier(): TierState & { retry: () => void } {
   const session = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [state, setState] = useState<TierState>(INITIAL);
+  /*
+    Bumped to ask again: by the retry button every "unavailable" screen wires
+    to this hook, and by the two automatic triggers below. A counter rather
+    than re-running the fetch directly, so there is exactly one place that
+    starts a request and exactly one set of `alive` semantics to reason about.
+  */
+  const [revision, setRevision] = useState(0);
+
+  const retry = useCallback(() => {
+    // Optimistic, the same way OrganizationPortal's own "Try again" is: a
+    // learner who presses it should see the checking state resume at once
+    // rather than watch "unavailable" sit unchanged until the new answer
+    // lands.
+    setState((current) => ({ ...current, phase: "loading" }));
+    setRevision((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     /*
@@ -143,7 +191,7 @@ export function useTier(): TierState {
     */
     let alive = true;
 
-    authedFetch(apiUrl("/api/account/status"))
+    authedFetch(apiUrl("/api/account/status"), { signal: AbortSignal.timeout(STATUS_TIMEOUT_MS) })
       .then(async (res) => {
         if (!res.ok) throw new Error("account status unavailable");
         return (await res.json()) as AccountStatus;
@@ -173,16 +221,47 @@ export function useTier(): TierState {
           A page that quietly says "Free" when it could not ask would tell a
           paying subscriber they are not one, which is worse than saying
           nothing.
+
+          accountsEnabled carries forward from whatever this hook last knew
+          rather than resetting to INITIAL's false. lib/entitlements/
+          useSessions.ts reads that flag to tell a genuine outage (accounts
+          exist, the answer just did not arrive) apart from accounts being off
+          for this whole deployment, and folding both into "false" here was
+          what made that distinction unreachable — every failure looked like
+          the second thing, never the first.
         */
-        if (alive) setState({ ...INITIAL, phase: "unavailable" });
+        if (alive) {
+          setState((current) => ({ ...INITIAL, accountsEnabled: current.accountsEnabled, phase: "unavailable" }));
+        }
       });
 
     return () => {
       alive = false;
     };
-  }, [session]);
+  }, [session, revision]);
 
-  return state;
+  useEffect(() => {
+    if (state.phase !== "unavailable") return;
+    /*
+      The two moments a stall actually clears on its own: the browser regains
+      a connection, or this tab is looked at again after being backgrounded —
+      the second covers a laptop that slept through the original request as
+      well as an ordinary tab switch. Neither should need a learner to find
+      the retry button themselves, so this asks for them.
+    */
+    const onOnline = () => retry();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") retry();
+    };
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [state.phase, retry]);
+
+  return { ...state, retry };
 }
 
 /** One route's allowance, or null if the server has not reported it. */

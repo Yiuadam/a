@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import BandBadge from "@/components/BandBadge";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import SignInLink from "@/components/account/SignInLink";
 import { SpeakingReport, WritingReport } from "@/components/exam/ExaminerReport";
 import ImprovementPlan, { type PlanGroup } from "@/components/exam/ImprovementPlan";
 import ModuleSection from "@/components/exam/ModuleSection";
 import ObjectiveReport, { type ObjectivePaper } from "@/components/exam/ObjectiveReport";
+import { getSnapshot } from "@/lib/account";
 import { ApiError, postJSON } from "@/lib/api";
 import {
   MODULE_NAMES,
@@ -152,11 +154,31 @@ export default function MockResults({
   /*
     Set when the essays went unmarked for a reason that asking again could
     change — the model timing out, a 5xx, a connection that dropped between the
-    last full stop and the Submit. It is deliberately *not* set for a 402: that
-    means the plan does not include marking, nothing is wrong, and a button
-    offering to try again would be a button that cannot work.
+    last full stop and the Submit, or (see gradeEssays) a signed-in learner's
+    access token lapsing somewhere in a three-hour sitting. It is deliberately
+    *not* set for a 402 that arrives for a learner who was never signed in at
+    all: that one means the plan does not include marking, nothing is wrong,
+    and a button offering to try again would be a button that cannot work.
   */
   const [markingFailure, setMarkingFailure] = useState<string | null>(null);
+  /*
+    Whether this learner had a session when this screen opened, asked once and
+    kept rather than re-read later. What gradeEssays below needs is "signed in
+    for this sitting", not "signed in at this exact instant" — the fix this
+    file exists for is a token that lapses silently *somewhere* during a
+    three-hour sitting, which a fresh read at the moment of the error would
+    already show as signed out, erasing the one fact worth telling the learner.
+  */
+  const [wasSignedIn] = useState(() => getSnapshot() !== null);
+  /*
+    Set alongside markingFailure when the failure was a 401 or 402 arriving
+    while wasSignedIn — the shape a lapsed access token takes once
+    authedFetch's own request goes out unauthenticated (lib/account.ts) and
+    the AI route answers what looks like an anonymous caller (lib/api.ts's
+    postJSON). It earns the sign-in link the banner below adds to the
+    ordinary retry.
+  */
+  const [authLapsed, setAuthLapsed] = useState(false);
   const [remarking, setRemarking] = useState(false);
   const profile = useProfile();
   const started = useRef(false);
@@ -177,9 +199,21 @@ export default function MockResults({
     can tell a candidate whose plan does not include marking from one whose
     marking simply fell over. The second one gets offered another go; before
     this, both were told the same thing and neither was.
+
+    A third kind hides inside the second. A 401 or 402 is not usually
+    something asking again can fix — see ApiError.retryable, which excludes
+    both on purpose — but for a learner who was signed in when this screen
+    opened (wasSignedIn) it need not be the plan speaking either: it is what
+    an access token that expired somewhere in a three-hour sitting looks like
+    once authedFetch's own request goes out unauthenticated (lib/account.ts)
+    and the route answers what looks like an anonymous caller (lib/api.ts).
+    That one is worth a retry too, so it is reported separately rather than
+    folded into the same "nothing to be done" bucket as a learner who never
+    had marking at all.
   */
   const gradeEssays = useCallback(async () => {
     let failure: string | null = null;
+    let authLapsed = false;
     const grades = await Promise.all(
       tasks.map(async (task) => {
         const essay = session.essays[task.id] ?? "";
@@ -192,18 +226,24 @@ export default function MockResults({
             minWords: task.minWords,
           });
         } catch (err) {
-          if (err instanceof ApiError && err.retryable && failure === null) failure = err.message;
+          if (!(err instanceof ApiError) || failure !== null) return null;
+          const lapsedAuth = wasSignedIn && (err.status === 401 || err.status === 402);
+          if (err.retryable || lapsedAuth) {
+            failure = err.message;
+            authLapsed = lapsedAuth;
+          }
           return null;
         }
       }),
     );
-    return { grades, failure };
-  }, [tasks, session.essays]);
+    return { grades, failure, authLapsed };
+  }, [tasks, session.essays, wasSignedIn]);
 
   const mark = useCallback(async () => {
     const objective = markObjective(session.paper, session.answers);
-    const { grades, failure } = await gradeEssays();
+    const { grades, failure, authLapsed } = await gradeEssays();
     setMarkingFailure(failure);
+    setAuthLapsed(authLapsed);
 
     const attempts: WritingResultAttempt[] = tasks.flatMap((task, index) => {
       const grade = grades[index];
@@ -330,16 +370,18 @@ export default function MockResults({
     if (session.marks === null) return;
     setRemarking(true);
     try {
-      const { grades, failure } = await gradeEssays();
+      const { grades, failure, authLapsed } = await gradeEssays();
       const attempts: WritingResultAttempt[] = tasks.flatMap((task, index) => {
         const grade = grades[index];
         return grade ? [{ task, response: session.essays[task.id] ?? "", grade }] : [];
       });
       if (attempts.length === 0) {
         setMarkingFailure(failure ?? "Marking is still unavailable. Please try again shortly.");
+        setAuthLapsed(authLapsed);
         return;
       }
       setMarkingFailure(null);
+      setAuthLapsed(false);
 
       const writing = {
         band: writingBand(grades[0]?.overallBand ?? null, grades[1]?.overallBand ?? null),
@@ -550,6 +592,13 @@ export default function MockResults({
         can fix, the module really is unmarked, and there is an essay to mark.
         A plan without AI marking answers 402 and is not offered a retry,
         because there is nothing on the other side of it.
+
+        authLapsed adds a second way out rather than replacing the first one.
+        A lapsed session is not guaranteed to be the whole story — retrying
+        gives authedFetch another chance to refresh over the network on its
+        own — so "Mark them now" stays exactly as it was; "Sign in again"
+        sits beside it for the case a plain retry cannot fix, a refresh token
+        that is genuinely spent and needs a real sign-in to replace.
       */}
       {markingFailure !== null && marks.writing === null && wroteSomething && (
         <div
@@ -557,21 +606,29 @@ export default function MockResults({
           className="card flex flex-col gap-2 !p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <p className="text-sm leading-6 text-slate-700">
-            Your essays were not marked. {markingFailure} They are still here, so nothing has been
-            lost.
+            Your essays were not marked.{" "}
+            {authLapsed ? "Your session may have lapsed during the sitting." : markingFailure} They
+            are still here, so nothing has been lost.
           </p>
-          <button
-            type="button"
-            className="btn-primary shrink-0 !min-h-9 !px-4 !py-1.5 text-sm"
-            onClick={() => void remark()}
-            disabled={remarking}
-          >
-            {remarking ? (
-              <LoadingIndicator label="Marking…" announce={false} />
-            ) : (
-              "Mark them now"
+          <div className="flex shrink-0 gap-2">
+            {authLapsed && (
+              <SignInLink className="btn-secondary !min-h-9 !px-4 !py-1.5 text-sm">
+                Sign in again
+              </SignInLink>
             )}
-          </button>
+            <button
+              type="button"
+              className="btn-primary !min-h-9 !px-4 !py-1.5 text-sm"
+              onClick={() => void remark()}
+              disabled={remarking}
+            >
+              {remarking ? (
+                <LoadingIndicator label="Marking…" announce={false} />
+              ) : (
+                "Mark them now"
+              )}
+            </button>
+          </div>
         </div>
       )}
 
