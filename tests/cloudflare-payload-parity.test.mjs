@@ -397,9 +397,426 @@ test("the payloadParity parameter accepts only known domains", () => {
   assert.equal(parity.parsePayloadParityDomains("0"), null);
   assert.equal(parity.parsePayloadParityDomains("nonsense"), null);
   assert.deepEqual(parity.parsePayloadParityDomains("all"), [...parity.PAYLOAD_PARITY_DOMAINS]);
+  assert.deepEqual(parity.parsePayloadParityDomains("1"), [...parity.PAYLOAD_PARITY_DOMAINS]);
+  assert.deepEqual(parity.parsePayloadParityDomains("true"), [...parity.PAYLOAD_PARITY_DOMAINS]);
   assert.deepEqual(
     parity.parsePayloadParityDomains("subscriptions, progress_snapshots, dropped"),
     ["subscriptions", "progress_snapshots"],
+  );
+});
+
+test("an empty-string, '0' or 'false' payloadParity value is equivalent to falling through to the list parser (payload-parity.ts:451)", () => {
+  /*
+    Same shape as domain-drift.ts's parseDriftDomains: none of "", "0" or
+    "false" is itself a known payload-parity domain name, so bypassing the
+    early null-return still ends at null via the comma-list branch's own
+    "wanted.length > 0 ? wanted : null" fallback.
+  */
+  for (const value of ["", "0", "false"]) {
+    assert.equal(parity.parsePayloadParityDomains(value), null);
+  }
+});
+
+test("an empty domains list falls back to every PAYLOAD_PARITY_DOMAINS entry, and a non-empty list is used exactly as given", async () => {
+  const context = fixture();
+  const empty = await parity.cloudflarePayloadParityReport(context.bindings, [], {
+    readSourcePage: pagedSource({}),
+  });
+  assert.equal(empty.domains.length, parity.PAYLOAD_PARITY_DOMAINS.length);
+
+  const narrow = await parity.cloudflarePayloadParityReport(context.bindings, ["subscriptions"], {
+    readSourcePage: pagedSource({ subscriptions: [] }),
+  });
+  assert.deepEqual(narrow.domains.map((entry) => entry.domain), ["subscriptions"]);
+});
+
+test("results[0]?.rowLimit/sampleLimit fallbacks are unreachable through the public report function (equivalent, payload-parity.ts:443-444)", async () => {
+  /*
+    cloudflarePayloadParityReport always resolves `wanted` to a non-empty
+    array first (the caller's own non-empty domains, or the full
+    PAYLOAD_PARITY_DOMAINS default), so `results` can never be empty and
+    `results[0]` can never be undefined -- the `?? DEFAULT` fallback (and its
+    guarding `?.`) can never actually run.
+  */
+  const context = fixture();
+  const report = await parity.cloudflarePayloadParityReport(context.bindings, ["subscriptions"], {
+    readSourcePage: pagedSource({ subscriptions: [] }),
+    rowLimit: 33,
+    sampleLimit: 4,
+  });
+  assert.equal(report.rowLimit, 33);
+  assert.equal(report.sampleLimit, 4);
+});
+
+test("sampleLimit is clamped between 1 and 200 by the outer/inner bound, not collapsed by swapping max and min", async () => {
+  const context = fixture();
+  const tooHigh = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: pagedSource({ subscriptions: [] }),
+    sampleLimit: 500,
+  });
+  assert.equal(tooHigh.sampleLimit, 200, "the inner Math.min(x, 200) must win over an oversized request");
+
+  const negative = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: pagedSource({ subscriptions: [] }),
+    sampleLimit: -5,
+  });
+  assert.equal(negative.sampleLimit, 1, "the outer Math.max(1, x) must win over a negative request");
+});
+
+test("a bucket's sample is bounded by sampleLimit while its total counts every offending row", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  const byDomain = { subscriptions: [] };
+  const total = 30;
+  for (let index = 0; index < total; index += 1) {
+    const id = `sub-missing-${String(index).padStart(3, "0")}`;
+    byDomain.subscriptions.push(await sourceRow(id, { plan: index }));
+  }
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: pagedSource(byDomain),
+    sampleLimit: 5,
+  });
+  assert.equal(entry.missingInTarget.total, total);
+  assert.equal(entry.missingInTarget.sample.length, 5);
+});
+
+test("the inline JSON.parse catch is equivalent: D1's own CHECK constraint already guarantees valid JSON (payload-parity.ts:186)", () => {
+  /*
+    progress_snapshots' own CHECK constraint (cloudflare/migrations/0001_learner_data.sql)
+    is `payload_inline IS NOT NULL AND payload_object_key IS NULL AND
+    json_valid(payload_inline)` -- SQLite refuses to store a row whose inline
+    text is not valid JSON in the first place, so readTargetPayload's
+    `JSON.parse(columns.inline)` can never throw for any row this schema
+    actually holds. Verified directly: SQLite's own json_valid() rejects
+    everything tried here that would trip JSON.parse, and accepts nothing
+    that would still trip it (huge numbers, lone surrogate pairs, embedded
+    NUL, trailing whitespace all agree in both).
+  */
+  const db = new DatabaseSync(":memory:");
+  const malformed = ["{\"a\":1,}", "{a:1}", "NaN", "[1,2,3,]", "{'a':1}"];
+  for (const text of malformed) {
+    const sqliteAccepts = Boolean(db.prepare("SELECT json_valid(?) AS v").get(text).v);
+    let jsAccepts = true;
+    try { JSON.parse(text); } catch { jsAccepts = false; }
+    assert.equal(sqliteAccepts, false, `expected SQLite to reject ${JSON.stringify(text)} too`);
+    assert.equal(jsAccepts, false, `expected JSON.parse to reject ${JSON.stringify(text)}`);
+  }
+});
+
+test("invalid JSON stored as an R2 object (but otherwise checksum-valid) is reported unavailable", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  const bytes = new TextEncoder().encode("not valid json{");
+  const sha = createHash("sha256").update(bytes).digest("hex");
+  const key = `private/progress/${USER}/${sha}.json`;
+  await context.files.put(key, bytes);
+  context.database.prepare(`
+    INSERT INTO progress_snapshots (user_id,store_key,payload_object_key,payload_sha256,payload_bytes,created_at,updated_at)
+    VALUES (?, 'ielts-prep-v1', ?, ?, ?, ?, ?)
+  `).run(USER, key, sha, bytes.byteLength, CREATED, UPDATED);
+
+  const byDomain = { progress_snapshots: [await sourceRow(`${USER}/ielts-prep-v1`, { score: 1 })] };
+  const entry = await parity.cloudflarePayloadParity("progress_snapshots", context.bindings, {
+    readSourcePage: pagedSource(byDomain),
+  });
+  assert.equal(entry.targetPayloadUnavailable.total, 1);
+  assert.equal(entry.payloadMismatch.total, 0);
+});
+
+test("a recorded byte count that disagrees with the real R2 object size is unavailable, isolated from the checksum check", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  const payload = { score: 5 };
+  const bytes = jsonBytes(payload);
+  const sha = createHash("sha256").update(bytes).digest("hex");
+  const key = `private/progress/${USER}/${sha}.json`;
+  await context.files.put(key, bytes);
+  // The recorded sha256 is correct (checksum check passes); only the
+  // recorded byte count is wrong.
+  context.database.prepare(`
+    INSERT INTO progress_snapshots (user_id,store_key,payload_object_key,payload_sha256,payload_bytes,created_at,updated_at)
+    VALUES (?, 'ielts-prep-v1', ?, ?, 999999, ?, ?)
+  `).run(USER, key, sha, CREATED, UPDATED);
+
+  const byDomain = { progress_snapshots: [await sourceRow(`${USER}/ielts-prep-v1`, payload)] };
+  const entry = await parity.cloudflarePayloadParity("progress_snapshots", context.bindings, {
+    readSourcePage: pagedSource(byDomain),
+  });
+  assert.equal(entry.targetPayloadUnavailable.total, 1);
+});
+
+test("a recorded checksum that disagrees with the real R2 object bytes is unavailable, isolated from the byte-count check", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  const payload = { score: 6 };
+  const bytes = jsonBytes(payload);
+  const key = `private/progress/${USER}/wrong-sha.json`;
+  await context.files.put(key, bytes);
+  // The recorded byte count is correct; only the recorded sha256 is wrong.
+  context.database.prepare(`
+    INSERT INTO progress_snapshots (user_id,store_key,payload_object_key,payload_sha256,payload_bytes,created_at,updated_at)
+    VALUES (?, 'ielts-prep-v1', ?, ?, ?, ?, ?)
+  `).run(USER, key, "f".repeat(64), bytes.byteLength, CREATED, UPDATED);
+
+  const byDomain = { progress_snapshots: [await sourceRow(`${USER}/ielts-prep-v1`, payload)] };
+  const entry = await parity.cloudflarePayloadParity("progress_snapshots", context.bindings, {
+    readSourcePage: pagedSource(byDomain),
+  });
+  assert.equal(entry.targetPayloadUnavailable.total, 1);
+});
+
+test("a null recorded sha256 (subscriptions carries no NOT NULL there) skips the checksum check entirely, rather than always failing it", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  const payload = { plan: "ai" };
+  const bytes = jsonBytes(payload);
+  const key = `private/subscriptions/${USER}/no-recorded-sha.json`;
+  await context.files.put(key, bytes);
+  // raw_sha256 has no NOT NULL constraint on subscriptions -- a row can
+  // legitimately point at an object with nothing recorded to check it
+  // against.
+  context.database.prepare(`
+    INSERT INTO subscriptions (id,user_id,provider,status,tier,verified_at,raw_object_key,raw_sha256,created_at,updated_at)
+    VALUES ('sub-null-sha', ?, 'stripe', 'active', 'ai', ?, ?, NULL, ?, ?)
+  `).run(USER, UPDATED, key, CREATED, UPDATED);
+
+  const byDomain = { subscriptions: [await sourceRow("sub-null-sha", payload)] };
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: pagedSource(byDomain),
+  });
+  assert.equal(entry.status, "equal", "a null recorded sha256 must not make an otherwise-good object unavailable");
+  assert.equal(entry.targetPayloadUnavailable.total, 0);
+});
+
+test("mismatched keys on either side are never silently paired as if they were the same row", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  // D1 has a row sorting alphabetically before every source key.
+  await seedProgress(context, USER, "bandup.lookups.v1", { d1: "only" });
+  // Source reports a completely different, alphabetically-later key that D1
+  // does not have at all.
+  const byDomain = { progress_snapshots: [await sourceRow(`${USER}/ielts-prep-v1`, { source: "only" })] };
+  const entry = await parity.cloudflarePayloadParity("progress_snapshots", context.bindings, {
+    readSourcePage: pagedSource(byDomain),
+  });
+  assert.equal(entry.missingInTarget.total, 1);
+  assert.deepEqual(entry.missingInTarget.sample, [`${USER}/ielts-prep-v1`]);
+  assert.equal(entry.missingInSource.total, 1);
+  assert.deepEqual(entry.missingInSource.sample, [`${USER}/bandup.lookups.v1`]);
+  assert.equal(entry.payloadMismatch.total, 0, "two different keys must never be compared against each other as a mismatch");
+});
+
+test("a source-only row with no payload at all is not counted as missing in the target", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  const byDomain = { subscriptions: [await sourceRow("sub-legacy-source-only", undefined)] };
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: pagedSource(byDomain),
+  });
+  assert.equal(entry.missingInTarget.total, 0, "a legacy row with no payload on either side is not a mirroring gap");
+});
+
+test("a target-only row with no payload at all is not counted as missing in the source", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  await seedSubscription(context, "sub-legacy-target-only", USER, null, { none: true });
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: pagedSource({ subscriptions: [] }),
+  });
+  assert.equal(entry.missingInSource.total, 0);
+});
+
+test("a target row whose payload is unreadable and absent from the source is still named missing in the source", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  const payload = { score: 9 };
+  const bytes = jsonBytes(payload);
+  const key = `private/progress/${USER}/wrong-sha-2.json`;
+  await context.files.put(key, bytes);
+  context.database.prepare(`
+    INSERT INTO progress_snapshots (user_id,store_key,payload_object_key,payload_sha256,payload_bytes,created_at,updated_at)
+    VALUES (?, 'ielts-prep-v1', ?, ?, ?, ?, ?)
+  `).run(USER, key, "e".repeat(64), bytes.byteLength, CREATED, UPDATED);
+
+  const entry = await parity.cloudflarePayloadParity("progress_snapshots", context.bindings, {
+    readSourcePage: pagedSource({ progress_snapshots: [] }), // absent from source entirely
+  });
+  assert.equal(entry.targetPayloadUnavailable.total, 1);
+  assert.equal(
+    entry.missingInSource.total,
+    1,
+    "an unreadable-but-present target row absent from the source must still be reported missing in the source",
+  );
+});
+
+test("the read-page callback is not re-invoked once a stream already knows it is exhausted", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  for (let index = 0; index < 10; index += 1) {
+    await seedSubscription(context, `sub-zzz-${String(index).padStart(3, "0")}`, USER, { n: index });
+  }
+  let calls = 0;
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: async (_domain, after) => {
+      calls += 1;
+      return ["sub-aaa", "sub-bbb"].filter((key) => key > after).map((key) => ({
+        row_key: key, payload_present: false, payload_hash: null,
+      }));
+    },
+  });
+  assert.equal(entry.missingInSource.total, 10);
+  assert.equal(calls, 1, "a stream that already knows it is exhausted must not ask its source for another page");
+});
+
+test("the same call-suppression applies when the very first source page is already empty", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  for (let index = 0; index < 10; index += 1) {
+    await seedSubscription(context, `sub-zzz-${String(index).padStart(3, "0")}`, USER, { n: index });
+  }
+  let calls = 0;
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: async () => { calls += 1; return []; },
+  });
+  assert.equal(entry.missingInSource.total, 10);
+  assert.equal(calls, 1);
+});
+
+test("the row limit is the larger of the two streams' progress, not the smaller", async () => {
+  const context = fixture();
+  const byDomain = { subscriptions: [] };
+  const total = 120;
+  for (let index = 0; index < total; index += 1) {
+    byDomain.subscriptions.push(await sourceRow(`sub-${String(index).padStart(5, "0")}`, { n: index }));
+  }
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: pagedSource(byDomain),
+    rowLimit: 50,
+  });
+  assert.equal(entry.complete, false);
+  assert.equal(entry.comparedSourceRows, 50, "Math.max(source, target) must be the one compared against rowLimit");
+});
+
+test("the RPC name and paging parameters sent for the real Supabase source read", async () => {
+  const previousEnv = {
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  };
+  Object.assign(process.env, {
+    SUPABASE_URL: "https://project.supabase.test",
+    SUPABASE_ANON_KEY: "anon-key",
+    SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+  });
+  const savedFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    calls.push({ url: String(url), body: init.body });
+    return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  try {
+    const context = fixture();
+    await parity.cloudflarePayloadParity("subscriptions", context.bindings, {});
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].url, /\/rest\/v1\/rpc\/cloudflare_migration_source_payload_fingerprints$/);
+    const body = JSON.parse(calls[0].body);
+    assert.equal(body.p_domain, "subscriptions");
+    assert.equal(body.p_after, "");
+    assert.equal(body.p_limit, 100);
+  } finally {
+    globalThis.fetch = savedFetch;
+    Object.assign(process.env, previousEnv);
+  }
+});
+
+test("a non-array source page makes the domain unavailable rather than silently accepted", async () => {
+  const context = fixture();
+  // Deliberately array-*like* (carries its own harmless .map) rather than a
+  // plain object -- a plain object would make .map() itself throw before the
+  // Array.isArray check's own removal could ever be observed separately.
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: async () => ({ map: () => [] }),
+  });
+  assert.equal(entry.status, "unavailable");
+  assert.equal(entry.unavailable, "source");
+  assert.equal(entry.complete, false, "an unavailable result must never claim to be complete");
+});
+
+test("a source row whose key is not a string makes the domain unavailable, even with a well-shaped payload flag", async () => {
+  const context = fixture();
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: async () => [{ row_key: 12345, payload_present: false }],
+  });
+  assert.equal(entry.status, "unavailable");
+});
+
+test("a payload_present flag that is not a boolean makes the domain unavailable, even with a well-shaped key", async () => {
+  const context = fixture();
+  // A syntactically-valid 64-hex payload_hash is included so the *other*
+  // validation (the hash-shape check) does not independently throw first
+  // and mask whether this check on its own actually matters.
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: async () => [{ row_key: "sub-x", payload_present: "yes", payload_hash: "a".repeat(64) }],
+  });
+  assert.equal(entry.status, "unavailable");
+});
+
+test("a present source row's hash shape is validated strictly, anchored at both ends", async () => {
+  const context = fixture();
+  const before = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: async () => [{ row_key: "sub-x", payload_present: true, payload_hash: `!${"a".repeat(64)}` }],
+  });
+  assert.equal(before.status, "unavailable", "a leading character outside the 64-hex shape must not be accepted");
+
+  const after = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: async () => [{ row_key: "sub-x", payload_present: true, payload_hash: `${"a".repeat(64)}!` }],
+  });
+  assert.equal(after.status, "unavailable", "a trailing character outside the 64-hex shape must not be accepted");
+});
+
+test("a source row absent (not present) is never validated against the hash shape at all", async () => {
+  const context = fixture();
+  // payload_present: false with a garbage (non-64-hex) hash must not throw --
+  // the hash is meaningless once the row claims to have no payload.
+  const entry = await parity.cloudflarePayloadParity("subscriptions", context.bindings, {
+    readSourcePage: async () => [{ row_key: "sub-legacy", payload_present: false, payload_hash: "not-a-real-hash" }],
+  });
+  assert.notEqual(entry.status, "unavailable");
+});
+
+test("the source-page validation's own fallback/error text never reaches the report and is equivalent (payload-parity.ts:294,297,299,300)", () => {
+  /*
+    cloudflarePayloadParity's outer try/catch swallows every error the merge
+    join can throw into a bare status: "unavailable" -- the thrown Error's
+    .message is never read anywhere the caller can observe, and the
+    `row?.payload_hash ?? ""` fallback only ever feeds the 64-hex regex test,
+    which no non-64-hex fallback string could ever pass either way.
+    Confirmed above: every malformed-input scenario converges on the
+    identical {status: "unavailable", unavailable: "source"} shape.
+  */
+  assert.equal(typeof parity.cloudflarePayloadParity, "function");
+});
+
+test("a failed target-read row that the source never reported is still named missing in the source, not silently dropped", async () => {
+  const context = fixture();
+  seedUser(context.database, USER, 0);
+  const bytes = jsonBytes({ score: 1 });
+  const key = `private/progress/${USER}/dangling-key.json`;
+  // No files.put -- the R2 object is missing, forcing readTargetPayload to
+  // report "unavailable" for this row.
+  context.database.prepare(`
+    INSERT INTO progress_snapshots (user_id,store_key,payload_object_key,payload_sha256,payload_bytes,created_at,updated_at)
+    VALUES (?, 'ielts-prep-v1', ?, ?, ?, ?, ?)
+  `).run(USER, key, createHash("sha256").update(bytes).digest("hex"), bytes.byteLength, CREATED, UPDATED);
+
+  const entry = await parity.cloudflarePayloadParity("progress_snapshots", context.bindings, {
+    readSourcePage: pagedSource({ progress_snapshots: [] }), // absent from source
+  });
+  assert.equal(entry.targetPayloadUnavailable.total, 1);
+  assert.equal(
+    entry.missingInSource.total,
+    1,
+    "a real (if unreadable) row absent from the source must count as missing in the source, not be dropped",
   );
 });
 

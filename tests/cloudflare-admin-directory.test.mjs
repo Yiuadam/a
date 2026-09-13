@@ -106,3 +106,85 @@ test("Cloudflare directory preserves an empty page's total as zero", async () =>
   const page = await directory.cloudflareAdminDirectoryPage({ query: "", limit: 50, offset: 0 }, fixture.bindings);
   assert.deepEqual(page, { users: [], total: 0 });
 });
+
+/*
+  Runs `fn` with `globalThis.window` set to a plain object, so
+  assertServerOnly(MODULE) throws the way it would if one of these
+  server-only modules were ever pulled into a client bundle. Always deletes
+  `window` again afterwards, pass or throw.
+*/
+async function withBrowserWindow(fn) {
+  const had = "window" in globalThis;
+  const previous = globalThis.window;
+  globalThis.window = {};
+  try {
+    return await fn();
+  } finally {
+    if (had) globalThis.window = previous;
+    else delete globalThis.window;
+  }
+}
+
+test("assertServerOnly guards both directory entry points, naming this exact module", async () => {
+  const fixture = bindings();
+  await withBrowserWindow(async () => {
+    await assert.rejects(
+      () => directory.cloudflareAdminDirectoryPage({ query: "", limit: 10, offset: 0 }, fixture.bindings),
+      /lib\/cloudflare\/admin-directory\.ts is server-only/,
+    );
+    await assert.rejects(
+      () => directory.cloudflareAdminDirectoryDetail(row.id, fixture.bindings),
+      /lib\/cloudflare\/admin-directory\.ts is server-only/,
+    );
+  });
+});
+
+test("a non-finite limit or offset is bounded to its minimum rather than propagated as NaN", async () => {
+  const fixture = bindings();
+  await directory.cloudflareAdminDirectoryPage({ query: "", limit: NaN, offset: Infinity }, fixture.bindings);
+  const values = fixture.prepared[0].values;
+  assert.equal(values.at(-2), 1, "a non-finite limit must fall back to the page-size minimum, not NaN");
+  assert.equal(values.at(-1), 0, "a non-finite offset must fall back to the offset minimum, not NaN");
+});
+
+test("an unmirrored plan and access source fall back to the exact 'free'/'default' text", async () => {
+  const bareRow = { ...row, plan: null, access_source: null };
+  const fixture = bindings({ detail: bareRow, page: [bareRow] });
+  const page = await directory.cloudflareAdminDirectoryPage({ query: "", limit: 10, offset: 0 }, fixture.bindings);
+  assert.equal(page.users[0].plan, "free");
+  assert.equal(page.users[0].accessSource, "default");
+  const detail = await directory.cloudflareAdminDirectoryDetail(row.id, fixture.bindings);
+  assert.equal(detail.plan, "free");
+  assert.equal(detail.accessSource, "default");
+});
+
+test("the search query is trimmed and bounded to 120 characters before it is bound", async () => {
+  const fixture = bindings();
+  const padded = `  ${"q".repeat(130)}  `;
+  await directory.cloudflareAdminDirectoryPage({ query: padded, limit: 10, offset: 0 }, fixture.bindings);
+  const boundQuery = fixture.prepared[0].values[6]; // commonParameters: now x5, usageStart, query x4...
+  assert.equal(boundQuery, "q".repeat(120), "the bound search text must be trimmed and cut to 120 characters");
+});
+
+test("cloudflareAdminDirectoryDetail's id shape is anchored at both ends, not merely a substring match", async () => {
+  const fixture = bindings();
+  const valid = "11111111-1111-4111-8111-111111111111";
+  await assert.equal(await directory.cloudflareAdminDirectoryDetail(`!${valid}`, fixture.bindings), null,
+    "a leading character outside the id shape must be rejected");
+  await assert.equal(await directory.cloudflareAdminDirectoryDetail(`${valid}!`, fixture.bindings), null,
+    "a trailing character outside the id shape must be rejected");
+});
+
+test("the 30-day usage window is bound as exactly 30 days before now, not a different arithmetic result", async () => {
+  const fixture = bindings();
+  const before = Date.now();
+  await directory.cloudflareAdminDirectoryPage({ query: "", limit: 10, offset: 0 }, fixture.bindings);
+  const after = Date.now();
+  const usageStartBound = fixture.prepared[0].values[5]; // commonParameters: [now,now,now,now,now,usageStart,...]
+  const usageStartMs = Date.parse(usageStartBound);
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  assert.ok(
+    usageStartMs >= before - THIRTY_DAYS_MS - 1000 && usageStartMs <= after - THIRTY_DAYS_MS + 1000,
+    `usage window start ${usageStartBound} is not ~30 days before now (got ${new Date(usageStartMs).toISOString()})`,
+  );
+});
