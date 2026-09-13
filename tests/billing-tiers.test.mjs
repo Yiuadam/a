@@ -214,6 +214,7 @@ test("the free tier's bullets are exactly what free has always meant here", () =
     "Every reading, listening, writing and speaking paper, no weekly limit",
     "The full mock exam, all four skills, timed",
     "Writing and speaking handed back to you after you submit — no AI score",
+    "Results stay in this browser tab only — Tracking keeps them",
   ]);
 });
 
