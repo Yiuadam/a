@@ -14,6 +14,19 @@
   in checking source text rather than a rendered tree — the shape this
   codebase already uses for every other client-side hook and gate, because
   none of these files can be exercised without a bundler and a DOM.
+
+  ---------------------------------------------------------------------------
+  Since the fetch moved to a shared module-level store (see the WHY comment
+  above `statusCache` in lib/billing/useTier.ts), the per-instance
+  useState/useEffect/useCallback these tests used to pin — `revision`, the
+  `alive` closure flag, `retry` built with useCallback — no longer exist by
+  those names, so the handful of tests that pinned them by exact source text
+  are replaced below with equivalents pinned against the new shared
+  functions. tests/tier-status-dedup.test.mjs is the behavioural half: it
+  imports the store and actually drives it (two mounts, one fetch; a session
+  change invalidating a stale in-flight answer) rather than reading its
+  source, the same way this file could not do for a per-instance hook with no
+  rendered tree to mount.
 */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -36,25 +49,26 @@ test("the status fetch carries a bounded timeout, so a stall resolves rather tha
   );
 });
 
-test("useTier returns a retry() and a revision it can bump to re-run the fetch effect", () => {
+test("useTier returns a retry(), backed by the shared store's retryStatus rather than a per-instance callback", () => {
   assert.match(useTier, /retry: \(\) => void/);
-  assert.match(useTier, /const \[revision, setRevision\] = useState\(0\);/);
-  assert.match(useTier, /setRevision\(\(n\) => n \+ 1\)/);
-  // The primary fetch effect must actually depend on that counter, or bumping
-  // it does nothing.
-  assert.match(useTier, /\}, \[session, revision\]\);/);
+  // The fetch effect depends on the session alone now — there is no
+  // per-instance revision counter to bump, because retrying is a shared,
+  // module-level action (see retryStatus) rather than something scoped to
+  // whichever component happened to render the hook that asked for it.
+  assert.match(useTier, /useEffect\(\(\) => \{\s*ensureStatus\(session\);\s*\}, \[session\]\);/);
   // And the hook has to hand retry back to callers, not just use it privately.
-  assert.match(useTier, /return \{ \.\.\.state, retry \};/);
+  assert.match(useTier, /return \{ \.\.\.state, retry: retryStatus \};/);
 });
 
 test("phase \"unavailable\" asks again on its own when the browser comes back online or this tab becomes visible", () => {
   assert.match(useTier, /window\.addEventListener\("online", onOnline\)/);
   assert.match(useTier, /document\.addEventListener\("visibilitychange", onVisibility\)/);
   assert.match(useTier, /document\.visibilityState === "visible"/);
-  // Both triggers call the same retry(), not a re-implementation of the fetch.
+  // Both triggers call the same shared retryStatus(), not a re-implementation
+  // of the fetch.
   const autoEffect = useTier.slice(useTier.indexOf('if (state.phase !== "unavailable") return;'));
-  assert.match(autoEffect, /const onOnline = \(\) => retry\(\);/);
-  assert.match(autoEffect, /if \(document\.visibilityState === "visible"\) retry\(\);/);
+  assert.match(autoEffect, /const onOnline = \(\) => retryStatus\(\);/);
+  assert.match(autoEffect, /if \(document\.visibilityState === "visible"\) retryStatus\(\);/);
   // And it only listens while genuinely unavailable — not on every phase.
   assert.match(useTier, /if \(state\.phase !== "unavailable"\) return;/);
 });
@@ -63,18 +77,31 @@ test("a failed lookup carries accountsEnabled forward instead of resetting it to
   // This is the other half of the useSessions.ts fix (see
   // tests/session-tier-outage.test.mjs): that file's "unavailable" branch is
   // only reachable if this one stops lying about accountsEnabled on failure.
+  // tests/tier-status-dedup.test.mjs exercises this behaviourally; this pins
+  // the source text stayed the deliberate shape rather than regressing to
+  // the blunter reset.
   assert.match(
     useTier,
-    /setState\(\(current\) => \(\{ \.\.\.INITIAL, accountsEnabled: current\.accountsEnabled, phase: "unavailable" \}\)\)/,
+    /statusCache = \{ \.\.\.INITIAL, accountsEnabled: statusCache\.accountsEnabled, phase: "unavailable" \};/,
   );
   // The old, blunter reset must actually be gone, not merely joined by the new one.
-  assert.doesNotMatch(useTier, /setState\(\{ \.\.\.INITIAL, phase: "unavailable" \}\)/);
+  assert.doesNotMatch(useTier, /statusCache = \{ \.\.\.INITIAL, phase: "unavailable" \};/);
 });
 
-test("the alive guard is unchanged: a stale response after a re-run cannot land", () => {
-  assert.match(useTier, /let alive = true;/);
-  assert.match(useTier, /if \(!alive\) return;/);
-  assert.match(useTier, /alive = false;/);
+test("a superseded request's response cannot land — the shared generation counter replaces the old per-effect `alive` flag", () => {
+  // The single-instance version guarded this with a boolean an effect closed
+  // over (`alive`); the shared store cannot use a closure, since there is one
+  // fetch now rather than one per mount, so a module-level counter plays the
+  // same role — see the WHY comment above `statusGeneration`.
+  assert.match(useTier, /let statusGeneration = 0;/);
+  assert.match(useTier, /const generation = \+\+statusGeneration;/);
+  // Both the success and the failure branch have to actually check it, or a
+  // stale response can still land.
+  assert.match(useTier, /if \(generation !== statusGeneration\) return;\s*statusCache = \{\s*phase: "ready",/);
+  assert.match(
+    useTier,
+    /if \(generation !== statusGeneration\) return;\s*\/\*[\s\S]*?\*\/\s*statusCache = \{ \.\.\.INITIAL, accountsEnabled: statusCache\.accountsEnabled, phase: "unavailable" \};/,
+  );
 });
 
 /*

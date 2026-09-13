@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { authedFetch, getServerSnapshot, getSnapshot, subscribe } from "@/lib/account";
+import { useEffect, useSyncExternalStore } from "react";
+import { authedFetch, getServerSnapshot, getSnapshot, subscribe, type Session } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
 import { previewOnServer, readPreview, subscribePreview } from "./preview";
 import { TIER_NAMES, tierAllows, type Feature, type Tier } from "./tiers";
@@ -161,84 +161,232 @@ function readTier(value: unknown): Tier | null {
 */
 const STATUS_TIMEOUT_MS = 8_000;
 
+/*
+  A single shared answer for every mounted consumer, not one useState per
+  useTier() call.
+
+  ---------------------------------------------------------------------------
+  Why this exists: the request cap, not tidiness
+
+  BandUp runs on the Cloudflare Workers Free plan — 100,000 requests per day
+  for the entire site, and that cap has already taken bandup.life down twice.
+  Before this store existed, every component that called useTier() — directly,
+  or transitively through useSessionAccess() — held its own useState/useEffect
+  and fired its own independent GET /api/account/status on mount. A single page
+  could mount several of these at once (app/practice/writing/page.tsx alone
+  has three: its own useTier(), and one useSessionAccess() each in SkillGate
+  and TestChooser), so one visit multiplied one question into three or four
+  identical ones. That is not a loop on its own, but it multiplies the cost of
+  every mount, and it is exactly what turned the reload-loop incident into an
+  outage 2-4x faster than the loop alone would have.
+
+  So the fetch, and the answer, now live once at module scope — the same
+  shape lib/account.ts already uses for the session itself (a cache, a
+  listener set, subscribe/getSnapshot read through useSyncExternalStore) —
+  and every hook instance reads the same cache and joins the same in-flight
+  request rather than starting its own.
+
+  ---------------------------------------------------------------------------
+  Why the cache is keyed by session identity rather than fetched once and left
+
+  The tier belongs to an account, and this is an entitlement surface: drawing
+  a stale tier after somebody has signed out — or, worse, after a different
+  account has signed in on the same tab — is a worse failure than one extra
+  request. So the cache remembers which session's access token it answered
+  for (`statusKey`, null for signed out), and the moment a hook instance sees
+  a session whose identity does not match, it resets to INITIAL and fetches
+  again — sign-in, sign-out and the cross-tab "storage" event lib/account.ts
+  already relays all take this path, because all three change what `session`
+  is, and this store's effect already depends on it.
+
+  ---------------------------------------------------------------------------
+  Why a generation counter instead of the old per-effect `alive` flag
+
+  The single-instance version guarded a stale response with a boolean closed
+  over by one effect: sign out re-ran the effect, the previous request's
+  `alive` closure stayed false, and its late answer could not land. That
+  guard cannot survive being shared — there is one fetch now, not one per
+  mount — so `statusGeneration` plays the same role at module scope: every
+  fresh authoritative request (a session change, or a forced retry) bumps it,
+  and a response is only allowed to update the cache if the generation it
+  started under is still current. A signed-out answer arriving after a
+  subsequent sign-in has already started asking about someone else is
+  dropped exactly the way the old flag dropped it — just shared.
+
+  ---------------------------------------------------------------------------
+  Why dedup needs both a cache check and an in-flight check
+
+  `statusInFlight` is set synchronously the moment a fetch starts, before the
+  first `await`. Two components mounting together both run their effect in
+  the same synchronous pass, so the second one always sees `statusInFlight`
+  already true (or, if the first request has already landed, sees a `"ready"`
+  cache) and joins rather than starting a second request. The same guard
+  covers the automatic retry triggers below: the browser's one "online" event
+  fires every mounted instance's own listener, and without the guard that
+  would be N retries, not one.
+*/
+
+let statusCache: TierState = INITIAL;
+/**
+ * The session identity (`accessToken`, or null when signed out) the cache
+ * above currently answers for. `undefined` until the first request is ever
+ * made, so that first request always runs even though the cache already
+ * holds INITIAL.
+ */
+let statusKey: string | null | undefined;
+let statusGeneration = 0;
+let statusInFlight = false;
+const statusListeners = new Set<() => void>();
+
+function emitStatus(): void {
+  for (const l of statusListeners) l();
+}
+
+/**
+ * Exported, along with the two snapshot readers below, so tests can exercise
+ * the shared cache directly the same way tests/account.test.mjs exercises
+ * lib/account.ts's own subscribe/getSnapshot — this module has no rendered
+ * tree for a test to mount, only the store.
+ */
+export function subscribeStatus(onChange: () => void): () => void {
+  statusListeners.add(onChange);
+  return () => statusListeners.delete(onChange);
+}
+
+export function getStatusSnapshot(): TierState {
+  return statusCache;
+}
+
+export function getStatusServerSnapshot(): TierState {
+  return INITIAL;
+}
+
+function sessionKey(session: Session | null): string | null {
+  return session?.accessToken ?? null;
+}
+
+/**
+ * Starts the one real network request. Every caller above this point has
+ * already decided a fresh request is actually warranted.
+ *
+ * Takes no session argument: authedFetch reads the live session itself, at
+ * the moment it is called, which is synchronously within the same call this
+ * function makes — there is no gap in which it could have gone stale.
+ */
+function runStatusFetch(): void {
+  const generation = ++statusGeneration;
+  statusInFlight = true;
+
+  authedFetch(apiUrl("/api/account/status"), { signal: AbortSignal.timeout(STATUS_TIMEOUT_MS) })
+    .then(async (res) => {
+      if (!res.ok) throw new Error("account status unavailable");
+      return (await res.json()) as AccountStatus;
+    })
+    .then((body) => {
+      // See the header: a superseded request's answer must not land.
+      if (generation !== statusGeneration) return;
+      statusCache = {
+        phase: "ready",
+        tier: body.enabled === true ? readTier(body.tier) : null,
+        accountsEnabled: body.enabled === true,
+        signedIn: body.signedIn === true,
+        windowSeconds: body.usage?.windowSeconds ?? 30 * 24 * 60 * 60,
+        oldestAt: body.usage?.oldestAt ?? null,
+        routes: body.usage?.routes ?? [],
+        expiresAt: body.expiresAt ?? null,
+        /*
+          `?? null` rather than defaulting to true or false. An older cached
+          response carries no such field, and either sentence it chooses between
+          would be a claim this build cannot support — so it prints neither.
+        */
+        renews: body.renews ?? null,
+      };
+      emitStatus();
+    })
+    .catch(() => {
+      if (generation !== statusGeneration) return;
+      /*
+        Unreachable is reported as unreachable rather than defaulted to free.
+        A page that quietly says "Free" when it could not ask would tell a
+        paying subscriber they are not one, which is worse than saying
+        nothing.
+
+        accountsEnabled carries forward from whatever this store last knew
+        rather than resetting to INITIAL's false. lib/entitlements/
+        useSessions.ts reads that flag to tell a genuine outage (accounts
+        exist, the answer just did not arrive) apart from accounts being off
+        for this whole deployment, and folding both into "false" here was
+        what made that distinction unreachable — every failure looked like
+        the second thing, never the first.
+      */
+      statusCache = { ...INITIAL, accountsEnabled: statusCache.accountsEnabled, phase: "unavailable" };
+      emitStatus();
+    })
+    .finally(() => {
+      if (generation === statusGeneration) statusInFlight = false;
+    });
+}
+
+/**
+ * The one entry point every hook instance's effects call — on mount, on a
+ * session change, and (with `force`) from `retryStatus`. Deciding whether a
+ * request is actually needed lives here, once, rather than in each caller.
+ */
+function requestStatus(session: Session | null, force: boolean): void {
+  const key = sessionKey(session);
+  if (key !== statusKey) {
+    // A different session (or the first one ever seen). Never trust a cached
+    // answer that belonged to someone else — see the header.
+    statusKey = key;
+    statusCache = INITIAL;
+    emitStatus();
+    runStatusFetch();
+    return;
+  }
+  if (statusInFlight) {
+    // Somebody already asked; joining that request is the dedup this store
+    // exists for. A forced retry still gets to flip the shared state
+    // optimistic even though it does not get to start a second request.
+    if (force && statusCache.phase !== "loading") {
+      statusCache = { ...statusCache, phase: "loading" };
+      emitStatus();
+    }
+    return;
+  }
+  if (!force && statusCache.phase === "ready") return; // the cache already answers this.
+  statusCache = { ...statusCache, phase: "loading" };
+  emitStatus();
+  runStatusFetch();
+}
+
+/**
+ * What every hook instance's mount/session-change effect calls. Exported for
+ * the same reason as the snapshot readers above: it is what a test calls
+ * twice in a row, with no session change in between, to prove that a second
+ * consumer joins the first's in-flight request rather than starting its own.
+ */
+export function ensureStatus(session: Session | null): void {
+  requestStatus(session, false);
+}
+
+/**
+ * What the retry button, and the two automatic triggers below, call. Reads
+ * the live session itself rather than trusting a closure, since this is a
+ * shared, module-level action and not bound to whichever component happened
+ * to render it.
+ */
+export function retryStatus(): void {
+  requestStatus(getSnapshot(), true);
+}
+
 /** The current account's tier and allowance, as the server reports them. */
 export function useTier(): TierState & { retry: () => void } {
   const session = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const [state, setState] = useState<TierState>(INITIAL);
-  /*
-    Bumped to ask again: by the retry button every "unavailable" screen wires
-    to this hook, and by the two automatic triggers below. A counter rather
-    than re-running the fetch directly, so there is exactly one place that
-    starts a request and exactly one set of `alive` semantics to reason about.
-  */
-  const [revision, setRevision] = useState(0);
-
-  const retry = useCallback(() => {
-    // Optimistic, the same way OrganizationPortal's own "Try again" is: a
-    // learner who presses it should see the checking state resume at once
-    // rather than watch "unavailable" sit unchanged until the new answer
-    // lands.
-    setState((current) => ({ ...current, phase: "loading" }));
-    setRevision((n) => n + 1);
-  }, []);
+  const state = useSyncExternalStore(subscribeStatus, getStatusSnapshot, getStatusServerSnapshot);
 
   useEffect(() => {
-    /*
-      `alive` is not ceremony. Signing out re-runs this effect while the
-      previous request is still in flight, and without the guard the older
-      response lands last and repaints a signed-out page with signed-in
-      figures.
-    */
-    let alive = true;
-
-    authedFetch(apiUrl("/api/account/status"), { signal: AbortSignal.timeout(STATUS_TIMEOUT_MS) })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("account status unavailable");
-        return (await res.json()) as AccountStatus;
-      })
-      .then((body) => {
-        if (!alive) return;
-        setState({
-          phase: "ready",
-          tier: body.enabled === true ? readTier(body.tier) : null,
-          accountsEnabled: body.enabled === true,
-          signedIn: body.signedIn === true,
-          windowSeconds: body.usage?.windowSeconds ?? 30 * 24 * 60 * 60,
-          oldestAt: body.usage?.oldestAt ?? null,
-          routes: body.usage?.routes ?? [],
-          expiresAt: body.expiresAt ?? null,
-          /*
-            `?? null` rather than defaulting to true or false. An older cached
-            response carries no such field, and either sentence it chooses between
-            would be a claim this build cannot support — so it prints neither.
-          */
-          renews: body.renews ?? null,
-        });
-      })
-      .catch(() => {
-        /*
-          Unreachable is reported as unreachable rather than defaulted to free.
-          A page that quietly says "Free" when it could not ask would tell a
-          paying subscriber they are not one, which is worse than saying
-          nothing.
-
-          accountsEnabled carries forward from whatever this hook last knew
-          rather than resetting to INITIAL's false. lib/entitlements/
-          useSessions.ts reads that flag to tell a genuine outage (accounts
-          exist, the answer just did not arrive) apart from accounts being off
-          for this whole deployment, and folding both into "false" here was
-          what made that distinction unreachable — every failure looked like
-          the second thing, never the first.
-        */
-        if (alive) {
-          setState((current) => ({ ...INITIAL, accountsEnabled: current.accountsEnabled, phase: "unavailable" }));
-        }
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [session, revision]);
+    ensureStatus(session);
+  }, [session]);
 
   useEffect(() => {
     if (state.phase !== "unavailable") return;
@@ -249,9 +397,9 @@ export function useTier(): TierState & { retry: () => void } {
       well as an ordinary tab switch. Neither should need a learner to find
       the retry button themselves, so this asks for them.
     */
-    const onOnline = () => retry();
+    const onOnline = () => retryStatus();
     const onVisibility = () => {
-      if (document.visibilityState === "visible") retry();
+      if (document.visibilityState === "visible") retryStatus();
     };
     window.addEventListener("online", onOnline);
     document.addEventListener("visibilitychange", onVisibility);
@@ -259,9 +407,9 @@ export function useTier(): TierState & { retry: () => void } {
       window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [state.phase, retry]);
+  }, [state.phase]);
 
-  return { ...state, retry };
+  return { ...state, retry: retryStatus };
 }
 
 /** One route's allowance, or null if the server has not reported it. */
