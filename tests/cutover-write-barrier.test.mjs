@@ -149,6 +149,26 @@ function fetchCounter() {
   return { fn, calls };
 }
 
+/*
+  A D1 stand-in for readRow's own validation: every query answers with the
+  exact row handed in, so a test can hand cutoverWriteBarrierRecord a row
+  shaped however it likes — including shapes the real schema's CHECK
+  constraints would never let a genuine row take — without touching SQLite
+  at all.
+*/
+function mockBarrierDb(row) {
+  return {
+    prepare() {
+      return {
+        bind() {
+          return { async first() { return row; } };
+        },
+        async first() { return row; },
+      };
+    },
+  };
+}
+
 async function armLearnerBarrier(bindings) {
   const result = await writeBarrier.armCutoverWriteBarrier(
     "learner",
@@ -727,4 +747,328 @@ test("lib/admin/settings.ts: setMaintenance throws (caught by the admin route as
       delete globalThis.__CUTOVER_FAKE_CF_ENV__;
     }
   });
+});
+
+/*
+  ---------------------------------------------------------------------------
+  write-barrier.ts's own internal edge cases.
+
+  Everything above proves the barrier's *effect* on real callers, against a
+  real D1 built from the real migrations, which can never actually hold a
+  row the CHECK constraints in scripts/hand-run-cutover-write-barrier.sql
+  disallow — so the defensive validation readRow does over a raw D1 row, the
+  exact per-reason wording armCutoverWriteBarrier's refusal builds, and the
+  table-missing/table-exists cache's edge cases have no test to catch a
+  regression yet. These use either mockBarrierDb (a D1 stand-in that answers
+  every read with a row shaped however the test likes) or a real fixture()
+  seeded with exactly one condition at a time.
+*/
+
+test("cutoverWriteBarrierRecord and armCutoverWriteBarrier refuse outside the server, naming this exact module", async () => {
+  globalThis.window = {};
+  try {
+    await assert.rejects(
+      writeBarrier.cutoverWriteBarrierRecord("learner", null),
+      /lib\/cloudflare\/write-barrier\.ts is server-only and must not be imported from a client component\./,
+    );
+    await assert.rejects(
+      writeBarrier.armCutoverWriteBarrier("learner", "dual", "owner@example.test", null),
+      /lib\/cloudflare\/write-barrier\.ts is server-only and must not be imported from a client component\./,
+    );
+  } finally {
+    delete globalThis.window;
+  }
+});
+
+test("isDomain accepts \"organization\", not only the common \"learner\" domain", async () => {
+  const row = {
+    domain: "organization", from_authority: "read_cloudflare", to_authority: "cloudflare",
+    barrier_at: "2026-08-15T00:00:00.000Z", recorded_by: "owner@example.test", status: "armed",
+  };
+  assert.deepEqual(
+    await writeBarrier.cutoverWriteBarrierRecord("organization", { db: mockBarrierDb(row), files: {} }),
+    {
+      domain: "organization", fromAuthority: "read_cloudflare", toAuthority: "cloudflare",
+      barrierAt: "2026-08-15T00:00:00.000Z", recordedBy: "owner@example.test", status: "armed",
+    },
+  );
+});
+
+test("isDomain and isFromAuthority reject values outside their two and three real states, however a row came by them", async () => {
+  const garbageDomain = {
+    domain: "sponsor", from_authority: "dual", to_authority: "cloudflare",
+    barrier_at: "2026-08-15T00:00:00.000Z", recorded_by: "owner@example.test", status: "armed",
+  };
+  assert.equal(
+    await writeBarrier.cutoverWriteBarrierRecord("learner", { db: mockBarrierDb(garbageDomain), files: {} }),
+    null,
+  );
+
+  const garbageAuthority = {
+    domain: "learner", from_authority: "cloudflare", to_authority: "cloudflare",
+    barrier_at: "2026-08-15T00:00:00.000Z", recorded_by: "owner@example.test", status: "armed",
+  };
+  assert.equal(
+    await writeBarrier.cutoverWriteBarrierRecord("learner", { db: mockBarrierDb(garbageAuthority), files: {} }),
+    null,
+  );
+});
+
+test("isFromAuthority accepts \"read_cloudflare\", not only \"supabase\" and \"dual\"", async () => {
+  const row = {
+    domain: "learner", from_authority: "read_cloudflare", to_authority: "cloudflare",
+    barrier_at: "2026-08-15T00:00:00.000Z", recorded_by: "owner@example.test", status: "armed",
+  };
+  assert.deepEqual(
+    await writeBarrier.cutoverWriteBarrierRecord("learner", { db: mockBarrierDb(row), files: {} }),
+    {
+      domain: "learner", fromAuthority: "read_cloudflare", toAuthority: "cloudflare",
+      barrierAt: "2026-08-15T00:00:00.000Z", recordedBy: "owner@example.test", status: "armed",
+    },
+  );
+});
+
+test("a row whose to_authority or status has drifted from the armed invariant is never surfaced as armed", async () => {
+  const wrongAuthority = {
+    domain: "learner", from_authority: "dual", to_authority: "supabase",
+    barrier_at: "2026-08-15T00:00:00.000Z", recorded_by: "owner@example.test", status: "armed",
+  };
+  assert.equal(
+    await writeBarrier.cutoverWriteBarrierRecord("learner", { db: mockBarrierDb(wrongAuthority), files: {} }),
+    null,
+  );
+
+  const wrongStatus = {
+    domain: "learner", from_authority: "dual", to_authority: "cloudflare",
+    barrier_at: "2026-08-15T00:00:00.000Z", recorded_by: "owner@example.test", status: "revoked",
+  };
+  assert.equal(
+    await writeBarrier.cutoverWriteBarrierRecord("learner", { db: mockBarrierDb(wrongStatus), files: {} }),
+    null,
+  );
+});
+
+test("a D1 binding known to lack the barrier table is not queried again", async () => {
+  let calls = 0;
+  const db = {
+    prepare() {
+      return {
+        bind() {
+          return {
+            async first() {
+              calls += 1;
+              throw new Error("no such table: cutover_write_barriers");
+            },
+          };
+        },
+      };
+    },
+  };
+  const bindings = { db, files: {} };
+  assert.equal(await writeBarrier.cutoverWriteBarrierRecord("learner", bindings), null);
+  assert.equal(calls, 1);
+  assert.equal(await writeBarrier.cutoverWriteBarrierRecord("learner", bindings), null);
+  assert.equal(calls, 1, "the cached \"no such table\" result must skip a second query");
+});
+
+test("an unrelated D1 failure is retried, never remembered as a missing barrier table", async () => {
+  let calls = 0;
+  const db = {
+    prepare() {
+      return {
+        bind() {
+          return {
+            async first() {
+              calls += 1;
+              throw new Error("D1_ERROR: network timeout");
+            },
+          };
+        },
+      };
+    },
+  };
+  const bindings = { db, files: {} };
+  assert.equal(await writeBarrier.cutoverWriteBarrierRecord("learner", bindings), null);
+  assert.equal(calls, 1);
+  assert.equal(await writeBarrier.cutoverWriteBarrierRecord("learner", bindings), null);
+  assert.equal(calls, 2, "an unrelated D1 error must not be cached as a missing table");
+});
+
+test("the missing-table match tolerates however many spaces the driver puts after the colon, including none", async () => {
+  let calls = 0;
+  const db = {
+    prepare() {
+      return {
+        bind() {
+          return {
+            async first() {
+              calls += 1;
+              throw new Error("no such table:cutover_write_barriers");
+            },
+          };
+        },
+      };
+    },
+  };
+  const bindings = { db, files: {} };
+  assert.equal(await writeBarrier.cutoverWriteBarrierRecord("learner", bindings), null);
+  assert.equal(calls, 1);
+  assert.equal(await writeBarrier.cutoverWriteBarrierRecord("learner", bindings), null);
+  assert.equal(calls, 1, "zero spaces after the colon must still be recognized as the missing-table error");
+});
+
+test("armCutoverWriteBarrier's refusal names a lone dead row precisely, not merely \"not drained\"", async () => {
+  const { database, bindings } = fixture();
+  const stamp = "2026-08-15T00:00:00.000Z";
+  database.prepare(`
+    INSERT INTO cloudflare_replica_outbox (
+      task_id, operation, subject_user_id, source_updated_at,
+      payload_inline, payload_sha256, payload_bytes, generation, attempts_made,
+      status, available_at, created_at, updated_at
+    ) VALUES ('dead-task', 'usage_event', NULL, ?, '{}', ?, 2, 1, 12, 'dead', ?, ?, ?)
+  `).run(stamp, "2".repeat(64), stamp, stamp, stamp);
+
+  const result = await writeBarrier.armCutoverWriteBarrier("learner", "dual", "owner@example.test", bindings);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "outbox_not_drained");
+  assert.equal(result.detail, "1 dead");
+});
+
+test("armCutoverWriteBarrier's refusal names cleanup-queue pending and dead rows precisely", async () => {
+  const { database, bindings } = fixture();
+  const stamp = "2026-08-15T00:00:00.000Z";
+  database.prepare(`
+    INSERT INTO cloudflare_replica_object_cleanup (
+      object_key, attempts_made, status, available_at, created_at, updated_at
+    ) VALUES (?, 0, 'pending', ?, ?, ?)
+  `).run("private/write-barrier-mutation-test/pending", stamp, stamp, stamp);
+
+  const pendingResult = await writeBarrier.armCutoverWriteBarrier("learner", "dual", "owner@example.test", bindings);
+  assert.equal(pendingResult.reason, "outbox_not_drained");
+  assert.equal(pendingResult.detail, "1 cleanup pending");
+
+  database.prepare("DELETE FROM cloudflare_replica_object_cleanup").run();
+  database.prepare(`
+    INSERT INTO cloudflare_replica_object_cleanup (
+      object_key, attempts_made, status, available_at, created_at, updated_at
+    ) VALUES (?, 12, 'dead', ?, ?, ?)
+  `).run("private/write-barrier-mutation-test/dead", stamp, stamp, stamp);
+
+  const deadResult = await writeBarrier.armCutoverWriteBarrier("learner", "dual", "owner@example.test", bindings);
+  assert.equal(deadResult.reason, "outbox_not_drained");
+  assert.equal(deadResult.detail, "1 cleanup dead");
+});
+
+test("armCutoverWriteBarrier's refusal counts a deletion-blocked row as both pending and blocked, never silently", async () => {
+  /*
+    blockedByAccountDeletion rows never leave 'pending' (the deletion guard
+    aborts their lease update), so a blocked row is always also a pending
+    one — there is no fixture that isolates "blocked" from "pending" the way
+    the dead/cleanup tests above isolate their own reason, and that overlap
+    is exactly what this test is checking is still reported both ways.
+  */
+  const { database, bindings } = fixture();
+  const stamp = "2026-08-15T00:00:00.000Z";
+  database.prepare(`
+    INSERT INTO cloudflare_replica_outbox (
+      task_id, operation, subject_user_id, source_updated_at,
+      payload_inline, payload_sha256, payload_bytes, generation, attempts_made,
+      status, available_at, created_at, updated_at
+    ) VALUES ('blocked-task', 'learner_profile', ?, ?, '{}', ?, 2, 1, 0, 'pending', ?, ?, ?)
+  `).run(USER_ID, stamp, "3".repeat(64), stamp, stamp, stamp);
+  database.prepare(`
+    INSERT INTO account_deletion_tombstones (
+      user_id, operation_id, state, prepared_at, lease_expires_at, updated_at
+    ) VALUES (?, ?, 'prepared', ?, ?, ?)
+  `).run(USER_ID, `operation-${USER_ID}`, stamp, "2026-08-15T01:00:00.000Z", stamp);
+
+  const result = await writeBarrier.armCutoverWriteBarrier("learner", "dual", "owner@example.test", bindings);
+  assert.equal(result.reason, "outbox_not_drained");
+  assert.equal(result.detail, "1 pending, 1 blocked by account deletion");
+});
+
+test("armCutoverWriteBarrier joins multiple undrained reasons with \", \", not concatenation", async () => {
+  const { database, bindings } = fixture();
+  const stamp = "2026-08-15T00:00:00.000Z";
+  database.prepare(`
+    INSERT INTO cloudflare_replica_outbox (
+      task_id, operation, subject_user_id, source_updated_at,
+      payload_inline, payload_sha256, payload_bytes, generation, attempts_made,
+      status, available_at, created_at, updated_at
+    ) VALUES ('pending-task', 'usage_event', NULL, ?, '{}', ?, 2, 1, 0, 'pending', ?, ?, ?)
+  `).run(stamp, "4".repeat(64), stamp, stamp, stamp);
+  database.prepare(`
+    INSERT INTO cloudflare_replica_outbox (
+      task_id, operation, subject_user_id, source_updated_at,
+      payload_inline, payload_sha256, payload_bytes, generation, attempts_made,
+      status, available_at, created_at, updated_at
+    ) VALUES ('dead-task-2', 'usage_event', NULL, ?, '{}', ?, 2, 1, 12, 'dead', ?, ?, ?)
+  `).run(stamp, "5".repeat(64), stamp, stamp, stamp);
+
+  const result = await writeBarrier.armCutoverWriteBarrier("learner", "dual", "owner@example.test", bindings);
+  assert.equal(result.reason, "outbox_not_drained");
+  assert.equal(result.detail, "1 pending, 1 dead");
+});
+
+test("the audit-trail run records the exact arm decision, not just that one happened", async () => {
+  const { bindings } = fixture();
+  await armLearnerBarrier(bindings);
+  const summary = await bindings.db.prepare(
+    "SELECT summary_json FROM data_migration_runs WHERE mode = 'cutover'",
+  ).first("summary_json");
+  assert.deepEqual(JSON.parse(summary), {
+    domain: "learner",
+    fromAuthority: "dual",
+    toAuthority: "cloudflare",
+    recordedBy: "owner@example.test",
+  });
+});
+
+test("a task enqueued after the pre-check still stops the arm attempt, via the trigger's own message translated to a retry hint", async () => {
+  const { database, bindings } = fixture();
+  const stamp = "2026-08-15T00:00:00.000Z";
+  const realBatch = bindings.db.batch.bind(bindings.db);
+  // Simulates a task enqueued in the gap between armCutoverWriteBarrier's
+  // drain pre-check and its INSERT — exactly what the trigger, not the
+  // pre-check, exists to still catch.
+  bindings.db.batch = async (statements) => {
+    database.prepare(`
+      INSERT INTO cloudflare_replica_outbox (
+        task_id, operation, subject_user_id, source_updated_at,
+        payload_inline, payload_sha256, payload_bytes, generation, attempts_made,
+        status, available_at, created_at, updated_at
+      ) VALUES ('race-task', 'learner_profile', ?, ?, '{}', ?, 2, 1, 0, 'pending', ?, ?, ?)
+    `).run(USER_ID, stamp, "6".repeat(64), stamp, stamp, stamp);
+    return realBatch(statements);
+  };
+
+  const result = await writeBarrier.armCutoverWriteBarrier("learner", "dual", "owner@example.test", bindings);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "outbox_not_drained");
+  assert.equal(result.detail, "a task arrived after the check above; try again");
+  assert.equal(await writeBarrier.cutoverWriteBarrierArmed("learner", bindings), false);
+});
+
+test("armCutoverWriteBarrier surfaces its own defensive read-back failure verbatim", async () => {
+  // A D1 that accepts the arming batch without error but never shows the row
+  // back — the scenario armCutoverWriteBarrier's own last-resort throw
+  // exists for, and not one a real, consistent D1 can actually produce.
+  const db = {
+    prepare() {
+      return {
+        bind() {
+          return { async first() { return null; } };
+        },
+        async first() { return null; },
+      };
+    },
+    async batch() {
+      return [{ success: true, meta: { changes: 1 } }, { success: true, meta: { changes: 1 } }];
+    },
+  };
+  const bindings = { db, files: {} };
+  await assert.rejects(
+    writeBarrier.armCutoverWriteBarrier("learner", "dual", "owner@example.test", bindings),
+    /cutover write barrier did not read back after being armed/,
+  );
 });
