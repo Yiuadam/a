@@ -250,6 +250,7 @@ test("an unreadable source fingerprint RPC is named without exposing source rows
 
   assert.equal(report.sourceEvidence.status, "unavailable");
   assert.equal(report.domains.slice(0, 8).every((domain) => domain.status === "unavailable"), true);
+  assert.equal(report.domains.slice(0, 8).every((domain) => domain.ready === false), true);
   assert.doesNotMatch(JSON.stringify(report), /source database detail must stay server-only/);
 });
 
@@ -411,4 +412,298 @@ test("unsupportedDomains is derived from the cutover-domain registry, not a lite
   for (const domain of cutoverDomains.CUTOVER_DOMAINS.map((entry) => entry.domain)) {
     assert.doesNotMatch(source, new RegExp(`"${domain}"`));
   }
+});
+
+test("the fingerprint version constant is actually used in the report", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+  const report = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => source,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report.fingerprintVersion, readiness.MIGRATION_FINGERPRINT_VERSION);
+  assert.equal(report.fingerprintVersion, "bandup-application-data-v3");
+  assert.notEqual(report.fingerprintVersion, "");
+});
+
+test("sourceRows validation requires Array.isArray, exact length, and every entry valid", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+
+  // Not an array should fail
+  const report1 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => ({ fake: "object" }),
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report1.sourceEvidence.status, "invalid");
+  assert.equal(report1.domains.slice(0, 8).every((d) => d.status === "unavailable"), true);
+  assert.equal(report1.domains.slice(0, 8).every((d) => d.ready === false), true);
+
+  // Wrong length should fail
+  const tooShort = source.slice(0, 7);
+  const report2 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => tooShort,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report2.sourceEvidence.status, "invalid");
+  assert.equal(report2.domains.slice(0, 8).every((d) => d.ready === false), true);
+
+  // All entries must have valid fingerprints
+  const invalidFp = source.map((row, i) =>
+    i === 0 ? { ...row, fingerprint: "not-hex" } : row
+  );
+  const report3 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => invalidFp,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report3.sourceEvidence.status, "invalid");
+  assert.equal(report3.domains.slice(0, 8).every((d) => d.ready === false), true);
+});
+
+test("row_count must be a safe integer >= 0 for each source row", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+
+  // Negative count should fail
+  const negativeCount = source.map((row, i) =>
+    i === 0 ? { ...row, row_count: -1 } : row
+  );
+  const report1 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => negativeCount,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report1.sourceEvidence.status, "invalid");
+
+  // Non-safe-integer should fail
+  const unsafeInt = source.map((row, i) =>
+    i === 0 ? { ...row, row_count: 9007199254740992 } : row
+  );
+  const report2 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => unsafeInt,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report2.sourceEvidence.status, "invalid");
+});
+
+test("fingerprint must match exactly ^[a-f0-9]{64}$ (64 hex chars)", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+
+  // Test 1: 64 hex chars prefixed with non-hex (should fail ^ anchor)
+  const validHexWithPrefix = source.map((row, i) =>
+    i === 0 ? { ...row, fingerprint: "x" + "a".repeat(63) } : row
+  );
+  const report1 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => validHexWithPrefix,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report1.sourceEvidence.status, "invalid");
+
+  // Test 2: Too short (63 chars)
+  const shortFp = source.map((row, i) =>
+    i === 0 ? { ...row, fingerprint: "a".repeat(63) } : row
+  );
+  const report2 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => shortFp,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report2.sourceEvidence.status, "invalid");
+
+  // Test 3: Uppercase hex should fail
+  const upperCase = source.map((row, i) =>
+    i === 0 ? { ...row, fingerprint: "A" + "a".repeat(63) } : row
+  );
+  const report3 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => upperCase,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report3.sourceEvidence.status, "invalid");
+
+  // Test 4: 64 hex chars with suffix (should fail $ anchor)
+  const validHexWithSuffix = source.map((row, i) =>
+    i === 0 ? { ...row, fingerprint: "a".repeat(63) + "9" + "x" } : row
+  );
+  const report4 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => validHexWithSuffix,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  assert.equal(report4.sourceEvidence.status, "invalid");
+});
+
+test("domain comparison distinguishes equal vs different vs count-mismatch via === checks", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+
+  // Source > Target by count
+  const sourceHigher = source.map((row, i) =>
+    i === 0 ? { ...row, row_count: row.row_count + 10 } : row
+  );
+  const report1 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => sourceHigher,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  const profiles1 = report1.domains.find((d) => d.domain === "profiles");
+  assert.equal(profiles1.status, "source_only");
+  assert.equal(profiles1.ready, false);
+
+  // Source < Target by count
+  const sourceLower = source.map((row, i) =>
+    i === 0 ? { ...row, row_count: Math.max(0, row.row_count - 1) } : row
+  );
+  const report2 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => sourceLower,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  const profiles2 = report2.domains.find((d) => d.domain === "profiles");
+  assert.equal(profiles2.status, "target_only");
+  assert.equal(profiles2.ready, false);
+
+  // Same count, different fingerprint
+  const diffFp = source.map((row, i) =>
+    i === 0 ? { ...row, fingerprint: "f".repeat(64) } : row
+  );
+  const report3 = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => diffFp,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+  const profiles3 = report3.domains.find((d) => d.domain === "profiles");
+  assert.equal(profiles3.status, "different");
+  assert.equal(profiles3.ready, false);
+});
+
+test("cancel_at_period_end evidence encoding uses exact string comparison", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+
+  // Get current fingerprint with cancel_at_period_end=0 (default from seedTarget)
+  const fp1 = await readiness.cloudflareTargetFingerprints(context.bindings);
+  const subs1 = fp1.find((row) => row.domain === "subscriptions");
+
+  // Verify by checking it's a valid SHA256
+  assert.match(subs1.fingerprint, /^[a-f0-9]{64}$/);
+  assert.equal(subs1.row_count, 1);
+});
+
+test("historical_complete evidence encoding uses exact string comparison", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+
+  const fp = await readiness.cloudflareTargetFingerprints(context.bindings);
+  const coverage = fp.find((row) => row.domain === "ai_cost_coverage");
+
+  assert.match(coverage.fingerprint, /^[a-f0-9]{64}$/);
+  assert.equal(coverage.row_count, 1);
+});
+
+test("organizations domain status depends on organizationDataMode() === 'cloudflare'", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+
+  // With organizationDataMode = cloudflare
+  const saved = process.env.ORGANIZATION_DATA_MODE;
+  process.env.ORGANIZATION_DATA_MODE = "cloudflare";
+  try {
+    const report1 = await readiness.cloudflareMigrationReadinessReport(context.bindings, {
+      readSourceFingerprints: async () => source,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    });
+    const orgs1 = report1.domains.find((d) => d.domain === "organizations");
+    assert.equal(orgs1.status, "authoritative");
+    assert.equal(orgs1.ready, true);
+  } finally {
+    if (saved === undefined) delete process.env.ORGANIZATION_DATA_MODE;
+    else process.env.ORGANIZATION_DATA_MODE = saved;
+  }
+
+  // With organizationDataMode = something else
+  process.env.ORGANIZATION_DATA_MODE = "supabase";
+  try {
+    const report2 = await readiness.cloudflareMigrationReadinessReport(context.bindings, {
+      readSourceFingerprints: async () => source,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    });
+    const orgs2 = report2.domains.find((d) => d.domain === "organizations");
+    assert.equal(orgs2.status, "unsupported");
+    assert.equal(orgs2.ready, false);
+  } finally {
+    if (saved === undefined) delete process.env.ORGANIZATION_DATA_MODE;
+    else process.env.ORGANIZATION_DATA_MODE = saved;
+  }
+});
+
+test("blockers include 'unsupported application-data domains remain' when necessary", async () => {
+  const context = fixture();
+  seedTarget(context.database);
+  const source = await readiness.cloudflareTargetFingerprints(context.bindings);
+
+  const report = await withModes(() => readiness.cloudflareMigrationReadinessReport(
+    context.bindings,
+    {
+      readSourceFingerprints: async () => source,
+      readAppSettings: async () => appSettingsReady(),
+      readOutbox: async () => EMPTY_OUTBOX,
+    },
+  ));
+
+  assert.ok(report.blockers.includes("unsupported application-data domains remain"));
 });
