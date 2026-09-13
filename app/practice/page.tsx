@@ -15,6 +15,7 @@ import speakingData from "@/data/speaking-topics.json";
 import SessionCount from "@/components/SessionCount";
 import { allowanceFor } from "@/lib/entitlements/sessions";
 import { useSessionAccess } from "@/lib/entitlements/useSessions";
+import { tierShows, useTier } from "@/lib/billing/useTier";
 import { useProfile } from "@/lib/hooks";
 import { questionCount } from "@/lib/questions";
 import { postJSON } from "@/lib/api";
@@ -62,6 +63,7 @@ const listeningTests = LISTENING_TESTS;
 export default function PracticePage() {
   const profile = useProfile();
   const access = useSessionAccess();
+  const account = useTier();
   const [genKind, setGenKind] = useState<"reading" | "listening">("reading");
   const [genDifficulty, setGenDifficulty] = useState<"medium" | "hard">("medium");
   const [genTopic, setGenTopic] = useState("");
@@ -271,6 +273,66 @@ export default function PracticePage() {
     );
   };
 
+  /*
+    Generating a test is an AI call, so it follows the AI rules rather than
+    the session rules: `generate` costs zero for free and tracking as well as
+    for a visitor (lib/billing/tiers.ts, MONTHLY_AI_CAPS), so all three are
+    locked out here and only ai and admin see the button.
+
+    Generous while the answer is unknown, like every other client-side gate
+    reading this hook (app/exam/page.tsx, app/practice/writing/page.tsx):
+    during `loading`, and with accounts switched off, the panel is offered
+    rather than locked. The server still decides for real — lib/billing/
+    gate.ts — so the worst this can do is offer a button that comes back
+    refused, which is exactly what happens today.
+  */
+  const canGenerate =
+    account.phase !== "ready" || !account.accountsEnabled || tierShows(account, "generate");
+
+  const generatePanel = (
+    <section id="generate" className="card !p-3 min-w-0 border-indigo-200 bg-indigo-50/40">
+      <h2 className="text-sm font-semibold text-slate-900">Generate a fresh test with AI</h2>
+      <p className="mt-0.5 text-xs leading-5 text-slate-600">
+        Never run out of material — the AI plan writes a brand-new exam-format test on demand,
+        saved on this device.
+      </p>
+      <div className="mt-2 flex flex-wrap items-end gap-2">
+        <div className="min-w-0 flex-1 basis-28 text-xs text-slate-700">
+          <span className="mb-0.5 block text-slate-500">Module</span>
+          <GlassSelect
+            label="Generated test module"
+            value={genKind}
+            options={[{ value: "reading", label: "Reading" }, { value: "listening", label: "Listening" }]}
+            onValueChange={(value) => setGenKind(value as "reading" | "listening")}
+          />
+        </div>
+        <div className="min-w-0 flex-1 basis-36 text-xs text-slate-700">
+          <span className="mb-0.5 block text-slate-500">Difficulty</span>
+          <GlassSelect
+            label="Generated test difficulty"
+            value={genDifficulty}
+            options={[{ value: "medium", label: "Medium (5–6.5)" }, { value: "hard", label: "Hard (6.5–8)" }]}
+            onValueChange={(value) => setGenDifficulty(value as "medium" | "hard")}
+            minMenuWidth={164}
+          />
+        </div>
+        <label className="min-w-0 flex-1 basis-40 text-xs text-slate-700">
+          <span className="mb-0.5 block text-slate-500">Topic (optional)</span>
+          <input
+            className="input !py-2 w-full"
+            placeholder="e.g. space exploration"
+            value={genTopic}
+            onChange={(e) => setGenTopic(e.target.value)}
+          />
+        </label>
+        <button className="btn-primary w-full" onClick={generate} disabled={generating}>
+          {generating ? <LoadingIndicator label="Generating (about a minute)…" announce={false} /> : "Generate test"}
+        </button>
+      </div>
+      {genError && <p className="mt-2 text-sm text-rose-600">{genError}</p>}
+    </section>
+  );
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -384,7 +446,8 @@ export default function PracticePage() {
               somebody weighing up an account can see what is behind it.
             */}
             <p className="mb-2 text-xs leading-5 text-slate-600">
-              Graded on all four criteria by the AI examiner, with a rewritten model paragraph.
+              An essay, timed like the exam. AI marking — all four criteria, and a rewritten
+              model paragraph — is part of the AI plan.
             </p>
             <div className="space-y-2">
               {WRITING_TASKS.map((task, i) => writingRow(task, i))}
@@ -431,97 +494,12 @@ export default function PracticePage() {
             </div>
           </section>
 
-          {/*
-            Generating a test is an AI call, so it follows the AI rules rather
-            than the session rules: a visitor has no model at all, so the panel
-            is locked rather than offered and then refused.
-          */}
-          {access.tier === "anonymous" ? (
-            <LockedCard reason="sign-in" label="Generate a fresh test with AI">
-              <section id="generate" className="card !p-3 min-w-0 border-indigo-200 bg-indigo-50/40">
-            <h2 className="text-sm font-semibold text-slate-900">Generate a fresh test with AI</h2>
-            <p className="mt-0.5 text-xs leading-5 text-slate-600">
-              Never run out of material — the AI writes a brand-new exam-format test on demand,
-              saved on this device.
-            </p>
-            <div className="mt-2 flex flex-wrap items-end gap-2">
-              <div className="min-w-0 flex-1 basis-28 text-xs text-slate-700">
-                <span className="mb-0.5 block text-slate-500">Module</span>
-                <GlassSelect
-                  label="Generated test module"
-                  value={genKind}
-                  options={[{ value: "reading", label: "Reading" }, { value: "listening", label: "Listening" }]}
-                  onValueChange={(value) => setGenKind(value as "reading" | "listening")}
-                />
-              </div>
-              <div className="min-w-0 flex-1 basis-36 text-xs text-slate-700">
-                <span className="mb-0.5 block text-slate-500">Difficulty</span>
-                <GlassSelect
-                  label="Generated test difficulty"
-                  value={genDifficulty}
-                  options={[{ value: "medium", label: "Medium (5–6.5)" }, { value: "hard", label: "Hard (6.5–8)" }]}
-                  onValueChange={(value) => setGenDifficulty(value as "medium" | "hard")}
-                  minMenuWidth={164}
-                />
-              </div>
-              <label className="min-w-0 flex-1 basis-40 text-xs text-slate-700">
-                <span className="mb-0.5 block text-slate-500">Topic (optional)</span>
-                <input
-                  className="input !py-2 w-full"
-                  placeholder="e.g. space exploration"
-                  value={genTopic}
-                  onChange={(e) => setGenTopic(e.target.value)}
-                />
-              </label>
-              <button className="btn-primary w-full" onClick={generate} disabled={generating}>
-                {generating ? <LoadingIndicator label="Generating (about a minute)…" announce={false} /> : "Generate test"}
-              </button>
-            </div>
-            {genError && <p className="mt-2 text-sm text-rose-600">{genError}</p>}
-              </section>
-            </LockedCard>
+          {canGenerate ? (
+            generatePanel
           ) : (
-          <section id="generate" className="card !p-3 min-w-0 border-indigo-200 bg-indigo-50/40">
-            <h2 className="text-sm font-semibold text-slate-900">Generate a fresh test with AI</h2>
-            <p className="mt-0.5 text-xs leading-5 text-slate-600">
-              Never run out of material — the AI writes a brand-new exam-format test on demand,
-              saved on this device.
-            </p>
-            <div className="mt-2 flex flex-wrap items-end gap-2">
-              <div className="min-w-0 flex-1 basis-28 text-xs text-slate-700">
-                <span className="mb-0.5 block text-slate-500">Module</span>
-                <GlassSelect
-                  label="Generated test module"
-                  value={genKind}
-                  options={[{ value: "reading", label: "Reading" }, { value: "listening", label: "Listening" }]}
-                  onValueChange={(value) => setGenKind(value as "reading" | "listening")}
-                />
-              </div>
-              <div className="min-w-0 flex-1 basis-36 text-xs text-slate-700">
-                <span className="mb-0.5 block text-slate-500">Difficulty</span>
-                <GlassSelect
-                  label="Generated test difficulty"
-                  value={genDifficulty}
-                  options={[{ value: "medium", label: "Medium (5–6.5)" }, { value: "hard", label: "Hard (6.5–8)" }]}
-                  onValueChange={(value) => setGenDifficulty(value as "medium" | "hard")}
-                  minMenuWidth={164}
-                />
-              </div>
-              <label className="min-w-0 flex-1 basis-40 text-xs text-slate-700">
-                <span className="mb-0.5 block text-slate-500">Topic (optional)</span>
-                <input
-                  className="input !py-2 w-full"
-                  placeholder="e.g. space exploration"
-                  value={genTopic}
-                  onChange={(e) => setGenTopic(e.target.value)}
-                />
-              </label>
-              <button className="btn-primary w-full" onClick={generate} disabled={generating}>
-                {generating ? <LoadingIndicator label="Generating (about a minute)…" announce={false} /> : "Generate test"}
-              </button>
-            </div>
-            {genError && <p className="mt-2 text-sm text-rose-600">{genError}</p>}
-          </section>
+            <LockedCard reason="subscribe" label="Generate a fresh test with AI">
+              {generatePanel}
+            </LockedCard>
           )}
         </div>
       </div>

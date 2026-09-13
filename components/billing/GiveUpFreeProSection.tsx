@@ -317,9 +317,10 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
       </p>
       <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
         If you would rather go back to the free plan, you can give the trial up here. Everything
-        you have written or practised stays exactly where it is — the free plan keeps all of it,
-        with smaller allowances for the AI marking, the tutor and word lookups. You can start the
-        trial again later while it is still open.
+        you have written or practised stays exactly where it is, and every paper, skill and the
+        full mock exam stay open with no weekly limit — the free plan keeps all of that. What it
+        does not keep is the AI: the AI marking, the tutor and word lookups stop rather than
+        shrink. You can start the trial again later while it is still open.
       </p>
       {problem && (
         <p className="mt-3 text-[0.9375rem] leading-7 text-amber-800" role="alert">

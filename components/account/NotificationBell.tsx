@@ -297,10 +297,10 @@ export default function NotificationBell({
             {freePro ? (
               <>
                 <p className="text-[0.875rem] font-semibold text-slate-900">
-                  Pro, free, if you want it
+                  AI, free, if you want it
                 </p>
                 <p className="mt-1 text-[0.8125rem] leading-5 text-slate-600">
-                  Pro is free on every new account, with no card. Read the offer and start it when
+                  AI is free on every new account, with no card. Read the offer and start it when
                   you sign up.
                 </p>
                 <a href="/account" className="btn-primary mt-3 w-full !min-h-9 text-[0.875rem]">
@@ -311,8 +311,8 @@ export default function NotificationBell({
               <>
                 <p className="text-[0.875rem] font-semibold text-slate-900">No notifications</p>
                 <p className="mt-1 text-[0.8125rem] leading-5 text-slate-600">
-                  Marked work, plan reminders and anything from your teacher arrive here once you
-                  have an account.
+                  Feedback on marked work and anything else from your teacher arrive here, once
+                  you join their organisation.
                 </p>
                 <a href="/account" className="btn-secondary mt-3 w-full !min-h-9 text-[0.875rem]">
                   Sign in

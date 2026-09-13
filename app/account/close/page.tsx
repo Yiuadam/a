@@ -96,7 +96,8 @@ export default function CloseScreen() {
           )}
           <p className="mt-2 text-[0.8125rem] leading-5 text-slate-500">
             Ends the session on this device and clears what is stored here, so the next person to
-            sign in on it cannot see your practice.{" "}
+            sign in on it cannot see your practice — except highlights left on a passage, which
+            stay in this tab until it is closed.{" "}
             {hasProgressSync
               ? "Nothing is deleted from your account — sign back in and your placement result, plan and saved words return."
               : "Signing out clears your practice on this device. On Free it is not kept on the account."}

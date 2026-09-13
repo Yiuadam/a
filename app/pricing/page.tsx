@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import CheckoutNotice from "@/components/billing/CheckoutNotice";
 import { visitorCurrency } from "@/lib/billing/region";
+import { WEEKLY_AI_CAPS } from "@/lib/billing/tiers";
 import PricingPlans from "./PricingPlans";
 
 /*
@@ -42,6 +43,7 @@ export default async function PricingPage() {
     and why it can be null.
   */
   const currency = await visitorCurrency();
+  const weeklyAiCaps = WEEKLY_AI_CAPS.ai;
 
   return (
     <div className="pricing-page space-y-3 sm:space-y-6">
@@ -73,8 +75,9 @@ export default async function PricingPage() {
           Free forever, on every plan
         </summary>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-600">
-          These are shipped inside the app. Serving them a thousand times costs the same as
-          serving them once, which is nothing — so there is nothing to charge for.
+          These are what a signed-in account gets — signing in is free and takes a moment.
+          Serving them a thousand times costs the same as serving them once, which is nothing —
+          so there is nothing to charge for.
         </p>
         <ul className="mt-4 space-y-2">
           {ALWAYS_FREE.map((line) => (
@@ -126,6 +129,14 @@ export default async function PricingPage() {
           There is no reset day: a request frees itself up 30 days after you make it, one at a
           time. Every kind of AI has its own allowance rather than sharing one pool, so a month
           of word lookups cannot use up the essays you have left.
+        </p>
+        <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
+          <strong>The AI plan also caps you week to week</strong>, tighter than the monthly
+          figures above: {weeklyAiCaps["grade/writing"]} essays and{" "}
+          {weeklyAiCaps["grade/speaking"]} speaking test marked a week, {weeklyAiCaps.chat} tutor
+          questions and {weeklyAiCaps.define} word lookups a week. It rolls the same way the
+          monthly allowance does — a week after each request, not a fixed day — and it is the
+          ceiling a busy week can reach before the monthly total would.
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>On iPhone, subscriptions will be bought through Apple.</strong> Apple requires

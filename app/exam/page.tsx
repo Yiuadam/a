@@ -10,8 +10,8 @@ import MockResults from "@/components/exam/MockResults";
 import MockRetakeResults from "@/components/exam/MockRetakeResults";
 import MockSkillResults from "@/components/exam/MockSkillResults";
 import MockWriting from "@/components/exam/MockWriting";
+import { tierShows, useTier } from "@/lib/billing/useTier";
 import { useMounted, useProfile } from "@/lib/hooks";
-import { useSessionAccess } from "@/lib/entitlements/useSessions";
 import { IS_MOBILE_BUILD } from "@/lib/platform";
 import {
   MODULE_MINUTES,
@@ -494,10 +494,26 @@ function StartScreen({
     screen, before the hour is spent, not as a surprise on the results screen
     after it. Listening and Reading never need this notice at all — both are
     marked from an answer key, on every tier, always.
+
+    ---------------------------------------------------------------------------
+    Session access (lib/entitlements/sessions.ts) is the wrong gate to read
+    for this: it decides whether the module can be *sat*, and free and
+    tracking both sit writing and speaking same as ai. Whether it comes back
+    *marked* is a different entitlement — grade-writing / grade-speaking — so
+    that is what this disclosure has to ask about instead.
+
+    Generous while the answer is unknown, like every other client-side gate
+    reading this hook (app/practice/writing/page.tsx,
+    components/speaking/SpeakingSession.tsx): during `loading`, and with
+    accounts switched off, a module is assumed marked. The server still
+    decides for real — lib/billing/gate.ts — so the worst this can do is skip
+    a warning that would have been accurate; it can never wall anyone out.
   */
-  const access = useSessionAccess();
+  const account = useTier();
+  const generous = account.phase !== "ready" || !account.accountsEnabled;
   const unmarked = (["writing", "speaking"] as const).filter(
-    (module) => access[module].locked && !access[module].pending,
+    (module) =>
+      !generous && !tierShows(account, module === "writing" ? "grade-writing" : "grade-speaking"),
   );
 
   /*

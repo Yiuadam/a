@@ -598,9 +598,9 @@ function Allowance({ status }: { status: AccountStatus | null }) {
         "No limit on this account."
       ) : !status.signedIn ? (
         <>
-          The tutor comes with Plus and Pro.{" "}
+          The tutor is part of the AI plan.{" "}
           {IS_MOBILE_BUILD && !externalUrl ? (
-            <>Those are managed on {WEB_HOME}, not in the app.</>
+            <>That is managed on {WEB_HOME}, not in the app.</>
           ) : (
             <>
               <PlansLink externalUrl={externalUrl} />,
@@ -610,9 +610,9 @@ function Allowance({ status }: { status: AccountStatus | null }) {
         </>
       ) : quota === 0 ? (
         <>
-          The tutor comes with Plus and Pro.{" "}
+          The tutor is part of the AI plan.{" "}
           {IS_MOBILE_BUILD && !externalUrl ? (
-            <>Those are managed on {WEB_HOME}, not in the app.</>
+            <>That is managed on {WEB_HOME}, not in the app.</>
           ) : (
             <>
               <PlansLink externalUrl={externalUrl} />.

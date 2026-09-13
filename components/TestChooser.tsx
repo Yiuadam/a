@@ -24,10 +24,11 @@ import type { ListeningTest, ReadingTest, WritingTask } from "@/lib/types";
   four skills are listed side by side, would answer a broader question than the
   one they asked.
 
-  How many are openable comes from the same table as everywhere else: a visitor
-  gets one, a free account two, a subscriber all of them. The rest are drawn
-  with their titles readable behind a lock, because a locked paper you cannot
-  read the name of is not an invitation to anything.
+  How many are openable comes from the same table as everywhere else: a
+  signed-out visitor gets a small weekly ration; anyone signed in, on any
+  tier, gets every paper unlimited. The rest, for a visitor still rationed,
+  are drawn with their titles readable behind a lock, because a locked paper
+  you cannot read the name of is not an invitation to anything.
 
   A paper already sat is never locked, whatever the allowance says. Taking one
   back after a learner has finished it would read as a punishment for having

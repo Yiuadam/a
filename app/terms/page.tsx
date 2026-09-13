@@ -231,9 +231,9 @@ export default function TermsPage() {
         </dl>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           The prices above are in Hong Kong dollars. The plans page shows them in your own
-          currency where we have a price in it, and that is the amount you are charged. An
-          Alipay or WeChat Pay pass is charged in Hong Kong dollars when your currency is one
-          those wallets cannot take.
+          currency where we have a price in it, and that is the amount a card charges. An
+          Alipay or WeChat Pay pass is always charged in Hong Kong dollars, whatever currency
+          was shown for it.
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           <strong>Card subscriptions renew automatically</strong>, at the same price, on the same

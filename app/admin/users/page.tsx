@@ -7,6 +7,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import { adminUserHref } from "@/lib/admin/user-links";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import { canonicalTier, TIERS, type Tier } from "@/lib/billing/tiers";
 import { useTier } from "@/lib/billing/useTier";
 
 interface UserRow {
@@ -105,7 +106,13 @@ function dateTime(value: string): string {
 }
 
 function effectiveAccess(user: UserRow): string {
-  const personal = user.plan === "admin" ? "Admin" : `${user.plan.charAt(0).toUpperCase()}${user.plan.slice(1)} plan`;
+  // canonicalTier folds a not-yet-migrated legacy row (standard/plus/pro) onto
+  // the tier it is sold as today, so the name below is always current.
+  const tier = canonicalTier(user.plan) as Tier;
+  // Adam's row isn't a "plan" the way Free/Tracking/AI are — it's the owner's
+  // own account — so it keeps the no-suffix treatment the old "admin" special
+  // case gave it, just sourced from TIERS instead of hardcoded.
+  const personal = tier === "admin" ? TIERS.admin.name : `${TIERS[tier].name} plan`;
   const seats = Number(user.organization_seat_count) || 0;
   return seats > 0 ? `${personal} · ${seats} organisation seat${seats === 1 ? "" : "s"}` : personal;
 }

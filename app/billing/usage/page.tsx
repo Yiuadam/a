@@ -22,7 +22,7 @@ export default function UsageScreen() {
       back="/billing"
       backLabel="Bill and usage"
       title="Your usage"
-      lead="Usage rolls over thirty days. The next exact return, and the date your access runs to, are shown below."
+      lead="Usage rolls over thirty days, and a tighter weekly ceiling applies on top of it. The next exact return, and the date your access runs to, are shown below."
     >
       {blocked ?? (
         /* No card around it. UsageMeter draws its own bordered panel, and a

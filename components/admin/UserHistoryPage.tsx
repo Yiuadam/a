@@ -6,6 +6,7 @@ import ConsoleShell, { NotFound } from "@/components/admin/ConsoleShell";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { authedFetch } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
+import { canonicalTier, TIERS, type Tier } from "@/lib/billing/tiers";
 import { useTier } from "@/lib/billing/useTier";
 import type { MockExamReport, ModuleResult, PlacementResult } from "@/lib/types";
 import { adminSittingKey } from "@/lib/admin/sitting-key";
@@ -72,7 +73,12 @@ function UserHistory({ user }: { user: UserDetail }) {
   const drillScores = Object.entries(user.drillScores ?? {})
     .filter((entry): entry is [string, DrillScore] => validDrillScore(entry[1]))
     .sort((left, right) => right[1].at.localeCompare(left[1].at));
-  const personalAccess = user.plan === "admin" ? "Admin" : `${user.plan} plan`;
+  // canonicalTier folds a not-yet-migrated legacy row (standard/plus/pro) onto
+  // the tier it is sold as today, and Adam's row keeps the no-suffix treatment
+  // the old "admin" special case gave it — it's the owner's own account, not
+  // a "plan" the way Free/Tracking/AI are — just sourced from TIERS now.
+  const personalTier = canonicalTier(user.plan) as Tier;
+  const personalAccess = personalTier === "admin" ? TIERS.admin.name : `${TIERS[personalTier].name} plan`;
   const progressAvailable = user.progressAvailable !== false;
   return <div className="space-y-3">
     <section className="card grid gap-2 rounded-2xl border border-slate-200 bg-surface p-3 sm:grid-cols-3"><Fact label="Username" value={user.username ? `@${user.username}` : "Not set"} /><Fact label="Effective access" value={personalAccess} /><Fact label="Registered" value={new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(user.registeredAt))} /></section>

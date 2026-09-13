@@ -64,10 +64,10 @@ test("MESSAGES carries a sign-in-shaped rate-limit message, distinct from the AI
   assert.doesNotMatch(MESSAGES.tooManySignInAttempts, /allowance|billing/i);
 });
 
-test("MESSAGES.rateLimited is untouched — the AI tutor's quota routes still depend on its exact wording", () => {
+test("MESSAGES.rateLimited still exists for the AI tutor's quota routes, wording softened to drop the meter promise", () => {
   assert.equal(
     MESSAGES.rateLimited,
-    "You've used this week's allowance for this. It refills a week after each request, so some of it comes back tomorrow — your billing page shows when.",
+    "You've used this week's allowance for this. It refills a week after each request, so some of it comes back tomorrow.",
   );
   // Out of scope for this change, but this is why it had to stay rather than
   // being reworded or removed once the password route stopped using it.
