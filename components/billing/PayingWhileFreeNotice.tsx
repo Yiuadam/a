@@ -18,7 +18,7 @@ import { IS_MOBILE_BUILD } from "@/lib/platform";
   ---------------------------------------------------------------------------
   Why this exists
 
-  The free Pro trial hands new accounts what existing ones are paying for. That
+  The free AI trial hands new accounts what existing ones are paying for. That
   is a deliberate choice, but it leaves somebody who subscribed last month
   paying for what the account beside them was given. They will find out. The
   only question is whether they hear it from us or discover it, and discovering
@@ -44,7 +44,7 @@ import { IS_MOBILE_BUILD } from "@/lib/platform";
 
   Whether it draws comes from /api/billing/promo, which resolves the account's
   entitlement server-side and answers `payingWhileFree` only when the provider
-  is Stripe or Apple — somebody actually being charged, not an admin holding Pro
+  is Stripe or Apple — somebody actually being charged, not an admin holding AI
   by role or a trialist holding it by grant.
 
   ---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ import { IS_MOBILE_BUILD } from "@/lib/platform";
   Pay holds a pass: there is no next payment, so there is nothing to cancel, and
   telling them to go and cancel one sends them looking for a button that is not
   there. Their version of the same disclosure is the true one — the pass runs out
-  on its own date, and Pro is free until then anyway.
+  on its own date, and AI is free until then anyway.
 
   Which of the two comes from `renews` on /api/account/status, through useTier.
   When it cannot be established the wording is the one that claims neither.
@@ -101,10 +101,10 @@ export default function PayingWhileFreeNotice() {
   return (
     <section className="card">
       <h2 className="text-[1.0625rem] font-semibold text-slate-900">
-        Pro is free at the moment, and you are paying for a plan
+        AI is free at the moment, and you are paying for a plan
       </h2>
       <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-600">
-        We are giving Pro to every account for nothing while the trial runs, so you are paying
+        We are giving AI to every account for nothing while the trial runs, so you are paying
         for something other people are being given. We would rather tell you than have you find
         out.
       </p>

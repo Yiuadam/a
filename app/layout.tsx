@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   applicationName: "BandUp",
   title: "BandUp",
   description:
-    "Find your IELTS band, follow a plan made for you, and practise all four skills with an AI examiner.",
+    "Find your IELTS band, follow a plan made for you, and practise all four skills — free once you sign in.",
   /*
     The tab icon. Pointed at the same file the header draws rather than a
     second copy in app/, so the mark cannot drift between the two places a

@@ -76,7 +76,7 @@ export default function BillingPage() {
       href: "/pricing",
       icon: "plans",
       title: "Plans & pricing",
-      detail: "Compare, subscribe or manage",
+      detail: "Compare plans",
       value: definition?.name,
     },
     {

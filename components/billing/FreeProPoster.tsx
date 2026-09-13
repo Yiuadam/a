@@ -175,8 +175,7 @@ export default function FreeProPoster() {
         <h2 className="text-[1.0625rem] font-semibold text-slate-900">Your free AI trial has started</h2>
         <p className="mt-1 text-[0.875rem] leading-6 text-slate-600">
           Your account is on AI now. Nothing has been charged and no card has been asked for.
-          You can see what you have used on your account page, and give the trial up there
-          whenever you like.
+          Give the trial up whenever you like, from your account page.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link href="/account" className="btn-secondary">

@@ -34,7 +34,7 @@ export default function AppMain({ children }: { children: ReactNode }) {
   const pathname = useRoutePath();
 
   /*
-    Ask about the free Pro trial from the shell, not from whatever draws it.
+    Ask about the free AI trial from the shell, not from whatever draws it.
 
     The answer is one request per session, and the same call clears the guest's
     auto-accept intent — the thing that grants the trial to somebody who tapped

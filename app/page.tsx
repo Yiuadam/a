@@ -77,15 +77,15 @@ const MODULES: { key: ModuleName; label: string; href: string; shortBlurb: strin
     label: "Writing",
     href: "/practice/writing",
     shortBlurb: "Timed essay practice",
-    blurb: "An essay, marked like the exam",
+    blurb: "An essay, timed like the exam",
     icon: "writing",
   },
   {
     key: "speaking",
     label: "Speaking",
     href: "/speaking",
-    shortBlurb: "AI speaking interview",
-    blurb: "Talk to an AI examiner, get a band",
+    shortBlurb: "Cue card and transcript",
+    blurb: "A cue card, then your transcript back",
     icon: "speaking",
   },
 ];

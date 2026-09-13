@@ -130,7 +130,7 @@ export function HubMenu({ items, compact = false }: { items: HubItem[]; compact?
                 title={item.value}
                 /*
                   Allowed to shrink and ellipsise rather than hold its full
-                  width. Counts — "3 left", "Standard" — are far short of the
+                  width. Counts — "3 left", "Tracking" — are far short of the
                   cap and are unaffected; an email address is what this is for,
                   and the full value stays available on hover and to a screen
                   reader through the title.

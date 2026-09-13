@@ -212,9 +212,9 @@ export default function SpeakingSession({
 } = {}) {
   /*
     Whether the interview gets marked, which is not the same as whether it can
-    be taken. Standard unlocks the mock test — the examiner's questions, the
+    be taken. Free unlocks the mock test — the examiner's questions, the
     clock, the recording, the transcript — and does not include the AI marking;
-    Plus is where a band comes from.
+    AI is where a band comes from.
 
     On this page that distinction matters more than anywhere else in the app. A
     speaking test is fourteen minutes of somebody talking into a microphone, and

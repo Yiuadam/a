@@ -195,7 +195,7 @@ async function handlePOST(req: Request) {
     property of the tier and is the thing being sold. checkAiUsage answers "has
     it used too much today", which is a property of the last 24 hours. Asking
     the tier question first means a free account gets "this is part of
-    Standard" — something it can act on — rather than being told it is out of
+    AI" — something it can act on — rather than being told it is out of
     an allowance it was never going to be allowed to spend here.
 
     It also means a refused free request never touches usage_events, so the

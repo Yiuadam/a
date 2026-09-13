@@ -353,9 +353,9 @@ function FreeProReminder({ compact = false, onOpen }: { compact?: boolean; onOpe
     >
       <span className="flex items-start justify-between gap-3">
         <span>
-          <span className="block text-sm font-semibold text-slate-900">Pro, free, if you want it</span>
+          <span className="block text-sm font-semibold text-slate-900">AI, free, if you want it</span>
           <span className={`mt-1 block text-slate-600 ${compact ? "text-xs leading-4" : "text-sm leading-5"}`}>
-            Pro is free on your account, with no card. Open your account to read the offer and
+            AI is free on your account, with no card. Open your account to read the offer and
             start it.
           </span>
         </span>

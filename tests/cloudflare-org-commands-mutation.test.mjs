@@ -101,6 +101,7 @@ const ids = {
   outsider2: "50000000-0000-4000-8000-000000000015",
   ineligible: "50000000-0000-4000-8000-000000000016",
   memberNoSub: "50000000-0000-4000-8000-000000000017",
+  legacyTierOutsider: "50000000-0000-4000-8000-000000000018",
   admin: "90000000-0000-4000-8000-000000000001",
 };
 
@@ -212,6 +213,15 @@ function fixture() {
     ids.suspendedStudent,
   ]) eligible(id);
   // `ids.ineligible` deliberately has no subscription and no seat allocation.
+  // `ids.legacyTierOutsider` holds a subscription row still spelled with a
+  // retired tier name ("plus", from before the tracking/ai rename) rather
+  // than the current "ai" it canonicalises to -- exactly what a subscription
+  // never rewritten since checkout looks like.
+  database.prepare(`
+    INSERT INTO subscriptions (
+      id, user_id, provider, status, tier, current_period_end, verified_at, created_at, updated_at
+    ) VALUES (?, ?, 'stripe', 'active', 'plus', NULL, ?, ?, ?)
+  `).run("71000000-0000-4000-8000-999999999999", ids.legacyTierOutsider, FIXTURE_NOW, FIXTURE_NOW, FIXTURE_NOW);
 
   const insertAttempt = database.prepare(`
     INSERT INTO practice_attempts (
@@ -1201,8 +1211,27 @@ test("request_to_join requires an eligible plan or seat", async () => {
   try {
     await expectDenied(
       act(context, ids.ineligible, false, "request_to_join", { organizationId: ids.org, shareFutureHistoryConsent: true }, "join-ineligible"),
-      400, "validation", "A Standard, Plus or Pro plan, or an organisation seat, is required.",
+      400, "validation", "A Tracking or AI plan, or an organisation seat, is required to join as a student.",
     );
+  } finally {
+    context.database.close();
+  }
+});
+
+test("request_to_join accepts a subscription row still spelled with a retired tier name (LEGACY_TIER_ALIASES)", async () => {
+  const context = fixture();
+  try {
+    // ids.legacyTierOutsider's subscription row reads tier = 'plus', never
+    // rewritten since before the tracking/ai rename. It canonicalises to
+    // 'ai' (an eligible tier) and must be accepted, not rejected the way a
+    // literal SQL tier list that only knows the current names would reject it.
+    const response = await act(
+      context, ids.legacyTierOutsider, false, "request_to_join",
+      { organizationId: ids.org, shareFutureHistoryConsent: true }, "join-legacy-tier",
+    );
+    assert.equal(response.ok, true);
+    const membership = membershipRow(context, ids.org, ids.legacyTierOutsider);
+    assert.equal(membership.status, "pending");
   } finally {
     context.database.close();
   }

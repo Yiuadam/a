@@ -15,8 +15,33 @@ import {
   notificationInsertStatement,
   organizationRequestNotificationStatement,
 } from "./notifications";
+import { LEGACY_TIER_ALIASES } from "@/lib/billing/tiers";
 
 type Db = Env["BANDUP_DB"];
+
+/**
+ * The tiers a stored subscription row can carry that make a student eligible
+ * to join an organisation: the three current tiers that grant it, plus every
+ * legacy tier name that canonicalises onto one of them (LEGACY_TIER_ALIASES,
+ * lib/billing/tiers.ts). A subscription written before the tracking/ai
+ * rename still reads "standard", "plus" or "pro" and is renewed as such
+ * forever after — Stripe never rewrites metadata on renewal — so a query
+ * that only recognised the current names would tell an eligible legacy
+ * subscriber their plan no longer qualifies.
+ *
+ * These are our own constants, never user input, so building the IN clause
+ * from them is safe either way; they are still passed as bound parameters
+ * rather than interpolated, so nothing here has to be re-audited if that
+ * ever changes.
+ */
+const ELIGIBLE_SUBSCRIPTION_TIERS: readonly string[] = [
+  "tracking",
+  "ai",
+  "admin",
+  ...Object.entries(LEGACY_TIER_ALIASES)
+    .filter(([, canonical]) => canonical === "tracking" || canonical === "ai")
+    .map(([legacy]) => legacy),
+];
 
 interface RequestRow {
   id: string;
@@ -221,12 +246,13 @@ async function assigned(db: Db, organizationId: string, teacherId: string, stude
 
 async function studentEligible(db: Db, userId: string): Promise<boolean> {
   const now = stamp();
+  const tierPlaceholders = ELIGIBLE_SUBSCRIPTION_TIERS.map(() => "?").join(", ");
   const paid = await db.prepare(`
     SELECT 1 AS ok FROM subscriptions
      WHERE user_id = ? AND status IN ('active', 'trialing')
-       AND tier IN ('tracking', 'ai', 'admin')
+       AND tier IN (${tierPlaceholders})
        AND (current_period_end IS NULL OR current_period_end > ?) LIMIT 1
-  `).bind(userId, now).first<{ ok: number }>();
+  `).bind(userId, ...ELIGIBLE_SUBSCRIPTION_TIERS, now).first<{ ok: number }>();
   if (paid) return true;
   return Boolean(await db.prepare(`
     SELECT 1 AS ok
@@ -490,7 +516,7 @@ async function executeCommand(
           SELECT id FROM organizations WHERE join_code = ? AND status = 'active'
         `).bind(text(payload.code, "Organisation code", 8, 80).toLowerCase()).first<{ id: string }>();
     if (!organization) notFound(requestedOrganizationId ? "Organisation not found." : "Organisation code not found.");
-    if (!(await studentEligible(db, user.id))) fail("A Standard, Plus or Pro plan, or an organisation seat, is required.");
+    if (!(await studentEligible(db, user.id))) fail("A Tracking or AI plan, or an organisation seat, is required to join as a student.");
     const current = await member(db, organization.id, user.id);
     if (current?.status === "pending") {
       conflict("Your join request is already awaiting review.");

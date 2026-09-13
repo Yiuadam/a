@@ -352,9 +352,10 @@ export default function PrivacyPage() {
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           BandUp can be used entirely signed out, and is by default. The placement test, your
           study plan and both sets of drills work without an account and always will, and so do
-          practice papers, with a weekly limit until you pay. An account exists to carry that
-          work between your phone and your laptop. AI feedback needs a Plus or Pro plan: a free
-          account has none of it, and neither does a signed-out visitor.
+          practice papers &mdash; a signed-out visitor gets only a small weekly ration of them,
+          and signing in lifts that limit, for free. An account exists to carry that work
+          between your phone and your laptop. AI feedback needs the AI plan: a free account has
+          none of it, and neither does Tracking, and neither does a signed-out visitor.
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           You can sign in with Google, or with an email address and a password &mdash; on the
