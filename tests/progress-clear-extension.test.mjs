@@ -151,6 +151,24 @@ test("the account's merge is given the tombstones, or it hands the cleared score
   assert.deepEqual(Object.keys(drills), []);
 });
 
+test("an unrecognised store key is handed back unmerged rather than treated as drills or lookups", () => {
+  // mergeProgressSnapshotPayload dispatches on storeKey with a run of plain
+  // `if` statements, not `else if` — a key that is neither the profile, the
+  // drills store nor the lookups store must fall through every one of them
+  // to the identity return at the bottom, not get silently merged as though
+  // it were one of the other two stores.
+  const submitted = { anything: "goes here", nested: [1, 2, 3] };
+  const result = mergeProgressSnapshotPayload(
+    "some-other-store-v1",
+    submitted,
+    { anything: "stored value" },
+    Date.parse(CLEAR_AT),
+    Date.parse("2026-08-14T09:00:00.000Z"),
+    false,
+  );
+  assert.equal(result, submitted, "an unrecognised store key must be returned exactly as submitted");
+});
+
 test("a protected organisation student's tombstones are refused, not applied by the back door", () => {
   const storedProfile = {
     results: [{

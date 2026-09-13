@@ -26,3 +26,13 @@ test("usage dates have exact and compact learner-facing forms", () => {
   assert.equal(formatUsageDate(timestamp, "en-GB", "UTC"), "11 September 2026 at 04:30 UTC");
   assert.equal(formatUsageDateShort(timestamp, "en-GB", "UTC"), "11 Sept");
 });
+
+test("formatUsageDateShort actually applies the requested time zone, not the host's", () => {
+  // 23:00 UTC on the 11th is already the 12th fourteen hours further east.
+  // Comparing two zones this far apart (rather than one zone against the
+  // ambient default) means the assertion holds regardless of what time zone
+  // this machine happens to run in.
+  const timestamp = Date.parse("2026-09-11T23:00:00.000Z");
+  assert.equal(formatUsageDateShort(timestamp, "en-GB", "UTC"), "11 Sept");
+  assert.equal(formatUsageDateShort(timestamp, "en-GB", "Pacific/Kiritimati"), "12 Sept");
+});

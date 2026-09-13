@@ -377,6 +377,38 @@ test("null drill stores merge to an empty object", () => {
   assert.deepEqual(mergeDrillScores(null, null), {});
 });
 
+test("a remote score with no date does not displace an existing dated one", () => {
+  const merged = mergeDrillScores(
+    { articles: { correct: 1, total: 1, at: "2026-01-01" } },
+    { articles: { correct: 9, total: 9 } },
+  );
+  assert.equal(merged.articles.correct, 1, "an undated incoming score must not read as newer than a dated one");
+});
+
+test("a local score with no date is replaced by any dated remote score", () => {
+  const merged = mergeDrillScores(
+    { articles: { correct: 1, total: 1 } },
+    { articles: { correct: 9, total: 9, at: "2026-01-01" } },
+  );
+  assert.equal(merged.articles.correct, 9, "a real date must count as newer than an absent one");
+});
+
+test("a malformed remote drill score does not crash the merge", () => {
+  const merged = mergeDrillScores(
+    { articles: { correct: 1, total: 1, at: "2026-01-01" } },
+    { articles: null },
+  );
+  assert.equal(merged.articles.correct, 1);
+});
+
+test("a malformed stored drill score does not crash the clear pass, and is dropped", () => {
+  // Reaches the clearedAt !== null branch's own delete loop (as opposed to
+  // the test above, which reaches the merge loop above it) with a score that
+  // has no `.at` to read at all.
+  const merged = mergeDrillScores({ articles: null }, null, Date.parse("2026-01-01T00:00:00.000Z"));
+  assert.deepEqual(merged, {});
+});
+
 /* ----------------------------------------------------------------- lookups */
 
 test("saved words from both devices are kept", () => {
@@ -402,6 +434,22 @@ test("a richer copy of the same sitting keeps its review", () => {
   const reviewed = { ...sitting, review: { questions: [{ correct: true }] } };
   const merged = mergeProfiles({ results: [sitting] }, { results: [reviewed] }, NEW, OLD);
   assert.deepEqual(merged.results, [reviewed]);
+});
+
+test("a reviewed sitting is not displaced by a second review of the same sitting", () => {
+  // The mirror of "a richer copy... keeps its review": unionResults only
+  // upgrades a *reviewless* entry to a reviewed one. A sitting that already
+  // has a review must keep its first one rather than trade it for a second.
+  const base = result("reading-2", "2026-05-01T12:00:00.000Z", 6);
+  const firstReview = { ...base, review: { questions: [{ correct: true }] } };
+  const secondReview = { ...base, review: { questions: [{ correct: false }] } };
+  const merged = mergeProfiles({ results: [firstReview] }, { results: [secondReview] }, OLD, NEW);
+  assert.equal(merged.results.length, 1);
+  assert.deepEqual(
+    merged.results[0],
+    firstReview,
+    "the first-seen review must not be replaced by a second one for the same sitting",
+  );
 });
 
 test("timestamp boundaries preserve only entries created strictly after a clear", () => {
@@ -558,4 +606,332 @@ test("lookup collision rules preserve local definitions and resolve equal favour
   assert.equal(merged.word.term, "local definition");
   assert.equal(merged.word.favourite, true);
   assert.equal(merged.primitive, "local value");
+});
+
+/* ------------------------------------------------------- legacy favourites */
+
+test("neither side legacy-favourited: the merge does not invent a star", () => {
+  // Both sides predate the favouriteUpdatedAt field, so winner is null and
+  // the merge falls to the legacy either-side-favourited check. Neither side
+  // has ever been starred, so nothing here may turn favourite on.
+  const merged = mergeLookups(
+    { word: { term: "local", at: "2026-05-01", favourite: false } },
+    { word: { term: "remote", at: "2026-05-02", favourite: false } },
+  );
+  assert.equal(merged.word.favourite, false);
+});
+
+test("a legacy star on the remote side survives even though local's explicit false spreads last", () => {
+  // local's own (non-star) fields win the plain object spread, which would
+  // silently erase a legacy remote star if the dedicated favourite check did
+  // not run afterwards and put it back.
+  const merged = mergeLookups(
+    { word: { term: "local", at: "2026-05-01", favourite: false } },
+    { word: { term: "remote", at: "2026-05-02", favourite: true } },
+  );
+  assert.equal(merged.word.favourite, true, "a legacy star on either side must survive the merge");
+});
+
+/* -------------------------------------------------------- lookup trimming */
+
+test("a lookup store at or under its cap is never trimmed", () => {
+  // Boundary at exactly the limit: entries.length === limit must return the
+  // merge untouched, not fall into trimming logic that happens to remove
+  // nothing only by coincidence.
+  const merged = mergeLookups(
+    {
+      a: { term: "a", at: "2026-01-01" },
+      b: { term: "b", at: "2026-01-02" },
+    },
+    null,
+    2,
+  );
+  assert.deepEqual(Object.keys(merged).sort(), ["a", "b"]);
+});
+
+test("a lookup store one under its cap keeps every entry, favourited or not", () => {
+  // If the "at or under the cap" check is bypassed, entries.length(2) -
+  // limit(3) is negative, and Array.slice's negative-end behaviour can still
+  // delete a real entry even though nothing should be removed at all.
+  const merged = mergeLookups(
+    {
+      older: { term: "older", at: "2026-01-01" },
+      newer: { term: "newer", at: "2026-01-02" },
+    },
+    null,
+    3,
+  );
+  assert.deepEqual(Object.keys(merged).sort(), ["newer", "older"]);
+});
+
+test("trimming removes exactly the oldest non-favourites first, leaving every favourite", () => {
+  // Declared out of age order on purpose: the removable list must be sorted
+  // by age itself, not merely filtered in whatever order Object.entries hands
+  // the candidates back.
+  const merged = mergeLookups(
+    {
+      newest: { term: "newest", at: "2026-01-03" },
+      oldest: { term: "oldest", at: "2026-01-01" },
+      keptFavourite: { term: "kept", at: "2026-01-04", favourite: true },
+      middle: { term: "middle", at: "2026-01-02" },
+    },
+    null,
+    3,
+  );
+  assert.deepEqual(
+    Object.keys(merged).sort(),
+    ["keptFavourite", "middle", "newest"],
+    "only the single oldest non-favourite should have been removed",
+  );
+});
+
+test("an undated entry sorts as the oldest for trimming, not as an arbitrary newest", () => {
+  const merged = mergeLookups(
+    {
+      undated: { term: "no date at all" },
+      real: { term: "dated", at: "2026-01-01" },
+      other: { term: "also dated", at: "2026-01-02" },
+    },
+    null,
+    2,
+  );
+  assert.deepEqual(
+    Object.keys(merged).sort(),
+    ["other", "real"],
+    "the entry with no `at` at all must be the one trimmed first",
+  );
+});
+
+test("trimming that runs out of non-favourites removes the oldest favourites too, in age order", () => {
+  // Also declared out of age order: the favourites appended once ordinary
+  // words run out must themselves be sorted oldest-first before slicing.
+  const merged = mergeLookups(
+    {
+      newestFavourite: { term: "newest fav", at: "2026-01-04", favourite: true },
+      onlyPlain: { term: "plain", at: "2026-01-01" },
+      middleFavourite: { term: "middle fav", at: "2026-01-03", favourite: true },
+      oldestFavourite: { term: "oldest fav", at: "2026-01-02", favourite: true },
+    },
+    null,
+    1,
+  );
+  assert.deepEqual(
+    Object.keys(merged),
+    ["newestFavourite"],
+    "once ordinary words run out, the oldest favourites must go next, oldest first",
+  );
+});
+
+/* ------------------------------------------------------------ tie-breaking */
+
+test("results with the exact same date keep their arrival order rather than an arbitrary tie-break", () => {
+  // byDate's first job is "is one strictly newer", and a tie must fall through
+  // to a stable no-op rather than a forced swap in either direction.
+  const tieDate = "2026-01-01T10:00:00.000Z";
+  const local = { results: [result("tie-local", tieDate, 6)] };
+  const remote = { results: [result("tie-remote", tieDate, 7)] };
+  const merged = mergeProfiles(local, remote, OLD, NEW);
+  assert.deepEqual(merged.results.map((r) => r.testId), ["tie-local", "tie-remote"]);
+});
+
+test("an older-then-newer pre-sort pair is corrected to newest first", () => {
+  // Unlike the three-way "merged results come back newest first" test, this
+  // pins the exact two-item comparison byDate has to get right: the older
+  // sitting arrives first (from local) and must be swapped after the newer one.
+  const local = { results: [result("older", "2026-01-01T00:00:00.000Z", 5)] };
+  const remote = { results: [result("newer", "2026-01-02T00:00:00.000Z", 7)] };
+  const merged = mergeProfiles(local, remote, OLD, NEW);
+  assert.deepEqual(merged.results.map((r) => r.testId), ["newer", "older"]);
+});
+
+test("a local tombstone or clearedAt that is genuinely later than remote's survives the merge", () => {
+  // The existing tombstone tests only ever have the *remote* (or the side
+  // with no valid date at all) win. latestIso must also pick local when local
+  // is the one that is actually newer.
+  const merged = mergeProfiles(
+    { historyClearedAt: "2026-06-01T00:00:00.000Z", results: [] },
+    { historyClearedAt: "2026-05-01T00:00:00.000Z", results: [] },
+    OLD,
+    NEW,
+  );
+  assert.equal(merged.historyClearedAt, "2026-06-01T00:00:00.000Z");
+});
+
+test("a deletion map guards against a non-object value even when it carries enumerable properties", () => {
+  // A plain string or number can never smuggle a fake "own property" through
+  // Object.entries, so the only value worth trying here is a function — the
+  // one truthy, non-array JS value that both fails typeof === "object" and can
+  // still carry an enumerable property of its own.
+  const impostor = () => {};
+  impostor.sneaky = "2026-01-01T00:00:00.000Z";
+  const merged = mergeProfiles({ deletedGenTests: impostor, genTests: [] }, {}, OLD, NEW);
+  assert.deepEqual(merged.deletedGenTests, {}, "a function is not a deletion map, however many properties it carries");
+});
+
+test("an earlier remote deletion tombstone does not roll back a later local one", () => {
+  // The confirmed newest-wins test only ever has the remote side win; this is
+  // its mirror, and also proves the loop does not overwrite unconditionally.
+  const merged = mergeProfiles(
+    { deletedGenTests: { paper: "2026-04-05T10:00:00.000Z" } },
+    { deletedGenTests: { paper: "2026-04-01T10:00:00.000Z" } },
+    NEW,
+    OLD,
+  );
+  assert.equal(merged.deletedGenTests.paper, "2026-04-05T10:00:00.000Z");
+});
+
+test("a generated paper deleted at the exact instant it was created does not survive", () => {
+  // survivesClear-style logic elsewhere in this file is strictly-after; this
+  // pins the same boundary for the deletion-tombstone comparison.
+  const generated = {
+    kind: "reading",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    test: { id: "same-instant" },
+  };
+  const merged = mergeProfiles(
+    { genTests: [generated], deletedGenTests: {} },
+    { deletedGenTests: { "same-instant": "2026-01-01T00:00:00.000Z" } },
+    NEW,
+    OLD,
+  );
+  assert.deepEqual(merged.genTests, []);
+});
+
+test("retakes are deduped by id even though the key falls back to the whole object", () => {
+  const local = { mockRetakes: [{ id: "retake-1", skill: "speaking", completedAt: "2026-05-01T00:00:00.000Z" }] };
+  const remote = { mockRetakes: [{ id: "retake-1", skill: "listening", completedAt: "2026-05-02T00:00:00.000Z" }] };
+  const merged = mergeProfiles(local, remote, OLD, NEW);
+  assert.equal(merged.mockRetakes.length, 1);
+  assert.equal(merged.mockRetakes[0].skill, "speaking", "the first-seen retake for a shared id must win, not merge");
+});
+
+test("a malformed retake entry does not crash the merge and is keyed rather than skipped", () => {
+  const merged = mergeProfiles({ mockRetakes: [null] }, {}, NEW, OLD);
+  assert.equal(merged.mockRetakes.length, 1);
+});
+
+test("a malformed retake does not crash the history-clear filter", () => {
+  const merged = mergeProfiles(
+    { historyClearedAt: "2026-01-01T00:00:00.000Z", mockRetakes: [null] },
+    {},
+    NEW,
+    OLD,
+  );
+  assert.equal(merged.mockRetakes.length, 1);
+});
+
+test("mock retakes remain newest first and retain only their newest thirty", () => {
+  const mockRetakes = Array.from({ length: 31 }, (_, index) => ({
+    id: `retake-${index}`,
+    completedAt: `2026-05-${String(index + 1).padStart(2, "0")}T12:00:00.000Z`,
+  }));
+  const merged = mergeProfiles({ mockRetakes }, null, NEW, OLD);
+  assert.equal(merged.mockRetakes.length, 30);
+  assert.equal(merged.mockRetakes[0].id, "retake-30");
+  assert.equal(merged.mockRetakes.at(-1).id, "retake-1");
+});
+
+test("a retake completed at the exact instant of a history clear does not survive it", () => {
+  const clearedAt = "2026-05-02T12:00:00.000Z";
+  const merged = mergeProfiles(
+    {
+      historyClearedAt: clearedAt,
+      mockRetakes: [{ id: "at-clear", completedAt: clearedAt }],
+    },
+    {},
+    NEW,
+    OLD,
+  );
+  assert.deepEqual(merged.mockRetakes, []);
+});
+
+test("a malformed retake arriving first still sorts safely against a real one", () => {
+  // A single retake never reaches the sort comparator at all — this needs
+  // two, with the malformed one first, to put it on the comparator's
+  // "right" side (arr[1] is compared against arr[0] for a two-item array).
+  const merged = mergeProfiles(
+    { mockRetakes: [null] },
+    { mockRetakes: [{ id: "real", completedAt: "2026-05-01T00:00:00.000Z" }] },
+    NEW,
+    OLD,
+  );
+  assert.equal(merged.mockRetakes.length, 2);
+});
+
+test("a malformed retake arriving second still sorts safely against a real one", () => {
+  // The mirror of the test above, putting the malformed retake on the
+  // comparator's "left" side instead.
+  const merged = mergeProfiles(
+    { mockRetakes: [{ id: "real", completedAt: "2026-05-01T00:00:00.000Z" }] },
+    { mockRetakes: [null] },
+    NEW,
+    OLD,
+  );
+  assert.equal(merged.mockRetakes.length, 2);
+});
+
+test("generated tests are deduped by their own test id, not by the whole record", () => {
+  const local = { genTests: [{ kind: "reading", createdAt: "2026-05-01T00:00:00.000Z", test: { id: "shared", title: "first" } }] };
+  const remote = { genTests: [{ kind: "reading", createdAt: "2026-05-02T00:00:00.000Z", test: { id: "shared", title: "second" } }] };
+  const merged = mergeProfiles(local, remote, OLD, NEW);
+  assert.equal(merged.genTests.length, 1);
+  assert.equal(merged.genTests[0].test.title, "first");
+});
+
+test("a malformed generated-test entry is dropped rather than crashing the merge", () => {
+  const merged = mergeProfiles({ genTests: [null] }, {}, NEW, OLD);
+  assert.deepEqual(merged.genTests, []);
+});
+
+test("a generated test whose id is not a string is dropped even though it is truthy", () => {
+  // typeof id !== "string" is checked separately from truthiness — a numeric
+  // id is truthy (so a bug that only checked `!id` would miss it) and must
+  // still be rejected.
+  const merged = mergeProfiles(
+    { genTests: [{ kind: "reading", createdAt: "2026-01-01T00:00:00.000Z", test: { id: 12345 } }] },
+    {},
+    NEW,
+    OLD,
+  );
+  assert.deepEqual(merged.genTests, []);
+});
+
+test("dashboardModules from the newer side is not lost to a falsy fallback", () => {
+  const merged = mergeProfiles(
+    { results: [] },
+    { dashboardModules: ["reading", "writing"], results: [] },
+    OLD,
+    NEW,
+  );
+  assert.deepEqual(merged.dashboardModules, ["reading", "writing"]);
+});
+
+test("dashboardModules from the older side still wins when the newer side has none", () => {
+  const merged = mergeProfiles(
+    { dashboardModules: ["listening"], results: [] },
+    { results: [] },
+    NEW,
+    OLD,
+  );
+  assert.deepEqual(merged.dashboardModules, ["listening"]);
+});
+
+test("placement history: the newer side's own empty history falls back to the older side's, not to nothing", () => {
+  const merged = mergeProfiles(
+    { placementHistory: [["local-q1"]], results: [] },
+    { placementHistory: [], results: [] },
+    OLD,
+    NEW,
+  );
+  assert.deepEqual(merged.placementHistory, [["local-q1"]]);
+});
+
+test("placement history: the newer side's own non-empty history is taken, not the older side's", () => {
+  const merged = mergeProfiles(
+    { placementHistory: [], results: [] },
+    { placementHistory: [["remote-q1"]], results: [] },
+    OLD,
+    NEW,
+  );
+  assert.deepEqual(merged.placementHistory, [["remote-q1"]]);
 });

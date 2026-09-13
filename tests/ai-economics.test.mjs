@@ -61,7 +61,7 @@ register("./alias-resolve.mjs", import.meta.url);
 const models = await import(pathToFileURL(join(process.cwd(), "lib", "ai", "models.ts")).href);
 const tiers = await import(pathToFileURL(join(process.cwd(), "lib", "billing", "tiers.ts")).href);
 
-const { COSTED_ROUTES, MODEL_PRICES, ROUTE_BUDGETS, worstCaseCost } = models;
+const { COSTED_ROUTES, MODEL_PRICES, ROUTE_BUDGETS, worstCaseCost, worstCaseMonthlyCost } = models;
 const {
   WEEKLY_AI_CAPS,
   MONTHLY_AI_CAPS,
@@ -71,6 +71,7 @@ const {
   SELLABLE_TIERS,
   HKD_PER_USD,
   MIN_MONTHLY_MARGIN_HKD,
+  fixedFeeMinor,
   monthsCovered,
   netRevenue,
   tierHasAi,
@@ -154,6 +155,51 @@ test("every plan makes money even if the subscriber uses every last request", ()
           .padStart(6)}/mo, ${(r.ratio * 100).toFixed(1)}% on AI)`,
     );
   }
+});
+
+/*
+  worstCaseTierCost, monthsCovered, netRevenue and fixedFeeMinor all feed the
+  margin check above, but that check only enforces a *lower bound* on profit —
+  so a bug that makes a cost read as smaller than it really is, or a fee read
+  as smaller (or negative), makes profit look even healthier and the floor
+  check above would not notice. Each is pinned directly here for that reason.
+*/
+test("worstCaseTierCost actually sums the tier's per-route caps, not nothing", () => {
+  assert.ok(
+    worstCaseTierCost("ai") > 0,
+    "the AI tier spends real money at the cap; a cost of zero would fund every plan for free",
+  );
+  // Unlimited is treated as zero (see the function's own doc comment) — not
+  // because it is free, but because the owner's account is not sold.
+  assert.equal(worstCaseTierCost("admin"), 0);
+});
+
+test("monthsCovered is twelve for a yearly plan and one for a monthly one", () => {
+  assert.equal(monthsCovered(PLANS["ai-yearly"]), 12);
+  assert.equal(monthsCovered(PLANS["tracking-yearly"]), 12);
+  assert.equal(monthsCovered(PLANS["ai-monthly"]), 1);
+  assert.equal(monthsCovered(PLANS["tracking-monthly"]), 1);
+});
+
+test("netRevenue actually deducts Stripe's fee rather than adding it", () => {
+  /*
+    tracking-monthly is HK$4.90 (490 minor units) priced in HKD, the reference
+    currency, so the arithmetic is checkable by hand: 4.90 minus roughly
+    3.9% of 4.90 plus Stripe's HK$2.35 flat fee comes out well under HK$2.40 —
+    nowhere near the HK$4.90 sticker. A fee subtracted with the wrong sign, or
+    added instead of subtracted, would pay MORE than the sticker price net,
+    which is not a fee at all.
+  */
+  const net = netRevenue(PLANS["tracking-monthly"]);
+  assert.ok(net > 0, `HK$${net} net revenue must be positive`);
+  assert.ok(net < 4.9, `HK$${net} net revenue must be less than the HK$4.90 sticker price`);
+});
+
+test("fixedFeeMinor is Stripe's flat fee, not a fraction of a cent of it", () => {
+  // HKD is the reference currency: hkdPerUnit and minorPerUnit are both 1
+  // and 100 respectively by definition, so this is checkable without
+  // reaching into another module for the conversion rate.
+  assert.equal(fixedFeeMinor("hkd"), 235);
 });
 
 test("the tiers that promise no AI are given none", () => {
@@ -356,6 +402,57 @@ test("nothing runs on a model this file has not priced", () => {
     );
     assert.ok(worstCaseCost(route) > 0, `${route} costs nothing, which cannot be right`);
   }
+});
+
+/*
+  Every route's own budget cell, in one table, plus worstCaseCost computed
+  independently for each. Haiku's input price is $1/MTok, which makes a
+  multiply-by-price and a divide-by-price indistinguishable when the ceiling
+  is small — 1_000_000/1 and 1_000_000*1 agree — so "generate" (the one route
+  on Sonnet, at $3/$15) carries the arithmetic weight here: a wrong operator on
+  either half of worstCaseCost changes its answer by orders of magnitude.
+*/
+test("every route's budget cell and worst-case cost is exactly what this file promises", () => {
+  const cases = [
+    { route: "define", model: "claude-haiku-4-5", maxInputTokens: 800, maxOutputTokens: 400, label: "Word lookups" },
+    { route: "chat", model: "claude-haiku-4-5", maxInputTokens: 4500, maxOutputTokens: 500, label: "Tutor questions" },
+    { route: "grade/writing", model: "claude-haiku-4-5", maxInputTokens: 5000, maxOutputTokens: 3000, label: "Writing marked" },
+    { route: "grade/speaking", model: "claude-haiku-4-5", maxInputTokens: 7000, maxOutputTokens: 3000, label: "Speaking marked" },
+    { route: "generate", model: "claude-sonnet-5", maxInputTokens: 1000, maxOutputTokens: 6000, label: "Tests generated" },
+    { route: "examiner", model: "claude-haiku-4-5", maxInputTokens: 700, maxOutputTokens: 120, label: "Examiner reactions" },
+  ];
+  assert.deepEqual(
+    cases.map((c) => c.route),
+    [...COSTED_ROUTES],
+    "this table must name every costed route, in order, or it is not actually checking all of them",
+  );
+  for (const { route, model, maxInputTokens, maxOutputTokens, label } of cases) {
+    const budget = ROUTE_BUDGETS[route];
+    assert.equal(budget.model, model, `${route} model`);
+    assert.equal(budget.maxInputTokens, maxInputTokens, `${route} maxInputTokens`);
+    assert.equal(budget.maxOutputTokens, maxOutputTokens, `${route} maxOutputTokens`);
+    assert.equal(budget.label, label, `${route} label`);
+
+    const price = MODEL_PRICES[model];
+    const expectedCost =
+      (maxInputTokens / 1_000_000) * price.inputPerMTok + (maxOutputTokens / 1_000_000) * price.outputPerMTok;
+    assert.equal(worstCaseCost(route), expectedCost, `${route} worst-case cost`);
+  }
+});
+
+test("worstCaseMonthlyCost adds allowances up rather than subtracting them", () => {
+  const chatOnly = worstCaseMonthlyCost({ chat: 100 });
+  assert.equal(chatOnly, 100 * worstCaseCost("chat"));
+  assert.ok(chatOnly > 0, "a positive allowance must cost a positive amount, not a negative one");
+
+  // Two routes at once: this is the only way to prove the reduce actually
+  // accumulates across routes rather than returning just the last term.
+  const two = worstCaseMonthlyCost({ chat: 10, generate: 5 });
+  assert.equal(two, 10 * worstCaseCost("chat") + 5 * worstCaseCost("generate"));
+
+  // A route with no cap at all costs nothing, same as a cap of zero.
+  assert.equal(worstCaseMonthlyCost({}), 0);
+  assert.equal(worstCaseMonthlyCost({ define: 0 }), 0);
 });
 
 /*

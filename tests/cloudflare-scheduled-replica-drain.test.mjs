@@ -19,6 +19,7 @@ import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 
 register("./alias-resolve.mjs", import.meta.url);
+register("./cloudflare-context-stub.mjs", import.meta.url);
 
 const load = (...parts) => import(pathToFileURL(join(process.cwd(), ...parts)).href);
 const outbox = await load("lib", "cloudflare", "replica-outbox.ts");
@@ -319,4 +320,304 @@ test("the cron trigger, the Worker entry and the drain route are actually wired 
   assert.match(workflow, /cron: "41 \* \* \* \*"/);
   // The dead workers.dev hostname is gone; see PR #131.
   assert.equal(workflow.includes("workers.dev"), false);
+});
+
+/*
+  ---------------------------------------------------------------------------
+  scheduled-drain-ticket.ts: the header name, and the two length gates around
+  a one-time-use ticket. The suite above already proves a ticket is single-use
+  and that a too-short value never validates; what it does not reach is
+  whether the *minimum-length* gate sits on issuing, on presenting, or on
+  neither, because every value it tries is either comfortably long or
+  comfortably short of 32 characters. The tests below sit exactly on that
+  boundary, and directly at the isolate-global state issue writes to, which is
+  the only place a ticket that should never have been issued can be seen.
+*/
+
+test("SCHEDULED_DRAIN_HEADER is the literal header name the Worker entry and the route both key off", () => {
+  assert.equal(ticket.SCHEDULED_DRAIN_HEADER, "x-bandup-scheduled-drain");
+});
+
+test("a value shorter than the minimum ticket length is never issued in the first place", () => {
+  const store = globalThis.__bandupScheduledDrainTickets;
+  delete globalThis.__bandupScheduledDrainTickets;
+  try {
+    // Force the lazily-created set to exist first, the same way a real
+    // deployment's first-ever issued ticket would — otherwise "absent" and
+    // "the set itself was never created" look identical.
+    ticket.issueScheduledDrainTicket("z".repeat(32));
+    const short = "s".repeat(31);
+    ticket.issueScheduledDrainTicket(short);
+    // consumeScheduledDrainTicket rejects any presented value this short on
+    // its own, regardless of what issuing did — so the set itself, which
+    // issuing and nothing else writes to, is the only place left to tell
+    // "never added" apart from "added, but unpresentable".
+    assert.equal(globalThis.__bandupScheduledDrainTickets.has(short), false);
+  } finally {
+    if (store === undefined) delete globalThis.__bandupScheduledDrainTickets;
+    else globalThis.__bandupScheduledDrainTickets = store;
+  }
+});
+
+test("consuming rejects a short presented value on its own length gate, even if that exact value is already in the set", () => {
+  const store = globalThis.__bandupScheduledDrainTickets;
+  // Bypasses issueScheduledDrainTicket's own gate entirely, so this is
+  // purely a test of consumeScheduledDrainTicket's *separate* gate on the
+  // presented value — dropping it would let the search loop below run and
+  // find this exact entry.
+  globalThis.__bandupScheduledDrainTickets = new Set(["short"]);
+  try {
+    assert.equal(ticket.consumeScheduledDrainTicket("short"), false);
+  } finally {
+    if (store === undefined) delete globalThis.__bandupScheduledDrainTickets;
+    else globalThis.__bandupScheduledDrainTickets = store;
+  }
+});
+
+test("the minimum ticket length is a boundary a caller can sit exactly on, not an approximation", () => {
+  const store = globalThis.__bandupScheduledDrainTickets;
+  delete globalThis.__bandupScheduledDrainTickets;
+  try {
+    const exact = "e".repeat(32);
+    ticket.issueScheduledDrainTicket(exact);
+    // A ">" in place of ">=" on either issuing or consuming's own gate would
+    // reject this same 32-character value.
+    assert.equal(ticket.consumeScheduledDrainTicket(exact), true);
+  } finally {
+    if (store === undefined) delete globalThis.__bandupScheduledDrainTickets;
+    else globalThis.__bandupScheduledDrainTickets = store;
+  }
+});
+
+test("constant-time comparison never treats a longer, prefix-matching value as the same ticket", () => {
+  const store = globalThis.__bandupScheduledDrainTickets;
+  delete globalThis.__bandupScheduledDrainTickets;
+  try {
+    const real = "p".repeat(32);
+    ticket.issueScheduledDrainTicket(real);
+    // Every one of the real ticket's 32 characters is also the first 32 of
+    // this presented value — a comparison that dropped the length check and
+    // only walked the shorter string would call that a match.
+    assert.equal(ticket.consumeScheduledDrainTicket(`${real}${"x".repeat(8)}`), false);
+    // The rejected attempt above must not have spent the real ticket.
+    assert.equal(ticket.consumeScheduledDrainTicket(real), true);
+  } finally {
+    if (store === undefined) delete globalThis.__bandupScheduledDrainTickets;
+    else globalThis.__bandupScheduledDrainTickets = store;
+  }
+});
+
+test("constant-time comparison never calls a length mismatch an outright match", () => {
+  const store = globalThis.__bandupScheduledDrainTickets;
+  delete globalThis.__bandupScheduledDrainTickets;
+  try {
+    ticket.issueScheduledDrainTicket("q".repeat(32));
+    // Different length and different content: a comparison that short-
+    // circuited a length mismatch straight to "equal" would call this a hit.
+    assert.equal(ticket.consumeScheduledDrainTicket("z".repeat(40)), false);
+  } finally {
+    if (store === undefined) delete globalThis.__bandupScheduledDrainTickets;
+    else globalThis.__bandupScheduledDrainTickets = store;
+  }
+});
+
+/*
+  ---------------------------------------------------------------------------
+  replica-health.ts: the two staleness boundaries, "every" rather than "some",
+  and the three async branches (supabase/no-bindings/no-status) of
+  cloudflareReplicaHealth itself. evaluateReplicaHealth's own pure-function
+  tests above never sit exactly on either threshold and never mix a passing
+  check with a failing one while asserting the *overall* verdict; the async
+  wrapper's non-happy branches have no test at all yet, because they need a
+  Cloudflare context to intercept, which nothing above this point sets up.
+*/
+
+test("the drain-staleness check is a boundary at exactly thirty minutes, not an approximation", () => {
+  const nowMs = 2_000_000_000_000;
+  const DRAIN_STALE_MS = 30 * 60 * 1000;
+  const atBoundary = health.evaluateReplicaHealth({
+    lastRunAt: new Date(nowMs - DRAIN_STALE_MS).toISOString(),
+    oldestRetryablePendingAt: null,
+    nowMs,
+  });
+  assert.equal(
+    atBoundary.checks.find((c) => c.name === "replica_drain_ran_recently").ok,
+    true,
+  );
+
+  const pastBoundary = health.evaluateReplicaHealth({
+    lastRunAt: new Date(nowMs - DRAIN_STALE_MS - 1).toISOString(),
+    oldestRetryablePendingAt: null,
+    nowMs,
+  });
+  assert.equal(
+    pastBoundary.checks.find((c) => c.name === "replica_drain_ran_recently").ok,
+    false,
+  );
+});
+
+test("the backlog-staleness check is a boundary at exactly six hours, not an approximation", () => {
+  const nowMs = 2_000_000_000_000;
+  const BACKLOG_STALE_MS = 6 * 60 * 60 * 1000;
+  const atBoundary = health.evaluateReplicaHealth({
+    lastRunAt: new Date(nowMs).toISOString(),
+    oldestRetryablePendingAt: new Date(nowMs - BACKLOG_STALE_MS).toISOString(),
+    nowMs,
+  });
+  assert.equal(
+    atBoundary.checks.find((c) => c.name === "replica_backlog_within_bound").ok,
+    true,
+  );
+
+  const pastBoundary = health.evaluateReplicaHealth({
+    lastRunAt: new Date(nowMs).toISOString(),
+    oldestRetryablePendingAt: new Date(nowMs - BACKLOG_STALE_MS - 1).toISOString(),
+    nowMs,
+  });
+  assert.equal(
+    pastBoundary.checks.find((c) => c.name === "replica_backlog_within_bound").ok,
+    false,
+  );
+});
+
+test("overall health requires every check to pass, not merely one of them", () => {
+  const nowMs = 2_000_000_000_000;
+  const mixed = health.evaluateReplicaHealth({
+    lastRunAt: new Date(nowMs).toISOString(),
+    oldestRetryablePendingAt: new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    nowMs,
+  });
+  assert.equal(mixed.checks.find((c) => c.name === "replica_drain_ran_recently").ok, true);
+  assert.equal(mixed.checks.find((c) => c.name === "replica_backlog_within_bound").ok, false);
+  assert.equal(mixed.ok, false);
+});
+
+test("cloudflareReplicaHealth reports the mirror inactive, verbatim, whenever learner data mode is supabase", async () => {
+  const previous = process.env.CLOUDFLARE_DATA_MODE;
+  process.env.CLOUDFLARE_DATA_MODE = "supabase";
+  try {
+    assert.deepEqual(await health.cloudflareReplicaHealth(1_000), {
+      ok: true,
+      checks: [{ name: "replica_mirror_inactive", ok: true }],
+    });
+  } finally {
+    if (previous === undefined) delete process.env.CLOUDFLARE_DATA_MODE;
+    else process.env.CLOUDFLARE_DATA_MODE = previous;
+  }
+});
+
+test("cloudflareReplicaHealth reports bindings unavailable, verbatim, when the Worker has none to give", async () => {
+  const previousMode = process.env.CLOUDFLARE_DATA_MODE;
+  const previousContext = globalThis.__FAKE_CLOUDFLARE_CONTEXT__;
+  process.env.CLOUDFLARE_DATA_MODE = "dual";
+  delete globalThis.__FAKE_CLOUDFLARE_CONTEXT__;
+  try {
+    assert.deepEqual(await health.cloudflareReplicaHealth(1_000), {
+      ok: false,
+      checks: [{ name: "replica_bindings_available", ok: false }],
+    });
+  } finally {
+    if (previousMode === undefined) delete process.env.CLOUDFLARE_DATA_MODE;
+    else process.env.CLOUDFLARE_DATA_MODE = previousMode;
+    if (previousContext === undefined) delete globalThis.__FAKE_CLOUDFLARE_CONTEXT__;
+    else globalThis.__FAKE_CLOUDFLARE_CONTEXT__ = previousContext;
+  }
+});
+
+test("cloudflareReplicaHealth reports the status query unreadable, verbatim, rather than throwing", async () => {
+  const previousMode = process.env.CLOUDFLARE_DATA_MODE;
+  const previousContext = globalThis.__FAKE_CLOUDFLARE_CONTEXT__;
+  process.env.CLOUDFLARE_DATA_MODE = "dual";
+  globalThis.__FAKE_CLOUDFLARE_CONTEXT__ = {
+    env: {
+      BANDUP_DB: { prepare() { throw new Error("no D1 in this test"); } },
+      BANDUP_FILES: { async get() { return null; } },
+    },
+  };
+  try {
+    assert.deepEqual(await health.cloudflareReplicaHealth(1_000), {
+      ok: false,
+      checks: [{ name: "replica_status_readable", ok: false }],
+    });
+  } finally {
+    if (previousMode === undefined) delete process.env.CLOUDFLARE_DATA_MODE;
+    else process.env.CLOUDFLARE_DATA_MODE = previousMode;
+    if (previousContext === undefined) delete globalThis.__FAKE_CLOUDFLARE_CONTEXT__;
+    else globalThis.__FAKE_CLOUDFLARE_CONTEXT__ = previousContext;
+  }
+});
+
+/*
+  ---------------------------------------------------------------------------
+  scheduled-replica-drain.ts: the cleanup pass's own page size, the exact
+  options the drain receipt is written with, and the marker reader's
+  reaction to a receipt that parses as JSON but does not parse as a receipt.
+  The first test above in this file proves the *outbox* phase is bounded by
+  its own constant; nothing yet seeds the separate cleanup queue to prove the
+  same of that phase, and nothing inspects what runScheduledReplicaDrain
+  actually hands R2 rather than merely that it calls put().
+*/
+
+test("a scheduled run's cleanup pass is bounded by SCHEDULED_REPLICA_CLEANUP_BATCH, not the cleanup drain's own default", async () => {
+  const context = fixture();
+  /*
+    runScheduledReplicaDrain's outbox phase makes its own small opportunistic
+    cleanup pass first (drainCloudflareReplicaOutbox's own
+    OUTBOX_DRAIN_CLEANUP_LIMIT, from replica-outbox.ts), before the explicit
+    cleanup call this test targets ever runs. Both counts are real, so the
+    total this run removes is their sum.
+  */
+  const perRunLimit = scheduled.SCHEDULED_REPLICA_CLEANUP_BATCH + outbox.OUTBOX_DRAIN_CLEANUP_LIMIT;
+  const seeded = perRunLimit + 2;
+  const stamp = "2020-01-01T00:00:00.000Z";
+  for (let index = 0; index < seeded; index += 1) {
+    context.database.prepare(`
+      INSERT INTO cloudflare_replica_object_cleanup (
+        object_key, attempts_made, status, available_at, created_at, updated_at
+      ) VALUES (?, 0, 'pending', ?, ?, ?)
+    `).run(`private/cleanup-mutation-test/${index}`, stamp, stamp, stamp);
+  }
+  await scheduled.runScheduledReplicaDrain(context.bindings, {
+    nowMs: Date.parse("2026-01-01T00:00:00.000Z"),
+    execute: async () => true,
+  });
+  const left = context.database.prepare(
+    "SELECT count(*) AS rows FROM cloudflare_replica_object_cleanup",
+  ).get();
+  // If the explicit call's options object were dropped to {}, its default
+  // limit of 8 would clear this whole (comfortably-under-8) backlog instead
+  // of leaving two rows behind.
+  assert.equal(left.rows, seeded - perRunLimit);
+});
+
+test("the drain receipt is written with an explicit JSON content type, not R2's default", async () => {
+  const context = fixture();
+  const puts = [];
+  const originalPut = context.bindings.files.put.bind(context.bindings.files);
+  context.bindings.files.put = async (key, value, options) => {
+    puts.push({ key, options });
+    return originalPut(key, value, options);
+  };
+  await scheduled.runScheduledReplicaDrain(context.bindings, {
+    nowMs: Date.parse("2026-08-16T16:00:00.000Z"),
+    execute: async () => true,
+  });
+  const markerPut = puts.find((p) => p.key === scheduled.REPLICA_DRAIN_MARKER_KEY);
+  assert.deepEqual(markerPut.options, { httpMetadata: { contentType: "application/json" } });
+});
+
+test("a receipt that parses as JSON but carries an unparseable ranAt is the same fact as no receipt", async () => {
+  const context = fixture();
+  await context.bindings.files.put(
+    scheduled.REPLICA_DRAIN_MARKER_KEY,
+    JSON.stringify({ ranAt: "not-a-real-timestamp" }),
+  );
+  assert.equal(await scheduled.lastScheduledReplicaDrain(context.bindings), null);
+
+  const numeric = fixture();
+  await numeric.bindings.files.put(
+    scheduled.REPLICA_DRAIN_MARKER_KEY,
+    JSON.stringify({ ranAt: 12345 }),
+  );
+  assert.equal(await scheduled.lastScheduledReplicaDrain(numeric.bindings), null);
 });

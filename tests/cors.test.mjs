@@ -19,7 +19,7 @@ import { pathToFileURL } from "node:url";
 
 register("../scripts/ts-resolve.mjs", import.meta.url);
 
-const { allowedOrigin, corsHeaders, OPTIONS } = await import(
+const { allowedOrigin, corsHeaders, OPTIONS, withCors } = await import(
   pathToFileURL(join(process.cwd(), "lib", "http", "cors.ts")).href
 );
 
@@ -71,6 +71,25 @@ function withEnv(env, fn) {
   }
 }
 
+/*
+  withEnv restores the environment the instant its callback *returns* — fine
+  when the callback is synchronous, but withCors's response only resolves
+  after an await, so restoring on return would undo the environment before
+  the handler inside ever reads it.
+*/
+async function withEnvAsync(env, fn) {
+  const saved = { [FLAG]: process.env[FLAG], [ORIGINS]: process.env[ORIGINS] };
+  Object.assign(process.env, env);
+  try {
+    return await fn();
+  } finally {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+}
+
 function req(origin) {
   return new Request("https://bandup.test/api/define", {
     headers: origin ? { origin } : {},
@@ -98,6 +117,11 @@ test("an allowed origin is granted, and told the answer varies by origin", () =>
       preflight.headers.get("Access-Control-Allow-Methods"),
       "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     );
+    // corsHeaders() and OPTIONS() build their headers from two separate
+    // object literals, so the Vary assertion above says nothing about this one.
+    assert.equal(preflight.headers.get("Access-Control-Allow-Headers"), "Content-Type, Authorization");
+    assert.equal(preflight.headers.get("Access-Control-Max-Age"), "600");
+    assert.equal(preflight.headers.get("Vary"), "Origin");
   });
 });
 
@@ -126,6 +150,29 @@ test("a trailing slash on either side still matches", () => {
   });
 });
 
+test("a trailing slash on the caller's origin matches too, not only the configured side", () => {
+  // The test above strips the slash from the configured entry; this is the
+  // same strip applied to what the caller actually sent, a separate line.
+  withEnv({ [FLAG]: "1", [ORIGINS]: "https://bandup.example" }, () => {
+    assert.equal(allowedOrigin("https://bandup.example/"), "https://bandup.example");
+  });
+});
+
+test("incidental whitespace around a configured origin does not stop it matching", () => {
+  withEnv({ [FLAG]: "1", [ORIGINS]: " https://bandup.example ,https://other.example" }, () => {
+    assert.equal(allowedOrigin("https://bandup.example"), "https://bandup.example");
+  });
+});
+
+test("a blank entry from a stray comma is never itself treated as a configured origin", () => {
+  // "/" is the one origin that normalises to "" (the trailing-slash strip
+  // removes its only character). A config value that is nothing but a comma
+  // must not let that "" through as if it had been a real allowed origin.
+  withEnv({ [FLAG]: "1", [ORIGINS]: "," }, () => {
+    assert.equal(allowedOrigin("/"), null);
+  });
+});
+
 test("no configured origins grants nothing, even with the flag on", () => {
   withEnv({ [FLAG]: "1", [ORIGINS]: "" }, () => {
     assert.equal(allowedOrigin("https://bandup.example"), null);
@@ -135,5 +182,27 @@ test("no configured origins grants nothing, even with the flag on", () => {
 test("a request with no Origin header is not granted anything", () => {
   withEnv({ [FLAG]: "1", [ORIGINS]: "https://bandup.example" }, () => {
     assert.deepEqual(corsHeaders(req(null)), {});
+  });
+});
+
+/*
+  Nothing above calls withCors itself — every other test reaches corsHeaders
+  or OPTIONS directly. Those two computing the right grant says nothing about
+  whether the wrapper actually copies it onto the route handler's response.
+*/
+test("withCors copies the grant onto the wrapped handler's own response", async () => {
+  await withEnvAsync({ [FLAG]: "1", [ORIGINS]: "capacitor://localhost" }, async () => {
+    const handler = async () => new Response("ok");
+    const res = await withCors(handler)(req("capacitor://localhost"));
+    assert.equal(res.headers.get("Access-Control-Allow-Origin"), "capacitor://localhost");
+    assert.equal(res.headers.get("Vary"), "Origin");
+  });
+});
+
+test("withCors adds nothing when the caller's origin earns no grant", async () => {
+  await withEnvAsync({ [FLAG]: "1", [ORIGINS]: "capacitor://localhost" }, async () => {
+    const handler = async () => new Response("ok");
+    const res = await withCors(handler)(req("https://evil.example"));
+    assert.equal(res.headers.get("Access-Control-Allow-Origin"), null);
   });
 });

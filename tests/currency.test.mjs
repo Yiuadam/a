@@ -35,7 +35,10 @@ const {
   MIN_MONTHLY_MARGIN_HKD, MONTHLY_AI_CAPS, PLANS, PLAN_IDS,
   PRICED_CURRENCIES, HKD_PER_USD, amountIn, netRevenue,
 } = tiers;
-const { hkdPerUnit, minorPerUnit, toMajor, currencyForCountry, ZERO_DECIMAL_CURRENCIES } = currency;
+const {
+  hkdPerUnit, minorPerUnit, toMajor, toMinor, currencyForCountry, countryFromRequest,
+  walletTakes, ZERO_DECIMAL_CURRENCIES, WALLET_CURRENCIES,
+} = currency;
 
 /*
   Stripe refuses a charge under roughly US$0.50. The published figures per
@@ -143,4 +146,117 @@ test("a visitor is shown a currency somebody chose, or dollars", () => {
   assert.equal(currencyForCountry("VN"), "usd");
   assert.equal(currencyForCountry("XX"), "usd");
   assert.equal(currencyForCountry(null), "usd");
+});
+
+/*
+  Every non-euro country this catalogue names its own currency for, not only
+  the two (Hong Kong, Great Britain) the test above already covers. Each of
+  these is its own entry in the lookup table, so each has to be read back
+  individually — a table that silently dropped "AU" would still pass a test
+  that only ever asked about "HK".
+*/
+test("every named country resolves to the currency chosen for it, not the fallback", () => {
+  const table = {
+    US: "usd", AU: "aud", CA: "cad", SG: "sgd", JP: "jpy", IN: "inr", CN: "cny",
+  };
+  for (const [country, expected] of Object.entries(table)) {
+    assert.equal(
+      currencyForCountry(country),
+      expected,
+      `${country} should show ${expected}, not the US-dollar fallback`,
+    );
+  }
+});
+
+/*
+  The euro area, in full — every member state this catalogue names, not only
+  the two spot-checked above. Twenty-four countries share one currency, and
+  each is its own array entry: dropping any single one silently sends that
+  country's visitors to the dollar fallback instead of the euro they use.
+*/
+test("every euro-area country in the list is actually priced in euros", () => {
+  const euroCountries = [
+    "AD", "AT", "BE", "CY", "DE", "EE", "ES", "FI", "FR", "GR", "HR", "IE",
+    "IT", "LT", "LU", "LV", "MC", "MT", "NL", "PT", "SI", "SK", "SM", "VA",
+  ];
+  for (const country of euroCountries) {
+    assert.equal(currencyForCountry(country), "eur", `${country} should be priced in euros`);
+  }
+});
+
+/*
+  Every currency Stripe counts in whole units, from the catalogue's own list —
+  not only yen, which the test above already singles out. Each currency code
+  is its own entry in the Set literal, so each has to be read back
+  individually: a mutant that quietly dropped "krw" from the list would still
+  pass a test that only ever asked about "jpy".
+*/
+test("every zero-decimal currency is read back out of the set, and minorPerUnit agrees", () => {
+  const zeroDecimal = [
+    "bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga", "pyg", "rwf",
+    "ugx", "vnd", "vuv", "xaf", "xof", "xpf",
+  ];
+  for (const c of zeroDecimal) {
+    assert.ok(ZERO_DECIMAL_CURRENCIES.has(c), `${c} should be zero-decimal`);
+    assert.equal(minorPerUnit(c), 1, `${c} should count in whole units`);
+  }
+  // And a two-decimal currency is not caught by the same net.
+  assert.ok(!ZERO_DECIMAL_CURRENCIES.has("hkd"));
+  assert.equal(minorPerUnit("hkd"), 100);
+});
+
+/*
+  toMinor multiplies; a mutant that divided instead would turn a HK$9 charge
+  into nine cents, which is exactly the class of error the file's own header
+  says is the worst kind (a hundredfold undercharge is survivable; this is not
+  a hundredfold error but the same *direction* of harm to the business).
+*/
+test("toMinor scales up from a human amount to what Stripe stores", () => {
+  assert.equal(toMinor(9, "usd"), 900);
+  assert.equal(toMinor(4.9, "hkd"), 490);
+  // Zero-decimal: minorPerUnit is 1, so the amount passes through unscaled.
+  assert.equal(toMinor(100, "jpy"), 100);
+});
+
+/*
+  The two mobile wallets, and the specific short list of currencies both will
+  take — see the header comment above WALLET_CURRENCIES. Every entry is its
+  own array element and its own StringLiteral mutant target; a test that only
+  ever asked about one currency would leave the other eight unguarded, and an
+  emptied array (WALLET_CURRENCIES -> []) would only be caught by asking about
+  more than zero of them.
+*/
+test("a wallet payment can be presented in every currency the catalogue says it can", () => {
+  for (const c of ["aud", "cad", "cny", "eur", "gbp", "hkd", "jpy", "sgd", "usd"]) {
+    assert.ok(WALLET_CURRENCIES.has(c), `${c} should be a wallet currency`);
+    assert.equal(walletTakes(c), true, `walletTakes(${c}) should be true`);
+  }
+  // The omission that matters: neither wallet takes rupees (see the header).
+  assert.equal(walletTakes("inr"), false, "neither Alipay nor WeChat Pay takes INR");
+  assert.ok(!WALLET_CURRENCIES.has("inr"));
+});
+
+test("walletTakes reads the currency case-insensitively", () => {
+  // The set is stored lower-case; a caller passing what a Stripe object or an
+  // upstream header handed back (which is not guaranteed to be lower-case)
+  // must still be recognised.
+  assert.equal(walletTakes("AUD"), true);
+  assert.equal(walletTakes("Usd"), true);
+});
+
+/*
+  The one header Cloudflare adds in front of every Worker request, and the one
+  this app trusts precisely because a client cannot set it — see the header
+  comment on countryFromRequest. Read through an actual Request/Headers pair
+  rather than a hand-rolled stand-in, so the exact header name is what is
+  under test.
+*/
+test("countryFromRequest reads Cloudflare's own header and nothing invented", () => {
+  const withCountry = new Request("https://example.com/", {
+    headers: { "cf-ipcountry": "HK" },
+  });
+  assert.equal(countryFromRequest(withCountry), "HK");
+
+  const withoutCountry = new Request("https://example.com/");
+  assert.equal(countryFromRequest(withoutCountry), null);
 });

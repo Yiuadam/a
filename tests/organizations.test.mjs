@@ -337,6 +337,107 @@ test("the shared role preview refuses real email addresses", () => {
   assert.match(route, /This shared preview is read-only/);
 });
 
+test("payload gating only ever inspects email for invite_member, so an unrelated action's stray email is ignored", () => {
+  // "invite_member" is the only action a payload email is even read from —
+  // every other action must be allowed regardless of what a caller happens
+  // to pass under an `email` key, because that key means nothing to it.
+  assert.equal(
+    previewAuth.organizationPreviewPayloadAllowed("remove_member", { email: "real.person@example.com" }),
+    true,
+  );
+});
+
+test("the shared preview's domain check trims surrounding whitespace before matching", () => {
+  assert.equal(
+    previewAuth.organizationPreviewPayloadAllowed("invite_member", {
+      email: "  student@preview.bandup.invalid  ",
+    }),
+    true,
+  );
+  assert.equal(
+    previewAuth.organizationPreviewPayloadAllowed("invite_member", {
+      email: "  real.person@example.com  ",
+    }),
+    false,
+  );
+});
+
+test("every preview role resolves to its own fixed synthetic identity, not only the manager's", () => {
+  const previous = process.env.ORGANIZATION_UI_PREVIEW;
+  process.env.ORGANIZATION_UI_PREVIEW = "1";
+  try {
+    const roles = {
+      manager: { id: "22222222-2222-4222-8222-222222222222", email: "manager@preview.bandup.invalid" },
+      teacher: { id: "50000000-0000-4000-8000-000000000001", email: "teacher@preview.bandup.invalid" },
+      student: { id: "50000000-0000-4000-8000-000000000002", email: "student@preview.bandup.invalid" },
+      admin: { id: "90000000-0000-4000-8000-000000000001", email: "admin@preview.bandup.invalid" },
+      individual: { id: "90000000-0000-4000-8000-000000000002", email: "individual@preview.bandup.invalid" },
+    };
+    for (const [role, expected] of Object.entries(roles)) {
+      const req = new Request("https://organization-preview.bandup.life/api/organization", {
+        headers: { "x-bandup-organization-preview-role": role },
+      });
+      const user = previewAuth.organizationPreviewUser(req);
+      assert.equal(user?.id, expected.id, `${role} id`);
+      assert.equal(user?.email, expected.email, `${role} email`);
+    }
+  } finally {
+    if (previous === undefined) delete process.env.ORGANIZATION_UI_PREVIEW;
+    else process.env.ORGANIZATION_UI_PREVIEW = previous;
+  }
+});
+
+test("the preview flag gate is actually checked, not merely present, when the flag is off", () => {
+  const previous = process.env.ORGANIZATION_UI_PREVIEW;
+  try {
+    const onPreviewHost = new Request("https://organization-preview.bandup.life/api/organization");
+    delete process.env.ORGANIZATION_UI_PREVIEW;
+    assert.equal(previewAuth.isOrganizationPreviewRequest(onPreviewHost), false);
+    process.env.ORGANIZATION_UI_PREVIEW = "0";
+    assert.equal(previewAuth.isOrganizationPreviewRequest(onPreviewHost), false);
+  } finally {
+    if (previous === undefined) delete process.env.ORGANIZATION_UI_PREVIEW;
+    else process.env.ORGANIZATION_UI_PREVIEW = previous;
+  }
+});
+
+test("an unparsable request URL is treated as off the preview host, never on it", () => {
+  const previous = process.env.ORGANIZATION_UI_PREVIEW;
+  process.env.ORGANIZATION_UI_PREVIEW = "1";
+  try {
+    // Duck-typed rather than a real Request: isOrganizationPreviewRequest only
+    // ever reads `.url`, and `new URL(...)` throws on this value, which is the
+    // one path this test exists to exercise.
+    const malformed = { url: "not a url at all" };
+    assert.equal(previewAuth.isOrganizationPreviewRequest(malformed), false);
+  } finally {
+    if (previous === undefined) delete process.env.ORGANIZATION_UI_PREVIEW;
+    else process.env.ORGANIZATION_UI_PREVIEW = previous;
+  }
+});
+
+test("preview-auth's server-only guard names this exact module when it fires", () => {
+  // assertServerOnly only throws when `window` exists, which a Node test
+  // process never does on its own — faking it for the width of this one test
+  // is the only way to prove the thrown message still names this file rather
+  // than some other module's guard string.
+  const previousWindow = globalThis.window;
+  globalThis.window = {};
+  try {
+    assert.throws(
+      () => previewAuth.isOrganizationPreviewRequest(new Request("https://organization-preview.bandup.life/")),
+      /lib\/organizations\/preview-auth\.ts is server-only/,
+    );
+    assert.throws(
+      () => previewAuth.organizationPreviewUser(new Request("https://organization-preview.bandup.life/")),
+      /lib\/organizations\/preview-auth\.ts is server-only/,
+    );
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
+});
+
 test("isolated preview drill-downs preserve the selected actor role", () => {
   const portal = readFileSync(join(process.cwd(), "components", "organization", "OrganizationPortal.tsx"), "utf8");
   const links = readFileSync(join(process.cwd(), "components", "organization", "OrganizationUI.tsx"), "utf8");

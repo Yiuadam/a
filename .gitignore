@@ -61,3 +61,7 @@ worker-configuration.d.ts
 
 # Where scripts/build-mobile.mjs parks the routes it keeps out of the iOS bundle.
 /.mobile-stash/
+
+# mutation testing output
+reports/
+.stryker-tmp/

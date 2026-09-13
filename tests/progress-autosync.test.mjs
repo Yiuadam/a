@@ -102,6 +102,17 @@ const account = await import(pathToFileURL(join(process.cwd(), "lib", "account.t
 const autosync = await import(
   pathToFileURL(join(process.cwd(), "lib", "progress", "autosync.ts")).href
 );
+const events = await import(
+  pathToFileURL(join(process.cwd(), "lib", "progress", "events.ts")).href
+);
+
+test("the progress-write event name is the exact string every store dispatches and autosync listens for", () => {
+  // Read as source text elsewhere (see account-automatic-sync-ui.test.mjs),
+  // which only proves autosync.ts *mentions* the constant's name, not its
+  // value. Importing the module is what actually pins the string a store's
+  // dispatchEvent call and autosync's addEventListener call must agree on.
+  assert.equal(events.PROGRESS_WRITE_EVENT, "bandup:progress-write");
+});
 
 function deferred() {
   let resolve;

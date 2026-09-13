@@ -221,10 +221,163 @@ test("an unseeded id sequence fails loudly rather than silently uncapping", asyn
     () => authority.admitUsageEventOnCloudflare(baseRequest(), context.bindings),
     authority.CloudflareIdSequenceNotSeededError,
   );
+  let caught = null;
+  try {
+    await authority.admitUsageEventOnCloudflare(baseRequest(), context.bindings);
+  } catch (error) {
+    caught = error;
+  }
+  assert.equal(caught.name, "CloudflareIdSequenceNotSeededError");
+  assert.match(caught.message, /The D1 id counter for "usage_events" is not seeded\. This is an operator step, not /);
+  assert.match(caught.message, /a bug: see the pull request that added lib\/cloudflare\/usage-quota-authority\.ts for /);
+  assert.match(caught.message, /the exact wrangler d1 execute commands, and run them before setting this domain's /);
+  assert.match(caught.message, /mode to 'cloudflare'\./);
   assert.equal(
     context.database.prepare("SELECT count(*) AS n FROM usage_events").get().n,
     0,
   );
+});
+
+test("assertServerOnly guards admitUsageEventOnCloudflare, naming this exact module", async () => {
+  const had = "window" in globalThis;
+  const previousWindow = globalThis.window;
+  globalThis.window = {};
+  try {
+    await assert.rejects(
+      () => authority.admitUsageEventOnCloudflare(baseRequest(), { db: {} }),
+      /lib\/cloudflare\/usage-quota-authority\.ts is server-only/,
+    );
+  } finally {
+    if (had) globalThis.window = previousWindow;
+    else delete globalThis.window;
+  }
+});
+
+test("mintIds assigns sequential ids from the seeded counter, in order, to admit then deny", async () => {
+  const context = fixture(); // seeds cloudflare_id_sequences at next_value: 1000
+  // Denied from the very first attempt, so the *second* id minted in this one
+  // reservation (the deny id) is what gets written and returned.
+  const request = baseRequest({ caps: { monthly: 0, weekly: null, ip: null, anonymous: null } });
+  const decision = await authority.admitUsageEventOnCloudflare(request, context.bindings);
+  assert.equal(decision.allowed, false);
+  assert.equal(
+    decision.eventId,
+    "1001",
+    "the deny id must be the counter value one past the admit id (1000+1), not one before it (1000-1)",
+  );
+});
+
+test("the rolling window floor is exactly windowSeconds seconds, in milliseconds, before now", async () => {
+  const context = fixture();
+  const USER = "50000000-0000-4000-8000-000000000095";
+  // A prior admitted event 3 days before `now`, well inside a 7-day rolling
+  // window but nowhere near a window that was accidentally shrunk to
+  // thousandths of a second.
+  context.database.prepare(`
+    INSERT INTO app_users (id, email, role, created_at, updated_at)
+    VALUES (?, ?, 'user', ?, ?)
+  `).run(USER, "window@example.test", "2026-08-01T00:00:00.000Z", "2026-08-01T00:00:00.000Z");
+  context.database.prepare(`
+    INSERT INTO usage_events (id, user_id, route, outcome, created_at)
+    VALUES ('900', ?, 'chat', 'admitted', '2026-08-14T00:00:00.000Z')
+  `).run(USER);
+
+  const request = baseRequest({
+    user: { id: USER, email: "window@example.test" },
+    userId: USER,
+    caps: { monthly: null, weekly: 1, ip: null, anonymous: null },
+    windowSeconds: 7 * 24 * 60 * 60,
+    now: "2026-08-17T00:00:00.000Z",
+  });
+  const decision = await authority.admitUsageEventOnCloudflare(request, context.bindings);
+  assert.equal(decision.allowed, false, "the 3-day-old admitted row is inside a real 7-day window and must count toward the cap");
+  assert.equal(decision.reason, "rate_limited");
+});
+
+test("a null ipHash is never checked against the per-IP cap, even when a cap is configured", async () => {
+  const context = fixture();
+  const request = baseRequest({
+    user: null,
+    userId: null,
+    ipHash: null,
+    caps: { monthly: null, weekly: null, ip: 0, anonymous: null },
+  });
+  const decision = await authority.admitUsageEventOnCloudflare(request, context.bindings);
+  assert.equal(decision.allowed, true, "an unknown caller IP must not be checked against an IP cap of zero");
+});
+
+test("a batch where not every statement succeeded throws the exact 'batch is unavailable' message", async () => {
+  function fakeDb(batchResults) {
+    return {
+      prepare() {
+        return { bind: () => ({ async first() { return { first_id: "2000" }; }, async run() { return { success: true, meta: { changes: 0 } }; } }) };
+      },
+      async batch() { return batchResults; },
+    };
+  }
+  const request = baseRequest({
+    user: null, userId: null, ipHash: "batch-ip",
+    caps: { monthly: null, weekly: null, ip: null, anonymous: null },
+  });
+  await assert.rejects(
+    () => authority.admitUsageEventOnCloudflare(request, { db: fakeDb([{ success: false, meta: { changes: 0 } }, { success: true, meta: { changes: 0 } }]) }),
+    /^Error: Cloudflare usage authority batch is unavailable$/,
+  );
+  // A truncated batch response (deny result entirely missing) must still
+  // reach the same controlled message, not a raw "read of undefined" throw --
+  // proving the `?.` on each half is load-bearing, not decorative.
+  await assert.rejects(
+    () => authority.admitUsageEventOnCloudflare(request, { db: fakeDb([{ success: true, meta: { changes: 0 } }]) }),
+    /^Error: Cloudflare usage authority batch is unavailable$/,
+  );
+  // A completely empty batch response (both results missing) exercises the
+  // `?.` on the *first* half the same way.
+  await assert.rejects(
+    () => authority.admitUsageEventOnCloudflare(request, { db: fakeDb([]) }),
+    /^Error: Cloudflare usage authority batch is unavailable$/,
+  );
+});
+
+test("neither statement admitting or denying is treated as a hard failure, with the exact message", async () => {
+  function fakeDb() {
+    return {
+      prepare() {
+        // Also stands in for mintIds's own counter read, which needs a
+        // well-shaped row to get past minting at all.
+        return { bind: () => ({ async first() { return { first_id: "3000" }; }, async run() { return { success: true, meta: { changes: 0 } }; } }) };
+      },
+      async batch() { return [{ success: true, meta: { changes: 0 } }, { success: true, meta: { changes: 0 } }]; },
+    };
+  }
+  const request = baseRequest({
+    user: null, userId: null, ipHash: "neither-ip",
+    caps: { monthly: null, weekly: null, ip: null, anonymous: null },
+  });
+  await assert.rejects(
+    () => authority.admitUsageEventOnCloudflare(request, { db: fakeDb() }),
+    /^Error: Cloudflare usage authority batch admitted no row and recorded no denial$/,
+  );
+});
+
+test("an unparseable explicit `now` throws the exact message rather than minting against an invalid clock", async () => {
+  const request = baseRequest({ now: "not-a-real-timestamp" });
+  await assert.rejects(
+    () => authority.admitUsageEventOnCloudflare(request, fixture().bindings),
+    /^Error: Invalid usage authority timestamp$/,
+  );
+});
+
+test("a request whose user does not match its own userId is refused with the exact message, before any write", async () => {
+  const context = fixture();
+  const request = baseRequest({
+    user: { id: OTHER_USER.id, email: OTHER_USER.email },
+    userId: USER.id,
+  });
+  await assert.rejects(
+    () => authority.admitUsageEventOnCloudflare(request, context.bindings),
+    /^Error: Cloudflare usage authority request user does not match userId$/,
+  );
+  assert.equal(context.database.prepare("SELECT count(*) AS n FROM usage_events").get().n, 0);
 });
 
 test("many concurrent admissions against a cap never exceed it", async () => {

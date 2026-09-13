@@ -33,11 +33,16 @@ const {
   TIERS,
   formatPrice,
   isPlanId,
+  isWalletPaymentMethod,
   monthlyCap,
   perMonthEquivalent,
   plansForTier,
+  pricesIn,
   tierAllows,
   tierHasAi,
+  walletMethodList,
+  walletMethodName,
+  weeklyCap,
 } = tiers;
 
 /* ------------------------------------------------------------------ gate -- */
@@ -114,6 +119,27 @@ test("a feature name that does not exist is refused by every tier", () => {
   }
 });
 
+/*
+  monthlyCap and weeklyCap are tierAllows's own arithmetic, and each has its
+  own guard against a tier the catalogue does not recognise — proved directly
+  rather than only through tierAllows, because indexing a missing tier without
+  the guard does not merely answer wrong, it throws (MONTHLY_AI_CAPS[tier] is
+  undefined), which a test that only ever calls tierAllows would never expose.
+*/
+test("monthlyCap and weeklyCap refuse an unrecognised tier with zero, not a thrown error", () => {
+  assert.equal(monthlyCap("bogus-tier", "define"), 0);
+  assert.equal(weeklyCap("bogus-tier", "define"), 0);
+});
+
+test("weeklyCap reads the same table monthlyCap does, tier by tier", () => {
+  assert.equal(weeklyCap("free", "define"), 0);
+  assert.equal(weeklyCap("tracking", "chat"), 0);
+  assert.equal(weeklyCap("ai", "define"), 10);
+  assert.equal(weeklyCap("ai", "chat"), 5);
+  assert.equal(weeklyCap("ai", "grade/writing"), 2);
+  assert.equal(weeklyCap("admin", "define"), null, "the owner's account must stay uncapped");
+});
+
 /* ------------------------------------------------------- quotas and copy -- */
 
 test("the meter is handed exactly the allowances the catalogue defines", () => {
@@ -173,6 +199,48 @@ test("every tier shown on the pricing page has something to say for itself", () 
     assert.ok(tier.blurb.length > 0, `${id} has no blurb`);
     assert.ok(tier.includes.length > 0, `${id} lists nothing it includes`);
   }
+});
+
+/*
+  The exact bullets on each card, not just that they exist. These are sales
+  copy a learner reads before paying, and a mutant that silently blanked one
+  bullet or dropped one from the list would still leave three good-looking
+  ones behind it — "lists nothing it includes" above would not notice a list
+  that lists almost nothing.
+*/
+test("the free tier's bullets are exactly what free has always meant here", () => {
+  assert.deepEqual(TIERS.free.includes, [
+    "Placement test, study plan and all drills — unlimited",
+    "Every reading, listening, writing and speaking paper, no weekly limit",
+    "The full mock exam, all four skills, timed",
+    "Writing and speaking handed back to you after you submit — no AI score",
+    "Results stay in this browser tab only — Tracking keeps them",
+  ]);
+});
+
+test("the tracking tier's bullets are exactly what tracking adds on top of free", () => {
+  assert.deepEqual(TIERS.tracking.includes, [
+    "Everything in Free",
+    "Every sitting saved, synced across your devices",
+    "Your band trend and standing, any time",
+    "Cancel any time, one button",
+  ]);
+});
+
+test("the ai tier's bullets are exactly what ai adds on top of tracking", () => {
+  assert.deepEqual(TIERS.ai.includes, [
+    "Everything in Tracking",
+    "5 essays and 3 speaking tests marked a month",
+    "20 tutor questions and 40 word lookups a month",
+    "1 fresh AI-written paper a month",
+    "Cancel any time, one button",
+  ]);
+});
+
+test("the owner's own account is named, not titled, and sells nothing", () => {
+  assert.equal(TIERS.admin.name, "Adam");
+  assert.equal(TIERS.admin.blurb, "Your own account. No limits on anything.");
+  assert.deepEqual(TIERS.admin.includes, []);
 });
 
 /* ------------------------------------------------------------------ plans -- */
@@ -239,6 +307,49 @@ test("prices are formatted with two decimal places", () => {
   assert.equal(formatPrice(600, "usd"), "$6.00");
   assert.equal(formatPrice(799, "usd"), "$7.99");
   assert.equal(formatPrice(0, "usd"), "$0.00");
+});
+
+test("pricesIn reads the currency case-insensitively, same as the rest of this module", () => {
+  assert.equal(pricesIn("usd"), true);
+  assert.equal(pricesIn("USD"), true);
+  assert.equal(pricesIn("hkd"), true);
+  assert.equal(pricesIn("xyz"), false, "a currency the catalogue never priced must read as unpriced");
+});
+
+/* --------------------------------------------------------- wallet copy -- */
+
+test("walletMethodName spells out what the buyer sees on the button", () => {
+  assert.equal(walletMethodName("alipay"), "Alipay");
+  assert.equal(walletMethodName("wechat_pay"), "WeChat Pay");
+});
+
+test("walletMethodList joins however many wallets are actually offered", () => {
+  assert.equal(walletMethodList([]), "");
+  assert.equal(walletMethodList(["alipay"]), "Alipay");
+  assert.equal(walletMethodList(["wechat_pay"]), "WeChat Pay");
+  assert.equal(walletMethodList(["alipay", "wechat_pay"]), "Alipay or WeChat Pay");
+  /*
+    WALLET_PAYMENT_METHODS only ever has two entries, so a real call site
+    never passes three — but the join logic itself is general-purpose list
+    formatting ("all but the last, joined, then ' or ' the last"), and with
+    only ever two real entries "drop the last element" and "keep the first
+    element" produce the same array. A third entry is the only way to tell
+    them apart.
+  */
+  assert.equal(
+    walletMethodList(["alipay", "wechat_pay", "alipay"]),
+    "Alipay, WeChat Pay or Alipay",
+  );
+});
+
+test("isWalletPaymentMethod recognises exactly the two wallets, string or not", () => {
+  assert.equal(isWalletPaymentMethod("alipay"), true);
+  assert.equal(isWalletPaymentMethod("wechat_pay"), true);
+  assert.equal(isWalletPaymentMethod("paypal"), false);
+  assert.equal(isWalletPaymentMethod(""), false);
+  for (const notAMethod of [42, null, undefined, {}, ["alipay"], true]) {
+    assert.equal(isWalletPaymentMethod(notAMethod), false, `${JSON.stringify(notAMethod)} is not a wallet method`);
+  }
 });
 
 /*

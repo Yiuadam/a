@@ -258,6 +258,119 @@ test("a per-domain override falls back to CLOUDFLARE_DATA_MODE, and a garbled ov
   });
 });
 
+/*
+  Runs `fn` with `globalThis.window` set to a plain object, so
+  assertServerOnly(MODULE) throws the way it would if one of these
+  server-only modules were ever pulled into a client bundle. Always deletes
+  `window` again afterwards, pass or throw.
+*/
+function withBrowserWindow(fn) {
+  const had = "window" in globalThis;
+  const previous = globalThis.window;
+  globalThis.window = {};
+  try {
+    return fn();
+  } finally {
+    if (had) globalThis.window = previous;
+    else delete globalThis.window;
+  }
+}
+
+test("assertServerOnly guards bindings.ts's mode readers and cutover-domains.ts's domainDataMode, naming their own module", () => {
+  withBrowserWindow(() => {
+    assert.throws(() => bindings.cloudflareDataMode(), /lib\/cloudflare\/bindings\.ts is server-only/);
+    assert.throws(() => bindings.organizationDataMode(), /lib\/cloudflare\/bindings\.ts is server-only/);
+    assert.throws(
+      () => cutoverDomains.domainDataMode("admin_statistics"),
+      /lib\/cloudflare\/cutover-domains\.ts is server-only/,
+    );
+  });
+});
+
+test("domainReadsFromCloudflare is true for bare 'cloudflare', not only for read_cloudflare", () => {
+  withEnv(LEARNER_MODE, "cloudflare", () => {
+    delete process.env.CLOUDFLARE_DATA_MODE_USAGE_QUOTA_AUTHORITY;
+    assert.equal(cutoverDomains.domainReadsFromCloudflare("usage_quota_authority"), true);
+  });
+  withEnv(LEARNER_MODE, "supabase", () => {
+    delete process.env.CLOUDFLARE_DATA_MODE_USAGE_QUOTA_AUTHORITY;
+    assert.equal(cutoverDomains.domainReadsFromCloudflare("usage_quota_authority"), false);
+  });
+});
+
+test("every cutover-domain description carries its own full, exact evidence text", () => {
+  const descriptionOf = (domain) => cutoverDomains.CUTOVER_DOMAINS.find((entry) => entry.domain === domain).description;
+  // Each array lists every string-literal segment the source concatenates for
+  // that domain's description, copied verbatim -- a mutant that nulls out any
+  // one segment drops that exact text from the concatenated result.
+  const segmentsByDomain = {
+    admin_user_directory: [
+      "The list and detail pages have a D1-native roster reader ",
+      "(lib/cloudflare/admin-directory.ts) for account identity, profile, username, ",
+      "plan/access source, organisation seats and usage. It is used once native ",
+      "identity is active or Supabase is no longer configured; legacy mode retains the ",
+      "older RPC reader until the D1 identity backfill is verified.",
+    ],
+    admin_statistics: [
+      "Daily usage, route breakdown, tier counts, live-account count and daily signups ",
+      "all have D1 readers in lib/cloudflare/admin-stats.ts. Identity totals retain the ",
+      "legacy RPC only until native identity is the selected authority, then count live ",
+      "D1 app_users so the console matches Cloudflare sign-in exactly.",
+    ],
+    billing_entitlement_runtime: [
+      "D1-native promo and verified Stripe-event writers are complete. Historical subscriptions, ",
+      "provider-event payloads and the original-prepaid-payment ledger are reconciled before ",
+      "the dedicated CLOUDFLARE_NATIVE_STRIPE_BILLING switch is armed; the runtime keeps that ",
+      "switch separate from general learner-data authority.",
+    ],
+    usage_quota_authority: [
+      "checkAiUsage (lib/usage/guard.ts) has a D1-only admission path ",
+      "(lib/cloudflare/usage-quota-authority.ts) that enforces the monthly, weekly and ",
+      "per-IP caps as a single guarded statement per attempt, with no advisory lock and no ",
+      "read-then-write gap. It mints its own numeric usage_events ids from a D1 counter that ",
+      "must be seeded above Supabase's current maximum before this domain's mode is set to ",
+      "'cloudflare' for the first time — see the pull request that added this file for the ",
+      "exact wrangler d1 execute commands and for why the counter is not seeded automatically.",
+    ],
+    ai_cost_write_authority: [
+      "recordAnthropicMessageCost (lib/ai/cost-tracking.ts) has a D1-only write path ",
+      "(lib/cloudflare/ai-cost-write-authority.ts) that dedupes on provider_request_id exactly ",
+      "as record_ai_cost_event does, and mints its own numeric ai_cost_events ids from a ",
+      "separate D1 counter with the same seeding requirement as usage_quota_authority's. The ",
+      "owner-only coverage/backfill writes (setAiCostCoverage, record_ai_cost_backfill) are ",
+      "unaffected by this domain and still go through Supabase regardless of its mode — they ",
+      "are out of scope for the pull request that added this entry.",
+    ],
+    avatar_object_parity: [
+      "Avatar object bytes in R2 are proven byte-identical to Supabase Storage via the ",
+      "admin avatar-object-parity check (?avatarObjectParity= on the readiness route). ",
+      "Confirmed complete on 2026-08-25: 1 of 1 avatars matched and byte-compared, 0 ",
+      "disappearing faces, 0 only-in-Cloudflare, 0 different, 0 unreadable on either side. ",
+      "Re-run before the next account with a photo is added and before any write-authority ",
+      "flip, since this domain has no automatic re-check — it is admin-triggered evidence, ",
+      "not a live guarantee.",
+    ],
+    progress_payload_integrity: [
+      "Progress-snapshot JSON payloads are canonicalised and hashed on both sides ",
+    ],
+    billing_payload_object_parity: [
+      "Stored Stripe event payload objects are canonicalised and hashed on both sides ",
+    ],
+    provider_event_payload_object_parity: [
+      "Stored provider-event payload objects are canonicalised and hashed on both sides ",
+    ],
+    cutover_write_barrier: [
+      "The refusal mechanism exists; whether it is armed is reported separately as live D1 state, not as a fact this registry can hold.",
+    ],
+  };
+  for (const [domain, segments] of Object.entries(segmentsByDomain)) {
+    const description = descriptionOf(domain);
+    for (const segment of segments) {
+      assert.ok(description.includes(segment), `${domain} description missing segment: ${JSON.stringify(segment)}`);
+    }
+  }
+});
+
 test("data-router.ts asks the read/write questions it means, not a re-derived mode string", () => {
   const source = code(readFileSync(
     join(process.cwd(), "lib", "cloudflare", "data-router.ts"),

@@ -112,3 +112,200 @@ test("the payment preflight is a read-only tool that does not print account or p
   assert.match(source, /JSON\.stringify\(\{ target: production/);
   assert.doesNotMatch(source, /paymentIntentId[^\n]{0,40}JSON\.stringify/);
 });
+
+test("string() rejects empty strings", () => {
+  const evidence = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "payment",
+          payment_status: "paid",
+          payment_intent: "", // empty string
+          amount_total: 499,
+          metadata: { bandup_user_id: USER },
+        },
+      },
+    },
+  });
+  assert.equal(evidence, null);
+});
+
+test("string() rejects non-strings", () => {
+  const evidence = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "payment",
+          payment_status: "paid",
+          payment_intent: 123, // number, not string
+          amount_total: 499,
+          metadata: { bandup_user_id: USER },
+        },
+      },
+    },
+  });
+  assert.equal(evidence, null);
+});
+
+test("object() rejects arrays and non-objects", () => {
+  const evidence1 = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: ["array", "not", "object"],
+  });
+  assert.equal(evidence1, null);
+
+  const evidence2 = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: "string_not_object",
+  });
+  assert.equal(evidence2, null);
+});
+
+test("positiveInteger() rejects zero and negative numbers", () => {
+  // Zero amount should fail
+  const zeroEvidence = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "payment",
+          payment_status: "paid",
+          payment_intent: "pi_test",
+          amount_total: 0, // zero, not positive
+          metadata: { bandup_user_id: USER },
+        },
+      },
+    },
+  });
+  assert.equal(zeroEvidence, null);
+
+  // Negative amount should fail
+  const negEvidence = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "payment",
+          payment_status: "paid",
+          payment_intent: "pi_test",
+          amount_total: -100,
+          metadata: { bandup_user_id: USER },
+        },
+      },
+    },
+  });
+  assert.equal(negEvidence, null);
+});
+
+test("only checkout.session.completed and async_payment_succeeded are accepted", () => {
+  // Wrong type should fail
+  const wrongType = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: {
+      type: "charge.succeeded", // not accepted
+      data: {
+        object: {
+          mode: "payment",
+          payment_status: "paid",
+          payment_intent: "pi_test",
+          amount_total: 499,
+          metadata: { bandup_user_id: USER },
+        },
+      },
+    },
+  });
+  assert.equal(wrongType, null);
+
+  // But async_payment_succeeded should work
+  const asyncPayment = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: {
+      type: "checkout.session.async_payment_succeeded",
+      data: {
+        object: {
+          mode: "payment",
+          payment_status: "paid",
+          payment_intent: "pi_async",
+          amount_total: 599,
+          metadata: { bandup_user_id: USER },
+        },
+      },
+    },
+  });
+  assert.ok(asyncPayment);
+  assert.equal(asyncPayment.paymentIntentId, "pi_async");
+});
+
+test("wallet subscriptions must start with 'wallet:' prefix", () => {
+  const report1 = workerPreflight.expectedStripePrepaidPurchases(
+    [sourceSubscription({ external_price_id: "price_regular" })],
+    [sourceEvent()],
+  );
+  assert.equal(report1.sourceWalletSubscriptions, 0);
+
+  const report2 = workerPreflight.expectedStripePrepaidPurchases(
+    [sourceSubscription({ external_price_id: "wallet:plus" })],
+    [sourceEvent()],
+  );
+  assert.equal(report2.sourceWalletSubscriptions, 1);
+  assert.equal(report2.expected.length, 1);
+});
+
+test("evidence with mismatched userId or amountMinor is tracked separately from unverifiable source", () => {
+  // Two subscriptions, but only one has matching evidence
+  const event = sourceEvent();
+  const sub1 = sourceSubscription();
+  const sub2 = sourceSubscription({ id: "sub2", external_subscription_id: "pi_other" });
+
+  const report = workerPreflight.expectedStripePrepaidPurchases(
+    [sub1, sub2],
+    [event],
+  );
+
+  // One subscription has evidence, one doesn't
+  assert.equal(report.sourceWalletSubscriptions, 2);
+  assert.equal(report.sourcePaymentEvidence, 1);
+  assert.equal(report.unverifiableSource, 1); // sub2 has no matching evidence
+});
+
+test("checkout mode and payment_status must both be correct", () => {
+  const wrongMode = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription", // should be "payment"
+          payment_status: "paid",
+          payment_intent: "pi_test",
+          amount_total: 499,
+          metadata: { bandup_user_id: USER },
+        },
+      },
+    },
+  });
+  assert.equal(wrongMode, null);
+
+  const wrongStatus = workerPreflight.prepaidEvidenceFromProviderEvent({
+    provider: "stripe",
+    payload: {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "payment",
+          payment_status: "unpaid", // should be "paid"
+          payment_intent: "pi_test",
+          amount_total: 499,
+          metadata: { bandup_user_id: USER },
+        },
+      },
+    },
+  });
+  assert.equal(wrongStatus, null);
+});

@@ -285,6 +285,93 @@ test("the price check reports false when it could not be run, never true", () =>
     }
   }));
 
+test("billing_storage_configured is false when neither Supabase nor native Stripe billing back it", () =>
+  withFullConfig(async () => {
+    const restore = mockReachableStripe();
+    const savedSupabaseUrl = process.env.SUPABASE_URL;
+    const savedSupabaseAnon = process.env.SUPABASE_ANON_KEY;
+    const savedSupabaseService = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_ANON_KEY;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    try {
+      const result = await billingHealth();
+      assert.equal(
+        result.checks.find((c) => c.name === "billing_storage_configured").ok,
+        false,
+      );
+    } finally {
+      restore();
+      if (savedSupabaseUrl !== undefined) process.env.SUPABASE_URL = savedSupabaseUrl;
+      if (savedSupabaseAnon !== undefined) process.env.SUPABASE_ANON_KEY = savedSupabaseAnon;
+      if (savedSupabaseService !== undefined) process.env.SUPABASE_SERVICE_ROLE_KEY = savedSupabaseService;
+    }
+  }));
+
+test("stripe_reachable is false, not true, when there is no key to even ask with", () =>
+  withFullConfig(async () => {
+    const savedKey = process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_SECRET_KEY;
+    const savedFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      throw new Error("stripeDiagnostic must not make a network call with no key at all");
+    };
+    try {
+      const result = await billingHealth();
+      assert.equal(result.checks.find((c) => c.name === "stripe_reachable").ok, false);
+    } finally {
+      globalThis.fetch = savedFetch;
+      if (savedKey !== undefined) process.env.STRIPE_SECRET_KEY = savedKey;
+    }
+  }));
+
+/*
+  stripe_prices_match_catalogue must stay false whenever any of {a key,
+  every Price id, a reachable Stripe} is missing — even in the one case where
+  actually running the price comparison anyway would have said "matches".
+  Mocking every request the same way (as the tests above do) cannot tell that
+  apart from correctly skipping the comparison, because the Price reads
+  underneath happen to fail too. Answering /prices/ correctly while failing
+  only /subscriptions (the read `stripe_reachable` alone depends on) is what
+  makes "skipped, so false" and "ran anyway, so true" observably different.
+*/
+test("stripe_prices_match_catalogue stays false when Stripe is unreachable, even though the Price reads would have matched", () =>
+  withFullConfig(async () => {
+    const savedFetch = globalThis.fetch;
+    globalThis.fetch = async (url) => {
+      const target = String(url);
+      if (target.includes("/subscriptions")) {
+        return new Response(JSON.stringify({ error: { code: "api_key_expired" } }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (target.includes("/prices/")) {
+        const id = decodeURIComponent(target.split("/prices/")[1].split("?")[0]);
+        const plan = PLAN_ID_BY_VAR[id.replace(/^price_/, "").toUpperCase()];
+        return new Response(JSON.stringify(cataloguePrice(plan)), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ data: [], livemode: false }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+    try {
+      const result = await billingHealth();
+      assert.equal(result.checks.find((c) => c.name === "stripe_reachable").ok, false);
+      assert.equal(
+        result.checks.find((c) => c.name === "stripe_prices_match_catalogue").ok,
+        false,
+        "a Stripe that could not even answer /subscriptions must not be credited with verified prices",
+      );
+    } finally {
+      globalThis.fetch = savedFetch;
+    }
+  }));
+
 test("a failing price check still leaks nothing but a boolean and a fixed name", () =>
   withFullConfig(async () => {
     const restore = mockReachableStripe((plan) =>

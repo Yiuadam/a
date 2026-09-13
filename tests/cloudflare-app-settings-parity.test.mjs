@@ -162,6 +162,49 @@ for (const mode of ["dual", "read_cloudflare"]) {
   });
 }
 
+test("a key Supabase has and D1 does not is reported source_only, not equal or absent", async () => {
+  const context = fixture();
+  seedActor(context);
+  // Nothing is written to D1 for either key; readSource answers only for
+  // "maintenance", so target is absent while source is present for it.
+  const readSource = async (key) => (key === "maintenance"
+    ? { key: "maintenance", value: { closed: false }, updatedAt: NEW, updatedBy: ACTOR }
+    : null);
+  const report = await parity.appSettingsParityReport(context.bindings, readSource);
+  assert.deepEqual(report.items.map((item) => [item.key, item.status]), [
+    ["maintenance", "source_only"],
+    ["maintenance_dispatch", "absent"],
+  ]);
+  assert.equal(report.readyForAppSettingsCutover, false);
+});
+
+test("reconciliation throws the exact per-key message, naming the key, when the D1 write itself fails", async () => {
+  // readSource answers null for both keys, so reconciliation only ever calls
+  // deleteCloudflareAppSettingReplica -- a fake D1 whose DELETE always
+  // reports success:false stands in for a real write failure without
+  // needing to fabricate an invalid key the fixed CUTOVER_APP_SETTING_KEYS
+  // list could never actually contain.
+  const alwaysFailingDelete = {
+    db: {
+      prepare(sql) {
+        return { bind: (...values) => ({ values, async run() { return { success: !/^\s*DELETE/i.test(sql), meta: {} }; } }) };
+      },
+    },
+    files: {},
+  };
+  const previous = process.env.CLOUDFLARE_DATA_MODE;
+  process.env.CLOUDFLARE_DATA_MODE = "dual";
+  try {
+    await assert.rejects(
+      () => parity.reconcileAppSettingsReplica(alwaysFailingDelete, async () => null),
+      /^Error: App setting maintenance could not be reconciled$/,
+    );
+  } finally {
+    if (previous === undefined) delete process.env.CLOUDFLARE_DATA_MODE;
+    else process.env.CLOUDFLARE_DATA_MODE = previous;
+  }
+});
+
 test("reconciliation refuses to copy a retired Supabase authority forwards", async () => {
   const context = fixture();
   const previous = process.env.CLOUDFLARE_DATA_MODE;
