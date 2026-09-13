@@ -166,6 +166,21 @@ export default function LookupProvider({ children }: { children: React.ReactNode
   }, []);
 
   /*
+    Escape closes the panel the same way the backdrop and the ✕ button do.
+    The panel has no focus trap, so this is a document listener rather than
+    one on the panel itself — a learner tabbing into the word-lookup input
+    should still be able to press Escape and get back to the passage.
+  */
+  useEffect(() => {
+    if (panel.status === "closed") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [panel.status, close]);
+
+  /*
     Watch for a text selection inside a lookup-able region and offer a pill.
     This is an event listener rather than a render-time computation because the
     selection lives in the DOM, not in React state.

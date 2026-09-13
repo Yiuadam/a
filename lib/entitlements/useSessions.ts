@@ -2,7 +2,7 @@
 
 import { useMemo, useSyncExternalStore } from "react";
 import { useProfile } from "@/lib/hooks";
-import { useTier } from "@/lib/billing/useTier";
+import { useTier, type TierState } from "@/lib/billing/useTier";
 import { previewOnServer, readPreview, subscribePreview } from "@/lib/billing/preview";
 import { allowanceFor, lockReason, sessionsLeft, type LockReason, type SessionTier } from "./sessions";
 import type { ModuleName, ModuleResult } from "@/lib/types";
@@ -107,6 +107,35 @@ function countThisWeek(results: readonly ModuleResult[], module: ModuleName, now
   return n;
 }
 
+/**
+ * The session tier real account data resolves to, given what useTier() has
+ * answered so far.
+ *
+ * Pulled out of useSessionAccess() below as its own pure function so the
+ * precedence — loading and accounts-switched-off both stay optimistic, a
+ * genuine failure does not — can be pinned directly against a fake
+ * TierState-shaped answer, the way lib/entitlements/sessions.ts's own table
+ * already is, rather than only indirectly through a hook that needs a render
+ * to exercise.
+ *
+ * The first branch below depends on accountsEnabled being carried through a
+ * failed lookup rather than reset to false — see the WHY comment on the catch
+ * handler in lib/billing/useTier.ts. Get that wrong again and this branch
+ * silently stops being reachable, exactly as it did before that fix: every
+ * failure would report accountsEnabled: false and fall straight to the "free"
+ * branch below instead.
+ */
+export function realSessionTier(
+  account: Pick<TierState, "phase" | "accountsEnabled" | "signedIn" | "tier">,
+): SessionTier {
+  if (account.phase === "unavailable" && account.accountsEnabled) return "anonymous";
+  if (account.phase !== "ready" || !account.accountsEnabled) return "free";
+  if (!account.signedIn) return "anonymous";
+  return account.tier === "admin" || account.tier === "ai" || account.tier === "tracking"
+    ? account.tier
+    : "free";
+}
+
 export function useSessionAccess(): Record<ModuleName, SkillAccess> & {
   tier: SessionTier;
   /** The account lookup is still in flight — see `pending` on SkillAccess. */
@@ -160,16 +189,7 @@ export function useSessionAccess(): Record<ModuleName, SkillAccess> & {
     no tier at all in that case and the whole app is free. Only the failure
     falls back, and it falls back to what an unidentified visitor gets.
   */
-  const real: SessionTier =
-    account.phase === "unavailable" && account.accountsEnabled
-      ? "anonymous"
-      : account.phase !== "ready" || !account.accountsEnabled
-      ? "free"
-      : !account.signedIn
-        ? "anonymous"
-        : account.tier === "admin" || account.tier === "ai" || account.tier === "tracking"
-          ? account.tier
-          : "free";
+  const real: SessionTier = realSessionTier(account);
 
   /*
     The owner's preview switch, and note the guard: it is only honoured when

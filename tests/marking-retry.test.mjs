@@ -12,6 +12,12 @@
   information to tell "your plan does not include marking" from "that did not
   work, try again", and the retry has to add only what is missing rather than
   re-running a pass that already wrote to the learner's history.
+
+  A third case sits inside "try again": a 401 or 402 that arrives for a
+  learner who was signed in when the screen opened is not the plan speaking
+  either — it is what a lapsed access token looks like from here — and it
+  earns a retry plus a sign-in link rather than the same dead end a genuine
+  Free-tier refusal gets. That is pinned here too.
 */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -48,7 +54,32 @@ test("the sitting offers to mark the essays again, and only when that could work
   assert.match(results, /markingFailure !== null && marks\.writing === null && wroteSomething/);
   assert.match(results, /const wroteSomething = tasks\.some\(/);
   assert.match(results, /onClick=\{\(\) => void remark\(\)\}/);
-  assert.match(results, /err instanceof ApiError && err\.retryable/);
+  // Widened from a plain `err.retryable` check to also admit a signed-in
+  // learner's lapsed session (see the next test) — the whole point of that
+  // fix is that such a 401/402 must reach this same retry path, not a new
+  // one of its own.
+  assert.match(results, /err\.retryable \|\| lapsedAuth/);
+});
+
+test("a 401 or 402 is retryable too, but only for a learner signed in for the sitting", () => {
+  // Asked once, from the account session's own snapshot, rather than from
+  // something that could answer differently by the time the retry banner is
+  // actually on screen — see MockResults's own comment on wasSignedIn.
+  assert.match(results, /const \[wasSignedIn\] = useState\(\(\) => getSnapshot\(\) !== null\)/);
+  assert.match(
+    results,
+    /const lapsedAuth = wasSignedIn && \(err\.status === 401 \|\| err\.status === 402\)/,
+  );
+  // A learner who was never signed in keeps the plain, final 402 — the
+  // sign-in link only appears once authLapsed says the session, not the
+  // plan, is the likely cause.
+  assert.match(results, /\{authLapsed && \(/);
+  assert.match(results, /<SignInLink/);
+  assert.match(results, /Sign in again/);
+  assert.match(
+    results,
+    /authLapsed \? "Your session may have lapsed during the sitting\." : markingFailure/,
+  );
 });
 
 test("marking again adds what is missing rather than repeating what worked", () => {

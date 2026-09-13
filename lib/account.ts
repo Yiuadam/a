@@ -264,34 +264,88 @@ export function isExpired(session: Session | null, now = Date.now()): boolean {
   return session.expiresAt - 60_000 <= now;
 }
 
+/**
+ * What one attempt at renewing a session came back with.
+ *
+ * `"refused"` is /api/auth/refresh answering that the refresh token itself is
+ * no good — the one signal that route actually gives a rejected caller,
+ * because it deliberately answers a genuine rejection and an outage on its
+ * own side of the wire the same way (see the comment on that route's 401
+ * branch): telling the two apart there would tell an attacker holding a
+ * stolen token whether it was real. `"transient"` is everything else that is
+ * not a new session — the request never getting an answer at all, or
+ * answering in some way that is not that one deliberate rejection either.
+ * Neither has told this app the token is bad, so neither may be treated as
+ * though it had.
+ */
+export type RefreshOutcome =
+  | { ok: true; session: Session }
+  | { ok: false; reason: "refused" | "transient" };
+
 /*
   Refreshing goes through our own API for the same reason signing in does: the
   browser has no Supabase credential to present, and giving it one would end
   the no-credential-in-the-bundle invariant.
 
-  Returns the new session, or null when the refresh token is spent — in which
-  case the caller signs out rather than retrying, because a rejected refresh
-  token does not become valid by being sent again.
+  ---------------------------------------------------------------------------
+  Why a dropped packet is not answered the same way as a rejection
+
+  This used to collapse both into `null`, and authedFetch trusted that a null
+  could mean only one thing: the refresh token is spent, sign out. It cannot —
+  a `fetch` that throws before any response arrives has said nothing about the
+  token at all, and a learner mid-way through a three-hour mock sitting who
+  loses one packet at the wrong moment was being signed out for it, silently,
+  with the one thing that could still have fixed it — the refresh token —
+  thrown away in the same moment a fresh one might have been a retry away.
+
+  So the two are answered differently below. A `fetch` that never lands, or
+  lands as anything other than that one deliberate rejection, is
+  `"transient"`: the caller keeps the session and may simply try again later,
+  on whatever request next needs a fresh token. Only `"refused"` — the server
+  actually answering that this token is done — spends it.
 */
-export async function refreshSession(session: Session, apiBase = AUTH_API_BASE): Promise<Session | null> {
-  if (!session.refreshToken) return null;
+export async function refreshSession(
+  session: Session,
+  apiBase = AUTH_API_BASE,
+): Promise<RefreshOutcome> {
+  if (!session.refreshToken) return { ok: false, reason: "refused" };
+
+  let res: Response;
   try {
-    const res = await fetch(`${apiBase}/api/auth/refresh`, {
+    res = await fetch(`${apiBase}/api/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: session.refreshToken }),
     });
-    if (!res.ok) return null;
+  } catch {
+    return { ok: false, reason: "transient" };
+  }
+
+  if (!res.ok) {
+    // 4xx is the route's own considered refusal (see the header). Anything
+    // else — a 5xx, most concretely — is not that: it is the same "not an
+    // answer" a dropped packet is, and gets the same benefit of the doubt.
+    return { ok: false, reason: res.status >= 400 && res.status < 500 ? "refused" : "transient" };
+  }
+
+  try {
     const body = (await res.json()) as Partial<Session>;
-    if (typeof body.accessToken !== "string" || body.accessToken.length === 0) return null;
+    if (typeof body.accessToken !== "string" || body.accessToken.length === 0) {
+      // A 200 that did not actually carry a session is a malformed answer,
+      // not this token being refused.
+      return { ok: false, reason: "transient" };
+    }
     return {
-      accessToken: body.accessToken,
-      refreshToken: typeof body.refreshToken === "string" ? body.refreshToken : session.refreshToken,
-      expiresAt: typeof body.expiresAt === "number" ? body.expiresAt : null,
-      email: typeof body.email === "string" ? body.email : session.email,
+      ok: true,
+      session: {
+        accessToken: body.accessToken,
+        refreshToken: typeof body.refreshToken === "string" ? body.refreshToken : session.refreshToken,
+        expiresAt: typeof body.expiresAt === "number" ? body.expiresAt : null,
+        email: typeof body.email === "string" ? body.email : session.email,
+      },
     };
   } catch {
-    return null;
+    return { ok: false, reason: "transient" };
   }
 }
 
@@ -340,14 +394,25 @@ export async function authedFetch(
   let session = getSnapshot();
 
   if (session && isExpired(session)) {
-    const next = await refreshSession(session, apiBase);
-    if (next) {
-      saveSession(next);
-      session = next;
-    } else {
+    const outcome = await refreshSession(session, apiBase);
+    if (outcome.ok) {
+      saveSession(outcome.session);
+      session = outcome.session;
+    } else if (outcome.reason === "refused") {
       clearSession();
       session = null;
     }
+    /*
+      A "transient" outcome falls all the way through, on purpose: `session`
+      stays exactly what was read above, refresh token included, and the
+      request below still carries its access token — by this app's own clock
+      already expired — rather than none at all. That is deliberately
+      hopeful rather than careless: isExpired keeps a minute of slack before
+      the browser calls a token expired at all, so the server's own clock may
+      still accept it, and where it does not, the caller sees the same 401 or
+      402 an anonymous request would have produced anyway — with the session
+      still here to retry once the network, or the server, is.
+    */
   }
 
   const headers = new Headers(init.headers);

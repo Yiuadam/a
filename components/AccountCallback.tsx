@@ -21,8 +21,16 @@ import { apiUrl } from "@/lib/api";
   which is the same shape lib/store.ts uses for localStorage and for the same
   reason: it is browser state that does not exist during the server render, so
   it needs an explicit server snapshot instead of a first render that guesses
-  and a second that corrects. It also keeps the effect below free of setState,
-  so the whole component renders once and then acts.
+  and a second that corrects.
+
+  That snapshot is "" — right for a bare URL, wrong for every other one —
+  because the hydration render has to match what the server produced, and the
+  server never saw the fragment at all. The effects below used to act on
+  whatever render they saw first, which was that hydration render: an error,
+  a session or an email link all read as "nothing here", and `fragment === ""`
+  sent the browser on to a plain /account/ before the corrected render with
+  the real hash ever arrived. `hydrated` below exists to give React that one
+  extra render before either effect is allowed to decide anything.
 */
 
 function subscribeToHash(onChange: () => void): () => void {
@@ -39,7 +47,33 @@ function serverHash(): string {
   return "";
 }
 
-function emailActionFromFragment(fragment: string): { token: string; action: "confirm" | "recover" } | null {
+/*
+  A hydration flag built the same way `fragment` is, rather than a useState
+  flipped from inside a useEffect: React already knows how to give a
+  component one extra render once the client snapshot is allowed to differ
+  from the server one, and useSyncExternalStore is the primitive that says
+  so — no setState-in-an-effect required, and nothing for the
+  set-state-in-effect lint rule to object to.
+*/
+function subscribeOnce(): () => void {
+  return () => {};
+}
+
+function hydratedOnClient(): boolean {
+  return true;
+}
+
+function notYetHydrated(): boolean {
+  return false;
+}
+
+/*
+  Exported for the same reason errorFromFragment and sessionFromFragment in
+  lib/account.ts are: it is the one piece of this screen's logic that a test
+  can check without a browser, so it stays a pure function of the fragment
+  rather than folded into the effect that acts on it.
+*/
+export function emailActionFromFragment(fragment: string): { token: string; action: "confirm" | "recover" } | null {
   const params = new URLSearchParams(fragment.replace(/^#/, ""));
   const token = params.get("email_token");
   const action = params.get("email_action");
@@ -58,8 +92,17 @@ export default function AccountCallback() {
   const emailToken = emailAction?.token ?? null;
   const emailActionName = emailAction?.action ?? null;
 
+  /*
+    False for exactly one render: the hydration one, where `fragment` above is
+    still reporting serverHash() rather than the real one. Neither effect
+    below may act before this flips, because both of them derive their
+    decision from `fragment`, and on that first render `fragment` is a
+    stand-in value rather than a reading of the URL.
+  */
+  const hydrated = useSyncExternalStore(subscribeOnce, hydratedOnClient, notYetHydrated);
+
   useEffect(() => {
-    if (!emailToken || !emailActionName) return;
+    if (!hydrated || !emailToken || !emailActionName) return;
     let cancelled = false;
     void fetch(apiUrl("/api/auth/email/consume"), {
       method: "POST",
@@ -76,13 +119,21 @@ export default function AccountCallback() {
       if (!response.ok || typeof body?.accessToken !== "string" || body.accessToken.length === 0) {
         throw new Error(typeof body?.error === "string" ? body.error : "That sign-in link could not be used.");
       }
-      if (cancelled) return;
+      /*
+        Saved before the cancellation check, not after: the token this request
+        carried is already spent server-side the moment the response arrives,
+        successful or not, so there is no version of "cancelled" in which
+        declining to keep the session it bought helps anyone. Losing that race
+        used to mean a one-time link that could never be used again and no
+        session to show for it — the exact loop this ordering closes.
+      */
       saveSession({
         accessToken: body.accessToken,
         refreshToken: typeof body.refreshToken === "string" ? body.refreshToken : null,
         expiresAt: typeof body.expiresAt === "number" ? body.expiresAt : null,
         email: typeof body.email === "string" ? body.email : null,
       });
+      if (cancelled) return;
       window.history.replaceState(null, "", window.location.pathname);
       router.replace(consumeAuthReturnPath("/"));
     }).catch((error: unknown) => {
@@ -94,9 +145,11 @@ export default function AccountCallback() {
     return () => {
       cancelled = true;
     };
-  }, [emailToken, emailActionName, router]);
+  }, [hydrated, emailToken, emailActionName, router]);
 
   useEffect(() => {
+    if (!hydrated) return;
+
     /*
       `history.replaceState` rather than a redirect for the clearing step, so
       the URL carrying the token does not sit in session history behind a back
@@ -120,12 +173,13 @@ export default function AccountCallback() {
       rewrites URLs. Neither is worth an alarming message, so it is treated as
       an ordinary arrival at the account page.
 
-      Guarded on the fragment being genuinely empty: during the very first
-      client render useSyncExternalStore has not yet been given the real hash
-      on some paths, and redirecting then would throw away a good session.
+      fragment is trustworthy here specifically because of the `hydrated`
+      guard above: this is never the hydration render, so "" means the URL
+      really carried nothing rather than useSyncExternalStore still reporting
+      its server snapshot.
     */
     if (fragment === "") router.replace("/account/");
-  }, [failure, emailFailure, session, fragment, router]);
+  }, [hydrated, failure, emailFailure, session, fragment, router]);
 
   const shownFailure = failure ?? emailFailure;
 

@@ -79,6 +79,16 @@ export default function ExamSettings() {
     };
   }, [open, display.scheme]);
 
+  /* Escape closes the popover the same way its backdrop button does. */
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   return (
     <div className="relative">
       <button

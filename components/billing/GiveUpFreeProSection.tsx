@@ -8,7 +8,8 @@ import {
   subscribe as subscribeSession,
 } from "@/lib/account";
 import { apiUrl } from "@/lib/api";
-import { forgetDecision } from "@/lib/billing/free-pro-dismissal";
+import { dismissedAlready, forgetDecision } from "@/lib/billing/free-pro-dismissal";
+import { acceptFreePro } from "@/lib/billing/free-pro-offer";
 import { TIERS, type Tier } from "@/lib/billing/tiers";
 
 /*
@@ -57,10 +58,35 @@ import { TIERS, type Tier } from "@/lib/billing/tiers";
   poster hides itself on a device once it has been answered there, and that flag
   would otherwise hide the one place the offer is made — so the exit clears it.
   See lib/billing/free-pro-dismissal.ts.
+
+  ---------------------------------------------------------------------------
+  The other way back: a "No thanks" that was never a "yes"
+
+  Everything above assumes the trial was accepted at least once — held, or
+  released and offered again. Someone who declined the poster outright,
+  having never held it, is a different reader this file used to have nothing
+  for: `held` is false and there is no notice, so the section rendered
+  nothing, on a device whose dismissal flag the server's offer had entirely
+  outlived.
+
+  The one-line row below is that reader's way back, and it deliberately does
+  not go through the shared offer store in lib/billing/free-pro-offer.ts —
+  that store checks the dismissal flag *before* it asks the server, precisely
+  so a "No thanks" stops the poster asking again, and reusing it here would
+  reproduce the exact silence this row exists to end. So this file asks
+  /api/billing/promo directly, the same way it already does for `grantHeld`,
+  and shows the row only once that answer and the dismissal flag disagree —
+  the account is still offered it, and this device merely said not right now.
+  Accepting through it still calls the shared acceptFreePro(), which is what
+  hands rendering on to the poster mounted just above this section (see
+  AccountPanel.tsx's SignedIn): once accepted, that poster is no longer
+  dismissed and takes over the busy, success and error states on its own,
+  which is why this row does not keep any of its own.
 */
 
 interface PromoAnswer {
   grantHeld?: boolean;
+  offered?: boolean;
 }
 
 type Notice =
@@ -88,6 +114,12 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
     getSessionServerSnapshot,
   );
   const [held, setHeld] = useState(false);
+  /*
+    Offered, and independently of whatever this device's dismissal flag says —
+    see the file header. Read off the same response `held` already reads
+    rather than a second request.
+  */
+  const [reentry, setReentry] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
@@ -102,13 +134,22 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
     const done = () => {
       alive = false;
       setHeld(false);
+      setReentry(false);
     };
     if (!session) return done;
 
     authedFetch(apiUrl("/api/billing/promo"))
       .then(async (res) => (res.ok ? ((await res.json()) as PromoAnswer) : null))
       .then((body) => {
-        if (alive) setHeld(body?.grantHeld === true);
+        if (!alive) return;
+        setHeld(body?.grantHeld === true);
+        /*
+          dismissedAlready() is read here, in the same effect that already asks
+          the server, rather than in the render body: the render stays a pure
+          function of state, and the read happens once per answer instead of
+          once per render.
+        */
+        setReentry(body?.offered === true && dismissedAlready());
       })
       .catch(() => {
         /* No answer means no card. Silence is the safe direction here. */
@@ -116,6 +157,17 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
 
     return done;
   }, [session]);
+
+  /*
+    Handing straight to the shared offer store rather than repeating its
+    accept/error handling here — see the file header. The row disappears the
+    moment this runs, whatever the outcome, because from here on the poster
+    mounted above this section is the one drawing the answer.
+  */
+  const startFreshTrial = useCallback(() => {
+    setReentry(false);
+    void acceptFreePro();
+  }, []);
 
   /*
     Both writes take the server's answer as the new state rather than asking
@@ -191,11 +243,32 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
   }, [onChanged]);
 
   /*
-    Nothing to say: no trial on this account, and nothing has just happened to
-    one. The card is absent rather than empty — a heading about a trial somebody
-    does not have is a question they did not ask.
+    Nothing to say: no trial on this account, nothing has just happened to
+    one, and the server is not currently offering it either. The card is
+    absent rather than empty — a heading about a trial somebody does not have
+    is a question they did not ask.
   */
-  if (!held && notice === null) return null;
+  if (!held && notice === null) {
+    if (!reentry) return null;
+    /*
+      Offered, but dismissed on this device without ever being accepted — see
+      the file header. Everything else in this file below this point assumes
+      the trial was taken up at least once, so this is the one way back for a
+      reader that assumption does not cover.
+    */
+    return (
+      <p className="text-sm leading-6 text-slate-600">
+        Free AI trial available —{" "}
+        <button
+          type="button"
+          className="font-medium text-indigo-700 underline underline-offset-2"
+          onClick={startFreshTrial}
+        >
+          start it
+        </button>
+      </p>
+    );
+  }
 
   const problem = notice?.kind === "problem" ? notice.text : null;
 
@@ -214,7 +287,7 @@ export default function GiveUpFreeProSection({ onChanged }: { onChanged?: () => 
         </p>
         <p className="mt-3 text-[0.9375rem] leading-7 text-slate-700">
           You can start the trial again while it is still open, either from the button below or
-          from the offer on the home page.
+          from the offer on this page.
         </p>
         {problem && (
           <p className="mt-3 text-[0.9375rem] leading-7 text-amber-800" role="alert">

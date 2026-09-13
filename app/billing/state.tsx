@@ -3,7 +3,7 @@
 import Link from "next/link";
 import SignInLink from "@/components/account/SignInLink";
 import type { ReactNode } from "react";
-import type { TierState } from "@/lib/billing/useTier";
+import type { useTier } from "@/lib/billing/useTier";
 import LoadingIndicator from "@/components/LoadingIndicator";
 
 /*
@@ -51,7 +51,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
  * Used as a guard: `const blocked = billingBlocker(state);` then
  * `{blocked ?? <TheRealThing />}`.
  */
-export default function billingBlocker(state: TierState): ReactNode | null {
+export default function billingBlocker(state: ReturnType<typeof useTier>): ReactNode | null {
   if (state.phase === "loading") {
     return (
       <div className="card">
@@ -66,8 +66,14 @@ export default function billingBlocker(state: TierState): ReactNode | null {
         <h2 className="font-semibold text-slate-900">Your account details are not loading</h2>
         <p className="mt-1.5 text-[0.9375rem] leading-7 text-slate-700">
           Everything you have done is still saved on this device, and every practice test and drill
-          still works. This page will fill in once the connection comes back.
+          still works. It asks again on its own once your connection returns or you come back to
+          this tab — or press the button below now.
         </p>
+        <div className="mt-4">
+          <button type="button" className="btn-secondary" onClick={state.retry}>
+            Try again
+          </button>
+        </div>
       </div>
     );
   }

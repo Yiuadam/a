@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { accountUsernameReady } from "@/lib/auth/account-identity";
 import { routePath } from "@/lib/platform";
-import LoadingIndicator from "@/components/LoadingIndicator";
 import { useAccountProfile } from "./AccountProfileProvider";
 
 const ALWAYS_REACHABLE = [
@@ -76,18 +75,37 @@ export default function RequiredAccountGate({ children }: { children: React.Reac
   const usernameReady = accountUsernameReady(profile);
   const blocked = phase === "ready" && !usernameReady && !allowed;
 
+  /*
+    Send an unfinished account to onboarding once, and only once.
+
+    This gate lives in the root layout, so it does not unmount as the learner
+    moves between pages — which means a ref here survives every navigation for
+    the life of the app load. That is deliberate: `usernameReady` can stay
+    false after onboarding has genuinely been dealt with — a D1 mirror running
+    behind, or "do this later" — and without this guard the gate would send
+    /account (or /) to onboarding, onboarding's own router.refresh would bring
+    the learner back, the gate would fire again, and the two would ping-pong as
+    fast as the network allows. One learner sitting on that loop is tens of
+    thousands of Worker requests an hour. So: redirect at most once; if the
+    learner comes back still unfinished, let them be rather than trap them (the
+    server is the real gate on anything that matters).
+  */
+  const redirected = useRef(false);
   useEffect(() => {
-    if (!blocked) return;
+    if (!blocked || redirected.current) return;
+    redirected.current = true;
     const returnTo = `${pathname}${window.location.search}`;
     router.replace(`/account/onboarding?returnTo=${encodeURIComponent(returnTo)}`);
   }, [blocked, pathname, router]);
 
-  if (blocked) {
-    return (
-      <main className="grid min-h-[50dvh] place-items-center px-5 py-10" aria-live="polite">
-        <p className="text-sm text-slate-500"><LoadingIndicator label="Opening account setup…" /></p>
-      </main>
-    );
-  }
+  /*
+    No spinner branch. It used to return one while `blocked`, but a ref cannot
+    be read during render to tell "about to redirect" from "came back still
+    unfinished", and the second must show the app rather than a spinner that
+    never resolves. The redirect above is a soft navigation that happens on the
+    next tick anyway, and this file already argues (above) against throwing an
+    already-painted page away — so the children render, and a genuinely blocked
+    new account is moved to onboarding a frame later.
+  */
   return children;
 }

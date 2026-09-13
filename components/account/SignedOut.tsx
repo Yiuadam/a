@@ -213,9 +213,15 @@ function PasswordForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [resent, setResent] = useState(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  /*
+    Takes no event, so the confirm screen's "send it again" button can call it
+    directly: that screen has no form of its own to submit, only the same
+    identifier and password already sitting in state from the attempt that
+    got it here.
+  */
+  async function submitCredentials(isResend: boolean) {
     if (busy || identifier.trim().length === 0 || password.length === 0) return;
     setBusy(true);
     setError(null);
@@ -255,6 +261,7 @@ function PasswordForm() {
       }
       if (data.confirm) {
         setConfirm(true);
+        setResent(isResend);
         return;
       }
       if (typeof data.accessToken === "string" && data.accessToken.length > 0) {
@@ -299,12 +306,45 @@ function PasswordForm() {
     }
   }
 
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    void submitCredentials(false);
+  }
+
   if (confirm) {
     return (
-      <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[0.9375rem] leading-7 text-emerald-800">
-        Check your inbox — there is a link there that finishes setting up your account. If that
-        address already had an account, use your existing password instead.
-      </p>
+      <div className="mt-4 space-y-3">
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[0.9375rem] leading-7 text-emerald-800">
+          {resent
+            ? "Sent — check your inbox again."
+            : "Check your inbox — there is a link there that finishes setting up your account. It works once and expires after an hour."}
+        </p>
+        {error && (
+          <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm leading-6 text-rose-900">
+            {error}
+          </p>
+        )}
+        {/*
+          The confirm screen used to end here, telling a pending account to
+          sign in with the password it just set — which the server refuses,
+          because a credential stays pending until that inbox link is used.
+          The one real fix when the email is slow, filtered, or never sent is
+          another one, which is what re-posting the same identifier and
+          password with mode "signup" already gets: lib/auth/native-email.ts's
+          startNativePasswordRegistration resends to a still-pending address
+          rather than erroring, and answers exactly as it did the first time
+          either way, so this button gives away nothing a first attempt did
+          not already.
+        */}
+        <button
+          type="button"
+          className="text-sm font-medium text-indigo-700 underline underline-offset-2"
+          onClick={() => void submitCredentials(true)}
+          disabled={busy}
+        >
+          {busy ? <LoadingIndicator label="Sending…" announce={false} /> : "Send the link again"}
+        </button>
+      </div>
     );
   }
 

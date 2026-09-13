@@ -54,6 +54,13 @@ const SYNCED_AT = "bandup.sync.v1";
   Cleared the moment an attempt next succeeds.
 */
 const SYNC_FAILED = "bandup.sync-failed.v1";
+/*
+  Whether this device's saved practice is too large for the account to accept
+  — kept apart from SYNC_FAILED because it needs a different sentence, one
+  that does not promise a retry will fix it. See the WHY note on "too-large"
+  in SyncOutcome above.
+*/
+const SYNC_TOO_LARGE = "bandup.sync-too-large.v1";
 
 export type SyncOutcome =
   | {
@@ -78,7 +85,17 @@ export type SyncOutcome =
     keeps trying anyway is spending requests to relearn a fact it already
     has. See app/api/account/progress/route.ts.
   */
-  | { status: "not-entitled" };
+  | { status: "not-entitled" }
+  /*
+    The account refused the write for being over its 2MB cap (MAX_BYTES in
+    app/api/account/progress/route.ts), not for being unreachable. Distinct
+    from "unavailable" for the same reason "not-entitled" is: this device's
+    own history is the thing standing in the way, so retrying uploads the
+    exact same payload and earns the exact same 413 every time until a
+    learner clears some of it — a fact worth telling them rather than a
+    promise ("it will try again automatically") that cannot come true.
+  */
+  | { status: "too-large" };
 
 export type ClearSyncedProgressOutcome = SyncOutcome | { status: "restricted" };
 
@@ -357,6 +374,12 @@ async function syncProgressWithOptions(
   // Its presence is what step 4 below uses to tell a confirmed sync from a
   // merge that only made it as far as this device.
   let at: string | null = null;
+  /*
+    Whether step 3's PUT was refused as too large. Kept separate from `at`
+    staying null, which also covers an ordinary "unavailable" — the two need
+    different endings below, one retryable and one that is not.
+  */
+  let tooLarge = false;
   const accepted: Record<StoreKey, Snapshot> = Object.fromEntries(
     KEYS.map((storeKey) => [storeKey, {
       storeKey,
@@ -404,7 +427,20 @@ async function syncProgressWithOptions(
     });
     if (res.status === 401) return { status: "signed-out" };
     if (res.status === 402) return { status: "not-entitled" };
-    if (!res.ok) {
+    if (res.status === 413) {
+      /*
+        Same guard as the generic failure below, and for the same reason: a
+        clear must not commit its hypothetical result locally unless the
+        account actually accepted it, so it keeps returning immediately.
+        `merged` is a superset of what this device already had, so an
+        ordinary sync still falls through to step 4 exactly as an ordinary
+        failure would — writing it locally can only add to this device's
+        copy, never lose from it. Recorded here as "too-large" rather than
+        "unavailable" so the account page can say what would actually fix it.
+      */
+      if (isClearRequest(options)) return { status: "too-large" };
+      tooLarge = true;
+    } else if (!res.ok) {
       /*
         This used to return { status: "unavailable" } here, which discarded
         the merge above along with everything step 1 had just fetched from the
@@ -603,10 +639,13 @@ async function syncProgressWithOptions(
 
   // A failed PUT falls all the way through to here now, with `at` left null —
   // see the WHY comment in step 3. The merge has been written locally either
-  // way; only the reported status differs.
+  // way; only the reported status differs, and a 413 earns its own rather
+  // than sharing "unavailable" with every other failure.
   return at
     ? { status: "done", at, ...(options.deleteRowsAfterClear ? { rowsDeleted } : {}) }
-    : { status: "unavailable" };
+    : tooLarge
+      ? { status: "too-large" }
+      : { status: "unavailable" };
 }
 
 export async function syncProgress(): Promise<SyncOutcome> {
@@ -675,12 +714,29 @@ function rememberSyncHealth(outcome: ClearSyncedProgressOutcome): void {
     return;
   }
   try {
-    if (outcome.status === "unavailable") window.localStorage.setItem(SYNC_FAILED, "1");
-    else window.localStorage.removeItem(SYNC_FAILED);
+    /*
+      The two flags are never both set: each attempt either failed outright,
+      failed for being oversized, or resolved some other way, and the account
+      page reads them as mutually exclusive (see AccountPanel.tsx). Clearing
+      the other one whenever one is set is what stops a device that fixed the
+      too-large problem from still being told about it after the next attempt
+      fails for the ordinary reason, or the reverse.
+    */
+    if (outcome.status === "unavailable") {
+      window.localStorage.setItem(SYNC_FAILED, "1");
+      window.localStorage.removeItem(SYNC_TOO_LARGE);
+    } else if (outcome.status === "too-large") {
+      window.localStorage.setItem(SYNC_TOO_LARGE, "1");
+      window.localStorage.removeItem(SYNC_FAILED);
+    } else {
+      window.localStorage.removeItem(SYNC_FAILED);
+      window.localStorage.removeItem(SYNC_TOO_LARGE);
+    }
   } catch {
     // Cosmetic only, exactly like the SYNCED_AT write in step 4 above.
   }
   window.dispatchEvent(new StorageEvent("storage", { key: SYNC_FAILED }));
+  window.dispatchEvent(new StorageEvent("storage", { key: SYNC_TOO_LARGE }));
 }
 
 /** When this browser last completed a sync, or null. */
@@ -704,6 +760,23 @@ export function lastSyncFailed(): boolean {
 }
 
 /**
+ * Whether this device's saved practice is currently too large to sync.
+ *
+ * A different question from lastSyncFailed(): this one has a fix a learner
+ * can actually take (clear some history), and retrying alone will never
+ * resolve it, so the account page reads the two apart rather than folding
+ * this into the ordinary failure message.
+ */
+export function lastSyncTooLarge(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(SYNC_TOO_LARGE) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Subscribes to changes in this device's sync status, for `useSyncExternalStore`.
  *
  * The same trick lib/store.ts and lib/account.ts use: a real `storage` event
@@ -715,7 +788,14 @@ export function lastSyncFailed(): boolean {
 export function subscribeSyncStatus(onChange: () => void): () => void {
   if (typeof window === "undefined") return () => {};
   const onStorage = (e: StorageEvent) => {
-    if (e.key === SYNCED_AT || e.key === SYNC_FAILED || e.key === null) onChange();
+    if (
+      e.key === SYNCED_AT ||
+      e.key === SYNC_FAILED ||
+      e.key === SYNC_TOO_LARGE ||
+      e.key === null
+    ) {
+      onChange();
+    }
   };
   window.addEventListener("storage", onStorage);
   return () => window.removeEventListener("storage", onStorage);
