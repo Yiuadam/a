@@ -27,11 +27,39 @@ import { syncProgress } from "./sync";
 
 const DEBOUNCE_MS = 1500;
 const RETRY_DELAYS_MS = [10_000, 30_000, 120_000, 300_000] as const;
+/*
+  This whole site shares one Cloudflare Workers Free-plan budget of 100,000
+  requests/day; a sync the account keeps rejecting must not keep asking every
+  five minutes for as long as the tab happens to stay open — that is exactly
+  how the two real 1027 outages started. RETRY_BUDGET bounds the number of
+  unattended retries since the last success (mirrors RESTART_BUDGET in
+  components/speaking/SpeakingSession.tsx for the same shape of problem): once
+  it is spent, scheduleRetry stops arming further timers on its own. At the
+  five-minute floor, twenty retries is still roughly ninety minutes of trying
+  — long enough to sit out a deploy, a rollback, or a rough patch of network,
+  short enough that a genuinely broken route goes quiet within a sitting
+  rather than for the rest of the day.
+
+  retryFailures is deliberately separate from retryAttempt (which only picks
+  the delay) and is NOT reset by scheduleSync/flushProgressSync — only a
+  successful sync, or signing out, clears it. scheduleSync resetting
+  retryAttempt is what lets returning to a tab retry immediately rather than
+  waiting out whatever backoff step it was on, and that is worth keeping: it
+  is how a device notices another device's practice soon after being looked
+  at again. But if retryFailures reset the same way, a learner who keeps
+  switching tabs could refill the budget indefinitely and reproduce the same
+  unbounded loop with extra steps. Once the budget is spent, a real trigger
+  (a write, a sign-in, coming back online) can still ask for a sync — this
+  module never refuses to try — it just won't schedule a follow-up by itself
+  until one of those attempts actually succeeds.
+*/
+const RETRY_BUDGET = 20;
 
 let timer: number | null = null;
 let inFlight = false;
 let runAgain = false;
 let retryAttempt = 0;
+let retryFailures = 0;
 
 function signedIn(): boolean {
   return sessionSnapshot() !== null;
@@ -63,7 +91,10 @@ async function run(): Promise<void> {
     scheduleSync(0);
     return;
   }
-  if (outcome.status === "done") retryAttempt = 0;
+  if (outcome.status === "done") {
+    retryAttempt = 0;
+    retryFailures = 0;
+  }
   /* A payload the server refuses as too large stays too large until the
      learner clears something; retrying it every minute would only repeat the
      refusal, so it waits for the next real write like the other final states. */
@@ -85,8 +116,13 @@ function setTimer(delayMs: number): void {
 
 function scheduleRetry(): void {
   if (!signedIn() || navigator.onLine === false || document.hidden) return;
+  // The budget is spent: stop arming timers by ourselves. run() is still
+  // reachable from a fresh external trigger, so this is a pause, not a dead
+  // end — see the WHY note on RETRY_BUDGET above.
+  if (retryFailures >= RETRY_BUDGET) return;
   const delay = RETRY_DELAYS_MS[Math.min(retryAttempt, RETRY_DELAYS_MS.length - 1)];
   retryAttempt += 1;
+  retryFailures += 1;
   setTimer(delay);
 }
 
@@ -108,4 +144,5 @@ export function cancelScheduledSync(): void {
   timer = null;
   runAgain = false;
   retryAttempt = 0;
+  retryFailures = 0;
 }

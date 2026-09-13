@@ -5,7 +5,8 @@
   round trip in progress-sync-storage.test.mjs. These checks pin the part a
   learner actually relies on when the manual button is absent: changes are
   queued, bursts are coalesced, a temporary network failure leaves another
-  trigger able to retry, and a write made during an upload earns a second pass.
+  trigger able to retry, a write made during an upload earns a second pass,
+  and a sync that never stops failing eventually stops asking by itself.
 */
 import assert from "node:assert/strict";
 import { register } from "node:module";
@@ -254,4 +255,59 @@ test("automatic progress scheduling is resilient", async (t) => {
     assert.equal(getCount, beforeGets + 2);
     assert.equal(putCount, beforePuts + 2);
   });
+});
+
+test("a permanently failing sync stops scheduling itself once its retry budget is spent, and a fresh trigger can still start over", async () => {
+  timers.clear();
+  // cancelScheduledSync clears retryAttempt and retryFailures regardless of
+  // sign-in state, so this is a clean slate no matter how the previous test
+  // left the module -- signIn() already ran above and the session persists.
+  autosync.cancelScheduledSync();
+  offline = true;
+  const beforeRequests = requestCount;
+
+  autosync.scheduleSync(0);
+  let attempts = 0;
+  // Keep firing whatever this schedules for itself. A permanently failing
+  // sync must run out on its own well before this bails out defensively.
+  while (timers.size > 0) {
+    fireOnlyTimer();
+    await settle();
+    attempts += 1;
+    assert.ok(attempts <= 25, "the retry chain should have given up by now");
+  }
+
+  assert.equal(requestCount, beforeRequests + attempts, "each attempt above was one failed request");
+  assert.ok(attempts < 25, "the budget, not the defensive cap, should be what stopped this");
+  assert.equal(timers.size, 0, "a permanently failing sync must not keep scheduling itself forever");
+
+  // The budget only stops the sync from re-arming *itself*; a real trigger
+  // (a write, a sign-in, coming back online) can still ask for one, and it is
+  // still attempted -- it just does not schedule a follow-up if it fails too.
+  const beforeRetryTrigger = requestCount;
+  autosync.scheduleSync(0);
+  fireOnlyTimer();
+  await settle();
+  assert.equal(requestCount, beforeRetryTrigger + 1, "a fresh trigger is still attempted after the budget is spent");
+  assert.equal(timers.size, 0, "that attempt failed too, so it still does not chain a retry by itself");
+
+  // Let that fresh trigger actually reach the account: success clears the
+  // retry budget exactly as it already clears the backoff delay.
+  const beforeGets = getCount;
+  const beforePuts = putCount;
+  offline = false;
+  autosync.scheduleSync(0);
+  fireOnlyTimer();
+  await settle();
+  assert.equal(getCount, beforeGets + 1);
+  assert.equal(putCount, beforePuts + 1);
+
+  offline = true;
+  autosync.scheduleSync(0);
+  assert.equal(fireOnlyTimer(), 0);
+  await settle();
+  assert.equal(onlyTimerDelay(), 10_000, "a later outage retries from the first delay, proving the budget was reset too");
+
+  autosync.cancelScheduledSync();
+  offline = false;
 });
