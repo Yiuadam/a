@@ -416,6 +416,19 @@ test("getProfile asks for the profile and the username together, and gives up on
     async (calls) => {
       assert.equal(await supabase.getProfile(USER), null);
       assert.equal(calls.length, 2, "both requests are issued even though one is doomed to be discarded");
+      const profileCall = calls.find((c) => !c.url.includes("usernames"));
+      const usernameCall = calls.find((c) => c.url.includes("usernames"));
+      assert.equal(
+        profileCall.url,
+        `https://project.supabase.test/rest/v1/profiles?id=eq.${USER}` +
+          "&select=display_name,avatar_path,birth_date,email,account_kind,updated_at",
+      );
+      assert.equal(profileCall.headers.apikey, "service-role-key");
+      assert.equal(
+        usernameCall.url,
+        `https://project.supabase.test/rest/v1/usernames?user_id=eq.${USER}&select=username`,
+      );
+      assert.equal(usernameCall.headers.apikey, "service-role-key");
     },
   );
   await withFetch(
@@ -460,6 +473,21 @@ test("getProfile returns null rather than a half-built profile when the body can
     () => new Response("not json", { status: 200 }),
     async () => {
       assert.equal(await supabase.getProfile(USER), null);
+    },
+  ));
+
+test("getProfile survives a username answer that is not an array at all, rather than throwing past its own catch", () =>
+  withFetch(
+    (call) => (call.url.includes("usernames")
+      ? jsonResponse(null)
+      : jsonResponse([{ display_name: "Ada", updated_at: "2026-01-01T00:00:00Z" }])),
+    async () => {
+      // usernames?.[0]?.username must guard every step: a bare `null` answer
+      // (not merely an empty array) still resolves to a normal profile with
+      // no claimed username, rather than an uncaught TypeError.
+      const profile = await supabase.getProfile(USER);
+      assert.equal(profile.username, null);
+      assert.equal(profile.displayName, "Ada");
     },
   ));
 
@@ -632,12 +660,28 @@ test("stripeSubscriptionReplica insists on every required column before trusting
       assert.equal(await supabase.stripeSubscriptionReplica("sub_1"), null, `missing ${key} must fail closed`);
     });
   }
-  await withFetch(() => jsonResponse([full]), async () => {
-    const replica = await supabase.stripeSubscriptionReplica("sub_1");
-    assert.equal(replica.id, "row-1");
-    assert.equal(replica.cancelAtPeriodEnd, false);
-    assert.equal(replica.customerId, null);
-  });
+  await withFetch(
+    // An empty string, not merely a missing customer id: distinguishes "no
+    // content" (still null) from "any string passes, including one with no
+    // characters" (which would leak an empty-but-truthy customerId).
+    () => jsonResponse([{ ...full, external_customer_id: "", cancel_at_period_end: true }]),
+    async (calls) => {
+      const replica = await supabase.stripeSubscriptionReplica("sub_1");
+      assert.equal(replica.id, "row-1");
+      assert.equal(replica.cancelAtPeriodEnd, true);
+      assert.equal(replica.customerId, null);
+      assert.equal(
+        calls[0].url,
+        "https://project.supabase.test/rest/v1/subscriptions?provider=eq.stripe" +
+          "&external_subscription_id=eq.sub_1" +
+          "&select=id,user_id,status,tier,external_customer_id,external_subscription_id," +
+          "external_price_id,current_period_end,cancel_at_period_end,provider_event_at," +
+          "verified_at,raw,created_at,updated_at&limit=1",
+      );
+      assert.equal(calls[0].method, "GET");
+      assert.equal(calls[0].headers.apikey, "service-role-key");
+    },
+  );
   await withFetch(() => jsonResponse({}, 500), async () => {
     assert.equal(await supabase.stripeSubscriptionReplica("sub_1"), null);
   });
@@ -801,6 +845,25 @@ test("promoSubscriptionReplica refuses a bad id and every row missing a required
       assert.equal(await supabase.promoSubscriptionReplica(USER), null, `missing ${key} must fail closed`);
     });
   }
+  await withFetch(
+    // An empty string, not merely `null`, for current_period_end: distinguishes
+    // "no content" (still null on the way out) from "any string, including one
+    // with no characters, passes through".
+    () => jsonResponse([{ ...full, current_period_end: "" }]),
+    async (calls) => {
+      const replica = await supabase.promoSubscriptionReplica(USER);
+      assert.equal(replica.id, "row-1");
+      assert.equal(replica.currentPeriodEnd, null);
+      assert.equal(
+        calls[0].url,
+        `https://project.supabase.test/rest/v1/subscriptions?user_id=eq.${USER}&provider=eq.promo` +
+          "&select=id,user_id,status,tier,current_period_end,raw,verified_at,created_at,updated_at" +
+          "&order=created_at.desc&limit=1",
+      );
+      assert.equal(calls[0].method, "GET");
+      assert.equal(calls[0].headers.apikey, "service-role-key");
+    },
+  );
   await withFetch(() => jsonResponse([full]), async () => {
     const replica = await supabase.promoSubscriptionReplica(USER);
     assert.equal(replica.id, "row-1");
@@ -902,8 +965,19 @@ test("avatarPathPage only ever asks for profiles with a stored avatar, keyset-pa
       calls.length = 0;
       await supabase.avatarPathPage("cursor-id", 10);
       assert.match(calls[0].url, /[?&]id=gt\.cursor-id(&|$)/);
+      assert.equal(calls[0].method, "GET");
+      assert.equal(calls[0].headers.apikey, "service-role-key");
     },
   ));
+
+test("avatarPathPage throws rather than silently returning an empty page on a failed or malformed read", async () => {
+  await withFetch(() => jsonResponse({}, 500), async () => {
+    await assert.rejects(() => supabase.avatarPathPage("", 50), /avatar path page failed with 500/);
+  });
+  await withFetch(() => jsonResponse({ not: "an array" }), async () => {
+    await assert.rejects(() => supabase.avatarPathPage("", 50), /avatar path page response is invalid/);
+  });
+});
 
 test("downloadAvatarBytes refuses any path that does not sit inside the caller's own folder", () =>
   withFetch(

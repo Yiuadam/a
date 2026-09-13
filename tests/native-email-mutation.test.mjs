@@ -10,17 +10,50 @@
   to it, so the exact subject/body/link a mutation could corrupt is asserted
   directly, and every write is checked against the real rows afterwards.
 
-  One reported survivor is not killed here because it is genuinely
-  equivalent: appOrigin()'s own `assertServerOnly(MODULE)` call (line 105).
-  It is a private function reachable only through sendActionEmail(), which
-  is reachable only from resendPendingRegistration(), startNativePassword
-  Registration() and startNativeAccountRecovery() -- and the latter two
-  (the only exported entry points in that chain) already call
-  assertServerOnly(MODULE) as their own first, synchronous statement, before
-  any `await`. So by the time control reaches appOrigin(), either the outer
-  call already threw (if `window` was defined) or `window` is still
-  undefined (nothing in between sets it) -- the inner call can never
-  observe a different `window` than the outer one already did.
+  Several reported survivors are not killed here because they are genuinely
+  equivalent, each for a reason specific to this file:
+
+    - appOrigin()'s own `assertServerOnly(MODULE)` call (line 105). It is a
+      private function reachable only through sendActionEmail(), which is
+      reachable only from resendPendingRegistration(), startNativePassword
+      Registration() and startNativeAccountRecovery() -- and the latter two
+      (the only exported entry points in that chain) already call
+      assertServerOnly(MODULE) as their own first, synchronous statement,
+      before any `await`. So by the time control reaches appOrigin(), either
+      the outer call already threw (if `window` was defined) or `window` is
+      still undefined (nothing in between sets it) -- the inner call can
+      never observe a different `window` than the outer one already did.
+    - parseNativeEmailActionToken's outer length gate, `value.length < 54`
+      and `value.length > 256` (line 80, 4 mutants). The id half must be
+      exactly 36 characters (the UUID regex is fixed-width) and the secret
+      half 32-128 (line 86's own regex), so the only lengths that can ever
+      reach a non-null result are 69-165 -- comfortably inside 54-256 in
+      both directions. Weakening or dropping this gate cannot change the
+      outcome for any input, because the two inner regexes independently
+      enforce a tighter bound.
+    - The dot-position guard, `first < 1 || first !== value.lastIndexOf(".")`
+      (line 82, all 5 mutants). The one input that would otherwise
+      distinguish "no dot found" (first === -1) from "correctly refused" --
+      exploiting how `value.slice(0, -1)` behaves -- needs the whole string
+      to be exactly 37 characters for the sliced id to land back on a valid
+      36-character UUID. But 37 is already refused by the (real, unmutated)
+      length gate above, which requires at least 54. So this guard's only
+      possible failure mode is unreachable in combination with the gate
+      before it, the same way the length gate is unreachable on its own.
+    - `row.action !== action` in consumeNativeEmailAction (line 291). The
+      row was already selected `WHERE ... AND action = ?` bound to this same
+      `action` value two lines above -- any row the query can possibly
+      return already has `row.action === action`, so this equality can never
+      observe anything else. It is a defensive restatement of what the SQL
+      already guaranteed, not a check with its own reachable failure.
+    - `if (!verifier) return false;` in startNativePasswordRegistration
+      (line 200). By this point `password.length` is already guaranteed to
+      be 8-200 (line 188's own gate, checked moments earlier), which is
+      exactly the range hashNativePassword's own guard also accepts --
+      and bcryptjs's hash() (see tests/native-password-mutation.test.mjs's
+      equivalence note on the same library) does not throw for any password
+      *content* in that range. So hashNativePassword cannot return null here
+      for any input that reaches this line.
 */
 import assert from "node:assert/strict";
 import { register } from "node:module";
@@ -107,37 +140,18 @@ test("parseNativeEmailActionToken accepts the ordinary shape and rejects non-str
   assert.notEqual(nativeEmail.parseNativeEmailActionToken(tokenNear165), null);
 });
 
-test("parseNativeEmailActionToken requires exactly one dot, and rejects a dot-free string that would otherwise slice into a valid shape", () => {
+test("parseNativeEmailActionToken requires exactly one dot", () => {
   // `first !== value.lastIndexOf(".")` is what a second dot is refused by.
   assert.equal(
     nativeEmail.parseNativeEmailActionToken(`${UUID_A}.${"A".repeat(32)}.extra`),
     null,
     "a second dot",
   );
-
-  /*
-    `first < 1` (first = value.indexOf(".")) matters only for the "no dot at
-    all" case (first === -1) -- and only because of how negative-index
-    .slice() behaves, not because the id or secret half would otherwise be
-    obviously wrong-shaped. With no dot, id = value.slice(0, -1) (everything
-    but the last character) and secret = value.slice(0) (the whole string,
-    since first + 1 === 0). For most dot-free strings both halves come out
-    the wrong length and fail their own regexes regardless of this check --
-    but a 37-character, dot-free string built as a valid 36-character UUID
-    plus one trailing character defeats that: slice(0, -1) reconstructs
-    exactly the valid UUID, and the whole 37-character string (the UUID's
-    own hyphens are within [A-Za-z0-9_-]) also happens to satisfy the
-    secret's own 32-128 charset-and-length regex. That is the one input
-    where `first < 1` is the sole reason the token is refused -- a `-> false`
-    or whole-condition bypass would accept it.
-  */
-  const noDotButSliceable = `${UUID_A}X`; // 37 characters, not a single "."
-  assert.equal(noDotButSliceable.indexOf("."), -1, "test setup: confirms there really is no dot");
-  assert.equal(nativeEmail.parseNativeEmailActionToken(noDotButSliceable), null);
-
-  // A leading dot (first === 0) is refused too, but for an unrelated reason
-  // that holds regardless of this exact check: slice(0, 0) is "", which can
-  // never satisfy the 36-character UUID regex.
+  // No dot at all, and a leading dot, are both refused too -- see the
+  // module-level equivalence note above for why line 82's own mutants
+  // cannot be distinguished from these (the length gate ahead of it
+  // already forecloses the one input that would).
+  assert.equal(nativeEmail.parseNativeEmailActionToken(`${UUID_A}${"A".repeat(32)}`), null, "no dot at all");
   assert.equal(nativeEmail.parseNativeEmailActionToken(`.${"a".repeat(68)}`), null, "leading dot");
 });
 
@@ -175,6 +189,25 @@ test("parseNativeEmailActionToken's id half is a strict UUID (version 1-5, varia
   assert.equal(nativeEmail.parseNativeEmailActionToken(`not-a-uuid-at-all-but-69-characters-long-of-content.${secret32}`), null);
 });
 
+test("parseNativeEmailActionToken's id regex is anchored to the whole id half, not a substring of it", () => {
+  const secret32 = "A".repeat(32);
+  // Dropping the leading `^` would let the regex match starting after
+  // leading junk; dropping the trailing `$` would let it match while
+  // ignoring trailing junk. Both are constructed so the id half, taken as a
+  // whole 37-character string, is itself well past the 32-character secret
+  // floor and well short of the 128 ceiling -- only the anchor decides these.
+  assert.equal(
+    nativeEmail.parseNativeEmailActionToken(`X${UUID_A}.${secret32}`),
+    null,
+    "leading junk before an otherwise-valid uuid must not be tolerated",
+  );
+  assert.equal(
+    nativeEmail.parseNativeEmailActionToken(`${UUID_A}X.${secret32}`),
+    null,
+    "trailing junk after an otherwise-valid uuid must not be tolerated",
+  );
+});
+
 test("parseNativeEmailActionToken's secret half is 32-128 url-safe characters", () => {
   const uuid = UUID_A;
   assert.equal(nativeEmail.parseNativeEmailActionToken(`${uuid}.${"A".repeat(31)}`), null, "31: one short");
@@ -182,6 +215,43 @@ test("parseNativeEmailActionToken's secret half is 32-128 url-safe characters", 
   assert.notEqual(nativeEmail.parseNativeEmailActionToken(`${uuid}.${"A".repeat(128)}`), null, "128: the ceiling");
   assert.equal(nativeEmail.parseNativeEmailActionToken(`${uuid}.${"A".repeat(129)}`), null, "129: one over");
   assert.equal(nativeEmail.parseNativeEmailActionToken(`${uuid}.${"A".repeat(32 - 1)}+`), null, "a '+' is not url-safe");
+});
+
+/* ---------------------------------------------------------------------- */
+/* isLiveUser and sendActionEmail's own failure mode                       */
+/* ---------------------------------------------------------------------- */
+
+test("isLiveUser's own deleted_at check rejects a soft-deleted row even if a caller's SQL ever stopped filtering it", async () => {
+  // Every real query in this file already filters `deleted_at IS NULL` at
+  // the SQL level, so a soft-deleted row never actually reaches isLiveUser()
+  // through them -- this is exactly why the check is defence in depth. A
+  // fake D1 stands in here so a row with deleted_at set can reach it anyway,
+  // the same way a future regression that dropped the SQL-level filter would.
+  const user = {
+    id: UUID_A, email: "soft-deleted@example.test", created_at: "2026-01-01T00:00:00.000Z", deleted_at: "2026-02-01T00:00:00.000Z", status: "active",
+  };
+  const sender = fakeEmailBinding();
+  const bindings = {
+    db: {
+      prepare(sql) {
+        if (/FROM app_users/.test(sql)) return { bind: () => ({ async first() { return user; } }) };
+        return { bind: () => ({}) };
+      },
+    },
+    email: sender,
+  };
+  await withEnv(APP_ORIGIN_ENV, async () => {
+    assert.equal(await nativeEmail.startNativeAccountRecovery(user.email, bindings), true);
+    assert.equal(sender.sent.length, 0, "a soft-deleted row must never receive a recovery email, regardless of what the SQL filter would have done");
+  });
+});
+
+test("sendActionEmail's 'unavailable' failure surfaces with its own exact message when there is no app origin configured", async () => {
+  const { bindings } = fixture(); // no APP_ORIGIN_ENV: GOOGLE_OAUTH_APP_ORIGIN is unset here
+  await assert.rejects(
+    () => nativeEmail.startNativePasswordRegistration("new-person@example.test", "a long enough password", bindings),
+    /Email sending is unavailable/,
+  );
 });
 
 /* ---------------------------------------------------------------------- */
@@ -205,6 +275,26 @@ test("startNativePasswordRegistration refuses malformed input before ever touchi
   }
   // Sanity: the floor itself (8 characters) and the ceiling (200) are allowed
   // through to D1 -- proven by the very next test actually completing.
+});
+
+test("startNativePasswordRegistration's boundary values (254-char email, 8- and 200-char password) are let through to D1, not refused", async () => {
+  // The poisoned bindings throw the moment anything queries D1 -- a `>`
+  // vs `>=` (or `<` vs `<=`) mutant at exactly these lengths would refuse
+  // the input outright instead, which resolves to `false`, not a rejection.
+  const poisoned = { db: { prepare() { throw new Error("boundary value must reach D1, not be refused first"); } } };
+  const email254 = `${"a".repeat(241)}@example.test`; // exactly 254 characters
+  assert.equal(email254.length, 254);
+  for (const [email, password] of [
+    [email254, "a long enough password"],
+    ["person@example.test", "8-chars!"],
+    ["person@example.test", "p".repeat(200)],
+  ]) {
+    await assert.rejects(
+      () => nativeEmail.startNativePasswordRegistration(email, password, poisoned),
+      /boundary value must reach D1/,
+      JSON.stringify({ email, password }),
+    );
+  }
 });
 
 test("startNativePasswordRegistration writes a live confirmation email with the exact link shape and copy", async () => {
@@ -326,6 +416,51 @@ test("startNativePasswordRegistration recovers from a racing duplicate insert by
   });
 });
 
+test("startNativePasswordRegistration returns false (not true) if the account_users/credentials batch itself reports a partial failure", async () => {
+  // A real D1 batch is atomic (all rows share one transaction), so getting a
+  // genuine "one write succeeded, one failed" result needs a fake db --
+  // this is exactly the shape `writes.some((write) => !write.success)`
+  // exists to catch, distinct from the batch throwing outright (the race
+  // path, covered above).
+  const bindings = {
+    db: {
+      prepare(sql) {
+        if (/FROM app_users/.test(sql)) return { bind: () => ({ async first() { return null; } }) }; // no existing row
+        return { bind: () => ({}) };
+      },
+      async batch(statements) {
+        assert.equal(statements.length, 2);
+        return [{ success: true }, { success: false }];
+      },
+    },
+    email: fakeEmailBinding(),
+  };
+  const result = await nativeEmail.startNativePasswordRegistration("new@example.test", "a long enough password", bindings);
+  assert.equal(result, false);
+});
+
+test("startNativePasswordRegistration returns false when a raced insert's re-read finds no row at all", async () => {
+  // The catch branch's re-read can come back empty if the row that won the
+  // race was itself removed (or never really existed) by the time this
+  // request re-reads -- `if (!raced) return false;` is what answers that
+  // case; a fake db forces the INSERT batch to throw and the re-read SELECT
+  // to find nothing, which a real D1 fixture cannot reliably reproduce.
+  const bindings = {
+    db: {
+      prepare(sql) {
+        if (/FROM app_users/.test(sql)) return { bind: () => ({ async first() { return null; } }) };
+        return { bind: () => ({}) };
+      },
+      async batch() {
+        throw new Error("simulated unique-constraint collision");
+      },
+    },
+    email: fakeEmailBinding(),
+  };
+  const result = await nativeEmail.startNativePasswordRegistration("raced-then-gone@example.test", "a long enough password", bindings);
+  assert.equal(result, false);
+});
+
 /* ---------------------------------------------------------------------- */
 /* Recovery                                                                 */
 /* ---------------------------------------------------------------------- */
@@ -334,6 +469,15 @@ test("startNativeAccountRecovery refuses malformed input before ever touching D1
   const poisoned = { db: { prepare() { throw new Error("must not query D1"); } } };
   assert.equal(await nativeEmail.startNativeAccountRecovery("", poisoned), true);
   assert.equal(await nativeEmail.startNativeAccountRecovery("a".repeat(255), poisoned), true);
+});
+
+test("startNativeAccountRecovery's email-length boundary is strictly greater-than 254, not >=254", async () => {
+  // A `>` -> `>=` mutant would refuse this exact length outright (resolving
+  // to `true` with nothing queried); real code must reach D1 for it.
+  const poisoned = { db: { prepare() { throw new Error("a 254-character email must reach D1, not be refused first"); } } };
+  const email254 = `${"a".repeat(241)}@example.test`;
+  assert.equal(email254.length, 254);
+  await assert.rejects(() => nativeEmail.startNativeAccountRecovery(email254, poisoned), /must reach D1/);
 });
 
 test("startNativeAccountRecovery sends nothing for an unknown address, but still returns true (no account enumeration)", async () => {
@@ -483,6 +627,77 @@ test("consumeNativeEmailAction returns null if the account was deleted between i
   assert.equal(await nativeEmail.consumeNativeEmailAction(token, "confirm", "secret", bindings), null);
 });
 
+/**
+ * A real D1 fixture (real user, real credential, real issued token) whose
+ * `batch()` is patched to return a caller-supplied result instead of
+ * actually running the two UPDATEs -- so the underlying rows stay exactly
+ * as issueRealToken and insertUser/insertCredential left them (in
+ * particular, the user stays live), and only what consumeNativeEmailAction's
+ * own post-batch check decides is under test.
+ */
+async function fixtureWithPatchedBatch(action, batchResult) {
+  const { database, bindings } = fixture();
+  await insertUser(database, { id: UUID_A, email: "patched@example.test" });
+  insertCredential(database, { userId: UUID_A, status: "pending" });
+  const token = await issueRealToken(bindings, UUID_A, action);
+  const patched = {
+    ...bindings,
+    db: {
+      ...bindings.db,
+      async batch(statements) {
+        assert.equal(statements.length, 2);
+        return batchResult;
+      },
+    },
+  };
+  return { database, bindings: patched, token };
+}
+
+test("consumeNativeEmailAction returns null if the FIRST write reports the wrong row count, even though nothing else looks wrong", async () => {
+  const { bindings, token } = await fixtureWithPatchedBatch("confirm_registration", [
+    { success: true, meta: { changes: 0 } },
+    { success: true, meta: { changes: 1 } },
+  ]);
+  // Also the BlockStatement case: the user this token names is still live
+  // and untouched (the patched batch never really ran), so a mutant that
+  // empties this if-body would fall through and return a real session
+  // instead of null.
+  assert.equal(await nativeEmail.consumeNativeEmailAction(token, "confirm", "secret", bindings), null);
+});
+
+test("consumeNativeEmailAction returns null if the SECOND write reports the wrong row count", async () => {
+  const { bindings, token } = await fixtureWithPatchedBatch("confirm_registration", [
+    { success: true, meta: { changes: 1 } },
+    { success: true, meta: { changes: 0 } },
+  ]);
+  assert.equal(await nativeEmail.consumeNativeEmailAction(token, "confirm", "secret", bindings), null);
+});
+
+test("consumeNativeEmailAction returns null if either write reports failure, even when its own row count looks fine", async () => {
+  // success: false on the first write, but with a (deliberately
+  // inconsistent) changes: 1 -- isolates detecting the failure itself
+  // (`.some`, not `.every` or an arrow function that always returns
+  // falsy) from the meta.changes checks beside it, and the two
+  // `(A || B) [op] C` groupings from each other.
+  const { bindings, token } = await fixtureWithPatchedBatch("confirm_registration", [
+    { success: false, meta: { changes: 1 } },
+    { success: true, meta: { changes: 1 } },
+  ]);
+  assert.equal(await nativeEmail.consumeNativeEmailAction(token, "confirm", "secret", bindings), null);
+});
+
+test("consumeNativeEmailAction handles a batch result shorter than expected without throwing a different error", async () => {
+  // An empty (or one-element) batch result leaves writes[0] (or writes[1])
+  // undefined -- the optional chaining is what turns that into a safe
+  // `undefined !== 1` (true, correctly refused) instead of a crash reading
+  // `.meta` off undefined.
+  const empty = await fixtureWithPatchedBatch("confirm_registration", []);
+  assert.equal(await nativeEmail.consumeNativeEmailAction(empty.token, "confirm", "secret", empty.bindings), null);
+
+  const oneOnly = await fixtureWithPatchedBatch("recover_access", [{ success: true, meta: { changes: 1 } }]);
+  assert.equal(await nativeEmail.consumeNativeEmailAction(oneOnly.token, "recover", "secret", oneOnly.bindings), null);
+});
+
 test("issueAction throws if its D1 batch does not report exactly one new token row", async () => {
   // A fake bindings object stands in here (rather than real D1) because a
   // real INSERT either succeeds with changes=1 or throws on a constraint --
@@ -507,6 +722,58 @@ test("issueAction throws if its D1 batch does not report exactly one new token r
       async batch(statements) {
         assert.equal(statements.length, 2);
         return [{ success: true, meta: { changes: 1 } }, { success: true, meta: { changes: 0 } }];
+      },
+    },
+    email: fakeEmailBinding(),
+  };
+  await assert.rejects(
+    () => nativeEmail.startNativeAccountRecovery(user.email, bindings),
+    /native email action could not be stored/,
+  );
+});
+
+test("issueAction throws (its own error, not a raw TypeError) if the batch result is shorter than expected", async () => {
+  // A batch result with only one element leaves `writes[1]` undefined --
+  // the optional chaining is what turns that into a safe `undefined !== 1`
+  // (true, correctly treated as failure) instead of a crash reading `.meta`
+  // off undefined, which would reject with a different, uncontrolled error.
+  const user = {
+    id: UUID_A, email: "active-short-batch@example.test", created_at: "2026-01-01T00:00:00.000Z", deleted_at: null, status: "active",
+  };
+  const bindings = {
+    db: {
+      prepare(sql) {
+        if (/FROM app_users/.test(sql)) return { bind: () => ({ async first() { return user; } }) };
+        return { bind: () => ({}) };
+      },
+      async batch() { return [{ success: true, meta: { changes: 1 } }]; },
+    },
+    email: fakeEmailBinding(),
+  };
+  await assert.rejects(
+    () => nativeEmail.startNativeAccountRecovery(user.email, bindings),
+    /native email action could not be stored/,
+  );
+});
+
+test("issueAction throws if the FIRST batch statement fails, even though the second one alone would look fine", async () => {
+  // Isolates `writes.some((write) => !write.success)` from the meta.changes
+  // check next to it: the second write reports a clean success with
+  // changes=1, so only correctly detecting the first write's failure (not
+  // `.every`, and not an arrow function that always returns falsy) explains
+  // a throw here.
+  const user = {
+    id: UUID_B, email: "active-two@example.test", created_at: "2026-01-01T00:00:00.000Z", deleted_at: null, status: "active",
+  };
+  const bindings = {
+    db: {
+      prepare(sql) {
+        if (/FROM app_users/.test(sql)) return { bind: () => ({ async first() { return user; } }) };
+        return { bind: () => ({}) };
+      },
+      async batch(statements) {
+        assert.equal(statements.length, 2);
+        return [{ success: false, meta: { changes: 0 } }, { success: true, meta: { changes: 1 } }];
       },
     },
     email: fakeEmailBinding(),
