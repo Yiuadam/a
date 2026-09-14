@@ -49,6 +49,40 @@ const nextConfig: NextConfig = isMobile
       // terminal without rendering that badge on top of BandUp's interface.
       devIndicators: false,
       /*
+        Off, not the framework default, because @opennextjs/aws's cache
+        interceptor cannot serve it correctly yet.
+
+        The client router's automatic prefetch sends a small probe first --
+        `Next-Router-Segment-Prefetch: /_tree` -- expecting back a few hundred
+        bytes telling it whether a shell exists. With prefetchInlining on (the
+        16.3 default), the interceptor's own segment-aware branch is gated
+        behind `!experimental.prefetchInlining` (cacheInterceptor.js in
+        @opennextjs/aws, confirmed present on that package's main branch too,
+        so this is not a version lag to wait out) and falls through to
+        answering with the full page payload instead -- 15KB where the router
+        expected ~500 bytes. The router cannot parse that as the response it
+        asked for, so it retries immediately, with no backoff: one idle tab
+        sitting on a page with a few links in view issued something on the
+        order of 500 requests a SECOND against this Worker, confirmed by
+        curling both response shapes and finding them byte-identical. That is
+        how a single stray browser tab exhausts a Workers Free account's
+        entire 100,000-requests-a-day allowance in minutes, and it has now
+        taken bandup.life down twice.
+
+        Turning inlining off routes every segment prefetch back through the
+        interceptor's already-correct, already-cached branch -- confirmed
+        against a local build: zero further requests from an idle tab where
+        there were thousands. The cost is the one inlining exists to avoid --
+        each prefetched segment is its own small request instead of several
+        bundled into one -- which is a straightforward trade against a bug
+        that can take the whole site offline. If @opennextjs/aws fixes the
+        interceptor's prefetchInlining guard, or Next changes how the segment
+        cache asks for a tree, revisit this.
+      */
+      experimental: {
+        prefetchInlining: false,
+      },
+      /*
         Keep identity, cookies and cached documents on one public origin.
 
         Google Identity Services authorises an exact JavaScript origin, so a
