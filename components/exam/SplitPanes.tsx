@@ -60,17 +60,33 @@ export default function SplitPanes({
   right,
   initial = 55,
   className = "",
+  resetScrollKey,
 }: {
   left: ReactNode;
   right: ReactNode;
   /** Percentage of the width given to the left pane. */
   initial?: number;
   className?: string;
+  /**
+   * Change this (e.g. from `submitted`/`grade` becoming truthy) to scroll
+   * both panes back to their own top. Each pane scrolls independently by
+   * design — the whole point of this layout — so submitting a paper leaves
+   * both wherever the last answer or the last paragraph read was, with the
+   * band and the review nowhere either pane happens to be showing.
+   */
+  resetScrollKey?: unknown;
 }) {
   const [split, setSplit] = useState(initial);
   const frame = useRef<HTMLDivElement | null>(null);
+  const leftPane = useRef<HTMLDivElement | null>(null);
+  const rightPane = useRef<HTMLDivElement | null>(null);
   const draggingPointer = useRef<number | null>(null);
   const previousUserSelect = useRef("");
+
+  useEffect(() => {
+    leftPane.current?.scrollTo({ top: 0 });
+    rightPane.current?.scrollTo({ top: 0 });
+  }, [resetScrollKey]);
 
   const moveTo = useCallback((clientX: number) => {
     const box = frame.current?.getBoundingClientRect();
@@ -130,7 +146,11 @@ export default function SplitPanes({
 
   return (
     <div ref={frame} className={`flex min-h-0 items-stretch ${className}`}>
-      <div className="exam-pane min-w-0 overflow-y-auto rounded-2xl p-3" style={{ width: `${split}%` }}>
+      <div
+        ref={leftPane}
+        className="exam-pane min-w-0 overflow-y-auto rounded-2xl p-3"
+        style={{ width: `${split}%` }}
+      >
         {left}
       </div>
 
@@ -164,7 +184,7 @@ export default function SplitPanes({
         <div className="absolute left-1/2 top-1/2 h-8 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color:var(--exam-line)] transition-colors group-hover:bg-[color:var(--exam-fg)]" />
       </div>
 
-      <div className="exam-pane min-w-0 flex-1 overflow-y-auto rounded-2xl p-3">{right}</div>
+      <div ref={rightPane} className="exam-pane min-w-0 flex-1 overflow-y-auto rounded-2xl p-3">{right}</div>
     </div>
   );
 }
