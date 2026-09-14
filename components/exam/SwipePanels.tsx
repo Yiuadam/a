@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties, type ReactNode, type UIEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type UIEvent } from "react";
 
 export type SwipePanel = {
   label: string;
@@ -26,12 +26,28 @@ export type SwipePanel = {
  * another one; the control above is what they actually press. From `sm` up the
  * old proportions stand, because there the width was never the constraint.
  */
-export default function SwipePanels({ panels }: { panels: SwipePanel[] }) {
+export default function SwipePanels({
+  panels,
+  resetScrollKey,
+}: {
+  panels: SwipePanel[];
+  /**
+   * Change this (e.g. from `submitted`/`grade` becoming truthy) to scroll
+   * every panel back to its own top. Each panel scrolls independently, so
+   * finishing a paper otherwise leaves whichever one holds the questions
+   * wherever the last answer was, with nothing pointing back at the score.
+   */
+  resetScrollKey?: unknown;
+}) {
   const track = useRef<HTMLDivElement | null>(null);
   const panelRefs = useRef<Array<HTMLElement | null>>([]);
   const [active, setActive] = useState(0);
   const [preview, setPreview] = useState<number | null>(null);
   const visible = preview ?? active;
+
+  useEffect(() => {
+    for (const panel of panelRefs.current) panel?.scrollTo({ top: 0 });
+  }, [resetScrollKey]);
 
   const show = (index: number) => {
     setActive(index);
